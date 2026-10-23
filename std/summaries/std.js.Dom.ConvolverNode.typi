@@ -25,11 +25,11 @@ pub opaque type ConvolverNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ConvolverNode/buffer)
  */
-pub (value: ConvolverNode) buffer(): Option[AudioBuffer].
+pub (receiver: ConvolverNode) buffer(): std.core.Option.Option[std.js.Dom.AudioBuffer.AudioBuffer].
 
 /**
  * The `normalize` property of the ConvolverNode interface is a boolean that controls whether the impulse response from the buffer will be scaled by an equal-power normalization when the `buffer` attribute is set, or not.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ConvolverNode/normalize)
  */
-pub (value: ConvolverNode) normalize(): std.core.Bool.
+pub (receiver: ConvolverNode) normalize(): Bool.

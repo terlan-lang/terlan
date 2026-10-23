@@ -14,7 +14,7 @@ module std.js.Dom.PaymentMethodChangeEventInitTest.
 
 import type std.js.Dom.PaymentMethodChangeEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub method_name_typechecks(receiver: PaymentMethodChangeEventInit): std.js.String.JsString ->
+pub method_name_typechecks(
+    receiver: PaymentMethodChangeEventInit,
+): std.core.Option.Option[std.js.String.JsString] ->
     receiver.method_name().

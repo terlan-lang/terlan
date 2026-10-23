@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLScriptElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type HTMLScriptElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/async)
  */
-pub (value: HTMLScriptElement) async(): Bool ->
+pub (receiver: HTMLScriptElement) async(): Bool ->
     native.
 
 /**
@@ -35,13 +37,13 @@ pub (value: HTMLScriptElement) async(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/blocking)
  */
-pub (value: HTMLScriptElement) blocking(): DOMTokenList ->
+pub (receiver: HTMLScriptElement) blocking(): std.js.Dom.DOMTokenList.DOMTokenList ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLScriptElement) charset(): JsString ->
+pub (receiver: HTMLScriptElement) charset(): JsString ->
     native.
 
 /**
@@ -49,7 +51,7 @@ pub (value: HTMLScriptElement) charset(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/crossOrigin)
  */
-pub (value: HTMLScriptElement) cross_origin(): Option[JsString] ->
+pub (receiver: HTMLScriptElement) cross_origin(): Option[JsString] ->
     native.
 
 /**
@@ -57,19 +59,19 @@ pub (value: HTMLScriptElement) cross_origin(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/defer)
  */
-pub (value: HTMLScriptElement) defer(): Bool ->
+pub (receiver: HTMLScriptElement) defer(): Bool ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLScriptElement) event(): JsString ->
+pub (receiver: HTMLScriptElement) event(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLScriptElement) html_for(): JsString ->
+pub (receiver: HTMLScriptElement) html_for(): JsString ->
     native.
 
 /**
@@ -77,7 +79,7 @@ pub (value: HTMLScriptElement) html_for(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/integrity)
  */
-pub (value: HTMLScriptElement) integrity(): JsString ->
+pub (receiver: HTMLScriptElement) integrity(): JsString ->
     native.
 
 /**
@@ -85,7 +87,7 @@ pub (value: HTMLScriptElement) integrity(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/noModule)
  */
-pub (value: HTMLScriptElement) no_module(): Bool ->
+pub (receiver: HTMLScriptElement) no_module(): Bool ->
     native.
 
 /**
@@ -93,7 +95,7 @@ pub (value: HTMLScriptElement) no_module(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/referrerPolicy)
  */
-pub (value: HTMLScriptElement) referrer_policy(): JsString ->
+pub (receiver: HTMLScriptElement) referrer_policy(): JsString ->
     native.
 
 /**
@@ -101,7 +103,7 @@ pub (value: HTMLScriptElement) referrer_policy(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/src)
  */
-pub (value: HTMLScriptElement) src(): JsString ->
+pub (receiver: HTMLScriptElement) src(): JsString ->
     native.
 
 /**
@@ -109,7 +111,7 @@ pub (value: HTMLScriptElement) src(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/text)
  */
-pub (value: HTMLScriptElement) text(): JsString ->
+pub (receiver: HTMLScriptElement) text(): JsString ->
     native.
 
 /**
@@ -117,19 +119,19 @@ pub (value: HTMLScriptElement) text(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/type)
  */
-pub (value: HTMLScriptElement) type_(): JsString ->
+pub (receiver: HTMLScriptElement) type_(): JsString ->
     native.
 
-pub (value: HTMLScriptElement) add_event_listener(
+pub (receiver: HTMLScriptElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLScriptElement) remove_event_listener(
+pub (receiver: HTMLScriptElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

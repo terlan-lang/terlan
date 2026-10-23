@@ -12,10 +12,12 @@
  */
 module std.js.Dom.KeyframeAnimationOptions.
 
+import type std.core.Option.{Option}.
+
 pub opaque type KeyframeAnimationOptions.
 
-pub (value: KeyframeAnimationOptions) id(): std.js.String.JsString ->
+pub (receiver: KeyframeAnimationOptions) id(): Option[std.js.String.JsString] ->
     native.
 
-pub (value: KeyframeAnimationOptions) timeline(): Option[AnimationTimeline] ->
+pub (receiver: KeyframeAnimationOptions) timeline(): Option[std.js.Dom.AnimationTimeline.AnimationTimeline] ->
     native.

@@ -13,8 +13,3 @@
 module std.js.Dom.FullscreenOptionsTest.
 
 import type std.js.Dom.FullscreenOptions.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub navigation_ui_typechecks(receiver: FullscreenOptions): FullscreenNavigationUI ->
-    receiver.navigation_ui().

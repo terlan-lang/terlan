@@ -12,12 +12,13 @@
  */
 module std.js.Dom.DelayOptions.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type DelayOptions.
 
-pub (value: DelayOptions) delay_time(): JsNumber ->
+pub (receiver: DelayOptions) delay_time(): Option[JsNumber] ->
     native.
 
-pub (value: DelayOptions) max_delay_time(): JsNumber ->
+pub (receiver: DelayOptions) max_delay_time(): Option[JsNumber] ->
     native.

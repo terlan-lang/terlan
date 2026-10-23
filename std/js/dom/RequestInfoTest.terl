@@ -13,5 +13,3 @@
 module std.js.Dom.RequestInfoTest.
 
 import type std.js.Dom.RequestInfo.
-
-pub generated_binding_surface_contract(): Bool -> true.

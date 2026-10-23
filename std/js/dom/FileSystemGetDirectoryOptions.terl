@@ -14,5 +14,5 @@ module std.js.Dom.FileSystemGetDirectoryOptions.
 
 pub opaque type FileSystemGetDirectoryOptions.
 
-pub (value: FileSystemGetDirectoryOptions) create(): std.core.Bool ->
+pub (receiver: FileSystemGetDirectoryOptions) create(): std.core.Option.Option[Bool] ->
     native.

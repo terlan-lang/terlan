@@ -12,9 +12,8 @@
  */
 module std.js.Dom.CSSTranslateTest.
 
+import type std.js.Dom.CSSNumericValue.{CSSNumericValue}.
 import type std.js.Dom.CSSTranslate.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub x_typechecks(receiver: CSSTranslate): CSSNumericValue ->
     receiver.x().

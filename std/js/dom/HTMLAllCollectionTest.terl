@@ -12,17 +12,18 @@
  */
 module std.js.Dom.HTMLAllCollectionTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.Element.{Element}.
 import type std.js.Dom.HTMLAllCollection.
+import type std.js.Dom.HTMLCollection.{HTMLCollection}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub length_typechecks(receiver: HTMLAllCollection): std.js.Number.JsNumber ->
     receiver.length().
 
 pub item_typechecks(
     receiver: HTMLAllCollection,
-    name_or_index: JsString,
+    name_or_index: Option[JsString],
 ): Option[Element | HTMLCollection] ->
     receiver.item(name_or_index).
 

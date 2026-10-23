@@ -12,10 +12,12 @@
  */
 module std.js.Dom.AuthenticationExtensionsPRFValues.
 
+import type std.js.Dom.BufferSource.{BufferSource}.
+
 pub opaque type AuthenticationExtensionsPRFValues.
 
-pub (value: AuthenticationExtensionsPRFValues) first(): BufferSource ->
+pub (receiver: AuthenticationExtensionsPRFValues) first(): BufferSource ->
     native.
 
-pub (value: AuthenticationExtensionsPRFValues) second(): BufferSource ->
+pub (receiver: AuthenticationExtensionsPRFValues) second(): std.core.Option.Option[BufferSource] ->
     native.

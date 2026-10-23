@@ -12,6 +12,7 @@
  */
 module std.js.Dom.AbstractRange.
 
+import type std.js.Dom.Node.{Node}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -26,7 +27,7 @@ pub opaque type AbstractRange.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/collapsed)
  */
-pub (value: AbstractRange) collapsed(): std.core.Bool ->
+pub (receiver: AbstractRange) collapsed(): Bool ->
     native.
 
 /**
@@ -34,7 +35,7 @@ pub (value: AbstractRange) collapsed(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/endContainer)
  */
-pub (value: AbstractRange) end_container(): Node ->
+pub (receiver: AbstractRange) end_container(): Node ->
     native.
 
 /**
@@ -42,7 +43,7 @@ pub (value: AbstractRange) end_container(): Node ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/endOffset)
  */
-pub (value: AbstractRange) end_offset(): JsNumber ->
+pub (receiver: AbstractRange) end_offset(): JsNumber ->
     native.
 
 /**
@@ -50,7 +51,7 @@ pub (value: AbstractRange) end_offset(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/startContainer)
  */
-pub (value: AbstractRange) start_container(): Node ->
+pub (receiver: AbstractRange) start_container(): Node ->
     native.
 
 /**
@@ -58,5 +59,5 @@ pub (value: AbstractRange) start_container(): Node ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/startOffset)
  */
-pub (value: AbstractRange) start_offset(): JsNumber ->
+pub (receiver: AbstractRange) start_offset(): JsNumber ->
     native.

@@ -18,19 +18,19 @@ pub opaque type KeyboardEventInit.
 /**
  * @deprecated
  */
-pub (value: KeyboardEventInit) char_code(): std.js.Number.JsNumber.
+pub (receiver: KeyboardEventInit) char_code(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: KeyboardEventInit) code(): std.js.String.JsString.
+pub (receiver: KeyboardEventInit) code(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: KeyboardEventInit) is_composing(): std.core.Bool.
+pub (receiver: KeyboardEventInit) is_composing(): std.core.Option.Option[Bool].
 
-pub (value: KeyboardEventInit) key(): std.js.String.JsString.
+pub (receiver: KeyboardEventInit) key(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * @deprecated
  */
-pub (value: KeyboardEventInit) key_code(): std.js.Number.JsNumber.
+pub (receiver: KeyboardEventInit) key_code(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: KeyboardEventInit) location(): std.js.Number.JsNumber.
+pub (receiver: KeyboardEventInit) location(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: KeyboardEventInit) repeat(): std.core.Bool.
+pub (receiver: KeyboardEventInit) repeat(): std.core.Option.Option[Bool].

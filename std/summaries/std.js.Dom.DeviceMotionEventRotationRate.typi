@@ -26,18 +26,18 @@ pub opaque type DeviceMotionEventRotationRate.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventRotationRate/alpha)
  */
-pub (value: DeviceMotionEventRotationRate) alpha(): Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventRotationRate) alpha(): std.core.Option.Option[std.js.Number.JsNumber].
 
 /**
  * The **`beta`** read-only property of the DeviceMotionEventRotationRate interface indicates the rate of rotation around the X axis, in degrees per second.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventRotationRate/beta)
  */
-pub (value: DeviceMotionEventRotationRate) beta(): Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventRotationRate) beta(): std.core.Option.Option[std.js.Number.JsNumber].
 
 /**
  * The **`gamma`** read-only property of the DeviceMotionEventRotationRate interface indicates the rate of rotation around the Y axis, in degrees per second.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventRotationRate/gamma)
  */
-pub (value: DeviceMotionEventRotationRate) gamma(): Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventRotationRate) gamma(): std.core.Option.Option[std.js.Number.JsNumber].

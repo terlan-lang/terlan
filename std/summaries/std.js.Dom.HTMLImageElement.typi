@@ -26,14 +26,14 @@ pub opaque type HTMLImageElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/align)
  */
-pub (value: HTMLImageElement) align(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) align(): std.js.String.JsString.
 
 /**
  * The HTMLImageElement property **`alt`** provides fallback (alternate) text to display when the image specified by the img element is not loaded.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/alt)
  */
-pub (value: HTMLImageElement) alt(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) alt(): std.js.String.JsString.
 
 /**
  * The obsolete HTMLImageElement property **`border`** specifies the number of pixels thick the border surrounding the image should be.
@@ -41,35 +41,35 @@ pub (value: HTMLImageElement) alt(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/border)
  */
-pub (value: HTMLImageElement) border(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) border(): std.js.String.JsString.
 
 /**
  * The read-only HTMLImageElement interface's **`complete`** attribute is a Boolean value which indicates whether or not the image has completely loaded.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/complete)
  */
-pub (value: HTMLImageElement) complete(): std.core.Bool.
+pub (receiver: HTMLImageElement) complete(): Bool.
 
 /**
  * The HTMLImageElement interface's **`crossOrigin`** attribute is a string which specifies the Cross-Origin Resource Sharing (CORS) setting to use when retrieving the image.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/crossOrigin)
  */
-pub (value: HTMLImageElement) cross_origin(): Option[std.js.String.JsString].
+pub (receiver: HTMLImageElement) cross_origin(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The read-only HTMLImageElement property **`currentSrc`** indicates the URL of the image which is currently presented in the img element it represents.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/currentSrc)
  */
-pub (value: HTMLImageElement) current_src(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) current_src(): std.js.String.JsString.
 
 /**
  * The **`height`** property of the drawn, in CSS pixel if the image is being drawn or rendered to any visual medium such as the screen or a printer; otherwise, it's the natural, pixel density corrected height of the image.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/height)
  */
-pub (value: HTMLImageElement) height(): std.js.Number.JsNumber.
+pub (receiver: HTMLImageElement) height(): std.js.Number.JsNumber.
 
 /**
  * The _obsolete_ **`hspace`** property of the space to leave empty on the left and right sides of the img element when laying out the page.
@@ -77,14 +77,14 @@ pub (value: HTMLImageElement) height(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/hspace)
  */
-pub (value: HTMLImageElement) hspace(): std.js.Number.JsNumber.
+pub (receiver: HTMLImageElement) hspace(): std.js.Number.JsNumber.
 
 /**
  * The HTMLImageElement property **`isMap`** is a Boolean value which indicates that the image is to be used by a server-side image map.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/isMap)
  */
-pub (value: HTMLImageElement) is_map(): std.core.Bool.
+pub (receiver: HTMLImageElement) is_map(): Bool.
 
 /**
  * The _deprecated_ property **`longDesc`** on the HTMLImageElement interface specifies the URL of a text or HTML file which contains a long-form description of the image.
@@ -92,12 +92,12 @@ pub (value: HTMLImageElement) is_map(): std.core.Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/longDesc)
  */
-pub (value: HTMLImageElement) long_desc(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) long_desc(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLImageElement) lowsrc(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) lowsrc(): std.js.String.JsString.
 
 /**
  * The HTMLImageElement interface's _deprecated_ **`name`** property specifies a name for the element.
@@ -105,56 +105,56 @@ pub (value: HTMLImageElement) lowsrc(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/name)
  */
-pub (value: HTMLImageElement) name(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) name(): std.js.String.JsString.
 
 /**
  * The HTMLImageElement interface's **`naturalHeight`** property is a read-only value which returns the intrinsic (natural), density-corrected height of the image in This is the height the image is if drawn with nothing constraining its height; if you don't specify a height for the image, or place the image inside a container that either limits or expressly specifies the image height, it will be rendered this tall.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/naturalHeight)
  */
-pub (value: HTMLImageElement) natural_height(): std.js.Number.JsNumber.
+pub (receiver: HTMLImageElement) natural_height(): std.js.Number.JsNumber.
 
 /**
  * The HTMLImageElement interface's read-only **`naturalWidth`** property returns the intrinsic (natural), density-corrected width of the image in CSS pixel.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/naturalWidth)
  */
-pub (value: HTMLImageElement) natural_width(): std.js.Number.JsNumber.
+pub (receiver: HTMLImageElement) natural_width(): std.js.Number.JsNumber.
 
 /**
  * The **`HTMLImageElement.referrerPolicy`** property reflects the HTML `referrerpolicy` attribute of the resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/referrerPolicy)
  */
-pub (value: HTMLImageElement) referrer_policy(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) referrer_policy(): std.js.String.JsString.
 
 /**
  * The HTMLImageElement property **`sizes`** allows you to specify the layout width of the image for each of a list of media conditions.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/sizes)
  */
-pub (value: HTMLImageElement) sizes(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) sizes(): std.js.String.JsString.
 
 /**
  * The HTMLImageElement property **`src`**, which reflects the HTML `src` attribute, specifies the image to display in the img element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/src)
  */
-pub (value: HTMLImageElement) src(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) src(): std.js.String.JsString.
 
 /**
  * The HTMLImageElement property **`srcset`** is a string which identifies one or more **image candidate strings**, separated using commas (`,`) each specifying image resources to use under given circumstances.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/srcset)
  */
-pub (value: HTMLImageElement) srcset(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) srcset(): std.js.String.JsString.
 
 /**
  * The **`useMap`** property on the providing the name of the client-side image map to apply to the image.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/useMap)
  */
-pub (value: HTMLImageElement) use_map(): std.js.String.JsString.
+pub (receiver: HTMLImageElement) use_map(): std.js.String.JsString.
 
 /**
  * The _obsolete_ **`vspace`** property of the to leave empty on the top and bottom of the img element when laying out the page.
@@ -162,36 +162,36 @@ pub (value: HTMLImageElement) use_map(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/vspace)
  */
-pub (value: HTMLImageElement) vspace(): std.js.Number.JsNumber.
+pub (receiver: HTMLImageElement) vspace(): std.js.Number.JsNumber.
 
 /**
  * The **`width`** property of the drawn in CSS pixel if it's being drawn or rendered to any visual medium such as a screen or printer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/width)
  */
-pub (value: HTMLImageElement) width(): std.js.Number.JsNumber.
+pub (receiver: HTMLImageElement) width(): std.js.Number.JsNumber.
 
 /**
  * The read-only HTMLImageElement property **`x`** indicates the x-coordinate of the origin.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/x)
  */
-pub (value: HTMLImageElement) x(): std.js.Number.JsNumber.
+pub (receiver: HTMLImageElement) x(): std.js.Number.JsNumber.
 
 /**
  * The read-only HTMLImageElement property **`y`** indicates the y-coordinate of the origin.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/y)
  */
-pub (value: HTMLImageElement) y(): std.js.Number.JsNumber.
+pub (receiver: HTMLImageElement) y(): std.js.Number.JsNumber.
 
 /**
  * The **`decode()`** method of the HTMLImageElement interface returns a it to the DOM.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/decode)
  */
-pub (value: HTMLImageElement) decode(): std.js.Promise[std.core.Unit].
+pub (receiver: HTMLImageElement) decode(): std.js.Promise.Promise[std.core.Unit.Unit].
 
-pub (value: HTMLImageElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLImageElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLImageElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLImageElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

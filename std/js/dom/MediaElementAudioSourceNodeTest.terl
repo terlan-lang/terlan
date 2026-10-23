@@ -14,7 +14,7 @@ module std.js.Dom.MediaElementAudioSourceNodeTest.
 
 import type std.js.Dom.MediaElementAudioSourceNode.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub media_element_typechecks(receiver: MediaElementAudioSourceNode): HTMLMediaElement ->
+pub media_element_typechecks(
+    receiver: MediaElementAudioSourceNode,
+): std.js.Dom.HTMLMediaElement.HTMLMediaElement ->
     receiver.media_element().

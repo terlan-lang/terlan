@@ -12,22 +12,27 @@
  */
 module std.js.Dom.SVGTextContentElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.DOMPoint.{DOMPoint}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.SVGTextContentElement.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub length_adjust_typechecks(receiver: SVGTextContentElement): SVGAnimatedEnumeration ->
+pub length_adjust_typechecks(
+    receiver: SVGTextContentElement,
+): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration ->
     receiver.length_adjust().
 
-pub text_length_typechecks(receiver: SVGTextContentElement): SVGAnimatedLength ->
+pub text_length_typechecks(
+    receiver: SVGTextContentElement,
+): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength ->
     receiver.text_length().
 
 pub get_char_num_at_position_typechecks(
     receiver: SVGTextContentElement,
-    point: DOMPointInit,
+    point: Option[std.js.Dom.DOMPointInit.DOMPointInit],
 ): JsNumber ->
     receiver.get_char_num_at_position(point).
 
@@ -40,7 +45,10 @@ pub get_end_position_of_char_typechecks(
 ): DOMPoint ->
     receiver.get_end_position_of_char(charnum).
 
-pub get_extent_of_char_typechecks(receiver: SVGTextContentElement, charnum: JsNumber): DOMRect ->
+pub get_extent_of_char_typechecks(
+    receiver: SVGTextContentElement,
+    charnum: JsNumber,
+): std.js.Dom.DOMRect.DOMRect ->
     receiver.get_extent_of_char(charnum).
 
 pub get_number_of_chars_typechecks(receiver: SVGTextContentElement): JsNumber ->
@@ -73,7 +81,7 @@ pub add_event_listener_typechecks(
     receiver: SVGTextContentElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -81,6 +89,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGTextContentElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

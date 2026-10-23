@@ -13,5 +13,3 @@
 module std.js.Dom.HashAlgorithmIdentifierTest.
 
 import type std.js.Dom.HashAlgorithmIdentifier.
-
-pub generated_binding_surface_contract(): Bool -> true.

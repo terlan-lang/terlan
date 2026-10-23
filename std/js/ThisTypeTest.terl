@@ -13,5 +13,3 @@
 module std.js.ThisTypeTest.
 
 import type std.js.ThisType.
-
-pub generated_binding_surface_contract(): Bool -> true.

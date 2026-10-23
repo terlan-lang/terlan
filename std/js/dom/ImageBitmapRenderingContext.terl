@@ -24,7 +24,7 @@ pub opaque type ImageBitmapRenderingContext.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageBitmapRenderingContext/canvas)
  */
-pub (value: ImageBitmapRenderingContext) canvas(): HTMLCanvasElement | OffscreenCanvas ->
+pub (receiver: ImageBitmapRenderingContext) canvas(): std.js.Dom.HTMLCanvasElement.HTMLCanvasElement | std.js.Dom.OffscreenCanvas.OffscreenCanvas ->
     native.
 
 /**
@@ -32,5 +32,7 @@ pub (value: ImageBitmapRenderingContext) canvas(): HTMLCanvasElement | Offscreen
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageBitmapRenderingContext/transferFromImageBitmap)
  */
-pub (value: ImageBitmapRenderingContext) transfer_from_image_bitmap(bitmap: Option[ImageBitmap]): std.core.Unit ->
+pub (receiver: ImageBitmapRenderingContext) transfer_from_image_bitmap(
+    bitmap: std.core.Option.Option[std.js.Dom.ImageBitmap.ImageBitmap],
+): std.core.Unit.Unit ->
     native.

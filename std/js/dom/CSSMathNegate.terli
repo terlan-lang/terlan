@@ -24,4 +24,4 @@ pub opaque type CSSMathNegate.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathNegate/value)
  */
-pub (value: CSSMathNegate) value(): CSSNumericValue.
+pub (receiver: CSSMathNegate) value(): std.js.Dom.CSSNumericValue.CSSNumericValue.

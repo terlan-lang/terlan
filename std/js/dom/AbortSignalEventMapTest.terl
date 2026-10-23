@@ -14,7 +14,5 @@ module std.js.Dom.AbortSignalEventMapTest.
 
 import type std.js.Dom.AbortSignalEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub abort_typechecks(receiver: AbortSignalEventMap): Event ->
+pub abort_typechecks(receiver: AbortSignalEventMap): std.js.Dom.Event.Event ->
     receiver.abort().

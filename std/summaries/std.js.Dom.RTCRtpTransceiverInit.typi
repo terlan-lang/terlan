@@ -15,8 +15,6 @@ module std.js.Dom.RTCRtpTransceiverInit.
 
 pub opaque type RTCRtpTransceiverInit.
 
-pub (value: RTCRtpTransceiverInit) direction(): RTCRtpTransceiverDirection.
+pub (receiver: RTCRtpTransceiverInit) send_encodings(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.RTCRtpEncodingParameters.RTCRtpEncodingParameters]].
 
-pub (value: RTCRtpTransceiverInit) send_encodings(): std.js.Array[RTCRtpEncodingParameters].
-
-pub (value: RTCRtpTransceiverInit) streams(): std.js.Array[MediaStream].
+pub (receiver: RTCRtpTransceiverInit) streams(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.MediaStream.MediaStream]].

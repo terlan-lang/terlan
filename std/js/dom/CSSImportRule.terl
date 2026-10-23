@@ -12,6 +12,7 @@
  */
 module std.js.Dom.CSSImportRule.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -26,7 +27,7 @@ pub opaque type CSSImportRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSImportRule/href)
  */
-pub (value: CSSImportRule) href(): JsString ->
+pub (receiver: CSSImportRule) href(): JsString ->
     native.
 
 /**
@@ -34,7 +35,7 @@ pub (value: CSSImportRule) href(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSImportRule/layerName)
  */
-pub (value: CSSImportRule) layer_name(): Option[JsString] ->
+pub (receiver: CSSImportRule) layer_name(): Option[JsString] ->
     native.
 
 /**
@@ -42,7 +43,7 @@ pub (value: CSSImportRule) layer_name(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSImportRule/media)
  */
-pub (value: CSSImportRule) media(): MediaList ->
+pub (receiver: CSSImportRule) media(): std.js.Dom.MediaList.MediaList ->
     native.
 
 /**
@@ -50,7 +51,7 @@ pub (value: CSSImportRule) media(): MediaList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSImportRule/styleSheet)
  */
-pub (value: CSSImportRule) style_sheet(): Option[CSSStyleSheet] ->
+pub (receiver: CSSImportRule) style_sheet(): Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
     native.
 
 /**
@@ -58,5 +59,5 @@ pub (value: CSSImportRule) style_sheet(): Option[CSSStyleSheet] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSImportRule/supportsText)
  */
-pub (value: CSSImportRule) supports_text(): Option[JsString] ->
+pub (receiver: CSSImportRule) supports_text(): Option[JsString] ->
     native.

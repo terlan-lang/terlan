@@ -12,8 +12,6 @@
  */
 module std.js.Dom.UserActivation.
 
-import type std.core.{Bool}.
-
 /**
  * The **`UserActivation`** interface provides information about whether a user is currently interacting with the page, or has completed an interaction since page load.
  *
@@ -26,7 +24,7 @@ pub opaque type UserActivation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UserActivation/hasBeenActive)
  */
-pub (value: UserActivation) has_been_active(): Bool ->
+pub (receiver: UserActivation) has_been_active(): Bool ->
     native.
 
 /**
@@ -34,5 +32,5 @@ pub (value: UserActivation) has_been_active(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UserActivation/isActive)
  */
-pub (value: UserActivation) is_active(): Bool ->
+pub (receiver: UserActivation) is_active(): Bool ->
     native.

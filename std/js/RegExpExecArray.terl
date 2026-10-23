@@ -17,11 +17,11 @@ pub opaque type RegExpExecArray.
 /**
  * The index of the search at which the result was found.
  */
-pub (value: RegExpExecArray) index(): std.js.Number.JsNumber ->
+pub (receiver: RegExpExecArray) index(): std.js.Number.JsNumber ->
     native.
 
 /**
  * A copy of the search string.
  */
-pub (value: RegExpExecArray) input(): std.js.String.JsString ->
+pub (receiver: RegExpExecArray) input(): std.js.String.JsString ->
     native.

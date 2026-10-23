@@ -15,8 +15,6 @@ module std.js.Dom.WebAssembly.ModuleImportDescriptor.
 
 pub opaque type ModuleImportDescriptor.
 
-pub (value: ModuleImportDescriptor) kind(): ImportExportKind.
+pub (receiver: ModuleImportDescriptor) module_(): std.js.String.JsString.
 
-pub (value: ModuleImportDescriptor) module_(): std.js.String.JsString.
-
-pub (value: ModuleImportDescriptor) name(): std.js.String.JsString.
+pub (receiver: ModuleImportDescriptor) name(): std.js.String.JsString.

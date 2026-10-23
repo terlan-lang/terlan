@@ -12,6 +12,7 @@
  */
 module std.js.Dom.CSPViolationReportBody.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -27,7 +28,7 @@ pub opaque type CSPViolationReportBody.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/blockedURL)
  */
-pub (value: CSPViolationReportBody) blocked_url(): Option[JsString] ->
+pub (receiver: CSPViolationReportBody) blocked_url(): Option[JsString] ->
     native.
 
 /**
@@ -35,15 +36,7 @@ pub (value: CSPViolationReportBody) blocked_url(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/columnNumber)
  */
-pub (value: CSPViolationReportBody) column_number(): Option[JsNumber] ->
-    native.
-
-/**
- * The **`disposition`** read-only property of the CSPViolationReportBody interface indicates whether the user agent is configured to enforce Content Security Policy (CSP) violations or only report them.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/disposition)
- */
-pub (value: CSPViolationReportBody) disposition(): SecurityPolicyViolationEventDisposition ->
+pub (receiver: CSPViolationReportBody) column_number(): Option[JsNumber] ->
     native.
 
 /**
@@ -51,7 +44,7 @@ pub (value: CSPViolationReportBody) disposition(): SecurityPolicyViolationEventD
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/documentURL)
  */
-pub (value: CSPViolationReportBody) document_url(): JsString ->
+pub (receiver: CSPViolationReportBody) document_url(): JsString ->
     native.
 
 /**
@@ -59,7 +52,7 @@ pub (value: CSPViolationReportBody) document_url(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/effectiveDirective)
  */
-pub (value: CSPViolationReportBody) effective_directive(): JsString ->
+pub (receiver: CSPViolationReportBody) effective_directive(): JsString ->
     native.
 
 /**
@@ -67,7 +60,7 @@ pub (value: CSPViolationReportBody) effective_directive(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/lineNumber)
  */
-pub (value: CSPViolationReportBody) line_number(): Option[JsNumber] ->
+pub (receiver: CSPViolationReportBody) line_number(): Option[JsNumber] ->
     native.
 
 /**
@@ -75,7 +68,7 @@ pub (value: CSPViolationReportBody) line_number(): Option[JsNumber] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/originalPolicy)
  */
-pub (value: CSPViolationReportBody) original_policy(): JsString ->
+pub (receiver: CSPViolationReportBody) original_policy(): JsString ->
     native.
 
 /**
@@ -83,7 +76,7 @@ pub (value: CSPViolationReportBody) original_policy(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/referrer)
  */
-pub (value: CSPViolationReportBody) referrer(): Option[JsString] ->
+pub (receiver: CSPViolationReportBody) referrer(): Option[JsString] ->
     native.
 
 /**
@@ -91,7 +84,7 @@ pub (value: CSPViolationReportBody) referrer(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/sample)
  */
-pub (value: CSPViolationReportBody) sample(): Option[JsString] ->
+pub (receiver: CSPViolationReportBody) sample(): Option[JsString] ->
     native.
 
 /**
@@ -99,7 +92,7 @@ pub (value: CSPViolationReportBody) sample(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/sourceFile)
  */
-pub (value: CSPViolationReportBody) source_file(): Option[JsString] ->
+pub (receiver: CSPViolationReportBody) source_file(): Option[JsString] ->
     native.
 
 /**
@@ -107,5 +100,5 @@ pub (value: CSPViolationReportBody) source_file(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/statusCode)
  */
-pub (value: CSPViolationReportBody) status_code(): JsNumber ->
+pub (receiver: CSPViolationReportBody) status_code(): JsNumber ->
     native.

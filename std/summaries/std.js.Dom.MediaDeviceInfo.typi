@@ -26,25 +26,18 @@ pub opaque type MediaDeviceInfo.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDeviceInfo/deviceId)
  */
-pub (value: MediaDeviceInfo) device_id(): std.js.String.JsString.
+pub (receiver: MediaDeviceInfo) device_id(): std.js.String.JsString.
 
 /**
  * The **`groupId`** read-only property of the MediaDeviceInfo interface returns a string that is a group identifier.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDeviceInfo/groupId)
  */
-pub (value: MediaDeviceInfo) group_id(): std.js.String.JsString.
-
-/**
- * The **`kind`** read-only property of the MediaDeviceInfo interface returns an enumerated value, that is either `'videoinput'`, `'audioinput'` or `'audiooutput'`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDeviceInfo/kind)
- */
-pub (value: MediaDeviceInfo) kind(): MediaDeviceKind.
+pub (receiver: MediaDeviceInfo) group_id(): std.js.String.JsString.
 
 /**
  * The **`label`** read-only property of the MediaDeviceInfo interface returns a string describing this device (for example 'External USB Webcam').
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDeviceInfo/label)
  */
-pub (value: MediaDeviceInfo) label(): std.js.String.JsString.
+pub (receiver: MediaDeviceInfo) label(): std.js.String.JsString.

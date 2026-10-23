@@ -14,7 +14,7 @@ module std.js.Dom.DragEventTest.
 
 import type std.js.Dom.DragEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub data_transfer_typechecks(receiver: DragEvent): Option[DataTransfer] ->
+pub data_transfer_typechecks(
+    receiver: DragEvent,
+): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer] ->
     receiver.data_transfer().

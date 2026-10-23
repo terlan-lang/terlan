@@ -15,8 +15,8 @@ module std.js.Dom.AesGcmParams.
 
 pub opaque type AesGcmParams.
 
-pub (value: AesGcmParams) additional_data(): BufferSource.
+pub (receiver: AesGcmParams) additional_data(): std.core.Option.Option[std.js.Dom.BufferSource.BufferSource].
 
-pub (value: AesGcmParams) iv(): BufferSource.
+pub (receiver: AesGcmParams) iv(): std.js.Dom.BufferSource.BufferSource.
 
-pub (value: AesGcmParams) tag_length(): std.js.Number.JsNumber.
+pub (receiver: AesGcmParams) tag_length(): std.core.Option.Option[std.js.Number.JsNumber].

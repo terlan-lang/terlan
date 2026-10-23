@@ -26,7 +26,7 @@ pub opaque type PaymentAddress.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/addressLine)
  */
-pub (value: PaymentAddress) address_line(): std.js.Array[JsString] ->
+pub (receiver: PaymentAddress) address_line(): std.js.Array.Array[JsString] ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: PaymentAddress) address_line(): std.js.Array[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/city)
  */
-pub (value: PaymentAddress) city(): JsString ->
+pub (receiver: PaymentAddress) city(): JsString ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: PaymentAddress) city(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/country)
  */
-pub (value: PaymentAddress) country(): JsString ->
+pub (receiver: PaymentAddress) country(): JsString ->
     native.
 
 /**
@@ -50,7 +50,7 @@ pub (value: PaymentAddress) country(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/dependentLocality)
  */
-pub (value: PaymentAddress) dependent_locality(): JsString ->
+pub (receiver: PaymentAddress) dependent_locality(): JsString ->
     native.
 
 /**
@@ -58,7 +58,7 @@ pub (value: PaymentAddress) dependent_locality(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/organization)
  */
-pub (value: PaymentAddress) organization(): JsString ->
+pub (receiver: PaymentAddress) organization(): JsString ->
     native.
 
 /**
@@ -66,7 +66,7 @@ pub (value: PaymentAddress) organization(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/phone)
  */
-pub (value: PaymentAddress) phone(): JsString ->
+pub (receiver: PaymentAddress) phone(): JsString ->
     native.
 
 /**
@@ -74,7 +74,7 @@ pub (value: PaymentAddress) phone(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/postalCode)
  */
-pub (value: PaymentAddress) postal_code(): JsString ->
+pub (receiver: PaymentAddress) postal_code(): JsString ->
     native.
 
 /**
@@ -82,7 +82,7 @@ pub (value: PaymentAddress) postal_code(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/recipient)
  */
-pub (value: PaymentAddress) recipient(): JsString ->
+pub (receiver: PaymentAddress) recipient(): JsString ->
     native.
 
 /**
@@ -90,7 +90,7 @@ pub (value: PaymentAddress) recipient(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/region)
  */
-pub (value: PaymentAddress) region(): JsString ->
+pub (receiver: PaymentAddress) region(): JsString ->
     native.
 
 /**
@@ -98,5 +98,5 @@ pub (value: PaymentAddress) region(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/sortingCode)
  */
-pub (value: PaymentAddress) sorting_code(): JsString ->
+pub (receiver: PaymentAddress) sorting_code(): JsString ->
     native.

@@ -25,4 +25,4 @@ pub opaque type StereoPannerNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StereoPannerNode/pan)
  */
-pub (value: StereoPannerNode) pan(): AudioParam.
+pub (receiver: StereoPannerNode) pan(): std.js.Dom.AudioParam.AudioParam.

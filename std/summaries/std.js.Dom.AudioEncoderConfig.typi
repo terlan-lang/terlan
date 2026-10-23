@@ -15,14 +15,12 @@ module std.js.Dom.AudioEncoderConfig.
 
 pub opaque type AudioEncoderConfig.
 
-pub (value: AudioEncoderConfig) bitrate(): std.js.Number.JsNumber.
+pub (receiver: AudioEncoderConfig) bitrate(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: AudioEncoderConfig) bitrate_mode(): BitrateMode.
+pub (receiver: AudioEncoderConfig) codec(): std.js.String.JsString.
 
-pub (value: AudioEncoderConfig) codec(): std.js.String.JsString.
+pub (receiver: AudioEncoderConfig) number_of_channels(): std.js.Number.JsNumber.
 
-pub (value: AudioEncoderConfig) number_of_channels(): std.js.Number.JsNumber.
+pub (receiver: AudioEncoderConfig) opus(): std.core.Option.Option[std.js.Dom.OpusEncoderConfig.OpusEncoderConfig].
 
-pub (value: AudioEncoderConfig) opus(): OpusEncoderConfig.
-
-pub (value: AudioEncoderConfig) sample_rate(): std.js.Number.JsNumber.
+pub (receiver: AudioEncoderConfig) sample_rate(): std.js.Number.JsNumber.

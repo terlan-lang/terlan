@@ -12,10 +12,9 @@
  */
 module std.js.Dom.CookieChangeEventTest.
 
+import type std.js.Array.{Array}.
 import type std.js.Dom.CookieChangeEvent.
-import type std.js.{Array}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.CookieListItem.{CookieListItem}.
 
 pub changed_typechecks(receiver: CookieChangeEvent): Array[CookieListItem] ->
     receiver.changed().

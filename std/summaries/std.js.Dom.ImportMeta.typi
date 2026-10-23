@@ -15,6 +15,6 @@ module std.js.Dom.ImportMeta.
 
 pub opaque type ImportMeta.
 
-pub (value: ImportMeta) url(): std.js.String.JsString.
+pub (receiver: ImportMeta) url(): std.js.String.JsString.
 
-pub (value: ImportMeta) resolve(specifier: std.js.String.JsString): std.js.String.JsString.
+pub (receiver: ImportMeta) resolve(specifier: std.js.String.JsString): std.js.String.JsString.

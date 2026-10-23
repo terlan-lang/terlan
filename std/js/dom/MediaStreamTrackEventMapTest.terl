@@ -12,9 +12,8 @@
  */
 module std.js.Dom.MediaStreamTrackEventMapTest.
 
+import type std.js.Dom.Event.{Event}.
 import type std.js.Dom.MediaStreamTrackEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub ended_typechecks(receiver: MediaStreamTrackEventMap): Event ->
     receiver.ended().

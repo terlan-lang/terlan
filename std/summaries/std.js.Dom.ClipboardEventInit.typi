@@ -15,4 +15,4 @@ module std.js.Dom.ClipboardEventInit.
 
 pub opaque type ClipboardEventInit.
 
-pub (value: ClipboardEventInit) clipboard_data(): Option[DataTransfer].
+pub (receiver: ClipboardEventInit) clipboard_data(): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer].

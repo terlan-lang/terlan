@@ -14,7 +14,5 @@ module std.js.Dom.FormDataEventTest.
 
 import type std.js.Dom.FormDataEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub form_data_typechecks(receiver: FormDataEvent): FormData ->
+pub form_data_typechecks(receiver: FormDataEvent): std.js.Dom.FormData.FormData ->
     receiver.form_data().

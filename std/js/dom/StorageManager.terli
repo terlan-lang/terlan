@@ -12,8 +12,7 @@
  */
 module std.js.Dom.StorageManager.
 
-import type std.core.{Bool}.
-import type std.js.{Promise}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`StorageManager`** interface of the Storage API provides an interface for managing persistence permissions and estimating available storage.
@@ -28,25 +27,25 @@ pub opaque type StorageManager.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/estimate)
  */
-pub (value: StorageManager) estimate(): Promise[StorageEstimate].
+pub (receiver: StorageManager) estimate(): Promise[std.js.Dom.StorageEstimate.StorageEstimate].
 
 /**
  * The **`getDirectory()`** method of the StorageManager interface is used to obtain a reference to a FileSystemDirectoryHandle object allowing access to a directory and its contents, stored in the origin private file system (OPFS).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/getDirectory)
  */
-pub (value: StorageManager) get_directory(): Promise[FileSystemDirectoryHandle].
+pub (receiver: StorageManager) get_directory(): Promise[std.js.Dom.FileSystemDirectoryHandle.FileSystemDirectoryHandle].
 
 /**
  * The **`persist()`** method of the StorageManager interface requests permission to use persistent storage, and returns a Promise that resolves to `true` if permission is granted and bucket mode is persistent, and `false` otherwise.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/persist)
  */
-pub (value: StorageManager) persist(): Promise[Bool].
+pub (receiver: StorageManager) persist(): Promise[Bool].
 
 /**
  * The **`persisted()`** method of the StorageManager interface returns a Promise that resolves to `true` if your site's storage bucket is persistent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/persisted)
  */
-pub (value: StorageManager) persisted(): Promise[Bool].
+pub (receiver: StorageManager) persisted(): Promise[Bool].

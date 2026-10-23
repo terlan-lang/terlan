@@ -15,18 +15,16 @@ module std.js.Dom.CSSNumericType.
 
 pub opaque type CSSNumericType.
 
-pub (value: CSSNumericType) angle(): std.js.Number.JsNumber.
+pub (receiver: CSSNumericType) angle(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: CSSNumericType) flex(): std.js.Number.JsNumber.
+pub (receiver: CSSNumericType) flex(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: CSSNumericType) frequency(): std.js.Number.JsNumber.
+pub (receiver: CSSNumericType) frequency(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: CSSNumericType) length(): std.js.Number.JsNumber.
+pub (receiver: CSSNumericType) length(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: CSSNumericType) percent(): std.js.Number.JsNumber.
+pub (receiver: CSSNumericType) percent(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: CSSNumericType) percent_hint(): CSSNumericBaseType.
+pub (receiver: CSSNumericType) resolution(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: CSSNumericType) resolution(): std.js.Number.JsNumber.
-
-pub (value: CSSNumericType) time(): std.js.Number.JsNumber.
+pub (receiver: CSSNumericType) time(): std.core.Option.Option[std.js.Number.JsNumber].

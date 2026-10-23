@@ -15,6 +15,6 @@ module std.js.Dom.MIDIOptions.
 
 pub opaque type MIDIOptions.
 
-pub (value: MIDIOptions) software(): std.core.Bool.
+pub (receiver: MIDIOptions) software(): std.core.Option.Option[Bool].
 
-pub (value: MIDIOptions) sysex(): std.core.Bool.
+pub (receiver: MIDIOptions) sysex(): std.core.Option.Option[Bool].

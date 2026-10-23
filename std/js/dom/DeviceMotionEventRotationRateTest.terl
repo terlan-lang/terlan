@@ -12,10 +12,9 @@
  */
 module std.js.Dom.DeviceMotionEventRotationRateTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.DeviceMotionEventRotationRate.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub alpha_typechecks(receiver: DeviceMotionEventRotationRate): Option[JsNumber] ->
     receiver.alpha().

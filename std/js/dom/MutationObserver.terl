@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MutationObserver.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 
 /**
  * The **`MutationObserver`** interface provides the ability to watch for changes being made to the DOM tree.
@@ -26,7 +26,7 @@ pub opaque type MutationObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationObserver/disconnect)
  */
-pub (value: MutationObserver) disconnect(): Unit ->
+pub (receiver: MutationObserver) disconnect(): Unit ->
     native.
 
 /**
@@ -34,7 +34,10 @@ pub (value: MutationObserver) disconnect(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationObserver/observe)
  */
-pub (value: MutationObserver) observe(target_: Node, options: MutationObserverInit): Unit ->
+pub (receiver: MutationObserver) observe(
+    target_: std.js.Dom.Node.Node,
+    options: std.core.Option.Option[std.js.Dom.MutationObserverInit.MutationObserverInit],
+): Unit ->
     native.
 
 /**
@@ -42,5 +45,5 @@ pub (value: MutationObserver) observe(target_: Node, options: MutationObserverIn
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationObserver/takeRecords)
  */
-pub (value: MutationObserver) take_records(): std.js.Array[MutationRecord] ->
+pub (receiver: MutationObserver) take_records(): std.js.Array.Array[std.js.Dom.MutationRecord.MutationRecord] ->
     native.

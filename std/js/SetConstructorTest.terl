@@ -13,5 +13,3 @@
 module std.js.SetConstructorTest.
 
 import type std.js.SetConstructor.
-
-pub generated_binding_surface_contract(): Bool -> true.

@@ -12,22 +12,21 @@
  */
 module std.js.Dom.CSSNumericType.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type CSSNumericType.
 
-pub (value: CSSNumericType) angle(): JsNumber.
+pub (receiver: CSSNumericType) angle(): Option[JsNumber].
 
-pub (value: CSSNumericType) flex(): JsNumber.
+pub (receiver: CSSNumericType) flex(): Option[JsNumber].
 
-pub (value: CSSNumericType) frequency(): JsNumber.
+pub (receiver: CSSNumericType) frequency(): Option[JsNumber].
 
-pub (value: CSSNumericType) length(): JsNumber.
+pub (receiver: CSSNumericType) length(): Option[JsNumber].
 
-pub (value: CSSNumericType) percent(): JsNumber.
+pub (receiver: CSSNumericType) percent(): Option[JsNumber].
 
-pub (value: CSSNumericType) percent_hint(): CSSNumericBaseType.
+pub (receiver: CSSNumericType) resolution(): Option[JsNumber].
 
-pub (value: CSSNumericType) resolution(): JsNumber.
-
-pub (value: CSSNumericType) time(): JsNumber.
+pub (receiver: CSSNumericType) time(): Option[JsNumber].

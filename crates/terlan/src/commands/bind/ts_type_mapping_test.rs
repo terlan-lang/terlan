@@ -172,13 +172,13 @@ fn maps_primitives_to_js_binding_defaults() {
         map_ts_type_to_terlan(&TsTypeRef::Primitive(TsPrimitiveType::Boolean))
             .terlan_type
             .as_deref(),
-        Some("std.core.Bool")
+        Some("Bool")
     );
     assert_eq!(
         map_ts_type_to_terlan(&TsTypeRef::Primitive(TsPrimitiveType::Void))
             .terlan_type
             .as_deref(),
-        Some("std.core.Unit")
+        Some("Unit")
     );
 }
 

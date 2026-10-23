@@ -25,25 +25,25 @@ pub opaque type ImageTrack.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/animated)
  */
-pub (value: ImageTrack) animated(): std.core.Bool.
+pub (receiver: ImageTrack) animated(): Bool.
 
 /**
  * The **`frameCount`** property of the ImageTrack interface returns the number of frames in the track.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/frameCount)
  */
-pub (value: ImageTrack) frame_count(): std.js.Number.JsNumber.
+pub (receiver: ImageTrack) frame_count(): std.js.Number.JsNumber.
 
 /**
  * The **`repetitionCount`** property of the ImageTrack interface returns the number of repetitions of this track.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/repetitionCount)
  */
-pub (value: ImageTrack) repetition_count(): std.js.Number.JsNumber.
+pub (receiver: ImageTrack) repetition_count(): std.js.Number.JsNumber.
 
 /**
  * The **`selected`** property of the ImageTrack interface returns `true` if the track is selected for decoding.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/selected)
  */
-pub (value: ImageTrack) selected(): std.core.Bool.
+pub (receiver: ImageTrack) selected(): Bool.

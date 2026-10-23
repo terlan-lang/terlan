@@ -15,6 +15,6 @@ module std.js.Dom.PaymentCurrencyAmount.
 
 pub opaque type PaymentCurrencyAmount.
 
-pub (value: PaymentCurrencyAmount) currency(): std.js.String.JsString.
+pub (receiver: PaymentCurrencyAmount) currency(): std.js.String.JsString.
 
-pub (value: PaymentCurrencyAmount) value(): std.js.String.JsString.
+pub (receiver: PaymentCurrencyAmount) value(): std.js.String.JsString.

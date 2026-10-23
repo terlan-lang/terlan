@@ -15,4 +15,4 @@ module std.js.Dom.RsaHashedKeyGenParams.
 
 pub opaque type RsaHashedKeyGenParams.
 
-pub (value: RsaHashedKeyGenParams) hash(): HashAlgorithmIdentifier.
+pub (receiver: RsaHashedKeyGenParams) hash(): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier.

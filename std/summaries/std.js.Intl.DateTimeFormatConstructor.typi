@@ -15,6 +15,6 @@ module std.js.Intl.DateTimeFormatConstructor.
 
 pub opaque type DateTimeFormatConstructor.
 
-pub (value: DateTimeFormatConstructor) supported_locales_of(locales: std.js.Array[std.js.String.JsString] | std.js.String.JsString, options: DateTimeFormatOptions): std.js.Array[std.js.String.JsString].
+pub (receiver: DateTimeFormatConstructor) supported_locales_of(locales: std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString, options: std.core.Option.Option[std.js.Intl.DateTimeFormatOptions.DateTimeFormatOptions]): std.js.Array.Array[std.js.String.JsString].
 
-pub (value: DateTimeFormatConstructor) prototype(): DateTimeFormat.
+pub (receiver: DateTimeFormatConstructor) prototype(): std.js.Intl.DateTimeFormat.DateTimeFormat.

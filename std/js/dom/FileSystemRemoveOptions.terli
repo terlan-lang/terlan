@@ -14,4 +14,4 @@ module std.js.Dom.FileSystemRemoveOptions.
 
 pub opaque type FileSystemRemoveOptions.
 
-pub (value: FileSystemRemoveOptions) recursive(): std.core.Bool.
+pub (receiver: FileSystemRemoveOptions) recursive(): std.core.Option.Option[Bool].

@@ -14,5 +14,5 @@ module std.js.Dom.KeySystemTrackConfiguration.
 
 pub opaque type KeySystemTrackConfiguration.
 
-pub (value: KeySystemTrackConfiguration) robustness(): std.js.String.JsString ->
+pub (receiver: KeySystemTrackConfiguration) robustness(): std.core.Option.Option[std.js.String.JsString] ->
     native.

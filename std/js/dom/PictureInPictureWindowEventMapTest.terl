@@ -14,7 +14,5 @@ module std.js.Dom.PictureInPictureWindowEventMapTest.
 
 import type std.js.Dom.PictureInPictureWindowEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub resize_typechecks(receiver: PictureInPictureWindowEventMap): Event ->
+pub resize_typechecks(receiver: PictureInPictureWindowEventMap): std.js.Dom.Event.Event ->
     receiver.resize().

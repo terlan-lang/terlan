@@ -14,4 +14,4 @@ module std.js.Dom.IdleRequestOptions.
 
 pub opaque type IdleRequestOptions.
 
-pub (value: IdleRequestOptions) timeout(): std.js.Number.JsNumber.
+pub (receiver: IdleRequestOptions) timeout(): std.core.Option.Option[std.js.Number.JsNumber].

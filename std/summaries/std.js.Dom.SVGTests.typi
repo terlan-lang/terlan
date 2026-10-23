@@ -18,9 +18,9 @@ pub opaque type SVGTests.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/requiredExtensions)
  */
-pub (value: SVGTests) required_extensions(): SVGStringList.
+pub (receiver: SVGTests) required_extensions(): std.js.Dom.SVGStringList.SVGStringList.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/systemLanguage)
  */
-pub (value: SVGTests) system_language(): SVGStringList.
+pub (receiver: SVGTests) system_language(): std.js.Dom.SVGStringList.SVGStringList.

@@ -13,20 +13,3 @@
 module std.js.CallableFunctionTest.
 
 import type std.js.CallableFunction.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub apply_typechecks(receiver: CallableFunction, this_arg: T): R ->
-    receiver.apply(this_arg).
-
-pub apply_typechecks(receiver: CallableFunction, this_arg: T, args: A): R ->
-    receiver.apply(this_arg, args).
-
-pub call_typechecks(receiver: CallableFunction, this_arg: T): R ->
-    receiver.call(this_arg).
-
-pub bind_typechecks(
-    receiver: CallableFunction,
-    this_arg: ThisParameterType[T],
-): OmitThisParameter[T] ->
-    receiver.bind(this_arg).

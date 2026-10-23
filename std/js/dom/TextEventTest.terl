@@ -12,11 +12,9 @@
  */
 module std.js.Dom.TextEventTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.TextEvent.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub data_typechecks(receiver: TextEvent): JsString ->
     receiver.data().
@@ -24,9 +22,9 @@ pub data_typechecks(receiver: TextEvent): JsString ->
 pub init_text_event_typechecks(
     receiver: TextEvent,
     type_: JsString,
-    bubbles: Bool,
-    cancelable: Bool,
-    view: Option[Window],
-    data: JsString,
-): std.core.Unit ->
+    bubbles: Option[Bool],
+    cancelable: Option[Bool],
+    view: Option[Option[std.js.Dom.Window.Window]],
+    data: Option[JsString],
+): std.core.Unit.Unit ->
     receiver.init_text_event(type_, bubbles, cancelable, view, data).

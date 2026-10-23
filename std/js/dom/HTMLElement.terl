@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +30,7 @@ pub opaque type HTMLElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/accessKey)
  */
-pub (value: HTMLElement) access_key(): JsString ->
+pub (receiver: HTMLElement) access_key(): JsString ->
     native.
 
 /**
@@ -36,7 +38,7 @@ pub (value: HTMLElement) access_key(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/accessKeyLabel)
  */
-pub (value: HTMLElement) access_key_label(): JsString ->
+pub (receiver: HTMLElement) access_key_label(): JsString ->
     native.
 
 /**
@@ -44,7 +46,7 @@ pub (value: HTMLElement) access_key_label(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autocapitalize)
  */
-pub (value: HTMLElement) autocapitalize(): JsString ->
+pub (receiver: HTMLElement) autocapitalize(): JsString ->
     native.
 
 /**
@@ -52,7 +54,7 @@ pub (value: HTMLElement) autocapitalize(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autocorrect)
  */
-pub (value: HTMLElement) autocorrect(): Bool ->
+pub (receiver: HTMLElement) autocorrect(): Bool ->
     native.
 
 /**
@@ -60,7 +62,7 @@ pub (value: HTMLElement) autocorrect(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/dir)
  */
-pub (value: HTMLElement) dir(): JsString ->
+pub (receiver: HTMLElement) dir(): JsString ->
     native.
 
 /**
@@ -68,7 +70,7 @@ pub (value: HTMLElement) dir(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/draggable)
  */
-pub (value: HTMLElement) draggable(): Bool ->
+pub (receiver: HTMLElement) draggable(): Bool ->
     native.
 
 /**
@@ -76,7 +78,7 @@ pub (value: HTMLElement) draggable(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/hidden)
  */
-pub (value: HTMLElement) hidden(): Bool ->
+pub (receiver: HTMLElement) hidden(): Bool ->
     native.
 
 /**
@@ -84,7 +86,7 @@ pub (value: HTMLElement) hidden(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/inert)
  */
-pub (value: HTMLElement) inert(): Bool ->
+pub (receiver: HTMLElement) inert(): Bool ->
     native.
 
 /**
@@ -92,7 +94,7 @@ pub (value: HTMLElement) inert(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/innerText)
  */
-pub (value: HTMLElement) inner_text(): JsString ->
+pub (receiver: HTMLElement) inner_text(): JsString ->
     native.
 
 /**
@@ -100,7 +102,7 @@ pub (value: HTMLElement) inner_text(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/lang)
  */
-pub (value: HTMLElement) lang(): JsString ->
+pub (receiver: HTMLElement) lang(): JsString ->
     native.
 
 /**
@@ -108,7 +110,7 @@ pub (value: HTMLElement) lang(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetHeight)
  */
-pub (value: HTMLElement) offset_height(): JsNumber ->
+pub (receiver: HTMLElement) offset_height(): JsNumber ->
     native.
 
 /**
@@ -116,7 +118,7 @@ pub (value: HTMLElement) offset_height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetLeft)
  */
-pub (value: HTMLElement) offset_left(): JsNumber ->
+pub (receiver: HTMLElement) offset_left(): JsNumber ->
     native.
 
 /**
@@ -124,7 +126,7 @@ pub (value: HTMLElement) offset_left(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetParent)
  */
-pub (value: HTMLElement) offset_parent(): Option[Element] ->
+pub (receiver: HTMLElement) offset_parent(): Option[std.js.Dom.Element.Element] ->
     native.
 
 /**
@@ -132,7 +134,7 @@ pub (value: HTMLElement) offset_parent(): Option[Element] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetTop)
  */
-pub (value: HTMLElement) offset_top(): JsNumber ->
+pub (receiver: HTMLElement) offset_top(): JsNumber ->
     native.
 
 /**
@@ -140,7 +142,7 @@ pub (value: HTMLElement) offset_top(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetWidth)
  */
-pub (value: HTMLElement) offset_width(): JsNumber ->
+pub (receiver: HTMLElement) offset_width(): JsNumber ->
     native.
 
 /**
@@ -148,7 +150,7 @@ pub (value: HTMLElement) offset_width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/outerText)
  */
-pub (value: HTMLElement) outer_text(): JsString ->
+pub (receiver: HTMLElement) outer_text(): JsString ->
     native.
 
 /**
@@ -156,7 +158,7 @@ pub (value: HTMLElement) outer_text(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/popover)
  */
-pub (value: HTMLElement) popover(): Option[JsString] ->
+pub (receiver: HTMLElement) popover(): Option[JsString] ->
     native.
 
 /**
@@ -164,7 +166,7 @@ pub (value: HTMLElement) popover(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/spellcheck)
  */
-pub (value: HTMLElement) spellcheck(): Bool ->
+pub (receiver: HTMLElement) spellcheck(): Bool ->
     native.
 
 /**
@@ -172,7 +174,7 @@ pub (value: HTMLElement) spellcheck(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/title)
  */
-pub (value: HTMLElement) title(): JsString ->
+pub (receiver: HTMLElement) title(): JsString ->
     native.
 
 /**
@@ -180,7 +182,7 @@ pub (value: HTMLElement) title(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/translate)
  */
-pub (value: HTMLElement) translate(): Bool ->
+pub (receiver: HTMLElement) translate(): Bool ->
     native.
 
 /**
@@ -188,7 +190,7 @@ pub (value: HTMLElement) translate(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/writingSuggestions)
  */
-pub (value: HTMLElement) writing_suggestions(): JsString ->
+pub (receiver: HTMLElement) writing_suggestions(): JsString ->
     native.
 
 /**
@@ -196,7 +198,7 @@ pub (value: HTMLElement) writing_suggestions(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/attachInternals)
  */
-pub (value: HTMLElement) attach_internals(): ElementInternals ->
+pub (receiver: HTMLElement) attach_internals(): std.js.Dom.ElementInternals.ElementInternals ->
     native.
 
 /**
@@ -204,7 +206,7 @@ pub (value: HTMLElement) attach_internals(): ElementInternals ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/click)
  */
-pub (value: HTMLElement) click(): Unit ->
+pub (receiver: HTMLElement) click(): Unit ->
     native.
 
 /**
@@ -212,7 +214,7 @@ pub (value: HTMLElement) click(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/hidePopover)
  */
-pub (value: HTMLElement) hide_popover(): Unit ->
+pub (receiver: HTMLElement) hide_popover(): Unit ->
     native.
 
 /**
@@ -220,7 +222,7 @@ pub (value: HTMLElement) hide_popover(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/showPopover)
  */
-pub (value: HTMLElement) show_popover(): Unit ->
+pub (receiver: HTMLElement) show_popover(): Unit ->
     native.
 
 /**
@@ -228,19 +230,19 @@ pub (value: HTMLElement) show_popover(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/togglePopover)
  */
-pub (value: HTMLElement) toggle_popover(options: Bool): Bool ->
+pub (receiver: HTMLElement) toggle_popover(options: Option[Bool]): Bool ->
     native.
 
-pub (value: HTMLElement) add_event_listener(
+pub (receiver: HTMLElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLElement) remove_event_listener(
+pub (receiver: HTMLElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

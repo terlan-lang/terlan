@@ -14,10 +14,12 @@ module std.js.Dom.TextDecoderStreamTest.
 
 import type std.js.Dom.TextDecoderStream.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub readable_typechecks(receiver: TextDecoderStream): ReadableStream[std.js.String.JsString] ->
+pub readable_typechecks(
+    receiver: TextDecoderStream,
+): std.js.Dom.ReadableStream.ReadableStream[std.js.String.JsString] ->
     receiver.readable().
 
-pub writable_typechecks(receiver: TextDecoderStream): WritableStream[BufferSource] ->
+pub writable_typechecks(
+    receiver: TextDecoderStream,
+): std.js.Dom.WritableStream.WritableStream[std.js.Dom.BufferSource.BufferSource] ->
     receiver.writable().

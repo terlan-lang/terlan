@@ -14,7 +14,7 @@ module std.js.Dom.ConstantSourceOptionsTest.
 
 import type std.js.Dom.ConstantSourceOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub offset_typechecks(receiver: ConstantSourceOptions): std.js.Number.JsNumber ->
+pub offset_typechecks(
+    receiver: ConstantSourceOptions,
+): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.offset().

@@ -12,7 +12,9 @@
  */
 module std.js.Dom.SVGStyleElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -22,7 +24,7 @@ import type std.js.String.{JsString}.
  */
 pub opaque type SVGStyleElement.
 
-pub (value: SVGStyleElement) disabled(): Bool ->
+pub (receiver: SVGStyleElement) disabled(): Bool ->
     native.
 
 /**
@@ -30,7 +32,7 @@ pub (value: SVGStyleElement) disabled(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStyleElement/media)
  */
-pub (value: SVGStyleElement) media(): JsString ->
+pub (receiver: SVGStyleElement) media(): JsString ->
     native.
 
 /**
@@ -38,7 +40,7 @@ pub (value: SVGStyleElement) media(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStyleElement/title)
  */
-pub (value: SVGStyleElement) title(): JsString ->
+pub (receiver: SVGStyleElement) title(): JsString ->
     native.
 
 /**
@@ -47,19 +49,19 @@ pub (value: SVGStyleElement) title(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStyleElement/type)
  */
-pub (value: SVGStyleElement) type_(): JsString ->
+pub (receiver: SVGStyleElement) type_(): JsString ->
     native.
 
-pub (value: SVGStyleElement) add_event_listener(
+pub (receiver: SVGStyleElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SVGStyleElement) remove_event_listener(
+pub (receiver: SVGStyleElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

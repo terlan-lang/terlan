@@ -15,4 +15,4 @@ module std.js.Dom.SubmitEventInit.
 
 pub opaque type SubmitEventInit.
 
-pub (value: SubmitEventInit) submitter(): Option[HTMLElement].
+pub (receiver: SubmitEventInit) submitter(): std.core.Option.Option[std.js.Dom.HTMLElement.HTMLElement].

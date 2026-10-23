@@ -12,15 +12,15 @@
  */
 module std.js.Dom.EventInit.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type EventInit.
 
-pub (value: EventInit) bubbles(): Bool ->
+pub (receiver: EventInit) bubbles(): Option[Bool] ->
     native.
 
-pub (value: EventInit) cancelable(): Bool ->
+pub (receiver: EventInit) cancelable(): Option[Bool] ->
     native.
 
-pub (value: EventInit) composed(): Bool ->
+pub (receiver: EventInit) composed(): Option[Bool] ->
     native.

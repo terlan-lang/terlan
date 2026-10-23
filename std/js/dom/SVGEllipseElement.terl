@@ -12,7 +12,10 @@
  */
 module std.js.Dom.SVGEllipseElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedLength.{SVGAnimatedLength}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +30,7 @@ pub opaque type SVGEllipseElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGEllipseElement/cx)
  */
-pub (value: SVGEllipseElement) cx(): SVGAnimatedLength ->
+pub (receiver: SVGEllipseElement) cx(): SVGAnimatedLength ->
     native.
 
 /**
@@ -35,7 +38,7 @@ pub (value: SVGEllipseElement) cx(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGEllipseElement/cy)
  */
-pub (value: SVGEllipseElement) cy(): SVGAnimatedLength ->
+pub (receiver: SVGEllipseElement) cy(): SVGAnimatedLength ->
     native.
 
 /**
@@ -43,7 +46,7 @@ pub (value: SVGEllipseElement) cy(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGEllipseElement/rx)
  */
-pub (value: SVGEllipseElement) rx(): SVGAnimatedLength ->
+pub (receiver: SVGEllipseElement) rx(): SVGAnimatedLength ->
     native.
 
 /**
@@ -51,19 +54,19 @@ pub (value: SVGEllipseElement) rx(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGEllipseElement/ry)
  */
-pub (value: SVGEllipseElement) ry(): SVGAnimatedLength ->
+pub (receiver: SVGEllipseElement) ry(): SVGAnimatedLength ->
     native.
 
-pub (value: SVGEllipseElement) add_event_listener(
+pub (receiver: SVGEllipseElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SVGEllipseElement) remove_event_listener(
+pub (receiver: SVGEllipseElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

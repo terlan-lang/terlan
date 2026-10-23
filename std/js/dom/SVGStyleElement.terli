@@ -12,7 +12,9 @@
  */
 module std.js.Dom.SVGStyleElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -22,21 +24,21 @@ import type std.js.String.{JsString}.
  */
 pub opaque type SVGStyleElement.
 
-pub (value: SVGStyleElement) disabled(): Bool.
+pub (receiver: SVGStyleElement) disabled(): Bool.
 
 /**
  * The **`SVGStyleElement.media`** property is a media query string corresponding to the `media` attribute of the given SVG style element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStyleElement/media)
  */
-pub (value: SVGStyleElement) media(): JsString.
+pub (receiver: SVGStyleElement) media(): JsString.
 
 /**
  * The **`SVGStyleElement.title`** property is a string corresponding to the `title` attribute of the given SVG style element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStyleElement/title)
  */
-pub (value: SVGStyleElement) title(): JsString.
+pub (receiver: SVGStyleElement) title(): JsString.
 
 /**
  * The **`SVGStyleElement.type`** property returns the type of the current style.
@@ -44,16 +46,16 @@ pub (value: SVGStyleElement) title(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStyleElement/type)
  */
-pub (value: SVGStyleElement) type_(): JsString.
+pub (receiver: SVGStyleElement) type_(): JsString.
 
-pub (value: SVGStyleElement) add_event_listener(
+pub (receiver: SVGStyleElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: SVGStyleElement) remove_event_listener(
+pub (receiver: SVGStyleElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

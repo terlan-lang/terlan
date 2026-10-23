@@ -12,19 +12,18 @@
  */
 module std.js.Dom.PropertyDefinitionTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.PropertyDefinition.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub inherits_typechecks(receiver: PropertyDefinition): std.core.Bool ->
+pub inherits_typechecks(receiver: PropertyDefinition): Bool ->
     receiver.inherits().
 
-pub initial_value_typechecks(receiver: PropertyDefinition): JsString ->
+pub initial_value_typechecks(receiver: PropertyDefinition): Option[JsString] ->
     receiver.initial_value().
 
 pub name_typechecks(receiver: PropertyDefinition): JsString ->
     receiver.name().
 
-pub syntax_typechecks(receiver: PropertyDefinition): JsString ->
+pub syntax_typechecks(receiver: PropertyDefinition): Option[JsString] ->
     receiver.syntax().

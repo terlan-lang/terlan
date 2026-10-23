@@ -12,16 +12,15 @@
  */
 module std.js.Dom.PayerErrorsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.PayerErrors.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub email_typechecks(receiver: PayerErrors): JsString ->
+pub email_typechecks(receiver: PayerErrors): Option[JsString] ->
     receiver.email().
 
-pub name_typechecks(receiver: PayerErrors): JsString ->
+pub name_typechecks(receiver: PayerErrors): Option[JsString] ->
     receiver.name().
 
-pub phone_typechecks(receiver: PayerErrors): JsString ->
+pub phone_typechecks(receiver: PayerErrors): Option[JsString] ->
     receiver.phone().

@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLDListElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -25,19 +27,19 @@ pub opaque type HTMLDListElement.
 /**
  * @deprecated
  */
-pub (value: HTMLDListElement) compact(): Bool ->
+pub (receiver: HTMLDListElement) compact(): Bool ->
     native.
 
-pub (value: HTMLDListElement) add_event_listener(
+pub (receiver: HTMLDListElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLDListElement) remove_event_listener(
+pub (receiver: HTMLDListElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

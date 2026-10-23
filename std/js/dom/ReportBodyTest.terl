@@ -13,5 +13,3 @@
 module std.js.Dom.ReportBodyTest.
 
 import type std.js.Dom.ReportBody.
-
-pub generated_binding_surface_contract(): Bool -> true.

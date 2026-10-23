@@ -25,15 +25,7 @@ pub opaque type MediaKeyStatusMap.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeyStatusMap/size)
  */
-pub (value: MediaKeyStatusMap) size(): std.js.Number.JsNumber ->
-    native.
-
-/**
- * The **`get()`** method of the MediaKeyStatusMap interface returns the status value associated with the given key, or `undefined` if there is none.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeyStatusMap/get)
- */
-pub (value: MediaKeyStatusMap) get(key_id: BufferSource): Option[MediaKeyStatus] ->
+pub (receiver: MediaKeyStatusMap) size(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -41,5 +33,5 @@ pub (value: MediaKeyStatusMap) get(key_id: BufferSource): Option[MediaKeyStatus]
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeyStatusMap/has)
  */
-pub (value: MediaKeyStatusMap) has(key_id: BufferSource): std.core.Bool ->
+pub (receiver: MediaKeyStatusMap) has(key_id: std.js.Dom.BufferSource.BufferSource): Bool ->
     native.

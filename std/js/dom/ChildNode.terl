@@ -12,7 +12,10 @@
  */
 module std.js.Dom.ChildNode.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.Node.{Node}.
+import type std.js.String.{JsString}.
 
 pub opaque type ChildNode.
 
@@ -23,7 +26,7 @@ pub opaque type ChildNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/after)
  */
-pub (value: ChildNode) after_(): Unit ->
+pub (receiver: ChildNode) after_(nodes: Array[Node | JsString]): Unit ->
     native.
 
 /**
@@ -33,7 +36,7 @@ pub (value: ChildNode) after_(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/before)
  */
-pub (value: ChildNode) before(): Unit ->
+pub (receiver: ChildNode) before(nodes: Array[Node | JsString]): Unit ->
     native.
 
 /**
@@ -41,7 +44,7 @@ pub (value: ChildNode) before(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/remove)
  */
-pub (value: ChildNode) remove(): Unit ->
+pub (receiver: ChildNode) remove(): Unit ->
     native.
 
 /**
@@ -51,5 +54,5 @@ pub (value: ChildNode) remove(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/replaceWith)
  */
-pub (value: ChildNode) replace_with(): Unit ->
+pub (receiver: ChildNode) replace_with(nodes: Array[Node | JsString]): Unit ->
     native.

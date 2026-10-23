@@ -26,7 +26,7 @@ pub opaque type DOMPoint.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPoint/w)
  */
-pub (value: DOMPoint) w(): JsNumber ->
+pub (receiver: DOMPoint) w(): JsNumber ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: DOMPoint) w(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPoint/x)
  */
-pub (value: DOMPoint) x(): JsNumber ->
+pub (receiver: DOMPoint) x(): JsNumber ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: DOMPoint) x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPoint/y)
  */
-pub (value: DOMPoint) y(): JsNumber ->
+pub (receiver: DOMPoint) y(): JsNumber ->
     native.
 
 /**
@@ -50,5 +50,5 @@ pub (value: DOMPoint) y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPoint/z)
  */
-pub (value: DOMPoint) z(): JsNumber ->
+pub (receiver: DOMPoint) z(): JsNumber ->
     native.

@@ -14,5 +14,5 @@ module std.js.Dom.PaymentMethodChangeEventInit.
 
 pub opaque type PaymentMethodChangeEventInit.
 
-pub (value: PaymentMethodChangeEventInit) method_name(): std.js.String.JsString ->
+pub (receiver: PaymentMethodChangeEventInit) method_name(): std.core.Option.Option[std.js.String.JsString] ->
     native.

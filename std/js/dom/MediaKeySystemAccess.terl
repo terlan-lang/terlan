@@ -25,7 +25,7 @@ pub opaque type MediaKeySystemAccess.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeySystemAccess/keySystem)
  */
-pub (value: MediaKeySystemAccess) key_system(): std.js.String.JsString ->
+pub (receiver: MediaKeySystemAccess) key_system(): std.js.String.JsString ->
     native.
 
 /**
@@ -33,7 +33,7 @@ pub (value: MediaKeySystemAccess) key_system(): std.js.String.JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeySystemAccess/createMediaKeys)
  */
-pub (value: MediaKeySystemAccess) create_media_keys(): std.js.Promise[MediaKeys] ->
+pub (receiver: MediaKeySystemAccess) create_media_keys(): std.js.Promise.Promise[std.js.Dom.MediaKeys.MediaKeys] ->
     native.
 
 /**
@@ -41,5 +41,5 @@ pub (value: MediaKeySystemAccess) create_media_keys(): std.js.Promise[MediaKeys]
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeySystemAccess/getConfiguration)
  */
-pub (value: MediaKeySystemAccess) get_configuration(): MediaKeySystemConfiguration ->
+pub (receiver: MediaKeySystemAccess) get_configuration(): std.js.Dom.MediaKeySystemConfiguration.MediaKeySystemConfiguration ->
     native.

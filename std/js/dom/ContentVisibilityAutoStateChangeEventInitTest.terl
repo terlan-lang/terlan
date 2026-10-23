@@ -14,7 +14,7 @@ module std.js.Dom.ContentVisibilityAutoStateChangeEventInitTest.
 
 import type std.js.Dom.ContentVisibilityAutoStateChangeEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub skipped_typechecks(receiver: ContentVisibilityAutoStateChangeEventInit): std.core.Bool ->
+pub skipped_typechecks(
+    receiver: ContentVisibilityAutoStateChangeEventInit,
+): std.core.Option.Option[Bool] ->
     receiver.skipped().

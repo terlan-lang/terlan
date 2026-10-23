@@ -25,4 +25,4 @@ pub opaque type RTCDataChannelEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannelEvent/channel)
  */
-pub (value: RTCDataChannelEvent) channel(): RTCDataChannel.
+pub (receiver: RTCDataChannelEvent) channel(): std.js.Dom.RTCDataChannel.RTCDataChannel.

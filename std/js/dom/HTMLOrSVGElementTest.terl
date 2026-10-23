@@ -12,18 +12,17 @@
  */
 module std.js.Dom.HTMLOrSVGElementTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.HTMLOrSVGElement.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub autofocus_typechecks(receiver: HTMLOrSVGElement): std.core.Bool ->
+pub autofocus_typechecks(receiver: HTMLOrSVGElement): Bool ->
     receiver.autofocus().
 
-pub dataset_typechecks(receiver: HTMLOrSVGElement): DOMStringMap ->
+pub dataset_typechecks(receiver: HTMLOrSVGElement): std.js.Dom.DOMStringMap.DOMStringMap ->
     receiver.dataset().
 
-pub nonce_typechecks(receiver: HTMLOrSVGElement): std.js.String.JsString ->
+pub nonce_typechecks(receiver: HTMLOrSVGElement): Option[std.js.String.JsString] ->
     receiver.nonce().
 
 pub tab_index_typechecks(receiver: HTMLOrSVGElement): std.js.Number.JsNumber ->
@@ -32,5 +31,8 @@ pub tab_index_typechecks(receiver: HTMLOrSVGElement): std.js.Number.JsNumber ->
 pub blur_typechecks(receiver: HTMLOrSVGElement): Unit ->
     receiver.blur().
 
-pub focus_typechecks(receiver: HTMLOrSVGElement, options: FocusOptions): Unit ->
+pub focus_typechecks(
+    receiver: HTMLOrSVGElement,
+    options: Option[std.js.Dom.FocusOptions.FocusOptions],
+): Unit ->
     receiver.focus(options).

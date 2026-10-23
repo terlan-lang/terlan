@@ -14,193 +14,265 @@ module std.js.Dom.SVGElementTagNameMapTest.
 
 import type std.js.Dom.SVGElementTagNameMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub a_typechecks(receiver: SVGElementTagNameMap): SVGAElement ->
+pub a_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGAElement.SVGAElement ->
     receiver.a().
 
-pub animate_typechecks(receiver: SVGElementTagNameMap): SVGAnimateElement ->
+pub animate_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGAnimateElement.SVGAnimateElement ->
     receiver.animate().
 
-pub animate_motion_typechecks(receiver: SVGElementTagNameMap): SVGAnimateMotionElement ->
+pub animate_motion_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGAnimateMotionElement.SVGAnimateMotionElement ->
     receiver.animate_motion().
 
-pub animate_transform_typechecks(receiver: SVGElementTagNameMap): SVGAnimateTransformElement ->
+pub animate_transform_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGAnimateTransformElement.SVGAnimateTransformElement ->
     receiver.animate_transform().
 
-pub circle_typechecks(receiver: SVGElementTagNameMap): SVGCircleElement ->
+pub circle_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGCircleElement.SVGCircleElement ->
     receiver.circle().
 
-pub clip_path_typechecks(receiver: SVGElementTagNameMap): SVGClipPathElement ->
+pub clip_path_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGClipPathElement.SVGClipPathElement ->
     receiver.clip_path().
 
-pub defs_typechecks(receiver: SVGElementTagNameMap): SVGDefsElement ->
+pub defs_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGDefsElement.SVGDefsElement ->
     receiver.defs().
 
-pub desc_typechecks(receiver: SVGElementTagNameMap): SVGDescElement ->
+pub desc_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGDescElement.SVGDescElement ->
     receiver.desc().
 
-pub ellipse_typechecks(receiver: SVGElementTagNameMap): SVGEllipseElement ->
+pub ellipse_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGEllipseElement.SVGEllipseElement ->
     receiver.ellipse().
 
-pub fe_blend_typechecks(receiver: SVGElementTagNameMap): SVGFEBlendElement ->
+pub fe_blend_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEBlendElement.SVGFEBlendElement ->
     receiver.fe_blend().
 
-pub fe_color_matrix_typechecks(receiver: SVGElementTagNameMap): SVGFEColorMatrixElement ->
+pub fe_color_matrix_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEColorMatrixElement.SVGFEColorMatrixElement ->
     receiver.fe_color_matrix().
 
-pub fe_component_transfer_typechecks(receiver: SVGElementTagNameMap): SVGFEComponentTransferElement ->
+pub fe_component_transfer_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEComponentTransferElement.SVGFEComponentTransferElement ->
     receiver.fe_component_transfer().
 
-pub fe_composite_typechecks(receiver: SVGElementTagNameMap): SVGFECompositeElement ->
+pub fe_composite_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFECompositeElement.SVGFECompositeElement ->
     receiver.fe_composite().
 
-pub fe_convolve_matrix_typechecks(receiver: SVGElementTagNameMap): SVGFEConvolveMatrixElement ->
+pub fe_convolve_matrix_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEConvolveMatrixElement.SVGFEConvolveMatrixElement ->
     receiver.fe_convolve_matrix().
 
-pub fe_diffuse_lighting_typechecks(receiver: SVGElementTagNameMap): SVGFEDiffuseLightingElement ->
+pub fe_diffuse_lighting_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEDiffuseLightingElement.SVGFEDiffuseLightingElement ->
     receiver.fe_diffuse_lighting().
 
-pub fe_displacement_map_typechecks(receiver: SVGElementTagNameMap): SVGFEDisplacementMapElement ->
+pub fe_displacement_map_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEDisplacementMapElement.SVGFEDisplacementMapElement ->
     receiver.fe_displacement_map().
 
-pub fe_distant_light_typechecks(receiver: SVGElementTagNameMap): SVGFEDistantLightElement ->
+pub fe_distant_light_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEDistantLightElement.SVGFEDistantLightElement ->
     receiver.fe_distant_light().
 
-pub fe_drop_shadow_typechecks(receiver: SVGElementTagNameMap): SVGFEDropShadowElement ->
+pub fe_drop_shadow_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEDropShadowElement.SVGFEDropShadowElement ->
     receiver.fe_drop_shadow().
 
-pub fe_flood_typechecks(receiver: SVGElementTagNameMap): SVGFEFloodElement ->
+pub fe_flood_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEFloodElement.SVGFEFloodElement ->
     receiver.fe_flood().
 
-pub fe_func_a_typechecks(receiver: SVGElementTagNameMap): SVGFEFuncAElement ->
+pub fe_func_a_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEFuncAElement.SVGFEFuncAElement ->
     receiver.fe_func_a().
 
-pub fe_func_b_typechecks(receiver: SVGElementTagNameMap): SVGFEFuncBElement ->
+pub fe_func_b_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEFuncBElement.SVGFEFuncBElement ->
     receiver.fe_func_b().
 
-pub fe_func_g_typechecks(receiver: SVGElementTagNameMap): SVGFEFuncGElement ->
+pub fe_func_g_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEFuncGElement.SVGFEFuncGElement ->
     receiver.fe_func_g().
 
-pub fe_func_r_typechecks(receiver: SVGElementTagNameMap): SVGFEFuncRElement ->
+pub fe_func_r_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEFuncRElement.SVGFEFuncRElement ->
     receiver.fe_func_r().
 
-pub fe_gaussian_blur_typechecks(receiver: SVGElementTagNameMap): SVGFEGaussianBlurElement ->
+pub fe_gaussian_blur_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEGaussianBlurElement.SVGFEGaussianBlurElement ->
     receiver.fe_gaussian_blur().
 
-pub fe_image_typechecks(receiver: SVGElementTagNameMap): SVGFEImageElement ->
+pub fe_image_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEImageElement.SVGFEImageElement ->
     receiver.fe_image().
 
-pub fe_merge_typechecks(receiver: SVGElementTagNameMap): SVGFEMergeElement ->
+pub fe_merge_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEMergeElement.SVGFEMergeElement ->
     receiver.fe_merge().
 
-pub fe_merge_node_typechecks(receiver: SVGElementTagNameMap): SVGFEMergeNodeElement ->
+pub fe_merge_node_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEMergeNodeElement.SVGFEMergeNodeElement ->
     receiver.fe_merge_node().
 
-pub fe_morphology_typechecks(receiver: SVGElementTagNameMap): SVGFEMorphologyElement ->
+pub fe_morphology_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEMorphologyElement.SVGFEMorphologyElement ->
     receiver.fe_morphology().
 
-pub fe_offset_typechecks(receiver: SVGElementTagNameMap): SVGFEOffsetElement ->
+pub fe_offset_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEOffsetElement.SVGFEOffsetElement ->
     receiver.fe_offset().
 
-pub fe_point_light_typechecks(receiver: SVGElementTagNameMap): SVGFEPointLightElement ->
+pub fe_point_light_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFEPointLightElement.SVGFEPointLightElement ->
     receiver.fe_point_light().
 
-pub fe_specular_lighting_typechecks(receiver: SVGElementTagNameMap): SVGFESpecularLightingElement ->
+pub fe_specular_lighting_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFESpecularLightingElement.SVGFESpecularLightingElement ->
     receiver.fe_specular_lighting().
 
-pub fe_spot_light_typechecks(receiver: SVGElementTagNameMap): SVGFESpotLightElement ->
+pub fe_spot_light_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFESpotLightElement.SVGFESpotLightElement ->
     receiver.fe_spot_light().
 
-pub fe_tile_typechecks(receiver: SVGElementTagNameMap): SVGFETileElement ->
+pub fe_tile_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGFETileElement.SVGFETileElement ->
     receiver.fe_tile().
 
-pub fe_turbulence_typechecks(receiver: SVGElementTagNameMap): SVGFETurbulenceElement ->
+pub fe_turbulence_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGFETurbulenceElement.SVGFETurbulenceElement ->
     receiver.fe_turbulence().
 
-pub filter_typechecks(receiver: SVGElementTagNameMap): SVGFilterElement ->
+pub filter_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGFilterElement.SVGFilterElement ->
     receiver.filter().
 
-pub foreign_object_typechecks(receiver: SVGElementTagNameMap): SVGForeignObjectElement ->
+pub foreign_object_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGForeignObjectElement.SVGForeignObjectElement ->
     receiver.foreign_object().
 
-pub g_typechecks(receiver: SVGElementTagNameMap): SVGGElement ->
+pub g_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGGElement.SVGGElement ->
     receiver.g().
 
-pub image_typechecks(receiver: SVGElementTagNameMap): SVGImageElement ->
+pub image_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGImageElement.SVGImageElement ->
     receiver.image().
 
-pub line_typechecks(receiver: SVGElementTagNameMap): SVGLineElement ->
+pub line_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGLineElement.SVGLineElement ->
     receiver.line().
 
-pub linear_gradient_typechecks(receiver: SVGElementTagNameMap): SVGLinearGradientElement ->
+pub linear_gradient_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGLinearGradientElement.SVGLinearGradientElement ->
     receiver.linear_gradient().
 
-pub marker_typechecks(receiver: SVGElementTagNameMap): SVGMarkerElement ->
+pub marker_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGMarkerElement.SVGMarkerElement ->
     receiver.marker().
 
-pub mask_typechecks(receiver: SVGElementTagNameMap): SVGMaskElement ->
+pub mask_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGMaskElement.SVGMaskElement ->
     receiver.mask().
 
-pub metadata_typechecks(receiver: SVGElementTagNameMap): SVGMetadataElement ->
+pub metadata_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGMetadataElement.SVGMetadataElement ->
     receiver.metadata().
 
-pub mpath_typechecks(receiver: SVGElementTagNameMap): SVGMPathElement ->
+pub mpath_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGMPathElement.SVGMPathElement ->
     receiver.mpath().
 
-pub path_typechecks(receiver: SVGElementTagNameMap): SVGPathElement ->
+pub path_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGPathElement.SVGPathElement ->
     receiver.path().
 
-pub pattern_typechecks(receiver: SVGElementTagNameMap): SVGPatternElement ->
+pub pattern_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGPatternElement.SVGPatternElement ->
     receiver.pattern().
 
-pub polygon_typechecks(receiver: SVGElementTagNameMap): SVGPolygonElement ->
+pub polygon_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGPolygonElement.SVGPolygonElement ->
     receiver.polygon().
 
-pub polyline_typechecks(receiver: SVGElementTagNameMap): SVGPolylineElement ->
+pub polyline_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGPolylineElement.SVGPolylineElement ->
     receiver.polyline().
 
-pub radial_gradient_typechecks(receiver: SVGElementTagNameMap): SVGRadialGradientElement ->
+pub radial_gradient_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGRadialGradientElement.SVGRadialGradientElement ->
     receiver.radial_gradient().
 
-pub rect_typechecks(receiver: SVGElementTagNameMap): SVGRectElement ->
+pub rect_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGRectElement.SVGRectElement ->
     receiver.rect().
 
-pub script_typechecks(receiver: SVGElementTagNameMap): SVGScriptElement ->
+pub script_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGScriptElement.SVGScriptElement ->
     receiver.script().
 
-pub set_typechecks(receiver: SVGElementTagNameMap): SVGSetElement ->
+pub set_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGSetElement.SVGSetElement ->
     receiver.set().
 
-pub stop_typechecks(receiver: SVGElementTagNameMap): SVGStopElement ->
+pub stop_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGStopElement.SVGStopElement ->
     receiver.stop().
 
-pub style_typechecks(receiver: SVGElementTagNameMap): SVGStyleElement ->
+pub style_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGStyleElement.SVGStyleElement ->
     receiver.style().
 
-pub svg_typechecks(receiver: SVGElementTagNameMap): SVGSVGElement ->
+pub svg_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGSVGElement.SVGSVGElement ->
     receiver.svg().
 
-pub switch_typechecks(receiver: SVGElementTagNameMap): SVGSwitchElement ->
+pub switch_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGSwitchElement.SVGSwitchElement ->
     receiver.switch().
 
-pub symbol_typechecks(receiver: SVGElementTagNameMap): SVGSymbolElement ->
+pub symbol_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGSymbolElement.SVGSymbolElement ->
     receiver.symbol().
 
-pub text_typechecks(receiver: SVGElementTagNameMap): SVGTextElement ->
+pub text_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGTextElement.SVGTextElement ->
     receiver.text().
 
-pub text_path_typechecks(receiver: SVGElementTagNameMap): SVGTextPathElement ->
+pub text_path_typechecks(
+    receiver: SVGElementTagNameMap,
+): std.js.Dom.SVGTextPathElement.SVGTextPathElement ->
     receiver.text_path().
 
-pub title_typechecks(receiver: SVGElementTagNameMap): SVGTitleElement ->
+pub title_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGTitleElement.SVGTitleElement ->
     receiver.title().
 
-pub tspan_typechecks(receiver: SVGElementTagNameMap): SVGTSpanElement ->
+pub tspan_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGTSpanElement.SVGTSpanElement ->
     receiver.tspan().
 
-pub use_typechecks(receiver: SVGElementTagNameMap): SVGUseElement ->
+pub use_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGUseElement.SVGUseElement ->
     receiver.use().
 
-pub view_typechecks(receiver: SVGElementTagNameMap): SVGViewElement ->
+pub view_typechecks(receiver: SVGElementTagNameMap): std.js.Dom.SVGViewElement.SVGViewElement ->
     receiver.view().

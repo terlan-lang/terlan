@@ -12,7 +12,9 @@
  */
 module std.js.Dom.WakeLockSentinel.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -28,30 +30,23 @@ pub opaque type WakeLockSentinel.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel/released)
  */
-pub (value: WakeLockSentinel) released(): Bool.
-
-/**
- * The **`type`** read-only property of the WakeLockSentinel interface returns a string representation of the currently acquired WakeLockSentinel type.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel/type)
- */
-pub (value: WakeLockSentinel) type_(): WakeLockType.
+pub (receiver: WakeLockSentinel) released(): Bool.
 
 /**
  * The **`release()`** method of the WakeLockSentinel interface releases the WakeLockSentinel, returning a Promise that is resolved once the sentinel has been successfully released.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel/release)
  */
-pub (value: WakeLockSentinel) release(): std.js.Promise[Unit].
+pub (receiver: WakeLockSentinel) release(): std.js.Promise.Promise[Unit].
 
-pub (value: WakeLockSentinel) add_event_listener(
+pub (receiver: WakeLockSentinel) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: WakeLockSentinel) remove_event_listener(
+pub (receiver: WakeLockSentinel) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

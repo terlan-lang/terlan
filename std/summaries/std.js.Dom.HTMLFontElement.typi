@@ -27,7 +27,7 @@ pub opaque type HTMLFontElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFontElement/color)
  */
-pub (value: HTMLFontElement) color(): std.js.String.JsString.
+pub (receiver: HTMLFontElement) color(): std.js.String.JsString.
 
 /**
  * The obsolete **`HTMLFontElement.face`** property is a string that reflects the `face` HTML attribute, containing a comma-separated list of one or more font names.
@@ -35,7 +35,7 @@ pub (value: HTMLFontElement) color(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFontElement/face)
  */
-pub (value: HTMLFontElement) face(): std.js.String.JsString.
+pub (receiver: HTMLFontElement) face(): std.js.String.JsString.
 
 /**
  * The obsolete **`HTMLFontElement.size`** property is a string that reflects the `size` HTML attribute.
@@ -43,8 +43,8 @@ pub (value: HTMLFontElement) face(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFontElement/size)
  */
-pub (value: HTMLFontElement) size(): std.js.String.JsString.
+pub (receiver: HTMLFontElement) size(): std.js.String.JsString.
 
-pub (value: HTMLFontElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLFontElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLFontElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLFontElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

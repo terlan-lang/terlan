@@ -15,6 +15,6 @@ module std.js.Dom.UnderlyingByteSource.
 
 pub opaque type UnderlyingByteSource.
 
-pub (value: UnderlyingByteSource) auto_allocate_chunk_size(): std.js.Number.JsNumber.
+pub (receiver: UnderlyingByteSource) auto_allocate_chunk_size(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: UnderlyingByteSource) cancel(): UnderlyingSourceCancelCallback.
+pub (receiver: UnderlyingByteSource) cancel(): std.core.Option.Option[std.js.Dom.UnderlyingSourceCancelCallback.UnderlyingSourceCancelCallback].

@@ -12,13 +12,15 @@
  */
 module std.js.Dom.FontFaceSetEventMap.
 
+import type std.js.Dom.FontFaceSetLoadEvent.{FontFaceSetLoadEvent}.
+
 pub opaque type FontFaceSetEventMap.
 
-pub (value: FontFaceSetEventMap) loading(): FontFaceSetLoadEvent ->
+pub (receiver: FontFaceSetEventMap) loading(): FontFaceSetLoadEvent ->
     native.
 
-pub (value: FontFaceSetEventMap) loadingdone(): FontFaceSetLoadEvent ->
+pub (receiver: FontFaceSetEventMap) loadingdone(): FontFaceSetLoadEvent ->
     native.
 
-pub (value: FontFaceSetEventMap) loadingerror(): FontFaceSetLoadEvent ->
+pub (receiver: FontFaceSetEventMap) loadingerror(): FontFaceSetLoadEvent ->
     native.

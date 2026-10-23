@@ -26,11 +26,11 @@ pub opaque type SVGAnimatedEnumeration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedEnumeration/animVal)
  */
-pub (value: SVGAnimatedEnumeration) anim_val(): JsNumber.
+pub (receiver: SVGAnimatedEnumeration) anim_val(): JsNumber.
 
 /**
  * The **`baseVal`** property of the SVGAnimatedEnumeration interface contains the initial value of an SVG enumeration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedEnumeration/baseVal)
  */
-pub (value: SVGAnimatedEnumeration) base_val(): JsNumber.
+pub (receiver: SVGAnimatedEnumeration) base_val(): JsNumber.

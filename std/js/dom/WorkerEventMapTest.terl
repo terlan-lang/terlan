@@ -13,5 +13,3 @@
 module std.js.Dom.WorkerEventMapTest.
 
 import type std.js.Dom.WorkerEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.

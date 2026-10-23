@@ -14,10 +14,10 @@ module std.js.Dom.RTCCertificateTest.
 
 import type std.js.Dom.RTCCertificate.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub expires_typechecks(receiver: RTCCertificate): EpochTimeStamp ->
+pub expires_typechecks(receiver: RTCCertificate): std.js.Dom.EpochTimeStamp.EpochTimeStamp ->
     receiver.expires().
 
-pub get_fingerprints_typechecks(receiver: RTCCertificate): std.js.Array[RTCDtlsFingerprint] ->
+pub get_fingerprints_typechecks(
+    receiver: RTCCertificate,
+): std.js.Array.Array[std.js.Dom.RTCDtlsFingerprint.RTCDtlsFingerprint] ->
     receiver.get_fingerprints().

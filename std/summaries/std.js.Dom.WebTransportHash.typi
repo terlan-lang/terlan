@@ -15,6 +15,6 @@ module std.js.Dom.WebTransportHash.
 
 pub opaque type WebTransportHash.
 
-pub (value: WebTransportHash) algorithm(): std.js.String.JsString.
+pub (receiver: WebTransportHash) algorithm(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: WebTransportHash) value(): BufferSource.
+pub (receiver: WebTransportHash) value(): std.core.Option.Option[std.js.Dom.BufferSource.BufferSource].

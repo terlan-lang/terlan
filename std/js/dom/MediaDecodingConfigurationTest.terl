@@ -14,12 +14,7 @@ module std.js.Dom.MediaDecodingConfigurationTest.
 
 import type std.js.Dom.MediaDecodingConfiguration.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub key_system_configuration_typechecks(
     receiver: MediaDecodingConfiguration,
-): MediaCapabilitiesKeySystemConfiguration ->
+): std.core.Option.Option[std.js.Dom.MediaCapabilitiesKeySystemConfiguration.MediaCapabilitiesKeySystemConfiguration] ->
     receiver.key_system_configuration().
-
-pub type__typechecks(receiver: MediaDecodingConfiguration): MediaDecodingType ->
-    receiver.type_().

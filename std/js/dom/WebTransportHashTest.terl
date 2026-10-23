@@ -12,12 +12,11 @@
  */
 module std.js.Dom.WebTransportHashTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.WebTransportHash.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub algorithm_typechecks(receiver: WebTransportHash): std.js.String.JsString ->
+pub algorithm_typechecks(receiver: WebTransportHash): Option[std.js.String.JsString] ->
     receiver.algorithm().
 
-pub value_typechecks(receiver: WebTransportHash): BufferSource ->
+pub value_typechecks(receiver: WebTransportHash): Option[std.js.Dom.BufferSource.BufferSource] ->
     receiver.value().

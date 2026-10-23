@@ -14,7 +14,5 @@ module std.js.Dom.CSSUnparsedValueTest.
 
 import type std.js.Dom.CSSUnparsedValue.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub length_typechecks(receiver: CSSUnparsedValue): std.js.Number.JsNumber ->
     receiver.length().

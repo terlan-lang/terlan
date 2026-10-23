@@ -12,10 +12,12 @@
  */
 module std.js.Dom.RemotePlaybackEventMap.
 
+import type std.js.Dom.Event.{Event}.
+
 pub opaque type RemotePlaybackEventMap.
 
-pub (value: RemotePlaybackEventMap) connect(): Event.
+pub (receiver: RemotePlaybackEventMap) connect(): Event.
 
-pub (value: RemotePlaybackEventMap) connecting(): Event.
+pub (receiver: RemotePlaybackEventMap) connecting(): Event.
 
-pub (value: RemotePlaybackEventMap) disconnect(): Event.
+pub (receiver: RemotePlaybackEventMap) disconnect(): Event.

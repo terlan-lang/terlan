@@ -12,16 +12,13 @@
  */
 module std.js.Dom.PhotoCapabilities.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.MediaSettingsRange.{MediaSettingsRange}.
+
 pub opaque type PhotoCapabilities.
 
-pub (value: PhotoCapabilities) fill_light_mode(): std.js.Array[FillLightMode] ->
+pub (receiver: PhotoCapabilities) image_height(): Option[MediaSettingsRange] ->
     native.
 
-pub (value: PhotoCapabilities) image_height(): MediaSettingsRange ->
-    native.
-
-pub (value: PhotoCapabilities) image_width(): MediaSettingsRange ->
-    native.
-
-pub (value: PhotoCapabilities) red_eye_reduction(): RedEyeReduction ->
+pub (receiver: PhotoCapabilities) image_width(): Option[MediaSettingsRange] ->
     native.

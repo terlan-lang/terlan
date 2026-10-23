@@ -14,7 +14,7 @@ module std.js.Dom.WebTransportSendOptionsTest.
 
 import type std.js.Dom.WebTransportSendOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub send_order_typechecks(receiver: WebTransportSendOptions): std.js.Number.JsNumber ->
+pub send_order_typechecks(
+    receiver: WebTransportSendOptions,
+): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.send_order().

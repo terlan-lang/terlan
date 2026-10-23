@@ -12,9 +12,12 @@
  */
 module std.js.Dom.MediaStream.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.MediaStreamTrack.{MediaStreamTrack}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
 /**
  * The **`MediaStream`** interface of the Media Capture and Streams API represents a stream of media content.
@@ -28,7 +31,7 @@ pub opaque type MediaStream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/active)
  */
-pub (value: MediaStream) active(): Bool ->
+pub (receiver: MediaStream) active(): Bool ->
     native.
 
 /**
@@ -36,7 +39,7 @@ pub (value: MediaStream) active(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/id)
  */
-pub (value: MediaStream) id(): JsString ->
+pub (receiver: MediaStream) id(): JsString ->
     native.
 
 /**
@@ -44,7 +47,7 @@ pub (value: MediaStream) id(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/addTrack)
  */
-pub (value: MediaStream) add_track(track: MediaStreamTrack): Unit ->
+pub (receiver: MediaStream) add_track(track: MediaStreamTrack): Unit ->
     native.
 
 /**
@@ -52,7 +55,7 @@ pub (value: MediaStream) add_track(track: MediaStreamTrack): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/clone)
  */
-pub (value: MediaStream) clone(): MediaStream ->
+pub (receiver: MediaStream) clone(): MediaStream ->
     native.
 
 /**
@@ -60,7 +63,7 @@ pub (value: MediaStream) clone(): MediaStream ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getAudioTracks)
  */
-pub (value: MediaStream) get_audio_tracks(): Array[MediaStreamTrack] ->
+pub (receiver: MediaStream) get_audio_tracks(): Array[MediaStreamTrack] ->
     native.
 
 /**
@@ -68,7 +71,7 @@ pub (value: MediaStream) get_audio_tracks(): Array[MediaStreamTrack] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getTrackById)
  */
-pub (value: MediaStream) get_track_by_id(track_id: JsString): Option[MediaStreamTrack] ->
+pub (receiver: MediaStream) get_track_by_id(track_id: JsString): Option[MediaStreamTrack] ->
     native.
 
 /**
@@ -76,7 +79,7 @@ pub (value: MediaStream) get_track_by_id(track_id: JsString): Option[MediaStream
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getTracks)
  */
-pub (value: MediaStream) get_tracks(): Array[MediaStreamTrack] ->
+pub (receiver: MediaStream) get_tracks(): Array[MediaStreamTrack] ->
     native.
 
 /**
@@ -84,7 +87,7 @@ pub (value: MediaStream) get_tracks(): Array[MediaStreamTrack] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getVideoTracks)
  */
-pub (value: MediaStream) get_video_tracks(): Array[MediaStreamTrack] ->
+pub (receiver: MediaStream) get_video_tracks(): Array[MediaStreamTrack] ->
     native.
 
 /**
@@ -92,19 +95,19 @@ pub (value: MediaStream) get_video_tracks(): Array[MediaStreamTrack] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/removeTrack)
  */
-pub (value: MediaStream) remove_track(track: MediaStreamTrack): Unit ->
+pub (receiver: MediaStream) remove_track(track: MediaStreamTrack): Unit ->
     native.
 
-pub (value: MediaStream) add_event_listener(
+pub (receiver: MediaStream) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: MediaStream) remove_event_listener(
+pub (receiver: MediaStream) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

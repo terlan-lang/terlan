@@ -14,20 +14,7 @@ module std.js.Dom.AuthenticatorSelectionCriteriaTest.
 
 import type std.js.Dom.AuthenticatorSelectionCriteria.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub authenticator_attachment_typechecks(
+pub require_resident_key_typechecks(
     receiver: AuthenticatorSelectionCriteria,
-): AuthenticatorAttachment ->
-    receiver.authenticator_attachment().
-
-pub require_resident_key_typechecks(receiver: AuthenticatorSelectionCriteria): std.core.Bool ->
+): std.core.Option.Option[Bool] ->
     receiver.require_resident_key().
-
-pub resident_key_typechecks(receiver: AuthenticatorSelectionCriteria): ResidentKeyRequirement ->
-    receiver.resident_key().
-
-pub user_verification_typechecks(
-    receiver: AuthenticatorSelectionCriteria,
-): UserVerificationRequirement ->
-    receiver.user_verification().

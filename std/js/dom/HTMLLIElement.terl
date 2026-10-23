@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLLIElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -25,7 +27,7 @@ pub opaque type HTMLLIElement.
 /**
  * @deprecated
  */
-pub (value: HTMLLIElement) type_(): JsString ->
+pub (receiver: HTMLLIElement) type_(): JsString ->
     native.
 
 /**
@@ -33,19 +35,19 @@ pub (value: HTMLLIElement) type_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLIElement/value)
  */
-pub (value: HTMLLIElement) value(): std.js.Number.JsNumber ->
+pub (receiver: HTMLLIElement) value(): std.js.Number.JsNumber ->
     native.
 
-pub (value: HTMLLIElement) add_event_listener(
+pub (receiver: HTMLLIElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLLIElement) remove_event_listener(
+pub (receiver: HTMLLIElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

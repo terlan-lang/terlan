@@ -14,7 +14,5 @@ module std.js.RangeErrorConstructorTest.
 
 import type std.js.RangeErrorConstructor.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: RangeErrorConstructor): RangeError ->
+pub prototype_typechecks(receiver: RangeErrorConstructor): std.js.RangeError.RangeError ->
     receiver.prototype().

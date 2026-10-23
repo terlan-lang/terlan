@@ -12,12 +12,13 @@
  */
 module std.js.Dom.RTCSentRtpStreamStats.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type RTCSentRtpStreamStats.
 
-pub (value: RTCSentRtpStreamStats) bytes_sent(): JsNumber ->
+pub (receiver: RTCSentRtpStreamStats) bytes_sent(): Option[JsNumber] ->
     native.
 
-pub (value: RTCSentRtpStreamStats) packets_sent(): JsNumber ->
+pub (receiver: RTCSentRtpStreamStats) packets_sent(): Option[JsNumber] ->
     native.

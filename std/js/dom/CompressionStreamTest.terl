@@ -14,10 +14,12 @@ module std.js.Dom.CompressionStreamTest.
 
 import type std.js.Dom.CompressionStream.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub readable_typechecks(receiver: CompressionStream): ReadableStream[Uint8Array[ArrayBuffer]] ->
+pub readable_typechecks(
+    receiver: CompressionStream,
+): std.js.Dom.ReadableStream.ReadableStream[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]] ->
     receiver.readable().
 
-pub writable_typechecks(receiver: CompressionStream): WritableStream[BufferSource] ->
+pub writable_typechecks(
+    receiver: CompressionStream,
+): std.js.Dom.WritableStream.WritableStream[std.js.Dom.BufferSource.BufferSource] ->
     receiver.writable().

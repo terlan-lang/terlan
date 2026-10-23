@@ -12,12 +12,13 @@
  */
 module std.js.Dom.PositionOptions.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type PositionOptions.
 
-pub (value: PositionOptions) enable_high_accuracy(): std.core.Bool.
+pub (receiver: PositionOptions) enable_high_accuracy(): Option[Bool].
 
-pub (value: PositionOptions) maximum_age(): JsNumber.
+pub (receiver: PositionOptions) maximum_age(): Option[JsNumber].
 
-pub (value: PositionOptions) timeout(): JsNumber.
+pub (receiver: PositionOptions) timeout(): Option[JsNumber].

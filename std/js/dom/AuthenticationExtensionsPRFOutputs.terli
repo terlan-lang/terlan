@@ -12,8 +12,10 @@
  */
 module std.js.Dom.AuthenticationExtensionsPRFOutputs.
 
+import type std.core.Option.{Option}.
+
 pub opaque type AuthenticationExtensionsPRFOutputs.
 
-pub (value: AuthenticationExtensionsPRFOutputs) enabled(): std.core.Bool.
+pub (receiver: AuthenticationExtensionsPRFOutputs) enabled(): Option[Bool].
 
-pub (value: AuthenticationExtensionsPRFOutputs) results(): AuthenticationExtensionsPRFValues.
+pub (receiver: AuthenticationExtensionsPRFOutputs) results(): Option[std.js.Dom.AuthenticationExtensionsPRFValues.AuthenticationExtensionsPRFValues].

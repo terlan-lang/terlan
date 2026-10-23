@@ -25,11 +25,11 @@ pub opaque type IdleDeadline.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IdleDeadline/didTimeout)
  */
-pub (value: IdleDeadline) did_timeout(): std.core.Bool.
+pub (receiver: IdleDeadline) did_timeout(): Bool.
 
 /**
  * The **`timeRemaining()`** method on the IdleDeadline interface returns the estimated number of milliseconds remaining in the current idle period.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IdleDeadline/timeRemaining)
  */
-pub (value: IdleDeadline) time_remaining(): DOMHighResTimeStamp.
+pub (receiver: IdleDeadline) time_remaining(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.

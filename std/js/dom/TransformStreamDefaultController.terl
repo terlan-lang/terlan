@@ -12,7 +12,8 @@
  */
 module std.js.Dom.TransformStreamDefaultController.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 
 /**
  * The **`TransformStreamDefaultController`** interface of the Streams API provides methods to manipulate the associated ReadableStream and WritableStream.
@@ -26,7 +27,7 @@ pub opaque type TransformStreamDefaultController[O].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransformStreamDefaultController/desiredSize)
  */
-pub (value: TransformStreamDefaultController[O]) desired_size(): Option[std.js.Number.JsNumber] ->
+pub (receiver: TransformStreamDefaultController[O]) desired_size(): Option[std.js.Number.JsNumber] ->
     native.
 
 /**
@@ -34,7 +35,7 @@ pub (value: TransformStreamDefaultController[O]) desired_size(): Option[std.js.N
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransformStreamDefaultController/enqueue)
  */
-pub (value: TransformStreamDefaultController[O]) enqueue(chunk: O): Unit ->
+pub (receiver: TransformStreamDefaultController[O]) enqueue(chunk: Option[O]): Unit ->
     native.
 
 /**
@@ -42,5 +43,5 @@ pub (value: TransformStreamDefaultController[O]) enqueue(chunk: O): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransformStreamDefaultController/terminate)
  */
-pub (value: TransformStreamDefaultController[O]) terminate(): Unit ->
+pub (receiver: TransformStreamDefaultController[O]) terminate(): Unit ->
     native.

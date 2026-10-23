@@ -12,7 +12,9 @@
  */
 module std.js.Dom.ScreenOrientation.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,30 +29,23 @@ pub opaque type ScreenOrientation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ScreenOrientation/angle)
  */
-pub (value: ScreenOrientation) angle(): std.js.Number.JsNumber.
-
-/**
- * The **`type`** read-only property of the type, one of `portrait-primary`, `portrait-secondary`, `landscape-primary`, or `landscape-secondary`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ScreenOrientation/type)
- */
-pub (value: ScreenOrientation) type_(): OrientationType.
+pub (receiver: ScreenOrientation) angle(): std.js.Number.JsNumber.
 
 /**
  * The **`unlock()`** method of the document from its default orientation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ScreenOrientation/unlock)
  */
-pub (value: ScreenOrientation) unlock(): Unit.
+pub (receiver: ScreenOrientation) unlock(): Unit.
 
-pub (value: ScreenOrientation) add_event_listener(
+pub (receiver: ScreenOrientation) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: ScreenOrientation) remove_event_listener(
+pub (receiver: ScreenOrientation) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

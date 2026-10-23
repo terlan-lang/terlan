@@ -12,12 +12,12 @@
  */
 module std.js.Dom.HTMLCanvasElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.HTMLCanvasElement.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub height_typechecks(receiver: HTMLCanvasElement): JsNumber ->
     receiver.height().
@@ -27,33 +27,35 @@ pub width_typechecks(receiver: HTMLCanvasElement): JsNumber ->
 
 pub capture_stream_typechecks(
     receiver: HTMLCanvasElement,
-    frame_request_rate: JsNumber,
-): MediaStream ->
+    frame_request_rate: Option[JsNumber],
+): std.js.Dom.MediaStream.MediaStream ->
     receiver.capture_stream(frame_request_rate).
 
 pub to_blob_typechecks(
     receiver: HTMLCanvasElement,
-    callback: BlobCallback,
-    type_: JsString,
-    quality: JsNumber,
+    callback: std.js.Dom.BlobCallback.BlobCallback,
+    type_: Option[JsString],
+    quality: Option[JsNumber],
 ): Unit ->
     receiver.to_blob(callback, type_, quality).
 
 pub to_data_url_typechecks(
     receiver: HTMLCanvasElement,
-    type_: JsString,
-    quality: JsNumber,
+    type_: Option[JsString],
+    quality: Option[JsNumber],
 ): JsString ->
     receiver.to_data_url(type_, quality).
 
-pub transfer_control_to_offscreen_typechecks(receiver: HTMLCanvasElement): OffscreenCanvas ->
+pub transfer_control_to_offscreen_typechecks(
+    receiver: HTMLCanvasElement,
+): std.js.Dom.OffscreenCanvas.OffscreenCanvas ->
     receiver.transfer_control_to_offscreen().
 
 pub add_event_listener_typechecks(
     receiver: HTMLCanvasElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -61,6 +63,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLCanvasElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

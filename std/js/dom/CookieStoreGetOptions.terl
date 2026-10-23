@@ -12,12 +12,13 @@
  */
 module std.js.Dom.CookieStoreGetOptions.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type CookieStoreGetOptions.
 
-pub (value: CookieStoreGetOptions) name(): JsString ->
+pub (receiver: CookieStoreGetOptions) name(): Option[JsString] ->
     native.
 
-pub (value: CookieStoreGetOptions) url(): JsString ->
+pub (receiver: CookieStoreGetOptions) url(): Option[JsString] ->
     native.

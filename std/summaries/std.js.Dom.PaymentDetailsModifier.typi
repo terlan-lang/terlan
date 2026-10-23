@@ -15,8 +15,8 @@ module std.js.Dom.PaymentDetailsModifier.
 
 pub opaque type PaymentDetailsModifier.
 
-pub (value: PaymentDetailsModifier) additional_display_items(): std.js.Array[PaymentItem].
+pub (receiver: PaymentDetailsModifier) additional_display_items(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.PaymentItem.PaymentItem]].
 
-pub (value: PaymentDetailsModifier) supported_methods(): std.js.String.JsString.
+pub (receiver: PaymentDetailsModifier) supported_methods(): std.js.String.JsString.
 
-pub (value: PaymentDetailsModifier) total(): PaymentItem.
+pub (receiver: PaymentDetailsModifier) total(): std.core.Option.Option[std.js.Dom.PaymentItem.PaymentItem].

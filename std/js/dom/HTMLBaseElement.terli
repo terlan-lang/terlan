@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLBaseElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,23 +29,23 @@ pub opaque type HTMLBaseElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLBaseElement/href)
  */
-pub (value: HTMLBaseElement) href(): JsString.
+pub (receiver: HTMLBaseElement) href(): JsString.
 
 /**
  * The `target` property of the HTMLBaseElement interface is a string that represents the default target tab to show the resulting output for hyperlinks and form elements.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLBaseElement/target)
  */
-pub (value: HTMLBaseElement) target_(): JsString.
+pub (receiver: HTMLBaseElement) target_(): JsString.
 
-pub (value: HTMLBaseElement) add_event_listener(
+pub (receiver: HTMLBaseElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: HTMLBaseElement) remove_event_listener(
+pub (receiver: HTMLBaseElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

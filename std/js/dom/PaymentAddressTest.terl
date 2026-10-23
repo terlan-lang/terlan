@@ -15,9 +15,7 @@ module std.js.Dom.PaymentAddressTest.
 import type std.js.Dom.PaymentAddress.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub address_line_typechecks(receiver: PaymentAddress): std.js.Array[JsString] ->
+pub address_line_typechecks(receiver: PaymentAddress): std.js.Array.Array[JsString] ->
     receiver.address_line().
 
 pub city_typechecks(receiver: PaymentAddress): JsString ->

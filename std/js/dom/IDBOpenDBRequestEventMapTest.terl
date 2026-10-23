@@ -13,8 +13,7 @@
 module std.js.Dom.IDBOpenDBRequestEventMapTest.
 
 import type std.js.Dom.IDBOpenDBRequestEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.IDBVersionChangeEvent.{IDBVersionChangeEvent}.
 
 pub blocked_typechecks(receiver: IDBOpenDBRequestEventMap): IDBVersionChangeEvent ->
     receiver.blocked().

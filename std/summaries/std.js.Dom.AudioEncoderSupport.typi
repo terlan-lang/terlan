@@ -15,6 +15,6 @@ module std.js.Dom.AudioEncoderSupport.
 
 pub opaque type AudioEncoderSupport.
 
-pub (value: AudioEncoderSupport) config(): AudioEncoderConfig.
+pub (receiver: AudioEncoderSupport) config(): std.core.Option.Option[std.js.Dom.AudioEncoderConfig.AudioEncoderConfig].
 
-pub (value: AudioEncoderSupport) supported(): std.core.Bool.
+pub (receiver: AudioEncoderSupport) supported(): std.core.Option.Option[Bool].

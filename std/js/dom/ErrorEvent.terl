@@ -27,7 +27,7 @@ pub opaque type ErrorEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/colno)
  */
-pub (value: ErrorEvent) colno(): JsNumber ->
+pub (receiver: ErrorEvent) colno(): JsNumber ->
     native.
 
 /**
@@ -35,7 +35,7 @@ pub (value: ErrorEvent) colno(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/filename)
  */
-pub (value: ErrorEvent) filename(): JsString ->
+pub (receiver: ErrorEvent) filename(): JsString ->
     native.
 
 /**
@@ -43,7 +43,7 @@ pub (value: ErrorEvent) filename(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/lineno)
  */
-pub (value: ErrorEvent) lineno(): JsNumber ->
+pub (receiver: ErrorEvent) lineno(): JsNumber ->
     native.
 
 /**
@@ -51,5 +51,5 @@ pub (value: ErrorEvent) lineno(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/message)
  */
-pub (value: ErrorEvent) message(): JsString ->
+pub (receiver: ErrorEvent) message(): JsString ->
     native.

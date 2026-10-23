@@ -12,22 +12,26 @@
  */
 module std.js.Dom.CanvasImageDataTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.CanvasImageData.
+import type std.js.Dom.ImageData.{ImageData}.
+import type std.js.Dom.ImageDataSettings.{ImageDataSettings}.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub create_image_data_typechecks(
     receiver: CanvasImageData,
     sw: JsNumber,
     sh: JsNumber,
-    settings: ImageDataSettings,
+    settings: Option[ImageDataSettings],
 ): ImageData ->
     receiver.create_image_data(sw, sh, settings).
 
-pub create_image_data_typechecks(receiver: CanvasImageData, image_data: ImageData): ImageData ->
-    receiver.create_image_data(image_data).
+pub create_image_data_overload_2_typechecks(
+    receiver: CanvasImageData,
+    image_data: ImageData,
+): ImageData ->
+    receiver.create_image_data_overload_2(image_data).
 
 pub get_image_data_typechecks(
     receiver: CanvasImageData,
@@ -35,7 +39,7 @@ pub get_image_data_typechecks(
     sy: JsNumber,
     sw: JsNumber,
     sh: JsNumber,
-    settings: ImageDataSettings,
+    settings: Option[ImageDataSettings],
 ): ImageData ->
     receiver.get_image_data(sx, sy, sw, sh, settings).
 
@@ -47,7 +51,7 @@ pub put_image_data_typechecks(
 ): Unit ->
     receiver.put_image_data(image_data, dx, dy).
 
-pub put_image_data_typechecks(
+pub put_image_data_overload_2_typechecks(
     receiver: CanvasImageData,
     image_data: ImageData,
     dx: JsNumber,
@@ -57,4 +61,5 @@ pub put_image_data_typechecks(
     dirty_width: JsNumber,
     dirty_height: JsNumber,
 ): Unit ->
-    receiver.put_image_data(image_data, dx, dy, dirty_x, dirty_y, dirty_width, dirty_height).
+    receiver
+        .put_image_data_overload_2(image_data, dx, dy, dirty_x, dirty_y, dirty_width, dirty_height).

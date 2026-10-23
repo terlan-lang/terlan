@@ -13,5 +13,3 @@
 module std.js.Dom.CSSUnparsedSegmentTest.
 
 import type std.js.Dom.CSSUnparsedSegment.
-
-pub generated_binding_surface_contract(): Bool -> true.

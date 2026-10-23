@@ -14,7 +14,7 @@ module std.js.Dom.FilePropertyBagTest.
 
 import type std.js.Dom.FilePropertyBag.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub last_modified_typechecks(receiver: FilePropertyBag): std.js.Number.JsNumber ->
+pub last_modified_typechecks(
+    receiver: FilePropertyBag,
+): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.last_modified().

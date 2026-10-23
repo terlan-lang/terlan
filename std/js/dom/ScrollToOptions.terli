@@ -12,10 +12,11 @@
  */
 module std.js.Dom.ScrollToOptions.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type ScrollToOptions.
 
-pub (value: ScrollToOptions) left(): JsNumber.
+pub (receiver: ScrollToOptions) left(): Option[JsNumber].
 
-pub (value: ScrollToOptions) top(): JsNumber.
+pub (receiver: ScrollToOptions) top(): Option[JsNumber].

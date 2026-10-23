@@ -12,7 +12,11 @@
  */
 module std.js.Dom.FileSystemDirectoryEntry.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.ErrorCallback.{ErrorCallback}.
+import type std.js.Dom.FileSystemEntryCallback.{FileSystemEntryCallback}.
+import type std.js.Dom.FileSystemFlags.{FileSystemFlags}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,18 +31,18 @@ pub opaque type FileSystemDirectoryEntry.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryEntry/createReader)
  */
-pub (value: FileSystemDirectoryEntry) create_reader(): FileSystemDirectoryReader.
+pub (receiver: FileSystemDirectoryEntry) create_reader(): std.js.Dom.FileSystemDirectoryReader.FileSystemDirectoryReader.
 
 /**
  * The FileSystemDirectoryEntry interface's method **`getDirectory()`** returns a somewhere within the directory subtree rooted at the directory on which it's called.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryEntry/getDirectory)
  */
-pub (value: FileSystemDirectoryEntry) get_directory(
-    path: Option[JsString],
-    options: FileSystemFlags,
-    success_callback: FileSystemEntryCallback,
-    error_callback: ErrorCallback,
+pub (receiver: FileSystemDirectoryEntry) get_directory(
+    path: Option[Option[JsString]],
+    options: Option[FileSystemFlags],
+    success_callback: Option[FileSystemEntryCallback],
+    error_callback: Option[ErrorCallback],
 ): Unit.
 
 /**
@@ -46,9 +50,9 @@ pub (value: FileSystemDirectoryEntry) get_directory(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryEntry/getFile)
  */
-pub (value: FileSystemDirectoryEntry) get_file(
-    path: Option[JsString],
-    options: FileSystemFlags,
-    success_callback: FileSystemEntryCallback,
-    error_callback: ErrorCallback,
+pub (receiver: FileSystemDirectoryEntry) get_file(
+    path: Option[Option[JsString]],
+    options: Option[FileSystemFlags],
+    success_callback: Option[FileSystemEntryCallback],
+    error_callback: Option[ErrorCallback],
 ): Unit.

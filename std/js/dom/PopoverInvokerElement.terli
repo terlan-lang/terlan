@@ -17,9 +17,9 @@ pub opaque type PopoverInvokerElement.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/popoverTargetAction)
  */
-pub (value: PopoverInvokerElement) popover_target_action(): std.js.String.JsString.
+pub (receiver: PopoverInvokerElement) popover_target_action(): std.js.String.JsString.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/popoverTargetElement)
  */
-pub (value: PopoverInvokerElement) popover_target_element(): Option[Element].
+pub (receiver: PopoverInvokerElement) popover_target_element(): std.core.Option.Option[std.js.Dom.Element.Element].

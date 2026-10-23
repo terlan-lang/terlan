@@ -14,10 +14,5 @@ module std.js.Dom.CryptoTest.
 
 import type std.js.Dom.Crypto.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub subtle_typechecks(receiver: Crypto): SubtleCrypto ->
+pub subtle_typechecks(receiver: Crypto): std.js.Dom.SubtleCrypto.SubtleCrypto ->
     receiver.subtle().
-
-pub get_random_values_typechecks(receiver: Crypto, array: T): T ->
-    receiver.get_random_values(array).

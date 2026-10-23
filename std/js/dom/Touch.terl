@@ -26,7 +26,7 @@ pub opaque type Touch.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/clientX)
  */
-pub (value: Touch) client_x(): JsNumber ->
+pub (receiver: Touch) client_x(): JsNumber ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: Touch) client_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/clientY)
  */
-pub (value: Touch) client_y(): JsNumber ->
+pub (receiver: Touch) client_y(): JsNumber ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: Touch) client_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/force)
  */
-pub (value: Touch) force(): JsNumber ->
+pub (receiver: Touch) force(): JsNumber ->
     native.
 
 /**
@@ -50,7 +50,7 @@ pub (value: Touch) force(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/identifier)
  */
-pub (value: Touch) identifier(): JsNumber ->
+pub (receiver: Touch) identifier(): JsNumber ->
     native.
 
 /**
@@ -58,7 +58,7 @@ pub (value: Touch) identifier(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/pageX)
  */
-pub (value: Touch) page_x(): JsNumber ->
+pub (receiver: Touch) page_x(): JsNumber ->
     native.
 
 /**
@@ -66,7 +66,7 @@ pub (value: Touch) page_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/pageY)
  */
-pub (value: Touch) page_y(): JsNumber ->
+pub (receiver: Touch) page_y(): JsNumber ->
     native.
 
 /**
@@ -74,7 +74,7 @@ pub (value: Touch) page_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/radiusX)
  */
-pub (value: Touch) radius_x(): JsNumber ->
+pub (receiver: Touch) radius_x(): JsNumber ->
     native.
 
 /**
@@ -82,7 +82,7 @@ pub (value: Touch) radius_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/radiusY)
  */
-pub (value: Touch) radius_y(): JsNumber ->
+pub (receiver: Touch) radius_y(): JsNumber ->
     native.
 
 /**
@@ -90,7 +90,7 @@ pub (value: Touch) radius_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/rotationAngle)
  */
-pub (value: Touch) rotation_angle(): JsNumber ->
+pub (receiver: Touch) rotation_angle(): JsNumber ->
     native.
 
 /**
@@ -98,7 +98,7 @@ pub (value: Touch) rotation_angle(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/screenX)
  */
-pub (value: Touch) screen_x(): JsNumber ->
+pub (receiver: Touch) screen_x(): JsNumber ->
     native.
 
 /**
@@ -106,7 +106,7 @@ pub (value: Touch) screen_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/screenY)
  */
-pub (value: Touch) screen_y(): JsNumber ->
+pub (receiver: Touch) screen_y(): JsNumber ->
     native.
 
 /**
@@ -114,5 +114,5 @@ pub (value: Touch) screen_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/target)
  */
-pub (value: Touch) target_(): EventTarget ->
+pub (receiver: Touch) target_(): std.js.Dom.EventTarget.EventTarget ->
     native.

@@ -25,25 +25,25 @@ pub opaque type CSSFontPaletteValuesRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/basePalette)
  */
-pub (value: CSSFontPaletteValuesRule) base_palette(): std.js.String.JsString.
+pub (receiver: CSSFontPaletteValuesRule) base_palette(): std.js.String.JsString.
 
 /**
  * The read-only **`fontFamily`** property of the CSSFontPaletteValuesRule interface lists the font families the rule can be applied to.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/fontFamily)
  */
-pub (value: CSSFontPaletteValuesRule) font_family(): std.js.String.JsString.
+pub (receiver: CSSFontPaletteValuesRule) font_family(): std.js.String.JsString.
 
 /**
  * The read-only **`name`** property of the CSSFontPaletteValuesRule interface represents the name identifying the associated @font-palette-values at-rule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/name)
  */
-pub (value: CSSFontPaletteValuesRule) name(): std.js.String.JsString.
+pub (receiver: CSSFontPaletteValuesRule) name(): std.js.String.JsString.
 
 /**
  * The read-only **`overrideColors`** property of the CSSFontPaletteValuesRule interface is a string containing a list of color index and color pair that are to be used instead.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/overrideColors)
  */
-pub (value: CSSFontPaletteValuesRule) override_colors(): std.js.String.JsString.
+pub (receiver: CSSFontPaletteValuesRule) override_colors(): std.js.String.JsString.

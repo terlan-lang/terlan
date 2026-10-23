@@ -15,6 +15,6 @@ module std.js.Dom.CookieChangeEventInit.
 
 pub opaque type CookieChangeEventInit.
 
-pub (value: CookieChangeEventInit) changed(): CookieList.
+pub (receiver: CookieChangeEventInit) changed(): std.core.Option.Option[std.js.Dom.CookieList.CookieList].
 
-pub (value: CookieChangeEventInit) deleted(): CookieList.
+pub (receiver: CookieChangeEventInit) deleted(): std.core.Option.Option[std.js.Dom.CookieList.CookieList].

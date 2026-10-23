@@ -12,7 +12,8 @@
  */
 module std.js.Dom.CanvasDrawImage.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.CanvasImageSource.{CanvasImageSource}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type CanvasDrawImage.
@@ -20,9 +21,9 @@ pub opaque type CanvasDrawImage.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/drawImage)
  */
-pub (value: CanvasDrawImage) draw_image(image: CanvasImageSource, dx: JsNumber, dy: JsNumber): Unit.
+pub (receiver: CanvasDrawImage) draw_image(image: CanvasImageSource, dx: JsNumber, dy: JsNumber): Unit.
 
-pub (value: CanvasDrawImage) draw_image(
+pub (receiver: CanvasDrawImage) draw_image_overload_2(
     image: CanvasImageSource,
     dx: JsNumber,
     dy: JsNumber,
@@ -30,7 +31,7 @@ pub (value: CanvasDrawImage) draw_image(
     dh: JsNumber,
 ): Unit.
 
-pub (value: CanvasDrawImage) draw_image(
+pub (receiver: CanvasDrawImage) draw_image_overload_3(
     image: CanvasImageSource,
     sx: JsNumber,
     sy: JsNumber,

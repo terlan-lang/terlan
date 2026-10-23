@@ -19,11 +19,11 @@ module std.js.Dom.ProcessingInstruction.
  */
 pub opaque type ProcessingInstruction.
 
-pub (value: ProcessingInstruction) owner_document(): Document.
+pub (receiver: ProcessingInstruction) owner_document(): std.js.Dom.Document.Document.
 
 /**
  * The read-only **`target`** property of the ProcessingInstruction interface represent the application to which the `ProcessingInstruction` is targeted.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProcessingInstruction/target)
  */
-pub (value: ProcessingInstruction) target_(): std.js.String.JsString.
+pub (receiver: ProcessingInstruction) target_(): std.js.String.JsString.

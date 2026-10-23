@@ -12,13 +12,16 @@
  */
 module std.js.ArrayBufferTest.
 
+import type std.core.Option.{Option}.
 import type std.js.ArrayBuffer.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub byte_length_typechecks(receiver: ArrayBuffer): JsNumber ->
     receiver.byte_length().
 
-pub slice_typechecks(receiver: ArrayBuffer, begin: JsNumber, end: JsNumber): ArrayBuffer ->
+pub slice_typechecks(
+    receiver: ArrayBuffer,
+    begin: Option[JsNumber],
+    end: Option[JsNumber],
+): ArrayBuffer ->
     receiver.slice(begin, end).

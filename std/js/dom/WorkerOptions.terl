@@ -14,11 +14,5 @@ module std.js.Dom.WorkerOptions.
 
 pub opaque type WorkerOptions.
 
-pub (value: WorkerOptions) credentials(): RequestCredentials ->
-    native.
-
-pub (value: WorkerOptions) name(): std.js.String.JsString ->
-    native.
-
-pub (value: WorkerOptions) type_(): WorkerType ->
+pub (receiver: WorkerOptions) name(): std.core.Option.Option[std.js.String.JsString] ->
     native.

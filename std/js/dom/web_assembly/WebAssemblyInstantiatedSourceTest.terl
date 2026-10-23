@@ -14,10 +14,12 @@ module std.js.Dom.WebAssembly.WebAssemblyInstantiatedSourceTest.
 
 import type std.js.Dom.WebAssembly.WebAssemblyInstantiatedSource.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub instance_typechecks(receiver: WebAssemblyInstantiatedSource): Instance ->
+pub instance_typechecks(
+    receiver: WebAssemblyInstantiatedSource,
+): std.js.Dom.WebAssembly.Instance.Instance ->
     receiver.instance().
 
-pub module__typechecks(receiver: WebAssemblyInstantiatedSource): Module ->
+pub module__typechecks(
+    receiver: WebAssemblyInstantiatedSource,
+): std.js.Dom.WebAssembly.Module.Module ->
     receiver.module_().

@@ -12,8 +12,11 @@
  */
 module std.js.Dom.AnalyserNode.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.js.Float32Array.{Float32Array}.
 import type std.js.Number.{JsNumber}.
+import type std.js.Uint8Array.{Uint8Array}.
 
 /**
  * The **`AnalyserNode`** interface represents a node able to provide real-time frequency and time-domain analysis information.
@@ -27,7 +30,7 @@ pub opaque type AnalyserNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/fftSize)
  */
-pub (value: AnalyserNode) fft_size(): JsNumber ->
+pub (receiver: AnalyserNode) fft_size(): JsNumber ->
     native.
 
 /**
@@ -35,7 +38,7 @@ pub (value: AnalyserNode) fft_size(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/frequencyBinCount)
  */
-pub (value: AnalyserNode) frequency_bin_count(): JsNumber ->
+pub (receiver: AnalyserNode) frequency_bin_count(): JsNumber ->
     native.
 
 /**
@@ -43,7 +46,7 @@ pub (value: AnalyserNode) frequency_bin_count(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/maxDecibels)
  */
-pub (value: AnalyserNode) max_decibels(): JsNumber ->
+pub (receiver: AnalyserNode) max_decibels(): JsNumber ->
     native.
 
 /**
@@ -51,7 +54,7 @@ pub (value: AnalyserNode) max_decibels(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/minDecibels)
  */
-pub (value: AnalyserNode) min_decibels(): JsNumber ->
+pub (receiver: AnalyserNode) min_decibels(): JsNumber ->
     native.
 
 /**
@@ -59,7 +62,7 @@ pub (value: AnalyserNode) min_decibels(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/smoothingTimeConstant)
  */
-pub (value: AnalyserNode) smoothing_time_constant(): JsNumber ->
+pub (receiver: AnalyserNode) smoothing_time_constant(): JsNumber ->
     native.
 
 /**
@@ -67,7 +70,7 @@ pub (value: AnalyserNode) smoothing_time_constant(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/getByteFrequencyData)
  */
-pub (value: AnalyserNode) get_byte_frequency_data(array: Uint8Array[ArrayBuffer]): Unit ->
+pub (receiver: AnalyserNode) get_byte_frequency_data(array: Uint8Array[ArrayBuffer]): Unit ->
     native.
 
 /**
@@ -75,7 +78,7 @@ pub (value: AnalyserNode) get_byte_frequency_data(array: Uint8Array[ArrayBuffer]
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/getByteTimeDomainData)
  */
-pub (value: AnalyserNode) get_byte_time_domain_data(array: Uint8Array[ArrayBuffer]): Unit ->
+pub (receiver: AnalyserNode) get_byte_time_domain_data(array: Uint8Array[ArrayBuffer]): Unit ->
     native.
 
 /**
@@ -83,7 +86,7 @@ pub (value: AnalyserNode) get_byte_time_domain_data(array: Uint8Array[ArrayBuffe
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/getFloatFrequencyData)
  */
-pub (value: AnalyserNode) get_float_frequency_data(array: Float32Array[ArrayBuffer]): Unit ->
+pub (receiver: AnalyserNode) get_float_frequency_data(array: Float32Array[ArrayBuffer]): Unit ->
     native.
 
 /**
@@ -91,5 +94,5 @@ pub (value: AnalyserNode) get_float_frequency_data(array: Float32Array[ArrayBuff
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnalyserNode/getFloatTimeDomainData)
  */
-pub (value: AnalyserNode) get_float_time_domain_data(array: Float32Array[ArrayBuffer]): Unit ->
+pub (receiver: AnalyserNode) get_float_time_domain_data(array: Float32Array[ArrayBuffer]): Unit ->
     native.

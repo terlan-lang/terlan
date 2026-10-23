@@ -12,8 +12,6 @@
  */
 module std.js.Dom.SVGAnimatedBoolean.
 
-import type std.core.{Bool}.
-
 /**
  * The **`SVGAnimatedBoolean`** interface is used for attributes of type boolean which can be animated.
  *
@@ -26,11 +24,11 @@ pub opaque type SVGAnimatedBoolean.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedBoolean/animVal)
  */
-pub (value: SVGAnimatedBoolean) anim_val(): Bool.
+pub (receiver: SVGAnimatedBoolean) anim_val(): Bool.
 
 /**
  * The **`baseVal`** property of the SVGAnimatedBoolean interface is the value of the associated animatable boolean SVG attribute in its base (none-animated) state.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedBoolean/baseVal)
  */
-pub (value: SVGAnimatedBoolean) base_val(): Bool.
+pub (receiver: SVGAnimatedBoolean) base_val(): Bool.

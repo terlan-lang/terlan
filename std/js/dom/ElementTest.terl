@@ -12,15 +12,20 @@
  */
 module std.js.Dom.ElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Attr.{Attr}.
+import type std.js.Dom.DOMTokenList.{DOMTokenList}.
 import type std.js.Dom.Element.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.HTMLCollectionOf.{HTMLCollectionOf}.
+import type std.js.Dom.ScrollToOptions.{ScrollToOptions}.
+import type std.js.Dom.ShadowRoot.{ShadowRoot}.
 import type std.js.Number.{JsNumber}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub attributes_typechecks(receiver: Element): NamedNodeMap ->
+pub attributes_typechecks(receiver: Element): std.js.Dom.NamedNodeMap.NamedNodeMap ->
     receiver.attributes().
 
 pub class_list_typechecks(receiver: Element): DOMTokenList ->
@@ -59,7 +64,7 @@ pub namespace_uri_typechecks(receiver: Element): Option[JsString] ->
 pub outer_html_typechecks(receiver: Element): JsString ->
     receiver.outer_html().
 
-pub owner_document_typechecks(receiver: Element): Document ->
+pub owner_document_typechecks(receiver: Element): std.js.Dom.Document.Document ->
     receiver.owner_document().
 
 pub part_typechecks(receiver: Element): DOMTokenList ->
@@ -89,16 +94,21 @@ pub slot_typechecks(receiver: Element): JsString ->
 pub tag_name_typechecks(receiver: Element): JsString ->
     receiver.tag_name().
 
-pub attach_shadow_typechecks(receiver: Element, init: ShadowRootInit): ShadowRoot ->
+pub attach_shadow_typechecks(
+    receiver: Element,
+    init: std.js.Dom.ShadowRootInit.ShadowRootInit,
+): ShadowRoot ->
     receiver.attach_shadow(init).
 
-pub check_visibility_typechecks(receiver: Element, options: CheckVisibilityOptions): Bool ->
+pub check_visibility_typechecks(
+    receiver: Element,
+    options: Option[std.js.Dom.CheckVisibilityOptions.CheckVisibilityOptions],
+): Bool ->
     receiver.check_visibility(options).
 
-pub closest_typechecks(receiver: Element, selectors: JsString): Option[E] ->
-    receiver.closest(selectors).
-
-pub computed_style_map_typechecks(receiver: Element): StylePropertyMapReadOnly ->
+pub computed_style_map_typechecks(
+    receiver: Element,
+): std.js.Dom.StylePropertyMapReadOnly.StylePropertyMapReadOnly ->
     receiver.computed_style_map().
 
 pub get_attribute_typechecks(receiver: Element, qualified_name: JsString): Option[JsString] ->
@@ -111,7 +121,7 @@ pub get_attribute_ns_typechecks(
 ): Option[JsString] ->
     receiver.get_attribute_ns(namespace, local_name).
 
-pub get_attribute_names_typechecks(receiver: Element): std.js.Array[JsString] ->
+pub get_attribute_names_typechecks(receiver: Element): std.js.Array.Array[JsString] ->
     receiver.get_attribute_names().
 
 pub get_attribute_node_typechecks(receiver: Element, qualified_name: JsString): Option[Attr] ->
@@ -124,10 +134,10 @@ pub get_attribute_node_ns_typechecks(
 ): Option[Attr] ->
     receiver.get_attribute_node_ns(namespace, local_name).
 
-pub get_bounding_client_rect_typechecks(receiver: Element): DOMRect ->
+pub get_bounding_client_rect_typechecks(receiver: Element): std.js.Dom.DOMRect.DOMRect ->
     receiver.get_bounding_client_rect().
 
-pub get_client_rects_typechecks(receiver: Element): DOMRectList ->
+pub get_client_rects_typechecks(receiver: Element): std.js.Dom.DOMRectList.DOMRectList ->
     receiver.get_client_rects().
 
 pub get_elements_by_class_name_typechecks(
@@ -149,7 +159,10 @@ pub get_elements_by_tag_name_ns_typechecks(
 ): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_tag_name_ns(namespace, local_name).
 
-pub get_html_typechecks(receiver: Element, options: GetHTMLOptions): JsString ->
+pub get_html_typechecks(
+    receiver: Element,
+    options: Option[std.js.Dom.GetHTMLOptions.GetHTMLOptions],
+): JsString ->
     receiver.get_html(options).
 
 pub has_attribute_typechecks(receiver: Element, qualified_name: JsString): Bool ->
@@ -167,23 +180,6 @@ pub has_attributes_typechecks(receiver: Element): Bool ->
 
 pub has_pointer_capture_typechecks(receiver: Element, pointer_id: JsNumber): Bool ->
     receiver.has_pointer_capture(pointer_id).
-
-pub insert_adjacent_element_typechecks(
-    receiver: Element,
-    where_: InsertPosition,
-    element: Element,
-): Option[Element] ->
-    receiver.insert_adjacent_element(where_, element).
-
-pub insert_adjacent_html_typechecks(
-    receiver: Element,
-    position: InsertPosition,
-    string: JsString,
-): Unit ->
-    receiver.insert_adjacent_html(position, string).
-
-pub insert_adjacent_text_typechecks(receiver: Element, where_: InsertPosition, data: JsString): Unit ->
-    receiver.insert_adjacent_text(where_, data).
 
 pub matches_typechecks(receiver: Element, selectors: JsString): Bool ->
     receiver.matches(selectors).
@@ -204,32 +200,41 @@ pub remove_attribute_ns_typechecks(
 pub remove_attribute_node_typechecks(receiver: Element, attr: Attr): Attr ->
     receiver.remove_attribute_node(attr).
 
-pub request_fullscreen_typechecks(receiver: Element, options: FullscreenOptions): Promise[Unit] ->
+pub request_fullscreen_typechecks(
+    receiver: Element,
+    options: Option[std.js.Dom.FullscreenOptions.FullscreenOptions],
+): Promise[Unit] ->
     receiver.request_fullscreen(options).
 
-pub request_pointer_lock_typechecks(receiver: Element, options: PointerLockOptions): Promise[Unit] ->
+pub request_pointer_lock_typechecks(
+    receiver: Element,
+    options: Option[std.js.Dom.PointerLockOptions.PointerLockOptions],
+): Promise[Unit] ->
     receiver.request_pointer_lock(options).
 
-pub scroll_typechecks(receiver: Element, options: ScrollToOptions): Unit ->
+pub scroll_typechecks(receiver: Element, options: Option[ScrollToOptions]): Unit ->
     receiver.scroll(options).
 
-pub scroll_typechecks(receiver: Element, x: JsNumber, y: JsNumber): Unit ->
-    receiver.scroll(x, y).
+pub scroll_overload_2_typechecks(receiver: Element, x: JsNumber, y: JsNumber): Unit ->
+    receiver.scroll_overload_2(x, y).
 
-pub scroll_by_typechecks(receiver: Element, options: ScrollToOptions): Unit ->
+pub scroll_by_typechecks(receiver: Element, options: Option[ScrollToOptions]): Unit ->
     receiver.scroll_by(options).
 
-pub scroll_by_typechecks(receiver: Element, x: JsNumber, y: JsNumber): Unit ->
-    receiver.scroll_by(x, y).
+pub scroll_by_overload_2_typechecks(receiver: Element, x: JsNumber, y: JsNumber): Unit ->
+    receiver.scroll_by_overload_2(x, y).
 
-pub scroll_into_view_typechecks(receiver: Element, arg: ScrollIntoViewOptions | Bool): Unit ->
+pub scroll_into_view_typechecks(
+    receiver: Element,
+    arg: Option[Bool | std.js.Dom.ScrollIntoViewOptions.ScrollIntoViewOptions],
+): Unit ->
     receiver.scroll_into_view(arg).
 
-pub scroll_to_typechecks(receiver: Element, options: ScrollToOptions): Unit ->
+pub scroll_to_typechecks(receiver: Element, options: Option[ScrollToOptions]): Unit ->
     receiver.scroll_to(options).
 
-pub scroll_to_typechecks(receiver: Element, x: JsNumber, y: JsNumber): Unit ->
-    receiver.scroll_to(x, y).
+pub scroll_to_overload_2_typechecks(receiver: Element, x: JsNumber, y: JsNumber): Unit ->
+    receiver.scroll_to_overload_2(x, y).
 
 pub set_attribute_typechecks(receiver: Element, qualified_name: JsString, value: JsString): Unit ->
     receiver.set_attribute(qualified_name, value).
@@ -254,7 +259,11 @@ pub set_html_unsafe_typechecks(receiver: Element, html_: JsString): Unit ->
 pub set_pointer_capture_typechecks(receiver: Element, pointer_id: JsNumber): Unit ->
     receiver.set_pointer_capture(pointer_id).
 
-pub toggle_attribute_typechecks(receiver: Element, qualified_name: JsString, force: Bool): Bool ->
+pub toggle_attribute_typechecks(
+    receiver: Element,
+    qualified_name: JsString,
+    force: Option[Bool],
+): Bool ->
     receiver.toggle_attribute(qualified_name, force).
 
 pub webkit_matches_selector_typechecks(receiver: Element, selectors: JsString): Bool ->
@@ -267,7 +276,7 @@ pub add_event_listener_typechecks(
     receiver: Element,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -275,6 +284,6 @@ pub remove_event_listener_typechecks(
     receiver: Element,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

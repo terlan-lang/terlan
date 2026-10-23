@@ -14,4 +14,4 @@
 module std.js.Dom.FormDataEntryValue.
 
 pub type FormDataEntryValue =
-    File | std.js.String.JsString.
+    std.js.Dom.File.File | std.js.String.JsString.

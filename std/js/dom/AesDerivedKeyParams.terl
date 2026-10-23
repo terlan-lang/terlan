@@ -14,5 +14,5 @@ module std.js.Dom.AesDerivedKeyParams.
 
 pub opaque type AesDerivedKeyParams.
 
-pub (value: AesDerivedKeyParams) length(): std.js.Number.JsNumber ->
+pub (receiver: AesDerivedKeyParams) length(): std.js.Number.JsNumber ->
     native.

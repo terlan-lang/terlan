@@ -26,90 +26,90 @@ pub opaque type URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/hash)
  */
-pub (value: URL) hash(): JsString.
+pub (receiver: URL) hash(): JsString.
 
 /**
  * The **`host`** property of the URL interface is a string containing the host, which is the URL.hostname, and then, if the port of the URL is nonempty, a `':'`, followed by the URL.port of the URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/host)
  */
-pub (value: URL) host(): JsString.
+pub (receiver: URL) host(): JsString.
 
 /**
  * The **`hostname`** property of the URL interface is a string containing either the domain name or IP address of the URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/hostname)
  */
-pub (value: URL) hostname(): JsString.
+pub (receiver: URL) hostname(): JsString.
 
 /**
  * The **`href`** property of the URL interface is a string containing the whole URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/href)
  */
-pub (value: URL) href(): JsString.
+pub (receiver: URL) href(): JsString.
 
-pub (value: URL) to_string(): JsString.
+pub (receiver: URL) to_string(): JsString.
 
 /**
  * The **`origin`** read-only property of the URL interface returns a string containing the Unicode serialization of the origin of the represented URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/origin)
  */
-pub (value: URL) origin(): JsString.
+pub (receiver: URL) origin(): JsString.
 
 /**
  * The **`password`** property of the URL interface is a string containing the password component of the URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/password)
  */
-pub (value: URL) password(): JsString.
+pub (receiver: URL) password(): JsString.
 
 /**
  * The **`pathname`** property of the URL interface represents a location in a hierarchical structure.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/pathname)
  */
-pub (value: URL) pathname(): JsString.
+pub (receiver: URL) pathname(): JsString.
 
 /**
  * The **`port`** property of the URL interface is a string containing the port number of the URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/port)
  */
-pub (value: URL) port(): JsString.
+pub (receiver: URL) port(): JsString.
 
 /**
  * The **`protocol`** property of the URL interface is a string containing the protocol or scheme of the URL, including the final `':'`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/protocol)
  */
-pub (value: URL) protocol(): JsString.
+pub (receiver: URL) protocol(): JsString.
 
 /**
  * The **`search`** property of the URL interface is a search string, also called a _query string_, that is a string containing a `'?'` followed by the parameters of the URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/search)
  */
-pub (value: URL) search(): JsString.
+pub (receiver: URL) search(): JsString.
 
 /**
  * The **`searchParams`** read-only property of the access to the [MISSING: httpmethod('GET')] decoded query arguments contained in the URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/searchParams)
  */
-pub (value: URL) search_params(): URLSearchParams.
+pub (receiver: URL) search_params(): std.js.Dom.URLSearchParams.URLSearchParams.
 
 /**
  * The **`username`** property of the URL interface is a string containing the username component of the URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/username)
  */
-pub (value: URL) username(): JsString.
+pub (receiver: URL) username(): JsString.
 
 /**
  * The **`toJSON()`** method of the URL interface returns a string containing a serialized version of the URL, although in practice it seems to have the same effect as ```js-nolint toJSON() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/toJSON)
  */
-pub (value: URL) to_json(): JsString.
+pub (receiver: URL) to_json(): JsString.

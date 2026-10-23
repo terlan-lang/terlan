@@ -14,4 +14,4 @@
 module std.js.Dom.SVGRect.
 
 pub type SVGRect =
-    DOMRect.
+    std.js.Dom.DOMRect.DOMRect.

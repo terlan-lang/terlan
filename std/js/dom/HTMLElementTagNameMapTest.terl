@@ -12,11 +12,16 @@
  */
 module std.js.Dom.HTMLElementTagNameMapTest.
 
+import type std.js.Dom.HTMLElement.{HTMLElement}.
 import type std.js.Dom.HTMLElementTagNameMap.
+import type std.js.Dom.HTMLHeadingElement.{HTMLHeadingElement}.
+import type std.js.Dom.HTMLModElement.{HTMLModElement}.
+import type std.js.Dom.HTMLQuoteElement.{HTMLQuoteElement}.
+import type std.js.Dom.HTMLTableCellElement.{HTMLTableCellElement}.
+import type std.js.Dom.HTMLTableColElement.{HTMLTableColElement}.
+import type std.js.Dom.HTMLTableSectionElement.{HTMLTableSectionElement}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub a_typechecks(receiver: HTMLElementTagNameMap): HTMLAnchorElement ->
+pub a_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLAnchorElement.HTMLAnchorElement ->
     receiver.a().
 
 pub abbr_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
@@ -25,7 +30,7 @@ pub abbr_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
 pub address_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.address().
 
-pub area_typechecks(receiver: HTMLElementTagNameMap): HTMLAreaElement ->
+pub area_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLAreaElement.HTMLAreaElement ->
     receiver.area().
 
 pub article_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
@@ -34,13 +39,13 @@ pub article_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
 pub aside_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.aside().
 
-pub audio_typechecks(receiver: HTMLElementTagNameMap): HTMLAudioElement ->
+pub audio_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLAudioElement.HTMLAudioElement ->
     receiver.audio().
 
 pub b_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.b().
 
-pub base_typechecks(receiver: HTMLElementTagNameMap): HTMLBaseElement ->
+pub base_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLBaseElement.HTMLBaseElement ->
     receiver.base().
 
 pub bdi_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
@@ -52,19 +57,25 @@ pub bdo_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
 pub blockquote_typechecks(receiver: HTMLElementTagNameMap): HTMLQuoteElement ->
     receiver.blockquote().
 
-pub body_typechecks(receiver: HTMLElementTagNameMap): HTMLBodyElement ->
+pub body_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLBodyElement.HTMLBodyElement ->
     receiver.body().
 
-pub br_typechecks(receiver: HTMLElementTagNameMap): HTMLBRElement ->
+pub br_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLBRElement.HTMLBRElement ->
     receiver.br().
 
-pub button_typechecks(receiver: HTMLElementTagNameMap): HTMLButtonElement ->
+pub button_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLButtonElement.HTMLButtonElement ->
     receiver.button().
 
-pub canvas_typechecks(receiver: HTMLElementTagNameMap): HTMLCanvasElement ->
+pub canvas_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLCanvasElement.HTMLCanvasElement ->
     receiver.canvas().
 
-pub caption_typechecks(receiver: HTMLElementTagNameMap): HTMLTableCaptionElement ->
+pub caption_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLTableCaptionElement.HTMLTableCaptionElement ->
     receiver.caption().
 
 pub cite_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
@@ -79,10 +90,12 @@ pub col_typechecks(receiver: HTMLElementTagNameMap): HTMLTableColElement ->
 pub colgroup_typechecks(receiver: HTMLElementTagNameMap): HTMLTableColElement ->
     receiver.colgroup().
 
-pub data_typechecks(receiver: HTMLElementTagNameMap): HTMLDataElement ->
+pub data_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLDataElement.HTMLDataElement ->
     receiver.data().
 
-pub datalist_typechecks(receiver: HTMLElementTagNameMap): HTMLDataListElement ->
+pub datalist_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLDataListElement.HTMLDataListElement ->
     receiver.datalist().
 
 pub dd_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
@@ -91,19 +104,23 @@ pub dd_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
 pub del_typechecks(receiver: HTMLElementTagNameMap): HTMLModElement ->
     receiver.del().
 
-pub details_typechecks(receiver: HTMLElementTagNameMap): HTMLDetailsElement ->
+pub details_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLDetailsElement.HTMLDetailsElement ->
     receiver.details().
 
 pub dfn_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.dfn().
 
-pub dialog_typechecks(receiver: HTMLElementTagNameMap): HTMLDialogElement ->
+pub dialog_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLDialogElement.HTMLDialogElement ->
     receiver.dialog().
 
-pub div__typechecks(receiver: HTMLElementTagNameMap): HTMLDivElement ->
+pub div__typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLDivElement.HTMLDivElement ->
     receiver.div_().
 
-pub dl_typechecks(receiver: HTMLElementTagNameMap): HTMLDListElement ->
+pub dl_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLDListElement.HTMLDListElement ->
     receiver.dl().
 
 pub dt_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
@@ -112,10 +129,12 @@ pub dt_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
 pub em_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.em().
 
-pub embed_typechecks(receiver: HTMLElementTagNameMap): HTMLEmbedElement ->
+pub embed_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLEmbedElement.HTMLEmbedElement ->
     receiver.embed().
 
-pub fieldset_typechecks(receiver: HTMLElementTagNameMap): HTMLFieldSetElement ->
+pub fieldset_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLFieldSetElement.HTMLFieldSetElement ->
     receiver.fieldset().
 
 pub figcaption_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
@@ -127,7 +146,7 @@ pub figure_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
 pub footer_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.footer().
 
-pub form_typechecks(receiver: HTMLElementTagNameMap): HTMLFormElement ->
+pub form_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLFormElement.HTMLFormElement ->
     receiver.form().
 
 pub h1_typechecks(receiver: HTMLElementTagNameMap): HTMLHeadingElement ->
@@ -148,7 +167,7 @@ pub h5_typechecks(receiver: HTMLElementTagNameMap): HTMLHeadingElement ->
 pub h6_typechecks(receiver: HTMLElementTagNameMap): HTMLHeadingElement ->
     receiver.h6().
 
-pub head_typechecks(receiver: HTMLElementTagNameMap): HTMLHeadElement ->
+pub head_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLHeadElement.HTMLHeadElement ->
     receiver.head().
 
 pub header_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
@@ -157,22 +176,24 @@ pub header_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
 pub hgroup_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.hgroup().
 
-pub hr_typechecks(receiver: HTMLElementTagNameMap): HTMLHRElement ->
+pub hr_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLHRElement.HTMLHRElement ->
     receiver.hr().
 
-pub html__typechecks(receiver: HTMLElementTagNameMap): HTMLHtmlElement ->
+pub html__typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLHtmlElement.HTMLHtmlElement ->
     receiver.html_().
 
 pub i_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.i().
 
-pub iframe_typechecks(receiver: HTMLElementTagNameMap): HTMLIFrameElement ->
+pub iframe_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLIFrameElement.HTMLIFrameElement ->
     receiver.iframe().
 
-pub img_typechecks(receiver: HTMLElementTagNameMap): HTMLImageElement ->
+pub img_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLImageElement.HTMLImageElement ->
     receiver.img().
 
-pub input_typechecks(receiver: HTMLElementTagNameMap): HTMLInputElement ->
+pub input_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLInputElement.HTMLInputElement ->
     receiver.input().
 
 pub ins_typechecks(receiver: HTMLElementTagNameMap): HTMLModElement ->
@@ -181,34 +202,36 @@ pub ins_typechecks(receiver: HTMLElementTagNameMap): HTMLModElement ->
 pub kbd_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.kbd().
 
-pub label_typechecks(receiver: HTMLElementTagNameMap): HTMLLabelElement ->
+pub label_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLLabelElement.HTMLLabelElement ->
     receiver.label().
 
-pub legend_typechecks(receiver: HTMLElementTagNameMap): HTMLLegendElement ->
+pub legend_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLLegendElement.HTMLLegendElement ->
     receiver.legend().
 
-pub li_typechecks(receiver: HTMLElementTagNameMap): HTMLLIElement ->
+pub li_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLLIElement.HTMLLIElement ->
     receiver.li().
 
-pub link_typechecks(receiver: HTMLElementTagNameMap): HTMLLinkElement ->
+pub link_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLLinkElement.HTMLLinkElement ->
     receiver.link().
 
 pub main_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.main().
 
-pub map_typechecks(receiver: HTMLElementTagNameMap): HTMLMapElement ->
+pub map_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLMapElement.HTMLMapElement ->
     receiver.map().
 
 pub mark_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.mark().
 
-pub menu_typechecks(receiver: HTMLElementTagNameMap): HTMLMenuElement ->
+pub menu_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLMenuElement.HTMLMenuElement ->
     receiver.menu().
 
-pub meta_typechecks(receiver: HTMLElementTagNameMap): HTMLMetaElement ->
+pub meta_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLMetaElement.HTMLMetaElement ->
     receiver.meta().
 
-pub meter_typechecks(receiver: HTMLElementTagNameMap): HTMLMeterElement ->
+pub meter_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLMeterElement.HTMLMeterElement ->
     receiver.meter().
 
 pub nav_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
@@ -217,31 +240,45 @@ pub nav_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
 pub noscript_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.noscript().
 
-pub object_typechecks(receiver: HTMLElementTagNameMap): HTMLObjectElement ->
+pub object_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLObjectElement.HTMLObjectElement ->
     receiver.object().
 
-pub ol_typechecks(receiver: HTMLElementTagNameMap): HTMLOListElement ->
+pub ol_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLOListElement.HTMLOListElement ->
     receiver.ol().
 
-pub optgroup_typechecks(receiver: HTMLElementTagNameMap): HTMLOptGroupElement ->
+pub optgroup_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLOptGroupElement.HTMLOptGroupElement ->
     receiver.optgroup().
 
-pub option_typechecks(receiver: HTMLElementTagNameMap): HTMLOptionElement ->
+pub option_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLOptionElement.HTMLOptionElement ->
     receiver.option().
 
-pub output_typechecks(receiver: HTMLElementTagNameMap): HTMLOutputElement ->
+pub output_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLOutputElement.HTMLOutputElement ->
     receiver.output().
 
-pub p_typechecks(receiver: HTMLElementTagNameMap): HTMLParagraphElement ->
+pub p_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLParagraphElement.HTMLParagraphElement ->
     receiver.p().
 
-pub picture_typechecks(receiver: HTMLElementTagNameMap): HTMLPictureElement ->
+pub picture_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLPictureElement.HTMLPictureElement ->
     receiver.picture().
 
-pub pre_typechecks(receiver: HTMLElementTagNameMap): HTMLPreElement ->
+pub pre_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLPreElement.HTMLPreElement ->
     receiver.pre().
 
-pub progress_typechecks(receiver: HTMLElementTagNameMap): HTMLProgressElement ->
+pub progress_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLProgressElement.HTMLProgressElement ->
     receiver.progress().
 
 pub q_typechecks(receiver: HTMLElementTagNameMap): HTMLQuoteElement ->
@@ -262,7 +299,9 @@ pub s_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
 pub samp_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.samp().
 
-pub script_typechecks(receiver: HTMLElementTagNameMap): HTMLScriptElement ->
+pub script_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLScriptElement.HTMLScriptElement ->
     receiver.script().
 
 pub search_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
@@ -271,25 +310,29 @@ pub search_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
 pub section_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.section().
 
-pub select_typechecks(receiver: HTMLElementTagNameMap): HTMLSelectElement ->
+pub select_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLSelectElement.HTMLSelectElement ->
     receiver.select().
 
-pub slot_typechecks(receiver: HTMLElementTagNameMap): HTMLSlotElement ->
+pub slot_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLSlotElement.HTMLSlotElement ->
     receiver.slot().
 
 pub small_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.small().
 
-pub source_typechecks(receiver: HTMLElementTagNameMap): HTMLSourceElement ->
+pub source_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLSourceElement.HTMLSourceElement ->
     receiver.source().
 
-pub span_typechecks(receiver: HTMLElementTagNameMap): HTMLSpanElement ->
+pub span_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLSpanElement.HTMLSpanElement ->
     receiver.span().
 
 pub strong_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.strong().
 
-pub style_typechecks(receiver: HTMLElementTagNameMap): HTMLStyleElement ->
+pub style_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLStyleElement.HTMLStyleElement ->
     receiver.style().
 
 pub sub_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
@@ -301,7 +344,7 @@ pub summary_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
 pub sup_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.sup().
 
-pub table_typechecks(receiver: HTMLElementTagNameMap): HTMLTableElement ->
+pub table_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLTableElement.HTMLTableElement ->
     receiver.table().
 
 pub tbody_typechecks(receiver: HTMLElementTagNameMap): HTMLTableSectionElement ->
@@ -310,10 +353,14 @@ pub tbody_typechecks(receiver: HTMLElementTagNameMap): HTMLTableSectionElement -
 pub td_typechecks(receiver: HTMLElementTagNameMap): HTMLTableCellElement ->
     receiver.td().
 
-pub template__typechecks(receiver: HTMLElementTagNameMap): HTMLTemplateElement ->
+pub template__typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLTemplateElement.HTMLTemplateElement ->
     receiver.template_().
 
-pub textarea_typechecks(receiver: HTMLElementTagNameMap): HTMLTextAreaElement ->
+pub textarea_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLTextAreaElement.HTMLTextAreaElement ->
     receiver.textarea().
 
 pub tfoot_typechecks(receiver: HTMLElementTagNameMap): HTMLTableSectionElement ->
@@ -325,28 +372,30 @@ pub th_typechecks(receiver: HTMLElementTagNameMap): HTMLTableCellElement ->
 pub thead_typechecks(receiver: HTMLElementTagNameMap): HTMLTableSectionElement ->
     receiver.thead().
 
-pub time_typechecks(receiver: HTMLElementTagNameMap): HTMLTimeElement ->
+pub time_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLTimeElement.HTMLTimeElement ->
     receiver.time().
 
-pub title_typechecks(receiver: HTMLElementTagNameMap): HTMLTitleElement ->
+pub title_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLTitleElement.HTMLTitleElement ->
     receiver.title().
 
-pub tr_typechecks(receiver: HTMLElementTagNameMap): HTMLTableRowElement ->
+pub tr_typechecks(
+    receiver: HTMLElementTagNameMap,
+): std.js.Dom.HTMLTableRowElement.HTMLTableRowElement ->
     receiver.tr().
 
-pub track_typechecks(receiver: HTMLElementTagNameMap): HTMLTrackElement ->
+pub track_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLTrackElement.HTMLTrackElement ->
     receiver.track().
 
 pub u_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.u().
 
-pub ul_typechecks(receiver: HTMLElementTagNameMap): HTMLUListElement ->
+pub ul_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLUListElement.HTMLUListElement ->
     receiver.ul().
 
 pub var_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->
     receiver.var().
 
-pub video_typechecks(receiver: HTMLElementTagNameMap): HTMLVideoElement ->
+pub video_typechecks(receiver: HTMLElementTagNameMap): std.js.Dom.HTMLVideoElement.HTMLVideoElement ->
     receiver.video().
 
 pub wbr_typechecks(receiver: HTMLElementTagNameMap): HTMLElement ->

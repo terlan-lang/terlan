@@ -12,6 +12,8 @@
  */
 module std.js.Dom.AuthenticatorAssertionResponse.
 
+import type std.js.ArrayBuffer.{ArrayBuffer}.
+
 /**
  * The **`AuthenticatorAssertionResponse`** interface of the Web Authentication API contains a digital signature from the private key of a particular WebAuthn credential.
  * Available only in secure contexts.
@@ -25,18 +27,18 @@ pub opaque type AuthenticatorAssertionResponse.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AuthenticatorAssertionResponse/authenticatorData)
  */
-pub (value: AuthenticatorAssertionResponse) authenticator_data(): ArrayBuffer.
+pub (receiver: AuthenticatorAssertionResponse) authenticator_data(): ArrayBuffer.
 
 /**
  * The **`signature`** read-only property of the object which is the signature of the authenticator for both the client data (AuthenticatorResponse.clientDataJSON).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AuthenticatorAssertionResponse/signature)
  */
-pub (value: AuthenticatorAssertionResponse) signature(): ArrayBuffer.
+pub (receiver: AuthenticatorAssertionResponse) signature(): ArrayBuffer.
 
 /**
  * The **`userHandle`** read-only property of the AuthenticatorAssertionResponse interface is an ArrayBuffer object providing an opaque identifier for the given user.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AuthenticatorAssertionResponse/userHandle)
  */
-pub (value: AuthenticatorAssertionResponse) user_handle(): Option[ArrayBuffer].
+pub (receiver: AuthenticatorAssertionResponse) user_handle(): std.core.Option.Option[ArrayBuffer].

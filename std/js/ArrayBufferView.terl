@@ -19,17 +19,17 @@ pub opaque type ArrayBufferView[TArrayBuffer].
 /**
  * The ArrayBuffer instance referenced by the array.
  */
-pub (value: ArrayBufferView[TArrayBuffer]) buffer(): TArrayBuffer ->
+pub (receiver: ArrayBufferView[TArrayBuffer]) buffer(): TArrayBuffer ->
     native.
 
 /**
  * The length in bytes of the array.
  */
-pub (value: ArrayBufferView[TArrayBuffer]) byte_length(): JsNumber ->
+pub (receiver: ArrayBufferView[TArrayBuffer]) byte_length(): JsNumber ->
     native.
 
 /**
  * The offset in bytes of the array.
  */
-pub (value: ArrayBufferView[TArrayBuffer]) byte_offset(): JsNumber ->
+pub (receiver: ArrayBufferView[TArrayBuffer]) byte_offset(): JsNumber ->
     native.

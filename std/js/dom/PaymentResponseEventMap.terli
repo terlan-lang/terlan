@@ -14,4 +14,4 @@ module std.js.Dom.PaymentResponseEventMap.
 
 pub opaque type PaymentResponseEventMap.
 
-pub (value: PaymentResponseEventMap) payerdetailchange(): PaymentRequestUpdateEvent.
+pub (receiver: PaymentResponseEventMap) payerdetailchange(): std.js.Dom.PaymentRequestUpdateEvent.PaymentRequestUpdateEvent.

@@ -15,8 +15,8 @@ module std.js.Dom.RsaOtherPrimesInfo.
 
 pub opaque type RsaOtherPrimesInfo.
 
-pub (value: RsaOtherPrimesInfo) d(): std.js.String.JsString.
+pub (receiver: RsaOtherPrimesInfo) d(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RsaOtherPrimesInfo) r(): std.js.String.JsString.
+pub (receiver: RsaOtherPrimesInfo) r(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RsaOtherPrimesInfo) t(): std.js.String.JsString.
+pub (receiver: RsaOtherPrimesInfo) t(): std.core.Option.Option[std.js.String.JsString].

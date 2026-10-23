@@ -12,6 +12,10 @@
  */
 module std.js.Dom.CSSNumericValue.
 
+import type std.js.Array.{Array}.
+import type std.js.Dom.CSSNumberish.{CSSNumberish}.
+import type std.js.String.{JsString}.
+
 /**
  * The **`CSSNumericValue`** interface of the CSS Typed Object Model API represents operations that all numeric values can perform.
  *
@@ -24,67 +28,67 @@ pub opaque type CSSNumericValue.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/add)
  */
-pub (value: CSSNumericValue) add(): CSSNumericValue.
+pub (receiver: CSSNumericValue) add(values: Array[CSSNumberish]): CSSNumericValue.
 
 /**
  * The **`div()`** method of the supplied value.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/div)
  */
-pub (value: CSSNumericValue) div_(): CSSNumericValue.
+pub (receiver: CSSNumericValue) div_(values: Array[CSSNumberish]): CSSNumericValue.
 
 /**
  * The **`equals()`** method of the value are strictly equal.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/equals)
  */
-pub (value: CSSNumericValue) equals(): std.core.Bool.
+pub (receiver: CSSNumericValue) equals(value: Array[CSSNumberish]): Bool.
 
 /**
  * The **`max()`** method of the passed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/max)
  */
-pub (value: CSSNumericValue) max(): CSSNumericValue.
+pub (receiver: CSSNumericValue) max(values: Array[CSSNumberish]): CSSNumericValue.
 
 /**
  * The **`min()`** method of the values passed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/min)
  */
-pub (value: CSSNumericValue) min(): CSSNumericValue.
+pub (receiver: CSSNumericValue) min(values: Array[CSSNumberish]): CSSNumericValue.
 
 /**
  * The **`mul()`** method of the the supplied value.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/mul)
  */
-pub (value: CSSNumericValue) mul(): CSSNumericValue.
+pub (receiver: CSSNumericValue) mul(values: Array[CSSNumberish]): CSSNumericValue.
 
 /**
  * The **`sub()`** method of the `CSSNumericValue`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/sub)
  */
-pub (value: CSSNumericValue) sub(): CSSNumericValue.
+pub (receiver: CSSNumericValue) sub(values: Array[CSSNumberish]): CSSNumericValue.
 
 /**
  * The **`to()`** method of the another.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/to)
  */
-pub (value: CSSNumericValue) to(unit: std.js.String.JsString): CSSUnitValue.
+pub (receiver: CSSNumericValue) to(unit: JsString): std.js.Dom.CSSUnitValue.CSSUnitValue.
 
 /**
  * The **`toSum()`** method of the ```js-nolint toSum(units) ``` - `units` - : The units to convert to.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/toSum)
  */
-pub (value: CSSNumericValue) to_sum(): CSSMathSum.
+pub (receiver: CSSNumericValue) to_sum(units: Array[JsString]): std.js.Dom.CSSMathSum.CSSMathSum.
 
 /**
  * The **`type()`** method of the `CSSNumericValue`, one of `angle`, `flex`, `frequency`, `length`, `resolution`, `percent`, `percentHint`, or `time`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/type)
  */
-pub (value: CSSNumericValue) type_(): CSSNumericType.
+pub (receiver: CSSNumericValue) type_(): std.js.Dom.CSSNumericType.CSSNumericType.

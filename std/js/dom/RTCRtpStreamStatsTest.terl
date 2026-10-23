@@ -12,12 +12,11 @@
  */
 module std.js.Dom.RTCRtpStreamStatsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.RTCRtpStreamStats.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub codec_id_typechecks(receiver: RTCRtpStreamStats): JsString ->
+pub codec_id_typechecks(receiver: RTCRtpStreamStats): Option[JsString] ->
     receiver.codec_id().
 
 pub kind_typechecks(receiver: RTCRtpStreamStats): JsString ->
@@ -26,5 +25,5 @@ pub kind_typechecks(receiver: RTCRtpStreamStats): JsString ->
 pub ssrc_typechecks(receiver: RTCRtpStreamStats): std.js.Number.JsNumber ->
     receiver.ssrc().
 
-pub transport_id_typechecks(receiver: RTCRtpStreamStats): JsString ->
+pub transport_id_typechecks(receiver: RTCRtpStreamStats): Option[JsString] ->
     receiver.transport_id().

@@ -14,8 +14,6 @@ module std.js.FunctionTest.
 
 import type std.js.Function.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub to_string_typechecks(receiver: Function): std.js.String.JsString ->
     receiver.to_string().
 

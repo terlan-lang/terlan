@@ -14,8 +14,8 @@ module std.js.Intl.NumberFormat.
 
 pub opaque type NumberFormat.
 
-pub (value: NumberFormat) format(value: std.js.Number.JsNumber): std.js.String.JsString ->
+pub (receiver: NumberFormat) format(value: std.js.Number.JsNumber): std.js.String.JsString ->
     native.
 
-pub (value: NumberFormat) resolved_options(): ResolvedNumberFormatOptions ->
+pub (receiver: NumberFormat) resolved_options(): std.js.Intl.ResolvedNumberFormatOptions.ResolvedNumberFormatOptions ->
     native.

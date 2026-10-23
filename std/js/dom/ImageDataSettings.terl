@@ -13,6 +13,3 @@
 module std.js.Dom.ImageDataSettings.
 
 pub opaque type ImageDataSettings.
-
-pub (value: ImageDataSettings) color_space(): PredefinedColorSpace ->
-    native.

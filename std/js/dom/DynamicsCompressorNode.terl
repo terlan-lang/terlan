@@ -12,6 +12,8 @@
  */
 module std.js.Dom.DynamicsCompressorNode.
 
+import type std.js.Dom.AudioParam.{AudioParam}.
+
 /**
  * The `DynamicsCompressorNode` interface provides a compression effect, which lowers the volume of the loudest parts of the signal in order to help prevent clipping and distortion that can occur when multiple sounds are played and multiplexed together at once.
  *
@@ -24,7 +26,7 @@ pub opaque type DynamicsCompressorNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/attack)
  */
-pub (value: DynamicsCompressorNode) attack(): AudioParam ->
+pub (receiver: DynamicsCompressorNode) attack(): AudioParam ->
     native.
 
 /**
@@ -32,7 +34,7 @@ pub (value: DynamicsCompressorNode) attack(): AudioParam ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/knee)
  */
-pub (value: DynamicsCompressorNode) knee(): AudioParam ->
+pub (receiver: DynamicsCompressorNode) knee(): AudioParam ->
     native.
 
 /**
@@ -40,7 +42,7 @@ pub (value: DynamicsCompressorNode) knee(): AudioParam ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/ratio)
  */
-pub (value: DynamicsCompressorNode) ratio(): AudioParam ->
+pub (receiver: DynamicsCompressorNode) ratio(): AudioParam ->
     native.
 
 /**
@@ -48,7 +50,7 @@ pub (value: DynamicsCompressorNode) ratio(): AudioParam ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/reduction)
  */
-pub (value: DynamicsCompressorNode) reduction(): std.js.Number.JsNumber ->
+pub (receiver: DynamicsCompressorNode) reduction(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -56,7 +58,7 @@ pub (value: DynamicsCompressorNode) reduction(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/release)
  */
-pub (value: DynamicsCompressorNode) release(): AudioParam ->
+pub (receiver: DynamicsCompressorNode) release(): AudioParam ->
     native.
 
 /**
@@ -64,5 +66,5 @@ pub (value: DynamicsCompressorNode) release(): AudioParam ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DynamicsCompressorNode/threshold)
  */
-pub (value: DynamicsCompressorNode) threshold(): AudioParam ->
+pub (receiver: DynamicsCompressorNode) threshold(): AudioParam ->
     native.

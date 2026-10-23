@@ -13,5 +13,3 @@
 module std.js.Dom.UnderlyingSinkWriteCallbackTest.
 
 import type std.js.Dom.UnderlyingSinkWriteCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

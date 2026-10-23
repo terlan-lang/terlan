@@ -14,10 +14,10 @@ module std.js.Dom.MediaKeySessionEventMapTest.
 
 import type std.js.Dom.MediaKeySessionEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub keystatuseschange_typechecks(receiver: MediaKeySessionEventMap): Event ->
+pub keystatuseschange_typechecks(receiver: MediaKeySessionEventMap): std.js.Dom.Event.Event ->
     receiver.keystatuseschange().
 
-pub message_typechecks(receiver: MediaKeySessionEventMap): MediaKeyMessageEvent ->
+pub message_typechecks(
+    receiver: MediaKeySessionEventMap,
+): std.js.Dom.MediaKeyMessageEvent.MediaKeyMessageEvent ->
     receiver.message().

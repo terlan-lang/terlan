@@ -15,6 +15,6 @@ module std.js.Dom.IIRFilterOptions.
 
 pub opaque type IIRFilterOptions.
 
-pub (value: IIRFilterOptions) feedback(): std.js.Array[std.js.Number.JsNumber].
+pub (receiver: IIRFilterOptions) feedback(): std.js.Array.Array[std.js.Number.JsNumber].
 
-pub (value: IIRFilterOptions) feedforward(): std.js.Array[std.js.Number.JsNumber].
+pub (receiver: IIRFilterOptions) feedforward(): std.js.Array.Array[std.js.Number.JsNumber].

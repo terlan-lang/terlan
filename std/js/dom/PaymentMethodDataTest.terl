@@ -14,7 +14,5 @@ module std.js.Dom.PaymentMethodDataTest.
 
 import type std.js.Dom.PaymentMethodData.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub supported_methods_typechecks(receiver: PaymentMethodData): std.js.String.JsString ->
     receiver.supported_methods().

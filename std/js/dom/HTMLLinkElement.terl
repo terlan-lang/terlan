@@ -12,7 +12,10 @@
  */
 module std.js.Dom.HTMLLinkElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.DOMTokenList.{DOMTokenList}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +30,7 @@ pub opaque type HTMLLinkElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/as)
  */
-pub (value: HTMLLinkElement) as_(): JsString ->
+pub (receiver: HTMLLinkElement) as_(): JsString ->
     native.
 
 /**
@@ -35,13 +38,13 @@ pub (value: HTMLLinkElement) as_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/blocking)
  */
-pub (value: HTMLLinkElement) blocking(): DOMTokenList ->
+pub (receiver: HTMLLinkElement) blocking(): DOMTokenList ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLLinkElement) charset(): JsString ->
+pub (receiver: HTMLLinkElement) charset(): JsString ->
     native.
 
 /**
@@ -49,7 +52,7 @@ pub (value: HTMLLinkElement) charset(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/crossOrigin)
  */
-pub (value: HTMLLinkElement) cross_origin(): Option[JsString] ->
+pub (receiver: HTMLLinkElement) cross_origin(): Option[JsString] ->
     native.
 
 /**
@@ -57,7 +60,7 @@ pub (value: HTMLLinkElement) cross_origin(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/disabled)
  */
-pub (value: HTMLLinkElement) disabled(): Bool ->
+pub (receiver: HTMLLinkElement) disabled(): Bool ->
     native.
 
 /**
@@ -65,7 +68,7 @@ pub (value: HTMLLinkElement) disabled(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/href)
  */
-pub (value: HTMLLinkElement) href(): JsString ->
+pub (receiver: HTMLLinkElement) href(): JsString ->
     native.
 
 /**
@@ -73,7 +76,7 @@ pub (value: HTMLLinkElement) href(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/hreflang)
  */
-pub (value: HTMLLinkElement) hreflang(): JsString ->
+pub (receiver: HTMLLinkElement) hreflang(): JsString ->
     native.
 
 /**
@@ -81,7 +84,7 @@ pub (value: HTMLLinkElement) hreflang(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/imageSizes)
  */
-pub (value: HTMLLinkElement) image_sizes(): JsString ->
+pub (receiver: HTMLLinkElement) image_sizes(): JsString ->
     native.
 
 /**
@@ -89,7 +92,7 @@ pub (value: HTMLLinkElement) image_sizes(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/imageSrcset)
  */
-pub (value: HTMLLinkElement) image_srcset(): JsString ->
+pub (receiver: HTMLLinkElement) image_srcset(): JsString ->
     native.
 
 /**
@@ -97,7 +100,7 @@ pub (value: HTMLLinkElement) image_srcset(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/integrity)
  */
-pub (value: HTMLLinkElement) integrity(): JsString ->
+pub (receiver: HTMLLinkElement) integrity(): JsString ->
     native.
 
 /**
@@ -105,7 +108,7 @@ pub (value: HTMLLinkElement) integrity(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/media)
  */
-pub (value: HTMLLinkElement) media(): JsString ->
+pub (receiver: HTMLLinkElement) media(): JsString ->
     native.
 
 /**
@@ -113,7 +116,7 @@ pub (value: HTMLLinkElement) media(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/referrerPolicy)
  */
-pub (value: HTMLLinkElement) referrer_policy(): JsString ->
+pub (receiver: HTMLLinkElement) referrer_policy(): JsString ->
     native.
 
 /**
@@ -121,7 +124,7 @@ pub (value: HTMLLinkElement) referrer_policy(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/rel)
  */
-pub (value: HTMLLinkElement) rel(): JsString ->
+pub (receiver: HTMLLinkElement) rel(): JsString ->
     native.
 
 /**
@@ -129,13 +132,13 @@ pub (value: HTMLLinkElement) rel(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/relList)
  */
-pub (value: HTMLLinkElement) rel_list(): DOMTokenList ->
+pub (receiver: HTMLLinkElement) rel_list(): DOMTokenList ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLLinkElement) rev(): JsString ->
+pub (receiver: HTMLLinkElement) rev(): JsString ->
     native.
 
 /**
@@ -143,13 +146,13 @@ pub (value: HTMLLinkElement) rev(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/sizes)
  */
-pub (value: HTMLLinkElement) sizes(): DOMTokenList ->
+pub (receiver: HTMLLinkElement) sizes(): DOMTokenList ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLLinkElement) target_(): JsString ->
+pub (receiver: HTMLLinkElement) target_(): JsString ->
     native.
 
 /**
@@ -157,19 +160,19 @@ pub (value: HTMLLinkElement) target_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/type)
  */
-pub (value: HTMLLinkElement) type_(): JsString ->
+pub (receiver: HTMLLinkElement) type_(): JsString ->
     native.
 
-pub (value: HTMLLinkElement) add_event_listener(
+pub (receiver: HTMLLinkElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLLinkElement) remove_event_listener(
+pub (receiver: HTMLLinkElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

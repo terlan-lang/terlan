@@ -14,4 +14,4 @@ module std.js.Dom.RsaHashedImportParams.
 
 pub opaque type RsaHashedImportParams.
 
-pub (value: RsaHashedImportParams) hash(): HashAlgorithmIdentifier.
+pub (receiver: RsaHashedImportParams) hash(): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier.

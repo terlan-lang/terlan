@@ -12,9 +12,12 @@
  */
 module std.js.Dom.Blob.
 
+import type std.core.Option.{Option}.
+import type std.js.ArrayBuffer.{ArrayBuffer}.
 import type std.js.Number.{JsNumber}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
+import type std.js.Uint8Array.{Uint8Array}.
 
 /**
  * The **`Blob`** interface represents a blob, which is a file-like object of immutable, raw data; they can be read as text or binary data, or converted into a ReadableStream so its methods can be used for processing the data.
@@ -28,7 +31,7 @@ pub opaque type Blob.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/size)
  */
-pub (value: Blob) size(): JsNumber ->
+pub (receiver: Blob) size(): JsNumber ->
     native.
 
 /**
@@ -36,7 +39,7 @@ pub (value: Blob) size(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/type)
  */
-pub (value: Blob) type_(): JsString ->
+pub (receiver: Blob) type_(): JsString ->
     native.
 
 /**
@@ -44,7 +47,7 @@ pub (value: Blob) type_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/arrayBuffer)
  */
-pub (value: Blob) array_buffer(): Promise[ArrayBuffer] ->
+pub (receiver: Blob) array_buffer(): Promise[ArrayBuffer] ->
     native.
 
 /**
@@ -52,7 +55,7 @@ pub (value: Blob) array_buffer(): Promise[ArrayBuffer] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/bytes)
  */
-pub (value: Blob) bytes(): Promise[Uint8Array[ArrayBuffer]] ->
+pub (receiver: Blob) bytes(): Promise[Uint8Array[ArrayBuffer]] ->
     native.
 
 /**
@@ -60,7 +63,7 @@ pub (value: Blob) bytes(): Promise[Uint8Array[ArrayBuffer]] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/slice)
  */
-pub (value: Blob) slice(start: JsNumber, end: JsNumber, content_type: JsString): Blob ->
+pub (receiver: Blob) slice(start: Option[JsNumber], end: Option[JsNumber], content_type: Option[JsString]): Blob ->
     native.
 
 /**
@@ -68,7 +71,7 @@ pub (value: Blob) slice(start: JsNumber, end: JsNumber, content_type: JsString):
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/stream)
  */
-pub (value: Blob) stream(): ReadableStream[Uint8Array[ArrayBuffer]] ->
+pub (receiver: Blob) stream(): std.js.Dom.ReadableStream.ReadableStream[Uint8Array[ArrayBuffer]] ->
     native.
 
 /**
@@ -76,5 +79,5 @@ pub (value: Blob) stream(): ReadableStream[Uint8Array[ArrayBuffer]] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/text)
  */
-pub (value: Blob) text(): Promise[JsString] ->
+pub (receiver: Blob) text(): Promise[JsString] ->
     native.

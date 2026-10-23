@@ -14,4 +14,4 @@ module std.js.Dom.EcdsaParams.
 
 pub opaque type EcdsaParams.
 
-pub (value: EcdsaParams) hash(): HashAlgorithmIdentifier.
+pub (receiver: EcdsaParams) hash(): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier.

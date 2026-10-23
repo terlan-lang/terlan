@@ -13,5 +13,3 @@
 module std.js.Dom.WebGLSamplerTest.
 
 import type std.js.Dom.WebGLSampler.
-
-pub generated_binding_surface_contract(): Bool -> true.

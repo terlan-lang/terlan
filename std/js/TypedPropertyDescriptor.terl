@@ -12,18 +12,18 @@
  */
 module std.js.TypedPropertyDescriptor.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type TypedPropertyDescriptor[T].
 
-pub (value: TypedPropertyDescriptor[T]) enumerable(): Bool ->
+pub (receiver: TypedPropertyDescriptor[T]) enumerable(): Option[Bool] ->
     native.
 
-pub (value: TypedPropertyDescriptor[T]) configurable(): Bool ->
+pub (receiver: TypedPropertyDescriptor[T]) configurable(): Option[Bool] ->
     native.
 
-pub (value: TypedPropertyDescriptor[T]) writable(): Bool ->
+pub (receiver: TypedPropertyDescriptor[T]) writable(): Option[Bool] ->
     native.
 
-pub (value: TypedPropertyDescriptor[T]) value(): T ->
+pub (receiver: TypedPropertyDescriptor[T]) value(): Option[T] ->
     native.

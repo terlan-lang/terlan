@@ -12,11 +12,10 @@
  */
 module std.js.Dom.CanvasPathTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.CanvasPath.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub arc_typechecks(
     receiver: CanvasPath,
@@ -25,7 +24,7 @@ pub arc_typechecks(
     radius: JsNumber,
     start_angle: JsNumber,
     end_angle: JsNumber,
-    counterclockwise: Bool,
+    counterclockwise: Option[Bool],
 ): Unit ->
     receiver.arc(x, y, radius, start_angle, end_angle, counterclockwise).
 
@@ -62,7 +61,7 @@ pub ellipse_typechecks(
     rotation: JsNumber,
     start_angle: JsNumber,
     end_angle: JsNumber,
-    counterclockwise: Bool,
+    counterclockwise: Option[Bool],
 ): Unit ->
     receiver.ellipse(x, y, radius_x, radius_y, rotation, start_angle, end_angle, counterclockwise).
 

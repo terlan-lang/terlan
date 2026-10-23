@@ -12,27 +12,29 @@
  */
 module std.js.Dom.BodyTest.
 
+import type std.js.ArrayBuffer.{ArrayBuffer}.
 import type std.js.Dom.Body.
-import type std.js.{Promise}.
+import type std.js.Promise.{Promise}.
+import type std.js.Uint8Array.{Uint8Array}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub body_typechecks(receiver: Body): Option[ReadableStream[Uint8Array[ArrayBuffer]]] ->
+pub body_typechecks(
+    receiver: Body,
+): std.core.Option.Option[std.js.Dom.ReadableStream.ReadableStream[Uint8Array[ArrayBuffer]]] ->
     receiver.body().
 
-pub body_used_typechecks(receiver: Body): std.core.Bool ->
+pub body_used_typechecks(receiver: Body): Bool ->
     receiver.body_used().
 
 pub array_buffer_typechecks(receiver: Body): Promise[ArrayBuffer] ->
     receiver.array_buffer().
 
-pub blob_typechecks(receiver: Body): Promise[Blob] ->
+pub blob_typechecks(receiver: Body): Promise[std.js.Dom.Blob.Blob] ->
     receiver.blob().
 
 pub bytes_typechecks(receiver: Body): Promise[Uint8Array[ArrayBuffer]] ->
     receiver.bytes().
 
-pub form_data_typechecks(receiver: Body): Promise[FormData] ->
+pub form_data_typechecks(receiver: Body): Promise[std.js.Dom.FormData.FormData] ->
     receiver.form_data().
 
 pub text_typechecks(receiver: Body): Promise[std.js.String.JsString] ->

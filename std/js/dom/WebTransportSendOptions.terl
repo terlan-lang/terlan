@@ -14,5 +14,5 @@ module std.js.Dom.WebTransportSendOptions.
 
 pub opaque type WebTransportSendOptions.
 
-pub (value: WebTransportSendOptions) send_order(): std.js.Number.JsNumber ->
+pub (receiver: WebTransportSendOptions) send_order(): std.core.Option.Option[std.js.Number.JsNumber] ->
     native.

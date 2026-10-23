@@ -25,39 +25,39 @@ pub opaque type XSLTProcessor.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/clearParameters)
  */
-pub (value: XSLTProcessor) clear_parameters(): std.core.Unit.
+pub (receiver: XSLTProcessor) clear_parameters(): std.core.Unit.Unit.
 
 /**
  * The `importStylesheet()` method of the XSLTProcessor interface imports an XSLT stylesheet for the processor.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/importStylesheet)
  */
-pub (value: XSLTProcessor) import_stylesheet(style: Node): std.core.Unit.
+pub (receiver: XSLTProcessor) import_stylesheet(style: std.js.Dom.Node.Node): std.core.Unit.Unit.
 
 /**
  * The `removeParameter()` method of the XSLTProcessor interface removes the parameter (`<xsl:param>`) and its value from the stylesheet imported in the processor.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/removeParameter)
  */
-pub (value: XSLTProcessor) remove_parameter(namespace_uri: Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Unit.
+pub (receiver: XSLTProcessor) remove_parameter(namespace_uri: std.core.Option.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Unit.Unit.
 
 /**
  * The `reset()` method of the XSLTProcessor interface removes all parameters (`<xsl:param>`) and the XSLT stylesheet from the processor.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/reset)
  */
-pub (value: XSLTProcessor) reset(): std.core.Unit.
+pub (receiver: XSLTProcessor) reset(): std.core.Unit.Unit.
 
 /**
  * The `transformToDocument()` method of the XSLTProcessor interface transforms the provided Node source to a Document using the XSLT stylesheet associated with `XSLTProcessor`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/transformToDocument)
  */
-pub (value: XSLTProcessor) transform_to_document(source: Node): Document.
+pub (receiver: XSLTProcessor) transform_to_document(source: std.js.Dom.Node.Node): std.js.Dom.Document.Document.
 
 /**
  * The `transformToFragment()` method of the XSLTProcessor interface transforms a provided Node source to a DocumentFragment using the XSLT stylesheet associated with the `XSLTProcessor`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/transformToFragment)
  */
-pub (value: XSLTProcessor) transform_to_fragment(source: Node, output: Document): DocumentFragment.
+pub (receiver: XSLTProcessor) transform_to_fragment(source: std.js.Dom.Node.Node, output: std.js.Dom.Document.Document): std.js.Dom.DocumentFragment.DocumentFragment.

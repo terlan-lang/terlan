@@ -25,21 +25,21 @@ pub opaque type CSSRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRule/cssText)
  */
-pub (value: CSSRule) css_text(): std.js.String.JsString.
+pub (receiver: CSSRule) css_text(): std.js.String.JsString.
 
 /**
  * The **`parentRule`** property of the CSSRule interface returns the containing rule of the current rule if this exists, or otherwise returns null.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRule/parentRule)
  */
-pub (value: CSSRule) parent_rule(): Option[CSSRule].
+pub (receiver: CSSRule) parent_rule(): std.core.Option.Option[CSSRule].
 
 /**
  * The **`parentStyleSheet`** property of the the current rule is defined.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRule/parentStyleSheet)
  */
-pub (value: CSSRule) parent_style_sheet(): Option[CSSStyleSheet].
+pub (receiver: CSSRule) parent_style_sheet(): std.core.Option.Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet].
 
 /**
  * The read-only **`type`** property of the indicating which type of rule the CSSRule represents.
@@ -47,4 +47,4 @@ pub (value: CSSRule) parent_style_sheet(): Option[CSSStyleSheet].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRule/type)
  */
-pub (value: CSSRule) type_(): std.js.Number.JsNumber.
+pub (receiver: CSSRule) type_(): std.js.Number.JsNumber.

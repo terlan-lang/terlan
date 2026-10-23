@@ -12,7 +12,9 @@
  */
 module std.js.Dom.Notification.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type Notification.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/badge)
  */
-pub (value: Notification) badge(): JsString ->
+pub (receiver: Notification) badge(): JsString ->
     native.
 
 /**
@@ -35,15 +37,7 @@ pub (value: Notification) badge(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/body)
  */
-pub (value: Notification) body(): JsString ->
-    native.
-
-/**
- * The **`dir`** read-only property of the Notification interface indicates the text direction of the notification, as specified in the `dir` option of the Notification.Notification constructor.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/dir)
- */
-pub (value: Notification) dir(): NotificationDirection ->
+pub (receiver: Notification) body(): JsString ->
     native.
 
 /**
@@ -51,7 +45,7 @@ pub (value: Notification) dir(): NotificationDirection ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/icon)
  */
-pub (value: Notification) icon(): JsString ->
+pub (receiver: Notification) icon(): JsString ->
     native.
 
 /**
@@ -59,7 +53,7 @@ pub (value: Notification) icon(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/lang)
  */
-pub (value: Notification) lang(): JsString ->
+pub (receiver: Notification) lang(): JsString ->
     native.
 
 /**
@@ -67,7 +61,7 @@ pub (value: Notification) lang(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/requireInteraction)
  */
-pub (value: Notification) require_interaction(): Bool ->
+pub (receiver: Notification) require_interaction(): Bool ->
     native.
 
 /**
@@ -75,7 +69,7 @@ pub (value: Notification) require_interaction(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/silent)
  */
-pub (value: Notification) silent(): Option[Bool] ->
+pub (receiver: Notification) silent(): Option[Bool] ->
     native.
 
 /**
@@ -83,7 +77,7 @@ pub (value: Notification) silent(): Option[Bool] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/tag)
  */
-pub (value: Notification) tag(): JsString ->
+pub (receiver: Notification) tag(): JsString ->
     native.
 
 /**
@@ -91,7 +85,7 @@ pub (value: Notification) tag(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/title)
  */
-pub (value: Notification) title(): JsString ->
+pub (receiver: Notification) title(): JsString ->
     native.
 
 /**
@@ -99,19 +93,19 @@ pub (value: Notification) title(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/close)
  */
-pub (value: Notification) close(): Unit ->
+pub (receiver: Notification) close(): Unit ->
     native.
 
-pub (value: Notification) add_event_listener(
+pub (receiver: Notification) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: Notification) remove_event_listener(
+pub (receiver: Notification) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

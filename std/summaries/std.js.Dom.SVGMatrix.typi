@@ -14,4 +14,4 @@
 module std.js.Dom.SVGMatrix.
 
 pub type SVGMatrix =
-    DOMMatrix.
+    std.js.Dom.DOMMatrix.DOMMatrix.

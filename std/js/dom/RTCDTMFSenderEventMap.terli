@@ -14,4 +14,4 @@ module std.js.Dom.RTCDTMFSenderEventMap.
 
 pub opaque type RTCDTMFSenderEventMap.
 
-pub (value: RTCDTMFSenderEventMap) tonechange(): RTCDTMFToneChangeEvent.
+pub (receiver: RTCDTMFSenderEventMap) tonechange(): std.js.Dom.RTCDTMFToneChangeEvent.RTCDTMFToneChangeEvent.

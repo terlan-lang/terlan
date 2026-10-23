@@ -12,16 +12,15 @@
  */
 module std.js.Dom.TransitionEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.TransitionEventInit.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub elapsed_time_typechecks(receiver: TransitionEventInit): std.js.Number.JsNumber ->
+pub elapsed_time_typechecks(receiver: TransitionEventInit): Option[std.js.Number.JsNumber] ->
     receiver.elapsed_time().
 
-pub property_name_typechecks(receiver: TransitionEventInit): JsString ->
+pub property_name_typechecks(receiver: TransitionEventInit): Option[JsString] ->
     receiver.property_name().
 
-pub pseudo_element_typechecks(receiver: TransitionEventInit): JsString ->
+pub pseudo_element_typechecks(receiver: TransitionEventInit): Option[JsString] ->
     receiver.pseudo_element().

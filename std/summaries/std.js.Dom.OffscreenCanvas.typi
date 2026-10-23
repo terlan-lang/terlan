@@ -25,29 +25,29 @@ pub opaque type OffscreenCanvas.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/height)
  */
-pub (value: OffscreenCanvas) height(): std.js.Number.JsNumber.
+pub (receiver: OffscreenCanvas) height(): std.js.Number.JsNumber.
 
 /**
  * The **`width`** property returns and sets the width of an OffscreenCanvas object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/width)
  */
-pub (value: OffscreenCanvas) width(): std.js.Number.JsNumber.
+pub (receiver: OffscreenCanvas) width(): std.js.Number.JsNumber.
 
 /**
  * The **`OffscreenCanvas.convertToBlob()`** method creates a Blob object representing the image contained in the canvas.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/convertToBlob)
  */
-pub (value: OffscreenCanvas) convert_to_blob(options: ImageEncodeOptions): std.js.Promise[Blob].
+pub (receiver: OffscreenCanvas) convert_to_blob(options: std.core.Option.Option[std.js.Dom.ImageEncodeOptions.ImageEncodeOptions]): std.js.Promise.Promise[std.js.Dom.Blob.Blob].
 
 /**
  * The **`OffscreenCanvas.transferToImageBitmap()`** method creates an ImageBitmap object from the most recently rendered image of the `OffscreenCanvas`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/transferToImageBitmap)
  */
-pub (value: OffscreenCanvas) transfer_to_image_bitmap(): ImageBitmap.
+pub (receiver: OffscreenCanvas) transfer_to_image_bitmap(): std.js.Dom.ImageBitmap.ImageBitmap.
 
-pub (value: OffscreenCanvas) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: OffscreenCanvas) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: OffscreenCanvas) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: OffscreenCanvas) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

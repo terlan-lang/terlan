@@ -12,22 +12,21 @@
  */
 module std.js.Dom.DynamicsCompressorOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.DynamicsCompressorOptions.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub attack_typechecks(receiver: DynamicsCompressorOptions): JsNumber ->
+pub attack_typechecks(receiver: DynamicsCompressorOptions): Option[JsNumber] ->
     receiver.attack().
 
-pub knee_typechecks(receiver: DynamicsCompressorOptions): JsNumber ->
+pub knee_typechecks(receiver: DynamicsCompressorOptions): Option[JsNumber] ->
     receiver.knee().
 
-pub ratio_typechecks(receiver: DynamicsCompressorOptions): JsNumber ->
+pub ratio_typechecks(receiver: DynamicsCompressorOptions): Option[JsNumber] ->
     receiver.ratio().
 
-pub release_typechecks(receiver: DynamicsCompressorOptions): JsNumber ->
+pub release_typechecks(receiver: DynamicsCompressorOptions): Option[JsNumber] ->
     receiver.release().
 
-pub threshold_typechecks(receiver: DynamicsCompressorOptions): JsNumber ->
+pub threshold_typechecks(receiver: DynamicsCompressorOptions): Option[JsNumber] ->
     receiver.threshold().

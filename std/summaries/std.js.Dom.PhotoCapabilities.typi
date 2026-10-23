@@ -15,10 +15,6 @@ module std.js.Dom.PhotoCapabilities.
 
 pub opaque type PhotoCapabilities.
 
-pub (value: PhotoCapabilities) fill_light_mode(): std.js.Array[FillLightMode].
+pub (receiver: PhotoCapabilities) image_height(): std.core.Option.Option[std.js.Dom.MediaSettingsRange.MediaSettingsRange].
 
-pub (value: PhotoCapabilities) image_height(): MediaSettingsRange.
-
-pub (value: PhotoCapabilities) image_width(): MediaSettingsRange.
-
-pub (value: PhotoCapabilities) red_eye_reduction(): RedEyeReduction.
+pub (receiver: PhotoCapabilities) image_width(): std.core.Option.Option[std.js.Dom.MediaSettingsRange.MediaSettingsRange].

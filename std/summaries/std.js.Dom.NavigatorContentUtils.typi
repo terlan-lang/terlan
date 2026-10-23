@@ -20,4 +20,4 @@ pub opaque type NavigatorContentUtils.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/registerProtocolHandler)
  */
-pub (value: NavigatorContentUtils) register_protocol_handler(scheme: std.js.String.JsString, url: URL | std.js.String.JsString): std.core.Unit.
+pub (receiver: NavigatorContentUtils) register_protocol_handler(scheme: std.js.String.JsString, url: std.js.Dom.URL.URL | std.js.String.JsString): std.core.Unit.Unit.

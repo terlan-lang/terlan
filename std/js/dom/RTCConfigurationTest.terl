@@ -12,25 +12,19 @@
  */
 module std.js.Dom.RTCConfigurationTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
 import type std.js.Dom.RTCConfiguration.
-import type std.js.{Array}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub bundle_policy_typechecks(receiver: RTCConfiguration): RTCBundlePolicy ->
-    receiver.bundle_policy().
-
-pub certificates_typechecks(receiver: RTCConfiguration): Array[RTCCertificate] ->
+pub certificates_typechecks(
+    receiver: RTCConfiguration,
+): Option[Array[std.js.Dom.RTCCertificate.RTCCertificate]] ->
     receiver.certificates().
 
-pub ice_candidate_pool_size_typechecks(receiver: RTCConfiguration): std.js.Number.JsNumber ->
+pub ice_candidate_pool_size_typechecks(receiver: RTCConfiguration): Option[std.js.Number.JsNumber] ->
     receiver.ice_candidate_pool_size().
 
-pub ice_servers_typechecks(receiver: RTCConfiguration): Array[RTCIceServer] ->
+pub ice_servers_typechecks(
+    receiver: RTCConfiguration,
+): Option[Array[std.js.Dom.RTCIceServer.RTCIceServer]] ->
     receiver.ice_servers().
-
-pub ice_transport_policy_typechecks(receiver: RTCConfiguration): RTCIceTransportPolicy ->
-    receiver.ice_transport_policy().
-
-pub rtcp_mux_policy_typechecks(receiver: RTCConfiguration): RTCRtcpMuxPolicy ->
-    receiver.rtcp_mux_policy().

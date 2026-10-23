@@ -12,25 +12,26 @@
  */
 module std.js.Dom.FormDataTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Blob.{Blob}.
 import type std.js.Dom.FormData.
+import type std.js.Dom.FormDataEntryValue.{FormDataEntryValue}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub append_typechecks(receiver: FormData, name: JsString, value: Blob | JsString): Unit ->
     receiver.append(name, value).
 
-pub append_typechecks(receiver: FormData, name: JsString, value: JsString): Unit ->
-    receiver.append(name, value).
+pub append_overload_2_typechecks(receiver: FormData, name: JsString, value: JsString): Unit ->
+    receiver.append_overload_2(name, value).
 
-pub append_typechecks(
+pub append_overload_3_typechecks(
     receiver: FormData,
     name: JsString,
     blob_value: Blob,
-    filename: JsString,
+    filename: Option[JsString],
 ): Unit ->
-    receiver.append(name, blob_value, filename).
+    receiver.append_overload_3(name, blob_value, filename).
 
 pub delete_typechecks(receiver: FormData, name: JsString): Unit ->
     receiver.delete(name).
@@ -38,17 +39,22 @@ pub delete_typechecks(receiver: FormData, name: JsString): Unit ->
 pub get_typechecks(receiver: FormData, name: JsString): Option[FormDataEntryValue] ->
     receiver.get(name).
 
-pub get_all_typechecks(receiver: FormData, name: JsString): std.js.Array[FormDataEntryValue] ->
+pub get_all_typechecks(receiver: FormData, name: JsString): std.js.Array.Array[FormDataEntryValue] ->
     receiver.get_all(name).
 
-pub has_typechecks(receiver: FormData, name: JsString): std.core.Bool ->
+pub has_typechecks(receiver: FormData, name: JsString): Bool ->
     receiver.has(name).
 
 pub set_typechecks(receiver: FormData, name: JsString, value: Blob | JsString): Unit ->
     receiver.set(name, value).
 
-pub set_typechecks(receiver: FormData, name: JsString, value: JsString): Unit ->
-    receiver.set(name, value).
+pub set_overload_2_typechecks(receiver: FormData, name: JsString, value: JsString): Unit ->
+    receiver.set_overload_2(name, value).
 
-pub set_typechecks(receiver: FormData, name: JsString, blob_value: Blob, filename: JsString): Unit ->
-    receiver.set(name, blob_value, filename).
+pub set_overload_3_typechecks(
+    receiver: FormData,
+    name: JsString,
+    blob_value: Blob,
+    filename: Option[JsString],
+): Unit ->
+    receiver.set_overload_3(name, blob_value, filename).

@@ -25,4 +25,4 @@ pub opaque type Permissions.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Permissions/query)
  */
-pub (value: Permissions) query(permission_desc: PermissionDescriptor): std.js.Promise[PermissionStatus].
+pub (receiver: Permissions) query(permission_desc: std.js.Dom.PermissionDescriptor.PermissionDescriptor): std.js.Promise.Promise[std.js.Dom.PermissionStatus.PermissionStatus].

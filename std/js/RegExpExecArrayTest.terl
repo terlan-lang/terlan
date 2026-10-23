@@ -14,8 +14,6 @@ module std.js.RegExpExecArrayTest.
 
 import type std.js.RegExpExecArray.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub index_typechecks(receiver: RegExpExecArray): std.js.Number.JsNumber ->
     receiver.index().
 

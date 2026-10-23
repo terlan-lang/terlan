@@ -25,9 +25,9 @@ pub opaque type ByteLengthQueuingStrategy.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ByteLengthQueuingStrategy/highWaterMark)
  */
-pub (value: ByteLengthQueuingStrategy) high_water_mark(): std.js.Number.JsNumber.
+pub (receiver: ByteLengthQueuingStrategy) high_water_mark(): std.js.Number.JsNumber.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ByteLengthQueuingStrategy/size)
  */
-pub (value: ByteLengthQueuingStrategy) size(): QueuingStrategySize[ArrayBufferView].
+pub (receiver: ByteLengthQueuingStrategy) size(): std.js.Dom.QueuingStrategySize.QueuingStrategySize[std.js.ArrayBufferView.ArrayBufferView].

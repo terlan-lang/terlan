@@ -12,9 +12,8 @@
  */
 module std.js.Dom.SourceBufferListEventMapTest.
 
+import type std.js.Dom.Event.{Event}.
 import type std.js.Dom.SourceBufferListEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub addsourcebuffer_typechecks(receiver: SourceBufferListEventMap): Event ->
     receiver.addsourcebuffer().

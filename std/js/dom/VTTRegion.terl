@@ -21,26 +21,23 @@ import type std.js.Number.{JsNumber}.
  */
 pub opaque type VTTRegion.
 
-pub (value: VTTRegion) id(): std.js.String.JsString ->
+pub (receiver: VTTRegion) id(): std.js.String.JsString ->
     native.
 
-pub (value: VTTRegion) lines(): JsNumber ->
+pub (receiver: VTTRegion) lines(): JsNumber ->
     native.
 
-pub (value: VTTRegion) region_anchor_x(): JsNumber ->
+pub (receiver: VTTRegion) region_anchor_x(): JsNumber ->
     native.
 
-pub (value: VTTRegion) region_anchor_y(): JsNumber ->
+pub (receiver: VTTRegion) region_anchor_y(): JsNumber ->
     native.
 
-pub (value: VTTRegion) scroll(): ScrollSetting ->
+pub (receiver: VTTRegion) viewport_anchor_x(): JsNumber ->
     native.
 
-pub (value: VTTRegion) viewport_anchor_x(): JsNumber ->
+pub (receiver: VTTRegion) viewport_anchor_y(): JsNumber ->
     native.
 
-pub (value: VTTRegion) viewport_anchor_y(): JsNumber ->
-    native.
-
-pub (value: VTTRegion) width(): JsNumber ->
+pub (receiver: VTTRegion) width(): JsNumber ->
     native.

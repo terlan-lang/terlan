@@ -26,7 +26,7 @@ pub opaque type Report.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Report/body)
  */
-pub (value: Report) body(): Option[ReportBody] ->
+pub (receiver: Report) body(): std.core.Option.Option[std.js.Dom.ReportBody.ReportBody] ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: Report) body(): Option[ReportBody] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Report/type)
  */
-pub (value: Report) type_(): JsString ->
+pub (receiver: Report) type_(): JsString ->
     native.
 
 /**
@@ -42,5 +42,5 @@ pub (value: Report) type_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Report/url)
  */
-pub (value: Report) url(): JsString ->
+pub (receiver: Report) url(): JsString ->
     native.

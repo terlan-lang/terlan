@@ -12,16 +12,15 @@
  */
 module std.js.Dom.MediaKeySystemMediaCapabilityTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.MediaKeySystemMediaCapability.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub content_type_typechecks(receiver: MediaKeySystemMediaCapability): JsString ->
+pub content_type_typechecks(receiver: MediaKeySystemMediaCapability): Option[JsString] ->
     receiver.content_type().
 
 pub encryption_scheme_typechecks(receiver: MediaKeySystemMediaCapability): Option[JsString] ->
     receiver.encryption_scheme().
 
-pub robustness_typechecks(receiver: MediaKeySystemMediaCapability): JsString ->
+pub robustness_typechecks(receiver: MediaKeySystemMediaCapability): Option[JsString] ->
     receiver.robustness().

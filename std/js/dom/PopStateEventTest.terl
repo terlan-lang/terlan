@@ -14,7 +14,5 @@ module std.js.Dom.PopStateEventTest.
 
 import type std.js.Dom.PopStateEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub has_ua_visual_transition_typechecks(receiver: PopStateEvent): std.core.Bool ->
+pub has_ua_visual_transition_typechecks(receiver: PopStateEvent): Bool ->
     receiver.has_ua_visual_transition().

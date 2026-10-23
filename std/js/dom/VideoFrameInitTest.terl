@@ -12,25 +12,21 @@
  */
 module std.js.Dom.VideoFrameInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.VideoFrameInit.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub alpha_typechecks(receiver: VideoFrameInit): AlphaOption ->
-    receiver.alpha().
-
-pub display_height_typechecks(receiver: VideoFrameInit): JsNumber ->
+pub display_height_typechecks(receiver: VideoFrameInit): Option[JsNumber] ->
     receiver.display_height().
 
-pub display_width_typechecks(receiver: VideoFrameInit): JsNumber ->
+pub display_width_typechecks(receiver: VideoFrameInit): Option[JsNumber] ->
     receiver.display_width().
 
-pub duration_typechecks(receiver: VideoFrameInit): JsNumber ->
+pub duration_typechecks(receiver: VideoFrameInit): Option[JsNumber] ->
     receiver.duration().
 
-pub timestamp_typechecks(receiver: VideoFrameInit): JsNumber ->
+pub timestamp_typechecks(receiver: VideoFrameInit): Option[JsNumber] ->
     receiver.timestamp().
 
-pub visible_rect_typechecks(receiver: VideoFrameInit): DOMRectInit ->
+pub visible_rect_typechecks(receiver: VideoFrameInit): Option[std.js.Dom.DOMRectInit.DOMRectInit] ->
     receiver.visible_rect().

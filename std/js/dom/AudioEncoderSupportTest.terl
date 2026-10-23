@@ -12,12 +12,13 @@
  */
 module std.js.Dom.AudioEncoderSupportTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.AudioEncoderSupport.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub config_typechecks(receiver: AudioEncoderSupport): AudioEncoderConfig ->
+pub config_typechecks(
+    receiver: AudioEncoderSupport,
+): Option[std.js.Dom.AudioEncoderConfig.AudioEncoderConfig] ->
     receiver.config().
 
-pub supported_typechecks(receiver: AudioEncoderSupport): std.core.Bool ->
+pub supported_typechecks(receiver: AudioEncoderSupport): Option[Bool] ->
     receiver.supported().

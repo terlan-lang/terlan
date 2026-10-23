@@ -12,10 +12,9 @@
  */
 module std.js.Dom.DataTransferItemTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.DataTransferItem.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub kind_typechecks(receiver: DataTransferItem): JsString ->
     receiver.kind().
@@ -23,14 +22,16 @@ pub kind_typechecks(receiver: DataTransferItem): JsString ->
 pub type__typechecks(receiver: DataTransferItem): JsString ->
     receiver.type_().
 
-pub get_as_file_typechecks(receiver: DataTransferItem): Option[File] ->
+pub get_as_file_typechecks(receiver: DataTransferItem): Option[std.js.Dom.File.File] ->
     receiver.get_as_file().
 
 pub get_as_string_typechecks(
     receiver: DataTransferItem,
-    callback: Option[FunctionStringCallback],
-): std.core.Unit ->
+    callback: Option[std.js.Dom.FunctionStringCallback.FunctionStringCallback],
+): std.core.Unit.Unit ->
     receiver.get_as_string(callback).
 
-pub webkit_get_as_entry_typechecks(receiver: DataTransferItem): Option[FileSystemEntry] ->
+pub webkit_get_as_entry_typechecks(
+    receiver: DataTransferItem,
+): Option[std.js.Dom.FileSystemEntry.FileSystemEntry] ->
     receiver.webkit_get_as_entry().

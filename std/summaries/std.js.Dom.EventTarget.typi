@@ -25,18 +25,18 @@ pub opaque type EventTarget.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)
  */
-pub (value: EventTarget) add_event_listener(type_: std.js.String.JsString, callback: Option[EventListenerOrEventListenerObject], options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: EventTarget) add_event_listener(type_: std.js.String.JsString, callback: std.core.Option.Option[std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject], options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
 /**
  * The **`dispatchEvent()`** method of the EventTarget sends an Event to the object, (synchronously) invoking the affected event listeners in the appropriate order.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/dispatchEvent)
  */
-pub (value: EventTarget) dispatch_event(event: Event): std.core.Bool.
+pub (receiver: EventTarget) dispatch_event(event: std.js.Dom.Event.Event): Bool.
 
 /**
  * The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)
  */
-pub (value: EventTarget) remove_event_listener(type_: std.js.String.JsString, callback: Option[EventListenerOrEventListenerObject], options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: EventTarget) remove_event_listener(type_: std.js.String.JsString, callback: std.core.Option.Option[std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject], options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

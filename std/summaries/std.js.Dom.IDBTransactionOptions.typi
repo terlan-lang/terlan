@@ -14,5 +14,3 @@
 module std.js.Dom.IDBTransactionOptions.
 
 pub opaque type IDBTransactionOptions.
-
-pub (value: IDBTransactionOptions) durability(): IDBTransactionDurability.

@@ -12,32 +12,32 @@
  */
 module std.js.Dom.VideoEncoderTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.VideoEncoder.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub encode_queue_size_typechecks(receiver: VideoEncoder): std.js.Number.JsNumber ->
     receiver.encode_queue_size().
 
-pub state_typechecks(receiver: VideoEncoder): CodecState ->
-    receiver.state().
-
 pub close_typechecks(receiver: VideoEncoder): Unit ->
     receiver.close().
 
-pub configure_typechecks(receiver: VideoEncoder, config: VideoEncoderConfig): Unit ->
+pub configure_typechecks(
+    receiver: VideoEncoder,
+    config: std.js.Dom.VideoEncoderConfig.VideoEncoderConfig,
+): Unit ->
     receiver.configure(config).
 
 pub encode_typechecks(
     receiver: VideoEncoder,
-    frame: VideoFrame,
-    options: VideoEncoderEncodeOptions,
+    frame: std.js.Dom.VideoFrame.VideoFrame,
+    options: Option[std.js.Dom.VideoEncoderEncodeOptions.VideoEncoderEncodeOptions],
 ): Unit ->
     receiver.encode(frame, options).
 
-pub flush_typechecks(receiver: VideoEncoder): std.js.Promise[Unit] ->
+pub flush_typechecks(receiver: VideoEncoder): std.js.Promise.Promise[Unit] ->
     receiver.flush().
 
 pub reset_typechecks(receiver: VideoEncoder): Unit ->
@@ -47,7 +47,7 @@ pub add_event_listener_typechecks(
     receiver: VideoEncoder,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -55,6 +55,6 @@ pub remove_event_listener_typechecks(
     receiver: VideoEncoder,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

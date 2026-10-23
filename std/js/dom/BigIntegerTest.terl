@@ -13,5 +13,3 @@
 module std.js.Dom.BigIntegerTest.
 
 import type std.js.Dom.BigInteger.
-
-pub generated_binding_surface_contract(): Bool -> true.

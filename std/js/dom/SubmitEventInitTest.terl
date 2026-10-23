@@ -14,7 +14,7 @@ module std.js.Dom.SubmitEventInitTest.
 
 import type std.js.Dom.SubmitEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub submitter_typechecks(receiver: SubmitEventInit): Option[HTMLElement] ->
+pub submitter_typechecks(
+    receiver: SubmitEventInit,
+): std.core.Option.Option[std.js.Dom.HTMLElement.HTMLElement] ->
     receiver.submitter().

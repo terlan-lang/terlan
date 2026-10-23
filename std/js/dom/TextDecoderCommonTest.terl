@@ -12,10 +12,7 @@
  */
 module std.js.Dom.TextDecoderCommonTest.
 
-import type std.core.{Bool}.
 import type std.js.Dom.TextDecoderCommon.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub encoding_typechecks(receiver: TextDecoderCommon): std.js.String.JsString ->
     receiver.encoding().

@@ -19,23 +19,23 @@ pub opaque type CanvasShadowStyles.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowBlur)
  */
-pub (value: CanvasShadowStyles) shadow_blur(): JsNumber ->
+pub (receiver: CanvasShadowStyles) shadow_blur(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowColor)
  */
-pub (value: CanvasShadowStyles) shadow_color(): std.js.String.JsString ->
+pub (receiver: CanvasShadowStyles) shadow_color(): std.js.String.JsString ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowOffsetX)
  */
-pub (value: CanvasShadowStyles) shadow_offset_x(): JsNumber ->
+pub (receiver: CanvasShadowStyles) shadow_offset_x(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowOffsetY)
  */
-pub (value: CanvasShadowStyles) shadow_offset_y(): JsNumber ->
+pub (receiver: CanvasShadowStyles) shadow_offset_y(): JsNumber ->
     native.

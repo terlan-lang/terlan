@@ -25,11 +25,4 @@ pub opaque type Crypto.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Crypto/subtle)
  */
-pub (value: Crypto) subtle(): SubtleCrypto.
-
-/**
- * The **`Crypto.getRandomValues()`** method lets you get cryptographically strong random values.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Crypto/getRandomValues)
- */
-pub (value: Crypto) get_random_values(array: T): T.
+pub (receiver: Crypto) subtle(): std.js.Dom.SubtleCrypto.SubtleCrypto.

@@ -14,7 +14,5 @@ module std.js.Dom.SVGNumberTest.
 
 import type std.js.Dom.SVGNumber.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub value_typechecks(receiver: SVGNumber): std.js.Number.JsNumber ->
     receiver.value().

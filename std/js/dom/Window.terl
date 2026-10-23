@@ -12,7 +12,14 @@
  */
 module std.js.Dom.Window.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.BarProp.{BarProp}.
+import type std.js.Dom.Element.{Element}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.Navigator.{Navigator}.
+import type std.js.Dom.ScrollToOptions.{ScrollToOptions}.
+import type std.js.Dom.WindowProxy.{WindowProxy}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +35,7 @@ pub opaque type Window.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/navigator)
  */
-pub (value: Window) client_information(): Navigator ->
+pub (receiver: Window) client_information(): Navigator ->
     native.
 
 /**
@@ -36,7 +43,7 @@ pub (value: Window) client_information(): Navigator ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/closed)
  */
-pub (value: Window) closed(): Bool ->
+pub (receiver: Window) closed(): Bool ->
     native.
 
 /**
@@ -44,7 +51,7 @@ pub (value: Window) closed(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/cookieStore)
  */
-pub (value: Window) cookie_store(): CookieStore ->
+pub (receiver: Window) cookie_store(): std.js.Dom.CookieStore.CookieStore ->
     native.
 
 /**
@@ -52,7 +59,7 @@ pub (value: Window) cookie_store(): CookieStore ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/customElements)
  */
-pub (value: Window) custom_elements(): CustomElementRegistry ->
+pub (receiver: Window) custom_elements(): std.js.Dom.CustomElementRegistry.CustomElementRegistry ->
     native.
 
 /**
@@ -60,7 +67,7 @@ pub (value: Window) custom_elements(): CustomElementRegistry ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/devicePixelRatio)
  */
-pub (value: Window) device_pixel_ratio(): JsNumber ->
+pub (receiver: Window) device_pixel_ratio(): JsNumber ->
     native.
 
 /**
@@ -68,7 +75,7 @@ pub (value: Window) device_pixel_ratio(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/document)
  */
-pub (value: Window) document(): Document ->
+pub (receiver: Window) document(): std.js.Dom.Document.Document ->
     native.
 
 /**
@@ -77,7 +84,7 @@ pub (value: Window) document(): Document ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/event)
  */
-pub (value: Window) event(): Option[Event] ->
+pub (receiver: Window) event(): Option[std.js.Dom.Event.Event] ->
     native.
 
 /**
@@ -86,7 +93,7 @@ pub (value: Window) event(): Option[Event] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/external)
  */
-pub (value: Window) external(): External ->
+pub (receiver: Window) external(): std.js.Dom.External.External ->
     native.
 
 /**
@@ -94,7 +101,7 @@ pub (value: Window) external(): External ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/frameElement)
  */
-pub (value: Window) frame_element(): Option[Element] ->
+pub (receiver: Window) frame_element(): Option[Element] ->
     native.
 
 /**
@@ -102,7 +109,7 @@ pub (value: Window) frame_element(): Option[Element] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/frames)
  */
-pub (value: Window) frames(): WindowProxy ->
+pub (receiver: Window) frames(): WindowProxy ->
     native.
 
 /**
@@ -110,7 +117,7 @@ pub (value: Window) frames(): WindowProxy ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/history)
  */
-pub (value: Window) history(): History ->
+pub (receiver: Window) history(): std.js.Dom.History.History ->
     native.
 
 /**
@@ -118,7 +125,7 @@ pub (value: Window) history(): History ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/innerHeight)
  */
-pub (value: Window) inner_height(): JsNumber ->
+pub (receiver: Window) inner_height(): JsNumber ->
     native.
 
 /**
@@ -126,7 +133,7 @@ pub (value: Window) inner_height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/innerWidth)
  */
-pub (value: Window) inner_width(): JsNumber ->
+pub (receiver: Window) inner_width(): JsNumber ->
     native.
 
 /**
@@ -134,7 +141,7 @@ pub (value: Window) inner_width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/length)
  */
-pub (value: Window) length(): JsNumber ->
+pub (receiver: Window) length(): JsNumber ->
     native.
 
 /**
@@ -142,7 +149,7 @@ pub (value: Window) length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/location)
  */
-pub (value: Window) location(): Location ->
+pub (receiver: Window) location(): std.js.Dom.Location.Location ->
     native.
 
 /**
@@ -150,7 +157,7 @@ pub (value: Window) location(): Location ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/locationbar)
  */
-pub (value: Window) locationbar(): BarProp ->
+pub (receiver: Window) locationbar(): BarProp ->
     native.
 
 /**
@@ -158,7 +165,7 @@ pub (value: Window) locationbar(): BarProp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/menubar)
  */
-pub (value: Window) menubar(): BarProp ->
+pub (receiver: Window) menubar(): BarProp ->
     native.
 
 /**
@@ -166,7 +173,7 @@ pub (value: Window) menubar(): BarProp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/name)
  */
-pub (value: Window) name(): JsString ->
+pub (receiver: Window) name(): JsString ->
     native.
 
 /**
@@ -174,7 +181,7 @@ pub (value: Window) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/navigator)
  */
-pub (value: Window) navigator(): Navigator ->
+pub (receiver: Window) navigator(): Navigator ->
     native.
 
 /**
@@ -183,7 +190,7 @@ pub (value: Window) navigator(): Navigator ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/orientation)
  */
-pub (value: Window) orientation(): JsNumber ->
+pub (receiver: Window) orientation(): JsNumber ->
     native.
 
 /**
@@ -191,7 +198,7 @@ pub (value: Window) orientation(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/originAgentCluster)
  */
-pub (value: Window) origin_agent_cluster(): Bool ->
+pub (receiver: Window) origin_agent_cluster(): Bool ->
     native.
 
 /**
@@ -199,7 +206,7 @@ pub (value: Window) origin_agent_cluster(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/outerHeight)
  */
-pub (value: Window) outer_height(): JsNumber ->
+pub (receiver: Window) outer_height(): JsNumber ->
     native.
 
 /**
@@ -207,19 +214,19 @@ pub (value: Window) outer_height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/outerWidth)
  */
-pub (value: Window) outer_width(): JsNumber ->
+pub (receiver: Window) outer_width(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollX)
  */
-pub (value: Window) page_x_offset(): JsNumber ->
+pub (receiver: Window) page_x_offset(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollY)
  */
-pub (value: Window) page_y_offset(): JsNumber ->
+pub (receiver: Window) page_y_offset(): JsNumber ->
     native.
 
 /**
@@ -227,7 +234,7 @@ pub (value: Window) page_y_offset(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/parent)
  */
-pub (value: Window) parent(): WindowProxy ->
+pub (receiver: Window) parent(): WindowProxy ->
     native.
 
 /**
@@ -235,7 +242,7 @@ pub (value: Window) parent(): WindowProxy ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/personalbar)
  */
-pub (value: Window) personalbar(): BarProp ->
+pub (receiver: Window) personalbar(): BarProp ->
     native.
 
 /**
@@ -243,7 +250,7 @@ pub (value: Window) personalbar(): BarProp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screen)
  */
-pub (value: Window) screen(): Screen ->
+pub (receiver: Window) screen(): std.js.Dom.Screen.Screen ->
     native.
 
 /**
@@ -251,7 +258,7 @@ pub (value: Window) screen(): Screen ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screenLeft)
  */
-pub (value: Window) screen_left(): JsNumber ->
+pub (receiver: Window) screen_left(): JsNumber ->
     native.
 
 /**
@@ -259,7 +266,7 @@ pub (value: Window) screen_left(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screenTop)
  */
-pub (value: Window) screen_top(): JsNumber ->
+pub (receiver: Window) screen_top(): JsNumber ->
     native.
 
 /**
@@ -267,7 +274,7 @@ pub (value: Window) screen_top(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screenX)
  */
-pub (value: Window) screen_x(): JsNumber ->
+pub (receiver: Window) screen_x(): JsNumber ->
     native.
 
 /**
@@ -275,7 +282,7 @@ pub (value: Window) screen_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screenY)
  */
-pub (value: Window) screen_y(): JsNumber ->
+pub (receiver: Window) screen_y(): JsNumber ->
     native.
 
 /**
@@ -283,7 +290,7 @@ pub (value: Window) screen_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollX)
  */
-pub (value: Window) scroll_x(): JsNumber ->
+pub (receiver: Window) scroll_x(): JsNumber ->
     native.
 
 /**
@@ -291,7 +298,7 @@ pub (value: Window) scroll_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollY)
  */
-pub (value: Window) scroll_y(): JsNumber ->
+pub (receiver: Window) scroll_y(): JsNumber ->
     native.
 
 /**
@@ -299,7 +306,7 @@ pub (value: Window) scroll_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollbars)
  */
-pub (value: Window) scrollbars(): BarProp ->
+pub (receiver: Window) scrollbars(): BarProp ->
     native.
 
 /**
@@ -307,7 +314,7 @@ pub (value: Window) scrollbars(): BarProp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/speechSynthesis)
  */
-pub (value: Window) speech_synthesis(): SpeechSynthesis ->
+pub (receiver: Window) speech_synthesis(): std.js.Dom.SpeechSynthesis.SpeechSynthesis ->
     native.
 
 /**
@@ -316,7 +323,7 @@ pub (value: Window) speech_synthesis(): SpeechSynthesis ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/status)
  */
-pub (value: Window) status(): JsString ->
+pub (receiver: Window) status(): JsString ->
     native.
 
 /**
@@ -324,7 +331,7 @@ pub (value: Window) status(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/statusbar)
  */
-pub (value: Window) statusbar(): BarProp ->
+pub (receiver: Window) statusbar(): BarProp ->
     native.
 
 /**
@@ -332,7 +339,7 @@ pub (value: Window) statusbar(): BarProp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/toolbar)
  */
-pub (value: Window) toolbar(): BarProp ->
+pub (receiver: Window) toolbar(): BarProp ->
     native.
 
 /**
@@ -340,7 +347,7 @@ pub (value: Window) toolbar(): BarProp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/top)
  */
-pub (value: Window) top(): Option[WindowProxy] ->
+pub (receiver: Window) top(): Option[WindowProxy] ->
     native.
 
 /**
@@ -348,7 +355,7 @@ pub (value: Window) top(): Option[WindowProxy] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/visualViewport)
  */
-pub (value: Window) visual_viewport(): Option[VisualViewport] ->
+pub (receiver: Window) visual_viewport(): Option[std.js.Dom.VisualViewport.VisualViewport] ->
     native.
 
 /**
@@ -357,7 +364,7 @@ pub (value: Window) visual_viewport(): Option[VisualViewport] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/blur)
  */
-pub (value: Window) blur(): Unit ->
+pub (receiver: Window) blur(): Unit ->
     native.
 
 /**
@@ -365,7 +372,7 @@ pub (value: Window) blur(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/cancelIdleCallback)
  */
-pub (value: Window) cancel_idle_callback(handle: JsNumber): Unit ->
+pub (receiver: Window) cancel_idle_callback(handle: JsNumber): Unit ->
     native.
 
 /**
@@ -374,7 +381,7 @@ pub (value: Window) cancel_idle_callback(handle: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/captureEvents)
  */
-pub (value: Window) capture_events(): Unit ->
+pub (receiver: Window) capture_events(): Unit ->
     native.
 
 /**
@@ -382,7 +389,7 @@ pub (value: Window) capture_events(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/close)
  */
-pub (value: Window) close(): Unit ->
+pub (receiver: Window) close(): Unit ->
     native.
 
 /**
@@ -390,7 +397,7 @@ pub (value: Window) close(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/confirm)
  */
-pub (value: Window) confirm(message: JsString): Bool ->
+pub (receiver: Window) confirm(message: Option[JsString]): Bool ->
     native.
 
 /**
@@ -398,7 +405,7 @@ pub (value: Window) confirm(message: JsString): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/focus)
  */
-pub (value: Window) focus(): Unit ->
+pub (receiver: Window) focus(): Unit ->
     native.
 
 /**
@@ -406,7 +413,10 @@ pub (value: Window) focus(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/getComputedStyle)
  */
-pub (value: Window) get_computed_style(elt: Element, pseudo_elt: Option[JsString]): CSSStyleDeclaration ->
+pub (receiver: Window) get_computed_style(
+    elt: Element,
+    pseudo_elt: Option[Option[JsString]],
+): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration ->
     native.
 
 /**
@@ -414,7 +424,7 @@ pub (value: Window) get_computed_style(elt: Element, pseudo_elt: Option[JsString
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/getSelection)
  */
-pub (value: Window) get_selection(): Option[Selection] ->
+pub (receiver: Window) get_selection(): Option[std.js.Dom.Selection.Selection] ->
     native.
 
 /**
@@ -422,7 +432,7 @@ pub (value: Window) get_selection(): Option[Selection] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/matchMedia)
  */
-pub (value: Window) match_media(query: JsString): MediaQueryList ->
+pub (receiver: Window) match_media(query: JsString): std.js.Dom.MediaQueryList.MediaQueryList ->
     native.
 
 /**
@@ -430,7 +440,7 @@ pub (value: Window) match_media(query: JsString): MediaQueryList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/moveBy)
  */
-pub (value: Window) move_by(x: JsNumber, y: JsNumber): Unit ->
+pub (receiver: Window) move_by(x: JsNumber, y: JsNumber): Unit ->
     native.
 
 /**
@@ -438,7 +448,7 @@ pub (value: Window) move_by(x: JsNumber, y: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/moveTo)
  */
-pub (value: Window) move_to(x: JsNumber, y: JsNumber): Unit ->
+pub (receiver: Window) move_to(x: JsNumber, y: JsNumber): Unit ->
     native.
 
 /**
@@ -446,7 +456,11 @@ pub (value: Window) move_to(x: JsNumber, y: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/open)
  */
-pub (value: Window) open(url: URL | JsString, target_: JsString, features: JsString): Option[WindowProxy] ->
+pub (receiver: Window) open(
+    url: Option[std.js.Dom.URL.URL | JsString],
+    target_: Option[JsString],
+    features: Option[JsString],
+): Option[WindowProxy] ->
     native.
 
 /**
@@ -454,7 +468,7 @@ pub (value: Window) open(url: URL | JsString, target_: JsString, features: JsStr
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/print)
  */
-pub (value: Window) print(): Unit ->
+pub (receiver: Window) print(): Unit ->
     native.
 
 /**
@@ -462,7 +476,7 @@ pub (value: Window) print(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/prompt)
  */
-pub (value: Window) prompt(message: JsString, default: JsString): Option[JsString] ->
+pub (receiver: Window) prompt(message: Option[JsString], default: Option[JsString]): Option[JsString] ->
     native.
 
 /**
@@ -471,7 +485,7 @@ pub (value: Window) prompt(message: JsString, default: JsString): Option[JsStrin
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/releaseEvents)
  */
-pub (value: Window) release_events(): Unit ->
+pub (receiver: Window) release_events(): Unit ->
     native.
 
 /**
@@ -479,7 +493,10 @@ pub (value: Window) release_events(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/requestIdleCallback)
  */
-pub (value: Window) request_idle_callback(callback: IdleRequestCallback, options: IdleRequestOptions): JsNumber ->
+pub (receiver: Window) request_idle_callback(
+    callback: std.js.Dom.IdleRequestCallback.IdleRequestCallback,
+    options: Option[std.js.Dom.IdleRequestOptions.IdleRequestOptions],
+): JsNumber ->
     native.
 
 /**
@@ -487,7 +504,7 @@ pub (value: Window) request_idle_callback(callback: IdleRequestCallback, options
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/resizeBy)
  */
-pub (value: Window) resize_by(x: JsNumber, y: JsNumber): Unit ->
+pub (receiver: Window) resize_by(x: JsNumber, y: JsNumber): Unit ->
     native.
 
 /**
@@ -495,7 +512,7 @@ pub (value: Window) resize_by(x: JsNumber, y: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/resizeTo)
  */
-pub (value: Window) resize_to(width: JsNumber, height: JsNumber): Unit ->
+pub (receiver: Window) resize_to(width: JsNumber, height: JsNumber): Unit ->
     native.
 
 /**
@@ -503,10 +520,10 @@ pub (value: Window) resize_to(width: JsNumber, height: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scroll)
  */
-pub (value: Window) scroll(options: ScrollToOptions): Unit ->
+pub (receiver: Window) scroll(options: Option[ScrollToOptions]): Unit ->
     native.
 
-pub (value: Window) scroll(x: JsNumber, y: JsNumber): Unit ->
+pub (receiver: Window) scroll_overload_2(x: JsNumber, y: JsNumber): Unit ->
     native.
 
 /**
@@ -514,10 +531,10 @@ pub (value: Window) scroll(x: JsNumber, y: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollBy)
  */
-pub (value: Window) scroll_by(options: ScrollToOptions): Unit ->
+pub (receiver: Window) scroll_by(options: Option[ScrollToOptions]): Unit ->
     native.
 
-pub (value: Window) scroll_by(x: JsNumber, y: JsNumber): Unit ->
+pub (receiver: Window) scroll_by_overload_2(x: JsNumber, y: JsNumber): Unit ->
     native.
 
 /**
@@ -525,10 +542,10 @@ pub (value: Window) scroll_by(x: JsNumber, y: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollTo)
  */
-pub (value: Window) scroll_to(options: ScrollToOptions): Unit ->
+pub (receiver: Window) scroll_to(options: Option[ScrollToOptions]): Unit ->
     native.
 
-pub (value: Window) scroll_to(x: JsNumber, y: JsNumber): Unit ->
+pub (receiver: Window) scroll_to_overload_2(x: JsNumber, y: JsNumber): Unit ->
     native.
 
 /**
@@ -536,19 +553,19 @@ pub (value: Window) scroll_to(x: JsNumber, y: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/stop)
  */
-pub (value: Window) stop(): Unit ->
+pub (receiver: Window) stop(): Unit ->
     native.
 
-pub (value: Window) add_event_listener(
+pub (receiver: Window) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: Window) remove_event_listener(
+pub (receiver: Window) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

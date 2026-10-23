@@ -12,6 +12,7 @@
  */
 module std.js.Dom.InputEvent.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -26,7 +27,7 @@ pub opaque type InputEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/data)
  */
-pub (value: InputEvent) data(): Option[JsString] ->
+pub (receiver: InputEvent) data(): Option[JsString] ->
     native.
 
 /**
@@ -34,7 +35,7 @@ pub (value: InputEvent) data(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/dataTransfer)
  */
-pub (value: InputEvent) data_transfer(): Option[DataTransfer] ->
+pub (receiver: InputEvent) data_transfer(): Option[std.js.Dom.DataTransfer.DataTransfer] ->
     native.
 
 /**
@@ -42,7 +43,7 @@ pub (value: InputEvent) data_transfer(): Option[DataTransfer] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/inputType)
  */
-pub (value: InputEvent) input_type(): JsString ->
+pub (receiver: InputEvent) input_type(): JsString ->
     native.
 
 /**
@@ -50,7 +51,7 @@ pub (value: InputEvent) input_type(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/isComposing)
  */
-pub (value: InputEvent) is_composing(): std.core.Bool ->
+pub (receiver: InputEvent) is_composing(): Bool ->
     native.
 
 /**
@@ -58,5 +59,5 @@ pub (value: InputEvent) is_composing(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/getTargetRanges)
  */
-pub (value: InputEvent) get_target_ranges(): std.js.Array[StaticRange] ->
+pub (receiver: InputEvent) get_target_ranges(): std.js.Array.Array[std.js.Dom.StaticRange.StaticRange] ->
     native.

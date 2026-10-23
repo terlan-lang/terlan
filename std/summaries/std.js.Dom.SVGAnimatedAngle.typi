@@ -25,11 +25,11 @@ pub opaque type SVGAnimatedAngle.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedAngle/animVal)
  */
-pub (value: SVGAnimatedAngle) anim_val(): SVGAngle.
+pub (receiver: SVGAnimatedAngle) anim_val(): std.js.Dom.SVGAngle.SVGAngle.
 
 /**
  * The **`baseVal`** read-only property of the SVGAnimatedAngle interface represents the base (non-animated) value of the associated `<angle>` on an SVG element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedAngle/baseVal)
  */
-pub (value: SVGAnimatedAngle) base_val(): SVGAngle.
+pub (receiver: SVGAnimatedAngle) base_val(): std.js.Dom.SVGAngle.SVGAngle.

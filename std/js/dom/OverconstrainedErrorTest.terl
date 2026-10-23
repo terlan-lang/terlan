@@ -14,7 +14,5 @@ module std.js.Dom.OverconstrainedErrorTest.
 
 import type std.js.Dom.OverconstrainedError.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub constraint_typechecks(receiver: OverconstrainedError): std.js.String.JsString ->
     receiver.constraint().

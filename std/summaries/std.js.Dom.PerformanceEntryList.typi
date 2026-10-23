@@ -14,4 +14,4 @@
 module std.js.Dom.PerformanceEntryList.
 
 pub type PerformanceEntryList =
-    std.js.Array[PerformanceEntry].
+    std.js.Array.Array[std.js.Dom.PerformanceEntry.PerformanceEntry].

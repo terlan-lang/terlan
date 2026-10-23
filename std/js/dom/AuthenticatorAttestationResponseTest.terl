@@ -12,9 +12,8 @@
  */
 module std.js.Dom.AuthenticatorAttestationResponseTest.
 
+import type std.js.ArrayBuffer.{ArrayBuffer}.
 import type std.js.Dom.AuthenticatorAttestationResponse.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub attestation_object_typechecks(receiver: AuthenticatorAttestationResponse): ArrayBuffer ->
     receiver.attestation_object().
@@ -22,15 +21,17 @@ pub attestation_object_typechecks(receiver: AuthenticatorAttestationResponse): A
 pub get_authenticator_data_typechecks(receiver: AuthenticatorAttestationResponse): ArrayBuffer ->
     receiver.get_authenticator_data().
 
-pub get_public_key_typechecks(receiver: AuthenticatorAttestationResponse): Option[ArrayBuffer] ->
+pub get_public_key_typechecks(
+    receiver: AuthenticatorAttestationResponse,
+): std.core.Option.Option[ArrayBuffer] ->
     receiver.get_public_key().
 
 pub get_public_key_algorithm_typechecks(
     receiver: AuthenticatorAttestationResponse,
-): COSEAlgorithmIdentifier ->
+): std.js.Dom.COSEAlgorithmIdentifier.COSEAlgorithmIdentifier ->
     receiver.get_public_key_algorithm().
 
 pub get_transports_typechecks(
     receiver: AuthenticatorAttestationResponse,
-): std.js.Array[std.js.String.JsString] ->
+): std.js.Array.Array[std.js.String.JsString] ->
     receiver.get_transports().

@@ -23,33 +23,33 @@ pub opaque type HTMLBodyElement.
 /**
  * @deprecated
  */
-pub (value: HTMLBodyElement) a_link(): std.js.String.JsString.
+pub (receiver: HTMLBodyElement) a_link(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLBodyElement) background(): std.js.String.JsString.
+pub (receiver: HTMLBodyElement) background(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLBodyElement) bg_color(): std.js.String.JsString.
+pub (receiver: HTMLBodyElement) bg_color(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLBodyElement) link(): std.js.String.JsString.
+pub (receiver: HTMLBodyElement) link(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLBodyElement) text(): std.js.String.JsString.
+pub (receiver: HTMLBodyElement) text(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLBodyElement) v_link(): std.js.String.JsString.
+pub (receiver: HTMLBodyElement) v_link(): std.js.String.JsString.
 
-pub (value: HTMLBodyElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLBodyElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLBodyElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLBodyElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

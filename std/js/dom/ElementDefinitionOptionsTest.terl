@@ -14,7 +14,7 @@ module std.js.Dom.ElementDefinitionOptionsTest.
 
 import type std.js.Dom.ElementDefinitionOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub extends__typechecks(receiver: ElementDefinitionOptions): std.js.String.JsString ->
+pub extends__typechecks(
+    receiver: ElementDefinitionOptions,
+): std.core.Option.Option[std.js.String.JsString] ->
     receiver.extends_().

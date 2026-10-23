@@ -14,7 +14,7 @@ module std.js.Dom.WebGLContextEventInitTest.
 
 import type std.js.Dom.WebGLContextEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub status_message_typechecks(receiver: WebGLContextEventInit): std.js.String.JsString ->
+pub status_message_typechecks(
+    receiver: WebGLContextEventInit,
+): std.core.Option.Option[std.js.String.JsString] ->
     receiver.status_message().

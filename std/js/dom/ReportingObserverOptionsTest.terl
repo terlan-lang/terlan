@@ -12,12 +12,13 @@
  */
 module std.js.Dom.ReportingObserverOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.ReportingObserverOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub buffered_typechecks(receiver: ReportingObserverOptions): std.core.Bool ->
+pub buffered_typechecks(receiver: ReportingObserverOptions): Option[Bool] ->
     receiver.buffered().
 
-pub types_typechecks(receiver: ReportingObserverOptions): std.js.Array[std.js.String.JsString] ->
+pub types_typechecks(
+    receiver: ReportingObserverOptions,
+): Option[std.js.Array.Array[std.js.String.JsString]] ->
     receiver.types().

@@ -13,8 +13,7 @@
 module std.js.Dom.FontFaceSetEventMapTest.
 
 import type std.js.Dom.FontFaceSetEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.FontFaceSetLoadEvent.{FontFaceSetLoadEvent}.
 
 pub loading_typechecks(receiver: FontFaceSetEventMap): FontFaceSetLoadEvent ->
     receiver.loading().

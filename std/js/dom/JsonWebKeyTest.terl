@@ -12,62 +12,63 @@
  */
 module std.js.Dom.JsonWebKeyTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
 import type std.js.Dom.JsonWebKey.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub alg_typechecks(receiver: JsonWebKey): JsString ->
+pub alg_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.alg().
 
-pub crv_typechecks(receiver: JsonWebKey): JsString ->
+pub crv_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.crv().
 
-pub d_typechecks(receiver: JsonWebKey): JsString ->
+pub d_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.d().
 
-pub dp_typechecks(receiver: JsonWebKey): JsString ->
+pub dp_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.dp().
 
-pub dq_typechecks(receiver: JsonWebKey): JsString ->
+pub dq_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.dq().
 
-pub e_typechecks(receiver: JsonWebKey): JsString ->
+pub e_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.e().
 
-pub ext_typechecks(receiver: JsonWebKey): std.core.Bool ->
+pub ext_typechecks(receiver: JsonWebKey): Option[Bool] ->
     receiver.ext().
 
-pub k_typechecks(receiver: JsonWebKey): JsString ->
+pub k_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.k().
 
-pub key_ops_typechecks(receiver: JsonWebKey): Array[JsString] ->
+pub key_ops_typechecks(receiver: JsonWebKey): Option[Array[JsString]] ->
     receiver.key_ops().
 
-pub kty_typechecks(receiver: JsonWebKey): JsString ->
+pub kty_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.kty().
 
-pub n_typechecks(receiver: JsonWebKey): JsString ->
+pub n_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.n().
 
-pub oth_typechecks(receiver: JsonWebKey): Array[RsaOtherPrimesInfo] ->
+pub oth_typechecks(
+    receiver: JsonWebKey,
+): Option[Array[std.js.Dom.RsaOtherPrimesInfo.RsaOtherPrimesInfo]] ->
     receiver.oth().
 
-pub p_typechecks(receiver: JsonWebKey): JsString ->
+pub p_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.p().
 
-pub q_typechecks(receiver: JsonWebKey): JsString ->
+pub q_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.q().
 
-pub qi_typechecks(receiver: JsonWebKey): JsString ->
+pub qi_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.qi().
 
-pub use_typechecks(receiver: JsonWebKey): JsString ->
+pub use_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.use().
 
-pub x_typechecks(receiver: JsonWebKey): JsString ->
+pub x_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.x().
 
-pub y_typechecks(receiver: JsonWebKey): JsString ->
+pub y_typechecks(receiver: JsonWebKey): Option[JsString] ->
     receiver.y().

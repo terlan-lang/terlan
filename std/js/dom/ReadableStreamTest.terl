@@ -12,32 +12,26 @@
  */
 module std.js.Dom.ReadableStreamTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.ReadableStream.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub locked_typechecks(receiver: ReadableStream[R]): std.core.Bool ->
+pub locked_typechecks(receiver: ReadableStream[R]): Bool ->
     receiver.locked().
-
-pub get_reader_typechecks(receiver: ReadableStream[R]): ReadableStreamDefaultReader[R] ->
-    receiver.get_reader().
 
 pub get_reader_typechecks(
     receiver: ReadableStream[R],
-    options: ReadableStreamGetReaderOptions,
-): ReadableStreamReader[R] ->
-    receiver.get_reader(options).
+): std.js.Dom.ReadableStreamDefaultReader.ReadableStreamDefaultReader[R] ->
+    receiver.get_reader().
 
-pub pipe_through_typechecks(
+pub get_reader_overload_2_typechecks(
     receiver: ReadableStream[R],
-    transform: ReadableWritablePair[T, R],
-    options: StreamPipeOptions,
-): ReadableStream[T] ->
-    receiver.pipe_through(transform, options).
+    options: Option[std.js.Dom.ReadableStreamGetReaderOptions.ReadableStreamGetReaderOptions],
+): std.js.Dom.ReadableStreamReader.ReadableStreamReader[R] ->
+    receiver.get_reader_overload_2(options).
 
 pub pipe_to_typechecks(
     receiver: ReadableStream[R],
-    destination: WritableStream[R],
-    options: StreamPipeOptions,
-): std.js.Promise[std.core.Unit] ->
+    destination: std.js.Dom.WritableStream.WritableStream[R],
+    options: Option[std.js.Dom.StreamPipeOptions.StreamPipeOptions],
+): std.js.Promise.Promise[std.core.Unit.Unit] ->
     receiver.pipe_to(destination, options).

@@ -14,4 +14,4 @@
 module std.js.Dom.BlobPart.
 
 pub type BlobPart =
-    Blob | BufferSource | std.js.String.JsString.
+    std.js.Dom.Blob.Blob | std.js.Dom.BufferSource.BufferSource | std.js.String.JsString.

@@ -15,6 +15,6 @@ module std.js.Dom.StorageEstimate.
 
 pub opaque type StorageEstimate.
 
-pub (value: StorageEstimate) quota(): std.js.Number.JsNumber.
+pub (receiver: StorageEstimate) quota(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: StorageEstimate) usage(): std.js.Number.JsNumber.
+pub (receiver: StorageEstimate) usage(): std.core.Option.Option[std.js.Number.JsNumber].

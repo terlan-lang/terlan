@@ -12,12 +12,15 @@
  */
 module std.js.Dom.DeviceMotionEventInit.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DeviceMotionEventAccelerationInit.{DeviceMotionEventAccelerationInit}.
+
 pub opaque type DeviceMotionEventInit.
 
-pub (value: DeviceMotionEventInit) acceleration(): DeviceMotionEventAccelerationInit.
+pub (receiver: DeviceMotionEventInit) acceleration(): Option[DeviceMotionEventAccelerationInit].
 
-pub (value: DeviceMotionEventInit) acceleration_including_gravity(): DeviceMotionEventAccelerationInit.
+pub (receiver: DeviceMotionEventInit) acceleration_including_gravity(): Option[DeviceMotionEventAccelerationInit].
 
-pub (value: DeviceMotionEventInit) interval(): std.js.Number.JsNumber.
+pub (receiver: DeviceMotionEventInit) interval(): Option[std.js.Number.JsNumber].
 
-pub (value: DeviceMotionEventInit) rotation_rate(): DeviceMotionEventRotationRateInit.
+pub (receiver: DeviceMotionEventInit) rotation_rate(): Option[std.js.Dom.DeviceMotionEventRotationRateInit.DeviceMotionEventRotationRateInit].

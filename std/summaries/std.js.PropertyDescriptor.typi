@@ -15,8 +15,8 @@ module std.js.PropertyDescriptor.
 
 pub opaque type PropertyDescriptor.
 
-pub (value: PropertyDescriptor) configurable(): std.core.Bool.
+pub (receiver: PropertyDescriptor) configurable(): std.core.Option.Option[Bool].
 
-pub (value: PropertyDescriptor) enumerable(): std.core.Bool.
+pub (receiver: PropertyDescriptor) enumerable(): std.core.Option.Option[Bool].
 
-pub (value: PropertyDescriptor) writable(): std.core.Bool.
+pub (receiver: PropertyDescriptor) writable(): std.core.Option.Option[Bool].

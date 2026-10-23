@@ -15,8 +15,6 @@ module std.js.Dom.PerformanceTimingTest.
 import type std.js.Dom.PerformanceTiming.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub connect_end_typechecks(receiver: PerformanceTiming): JsNumber ->
     receiver.connect_end().
 

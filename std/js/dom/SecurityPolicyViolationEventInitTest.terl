@@ -12,46 +12,40 @@
  */
 module std.js.Dom.SecurityPolicyViolationEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.SecurityPolicyViolationEventInit.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub blocked_uri_typechecks(receiver: SecurityPolicyViolationEventInit): JsString ->
+pub blocked_uri_typechecks(receiver: SecurityPolicyViolationEventInit): Option[JsString] ->
     receiver.blocked_uri().
 
-pub column_number_typechecks(receiver: SecurityPolicyViolationEventInit): JsNumber ->
+pub column_number_typechecks(receiver: SecurityPolicyViolationEventInit): Option[JsNumber] ->
     receiver.column_number().
 
-pub disposition_typechecks(
-    receiver: SecurityPolicyViolationEventInit,
-): SecurityPolicyViolationEventDisposition ->
-    receiver.disposition().
-
-pub document_uri_typechecks(receiver: SecurityPolicyViolationEventInit): JsString ->
+pub document_uri_typechecks(receiver: SecurityPolicyViolationEventInit): Option[JsString] ->
     receiver.document_uri().
 
-pub effective_directive_typechecks(receiver: SecurityPolicyViolationEventInit): JsString ->
+pub effective_directive_typechecks(receiver: SecurityPolicyViolationEventInit): Option[JsString] ->
     receiver.effective_directive().
 
-pub line_number_typechecks(receiver: SecurityPolicyViolationEventInit): JsNumber ->
+pub line_number_typechecks(receiver: SecurityPolicyViolationEventInit): Option[JsNumber] ->
     receiver.line_number().
 
-pub original_policy_typechecks(receiver: SecurityPolicyViolationEventInit): JsString ->
+pub original_policy_typechecks(receiver: SecurityPolicyViolationEventInit): Option[JsString] ->
     receiver.original_policy().
 
-pub referrer_typechecks(receiver: SecurityPolicyViolationEventInit): JsString ->
+pub referrer_typechecks(receiver: SecurityPolicyViolationEventInit): Option[JsString] ->
     receiver.referrer().
 
-pub sample_typechecks(receiver: SecurityPolicyViolationEventInit): JsString ->
+pub sample_typechecks(receiver: SecurityPolicyViolationEventInit): Option[JsString] ->
     receiver.sample().
 
-pub source_file_typechecks(receiver: SecurityPolicyViolationEventInit): JsString ->
+pub source_file_typechecks(receiver: SecurityPolicyViolationEventInit): Option[JsString] ->
     receiver.source_file().
 
-pub status_code_typechecks(receiver: SecurityPolicyViolationEventInit): JsNumber ->
+pub status_code_typechecks(receiver: SecurityPolicyViolationEventInit): Option[JsNumber] ->
     receiver.status_code().
 
-pub violated_directive_typechecks(receiver: SecurityPolicyViolationEventInit): JsString ->
+pub violated_directive_typechecks(receiver: SecurityPolicyViolationEventInit): Option[JsString] ->
     receiver.violated_directive().

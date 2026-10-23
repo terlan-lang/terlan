@@ -15,8 +15,8 @@ module std.js.Dom.WebAssembly.MemoryDescriptor.
 
 pub opaque type MemoryDescriptor.
 
-pub (value: MemoryDescriptor) initial(): std.js.Number.JsNumber.
+pub (receiver: MemoryDescriptor) initial(): std.js.Number.JsNumber.
 
-pub (value: MemoryDescriptor) maximum(): std.js.Number.JsNumber.
+pub (receiver: MemoryDescriptor) maximum(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: MemoryDescriptor) shared(): std.core.Bool.
+pub (receiver: MemoryDescriptor) shared(): std.core.Option.Option[Bool].

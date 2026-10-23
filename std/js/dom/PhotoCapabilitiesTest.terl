@@ -12,18 +12,12 @@
  */
 module std.js.Dom.PhotoCapabilitiesTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.MediaSettingsRange.{MediaSettingsRange}.
 import type std.js.Dom.PhotoCapabilities.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub fill_light_mode_typechecks(receiver: PhotoCapabilities): std.js.Array[FillLightMode] ->
-    receiver.fill_light_mode().
-
-pub image_height_typechecks(receiver: PhotoCapabilities): MediaSettingsRange ->
+pub image_height_typechecks(receiver: PhotoCapabilities): Option[MediaSettingsRange] ->
     receiver.image_height().
 
-pub image_width_typechecks(receiver: PhotoCapabilities): MediaSettingsRange ->
+pub image_width_typechecks(receiver: PhotoCapabilities): Option[MediaSettingsRange] ->
     receiver.image_width().
-
-pub red_eye_reduction_typechecks(receiver: PhotoCapabilities): RedEyeReduction ->
-    receiver.red_eye_reduction().

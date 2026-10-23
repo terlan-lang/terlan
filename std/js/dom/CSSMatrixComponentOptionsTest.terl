@@ -14,7 +14,5 @@ module std.js.Dom.CSSMatrixComponentOptionsTest.
 
 import type std.js.Dom.CSSMatrixComponentOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub is2_d_typechecks(receiver: CSSMatrixComponentOptions): std.core.Bool ->
+pub is2_d_typechecks(receiver: CSSMatrixComponentOptions): std.core.Option.Option[Bool] ->
     receiver.is2_d().

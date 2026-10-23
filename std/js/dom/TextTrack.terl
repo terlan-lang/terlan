@@ -12,7 +12,11 @@
  */
 module std.js.Dom.TextTrack.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.TextTrackCue.{TextTrackCue}.
+import type std.js.Dom.TextTrackCueList.{TextTrackCueList}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +31,7 @@ pub opaque type TextTrack.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/activeCues)
  */
-pub (value: TextTrack) active_cues(): Option[TextTrackCueList] ->
+pub (receiver: TextTrack) active_cues(): Option[TextTrackCueList] ->
     native.
 
 /**
@@ -35,7 +39,7 @@ pub (value: TextTrack) active_cues(): Option[TextTrackCueList] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/cues)
  */
-pub (value: TextTrack) cues(): Option[TextTrackCueList] ->
+pub (receiver: TextTrack) cues(): Option[TextTrackCueList] ->
     native.
 
 /**
@@ -43,7 +47,7 @@ pub (value: TextTrack) cues(): Option[TextTrackCueList] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/id)
  */
-pub (value: TextTrack) id(): JsString ->
+pub (receiver: TextTrack) id(): JsString ->
     native.
 
 /**
@@ -51,15 +55,7 @@ pub (value: TextTrack) id(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/inBandMetadataTrackDispatchType)
  */
-pub (value: TextTrack) in_band_metadata_track_dispatch_type(): JsString ->
-    native.
-
-/**
- * The **`kind`** read-only property of the TextTrack interface returns the kind of text track this object represents.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/kind)
- */
-pub (value: TextTrack) kind(): TextTrackKind ->
+pub (receiver: TextTrack) in_band_metadata_track_dispatch_type(): JsString ->
     native.
 
 /**
@@ -67,7 +63,7 @@ pub (value: TextTrack) kind(): TextTrackKind ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/label)
  */
-pub (value: TextTrack) label(): JsString ->
+pub (receiver: TextTrack) label(): JsString ->
     native.
 
 /**
@@ -75,15 +71,7 @@ pub (value: TextTrack) label(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/language)
  */
-pub (value: TextTrack) language(): JsString ->
-    native.
-
-/**
- * The TextTrack interface's **`mode`** property is a string specifying and controlling the text track's mode: `disabled`, `hidden`, or `showing`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/mode)
- */
-pub (value: TextTrack) mode(): TextTrackMode ->
+pub (receiver: TextTrack) language(): JsString ->
     native.
 
 /**
@@ -91,7 +79,7 @@ pub (value: TextTrack) mode(): TextTrackMode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/addCue)
  */
-pub (value: TextTrack) add_cue(cue: TextTrackCue): Unit ->
+pub (receiver: TextTrack) add_cue(cue: TextTrackCue): Unit ->
     native.
 
 /**
@@ -99,19 +87,19 @@ pub (value: TextTrack) add_cue(cue: TextTrackCue): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/removeCue)
  */
-pub (value: TextTrack) remove_cue(cue: TextTrackCue): Unit ->
+pub (receiver: TextTrack) remove_cue(cue: TextTrackCue): Unit ->
     native.
 
-pub (value: TextTrack) add_event_listener(
+pub (receiver: TextTrack) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: TextTrack) remove_event_listener(
+pub (receiver: TextTrack) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

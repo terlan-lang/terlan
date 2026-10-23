@@ -12,7 +12,8 @@
  */
 module std.js.Dom.MouseEvent.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.Dom.EventTarget.{EventTarget}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +29,7 @@ pub opaque type MouseEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/altKey)
  */
-pub (value: MouseEvent) alt_key(): Bool ->
+pub (receiver: MouseEvent) alt_key(): Bool ->
     native.
 
 /**
@@ -36,7 +37,7 @@ pub (value: MouseEvent) alt_key(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/button)
  */
-pub (value: MouseEvent) button(): JsNumber ->
+pub (receiver: MouseEvent) button(): JsNumber ->
     native.
 
 /**
@@ -44,7 +45,7 @@ pub (value: MouseEvent) button(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/buttons)
  */
-pub (value: MouseEvent) buttons(): JsNumber ->
+pub (receiver: MouseEvent) buttons(): JsNumber ->
     native.
 
 /**
@@ -52,7 +53,7 @@ pub (value: MouseEvent) buttons(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/clientX)
  */
-pub (value: MouseEvent) client_x(): JsNumber ->
+pub (receiver: MouseEvent) client_x(): JsNumber ->
     native.
 
 /**
@@ -60,7 +61,7 @@ pub (value: MouseEvent) client_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/clientY)
  */
-pub (value: MouseEvent) client_y(): JsNumber ->
+pub (receiver: MouseEvent) client_y(): JsNumber ->
     native.
 
 /**
@@ -68,7 +69,7 @@ pub (value: MouseEvent) client_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/ctrlKey)
  */
-pub (value: MouseEvent) ctrl_key(): Bool ->
+pub (receiver: MouseEvent) ctrl_key(): Bool ->
     native.
 
 /**
@@ -76,7 +77,7 @@ pub (value: MouseEvent) ctrl_key(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/layerX)
  */
-pub (value: MouseEvent) layer_x(): JsNumber ->
+pub (receiver: MouseEvent) layer_x(): JsNumber ->
     native.
 
 /**
@@ -84,7 +85,7 @@ pub (value: MouseEvent) layer_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/layerY)
  */
-pub (value: MouseEvent) layer_y(): JsNumber ->
+pub (receiver: MouseEvent) layer_y(): JsNumber ->
     native.
 
 /**
@@ -92,7 +93,7 @@ pub (value: MouseEvent) layer_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/metaKey)
  */
-pub (value: MouseEvent) meta_key(): Bool ->
+pub (receiver: MouseEvent) meta_key(): Bool ->
     native.
 
 /**
@@ -100,7 +101,7 @@ pub (value: MouseEvent) meta_key(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/movementX)
  */
-pub (value: MouseEvent) movement_x(): JsNumber ->
+pub (receiver: MouseEvent) movement_x(): JsNumber ->
     native.
 
 /**
@@ -108,7 +109,7 @@ pub (value: MouseEvent) movement_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/movementY)
  */
-pub (value: MouseEvent) movement_y(): JsNumber ->
+pub (receiver: MouseEvent) movement_y(): JsNumber ->
     native.
 
 /**
@@ -116,7 +117,7 @@ pub (value: MouseEvent) movement_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/offsetX)
  */
-pub (value: MouseEvent) offset_x(): JsNumber ->
+pub (receiver: MouseEvent) offset_x(): JsNumber ->
     native.
 
 /**
@@ -124,7 +125,7 @@ pub (value: MouseEvent) offset_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/offsetY)
  */
-pub (value: MouseEvent) offset_y(): JsNumber ->
+pub (receiver: MouseEvent) offset_y(): JsNumber ->
     native.
 
 /**
@@ -132,7 +133,7 @@ pub (value: MouseEvent) offset_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/pageX)
  */
-pub (value: MouseEvent) page_x(): JsNumber ->
+pub (receiver: MouseEvent) page_x(): JsNumber ->
     native.
 
 /**
@@ -140,7 +141,7 @@ pub (value: MouseEvent) page_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/pageY)
  */
-pub (value: MouseEvent) page_y(): JsNumber ->
+pub (receiver: MouseEvent) page_y(): JsNumber ->
     native.
 
 /**
@@ -148,7 +149,7 @@ pub (value: MouseEvent) page_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/relatedTarget)
  */
-pub (value: MouseEvent) related_target(): Option[EventTarget] ->
+pub (receiver: MouseEvent) related_target(): Option[EventTarget] ->
     native.
 
 /**
@@ -156,7 +157,7 @@ pub (value: MouseEvent) related_target(): Option[EventTarget] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/screenX)
  */
-pub (value: MouseEvent) screen_x(): JsNumber ->
+pub (receiver: MouseEvent) screen_x(): JsNumber ->
     native.
 
 /**
@@ -164,7 +165,7 @@ pub (value: MouseEvent) screen_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/screenY)
  */
-pub (value: MouseEvent) screen_y(): JsNumber ->
+pub (receiver: MouseEvent) screen_y(): JsNumber ->
     native.
 
 /**
@@ -172,7 +173,7 @@ pub (value: MouseEvent) screen_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/shiftKey)
  */
-pub (value: MouseEvent) shift_key(): Bool ->
+pub (receiver: MouseEvent) shift_key(): Bool ->
     native.
 
 /**
@@ -180,7 +181,7 @@ pub (value: MouseEvent) shift_key(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/x)
  */
-pub (value: MouseEvent) x(): JsNumber ->
+pub (receiver: MouseEvent) x(): JsNumber ->
     native.
 
 /**
@@ -188,7 +189,7 @@ pub (value: MouseEvent) x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/y)
  */
-pub (value: MouseEvent) y(): JsNumber ->
+pub (receiver: MouseEvent) y(): JsNumber ->
     native.
 
 /**
@@ -196,7 +197,7 @@ pub (value: MouseEvent) y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/getModifierState)
  */
-pub (value: MouseEvent) get_modifier_state(key_arg: JsString): Bool ->
+pub (receiver: MouseEvent) get_modifier_state(key_arg: JsString): Bool ->
     native.
 
 /**
@@ -205,11 +206,11 @@ pub (value: MouseEvent) get_modifier_state(key_arg: JsString): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/initMouseEvent)
  */
-pub (value: MouseEvent) init_mouse_event(
+pub (receiver: MouseEvent) init_mouse_event(
     type_arg: JsString,
     can_bubble_arg: Bool,
     cancelable_arg: Bool,
-    view_arg: Window,
+    view_arg: std.js.Dom.Window.Window,
     detail_arg: JsNumber,
     screen_x_arg: JsNumber,
     screen_y_arg: JsNumber,
@@ -221,5 +222,5 @@ pub (value: MouseEvent) init_mouse_event(
     meta_key_arg: Bool,
     button_arg: JsNumber,
     related_target_arg: Option[EventTarget],
-): std.core.Unit ->
+): std.core.Unit.Unit ->
     native.

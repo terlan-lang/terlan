@@ -19,5 +19,7 @@ pub opaque type NonElementParentNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getElementById)
  */
-pub (value: NonElementParentNode) get_element_by_id(element_id: std.js.String.JsString): Option[Element] ->
+pub (receiver: NonElementParentNode) get_element_by_id(
+    element_id: std.js.String.JsString,
+): std.core.Option.Option[std.js.Dom.Element.Element] ->
     native.

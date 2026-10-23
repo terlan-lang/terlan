@@ -13,11 +13,3 @@
 module std.js.Dom.NavigatorLoginTest.
 
 import type std.js.Dom.NavigatorLogin.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub set_status_typechecks(
-    receiver: NavigatorLogin,
-    status: LoginStatus,
-): std.js.Promise[std.core.Unit] ->
-    receiver.set_status(status).

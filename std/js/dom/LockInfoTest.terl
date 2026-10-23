@@ -12,16 +12,12 @@
  */
 module std.js.Dom.LockInfoTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.LockInfo.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub client_id_typechecks(receiver: LockInfo): JsString ->
+pub client_id_typechecks(receiver: LockInfo): Option[JsString] ->
     receiver.client_id().
 
-pub mode_typechecks(receiver: LockInfo): LockMode ->
-    receiver.mode().
-
-pub name_typechecks(receiver: LockInfo): JsString ->
+pub name_typechecks(receiver: LockInfo): Option[JsString] ->
     receiver.name().

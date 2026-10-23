@@ -15,34 +15,11 @@ module std.js.Dom.CanvasTextDrawingStylesTest.
 import type std.js.Dom.CanvasTextDrawingStyles.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub direction_typechecks(receiver: CanvasTextDrawingStyles): CanvasDirection ->
-    receiver.direction().
-
 pub font_typechecks(receiver: CanvasTextDrawingStyles): JsString ->
     receiver.font().
 
-pub font_kerning_typechecks(receiver: CanvasTextDrawingStyles): CanvasFontKerning ->
-    receiver.font_kerning().
-
-pub font_stretch_typechecks(receiver: CanvasTextDrawingStyles): CanvasFontStretch ->
-    receiver.font_stretch().
-
-pub font_variant_caps_typechecks(receiver: CanvasTextDrawingStyles): CanvasFontVariantCaps ->
-    receiver.font_variant_caps().
-
 pub letter_spacing_typechecks(receiver: CanvasTextDrawingStyles): JsString ->
     receiver.letter_spacing().
-
-pub text_align_typechecks(receiver: CanvasTextDrawingStyles): CanvasTextAlign ->
-    receiver.text_align().
-
-pub text_baseline_typechecks(receiver: CanvasTextDrawingStyles): CanvasTextBaseline ->
-    receiver.text_baseline().
-
-pub text_rendering_typechecks(receiver: CanvasTextDrawingStyles): CanvasTextRendering ->
-    receiver.text_rendering().
 
 pub word_spacing_typechecks(receiver: CanvasTextDrawingStyles): JsString ->
     receiver.word_spacing().

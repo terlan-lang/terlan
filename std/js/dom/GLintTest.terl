@@ -13,5 +13,3 @@
 module std.js.Dom.GLintTest.
 
 import type std.js.Dom.GLint.
-
-pub generated_binding_surface_contract(): Bool -> true.

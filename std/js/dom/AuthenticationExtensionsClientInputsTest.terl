@@ -12,40 +12,38 @@
  */
 module std.js.Dom.AuthenticationExtensionsClientInputsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.AuthenticationExtensionsClientInputs.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub appid_typechecks(receiver: AuthenticationExtensionsClientInputs): JsString ->
+pub appid_typechecks(receiver: AuthenticationExtensionsClientInputs): Option[JsString] ->
     receiver.appid().
 
-pub cred_props_typechecks(receiver: AuthenticationExtensionsClientInputs): Bool ->
+pub cred_props_typechecks(receiver: AuthenticationExtensionsClientInputs): Option[Bool] ->
     receiver.cred_props().
 
 pub credential_protection_policy_typechecks(
     receiver: AuthenticationExtensionsClientInputs,
-): JsString ->
+): Option[JsString] ->
     receiver.credential_protection_policy().
 
 pub enforce_credential_protection_policy_typechecks(
     receiver: AuthenticationExtensionsClientInputs,
-): Bool ->
+): Option[Bool] ->
     receiver.enforce_credential_protection_policy().
 
-pub hmac_create_secret_typechecks(receiver: AuthenticationExtensionsClientInputs): Bool ->
+pub hmac_create_secret_typechecks(receiver: AuthenticationExtensionsClientInputs): Option[Bool] ->
     receiver.hmac_create_secret().
 
 pub large_blob_typechecks(
     receiver: AuthenticationExtensionsClientInputs,
-): AuthenticationExtensionsLargeBlobInputs ->
+): Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputs.AuthenticationExtensionsLargeBlobInputs] ->
     receiver.large_blob().
 
-pub min_pin_length_typechecks(receiver: AuthenticationExtensionsClientInputs): Bool ->
+pub min_pin_length_typechecks(receiver: AuthenticationExtensionsClientInputs): Option[Bool] ->
     receiver.min_pin_length().
 
 pub prf_typechecks(
     receiver: AuthenticationExtensionsClientInputs,
-): AuthenticationExtensionsPRFInputs ->
+): Option[std.js.Dom.AuthenticationExtensionsPRFInputs.AuthenticationExtensionsPRFInputs] ->
     receiver.prf().

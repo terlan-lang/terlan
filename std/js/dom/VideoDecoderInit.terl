@@ -14,8 +14,8 @@ module std.js.Dom.VideoDecoderInit.
 
 pub opaque type VideoDecoderInit.
 
-pub (value: VideoDecoderInit) error(): WebCodecsErrorCallback ->
+pub (receiver: VideoDecoderInit) error(): std.js.Dom.WebCodecsErrorCallback.WebCodecsErrorCallback ->
     native.
 
-pub (value: VideoDecoderInit) output(): VideoFrameOutputCallback ->
+pub (receiver: VideoDecoderInit) output(): std.js.Dom.VideoFrameOutputCallback.VideoFrameOutputCallback ->
     native.

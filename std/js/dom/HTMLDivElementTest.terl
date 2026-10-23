@@ -12,11 +12,11 @@
  */
 module std.js.Dom.HTMLDivElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.HTMLDivElement.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub align_typechecks(receiver: HTMLDivElement): JsString ->
     receiver.align().
@@ -25,7 +25,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLDivElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -33,6 +33,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLDivElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

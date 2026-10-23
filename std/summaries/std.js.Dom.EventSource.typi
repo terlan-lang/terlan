@@ -25,29 +25,29 @@ pub opaque type EventSource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/readyState)
  */
-pub (value: EventSource) ready_state(): std.js.Number.JsNumber.
+pub (receiver: EventSource) ready_state(): std.js.Number.JsNumber.
 
 /**
  * The **`url`** read-only property of the URL of the source.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/url)
  */
-pub (value: EventSource) url(): std.js.String.JsString.
+pub (receiver: EventSource) url(): std.js.String.JsString.
 
 /**
  * The **`withCredentials`** read-only property of the the `EventSource` object was instantiated with CORS credentials set.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/withCredentials)
  */
-pub (value: EventSource) with_credentials(): std.core.Bool.
+pub (receiver: EventSource) with_credentials(): Bool.
 
 /**
  * The **`close()`** method of the EventSource interface closes the connection, if one is made, and sets the ```js-nolint close() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/close)
  */
-pub (value: EventSource) close(): std.core.Unit.
+pub (receiver: EventSource) close(): std.core.Unit.Unit.
 
-pub (value: EventSource) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: EventSource) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: EventSource) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: EventSource) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

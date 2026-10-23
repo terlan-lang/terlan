@@ -15,18 +15,18 @@ module std.js.Dom.AuthenticationExtensionsClientInputs.
 
 pub opaque type AuthenticationExtensionsClientInputs.
 
-pub (value: AuthenticationExtensionsClientInputs) appid(): std.js.String.JsString.
+pub (receiver: AuthenticationExtensionsClientInputs) appid(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AuthenticationExtensionsClientInputs) cred_props(): std.core.Bool.
+pub (receiver: AuthenticationExtensionsClientInputs) cred_props(): std.core.Option.Option[Bool].
 
-pub (value: AuthenticationExtensionsClientInputs) credential_protection_policy(): std.js.String.JsString.
+pub (receiver: AuthenticationExtensionsClientInputs) credential_protection_policy(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AuthenticationExtensionsClientInputs) enforce_credential_protection_policy(): std.core.Bool.
+pub (receiver: AuthenticationExtensionsClientInputs) enforce_credential_protection_policy(): std.core.Option.Option[Bool].
 
-pub (value: AuthenticationExtensionsClientInputs) hmac_create_secret(): std.core.Bool.
+pub (receiver: AuthenticationExtensionsClientInputs) hmac_create_secret(): std.core.Option.Option[Bool].
 
-pub (value: AuthenticationExtensionsClientInputs) large_blob(): AuthenticationExtensionsLargeBlobInputs.
+pub (receiver: AuthenticationExtensionsClientInputs) large_blob(): std.core.Option.Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputs.AuthenticationExtensionsLargeBlobInputs].
 
-pub (value: AuthenticationExtensionsClientInputs) min_pin_length(): std.core.Bool.
+pub (receiver: AuthenticationExtensionsClientInputs) min_pin_length(): std.core.Option.Option[Bool].
 
-pub (value: AuthenticationExtensionsClientInputs) prf(): AuthenticationExtensionsPRFInputs.
+pub (receiver: AuthenticationExtensionsClientInputs) prf(): std.core.Option.Option[std.js.Dom.AuthenticationExtensionsPRFInputs.AuthenticationExtensionsPRFInputs].

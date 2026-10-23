@@ -12,7 +12,11 @@
  */
 module std.js.Dom.XMLHttpRequest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Document.{Document}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.URL.{URL}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,105 +32,98 @@ pub opaque type XMLHttpRequest.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/readyState)
  */
-pub (value: XMLHttpRequest) ready_state(): JsNumber.
+pub (receiver: XMLHttpRequest) ready_state(): JsNumber.
 
 /**
  * The read-only XMLHttpRequest property **`responseText`** returns the text received from a server following a request being sent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/responseText)
  */
-pub (value: XMLHttpRequest) response_text(): JsString.
-
-/**
- * The XMLHttpRequest property **`responseType`** is an enumerated string value specifying the type of data contained in the response.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/responseType)
- */
-pub (value: XMLHttpRequest) response_type(): XMLHttpRequestResponseType.
+pub (receiver: XMLHttpRequest) response_text(): JsString.
 
 /**
  * The read-only **`XMLHttpRequest.responseURL`** property returns the serialized URL of the response or the empty string if the URL is `null`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/responseURL)
  */
-pub (value: XMLHttpRequest) response_url(): JsString.
+pub (receiver: XMLHttpRequest) response_url(): JsString.
 
 /**
  * The **`XMLHttpRequest.responseXML`** read-only property returns a Document containing the HTML or XML retrieved by the request; or `null` if the request was unsuccessful, has not yet been sent, or if the data can't be parsed as XML or HTML.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/responseXML)
  */
-pub (value: XMLHttpRequest) response_xml(): Option[Document].
+pub (receiver: XMLHttpRequest) response_xml(): Option[Document].
 
 /**
  * The read-only **`XMLHttpRequest.status`** property returns the numerical HTTP status code of the `XMLHttpRequest`'s response.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/status)
  */
-pub (value: XMLHttpRequest) status(): JsNumber.
+pub (receiver: XMLHttpRequest) status(): JsNumber.
 
 /**
  * The read-only **`XMLHttpRequest.statusText`** property returns a string containing the response's status message as returned by the HTTP server.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/statusText)
  */
-pub (value: XMLHttpRequest) status_text(): JsString.
+pub (receiver: XMLHttpRequest) status_text(): JsString.
 
 /**
  * The **`XMLHttpRequest.timeout`** property is an `unsigned long` representing the number of milliseconds a request can take before automatically being terminated.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/timeout)
  */
-pub (value: XMLHttpRequest) timeout(): JsNumber.
+pub (receiver: XMLHttpRequest) timeout(): JsNumber.
 
 /**
  * The XMLHttpRequest `upload` property returns an XMLHttpRequestUpload object that can be observed to monitor an upload's progress.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/upload)
  */
-pub (value: XMLHttpRequest) upload(): XMLHttpRequestUpload.
+pub (receiver: XMLHttpRequest) upload(): std.js.Dom.XMLHttpRequestUpload.XMLHttpRequestUpload.
 
 /**
  * The **`XMLHttpRequest.withCredentials`** property is a boolean value that indicates whether or not cross-site `Access-Control` requests should be made using credentials such as cookies, authentication headers or TLS client certificates.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/withCredentials)
  */
-pub (value: XMLHttpRequest) with_credentials(): Bool.
+pub (receiver: XMLHttpRequest) with_credentials(): Bool.
 
 /**
  * The **`XMLHttpRequest.abort()`** method aborts the request if it has already been sent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/abort)
  */
-pub (value: XMLHttpRequest) abort(): Unit.
+pub (receiver: XMLHttpRequest) abort(): Unit.
 
 /**
  * The XMLHttpRequest method **`getAllResponseHeaders()`** returns all the response headers, separated by CRLF, as a string, or returns `null` if no response has been received.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/getAllResponseHeaders)
  */
-pub (value: XMLHttpRequest) get_all_response_headers(): JsString.
+pub (receiver: XMLHttpRequest) get_all_response_headers(): JsString.
 
 /**
  * The XMLHttpRequest method **`getResponseHeader()`** returns the string containing the text of a particular header's value.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/getResponseHeader)
  */
-pub (value: XMLHttpRequest) get_response_header(name: JsString): Option[JsString].
+pub (receiver: XMLHttpRequest) get_response_header(name: JsString): Option[JsString].
 
 /**
  * The XMLHttpRequest method **`open()`** initializes a newly-created request, or re-initializes an existing one.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/open)
  */
-pub (value: XMLHttpRequest) open(method: JsString, url: URL | JsString): Unit.
+pub (receiver: XMLHttpRequest) open(method: JsString, url: URL | JsString): Unit.
 
-pub (value: XMLHttpRequest) open(
+pub (receiver: XMLHttpRequest) open_overload_2(
     method: JsString,
     url: URL | JsString,
     async: Bool,
-    username: Option[JsString],
-    password: Option[JsString],
+    username: Option[Option[JsString]],
+    password: Option[Option[JsString]],
 ): Unit.
 
 /**
@@ -134,30 +131,32 @@ pub (value: XMLHttpRequest) open(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/overrideMimeType)
  */
-pub (value: XMLHttpRequest) override_mime_type(mime: JsString): Unit.
+pub (receiver: XMLHttpRequest) override_mime_type(mime: JsString): Unit.
 
 /**
  * The XMLHttpRequest method **`send()`** sends the request to the server.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/send)
  */
-pub (value: XMLHttpRequest) send(body: Option[Document | XMLHttpRequestBodyInit]): Unit.
+pub (receiver: XMLHttpRequest) send(
+    body: Option[Option[Document | std.js.Dom.XMLHttpRequestBodyInit.XMLHttpRequestBodyInit]],
+): Unit.
 
 /**
  * The XMLHttpRequest method **`setRequestHeader()`** sets the value of an HTTP request header.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/setRequestHeader)
  */
-pub (value: XMLHttpRequest) set_request_header(name: JsString, value: JsString): Unit.
+pub (receiver: XMLHttpRequest) set_request_header(name: JsString, value: JsString): Unit.
 
-pub (value: XMLHttpRequest) add_event_listener(
+pub (receiver: XMLHttpRequest) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: XMLHttpRequest) remove_event_listener(
+pub (receiver: XMLHttpRequest) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

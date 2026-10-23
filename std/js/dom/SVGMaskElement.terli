@@ -12,7 +12,11 @@
  */
 module std.js.Dom.SVGMaskElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedEnumeration.{SVGAnimatedEnumeration}.
+import type std.js.Dom.SVGAnimatedLength.{SVGAnimatedLength}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,51 +31,51 @@ pub opaque type SVGMaskElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMaskElement/height)
  */
-pub (value: SVGMaskElement) height(): SVGAnimatedLength.
+pub (receiver: SVGMaskElement) height(): SVGAnimatedLength.
 
 /**
  * The read-only **`maskContentUnits`** property of the SVGMaskElement interface reflects the maskContentUnits attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMaskElement/maskContentUnits)
  */
-pub (value: SVGMaskElement) mask_content_units(): SVGAnimatedEnumeration.
+pub (receiver: SVGMaskElement) mask_content_units(): SVGAnimatedEnumeration.
 
 /**
  * The read-only **`maskUnits`** property of the SVGMaskElement interface reflects the maskUnits attribute of a mask element which defines the coordinate system to use for the mask of the element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMaskElement/maskUnits)
  */
-pub (value: SVGMaskElement) mask_units(): SVGAnimatedEnumeration.
+pub (receiver: SVGMaskElement) mask_units(): SVGAnimatedEnumeration.
 
 /**
  * The read-only **`width`** property of the SVGMaskElement interface returns an SVGAnimatedLength object containing the value of the width attribute of the marker.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMaskElement/width)
  */
-pub (value: SVGMaskElement) width(): SVGAnimatedLength.
+pub (receiver: SVGMaskElement) width(): SVGAnimatedLength.
 
 /**
  * The read-only **`x`** property of the SVGMaskElement interface returns an SVGAnimatedLength object containing the value of the x attribute of the mask.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMaskElement/x)
  */
-pub (value: SVGMaskElement) x(): SVGAnimatedLength.
+pub (receiver: SVGMaskElement) x(): SVGAnimatedLength.
 
 /**
  * The read-only **`y`** property of the SVGMaskElement interface returns an SVGAnimatedLength object containing the value of the y attribute of the marker.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMaskElement/y)
  */
-pub (value: SVGMaskElement) y(): SVGAnimatedLength.
+pub (receiver: SVGMaskElement) y(): SVGAnimatedLength.
 
-pub (value: SVGMaskElement) add_event_listener(
+pub (receiver: SVGMaskElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: SVGMaskElement) remove_event_listener(
+pub (receiver: SVGMaskElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

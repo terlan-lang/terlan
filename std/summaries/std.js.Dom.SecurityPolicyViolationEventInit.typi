@@ -15,26 +15,24 @@ module std.js.Dom.SecurityPolicyViolationEventInit.
 
 pub opaque type SecurityPolicyViolationEventInit.
 
-pub (value: SecurityPolicyViolationEventInit) blocked_uri(): std.js.String.JsString.
+pub (receiver: SecurityPolicyViolationEventInit) blocked_uri(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: SecurityPolicyViolationEventInit) column_number(): std.js.Number.JsNumber.
+pub (receiver: SecurityPolicyViolationEventInit) column_number(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: SecurityPolicyViolationEventInit) disposition(): SecurityPolicyViolationEventDisposition.
+pub (receiver: SecurityPolicyViolationEventInit) document_uri(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: SecurityPolicyViolationEventInit) document_uri(): std.js.String.JsString.
+pub (receiver: SecurityPolicyViolationEventInit) effective_directive(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: SecurityPolicyViolationEventInit) effective_directive(): std.js.String.JsString.
+pub (receiver: SecurityPolicyViolationEventInit) line_number(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: SecurityPolicyViolationEventInit) line_number(): std.js.Number.JsNumber.
+pub (receiver: SecurityPolicyViolationEventInit) original_policy(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: SecurityPolicyViolationEventInit) original_policy(): std.js.String.JsString.
+pub (receiver: SecurityPolicyViolationEventInit) referrer(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: SecurityPolicyViolationEventInit) referrer(): std.js.String.JsString.
+pub (receiver: SecurityPolicyViolationEventInit) sample(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: SecurityPolicyViolationEventInit) sample(): std.js.String.JsString.
+pub (receiver: SecurityPolicyViolationEventInit) source_file(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: SecurityPolicyViolationEventInit) source_file(): std.js.String.JsString.
+pub (receiver: SecurityPolicyViolationEventInit) status_code(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: SecurityPolicyViolationEventInit) status_code(): std.js.Number.JsNumber.
-
-pub (value: SecurityPolicyViolationEventInit) violated_directive(): std.js.String.JsString.
+pub (receiver: SecurityPolicyViolationEventInit) violated_directive(): std.core.Option.Option[std.js.String.JsString].

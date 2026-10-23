@@ -25,50 +25,43 @@ pub opaque type IDBDatabase.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/name)
  */
-pub (value: IDBDatabase) name(): std.js.String.JsString.
+pub (receiver: IDBDatabase) name(): std.js.String.JsString.
 
 /**
  * The **`objectStoreNames`** read-only property of the list of the names of the object stores currently in the connected database.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/objectStoreNames)
  */
-pub (value: IDBDatabase) object_store_names(): DOMStringList.
+pub (receiver: IDBDatabase) object_store_names(): std.js.Dom.DOMStringList.DOMStringList.
 
 /**
  * The **`version`** property of the IDBDatabase interface is a 64-bit integer that contains the version of the connected database.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/version)
  */
-pub (value: IDBDatabase) version(): std.js.Number.JsNumber.
+pub (receiver: IDBDatabase) version(): std.js.Number.JsNumber.
 
 /**
  * The **`close()`** method of the IDBDatabase interface returns immediately and closes the connection in a separate thread.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/close)
  */
-pub (value: IDBDatabase) close(): std.core.Unit.
+pub (receiver: IDBDatabase) close(): std.core.Unit.Unit.
 
 /**
  * The **`createObjectStore()`** method of the The method takes the name of the store as well as a parameter object that lets you define important optional properties.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/createObjectStore)
  */
-pub (value: IDBDatabase) create_object_store(name: std.js.String.JsString, options: IDBObjectStoreParameters): IDBObjectStore.
+pub (receiver: IDBDatabase) create_object_store(name: std.js.String.JsString, options: std.core.Option.Option[std.js.Dom.IDBObjectStoreParameters.IDBObjectStoreParameters]): std.js.Dom.IDBObjectStore.IDBObjectStore.
 
 /**
  * The **`deleteObjectStore()`** method of the the connected database, along with any indexes that reference it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/deleteObjectStore)
  */
-pub (value: IDBDatabase) delete_object_store(name: std.js.String.JsString): std.core.Unit.
+pub (receiver: IDBDatabase) delete_object_store(name: std.js.String.JsString): std.core.Unit.Unit.
 
-/**
- * The **`transaction`** method of the IDBDatabase interface immediately returns a transaction object (IDBTransaction) containing the IDBTransaction.objectStore method, which you can use to access your object store.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/transaction)
- */
-pub (value: IDBDatabase) transaction(store_names: std.js.Array[std.js.String.JsString] | std.js.String.JsString, mode: IDBTransactionMode, options: IDBTransactionOptions): IDBTransaction.
+pub (receiver: IDBDatabase) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: IDBDatabase) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
-
-pub (value: IDBDatabase) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: IDBDatabase) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

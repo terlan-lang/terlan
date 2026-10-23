@@ -25,7 +25,7 @@ pub opaque type SpeechRecognitionAlternative.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionAlternative/confidence)
  */
-pub (value: SpeechRecognitionAlternative) confidence(): std.js.Number.JsNumber ->
+pub (receiver: SpeechRecognitionAlternative) confidence(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -33,5 +33,5 @@ pub (value: SpeechRecognitionAlternative) confidence(): std.js.Number.JsNumber -
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionAlternative/transcript)
  */
-pub (value: SpeechRecognitionAlternative) transcript(): std.js.String.JsString ->
+pub (receiver: SpeechRecognitionAlternative) transcript(): std.js.String.JsString ->
     native.

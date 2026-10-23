@@ -12,17 +12,16 @@
  */
 module std.js.Dom.WebSocketEventMapTest.
 
+import type std.js.Dom.Event.{Event}.
 import type std.js.Dom.WebSocketEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub close_typechecks(receiver: WebSocketEventMap): CloseEvent ->
+pub close_typechecks(receiver: WebSocketEventMap): std.js.Dom.CloseEvent.CloseEvent ->
     receiver.close().
 
 pub error_typechecks(receiver: WebSocketEventMap): Event ->
     receiver.error().
 
-pub message_typechecks(receiver: WebSocketEventMap): MessageEvent ->
+pub message_typechecks(receiver: WebSocketEventMap): std.js.Dom.MessageEvent.MessageEvent ->
     receiver.message().
 
 pub open_typechecks(receiver: WebSocketEventMap): Event ->

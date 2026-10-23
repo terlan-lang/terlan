@@ -14,10 +14,8 @@ module std.js.IArgumentsTest.
 
 import type std.js.IArguments.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub length_typechecks(receiver: IArguments): std.js.Number.JsNumber ->
     receiver.length().
 
-pub callee_typechecks(receiver: IArguments): Function ->
+pub callee_typechecks(receiver: IArguments): std.js.Function.Function ->
     receiver.callee().

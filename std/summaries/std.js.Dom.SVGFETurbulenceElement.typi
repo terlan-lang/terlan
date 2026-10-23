@@ -25,43 +25,43 @@ pub opaque type SVGFETurbulenceElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/baseFrequencyX)
  */
-pub (value: SVGFETurbulenceElement) base_frequency_x(): SVGAnimatedNumber.
+pub (receiver: SVGFETurbulenceElement) base_frequency_x(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`baseFrequencyY`** read-only property of the SVGFETurbulenceElement interface reflects the Y component of the baseFrequency attribute of the given feTurbulence element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/baseFrequencyY)
  */
-pub (value: SVGFETurbulenceElement) base_frequency_y(): SVGAnimatedNumber.
+pub (receiver: SVGFETurbulenceElement) base_frequency_y(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`numOctaves`** read-only property of the SVGFETurbulenceElement interface reflects the numOctaves attribute of the given feTurbulence element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/numOctaves)
  */
-pub (value: SVGFETurbulenceElement) num_octaves(): SVGAnimatedInteger.
+pub (receiver: SVGFETurbulenceElement) num_octaves(): std.js.Dom.SVGAnimatedInteger.SVGAnimatedInteger.
 
 /**
  * The **`seed`** read-only property of the SVGFETurbulenceElement interface reflects the seed attribute of the given feTurbulence element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/seed)
  */
-pub (value: SVGFETurbulenceElement) seed(): SVGAnimatedNumber.
+pub (receiver: SVGFETurbulenceElement) seed(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`stitchTiles`** read-only property of the SVGFETurbulenceElement interface reflects the stitchTiles attribute of the given feTurbulence element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/stitchTiles)
  */
-pub (value: SVGFETurbulenceElement) stitch_tiles(): SVGAnimatedEnumeration.
+pub (receiver: SVGFETurbulenceElement) stitch_tiles(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration.
 
 /**
  * The **`type`** read-only property of the SVGFETurbulenceElement interface reflects the type attribute of the given feTurbulence element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFETurbulenceElement/type)
  */
-pub (value: SVGFETurbulenceElement) type_(): SVGAnimatedEnumeration.
+pub (receiver: SVGFETurbulenceElement) type_(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration.
 
-pub (value: SVGFETurbulenceElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGFETurbulenceElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: SVGFETurbulenceElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGFETurbulenceElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

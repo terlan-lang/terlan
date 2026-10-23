@@ -12,11 +12,11 @@
  */
 module std.js.Dom.EventTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.Event.
+import type std.js.Dom.EventTarget.{EventTarget}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub bubbles_typechecks(receiver: Event): Bool ->
     receiver.bubbles().
@@ -51,16 +51,21 @@ pub src_element_typechecks(receiver: Event): Option[EventTarget] ->
 pub target__typechecks(receiver: Event): Option[EventTarget] ->
     receiver.target_().
 
-pub time_stamp_typechecks(receiver: Event): DOMHighResTimeStamp ->
+pub time_stamp_typechecks(receiver: Event): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
     receiver.time_stamp().
 
 pub type__typechecks(receiver: Event): JsString ->
     receiver.type_().
 
-pub composed_path_typechecks(receiver: Event): std.js.Array[EventTarget] ->
+pub composed_path_typechecks(receiver: Event): std.js.Array.Array[EventTarget] ->
     receiver.composed_path().
 
-pub init_event_typechecks(receiver: Event, type_: JsString, bubbles: Bool, cancelable: Bool): Unit ->
+pub init_event_typechecks(
+    receiver: Event,
+    type_: JsString,
+    bubbles: Option[Bool],
+    cancelable: Option[Bool],
+): Unit ->
     receiver.init_event(type_, bubbles, cancelable).
 
 pub prevent_default_typechecks(receiver: Event): Unit ->

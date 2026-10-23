@@ -24,4 +24,4 @@ pub opaque type RadioNodeList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RadioNodeList/value)
  */
-pub (value: RadioNodeList) value(): std.js.String.JsString.
+pub (receiver: RadioNodeList) value(): std.js.String.JsString.

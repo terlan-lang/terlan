@@ -14,9 +14,7 @@ module std.js.Dom.ProcessingInstructionTest.
 
 import type std.js.Dom.ProcessingInstruction.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub owner_document_typechecks(receiver: ProcessingInstruction): Document ->
+pub owner_document_typechecks(receiver: ProcessingInstruction): std.js.Dom.Document.Document ->
     receiver.owner_document().
 
 pub target__typechecks(receiver: ProcessingInstruction): std.js.String.JsString ->

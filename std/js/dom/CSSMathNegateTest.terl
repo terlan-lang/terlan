@@ -14,7 +14,5 @@ module std.js.Dom.CSSMathNegateTest.
 
 import type std.js.Dom.CSSMathNegate.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub value_typechecks(receiver: CSSMathNegate): CSSNumericValue ->
+pub value_typechecks(receiver: CSSMathNegate): std.js.Dom.CSSNumericValue.CSSNumericValue ->
     receiver.value().

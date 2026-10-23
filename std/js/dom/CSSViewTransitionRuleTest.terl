@@ -15,10 +15,8 @@ module std.js.Dom.CSSViewTransitionRuleTest.
 import type std.js.Dom.CSSViewTransitionRule.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub navigation_typechecks(receiver: CSSViewTransitionRule): JsString ->
     receiver.navigation().
 
-pub types_typechecks(receiver: CSSViewTransitionRule): std.js.Array[JsString] ->
+pub types_typechecks(receiver: CSSViewTransitionRule): std.js.Array.Array[JsString] ->
     receiver.types().

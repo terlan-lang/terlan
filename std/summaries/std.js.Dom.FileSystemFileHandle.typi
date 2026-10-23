@@ -26,11 +26,11 @@ pub opaque type FileSystemFileHandle.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle/createWritable)
  */
-pub (value: FileSystemFileHandle) create_writable(options: FileSystemCreateWritableOptions): std.js.Promise[FileSystemWritableFileStream].
+pub (receiver: FileSystemFileHandle) create_writable(options: std.core.Option.Option[std.js.Dom.FileSystemCreateWritableOptions.FileSystemCreateWritableOptions]): std.js.Promise.Promise[std.js.Dom.FileSystemWritableFileStream.FileSystemWritableFileStream].
 
 /**
  * The **`getFile()`** method of the If the file on disk changes or is removed after this method is called, the returned ```js-nolint getFile() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle/getFile)
  */
-pub (value: FileSystemFileHandle) get_file(): std.js.Promise[File].
+pub (receiver: FileSystemFileHandle) get_file(): std.js.Promise.Promise[std.js.Dom.File.File].

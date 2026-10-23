@@ -12,8 +12,10 @@
  */
 module std.js.Dom.MediaStreamEventMap.
 
+import type std.js.Dom.MediaStreamTrackEvent.{MediaStreamTrackEvent}.
+
 pub opaque type MediaStreamEventMap.
 
-pub (value: MediaStreamEventMap) addtrack(): MediaStreamTrackEvent.
+pub (receiver: MediaStreamEventMap) addtrack(): MediaStreamTrackEvent.
 
-pub (value: MediaStreamEventMap) removetrack(): MediaStreamTrackEvent.
+pub (receiver: MediaStreamEventMap) removetrack(): MediaStreamTrackEvent.

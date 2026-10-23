@@ -12,6 +12,7 @@
  */
 module std.js.Dom.GeolocationCoordinates.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,46 +28,46 @@ pub opaque type GeolocationCoordinates.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/accuracy)
  */
-pub (value: GeolocationCoordinates) accuracy(): JsNumber.
+pub (receiver: GeolocationCoordinates) accuracy(): JsNumber.
 
 /**
  * The **`altitude`** read-only property of the GeolocationCoordinates interface is a `double` representing the altitude of the position in meters above the WGS84 ellipsoid (which defines the nominal sea level surface).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/altitude)
  */
-pub (value: GeolocationCoordinates) altitude(): Option[JsNumber].
+pub (receiver: GeolocationCoordinates) altitude(): Option[JsNumber].
 
 /**
  * The **`altitudeAccuracy`** read-only property of the GeolocationCoordinates interface is a strictly positive `double` representing the accuracy, with a 95% confidence level, of the `altitude` expressed in meters.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/altitudeAccuracy)
  */
-pub (value: GeolocationCoordinates) altitude_accuracy(): Option[JsNumber].
+pub (receiver: GeolocationCoordinates) altitude_accuracy(): Option[JsNumber].
 
 /**
  * The **`heading`** read-only property of the GeolocationCoordinates interface is a `double` representing the direction in which the device is traveling.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/heading)
  */
-pub (value: GeolocationCoordinates) heading(): Option[JsNumber].
+pub (receiver: GeolocationCoordinates) heading(): Option[JsNumber].
 
 /**
  * The **`latitude`** read-only property of the GeolocationCoordinates interface is a `double` representing the latitude of the position in decimal degrees.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/latitude)
  */
-pub (value: GeolocationCoordinates) latitude(): JsNumber.
+pub (receiver: GeolocationCoordinates) latitude(): JsNumber.
 
 /**
  * The **`longitude`** read-only property of the GeolocationCoordinates interface is a number which represents the longitude of a geographical position, specified in decimal degrees.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/longitude)
  */
-pub (value: GeolocationCoordinates) longitude(): JsNumber.
+pub (receiver: GeolocationCoordinates) longitude(): JsNumber.
 
 /**
  * The **`speed`** read-only property of the GeolocationCoordinates interface is a `double` representing the velocity of the device in meters per second.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/speed)
  */
-pub (value: GeolocationCoordinates) speed(): Option[JsNumber].
+pub (receiver: GeolocationCoordinates) speed(): Option[JsNumber].

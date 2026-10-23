@@ -14,7 +14,5 @@ module std.js.Dom.GainNodeTest.
 
 import type std.js.Dom.GainNode.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub gain_typechecks(receiver: GainNode): AudioParam ->
+pub gain_typechecks(receiver: GainNode): std.js.Dom.AudioParam.AudioParam ->
     receiver.gain().

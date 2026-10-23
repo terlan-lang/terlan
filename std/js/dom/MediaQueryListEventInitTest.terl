@@ -12,12 +12,11 @@
  */
 module std.js.Dom.MediaQueryListEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.MediaQueryListEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub matches_typechecks(receiver: MediaQueryListEventInit): std.core.Bool ->
+pub matches_typechecks(receiver: MediaQueryListEventInit): Option[Bool] ->
     receiver.matches().
 
-pub media_typechecks(receiver: MediaQueryListEventInit): std.js.String.JsString ->
+pub media_typechecks(receiver: MediaQueryListEventInit): Option[std.js.String.JsString] ->
     receiver.media().

@@ -14,4 +14,4 @@
 module std.js.Dom.EventListenerOrEventListenerObject.
 
 pub type EventListenerOrEventListenerObject =
-    EventListener | EventListenerObject.
+    std.js.Dom.EventListener.EventListener | std.js.Dom.EventListenerObject.EventListenerObject.

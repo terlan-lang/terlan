@@ -12,4 +12,4 @@
  */
 module std.js.Dom.ClipboardItemData.
 
-pub type ClipboardItemData = std.js.Promise[Blob | std.js.String.JsString].
+pub type ClipboardItemData = std.js.Promise.Promise[std.js.Dom.Blob.Blob | std.js.String.JsString].

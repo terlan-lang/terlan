@@ -12,18 +12,15 @@
  */
 module std.js.Dom.NavigatorPluginsTest.
 
-import type std.core.{Bool}.
 import type std.js.Dom.NavigatorPlugins.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub mime_types_typechecks(receiver: NavigatorPlugins): MimeTypeArray ->
+pub mime_types_typechecks(receiver: NavigatorPlugins): std.js.Dom.MimeTypeArray.MimeTypeArray ->
     receiver.mime_types().
 
 pub pdf_viewer_enabled_typechecks(receiver: NavigatorPlugins): Bool ->
     receiver.pdf_viewer_enabled().
 
-pub plugins_typechecks(receiver: NavigatorPlugins): PluginArray ->
+pub plugins_typechecks(receiver: NavigatorPlugins): std.js.Dom.PluginArray.PluginArray ->
     receiver.plugins().
 
 pub java_enabled_typechecks(receiver: NavigatorPlugins): Bool ->

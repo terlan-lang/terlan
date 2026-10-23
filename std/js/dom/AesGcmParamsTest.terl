@@ -12,15 +12,15 @@
  */
 module std.js.Dom.AesGcmParamsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.AesGcmParams.
+import type std.js.Dom.BufferSource.{BufferSource}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub additional_data_typechecks(receiver: AesGcmParams): BufferSource ->
+pub additional_data_typechecks(receiver: AesGcmParams): Option[BufferSource] ->
     receiver.additional_data().
 
 pub iv_typechecks(receiver: AesGcmParams): BufferSource ->
     receiver.iv().
 
-pub tag_length_typechecks(receiver: AesGcmParams): std.js.Number.JsNumber ->
+pub tag_length_typechecks(receiver: AesGcmParams): Option[std.js.Number.JsNumber] ->
     receiver.tag_length().

@@ -12,6 +12,7 @@
  */
 module std.js.Dom.SVGNumberList.
 
+import type std.js.Dom.SVGNumber.{SVGNumber}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -26,7 +27,7 @@ pub opaque type SVGNumberList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/length)
  */
-pub (value: SVGNumberList) length(): JsNumber ->
+pub (receiver: SVGNumberList) length(): JsNumber ->
     native.
 
 /**
@@ -34,7 +35,7 @@ pub (value: SVGNumberList) length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/numberOfItems)
  */
-pub (value: SVGNumberList) number_of_items(): JsNumber ->
+pub (receiver: SVGNumberList) number_of_items(): JsNumber ->
     native.
 
 /**
@@ -42,7 +43,7 @@ pub (value: SVGNumberList) number_of_items(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/appendItem)
  */
-pub (value: SVGNumberList) append_item(new_item: SVGNumber): SVGNumber ->
+pub (receiver: SVGNumberList) append_item(new_item: SVGNumber): SVGNumber ->
     native.
 
 /**
@@ -50,7 +51,7 @@ pub (value: SVGNumberList) append_item(new_item: SVGNumber): SVGNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/clear)
  */
-pub (value: SVGNumberList) clear(): std.core.Unit ->
+pub (receiver: SVGNumberList) clear(): std.core.Unit.Unit ->
     native.
 
 /**
@@ -58,7 +59,7 @@ pub (value: SVGNumberList) clear(): std.core.Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/getItem)
  */
-pub (value: SVGNumberList) get_item(index: JsNumber): SVGNumber ->
+pub (receiver: SVGNumberList) get_item(index: JsNumber): SVGNumber ->
     native.
 
 /**
@@ -66,7 +67,7 @@ pub (value: SVGNumberList) get_item(index: JsNumber): SVGNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/initialize)
  */
-pub (value: SVGNumberList) initialize(new_item: SVGNumber): SVGNumber ->
+pub (receiver: SVGNumberList) initialize(new_item: SVGNumber): SVGNumber ->
     native.
 
 /**
@@ -74,7 +75,7 @@ pub (value: SVGNumberList) initialize(new_item: SVGNumber): SVGNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/insertItemBefore)
  */
-pub (value: SVGNumberList) insert_item_before(new_item: SVGNumber, index: JsNumber): SVGNumber ->
+pub (receiver: SVGNumberList) insert_item_before(new_item: SVGNumber, index: JsNumber): SVGNumber ->
     native.
 
 /**
@@ -82,7 +83,7 @@ pub (value: SVGNumberList) insert_item_before(new_item: SVGNumber, index: JsNumb
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/removeItem)
  */
-pub (value: SVGNumberList) remove_item(index: JsNumber): SVGNumber ->
+pub (receiver: SVGNumberList) remove_item(index: JsNumber): SVGNumber ->
     native.
 
 /**
@@ -90,5 +91,5 @@ pub (value: SVGNumberList) remove_item(index: JsNumber): SVGNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/replaceItem)
  */
-pub (value: SVGNumberList) replace_item(new_item: SVGNumber, index: JsNumber): SVGNumber ->
+pub (receiver: SVGNumberList) replace_item(new_item: SVGNumber, index: JsNumber): SVGNumber ->
     native.

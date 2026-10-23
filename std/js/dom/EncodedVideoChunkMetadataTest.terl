@@ -14,7 +14,7 @@ module std.js.Dom.EncodedVideoChunkMetadataTest.
 
 import type std.js.Dom.EncodedVideoChunkMetadata.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub decoder_config_typechecks(receiver: EncodedVideoChunkMetadata): VideoDecoderConfig ->
+pub decoder_config_typechecks(
+    receiver: EncodedVideoChunkMetadata,
+): std.core.Option.Option[std.js.Dom.VideoDecoderConfig.VideoDecoderConfig] ->
     receiver.decoder_config().

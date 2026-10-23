@@ -12,6 +12,7 @@
  */
 module std.js.Dom.GeolocationCoordinates.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,7 +28,7 @@ pub opaque type GeolocationCoordinates.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/accuracy)
  */
-pub (value: GeolocationCoordinates) accuracy(): JsNumber ->
+pub (receiver: GeolocationCoordinates) accuracy(): JsNumber ->
     native.
 
 /**
@@ -35,7 +36,7 @@ pub (value: GeolocationCoordinates) accuracy(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/altitude)
  */
-pub (value: GeolocationCoordinates) altitude(): Option[JsNumber] ->
+pub (receiver: GeolocationCoordinates) altitude(): Option[JsNumber] ->
     native.
 
 /**
@@ -43,7 +44,7 @@ pub (value: GeolocationCoordinates) altitude(): Option[JsNumber] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/altitudeAccuracy)
  */
-pub (value: GeolocationCoordinates) altitude_accuracy(): Option[JsNumber] ->
+pub (receiver: GeolocationCoordinates) altitude_accuracy(): Option[JsNumber] ->
     native.
 
 /**
@@ -51,7 +52,7 @@ pub (value: GeolocationCoordinates) altitude_accuracy(): Option[JsNumber] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/heading)
  */
-pub (value: GeolocationCoordinates) heading(): Option[JsNumber] ->
+pub (receiver: GeolocationCoordinates) heading(): Option[JsNumber] ->
     native.
 
 /**
@@ -59,7 +60,7 @@ pub (value: GeolocationCoordinates) heading(): Option[JsNumber] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/latitude)
  */
-pub (value: GeolocationCoordinates) latitude(): JsNumber ->
+pub (receiver: GeolocationCoordinates) latitude(): JsNumber ->
     native.
 
 /**
@@ -67,7 +68,7 @@ pub (value: GeolocationCoordinates) latitude(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/longitude)
  */
-pub (value: GeolocationCoordinates) longitude(): JsNumber ->
+pub (receiver: GeolocationCoordinates) longitude(): JsNumber ->
     native.
 
 /**
@@ -75,5 +76,5 @@ pub (value: GeolocationCoordinates) longitude(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/speed)
  */
-pub (value: GeolocationCoordinates) speed(): Option[JsNumber] ->
+pub (receiver: GeolocationCoordinates) speed(): Option[JsNumber] ->
     native.

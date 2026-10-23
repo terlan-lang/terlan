@@ -15,13 +15,8 @@ module std.js.Dom.AudioDataInitTest.
 import type std.js.Dom.AudioDataInit.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub data_typechecks(receiver: AudioDataInit): BufferSource ->
+pub data_typechecks(receiver: AudioDataInit): std.js.Dom.BufferSource.BufferSource ->
     receiver.data().
-
-pub format_typechecks(receiver: AudioDataInit): AudioSampleFormat ->
-    receiver.format().
 
 pub number_of_channels_typechecks(receiver: AudioDataInit): JsNumber ->
     receiver.number_of_channels().
@@ -35,5 +30,7 @@ pub sample_rate_typechecks(receiver: AudioDataInit): JsNumber ->
 pub timestamp_typechecks(receiver: AudioDataInit): JsNumber ->
     receiver.timestamp().
 
-pub transfer_typechecks(receiver: AudioDataInit): std.js.Array[ArrayBuffer] ->
+pub transfer_typechecks(
+    receiver: AudioDataInit,
+): std.core.Option.Option[std.js.Array.Array[std.js.ArrayBuffer.ArrayBuffer]] ->
     receiver.transfer().

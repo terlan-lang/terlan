@@ -12,46 +12,24 @@
  */
 module std.js.Dom.RequestInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.RequestInit.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub body_typechecks(receiver: RequestInit): Option[BodyInit] ->
+pub body_typechecks(receiver: RequestInit): Option[std.js.Dom.BodyInit.BodyInit] ->
     receiver.body().
 
-pub cache_typechecks(receiver: RequestInit): RequestCache ->
-    receiver.cache().
-
-pub credentials_typechecks(receiver: RequestInit): RequestCredentials ->
-    receiver.credentials().
-
-pub headers_typechecks(receiver: RequestInit): HeadersInit ->
-    receiver.headers().
-
-pub integrity_typechecks(receiver: RequestInit): JsString ->
+pub integrity_typechecks(receiver: RequestInit): Option[JsString] ->
     receiver.integrity().
 
-pub keepalive_typechecks(receiver: RequestInit): std.core.Bool ->
+pub keepalive_typechecks(receiver: RequestInit): Option[Bool] ->
     receiver.keepalive().
 
-pub method_typechecks(receiver: RequestInit): JsString ->
+pub method_typechecks(receiver: RequestInit): Option[JsString] ->
     receiver.method().
 
-pub mode_typechecks(receiver: RequestInit): RequestMode ->
-    receiver.mode().
-
-pub priority_typechecks(receiver: RequestInit): RequestPriority ->
-    receiver.priority().
-
-pub redirect_typechecks(receiver: RequestInit): RequestRedirect ->
-    receiver.redirect().
-
-pub referrer_typechecks(receiver: RequestInit): JsString ->
+pub referrer_typechecks(receiver: RequestInit): Option[JsString] ->
     receiver.referrer().
 
-pub referrer_policy_typechecks(receiver: RequestInit): ReferrerPolicy ->
-    receiver.referrer_policy().
-
-pub signal_typechecks(receiver: RequestInit): Option[AbortSignal] ->
+pub signal_typechecks(receiver: RequestInit): Option[std.js.Dom.AbortSignal.AbortSignal] ->
     receiver.signal().

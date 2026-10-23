@@ -1,4 +1,5 @@
 mod contract_helpers;
+mod type_resolution;
 use contract_helpers::render_module_test;
 
 use std::collections::BTreeMap;
@@ -58,7 +59,8 @@ pub(super) fn generate_js_dom_bindings(
 ) -> Result<(), String> {
     let manifest = load_ts_input_manifest(repo_root, manifest_path)?;
     let declarations = parse_manifest_inputs(repo_root, &manifest)?;
-    let mapping = map_ts_declarations_to_dom_modules(&declarations);
+    let mut mapping = map_ts_declarations_to_dom_modules(&declarations);
+    type_resolution::qualify(&mut mapping);
     let files = generated_files(&manifest, manifest_path, &mapping)?;
     write_generated_files(out_dir, &files)
 }
@@ -74,7 +76,8 @@ pub(super) fn generate_js_dom_bindings_from_manifest(
 ) -> Result<(), String> {
     super::ts_input_manifest::validate_ts_input_manifest(repo_root, &manifest)?;
     let declarations = parse_manifest_inputs(repo_root, &manifest)?;
-    let mapping = map_ts_declarations_to_dom_modules(&declarations);
+    let mut mapping = map_ts_declarations_to_dom_modules(&declarations);
+    type_resolution::qualify(&mut mapping);
     let files = generated_files(&manifest, manifest_path, &mapping)?;
     write_generated_files(out_dir, &files)
 }
@@ -580,7 +583,7 @@ fn render_property(
         output.push_str(&render_doc_block(doc));
     }
     let signature = format!(
-        "pub (value: {}) {}(): {}",
+        "pub (receiver: {}) {}(): {}",
         render_type_reference_name(module),
         property.terlan_name,
         property.terlan_type
@@ -606,8 +609,16 @@ fn render_method(module: &DomModulePlan, method: &DomMethodPlan, include_body: b
     if let Some(doc) = &method.doc {
         output.push_str(&render_doc_block(doc));
     }
+    let mut receiver = "receiver".to_string();
+    while method
+        .params
+        .iter()
+        .any(|parameter| parameter.terlan_name == receiver)
+    {
+        receiver.push('_');
+    }
     let signature = format!(
-        "pub (value: {}) {}({}): {}",
+        "pub ({receiver}: {}) {}({}): {}",
         render_type_reference_name(module),
         method.terlan_name,
         render_params(&method.params),
@@ -730,9 +741,18 @@ fn render_signature(signature: String, include_body: bool) -> String {
 fn render_params(params: &[DomParamPlan]) -> String {
     params
         .iter()
-        .map(|param| format!("{}: {}", param.terlan_name, param.terlan_type))
+        .map(|param| format!("{}: {}", param.terlan_name, render_param_type(param)))
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+/// Optional JavaScript arguments have an explicit absence value in Terlan.
+fn render_param_type(param: &DomParamPlan) -> String {
+    if param.optional {
+        format!("std.core.Option.Option[{}]", param.terlan_type)
+    } else {
+        param.terlan_type.clone()
+    }
 }
 
 /// Writes generated files into an empty output directory.

@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLAnchorElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -25,13 +27,13 @@ pub opaque type HTMLAnchorElement.
 /**
  * @deprecated
  */
-pub (value: HTMLAnchorElement) charset(): JsString ->
+pub (receiver: HTMLAnchorElement) charset(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLAnchorElement) coords(): JsString ->
+pub (receiver: HTMLAnchorElement) coords(): JsString ->
     native.
 
 /**
@@ -39,7 +41,7 @@ pub (value: HTMLAnchorElement) coords(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/download)
  */
-pub (value: HTMLAnchorElement) download(): JsString ->
+pub (receiver: HTMLAnchorElement) download(): JsString ->
     native.
 
 /**
@@ -47,13 +49,13 @@ pub (value: HTMLAnchorElement) download(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/hreflang)
  */
-pub (value: HTMLAnchorElement) hreflang(): JsString ->
+pub (receiver: HTMLAnchorElement) hreflang(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLAnchorElement) name(): JsString ->
+pub (receiver: HTMLAnchorElement) name(): JsString ->
     native.
 
 /**
@@ -61,7 +63,7 @@ pub (value: HTMLAnchorElement) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/ping)
  */
-pub (value: HTMLAnchorElement) ping(): JsString ->
+pub (receiver: HTMLAnchorElement) ping(): JsString ->
     native.
 
 /**
@@ -69,7 +71,7 @@ pub (value: HTMLAnchorElement) ping(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/referrerPolicy)
  */
-pub (value: HTMLAnchorElement) referrer_policy(): JsString ->
+pub (receiver: HTMLAnchorElement) referrer_policy(): JsString ->
     native.
 
 /**
@@ -77,7 +79,7 @@ pub (value: HTMLAnchorElement) referrer_policy(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/rel)
  */
-pub (value: HTMLAnchorElement) rel(): JsString ->
+pub (receiver: HTMLAnchorElement) rel(): JsString ->
     native.
 
 /**
@@ -85,19 +87,19 @@ pub (value: HTMLAnchorElement) rel(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/relList)
  */
-pub (value: HTMLAnchorElement) rel_list(): DOMTokenList ->
+pub (receiver: HTMLAnchorElement) rel_list(): std.js.Dom.DOMTokenList.DOMTokenList ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLAnchorElement) rev(): JsString ->
+pub (receiver: HTMLAnchorElement) rev(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLAnchorElement) shape(): JsString ->
+pub (receiver: HTMLAnchorElement) shape(): JsString ->
     native.
 
 /**
@@ -105,7 +107,7 @@ pub (value: HTMLAnchorElement) shape(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/target)
  */
-pub (value: HTMLAnchorElement) target_(): JsString ->
+pub (receiver: HTMLAnchorElement) target_(): JsString ->
     native.
 
 /**
@@ -113,7 +115,7 @@ pub (value: HTMLAnchorElement) target_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/text)
  */
-pub (value: HTMLAnchorElement) text(): JsString ->
+pub (receiver: HTMLAnchorElement) text(): JsString ->
     native.
 
 /**
@@ -121,19 +123,19 @@ pub (value: HTMLAnchorElement) text(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/type)
  */
-pub (value: HTMLAnchorElement) type_(): JsString ->
+pub (receiver: HTMLAnchorElement) type_(): JsString ->
     native.
 
-pub (value: HTMLAnchorElement) add_event_listener(
+pub (receiver: HTMLAnchorElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLAnchorElement) remove_event_listener(
+pub (receiver: HTMLAnchorElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

@@ -13,5 +13,3 @@
 module std.js.Dom.LockGrantedCallbackTest.
 
 import type std.js.Dom.LockGrantedCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

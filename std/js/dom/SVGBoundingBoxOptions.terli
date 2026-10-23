@@ -12,14 +12,14 @@
  */
 module std.js.Dom.SVGBoundingBoxOptions.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type SVGBoundingBoxOptions.
 
-pub (value: SVGBoundingBoxOptions) clipped(): Bool.
+pub (receiver: SVGBoundingBoxOptions) clipped(): Option[Bool].
 
-pub (value: SVGBoundingBoxOptions) fill(): Bool.
+pub (receiver: SVGBoundingBoxOptions) fill(): Option[Bool].
 
-pub (value: SVGBoundingBoxOptions) markers(): Bool.
+pub (receiver: SVGBoundingBoxOptions) markers(): Option[Bool].
 
-pub (value: SVGBoundingBoxOptions) stroke(): Bool.
+pub (receiver: SVGBoundingBoxOptions) stroke(): Option[Bool].

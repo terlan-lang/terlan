@@ -26,7 +26,7 @@ pub opaque type CSSCounterStyleRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/additiveSymbols)
  */
-pub (value: CSSCounterStyleRule) additive_symbols(): JsString ->
+pub (receiver: CSSCounterStyleRule) additive_symbols(): JsString ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: CSSCounterStyleRule) additive_symbols(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/fallback)
  */
-pub (value: CSSCounterStyleRule) fallback(): JsString ->
+pub (receiver: CSSCounterStyleRule) fallback(): JsString ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: CSSCounterStyleRule) fallback(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/name)
  */
-pub (value: CSSCounterStyleRule) name(): JsString ->
+pub (receiver: CSSCounterStyleRule) name(): JsString ->
     native.
 
 /**
@@ -50,7 +50,7 @@ pub (value: CSSCounterStyleRule) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/negative)
  */
-pub (value: CSSCounterStyleRule) negative(): JsString ->
+pub (receiver: CSSCounterStyleRule) negative(): JsString ->
     native.
 
 /**
@@ -58,7 +58,7 @@ pub (value: CSSCounterStyleRule) negative(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/pad)
  */
-pub (value: CSSCounterStyleRule) pad(): JsString ->
+pub (receiver: CSSCounterStyleRule) pad(): JsString ->
     native.
 
 /**
@@ -66,7 +66,7 @@ pub (value: CSSCounterStyleRule) pad(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/prefix)
  */
-pub (value: CSSCounterStyleRule) prefix(): JsString ->
+pub (receiver: CSSCounterStyleRule) prefix(): JsString ->
     native.
 
 /**
@@ -74,7 +74,7 @@ pub (value: CSSCounterStyleRule) prefix(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/range)
  */
-pub (value: CSSCounterStyleRule) range(): JsString ->
+pub (receiver: CSSCounterStyleRule) range(): JsString ->
     native.
 
 /**
@@ -82,7 +82,7 @@ pub (value: CSSCounterStyleRule) range(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/speakAs)
  */
-pub (value: CSSCounterStyleRule) speak_as(): JsString ->
+pub (receiver: CSSCounterStyleRule) speak_as(): JsString ->
     native.
 
 /**
@@ -90,7 +90,7 @@ pub (value: CSSCounterStyleRule) speak_as(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/suffix)
  */
-pub (value: CSSCounterStyleRule) suffix(): JsString ->
+pub (receiver: CSSCounterStyleRule) suffix(): JsString ->
     native.
 
 /**
@@ -98,7 +98,7 @@ pub (value: CSSCounterStyleRule) suffix(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/symbols)
  */
-pub (value: CSSCounterStyleRule) symbols(): JsString ->
+pub (receiver: CSSCounterStyleRule) symbols(): JsString ->
     native.
 
 /**
@@ -106,5 +106,5 @@ pub (value: CSSCounterStyleRule) symbols(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSCounterStyleRule/system)
  */
-pub (value: CSSCounterStyleRule) system(): JsString ->
+pub (receiver: CSSCounterStyleRule) system(): JsString ->
     native.

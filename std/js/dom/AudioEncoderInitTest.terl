@@ -14,10 +14,12 @@ module std.js.Dom.AudioEncoderInitTest.
 
 import type std.js.Dom.AudioEncoderInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub error_typechecks(receiver: AudioEncoderInit): WebCodecsErrorCallback ->
+pub error_typechecks(
+    receiver: AudioEncoderInit,
+): std.js.Dom.WebCodecsErrorCallback.WebCodecsErrorCallback ->
     receiver.error().
 
-pub output_typechecks(receiver: AudioEncoderInit): EncodedAudioChunkOutputCallback ->
+pub output_typechecks(
+    receiver: AudioEncoderInit,
+): std.js.Dom.EncodedAudioChunkOutputCallback.EncodedAudioChunkOutputCallback ->
     receiver.output().

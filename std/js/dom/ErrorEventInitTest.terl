@@ -12,20 +12,19 @@
  */
 module std.js.Dom.ErrorEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.ErrorEventInit.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub colno_typechecks(receiver: ErrorEventInit): JsNumber ->
+pub colno_typechecks(receiver: ErrorEventInit): Option[JsNumber] ->
     receiver.colno().
 
-pub filename_typechecks(receiver: ErrorEventInit): JsString ->
+pub filename_typechecks(receiver: ErrorEventInit): Option[JsString] ->
     receiver.filename().
 
-pub lineno_typechecks(receiver: ErrorEventInit): JsNumber ->
+pub lineno_typechecks(receiver: ErrorEventInit): Option[JsNumber] ->
     receiver.lineno().
 
-pub message_typechecks(receiver: ErrorEventInit): JsString ->
+pub message_typechecks(receiver: ErrorEventInit): Option[JsString] ->
     receiver.message().

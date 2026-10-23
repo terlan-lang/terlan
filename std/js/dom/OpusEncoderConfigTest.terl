@@ -12,26 +12,21 @@
  */
 module std.js.Dom.OpusEncoderConfigTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.OpusEncoderConfig.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub complexity_typechecks(receiver: OpusEncoderConfig): JsNumber ->
+pub complexity_typechecks(receiver: OpusEncoderConfig): Option[JsNumber] ->
     receiver.complexity().
 
-pub format_typechecks(receiver: OpusEncoderConfig): OpusBitstreamFormat ->
-    receiver.format().
-
-pub frame_duration_typechecks(receiver: OpusEncoderConfig): JsNumber ->
+pub frame_duration_typechecks(receiver: OpusEncoderConfig): Option[JsNumber] ->
     receiver.frame_duration().
 
-pub packetlossperc_typechecks(receiver: OpusEncoderConfig): JsNumber ->
+pub packetlossperc_typechecks(receiver: OpusEncoderConfig): Option[JsNumber] ->
     receiver.packetlossperc().
 
-pub usedtx_typechecks(receiver: OpusEncoderConfig): Bool ->
+pub usedtx_typechecks(receiver: OpusEncoderConfig): Option[Bool] ->
     receiver.usedtx().
 
-pub useinbandfec_typechecks(receiver: OpusEncoderConfig): Bool ->
+pub useinbandfec_typechecks(receiver: OpusEncoderConfig): Option[Bool] ->
     receiver.useinbandfec().

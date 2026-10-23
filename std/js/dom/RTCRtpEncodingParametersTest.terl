@@ -12,25 +12,18 @@
  */
 module std.js.Dom.RTCRtpEncodingParametersTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.RTCRtpEncodingParameters.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub active_typechecks(receiver: RTCRtpEncodingParameters): std.core.Bool ->
+pub active_typechecks(receiver: RTCRtpEncodingParameters): Option[Bool] ->
     receiver.active().
 
-pub max_bitrate_typechecks(receiver: RTCRtpEncodingParameters): JsNumber ->
+pub max_bitrate_typechecks(receiver: RTCRtpEncodingParameters): Option[JsNumber] ->
     receiver.max_bitrate().
 
-pub max_framerate_typechecks(receiver: RTCRtpEncodingParameters): JsNumber ->
+pub max_framerate_typechecks(receiver: RTCRtpEncodingParameters): Option[JsNumber] ->
     receiver.max_framerate().
 
-pub network_priority_typechecks(receiver: RTCRtpEncodingParameters): RTCPriorityType ->
-    receiver.network_priority().
-
-pub priority_typechecks(receiver: RTCRtpEncodingParameters): RTCPriorityType ->
-    receiver.priority().
-
-pub scale_resolution_down_by_typechecks(receiver: RTCRtpEncodingParameters): JsNumber ->
+pub scale_resolution_down_by_typechecks(receiver: RTCRtpEncodingParameters): Option[JsNumber] ->
     receiver.scale_resolution_down_by().

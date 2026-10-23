@@ -13,5 +13,3 @@
 module std.js.Dom.KHR_parallel_shader_compileTest.
 
 import type std.js.Dom.KHR_parallel_shader_compile.
-
-pub generated_binding_surface_contract(): Bool -> true.

@@ -24,7 +24,7 @@ pub opaque type BlobEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BlobEvent/data)
  */
-pub (value: BlobEvent) data(): Blob ->
+pub (receiver: BlobEvent) data(): std.js.Dom.Blob.Blob ->
     native.
 
 /**
@@ -32,5 +32,5 @@ pub (value: BlobEvent) data(): Blob ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BlobEvent/timecode)
  */
-pub (value: BlobEvent) timecode(): DOMHighResTimeStamp ->
+pub (receiver: BlobEvent) timecode(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
     native.

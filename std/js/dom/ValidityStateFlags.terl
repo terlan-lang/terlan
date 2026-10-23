@@ -12,36 +12,36 @@
  */
 module std.js.Dom.ValidityStateFlags.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type ValidityStateFlags.
 
-pub (value: ValidityStateFlags) bad_input(): Bool ->
+pub (receiver: ValidityStateFlags) bad_input(): Option[Bool] ->
     native.
 
-pub (value: ValidityStateFlags) custom_error(): Bool ->
+pub (receiver: ValidityStateFlags) custom_error(): Option[Bool] ->
     native.
 
-pub (value: ValidityStateFlags) pattern_mismatch(): Bool ->
+pub (receiver: ValidityStateFlags) pattern_mismatch(): Option[Bool] ->
     native.
 
-pub (value: ValidityStateFlags) range_overflow(): Bool ->
+pub (receiver: ValidityStateFlags) range_overflow(): Option[Bool] ->
     native.
 
-pub (value: ValidityStateFlags) range_underflow(): Bool ->
+pub (receiver: ValidityStateFlags) range_underflow(): Option[Bool] ->
     native.
 
-pub (value: ValidityStateFlags) step_mismatch(): Bool ->
+pub (receiver: ValidityStateFlags) step_mismatch(): Option[Bool] ->
     native.
 
-pub (value: ValidityStateFlags) too_long(): Bool ->
+pub (receiver: ValidityStateFlags) too_long(): Option[Bool] ->
     native.
 
-pub (value: ValidityStateFlags) too_short(): Bool ->
+pub (receiver: ValidityStateFlags) too_short(): Option[Bool] ->
     native.
 
-pub (value: ValidityStateFlags) type_mismatch(): Bool ->
+pub (receiver: ValidityStateFlags) type_mismatch(): Option[Bool] ->
     native.
 
-pub (value: ValidityStateFlags) value_missing(): Bool ->
+pub (receiver: ValidityStateFlags) value_missing(): Option[Bool] ->
     native.

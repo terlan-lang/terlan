@@ -14,7 +14,5 @@ module std.js.Dom.RTCRtpCodecParametersTest.
 
 import type std.js.Dom.RTCRtpCodecParameters.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub payload_type_typechecks(receiver: RTCRtpCodecParameters): std.js.Number.JsNumber ->
     receiver.payload_type().

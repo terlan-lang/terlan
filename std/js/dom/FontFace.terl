@@ -12,8 +12,8 @@
  */
 module std.js.Dom.FontFace.
 
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
 
 /**
  * The **`FontFace`** interface of the CSS Font Loading API represents a single usable font face.
@@ -27,7 +27,7 @@ pub opaque type FontFace.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/ascentOverride)
  */
-pub (value: FontFace) ascent_override(): JsString ->
+pub (receiver: FontFace) ascent_override(): JsString ->
     native.
 
 /**
@@ -35,15 +35,7 @@ pub (value: FontFace) ascent_override(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/descentOverride)
  */
-pub (value: FontFace) descent_override(): JsString ->
-    native.
-
-/**
- * The **`display`** property of the FontFace interface determines how a font face is displayed based on whether and when it is downloaded and ready to use.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/display)
- */
-pub (value: FontFace) display(): FontDisplay ->
+pub (receiver: FontFace) descent_override(): JsString ->
     native.
 
 /**
@@ -51,7 +43,7 @@ pub (value: FontFace) display(): FontDisplay ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/family)
  */
-pub (value: FontFace) family(): JsString ->
+pub (receiver: FontFace) family(): JsString ->
     native.
 
 /**
@@ -59,7 +51,7 @@ pub (value: FontFace) family(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/featureSettings)
  */
-pub (value: FontFace) feature_settings(): JsString ->
+pub (receiver: FontFace) feature_settings(): JsString ->
     native.
 
 /**
@@ -67,7 +59,7 @@ pub (value: FontFace) feature_settings(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/lineGapOverride)
  */
-pub (value: FontFace) line_gap_override(): JsString ->
+pub (receiver: FontFace) line_gap_override(): JsString ->
     native.
 
 /**
@@ -75,15 +67,7 @@ pub (value: FontFace) line_gap_override(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/loaded)
  */
-pub (value: FontFace) loaded(): Promise[FontFace] ->
-    native.
-
-/**
- * The **`status`** read-only property of the FontFace interface returns an enumerated value indicating the status of the font, one of `'unloaded'`, `'loading'`, `'loaded'`, or `'error'`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/status)
- */
-pub (value: FontFace) status(): FontFaceLoadStatus ->
+pub (receiver: FontFace) loaded(): Promise[FontFace] ->
     native.
 
 /**
@@ -91,7 +75,7 @@ pub (value: FontFace) status(): FontFaceLoadStatus ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/stretch)
  */
-pub (value: FontFace) stretch(): JsString ->
+pub (receiver: FontFace) stretch(): JsString ->
     native.
 
 /**
@@ -99,7 +83,7 @@ pub (value: FontFace) stretch(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/style)
  */
-pub (value: FontFace) style(): JsString ->
+pub (receiver: FontFace) style(): JsString ->
     native.
 
 /**
@@ -107,7 +91,7 @@ pub (value: FontFace) style(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/unicodeRange)
  */
-pub (value: FontFace) unicode_range(): JsString ->
+pub (receiver: FontFace) unicode_range(): JsString ->
     native.
 
 /**
@@ -115,7 +99,7 @@ pub (value: FontFace) unicode_range(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/weight)
  */
-pub (value: FontFace) weight(): JsString ->
+pub (receiver: FontFace) weight(): JsString ->
     native.
 
 /**
@@ -123,5 +107,5 @@ pub (value: FontFace) weight(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/load)
  */
-pub (value: FontFace) load(): Promise[FontFace] ->
+pub (receiver: FontFace) load(): Promise[FontFace] ->
     native.

@@ -14,7 +14,5 @@ module std.js.Dom.AssignedNodesOptionsTest.
 
 import type std.js.Dom.AssignedNodesOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub flatten_typechecks(receiver: AssignedNodesOptions): std.core.Bool ->
+pub flatten_typechecks(receiver: AssignedNodesOptions): std.core.Option.Option[Bool] ->
     receiver.flatten().

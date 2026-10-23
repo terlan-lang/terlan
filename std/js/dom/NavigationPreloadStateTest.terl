@@ -12,12 +12,11 @@
  */
 module std.js.Dom.NavigationPreloadStateTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.NavigationPreloadState.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub enabled_typechecks(receiver: NavigationPreloadState): std.core.Bool ->
+pub enabled_typechecks(receiver: NavigationPreloadState): Option[Bool] ->
     receiver.enabled().
 
-pub header_value_typechecks(receiver: NavigationPreloadState): std.js.String.JsString ->
+pub header_value_typechecks(receiver: NavigationPreloadState): Option[std.js.String.JsString] ->
     receiver.header_value().

@@ -12,12 +12,13 @@
  */
 module std.js.Dom.VideoDecoderSupportTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.VideoDecoderSupport.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub config_typechecks(receiver: VideoDecoderSupport): VideoDecoderConfig ->
+pub config_typechecks(
+    receiver: VideoDecoderSupport,
+): Option[std.js.Dom.VideoDecoderConfig.VideoDecoderConfig] ->
     receiver.config().
 
-pub supported_typechecks(receiver: VideoDecoderSupport): std.core.Bool ->
+pub supported_typechecks(receiver: VideoDecoderSupport): Option[Bool] ->
     receiver.supported().

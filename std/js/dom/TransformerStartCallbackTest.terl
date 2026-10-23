@@ -13,5 +13,3 @@
 module std.js.Dom.TransformerStartCallbackTest.
 
 import type std.js.Dom.TransformerStartCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

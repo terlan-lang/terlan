@@ -12,10 +12,10 @@
  */
 module std.js.Dom.FileSystemFlags.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type FileSystemFlags.
 
-pub (value: FileSystemFlags) create(): Bool.
+pub (receiver: FileSystemFlags) create(): Option[Bool].
 
-pub (value: FileSystemFlags) exclusive(): Bool.
+pub (receiver: FileSystemFlags) exclusive(): Option[Bool].

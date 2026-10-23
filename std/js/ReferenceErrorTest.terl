@@ -13,5 +13,3 @@
 module std.js.ReferenceErrorTest.
 
 import type std.js.ReferenceError.
-
-pub generated_binding_surface_contract(): Bool -> true.

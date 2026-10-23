@@ -14,5 +14,5 @@ module std.js.Dom.PaymentMethodData.
 
 pub opaque type PaymentMethodData.
 
-pub (value: PaymentMethodData) supported_methods(): std.js.String.JsString ->
+pub (receiver: PaymentMethodData) supported_methods(): std.js.String.JsString ->
     native.

@@ -12,16 +12,20 @@
  */
 module std.js.Dom.WebTransportTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.ReadableStream.{ReadableStream}.
 import type std.js.Dom.WebTransport.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.WebTransportCloseInfo.{WebTransportCloseInfo}.
+import type std.js.Dom.WebTransportSendStreamOptions.{WebTransportSendStreamOptions}.
+import type std.js.Promise.{Promise}.
 
 pub closed_typechecks(receiver: WebTransport): Promise[WebTransportCloseInfo] ->
     receiver.closed().
 
-pub datagrams_typechecks(receiver: WebTransport): WebTransportDatagramDuplexStream ->
+pub datagrams_typechecks(
+    receiver: WebTransport,
+): std.js.Dom.WebTransportDatagramDuplexStream.WebTransportDatagramDuplexStream ->
     receiver.datagrams().
 
 pub incoming_bidirectional_streams_typechecks(receiver: WebTransport): ReadableStream ->
@@ -33,17 +37,17 @@ pub incoming_unidirectional_streams_typechecks(receiver: WebTransport): Readable
 pub ready_typechecks(receiver: WebTransport): Promise[Unit] ->
     receiver.ready().
 
-pub close_typechecks(receiver: WebTransport, close_info: WebTransportCloseInfo): Unit ->
+pub close_typechecks(receiver: WebTransport, close_info: Option[WebTransportCloseInfo]): Unit ->
     receiver.close(close_info).
 
 pub create_bidirectional_stream_typechecks(
     receiver: WebTransport,
-    options: WebTransportSendStreamOptions,
-): Promise[WebTransportBidirectionalStream] ->
+    options: Option[WebTransportSendStreamOptions],
+): Promise[std.js.Dom.WebTransportBidirectionalStream.WebTransportBidirectionalStream] ->
     receiver.create_bidirectional_stream(options).
 
 pub create_unidirectional_stream_typechecks(
     receiver: WebTransport,
-    options: WebTransportSendStreamOptions,
-): Promise[WritableStream] ->
+    options: Option[WebTransportSendStreamOptions],
+): Promise[std.js.Dom.WritableStream.WritableStream] ->
     receiver.create_unidirectional_stream(options).

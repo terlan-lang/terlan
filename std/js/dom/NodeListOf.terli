@@ -14,4 +14,4 @@ module std.js.Dom.NodeListOf.
 
 pub opaque type NodeListOf[TNode].
 
-pub (value: NodeListOf[TNode]) item(index: std.js.Number.JsNumber): TNode.
+pub (receiver: NodeListOf[TNode]) item(index: std.js.Number.JsNumber): TNode.

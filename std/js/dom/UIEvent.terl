@@ -12,7 +12,8 @@
  */
 module std.js.Dom.UIEvent.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.Dom.Window.{Window}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,7 +28,7 @@ pub opaque type UIEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UIEvent/detail)
  */
-pub (value: UIEvent) detail(): JsNumber ->
+pub (receiver: UIEvent) detail(): JsNumber ->
     native.
 
 /**
@@ -35,7 +36,7 @@ pub (value: UIEvent) detail(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UIEvent/view)
  */
-pub (value: UIEvent) view(): Option[Window] ->
+pub (receiver: UIEvent) view(): Option[Window] ->
     native.
 
 /**
@@ -44,7 +45,7 @@ pub (value: UIEvent) view(): Option[Window] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UIEvent/which)
  */
-pub (value: UIEvent) which(): JsNumber ->
+pub (receiver: UIEvent) which(): JsNumber ->
     native.
 
 /**
@@ -53,11 +54,11 @@ pub (value: UIEvent) which(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/UIEvent/initUIEvent)
  */
-pub (value: UIEvent) init_ui_event(
+pub (receiver: UIEvent) init_ui_event(
     type_arg: std.js.String.JsString,
-    bubbles_arg: Bool,
-    cancelable_arg: Bool,
-    view_arg: Option[Window],
-    detail_arg: JsNumber,
-): std.core.Unit ->
+    bubbles_arg: Option[Bool],
+    cancelable_arg: Option[Bool],
+    view_arg: Option[Option[Window]],
+    detail_arg: Option[JsNumber],
+): std.core.Unit.Unit ->
     native.

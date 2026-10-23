@@ -12,12 +12,10 @@
  */
 module std.js.Dom.CacheStorageTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.CacheStorage.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub delete_typechecks(receiver: CacheStorage, cache_name: JsString): Promise[Bool] ->
     receiver.delete(cache_name).
@@ -25,15 +23,15 @@ pub delete_typechecks(receiver: CacheStorage, cache_name: JsString): Promise[Boo
 pub has_typechecks(receiver: CacheStorage, cache_name: JsString): Promise[Bool] ->
     receiver.has(cache_name).
 
-pub keys_typechecks(receiver: CacheStorage): Promise[std.js.Array[JsString]] ->
+pub keys_typechecks(receiver: CacheStorage): Promise[std.js.Array.Array[JsString]] ->
     receiver.keys().
 
 pub match_typechecks(
     receiver: CacheStorage,
-    request: RequestInfo | URL,
-    options: MultiCacheQueryOptions,
-): Promise[Option[Response]] ->
+    request: std.js.Dom.RequestInfo.RequestInfo | std.js.Dom.URL.URL,
+    options: Option[std.js.Dom.MultiCacheQueryOptions.MultiCacheQueryOptions],
+): Promise[Option[std.js.Dom.Response.Response]] ->
     receiver.match(request, options).
 
-pub open_typechecks(receiver: CacheStorage, cache_name: JsString): Promise[Cache] ->
+pub open_typechecks(receiver: CacheStorage, cache_name: JsString): Promise[std.js.Dom.Cache.Cache] ->
     receiver.open(cache_name).

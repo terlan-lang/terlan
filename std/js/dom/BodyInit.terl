@@ -12,4 +12,6 @@
  */
 module std.js.Dom.BodyInit.
 
-pub type BodyInit = ReadableStream | XMLHttpRequestBodyInit.
+pub type BodyInit =
+      std.js.Dom.ReadableStream.ReadableStream
+    | std.js.Dom.XMLHttpRequestBodyInit.XMLHttpRequestBodyInit.

@@ -15,10 +15,10 @@ module std.js.Dom.RTCRtpStreamStats.
 
 pub opaque type RTCRtpStreamStats.
 
-pub (value: RTCRtpStreamStats) codec_id(): std.js.String.JsString.
+pub (receiver: RTCRtpStreamStats) codec_id(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RTCRtpStreamStats) kind(): std.js.String.JsString.
+pub (receiver: RTCRtpStreamStats) kind(): std.js.String.JsString.
 
-pub (value: RTCRtpStreamStats) ssrc(): std.js.Number.JsNumber.
+pub (receiver: RTCRtpStreamStats) ssrc(): std.js.Number.JsNumber.
 
-pub (value: RTCRtpStreamStats) transport_id(): std.js.String.JsString.
+pub (receiver: RTCRtpStreamStats) transport_id(): std.core.Option.Option[std.js.String.JsString].

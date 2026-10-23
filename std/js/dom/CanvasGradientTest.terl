@@ -14,11 +14,9 @@ module std.js.Dom.CanvasGradientTest.
 
 import type std.js.Dom.CanvasGradient.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub add_color_stop_typechecks(
     receiver: CanvasGradient,
     offset: std.js.Number.JsNumber,
     color: std.js.String.JsString,
-): std.core.Unit ->
+): std.core.Unit.Unit ->
     receiver.add_color_stop(offset, color).

@@ -12,6 +12,7 @@
  */
 module std.js.Dom.LargestContentfulPaint.
 
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
 import type std.js.String.{JsString}.
 
 /**
@@ -26,7 +27,7 @@ pub opaque type LargestContentfulPaint.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/element)
  */
-pub (value: LargestContentfulPaint) element(): Option[Element] ->
+pub (receiver: LargestContentfulPaint) element(): std.core.Option.Option[std.js.Dom.Element.Element] ->
     native.
 
 /**
@@ -34,7 +35,7 @@ pub (value: LargestContentfulPaint) element(): Option[Element] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/id)
  */
-pub (value: LargestContentfulPaint) id(): JsString ->
+pub (receiver: LargestContentfulPaint) id(): JsString ->
     native.
 
 /**
@@ -42,13 +43,13 @@ pub (value: LargestContentfulPaint) id(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/loadTime)
  */
-pub (value: LargestContentfulPaint) load_time(): DOMHighResTimeStamp ->
+pub (receiver: LargestContentfulPaint) load_time(): DOMHighResTimeStamp ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/renderTime)
  */
-pub (value: LargestContentfulPaint) render_time(): DOMHighResTimeStamp ->
+pub (receiver: LargestContentfulPaint) render_time(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -56,7 +57,7 @@ pub (value: LargestContentfulPaint) render_time(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/size)
  */
-pub (value: LargestContentfulPaint) size(): std.js.Number.JsNumber ->
+pub (receiver: LargestContentfulPaint) size(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -64,5 +65,5 @@ pub (value: LargestContentfulPaint) size(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/url)
  */
-pub (value: LargestContentfulPaint) url(): JsString ->
+pub (receiver: LargestContentfulPaint) url(): JsString ->
     native.

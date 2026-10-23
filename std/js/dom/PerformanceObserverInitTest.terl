@@ -12,16 +12,15 @@
  */
 module std.js.Dom.PerformanceObserverInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.PerformanceObserverInit.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub buffered_typechecks(receiver: PerformanceObserverInit): std.core.Bool ->
+pub buffered_typechecks(receiver: PerformanceObserverInit): Option[Bool] ->
     receiver.buffered().
 
-pub entry_types_typechecks(receiver: PerformanceObserverInit): std.js.Array[JsString] ->
+pub entry_types_typechecks(receiver: PerformanceObserverInit): Option[std.js.Array.Array[JsString]] ->
     receiver.entry_types().
 
-pub type__typechecks(receiver: PerformanceObserverInit): JsString ->
+pub type__typechecks(receiver: PerformanceObserverInit): Option[JsString] ->
     receiver.type_().

@@ -13,5 +13,3 @@
 module std.js.Dom.ChannelSplitterNodeTest.
 
 import type std.js.Dom.ChannelSplitterNode.
-
-pub generated_binding_surface_contract(): Bool -> true.

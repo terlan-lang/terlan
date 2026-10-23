@@ -23,7 +23,7 @@ pub opaque type HTMLHyperlinkElementUtils.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/hash)
  */
-pub (value: HTMLHyperlinkElementUtils) hash(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) hash(): JsString.
 
 /**
  * Returns the hyperlink's URL's host and port (if different from the default port for the scheme).
@@ -32,7 +32,7 @@ pub (value: HTMLHyperlinkElementUtils) hash(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/host)
  */
-pub (value: HTMLHyperlinkElementUtils) host(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) host(): JsString.
 
 /**
  * Returns the hyperlink's URL's host.
@@ -41,7 +41,7 @@ pub (value: HTMLHyperlinkElementUtils) host(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/hostname)
  */
-pub (value: HTMLHyperlinkElementUtils) hostname(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) hostname(): JsString.
 
 /**
  * Returns the hyperlink's URL.
@@ -50,16 +50,16 @@ pub (value: HTMLHyperlinkElementUtils) hostname(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/href)
  */
-pub (value: HTMLHyperlinkElementUtils) href(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) href(): JsString.
 
-pub (value: HTMLHyperlinkElementUtils) to_string(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) to_string(): JsString.
 
 /**
  * Returns the hyperlink's URL's origin.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/origin)
  */
-pub (value: HTMLHyperlinkElementUtils) origin(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) origin(): JsString.
 
 /**
  * Returns the hyperlink's URL's password.
@@ -68,7 +68,7 @@ pub (value: HTMLHyperlinkElementUtils) origin(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/password)
  */
-pub (value: HTMLHyperlinkElementUtils) password(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) password(): JsString.
 
 /**
  * Returns the hyperlink's URL's path.
@@ -77,7 +77,7 @@ pub (value: HTMLHyperlinkElementUtils) password(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/pathname)
  */
-pub (value: HTMLHyperlinkElementUtils) pathname(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) pathname(): JsString.
 
 /**
  * Returns the hyperlink's URL's port.
@@ -86,7 +86,7 @@ pub (value: HTMLHyperlinkElementUtils) pathname(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/port)
  */
-pub (value: HTMLHyperlinkElementUtils) port(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) port(): JsString.
 
 /**
  * Returns the hyperlink's URL's scheme.
@@ -95,7 +95,7 @@ pub (value: HTMLHyperlinkElementUtils) port(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/protocol)
  */
-pub (value: HTMLHyperlinkElementUtils) protocol(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) protocol(): JsString.
 
 /**
  * Returns the hyperlink's URL's query (includes leading "?" if non-empty).
@@ -104,7 +104,7 @@ pub (value: HTMLHyperlinkElementUtils) protocol(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/search)
  */
-pub (value: HTMLHyperlinkElementUtils) search(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) search(): JsString.
 
 /**
  * Returns the hyperlink's URL's username.
@@ -113,4 +113,4 @@ pub (value: HTMLHyperlinkElementUtils) search(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/username)
  */
-pub (value: HTMLHyperlinkElementUtils) username(): JsString.
+pub (receiver: HTMLHyperlinkElementUtils) username(): JsString.

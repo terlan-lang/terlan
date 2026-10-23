@@ -15,16 +15,12 @@ module std.js.Dom.MediaCapabilitiesKeySystemConfiguration.
 
 pub opaque type MediaCapabilitiesKeySystemConfiguration.
 
-pub (value: MediaCapabilitiesKeySystemConfiguration) audio(): KeySystemTrackConfiguration.
+pub (receiver: MediaCapabilitiesKeySystemConfiguration) audio(): std.core.Option.Option[std.js.Dom.KeySystemTrackConfiguration.KeySystemTrackConfiguration].
 
-pub (value: MediaCapabilitiesKeySystemConfiguration) distinctive_identifier(): MediaKeysRequirement.
+pub (receiver: MediaCapabilitiesKeySystemConfiguration) init_data_type(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: MediaCapabilitiesKeySystemConfiguration) init_data_type(): std.js.String.JsString.
+pub (receiver: MediaCapabilitiesKeySystemConfiguration) key_system(): std.js.String.JsString.
 
-pub (value: MediaCapabilitiesKeySystemConfiguration) key_system(): std.js.String.JsString.
+pub (receiver: MediaCapabilitiesKeySystemConfiguration) session_types(): std.core.Option.Option[std.js.Array.Array[std.js.String.JsString]].
 
-pub (value: MediaCapabilitiesKeySystemConfiguration) persistent_state(): MediaKeysRequirement.
-
-pub (value: MediaCapabilitiesKeySystemConfiguration) session_types(): std.js.Array[std.js.String.JsString].
-
-pub (value: MediaCapabilitiesKeySystemConfiguration) video(): KeySystemTrackConfiguration.
+pub (receiver: MediaCapabilitiesKeySystemConfiguration) video(): std.core.Option.Option[std.js.Dom.KeySystemTrackConfiguration.KeySystemTrackConfiguration].

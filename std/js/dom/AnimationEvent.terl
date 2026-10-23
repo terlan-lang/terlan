@@ -26,7 +26,7 @@ pub opaque type AnimationEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationEvent/animationName)
  */
-pub (value: AnimationEvent) animation_name(): JsString ->
+pub (receiver: AnimationEvent) animation_name(): JsString ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: AnimationEvent) animation_name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationEvent/elapsedTime)
  */
-pub (value: AnimationEvent) elapsed_time(): std.js.Number.JsNumber ->
+pub (receiver: AnimationEvent) elapsed_time(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -42,5 +42,5 @@ pub (value: AnimationEvent) elapsed_time(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationEvent/pseudoElement)
  */
-pub (value: AnimationEvent) pseudo_element(): JsString ->
+pub (receiver: AnimationEvent) pseudo_element(): JsString ->
     native.

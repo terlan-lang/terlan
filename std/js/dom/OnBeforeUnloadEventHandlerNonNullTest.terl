@@ -13,5 +13,3 @@
 module std.js.Dom.OnBeforeUnloadEventHandlerNonNullTest.
 
 import type std.js.Dom.OnBeforeUnloadEventHandlerNonNull.
-
-pub generated_binding_surface_contract(): Bool -> true.

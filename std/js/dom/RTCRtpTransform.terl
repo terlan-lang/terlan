@@ -12,4 +12,4 @@
  */
 module std.js.Dom.RTCRtpTransform.
 
-pub type RTCRtpTransform = RTCRtpScriptTransform.
+pub type RTCRtpTransform = std.js.Dom.RTCRtpScriptTransform.RTCRtpScriptTransform.

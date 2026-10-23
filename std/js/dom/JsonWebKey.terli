@@ -12,43 +12,44 @@
  */
 module std.js.Dom.JsonWebKey.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
 pub opaque type JsonWebKey.
 
-pub (value: JsonWebKey) alg(): JsString.
+pub (receiver: JsonWebKey) alg(): Option[JsString].
 
-pub (value: JsonWebKey) crv(): JsString.
+pub (receiver: JsonWebKey) crv(): Option[JsString].
 
-pub (value: JsonWebKey) d(): JsString.
+pub (receiver: JsonWebKey) d(): Option[JsString].
 
-pub (value: JsonWebKey) dp(): JsString.
+pub (receiver: JsonWebKey) dp(): Option[JsString].
 
-pub (value: JsonWebKey) dq(): JsString.
+pub (receiver: JsonWebKey) dq(): Option[JsString].
 
-pub (value: JsonWebKey) e(): JsString.
+pub (receiver: JsonWebKey) e(): Option[JsString].
 
-pub (value: JsonWebKey) ext(): std.core.Bool.
+pub (receiver: JsonWebKey) ext(): Option[Bool].
 
-pub (value: JsonWebKey) k(): JsString.
+pub (receiver: JsonWebKey) k(): Option[JsString].
 
-pub (value: JsonWebKey) key_ops(): Array[JsString].
+pub (receiver: JsonWebKey) key_ops(): Option[Array[JsString]].
 
-pub (value: JsonWebKey) kty(): JsString.
+pub (receiver: JsonWebKey) kty(): Option[JsString].
 
-pub (value: JsonWebKey) n(): JsString.
+pub (receiver: JsonWebKey) n(): Option[JsString].
 
-pub (value: JsonWebKey) oth(): Array[RsaOtherPrimesInfo].
+pub (receiver: JsonWebKey) oth(): Option[Array[std.js.Dom.RsaOtherPrimesInfo.RsaOtherPrimesInfo]].
 
-pub (value: JsonWebKey) p(): JsString.
+pub (receiver: JsonWebKey) p(): Option[JsString].
 
-pub (value: JsonWebKey) q(): JsString.
+pub (receiver: JsonWebKey) q(): Option[JsString].
 
-pub (value: JsonWebKey) qi(): JsString.
+pub (receiver: JsonWebKey) qi(): Option[JsString].
 
-pub (value: JsonWebKey) use(): JsString.
+pub (receiver: JsonWebKey) use(): Option[JsString].
 
-pub (value: JsonWebKey) x(): JsString.
+pub (receiver: JsonWebKey) x(): Option[JsString].
 
-pub (value: JsonWebKey) y(): JsString.
+pub (receiver: JsonWebKey) y(): Option[JsString].

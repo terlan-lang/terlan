@@ -12,10 +12,11 @@
  */
 module std.js.Dom.StorageEstimate.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type StorageEstimate.
 
-pub (value: StorageEstimate) quota(): JsNumber.
+pub (receiver: StorageEstimate) quota(): Option[JsNumber].
 
-pub (value: StorageEstimate) usage(): JsNumber.
+pub (receiver: StorageEstimate) usage(): Option[JsNumber].

@@ -15,8 +15,6 @@ module std.js.Dom.CSSContainerRuleTest.
 import type std.js.Dom.CSSContainerRule.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub container_name_typechecks(receiver: CSSContainerRule): JsString ->
     receiver.container_name().
 

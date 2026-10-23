@@ -25,69 +25,69 @@ pub opaque type HTMLAreaElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/alt)
  */
-pub (value: HTMLAreaElement) alt(): std.js.String.JsString.
+pub (receiver: HTMLAreaElement) alt(): std.js.String.JsString.
 
 /**
  * The **`coords`** property of the HTMLAreaElement interface specifies the coordinates of the element's shape as a list of floating-point numbers.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/coords)
  */
-pub (value: HTMLAreaElement) coords(): std.js.String.JsString.
+pub (receiver: HTMLAreaElement) coords(): std.js.String.JsString.
 
 /**
  * The **`download`** property of the HTMLAreaElement interface is a string indicating that the linked resource is intended to be downloaded rather than displayed in the browser.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/download)
  */
-pub (value: HTMLAreaElement) download(): std.js.String.JsString.
+pub (receiver: HTMLAreaElement) download(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLAreaElement) no_href(): std.core.Bool.
+pub (receiver: HTMLAreaElement) no_href(): Bool.
 
 /**
  * The **`ping`** property of the HTMLAreaElement interface is a space-separated list of URLs.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/ping)
  */
-pub (value: HTMLAreaElement) ping(): std.js.String.JsString.
+pub (receiver: HTMLAreaElement) ping(): std.js.String.JsString.
 
 /**
  * The **`HTMLAreaElement.referrerPolicy`** property reflect the HTML `referrerpolicy` attribute of the resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/referrerPolicy)
  */
-pub (value: HTMLAreaElement) referrer_policy(): std.js.String.JsString.
+pub (receiver: HTMLAreaElement) referrer_policy(): std.js.String.JsString.
 
 /**
  * The **`HTMLAreaElement.rel`** property reflects the `rel` attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/rel)
  */
-pub (value: HTMLAreaElement) rel(): std.js.String.JsString.
+pub (receiver: HTMLAreaElement) rel(): std.js.String.JsString.
 
 /**
  * The **`HTMLAreaElement.relList`** read-only property reflects the `rel` attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/relList)
  */
-pub (value: HTMLAreaElement) rel_list(): DOMTokenList.
+pub (receiver: HTMLAreaElement) rel_list(): std.js.Dom.DOMTokenList.DOMTokenList.
 
 /**
  * The **`shape`** property of the HTMLAreaElement interface specifies the shape of an image map area.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/shape)
  */
-pub (value: HTMLAreaElement) shape(): std.js.String.JsString.
+pub (receiver: HTMLAreaElement) shape(): std.js.String.JsString.
 
 /**
  * The **`target`** property of the HTMLAreaElement interface is a string that indicates where to display the linked resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/target)
  */
-pub (value: HTMLAreaElement) target_(): std.js.String.JsString.
+pub (receiver: HTMLAreaElement) target_(): std.js.String.JsString.
 
-pub (value: HTMLAreaElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLAreaElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLAreaElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLAreaElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

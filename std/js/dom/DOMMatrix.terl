@@ -12,6 +12,8 @@
  */
 module std.js.Dom.DOMMatrix.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DOMMatrixInit.{DOMMatrixInit}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -24,133 +26,133 @@ pub opaque type DOMMatrix.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) a(): JsNumber ->
+pub (receiver: DOMMatrix) a(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) b(): JsNumber ->
+pub (receiver: DOMMatrix) b(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) c(): JsNumber ->
+pub (receiver: DOMMatrix) c(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) d(): JsNumber ->
+pub (receiver: DOMMatrix) d(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) e(): JsNumber ->
+pub (receiver: DOMMatrix) e(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) f(): JsNumber ->
+pub (receiver: DOMMatrix) f(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m11(): JsNumber ->
+pub (receiver: DOMMatrix) m11(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m12(): JsNumber ->
+pub (receiver: DOMMatrix) m12(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m13(): JsNumber ->
+pub (receiver: DOMMatrix) m13(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m14(): JsNumber ->
+pub (receiver: DOMMatrix) m14(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m21(): JsNumber ->
+pub (receiver: DOMMatrix) m21(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m22(): JsNumber ->
+pub (receiver: DOMMatrix) m22(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m23(): JsNumber ->
+pub (receiver: DOMMatrix) m23(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m24(): JsNumber ->
+pub (receiver: DOMMatrix) m24(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m31(): JsNumber ->
+pub (receiver: DOMMatrix) m31(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m32(): JsNumber ->
+pub (receiver: DOMMatrix) m32(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m33(): JsNumber ->
+pub (receiver: DOMMatrix) m33(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m34(): JsNumber ->
+pub (receiver: DOMMatrix) m34(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m41(): JsNumber ->
+pub (receiver: DOMMatrix) m41(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m42(): JsNumber ->
+pub (receiver: DOMMatrix) m42(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m43(): JsNumber ->
+pub (receiver: DOMMatrix) m43(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix#instance_properties)
  */
-pub (value: DOMMatrix) m44(): JsNumber ->
+pub (receiver: DOMMatrix) m44(): JsNumber ->
     native.
 
 /**
@@ -158,7 +160,7 @@ pub (value: DOMMatrix) m44(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/invertSelf)
  */
-pub (value: DOMMatrix) invert_self(): DOMMatrix ->
+pub (receiver: DOMMatrix) invert_self(): DOMMatrix ->
     native.
 
 /**
@@ -166,7 +168,7 @@ pub (value: DOMMatrix) invert_self(): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/multiplySelf)
  */
-pub (value: DOMMatrix) multiply_self(other: DOMMatrixInit): DOMMatrix ->
+pub (receiver: DOMMatrix) multiply_self(other: Option[DOMMatrixInit]): DOMMatrix ->
     native.
 
 /**
@@ -174,7 +176,7 @@ pub (value: DOMMatrix) multiply_self(other: DOMMatrixInit): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/preMultiplySelf)
  */
-pub (value: DOMMatrix) pre_multiply_self(other: DOMMatrixInit): DOMMatrix ->
+pub (receiver: DOMMatrix) pre_multiply_self(other: Option[DOMMatrixInit]): DOMMatrix ->
     native.
 
 /**
@@ -182,7 +184,12 @@ pub (value: DOMMatrix) pre_multiply_self(other: DOMMatrixInit): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/rotateAxisAngleSelf)
  */
-pub (value: DOMMatrix) rotate_axis_angle_self(x: JsNumber, y: JsNumber, z: JsNumber, angle: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrix) rotate_axis_angle_self(
+    x: Option[JsNumber],
+    y: Option[JsNumber],
+    z: Option[JsNumber],
+    angle: Option[JsNumber],
+): DOMMatrix ->
     native.
 
 /**
@@ -190,7 +197,7 @@ pub (value: DOMMatrix) rotate_axis_angle_self(x: JsNumber, y: JsNumber, z: JsNum
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/rotateFromVectorSelf)
  */
-pub (value: DOMMatrix) rotate_from_vector_self(x: JsNumber, y: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrix) rotate_from_vector_self(x: Option[JsNumber], y: Option[JsNumber]): DOMMatrix ->
     native.
 
 /**
@@ -198,7 +205,11 @@ pub (value: DOMMatrix) rotate_from_vector_self(x: JsNumber, y: JsNumber): DOMMat
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/rotateSelf)
  */
-pub (value: DOMMatrix) rotate_self(rot_x: JsNumber, rot_y: JsNumber, rot_z: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrix) rotate_self(
+    rot_x: Option[JsNumber],
+    rot_y: Option[JsNumber],
+    rot_z: Option[JsNumber],
+): DOMMatrix ->
     native.
 
 /**
@@ -206,11 +217,11 @@ pub (value: DOMMatrix) rotate_self(rot_x: JsNumber, rot_y: JsNumber, rot_z: JsNu
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/scale3dSelf)
  */
-pub (value: DOMMatrix) scale3d_self(
-    scale: JsNumber,
-    origin_x: JsNumber,
-    origin_y: JsNumber,
-    origin_z: JsNumber,
+pub (receiver: DOMMatrix) scale3d_self(
+    scale: Option[JsNumber],
+    origin_x: Option[JsNumber],
+    origin_y: Option[JsNumber],
+    origin_z: Option[JsNumber],
 ): DOMMatrix ->
     native.
 
@@ -219,13 +230,13 @@ pub (value: DOMMatrix) scale3d_self(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/scaleSelf)
  */
-pub (value: DOMMatrix) scale_self(
-    scale_x: JsNumber,
-    scale_y: JsNumber,
-    scale_z: JsNumber,
-    origin_x: JsNumber,
-    origin_y: JsNumber,
-    origin_z: JsNumber,
+pub (receiver: DOMMatrix) scale_self(
+    scale_x: Option[JsNumber],
+    scale_y: Option[JsNumber],
+    scale_z: Option[JsNumber],
+    origin_x: Option[JsNumber],
+    origin_y: Option[JsNumber],
+    origin_z: Option[JsNumber],
 ): DOMMatrix ->
     native.
 
@@ -234,7 +245,7 @@ pub (value: DOMMatrix) scale_self(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/setMatrixValue)
  */
-pub (value: DOMMatrix) set_matrix_value(transform_list: std.js.String.JsString): DOMMatrix ->
+pub (receiver: DOMMatrix) set_matrix_value(transform_list: std.js.String.JsString): DOMMatrix ->
     native.
 
 /**
@@ -242,7 +253,7 @@ pub (value: DOMMatrix) set_matrix_value(transform_list: std.js.String.JsString):
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/skewXSelf)
  */
-pub (value: DOMMatrix) skew_x_self(sx: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrix) skew_x_self(sx: Option[JsNumber]): DOMMatrix ->
     native.
 
 /**
@@ -250,7 +261,7 @@ pub (value: DOMMatrix) skew_x_self(sx: JsNumber): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/skewYSelf)
  */
-pub (value: DOMMatrix) skew_y_self(sy: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrix) skew_y_self(sy: Option[JsNumber]): DOMMatrix ->
     native.
 
 /**
@@ -258,5 +269,5 @@ pub (value: DOMMatrix) skew_y_self(sy: JsNumber): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrix/translateSelf)
  */
-pub (value: DOMMatrix) translate_self(tx: JsNumber, ty: JsNumber, tz: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrix) translate_self(tx: Option[JsNumber], ty: Option[JsNumber], tz: Option[JsNumber]): DOMMatrix ->
     native.

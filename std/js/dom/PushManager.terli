@@ -12,7 +12,9 @@
  */
 module std.js.Dom.PushManager.
 
-import type std.js.{Promise}.
+import type std.core.Option.{Option}.
+import type std.js.Dom.PushSubscription.{PushSubscription}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`PushManager`** interface of the Push API provides a way to receive notifications from third-party servers as well as request URLs for push notifications.
@@ -27,18 +29,13 @@ pub opaque type PushManager.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushManager/getSubscription)
  */
-pub (value: PushManager) get_subscription(): Promise[Option[PushSubscription]].
-
-/**
- * The **`permissionState()`** method of the string indicating the permission state of the push manager.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushManager/permissionState)
- */
-pub (value: PushManager) permission_state(options: PushSubscriptionOptionsInit): Promise[PermissionState].
+pub (receiver: PushManager) get_subscription(): Promise[Option[PushSubscription]].
 
 /**
  * The **`subscribe()`** method of the PushManager interface subscribes to a push service.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushManager/subscribe)
  */
-pub (value: PushManager) subscribe(options: PushSubscriptionOptionsInit): Promise[PushSubscription].
+pub (receiver: PushManager) subscribe(
+    options: Option[std.js.Dom.PushSubscriptionOptionsInit.PushSubscriptionOptionsInit],
+): Promise[PushSubscription].

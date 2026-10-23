@@ -15,42 +15,22 @@ module std.js.Dom.RequestTest.
 import type std.js.Dom.Request.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub cache_typechecks(receiver: Request): RequestCache ->
-    receiver.cache().
-
-pub credentials_typechecks(receiver: Request): RequestCredentials ->
-    receiver.credentials().
-
-pub destination_typechecks(receiver: Request): RequestDestination ->
-    receiver.destination().
-
-pub headers_typechecks(receiver: Request): Headers ->
+pub headers_typechecks(receiver: Request): std.js.Dom.Headers.Headers ->
     receiver.headers().
 
 pub integrity_typechecks(receiver: Request): JsString ->
     receiver.integrity().
 
-pub keepalive_typechecks(receiver: Request): std.core.Bool ->
+pub keepalive_typechecks(receiver: Request): Bool ->
     receiver.keepalive().
 
 pub method_typechecks(receiver: Request): JsString ->
     receiver.method().
 
-pub mode_typechecks(receiver: Request): RequestMode ->
-    receiver.mode().
-
-pub redirect_typechecks(receiver: Request): RequestRedirect ->
-    receiver.redirect().
-
 pub referrer_typechecks(receiver: Request): JsString ->
     receiver.referrer().
 
-pub referrer_policy_typechecks(receiver: Request): ReferrerPolicy ->
-    receiver.referrer_policy().
-
-pub signal_typechecks(receiver: Request): AbortSignal ->
+pub signal_typechecks(receiver: Request): std.js.Dom.AbortSignal.AbortSignal ->
     receiver.signal().
 
 pub url_typechecks(receiver: Request): JsString ->

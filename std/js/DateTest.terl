@@ -12,11 +12,11 @@
  */
 module std.js.DateTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
+import type std.js.Date.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-import type std.js.{Array, Date}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub to_string_typechecks(receiver: Date): JsString ->
     receiver.to_string().
@@ -102,33 +102,43 @@ pub set_milliseconds_typechecks(receiver: Date, ms: JsNumber): JsNumber ->
 pub set_utc_milliseconds_typechecks(receiver: Date, ms: JsNumber): JsNumber ->
     receiver.set_utc_milliseconds(ms).
 
-pub set_seconds_typechecks(receiver: Date, sec: JsNumber, ms: JsNumber): JsNumber ->
+pub set_seconds_typechecks(receiver: Date, sec: JsNumber, ms: Option[JsNumber]): JsNumber ->
     receiver.set_seconds(sec, ms).
 
-pub set_utc_seconds_typechecks(receiver: Date, sec: JsNumber, ms: JsNumber): JsNumber ->
+pub set_utc_seconds_typechecks(receiver: Date, sec: JsNumber, ms: Option[JsNumber]): JsNumber ->
     receiver.set_utc_seconds(sec, ms).
 
-pub set_minutes_typechecks(receiver: Date, min: JsNumber, sec: JsNumber, ms: JsNumber): JsNumber ->
+pub set_minutes_typechecks(
+    receiver: Date,
+    min: JsNumber,
+    sec: Option[JsNumber],
+    ms: Option[JsNumber],
+): JsNumber ->
     receiver.set_minutes(min, sec, ms).
 
-pub set_utc_minutes_typechecks(receiver: Date, min: JsNumber, sec: JsNumber, ms: JsNumber): JsNumber ->
+pub set_utc_minutes_typechecks(
+    receiver: Date,
+    min: JsNumber,
+    sec: Option[JsNumber],
+    ms: Option[JsNumber],
+): JsNumber ->
     receiver.set_utc_minutes(min, sec, ms).
 
 pub set_hours_typechecks(
     receiver: Date,
     hours: JsNumber,
-    min: JsNumber,
-    sec: JsNumber,
-    ms: JsNumber,
+    min: Option[JsNumber],
+    sec: Option[JsNumber],
+    ms: Option[JsNumber],
 ): JsNumber ->
     receiver.set_hours(hours, min, sec, ms).
 
 pub set_utc_hours_typechecks(
     receiver: Date,
     hours: JsNumber,
-    min: JsNumber,
-    sec: JsNumber,
-    ms: JsNumber,
+    min: Option[JsNumber],
+    sec: Option[JsNumber],
+    ms: Option[JsNumber],
 ): JsNumber ->
     receiver.set_utc_hours(hours, min, sec, ms).
 
@@ -138,25 +148,25 @@ pub set_date_typechecks(receiver: Date, date: JsNumber): JsNumber ->
 pub set_utc_date_typechecks(receiver: Date, date: JsNumber): JsNumber ->
     receiver.set_utc_date(date).
 
-pub set_month_typechecks(receiver: Date, month: JsNumber, date: JsNumber): JsNumber ->
+pub set_month_typechecks(receiver: Date, month: JsNumber, date: Option[JsNumber]): JsNumber ->
     receiver.set_month(month, date).
 
-pub set_utc_month_typechecks(receiver: Date, month: JsNumber, date: JsNumber): JsNumber ->
+pub set_utc_month_typechecks(receiver: Date, month: JsNumber, date: Option[JsNumber]): JsNumber ->
     receiver.set_utc_month(month, date).
 
 pub set_full_year_typechecks(
     receiver: Date,
     year: JsNumber,
-    month: JsNumber,
-    date: JsNumber,
+    month: Option[JsNumber],
+    date: Option[JsNumber],
 ): JsNumber ->
     receiver.set_full_year(year, month, date).
 
 pub set_utc_full_year_typechecks(
     receiver: Date,
     year: JsNumber,
-    month: JsNumber,
-    date: JsNumber,
+    month: Option[JsNumber],
+    date: Option[JsNumber],
 ): JsNumber ->
     receiver.set_utc_full_year(year, month, date).
 
@@ -166,23 +176,23 @@ pub to_utc_string_typechecks(receiver: Date): JsString ->
 pub to_iso_string_typechecks(receiver: Date): JsString ->
     receiver.to_iso_string().
 
-pub to_locale_string_typechecks(
+pub to_locale_string_overload_2_typechecks(
     receiver: Date,
-    locales: Array[JsString] | JsString,
-    options: Intl.DateTimeFormatOptions,
+    locales: Option[Array[JsString] | JsString],
+    options: Option[Intl.DateTimeFormatOptions],
 ): JsString ->
-    receiver.to_locale_string(locales, options).
+    receiver.to_locale_string_overload_2(locales, options).
 
-pub to_locale_date_string_typechecks(
+pub to_locale_date_string_overload_2_typechecks(
     receiver: Date,
-    locales: Array[JsString] | JsString,
-    options: Intl.DateTimeFormatOptions,
+    locales: Option[Array[JsString] | JsString],
+    options: Option[Intl.DateTimeFormatOptions],
 ): JsString ->
-    receiver.to_locale_date_string(locales, options).
+    receiver.to_locale_date_string_overload_2(locales, options).
 
-pub to_locale_time_string_typechecks(
+pub to_locale_time_string_overload_2_typechecks(
     receiver: Date,
-    locales: Array[JsString] | JsString,
-    options: Intl.DateTimeFormatOptions,
+    locales: Option[Array[JsString] | JsString],
+    options: Option[Intl.DateTimeFormatOptions],
 ): JsString ->
-    receiver.to_locale_time_string(locales, options).
+    receiver.to_locale_time_string_overload_2(locales, options).

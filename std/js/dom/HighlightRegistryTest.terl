@@ -13,5 +13,3 @@
 module std.js.Dom.HighlightRegistryTest.
 
 import type std.js.Dom.HighlightRegistry.
-
-pub generated_binding_surface_contract(): Bool -> true.

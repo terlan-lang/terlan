@@ -15,15 +15,15 @@ module std.js.Dom.MediaMetadataTest.
 import type std.js.Dom.MediaMetadata.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub album_typechecks(receiver: MediaMetadata): JsString ->
     receiver.album().
 
 pub artist_typechecks(receiver: MediaMetadata): JsString ->
     receiver.artist().
 
-pub artwork_typechecks(receiver: MediaMetadata): std.js.Array[MediaImage] ->
+pub artwork_typechecks(
+    receiver: MediaMetadata,
+): std.js.Array.Array[std.js.Dom.MediaImage.MediaImage] ->
     receiver.artwork().
 
 pub title_typechecks(receiver: MediaMetadata): JsString ->

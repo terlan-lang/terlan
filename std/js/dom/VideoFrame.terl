@@ -12,6 +12,9 @@
  */
 module std.js.Dom.VideoFrame.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DOMRectReadOnly.{DOMRectReadOnly}.
+import type std.js.Dom.VideoFrameCopyToOptions.{VideoFrameCopyToOptions}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -26,7 +29,7 @@ pub opaque type VideoFrame.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/codedHeight)
  */
-pub (value: VideoFrame) coded_height(): JsNumber ->
+pub (receiver: VideoFrame) coded_height(): JsNumber ->
     native.
 
 /**
@@ -34,7 +37,7 @@ pub (value: VideoFrame) coded_height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/codedRect)
  */
-pub (value: VideoFrame) coded_rect(): Option[DOMRectReadOnly] ->
+pub (receiver: VideoFrame) coded_rect(): Option[DOMRectReadOnly] ->
     native.
 
 /**
@@ -42,7 +45,7 @@ pub (value: VideoFrame) coded_rect(): Option[DOMRectReadOnly] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/codedWidth)
  */
-pub (value: VideoFrame) coded_width(): JsNumber ->
+pub (receiver: VideoFrame) coded_width(): JsNumber ->
     native.
 
 /**
@@ -50,7 +53,7 @@ pub (value: VideoFrame) coded_width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/colorSpace)
  */
-pub (value: VideoFrame) color_space(): VideoColorSpace ->
+pub (receiver: VideoFrame) color_space(): std.js.Dom.VideoColorSpace.VideoColorSpace ->
     native.
 
 /**
@@ -58,7 +61,7 @@ pub (value: VideoFrame) color_space(): VideoColorSpace ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/displayHeight)
  */
-pub (value: VideoFrame) display_height(): JsNumber ->
+pub (receiver: VideoFrame) display_height(): JsNumber ->
     native.
 
 /**
@@ -66,7 +69,7 @@ pub (value: VideoFrame) display_height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/displayWidth)
  */
-pub (value: VideoFrame) display_width(): JsNumber ->
+pub (receiver: VideoFrame) display_width(): JsNumber ->
     native.
 
 /**
@@ -74,15 +77,7 @@ pub (value: VideoFrame) display_width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/duration)
  */
-pub (value: VideoFrame) duration(): Option[JsNumber] ->
-    native.
-
-/**
- * The **`format`** property of the VideoFrame interface returns the pixel format of the `VideoFrame`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/format)
- */
-pub (value: VideoFrame) format(): Option[VideoPixelFormat] ->
+pub (receiver: VideoFrame) duration(): Option[JsNumber] ->
     native.
 
 /**
@@ -90,7 +85,7 @@ pub (value: VideoFrame) format(): Option[VideoPixelFormat] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/timestamp)
  */
-pub (value: VideoFrame) timestamp(): JsNumber ->
+pub (receiver: VideoFrame) timestamp(): JsNumber ->
     native.
 
 /**
@@ -98,7 +93,7 @@ pub (value: VideoFrame) timestamp(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/visibleRect)
  */
-pub (value: VideoFrame) visible_rect(): Option[DOMRectReadOnly] ->
+pub (receiver: VideoFrame) visible_rect(): Option[DOMRectReadOnly] ->
     native.
 
 /**
@@ -106,7 +101,7 @@ pub (value: VideoFrame) visible_rect(): Option[DOMRectReadOnly] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/allocationSize)
  */
-pub (value: VideoFrame) allocation_size(options: VideoFrameCopyToOptions): JsNumber ->
+pub (receiver: VideoFrame) allocation_size(options: Option[VideoFrameCopyToOptions]): JsNumber ->
     native.
 
 /**
@@ -114,7 +109,7 @@ pub (value: VideoFrame) allocation_size(options: VideoFrameCopyToOptions): JsNum
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/clone)
  */
-pub (value: VideoFrame) clone(): VideoFrame ->
+pub (receiver: VideoFrame) clone(): VideoFrame ->
     native.
 
 /**
@@ -122,7 +117,7 @@ pub (value: VideoFrame) clone(): VideoFrame ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/close)
  */
-pub (value: VideoFrame) close(): std.core.Unit ->
+pub (receiver: VideoFrame) close(): std.core.Unit.Unit ->
     native.
 
 /**
@@ -130,8 +125,8 @@ pub (value: VideoFrame) close(): std.core.Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/copyTo)
  */
-pub (value: VideoFrame) copy_to(
-    destination: AllowSharedBufferSource,
-    options: VideoFrameCopyToOptions,
-): std.js.Promise[std.js.Array[PlaneLayout]] ->
+pub (receiver: VideoFrame) copy_to(
+    destination: std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource,
+    options: Option[VideoFrameCopyToOptions],
+): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]] ->
     native.

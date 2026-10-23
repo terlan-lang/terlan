@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLEmbedElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -25,7 +27,7 @@ pub opaque type HTMLEmbedElement.
 /**
  * @deprecated
  */
-pub (value: HTMLEmbedElement) align(): JsString ->
+pub (receiver: HTMLEmbedElement) align(): JsString ->
     native.
 
 /**
@@ -33,13 +35,13 @@ pub (value: HTMLEmbedElement) align(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLEmbedElement/height)
  */
-pub (value: HTMLEmbedElement) height(): JsString ->
+pub (receiver: HTMLEmbedElement) height(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLEmbedElement) name(): JsString ->
+pub (receiver: HTMLEmbedElement) name(): JsString ->
     native.
 
 /**
@@ -47,7 +49,7 @@ pub (value: HTMLEmbedElement) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLEmbedElement/src)
  */
-pub (value: HTMLEmbedElement) src(): JsString ->
+pub (receiver: HTMLEmbedElement) src(): JsString ->
     native.
 
 /**
@@ -55,7 +57,7 @@ pub (value: HTMLEmbedElement) src(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLEmbedElement/type)
  */
-pub (value: HTMLEmbedElement) type_(): JsString ->
+pub (receiver: HTMLEmbedElement) type_(): JsString ->
     native.
 
 /**
@@ -63,7 +65,7 @@ pub (value: HTMLEmbedElement) type_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLEmbedElement/width)
  */
-pub (value: HTMLEmbedElement) width(): JsString ->
+pub (receiver: HTMLEmbedElement) width(): JsString ->
     native.
 
 /**
@@ -71,19 +73,19 @@ pub (value: HTMLEmbedElement) width(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLEmbedElement/getSVGDocument)
  */
-pub (value: HTMLEmbedElement) get_svg_document(): Option[Document] ->
+pub (receiver: HTMLEmbedElement) get_svg_document(): Option[std.js.Dom.Document.Document] ->
     native.
 
-pub (value: HTMLEmbedElement) add_event_listener(
+pub (receiver: HTMLEmbedElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLEmbedElement) remove_event_listener(
+pub (receiver: HTMLEmbedElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

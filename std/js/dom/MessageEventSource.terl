@@ -12,4 +12,7 @@
  */
 module std.js.Dom.MessageEventSource.
 
-pub type MessageEventSource = MessagePort | ServiceWorker | WindowProxy.
+pub type MessageEventSource =
+      std.js.Dom.MessagePort.MessagePort
+    | std.js.Dom.ServiceWorker.ServiceWorker
+    | std.js.Dom.WindowProxy.WindowProxy.

@@ -14,8 +14,8 @@ module std.js.Dom.AudioDecoderInit.
 
 pub opaque type AudioDecoderInit.
 
-pub (value: AudioDecoderInit) error(): WebCodecsErrorCallback ->
+pub (receiver: AudioDecoderInit) error(): std.js.Dom.WebCodecsErrorCallback.WebCodecsErrorCallback ->
     native.
 
-pub (value: AudioDecoderInit) output(): AudioDataOutputCallback ->
+pub (receiver: AudioDecoderInit) output(): std.js.Dom.AudioDataOutputCallback.AudioDataOutputCallback ->
     native.

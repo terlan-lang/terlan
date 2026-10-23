@@ -14,9 +14,7 @@ module std.js.ReadonlySetTest.
 
 import type std.js.ReadonlySet.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub has_typechecks(receiver: ReadonlySet[T], value: T): std.core.Bool ->
+pub has_typechecks(receiver: ReadonlySet[T], value: T): Bool ->
     receiver.has(value).
 
 pub size_typechecks(receiver: ReadonlySet[T]): std.js.Number.JsNumber ->

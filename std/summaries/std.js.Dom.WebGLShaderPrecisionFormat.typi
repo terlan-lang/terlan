@@ -25,18 +25,18 @@ pub opaque type WebGLShaderPrecisionFormat.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLShaderPrecisionFormat/precision)
  */
-pub (value: WebGLShaderPrecisionFormat) precision(): GLint.
+pub (receiver: WebGLShaderPrecisionFormat) precision(): std.js.Dom.GLint.GLint.
 
 /**
  * The read-only **`WebGLShaderPrecisionFormat.rangeMax`** property returns the base 2 log of the absolute value of the maximum value that can be represented.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLShaderPrecisionFormat/rangeMax)
  */
-pub (value: WebGLShaderPrecisionFormat) range_max(): GLint.
+pub (receiver: WebGLShaderPrecisionFormat) range_max(): std.js.Dom.GLint.GLint.
 
 /**
  * The read-only **`WebGLShaderPrecisionFormat.rangeMin`** property returns the base 2 log of the absolute value of the minimum value that can be represented.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLShaderPrecisionFormat/rangeMin)
  */
-pub (value: WebGLShaderPrecisionFormat) range_min(): GLint.
+pub (receiver: WebGLShaderPrecisionFormat) range_min(): std.js.Dom.GLint.GLint.

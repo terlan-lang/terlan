@@ -15,30 +15,30 @@ module std.js.Dom.EventModifierInit.
 
 pub opaque type EventModifierInit.
 
-pub (value: EventModifierInit) alt_key(): std.core.Bool.
+pub (receiver: EventModifierInit) alt_key(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) ctrl_key(): std.core.Bool.
+pub (receiver: EventModifierInit) ctrl_key(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) meta_key(): std.core.Bool.
+pub (receiver: EventModifierInit) meta_key(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) modifier_alt_graph(): std.core.Bool.
+pub (receiver: EventModifierInit) modifier_alt_graph(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) modifier_caps_lock(): std.core.Bool.
+pub (receiver: EventModifierInit) modifier_caps_lock(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) modifier_fn(): std.core.Bool.
+pub (receiver: EventModifierInit) modifier_fn(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) modifier_fn_lock(): std.core.Bool.
+pub (receiver: EventModifierInit) modifier_fn_lock(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) modifier_hyper(): std.core.Bool.
+pub (receiver: EventModifierInit) modifier_hyper(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) modifier_num_lock(): std.core.Bool.
+pub (receiver: EventModifierInit) modifier_num_lock(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) modifier_scroll_lock(): std.core.Bool.
+pub (receiver: EventModifierInit) modifier_scroll_lock(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) modifier_super(): std.core.Bool.
+pub (receiver: EventModifierInit) modifier_super(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) modifier_symbol(): std.core.Bool.
+pub (receiver: EventModifierInit) modifier_symbol(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) modifier_symbol_lock(): std.core.Bool.
+pub (receiver: EventModifierInit) modifier_symbol_lock(): std.core.Option.Option[Bool].
 
-pub (value: EventModifierInit) shift_key(): std.core.Bool.
+pub (receiver: EventModifierInit) shift_key(): std.core.Option.Option[Bool].

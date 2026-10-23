@@ -12,44 +12,44 @@
  */
 module std.js.Dom.MediaTrackSettings.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
 pub opaque type MediaTrackSettings.
 
-pub (value: MediaTrackSettings) aspect_ratio(): JsNumber.
+pub (receiver: MediaTrackSettings) aspect_ratio(): Option[JsNumber].
 
-pub (value: MediaTrackSettings) auto_gain_control(): Bool.
+pub (receiver: MediaTrackSettings) auto_gain_control(): Option[Bool].
 
-pub (value: MediaTrackSettings) background_blur(): Bool.
+pub (receiver: MediaTrackSettings) background_blur(): Option[Bool].
 
-pub (value: MediaTrackSettings) channel_count(): JsNumber.
+pub (receiver: MediaTrackSettings) channel_count(): Option[JsNumber].
 
-pub (value: MediaTrackSettings) device_id(): JsString.
+pub (receiver: MediaTrackSettings) device_id(): Option[JsString].
 
-pub (value: MediaTrackSettings) display_surface(): JsString.
+pub (receiver: MediaTrackSettings) display_surface(): Option[JsString].
 
-pub (value: MediaTrackSettings) echo_cancellation(): Bool.
+pub (receiver: MediaTrackSettings) echo_cancellation(): Option[Bool].
 
-pub (value: MediaTrackSettings) facing_mode(): JsString.
+pub (receiver: MediaTrackSettings) facing_mode(): Option[JsString].
 
-pub (value: MediaTrackSettings) frame_rate(): JsNumber.
+pub (receiver: MediaTrackSettings) frame_rate(): Option[JsNumber].
 
-pub (value: MediaTrackSettings) group_id(): JsString.
+pub (receiver: MediaTrackSettings) group_id(): Option[JsString].
 
-pub (value: MediaTrackSettings) height(): JsNumber.
+pub (receiver: MediaTrackSettings) height(): Option[JsNumber].
 
-pub (value: MediaTrackSettings) noise_suppression(): Bool.
+pub (receiver: MediaTrackSettings) noise_suppression(): Option[Bool].
 
-pub (value: MediaTrackSettings) sample_rate(): JsNumber.
+pub (receiver: MediaTrackSettings) sample_rate(): Option[JsNumber].
 
-pub (value: MediaTrackSettings) sample_size(): JsNumber.
+pub (receiver: MediaTrackSettings) sample_size(): Option[JsNumber].
 
-pub (value: MediaTrackSettings) torch(): Bool.
+pub (receiver: MediaTrackSettings) torch(): Option[Bool].
 
-pub (value: MediaTrackSettings) white_balance_mode(): JsString.
+pub (receiver: MediaTrackSettings) white_balance_mode(): Option[JsString].
 
-pub (value: MediaTrackSettings) width(): JsNumber.
+pub (receiver: MediaTrackSettings) width(): Option[JsNumber].
 
-pub (value: MediaTrackSettings) zoom(): JsNumber.
+pub (receiver: MediaTrackSettings) zoom(): Option[JsNumber].

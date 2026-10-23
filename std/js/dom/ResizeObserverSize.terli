@@ -26,11 +26,11 @@ pub opaque type ResizeObserverSize.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverSize/blockSize)
  */
-pub (value: ResizeObserverSize) block_size(): JsNumber.
+pub (receiver: ResizeObserverSize) block_size(): JsNumber.
 
 /**
  * The **`inlineSize`** read-only property of the ResizeObserverSize interface returns the length of the observed element's border box in the inline dimension.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverSize/inlineSize)
  */
-pub (value: ResizeObserverSize) inline_size(): JsNumber.
+pub (receiver: ResizeObserverSize) inline_size(): JsNumber.

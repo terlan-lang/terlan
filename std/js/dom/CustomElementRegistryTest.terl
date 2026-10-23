@@ -12,17 +12,17 @@
  */
 module std.js.Dom.CustomElementRegistryTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.CustomElementConstructor.{CustomElementConstructor}.
 import type std.js.Dom.CustomElementRegistry.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub define_typechecks(
     receiver: CustomElementRegistry,
     name: JsString,
     constructor_: CustomElementConstructor,
-    options: ElementDefinitionOptions,
+    options: Option[std.js.Dom.ElementDefinitionOptions.ElementDefinitionOptions],
 ): Unit ->
     receiver.define(name, constructor_, options).
 
@@ -38,11 +38,11 @@ pub get_name_typechecks(
 ): Option[JsString] ->
     receiver.get_name(constructor_).
 
-pub upgrade_typechecks(receiver: CustomElementRegistry, root: Node): Unit ->
+pub upgrade_typechecks(receiver: CustomElementRegistry, root: std.js.Dom.Node.Node): Unit ->
     receiver.upgrade(root).
 
 pub when_defined_typechecks(
     receiver: CustomElementRegistry,
     name: JsString,
-): std.js.Promise[CustomElementConstructor] ->
+): std.js.Promise.Promise[CustomElementConstructor] ->
     receiver.when_defined(name).

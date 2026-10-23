@@ -13,5 +13,3 @@
 module std.js.Dom.RTCStatsReportTest.
 
 import type std.js.Dom.RTCStatsReport.
-
-pub generated_binding_surface_contract(): Bool -> true.

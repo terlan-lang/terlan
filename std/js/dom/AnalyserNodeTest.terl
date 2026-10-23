@@ -12,11 +12,12 @@
  */
 module std.js.Dom.AnalyserNodeTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.ArrayBuffer.{ArrayBuffer}.
 import type std.js.Dom.AnalyserNode.
+import type std.js.Float32Array.{Float32Array}.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Uint8Array.{Uint8Array}.
 
 pub fft_size_typechecks(receiver: AnalyserNode): JsNumber ->
     receiver.fft_size().

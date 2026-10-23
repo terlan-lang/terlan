@@ -24,19 +24,19 @@ pub opaque type PluginArray.
 /**
  * @deprecated
  */
-pub (value: PluginArray) length(): std.js.Number.JsNumber.
+pub (receiver: PluginArray) length(): std.js.Number.JsNumber.
 
 /**
  * @deprecated
  */
-pub (value: PluginArray) item(index: std.js.Number.JsNumber): Option[Plugin].
+pub (receiver: PluginArray) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.Plugin.Plugin].
 
 /**
  * @deprecated
  */
-pub (value: PluginArray) named_item(name: std.js.String.JsString): Option[Plugin].
+pub (receiver: PluginArray) named_item(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.Plugin.Plugin].
 
 /**
  * @deprecated
  */
-pub (value: PluginArray) refresh(): std.core.Unit.
+pub (receiver: PluginArray) refresh(): std.core.Unit.Unit.

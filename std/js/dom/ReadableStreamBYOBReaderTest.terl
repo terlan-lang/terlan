@@ -14,13 +14,5 @@ module std.js.Dom.ReadableStreamBYOBReaderTest.
 
 import type std.js.Dom.ReadableStreamBYOBReader.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub read_typechecks(
-    receiver: ReadableStreamBYOBReader,
-    view: T,
-): std.js.Promise[ReadableStreamReadResult[T]] ->
-    receiver.read(view).
-
-pub release_lock_typechecks(receiver: ReadableStreamBYOBReader): std.core.Unit ->
+pub release_lock_typechecks(receiver: ReadableStreamBYOBReader): std.core.Unit.Unit ->
     receiver.release_lock().

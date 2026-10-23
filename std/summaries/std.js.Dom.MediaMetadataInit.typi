@@ -15,10 +15,10 @@ module std.js.Dom.MediaMetadataInit.
 
 pub opaque type MediaMetadataInit.
 
-pub (value: MediaMetadataInit) album(): std.js.String.JsString.
+pub (receiver: MediaMetadataInit) album(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: MediaMetadataInit) artist(): std.js.String.JsString.
+pub (receiver: MediaMetadataInit) artist(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: MediaMetadataInit) artwork(): std.js.Array[MediaImage].
+pub (receiver: MediaMetadataInit) artwork(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.MediaImage.MediaImage]].
 
-pub (value: MediaMetadataInit) title(): std.js.String.JsString.
+pub (receiver: MediaMetadataInit) title(): std.core.Option.Option[std.js.String.JsString].

@@ -14,7 +14,7 @@ module std.js.Dom.PageRevealEventTest.
 
 import type std.js.Dom.PageRevealEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub view_transition_typechecks(receiver: PageRevealEvent): Option[ViewTransition] ->
+pub view_transition_typechecks(
+    receiver: PageRevealEvent,
+): std.core.Option.Option[std.js.Dom.ViewTransition.ViewTransition] ->
     receiver.view_transition().

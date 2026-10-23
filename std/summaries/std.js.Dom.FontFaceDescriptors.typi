@@ -15,20 +15,18 @@ module std.js.Dom.FontFaceDescriptors.
 
 pub opaque type FontFaceDescriptors.
 
-pub (value: FontFaceDescriptors) ascent_override(): std.js.String.JsString.
+pub (receiver: FontFaceDescriptors) ascent_override(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: FontFaceDescriptors) descent_override(): std.js.String.JsString.
+pub (receiver: FontFaceDescriptors) descent_override(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: FontFaceDescriptors) display(): FontDisplay.
+pub (receiver: FontFaceDescriptors) feature_settings(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: FontFaceDescriptors) feature_settings(): std.js.String.JsString.
+pub (receiver: FontFaceDescriptors) line_gap_override(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: FontFaceDescriptors) line_gap_override(): std.js.String.JsString.
+pub (receiver: FontFaceDescriptors) stretch(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: FontFaceDescriptors) stretch(): std.js.String.JsString.
+pub (receiver: FontFaceDescriptors) style(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: FontFaceDescriptors) style(): std.js.String.JsString.
+pub (receiver: FontFaceDescriptors) unicode_range(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: FontFaceDescriptors) unicode_range(): std.js.String.JsString.
-
-pub (value: FontFaceDescriptors) weight(): std.js.String.JsString.
+pub (receiver: FontFaceDescriptors) weight(): std.core.Option.Option[std.js.String.JsString].

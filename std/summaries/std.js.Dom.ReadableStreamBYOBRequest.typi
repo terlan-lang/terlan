@@ -25,18 +25,18 @@ pub opaque type ReadableStreamBYOBRequest.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/view)
  */
-pub (value: ReadableStreamBYOBRequest) view(): Option[ArrayBufferView[ArrayBuffer]].
+pub (receiver: ReadableStreamBYOBRequest) view(): std.core.Option.Option[std.js.ArrayBufferView.ArrayBufferView[std.js.ArrayBuffer.ArrayBuffer]].
 
 /**
  * The **`respond()`** method of the ReadableStreamBYOBRequest interface is used to signal to the associated readable byte stream that the specified number of bytes were written into the ReadableStreamBYOBRequest.view.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/respond)
  */
-pub (value: ReadableStreamBYOBRequest) respond(bytes_written: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: ReadableStreamBYOBRequest) respond(bytes_written: std.js.Number.JsNumber): std.core.Unit.Unit.
 
 /**
  * The **`respondWithNewView()`** method of the ReadableStreamBYOBRequest interface specifies a new view that the consumer of the associated readable byte stream should write to instead of ReadableStreamBYOBRequest.view.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/respondWithNewView)
  */
-pub (value: ReadableStreamBYOBRequest) respond_with_new_view(view: ArrayBufferView[ArrayBuffer]): std.core.Unit.
+pub (receiver: ReadableStreamBYOBRequest) respond_with_new_view(view: std.js.ArrayBufferView.ArrayBufferView[std.js.ArrayBuffer.ArrayBuffer]): std.core.Unit.Unit.

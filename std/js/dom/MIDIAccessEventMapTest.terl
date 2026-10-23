@@ -14,7 +14,7 @@ module std.js.Dom.MIDIAccessEventMapTest.
 
 import type std.js.Dom.MIDIAccessEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub statechange_typechecks(receiver: MIDIAccessEventMap): MIDIConnectionEvent ->
+pub statechange_typechecks(
+    receiver: MIDIAccessEventMap,
+): std.js.Dom.MIDIConnectionEvent.MIDIConnectionEvent ->
     receiver.statechange().

@@ -13,5 +13,3 @@
 module std.js.Dom.PeriodicWaveTest.
 
 import type std.js.Dom.PeriodicWave.
-
-pub generated_binding_surface_contract(): Bool -> true.

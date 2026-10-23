@@ -14,4 +14,4 @@ module std.js.Dom.AudioWorkletNodeEventMap.
 
 pub opaque type AudioWorkletNodeEventMap.
 
-pub (value: AudioWorkletNodeEventMap) processorerror(): ErrorEvent.
+pub (receiver: AudioWorkletNodeEventMap) processorerror(): std.js.Dom.ErrorEvent.ErrorEvent.

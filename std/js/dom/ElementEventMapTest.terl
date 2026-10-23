@@ -13,8 +13,7 @@
 module std.js.Dom.ElementEventMapTest.
 
 import type std.js.Dom.ElementEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.Event.{Event}.
 
 pub fullscreenchange_typechecks(receiver: ElementEventMap): Event ->
     receiver.fullscreenchange().

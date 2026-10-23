@@ -12,14 +12,15 @@
  */
 module std.js.Dom.DOMRectInit.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type DOMRectInit.
 
-pub (value: DOMRectInit) height(): JsNumber.
+pub (receiver: DOMRectInit) height(): Option[JsNumber].
 
-pub (value: DOMRectInit) width(): JsNumber.
+pub (receiver: DOMRectInit) width(): Option[JsNumber].
 
-pub (value: DOMRectInit) x(): JsNumber.
+pub (receiver: DOMRectInit) x(): Option[JsNumber].
 
-pub (value: DOMRectInit) y(): JsNumber.
+pub (receiver: DOMRectInit) y(): Option[JsNumber].

@@ -13,11 +13,3 @@
 module std.js.Dom.ScrollIntoViewOptionsTest.
 
 import type std.js.Dom.ScrollIntoViewOptions.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub block_typechecks(receiver: ScrollIntoViewOptions): ScrollLogicalPosition ->
-    receiver.block().
-
-pub inline_typechecks(receiver: ScrollIntoViewOptions): ScrollLogicalPosition ->
-    receiver.inline().

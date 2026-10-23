@@ -12,7 +12,9 @@
  */
 module std.js.Dom.RTCDtlsTransport.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,25 +29,18 @@ pub opaque type RTCDtlsTransport.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDtlsTransport/iceTransport)
  */
-pub (value: RTCDtlsTransport) ice_transport(): RTCIceTransport.
+pub (receiver: RTCDtlsTransport) ice_transport(): std.js.Dom.RTCIceTransport.RTCIceTransport.
 
-/**
- * The **`state`** read-only property of the Datagram Transport Layer Security (**DTLS**) transport state.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDtlsTransport/state)
- */
-pub (value: RTCDtlsTransport) state(): RTCDtlsTransportState.
+pub (receiver: RTCDtlsTransport) get_remote_certificates(): std.js.Array.Array[std.js.ArrayBuffer.ArrayBuffer].
 
-pub (value: RTCDtlsTransport) get_remote_certificates(): std.js.Array[ArrayBuffer].
-
-pub (value: RTCDtlsTransport) add_event_listener(
+pub (receiver: RTCDtlsTransport) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: RTCDtlsTransport) remove_event_listener(
+pub (receiver: RTCDtlsTransport) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

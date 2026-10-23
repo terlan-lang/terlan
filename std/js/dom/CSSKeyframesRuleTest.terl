@@ -12,13 +12,11 @@
  */
 module std.js.Dom.CSSKeyframesRuleTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.CSSKeyframesRule.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub css_rules_typechecks(receiver: CSSKeyframesRule): CSSRuleList ->
+pub css_rules_typechecks(receiver: CSSKeyframesRule): std.js.Dom.CSSRuleList.CSSRuleList ->
     receiver.css_rules().
 
 pub length_typechecks(receiver: CSSKeyframesRule): std.js.Number.JsNumber ->
@@ -33,5 +31,8 @@ pub append_rule_typechecks(receiver: CSSKeyframesRule, rule: JsString): Unit ->
 pub delete_rule_typechecks(receiver: CSSKeyframesRule, select: JsString): Unit ->
     receiver.delete_rule(select).
 
-pub find_rule_typechecks(receiver: CSSKeyframesRule, select: JsString): Option[CSSKeyframeRule] ->
+pub find_rule_typechecks(
+    receiver: CSSKeyframesRule,
+    select: JsString,
+): std.core.Option.Option[std.js.Dom.CSSKeyframeRule.CSSKeyframeRule] ->
     receiver.find_rule(select).

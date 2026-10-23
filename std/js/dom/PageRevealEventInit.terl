@@ -14,5 +14,5 @@ module std.js.Dom.PageRevealEventInit.
 
 pub opaque type PageRevealEventInit.
 
-pub (value: PageRevealEventInit) view_transition(): Option[ViewTransition] ->
+pub (receiver: PageRevealEventInit) view_transition(): std.core.Option.Option[std.js.Dom.ViewTransition.ViewTransition] ->
     native.

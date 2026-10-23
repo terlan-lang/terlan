@@ -12,14 +12,14 @@
  */
 module std.js.Dom.XPathExpressionTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.XPathExpression.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.XPathResult.{XPathResult}.
 
 pub evaluate_typechecks(
     receiver: XPathExpression,
-    context_node: Node,
-    type_: std.js.Number.JsNumber,
-    result: Option[XPathResult],
+    context_node: std.js.Dom.Node.Node,
+    type_: Option[std.js.Number.JsNumber],
+    result: Option[Option[XPathResult]],
 ): XPathResult ->
     receiver.evaluate(context_node, type_, result).

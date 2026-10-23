@@ -12,10 +12,7 @@
  */
 module std.js.WeakSetTest.
 
-import type std.core.{Bool}.
 import type std.js.WeakSet.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub delete_typechecks(receiver: WeakSet[T], value: T): Bool ->
     receiver.delete(value).

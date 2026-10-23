@@ -25,11 +25,11 @@ pub opaque type CSSVariableReferenceValue.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSVariableReferenceValue/fallback)
  */
-pub (value: CSSVariableReferenceValue) fallback(): Option[CSSUnparsedValue].
+pub (receiver: CSSVariableReferenceValue) fallback(): std.core.Option.Option[std.js.Dom.CSSUnparsedValue.CSSUnparsedValue].
 
 /**
  * The **`variable`** property of the A string beginning with `--` (that is, a custom property name).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSVariableReferenceValue/variable)
  */
-pub (value: CSSVariableReferenceValue) variable(): std.js.String.JsString.
+pub (receiver: CSSVariableReferenceValue) variable(): std.js.String.JsString.

@@ -12,6 +12,8 @@
  */
 module std.js.Dom.PerformanceEventTiming.
 
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
+
 /**
  * The `PerformanceEventTiming` interface of the Event Timing API provides insights into the latency of certain event types triggered by user interaction.
  *
@@ -24,7 +26,7 @@ pub opaque type PerformanceEventTiming.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEventTiming/cancelable)
  */
-pub (value: PerformanceEventTiming) cancelable(): std.core.Bool ->
+pub (receiver: PerformanceEventTiming) cancelable(): Bool ->
     native.
 
 /**
@@ -32,7 +34,7 @@ pub (value: PerformanceEventTiming) cancelable(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEventTiming/processingEnd)
  */
-pub (value: PerformanceEventTiming) processing_end(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceEventTiming) processing_end(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -40,7 +42,7 @@ pub (value: PerformanceEventTiming) processing_end(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEventTiming/processingStart)
  */
-pub (value: PerformanceEventTiming) processing_start(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceEventTiming) processing_start(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -48,5 +50,5 @@ pub (value: PerformanceEventTiming) processing_start(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEventTiming/target)
  */
-pub (value: PerformanceEventTiming) target_(): Option[Node] ->
+pub (receiver: PerformanceEventTiming) target_(): std.core.Option.Option[std.js.Dom.Node.Node] ->
     native.

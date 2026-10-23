@@ -12,28 +12,32 @@
  */
 module std.js.Dom.PerformanceTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.Performance.
+import type std.js.Dom.PerformanceEntryList.{PerformanceEntryList}.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub event_counts_typechecks(receiver: Performance): EventCounts ->
+pub event_counts_typechecks(receiver: Performance): std.js.Dom.EventCounts.EventCounts ->
     receiver.event_counts().
 
-pub navigation_typechecks(receiver: Performance): PerformanceNavigation ->
+pub navigation_typechecks(
+    receiver: Performance,
+): std.js.Dom.PerformanceNavigation.PerformanceNavigation ->
     receiver.navigation().
 
 pub time_origin_typechecks(receiver: Performance): DOMHighResTimeStamp ->
     receiver.time_origin().
 
-pub timing_typechecks(receiver: Performance): PerformanceTiming ->
+pub timing_typechecks(receiver: Performance): std.js.Dom.PerformanceTiming.PerformanceTiming ->
     receiver.timing().
 
-pub clear_marks_typechecks(receiver: Performance, mark_name: JsString): Unit ->
+pub clear_marks_typechecks(receiver: Performance, mark_name: Option[JsString]): Unit ->
     receiver.clear_marks(mark_name).
 
-pub clear_measures_typechecks(receiver: Performance, measure_name: JsString): Unit ->
+pub clear_measures_typechecks(receiver: Performance, measure_name: Option[JsString]): Unit ->
     receiver.clear_measures(measure_name).
 
 pub clear_resource_timings_typechecks(receiver: Performance): Unit ->
@@ -45,7 +49,7 @@ pub get_entries_typechecks(receiver: Performance): PerformanceEntryList ->
 pub get_entries_by_name_typechecks(
     receiver: Performance,
     name: JsString,
-    type_: JsString,
+    type_: Option[JsString],
 ): PerformanceEntryList ->
     receiver.get_entries_by_name(name, type_).
 
@@ -55,16 +59,16 @@ pub get_entries_by_type_typechecks(receiver: Performance, type_: JsString): Perf
 pub mark_typechecks(
     receiver: Performance,
     mark_name: JsString,
-    mark_options: PerformanceMarkOptions,
-): PerformanceMark ->
+    mark_options: Option[std.js.Dom.PerformanceMarkOptions.PerformanceMarkOptions],
+): std.js.Dom.PerformanceMark.PerformanceMark ->
     receiver.mark(mark_name, mark_options).
 
 pub measure_typechecks(
     receiver: Performance,
     measure_name: JsString,
-    start_or_measure_options: PerformanceMeasureOptions | JsString,
-    end_mark: JsString,
-): PerformanceMeasure ->
+    start_or_measure_options: Option[std.js.Dom.PerformanceMeasureOptions.PerformanceMeasureOptions | JsString],
+    end_mark: Option[JsString],
+): std.js.Dom.PerformanceMeasure.PerformanceMeasure ->
     receiver.measure(measure_name, start_or_measure_options, end_mark).
 
 pub now_typechecks(receiver: Performance): DOMHighResTimeStamp ->
@@ -80,7 +84,7 @@ pub add_event_listener_typechecks(
     receiver: Performance,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -88,6 +92,6 @@ pub remove_event_listener_typechecks(
     receiver: Performance,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

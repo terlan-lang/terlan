@@ -13,9 +13,8 @@ use super::*;
 /// - Generated `.terl` test source text.
 ///
 /// Transformation:
-/// - Emits deterministic executable API-shape contract tests once the
-///   generated `std.js` support types are available. These prove binding
-///   surface availability without claiming browser behavior coverage.
+/// - Emits parameterized calls for compile-time signature checks. These helpers
+///   are not executable tests; browser assertions must exercise compiled callers.
 pub(super) fn render_module_test(
     module: &DomModulePlan,
     manifest: &TsInputManifest,
@@ -32,7 +31,6 @@ pub(super) fn render_module_test(
             module.module_path,
         ));
     }
-    output.push_str("pub generated_binding_surface_contract(): Bool ->\n    true.\n");
     for member in &module.members {
         output.push('\n');
         output.push_str(&render_member_test(module, member));
@@ -103,7 +101,7 @@ fn render_method_test(module: &DomModulePlan, method: &DomMethodPlan) -> String 
             .params
             .iter()
             .zip(argument_names.iter())
-            .map(|(param, name)| format!("{}: {}", name, param.terlan_type)),
+            .map(|(param, name)| format!("{}: {}", name, render_param_type(param))),
     );
     format!(
         "pub {}_typechecks({}): {} ->\n    receiver.{}({}).\n",

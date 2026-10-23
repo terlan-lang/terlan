@@ -26,11 +26,11 @@ pub opaque type SVGPreserveAspectRatio.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPreserveAspectRatio/align)
  */
-pub (value: SVGPreserveAspectRatio) align(): JsNumber.
+pub (receiver: SVGPreserveAspectRatio) align(): JsNumber.
 
 /**
  * The **`meetOrSlice`** read-only property of the SVGPreserveAspectRatio interface reflects the type of the meet-or-slice value as specified by one of the `SVG_MEETORSLICE_*` constants defined on this interface.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPreserveAspectRatio/meetOrSlice)
  */
-pub (value: SVGPreserveAspectRatio) meet_or_slice(): JsNumber.
+pub (receiver: SVGPreserveAspectRatio) meet_or_slice(): JsNumber.

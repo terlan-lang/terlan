@@ -14,7 +14,5 @@ module std.js.Dom.AesCbcParamsTest.
 
 import type std.js.Dom.AesCbcParams.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub iv_typechecks(receiver: AesCbcParams): BufferSource ->
+pub iv_typechecks(receiver: AesCbcParams): std.js.Dom.BufferSource.BufferSource ->
     receiver.iv().

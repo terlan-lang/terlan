@@ -12,10 +12,11 @@
  */
 module std.js.Dom.HashChangeEventInit.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type HashChangeEventInit.
 
-pub (value: HashChangeEventInit) new_url(): JsString.
+pub (receiver: HashChangeEventInit) new_url(): Option[JsString].
 
-pub (value: HashChangeEventInit) old_url(): JsString.
+pub (receiver: HashChangeEventInit) old_url(): Option[JsString].

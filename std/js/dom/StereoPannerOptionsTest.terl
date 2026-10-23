@@ -14,7 +14,5 @@ module std.js.Dom.StereoPannerOptionsTest.
 
 import type std.js.Dom.StereoPannerOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub pan_typechecks(receiver: StereoPannerOptions): std.js.Number.JsNumber ->
+pub pan_typechecks(receiver: StereoPannerOptions): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.pan().

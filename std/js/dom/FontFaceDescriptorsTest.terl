@@ -12,34 +12,30 @@
  */
 module std.js.Dom.FontFaceDescriptorsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.FontFaceDescriptors.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub ascent_override_typechecks(receiver: FontFaceDescriptors): JsString ->
+pub ascent_override_typechecks(receiver: FontFaceDescriptors): Option[JsString] ->
     receiver.ascent_override().
 
-pub descent_override_typechecks(receiver: FontFaceDescriptors): JsString ->
+pub descent_override_typechecks(receiver: FontFaceDescriptors): Option[JsString] ->
     receiver.descent_override().
 
-pub display_typechecks(receiver: FontFaceDescriptors): FontDisplay ->
-    receiver.display().
-
-pub feature_settings_typechecks(receiver: FontFaceDescriptors): JsString ->
+pub feature_settings_typechecks(receiver: FontFaceDescriptors): Option[JsString] ->
     receiver.feature_settings().
 
-pub line_gap_override_typechecks(receiver: FontFaceDescriptors): JsString ->
+pub line_gap_override_typechecks(receiver: FontFaceDescriptors): Option[JsString] ->
     receiver.line_gap_override().
 
-pub stretch_typechecks(receiver: FontFaceDescriptors): JsString ->
+pub stretch_typechecks(receiver: FontFaceDescriptors): Option[JsString] ->
     receiver.stretch().
 
-pub style_typechecks(receiver: FontFaceDescriptors): JsString ->
+pub style_typechecks(receiver: FontFaceDescriptors): Option[JsString] ->
     receiver.style().
 
-pub unicode_range_typechecks(receiver: FontFaceDescriptors): JsString ->
+pub unicode_range_typechecks(receiver: FontFaceDescriptors): Option[JsString] ->
     receiver.unicode_range().
 
-pub weight_typechecks(receiver: FontFaceDescriptors): JsString ->
+pub weight_typechecks(receiver: FontFaceDescriptors): Option[JsString] ->
     receiver.weight().

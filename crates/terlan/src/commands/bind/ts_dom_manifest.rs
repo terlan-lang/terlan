@@ -1,9 +1,9 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use serde_json::json;
 
-use super::ts_dom_module_mapping::{DomModuleMapping, DomSkippedDeclaration};
+use super::ts_dom_module_mapping::{DomMemberPlan, DomModuleMapping, DomSkippedDeclaration};
 use super::ts_generated_artifact::GeneratedBindingFileHash;
 use super::ts_input_manifest::TsInputManifest;
 
@@ -24,6 +24,27 @@ pub(super) fn render_binding_manifest(
                 "interface": module.interface_path,
                 "summary": module.summary_path,
                 "test": module.test_path,
+                "members": module.members.iter().map(|member| match member {
+                    DomMemberPlan::Property(property) => json!({
+                        "name": property.terlan_name,
+                        "js_name": property.js_name,
+                        "kind": "property",
+                        "return_type": property.terlan_type,
+                        "arity": 1,
+                    }),
+                    DomMemberPlan::Method(method) => json!({
+                        "name": method.terlan_name,
+                        "js_name": method.js_name,
+                        "kind": "method",
+                        "return_type": method.return_type,
+                        "arity": method.params.len() + 1,
+                        "parameters": method.params.iter().map(|parameter| json!({
+                            "optional": parameter.optional,
+                            "rest": parameter.rest,
+                            "type": parameter.terlan_type,
+                        })).collect::<Vec<_>>(),
+                    }),
+                }).collect::<Vec<_>>(),
             })
         })
         .collect::<Vec<_>>();
@@ -91,23 +112,36 @@ pub(super) fn render_skipped_manifest(
 /// Converts skipped declarations into JSON with unique source labels.
 fn skipped_manifest_entries(skipped: &[DomSkippedDeclaration]) -> Vec<serde_json::Value> {
     let mut seen = BTreeMap::new();
+    let mut used = skipped
+        .iter()
+        .map(|entry| entry.source.clone())
+        .collect::<BTreeSet<_>>();
     skipped
         .iter()
         .map(|entry| {
-            let source = unique_skipped_source(&entry.source, &mut seen);
+            let source = unique_skipped_source(&entry.source, &mut seen, &mut used);
             skipped_manifest_entry(entry, source)
         })
         .collect()
 }
 
 /// Returns a deterministic unique skipped source label.
-fn unique_skipped_source(source: &str, seen: &mut BTreeMap<String, usize>) -> String {
+fn unique_skipped_source(
+    source: &str,
+    seen: &mut BTreeMap<String, usize>,
+    used: &mut BTreeSet<String>,
+) -> String {
     let count = seen.entry(source.to_string()).or_insert(0);
     *count += 1;
     if *count == 1 {
-        source.to_string()
-    } else {
-        format!("{source}#{}", *count)
+        return source.to_string();
+    }
+    loop {
+        let candidate = format!("{source}#{}", *count);
+        if used.insert(candidate.clone()) {
+            return candidate;
+        }
+        *count += 1;
     }
 }
 
@@ -119,3 +153,7 @@ fn skipped_manifest_entry(skipped: &DomSkippedDeclaration, source: String) -> se
         "detail": skipped.detail,
     })
 }
+
+#[cfg(test)]
+#[path = "ts_dom_manifest_test.rs"]
+mod tests;

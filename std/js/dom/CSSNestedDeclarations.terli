@@ -24,4 +24,4 @@ pub opaque type CSSNestedDeclarations.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNestedDeclarations/style)
  */
-pub (value: CSSNestedDeclarations) style(): CSSStyleDeclaration.
+pub (receiver: CSSNestedDeclarations) style(): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration.

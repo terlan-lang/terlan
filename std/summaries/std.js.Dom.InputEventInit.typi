@@ -15,12 +15,12 @@ module std.js.Dom.InputEventInit.
 
 pub opaque type InputEventInit.
 
-pub (value: InputEventInit) data(): Option[std.js.String.JsString].
+pub (receiver: InputEventInit) data(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: InputEventInit) data_transfer(): Option[DataTransfer].
+pub (receiver: InputEventInit) data_transfer(): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer].
 
-pub (value: InputEventInit) input_type(): std.js.String.JsString.
+pub (receiver: InputEventInit) input_type(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: InputEventInit) is_composing(): std.core.Bool.
+pub (receiver: InputEventInit) is_composing(): std.core.Option.Option[Bool].
 
-pub (value: InputEventInit) target_ranges(): std.js.Array[StaticRange].
+pub (receiver: InputEventInit) target_ranges(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.StaticRange.StaticRange]].

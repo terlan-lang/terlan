@@ -12,19 +12,18 @@
  */
 module std.js.Dom.ShareDataTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.ShareData.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub files_typechecks(receiver: ShareData): std.js.Array[File] ->
+pub files_typechecks(receiver: ShareData): Option[std.js.Array.Array[std.js.Dom.File.File]] ->
     receiver.files().
 
-pub text_typechecks(receiver: ShareData): JsString ->
+pub text_typechecks(receiver: ShareData): Option[JsString] ->
     receiver.text().
 
-pub title_typechecks(receiver: ShareData): JsString ->
+pub title_typechecks(receiver: ShareData): Option[JsString] ->
     receiver.title().
 
-pub url_typechecks(receiver: ShareData): JsString ->
+pub url_typechecks(receiver: ShareData): Option[JsString] ->
     receiver.url().

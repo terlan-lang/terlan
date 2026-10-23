@@ -15,4 +15,4 @@ module std.js.Dom.ServiceWorkerEventMap.
 
 pub opaque type ServiceWorkerEventMap.
 
-pub (value: ServiceWorkerEventMap) statechange(): Event.
+pub (receiver: ServiceWorkerEventMap) statechange(): std.js.Dom.Event.Event.

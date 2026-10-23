@@ -14,8 +14,8 @@ module std.js.Dom.RTCDtlsTransportEventMap.
 
 pub opaque type RTCDtlsTransportEventMap.
 
-pub (value: RTCDtlsTransportEventMap) error(): RTCErrorEvent ->
+pub (receiver: RTCDtlsTransportEventMap) error(): std.js.Dom.RTCErrorEvent.RTCErrorEvent ->
     native.
 
-pub (value: RTCDtlsTransportEventMap) statechange(): Event ->
+pub (receiver: RTCDtlsTransportEventMap) statechange(): std.js.Dom.Event.Event ->
     native.

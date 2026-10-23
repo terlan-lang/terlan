@@ -14,7 +14,3 @@
 module std.js.Dom.ScrollIntoViewOptions.
 
 pub opaque type ScrollIntoViewOptions.
-
-pub (value: ScrollIntoViewOptions) block(): ScrollLogicalPosition.
-
-pub (value: ScrollIntoViewOptions) inline(): ScrollLogicalPosition.

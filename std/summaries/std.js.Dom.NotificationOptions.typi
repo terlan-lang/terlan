@@ -15,18 +15,16 @@ module std.js.Dom.NotificationOptions.
 
 pub opaque type NotificationOptions.
 
-pub (value: NotificationOptions) badge(): std.js.String.JsString.
+pub (receiver: NotificationOptions) badge(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: NotificationOptions) body(): std.js.String.JsString.
+pub (receiver: NotificationOptions) body(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: NotificationOptions) dir(): NotificationDirection.
+pub (receiver: NotificationOptions) icon(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: NotificationOptions) icon(): std.js.String.JsString.
+pub (receiver: NotificationOptions) lang(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: NotificationOptions) lang(): std.js.String.JsString.
+pub (receiver: NotificationOptions) require_interaction(): std.core.Option.Option[Bool].
 
-pub (value: NotificationOptions) require_interaction(): std.core.Bool.
+pub (receiver: NotificationOptions) silent(): std.core.Option.Option[Bool].
 
-pub (value: NotificationOptions) silent(): Option[std.core.Bool].
-
-pub (value: NotificationOptions) tag(): std.js.String.JsString.
+pub (receiver: NotificationOptions) tag(): std.core.Option.Option[std.js.String.JsString].

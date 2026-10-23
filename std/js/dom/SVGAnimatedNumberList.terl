@@ -12,6 +12,8 @@
  */
 module std.js.Dom.SVGAnimatedNumberList.
 
+import type std.js.Dom.SVGNumberList.{SVGNumberList}.
+
 /**
  * The **`SVGAnimatedNumberList`** interface represents a list of attributes of type \<number> which can be animated.
  *
@@ -24,7 +26,7 @@ pub opaque type SVGAnimatedNumberList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedNumberList/animVal)
  */
-pub (value: SVGAnimatedNumberList) anim_val(): SVGNumberList ->
+pub (receiver: SVGAnimatedNumberList) anim_val(): SVGNumberList ->
     native.
 
 /**
@@ -32,5 +34,5 @@ pub (value: SVGAnimatedNumberList) anim_val(): SVGNumberList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedNumberList/baseVal)
  */
-pub (value: SVGAnimatedNumberList) base_val(): SVGNumberList ->
+pub (receiver: SVGAnimatedNumberList) base_val(): SVGNumberList ->
     native.

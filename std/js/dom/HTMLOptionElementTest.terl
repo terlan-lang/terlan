@@ -12,11 +12,11 @@
  */
 module std.js.Dom.HTMLOptionElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.HTMLOptionElement.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub default_selected_typechecks(receiver: HTMLOptionElement): Bool ->
     receiver.default_selected().
@@ -24,7 +24,7 @@ pub default_selected_typechecks(receiver: HTMLOptionElement): Bool ->
 pub disabled_typechecks(receiver: HTMLOptionElement): Bool ->
     receiver.disabled().
 
-pub form_typechecks(receiver: HTMLOptionElement): Option[HTMLFormElement] ->
+pub form_typechecks(receiver: HTMLOptionElement): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
     receiver.form().
 
 pub index_typechecks(receiver: HTMLOptionElement): std.js.Number.JsNumber ->
@@ -46,7 +46,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLOptionElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -54,6 +54,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLOptionElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

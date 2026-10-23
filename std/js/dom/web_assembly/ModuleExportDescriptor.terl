@@ -14,8 +14,5 @@ module std.js.Dom.WebAssembly.ModuleExportDescriptor.
 
 pub opaque type ModuleExportDescriptor.
 
-pub (value: ModuleExportDescriptor) kind(): ImportExportKind ->
-    native.
-
-pub (value: ModuleExportDescriptor) name(): std.js.String.JsString ->
+pub (receiver: ModuleExportDescriptor) name(): std.js.String.JsString ->
     native.

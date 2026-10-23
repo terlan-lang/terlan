@@ -1,4 +1,24 @@
 use super::ts_parser_adapter::*;
+
+#[test]
+fn rest_and_optional_parameters_preserve_their_call_shape() {
+    let parsed = parse_ts_declaration_file("interface Tokens { add(...tokens: string[]): void; toggle(token: string, force?: boolean): boolean; }").unwrap();
+    let TsDeclaration::Interface(interface) = &parsed.declarations[0] else {
+        panic!("interface")
+    };
+    let TsInterfaceMember::Method(add) = &interface.members[0] else {
+        panic!("method")
+    };
+    assert_eq!(add.params.len(), 1);
+    assert!(add.params[0].rest);
+    assert_eq!(add.params[0].name, "tokens");
+    let TsInterfaceMember::Method(toggle) = &interface.members[1] else {
+        panic!("method")
+    };
+    assert_eq!(toggle.params.len(), 2);
+    assert!(toggle.params[1].optional);
+    assert!(!toggle.params[1].rest);
+}
 use super::ts_type_mapping::{TsPrimitiveType, TsTypeRef};
 
 /// Verifies the committed DOM fixture parses into the neutral declaration model.
@@ -514,6 +534,24 @@ fn property<'a>(interface: &'a TsInterfaceDeclaration, name: &str) -> &'a TsProp
         })
         .find(|property| property.name == name)
         .unwrap_or_else(|| panic!("missing property {name}"))
+}
+
+#[test]
+fn accessor_getters_are_properties_and_setters_are_explicitly_unsupported() {
+    let declarations = parse_ts_declaration_file(
+        "interface Element { get classList(): DOMTokenList; set classList(value: string); }",
+    )
+    .expect("parse accessors");
+    let element = interface(&declarations, "Element");
+    assert_eq!(
+        property(element, "classList").ty,
+        TsTypeRef::Named("DOMTokenList".into())
+    );
+    assert!(element
+        .members
+        .iter()
+        .all(|member| !matches!(member, TsInterfaceMember::Method(_))));
+    assert!(element.members.iter().any(|member| matches!(member, TsInterfaceMember::Unsupported(unsupported) if unsupported.reason == "ts_bindgen.unsupported_property_setter")));
 }
 
 /// Finds a method by name.

@@ -14,12 +14,9 @@ module std.js.Dom.RTCRtpSendParametersTest.
 
 import type std.js.Dom.RTCRtpSendParameters.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub degradation_preference_typechecks(receiver: RTCRtpSendParameters): RTCDegradationPreference ->
-    receiver.degradation_preference().
-
-pub encodings_typechecks(receiver: RTCRtpSendParameters): std.js.Array[RTCRtpEncodingParameters] ->
+pub encodings_typechecks(
+    receiver: RTCRtpSendParameters,
+): std.js.Array.Array[std.js.Dom.RTCRtpEncodingParameters.RTCRtpEncodingParameters] ->
     receiver.encodings().
 
 pub transaction_id_typechecks(receiver: RTCRtpSendParameters): std.js.String.JsString ->

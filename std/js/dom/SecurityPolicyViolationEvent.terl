@@ -27,7 +27,7 @@ pub opaque type SecurityPolicyViolationEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/blockedURI)
  */
-pub (value: SecurityPolicyViolationEvent) blocked_uri(): JsString ->
+pub (receiver: SecurityPolicyViolationEvent) blocked_uri(): JsString ->
     native.
 
 /**
@@ -35,15 +35,7 @@ pub (value: SecurityPolicyViolationEvent) blocked_uri(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/columnNumber)
  */
-pub (value: SecurityPolicyViolationEvent) column_number(): JsNumber ->
-    native.
-
-/**
- * The **`disposition`** read-only property of the SecurityPolicyViolationEvent interface indicates how the violated Content Security Policy (CSP) is configured to be treated by the user agent.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/disposition)
- */
-pub (value: SecurityPolicyViolationEvent) disposition(): SecurityPolicyViolationEventDisposition ->
+pub (receiver: SecurityPolicyViolationEvent) column_number(): JsNumber ->
     native.
 
 /**
@@ -51,7 +43,7 @@ pub (value: SecurityPolicyViolationEvent) disposition(): SecurityPolicyViolation
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/documentURI)
  */
-pub (value: SecurityPolicyViolationEvent) document_uri(): JsString ->
+pub (receiver: SecurityPolicyViolationEvent) document_uri(): JsString ->
     native.
 
 /**
@@ -59,7 +51,7 @@ pub (value: SecurityPolicyViolationEvent) document_uri(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/effectiveDirective)
  */
-pub (value: SecurityPolicyViolationEvent) effective_directive(): JsString ->
+pub (receiver: SecurityPolicyViolationEvent) effective_directive(): JsString ->
     native.
 
 /**
@@ -67,7 +59,7 @@ pub (value: SecurityPolicyViolationEvent) effective_directive(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/lineNumber)
  */
-pub (value: SecurityPolicyViolationEvent) line_number(): JsNumber ->
+pub (receiver: SecurityPolicyViolationEvent) line_number(): JsNumber ->
     native.
 
 /**
@@ -75,7 +67,7 @@ pub (value: SecurityPolicyViolationEvent) line_number(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/originalPolicy)
  */
-pub (value: SecurityPolicyViolationEvent) original_policy(): JsString ->
+pub (receiver: SecurityPolicyViolationEvent) original_policy(): JsString ->
     native.
 
 /**
@@ -83,7 +75,7 @@ pub (value: SecurityPolicyViolationEvent) original_policy(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/referrer)
  */
-pub (value: SecurityPolicyViolationEvent) referrer(): JsString ->
+pub (receiver: SecurityPolicyViolationEvent) referrer(): JsString ->
     native.
 
 /**
@@ -91,7 +83,7 @@ pub (value: SecurityPolicyViolationEvent) referrer(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/sample)
  */
-pub (value: SecurityPolicyViolationEvent) sample(): JsString ->
+pub (receiver: SecurityPolicyViolationEvent) sample(): JsString ->
     native.
 
 /**
@@ -99,7 +91,7 @@ pub (value: SecurityPolicyViolationEvent) sample(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/sourceFile)
  */
-pub (value: SecurityPolicyViolationEvent) source_file(): JsString ->
+pub (receiver: SecurityPolicyViolationEvent) source_file(): JsString ->
     native.
 
 /**
@@ -107,7 +99,7 @@ pub (value: SecurityPolicyViolationEvent) source_file(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/statusCode)
  */
-pub (value: SecurityPolicyViolationEvent) status_code(): JsNumber ->
+pub (receiver: SecurityPolicyViolationEvent) status_code(): JsNumber ->
     native.
 
 /**
@@ -115,5 +107,5 @@ pub (value: SecurityPolicyViolationEvent) status_code(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/violatedDirective)
  */
-pub (value: SecurityPolicyViolationEvent) violated_directive(): JsString ->
+pub (receiver: SecurityPolicyViolationEvent) violated_directive(): JsString ->
     native.

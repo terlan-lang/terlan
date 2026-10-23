@@ -25,35 +25,35 @@ pub opaque type StorageEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/key)
  */
-pub (value: StorageEvent) key(): Option[std.js.String.JsString].
+pub (receiver: StorageEvent) key(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The **`newValue`** property of the StorageEvent interface returns the new value of the storage item whose value was changed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/newValue)
  */
-pub (value: StorageEvent) new_value(): Option[std.js.String.JsString].
+pub (receiver: StorageEvent) new_value(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The **`oldValue`** property of the StorageEvent interface returns the original value of the storage item whose value changed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/oldValue)
  */
-pub (value: StorageEvent) old_value(): Option[std.js.String.JsString].
+pub (receiver: StorageEvent) old_value(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The **`storageArea`** property of the StorageEvent interface returns the storage object that was affected.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/storageArea)
  */
-pub (value: StorageEvent) storage_area(): Option[Storage].
+pub (receiver: StorageEvent) storage_area(): std.core.Option.Option[std.js.Dom.Storage.Storage].
 
 /**
  * The **`url`** property of the StorageEvent interface returns the URL of the document whose storage changed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/url)
  */
-pub (value: StorageEvent) url(): std.js.String.JsString.
+pub (receiver: StorageEvent) url(): std.js.String.JsString.
 
 /**
  * The **`StorageEvent.initStorageEvent()`** method is used to initialize the value of a StorageEvent.
@@ -61,4 +61,4 @@ pub (value: StorageEvent) url(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageEvent/initStorageEvent)
  */
-pub (value: StorageEvent) init_storage_event(type_: std.js.String.JsString, bubbles: std.core.Bool, cancelable: std.core.Bool, key: Option[std.js.String.JsString], old_value: Option[std.js.String.JsString], new_value: Option[std.js.String.JsString], url: URL | std.js.String.JsString, storage_area: Option[Storage]): std.core.Unit.
+pub (receiver: StorageEvent) init_storage_event(type_: std.js.String.JsString, bubbles: std.core.Option.Option[Bool], cancelable: std.core.Option.Option[Bool], key: std.core.Option.Option[std.core.Option.Option[std.js.String.JsString]], old_value: std.core.Option.Option[std.core.Option.Option[std.js.String.JsString]], new_value: std.core.Option.Option[std.core.Option.Option[std.js.String.JsString]], url: std.core.Option.Option[std.js.Dom.URL.URL | std.js.String.JsString], storage_area: std.core.Option.Option[std.core.Option.Option[std.js.Dom.Storage.Storage]]): std.core.Unit.Unit.

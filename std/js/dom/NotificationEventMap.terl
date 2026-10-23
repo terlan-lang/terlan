@@ -12,16 +12,18 @@
  */
 module std.js.Dom.NotificationEventMap.
 
+import type std.js.Dom.Event.{Event}.
+
 pub opaque type NotificationEventMap.
 
-pub (value: NotificationEventMap) click(): Event ->
+pub (receiver: NotificationEventMap) click(): Event ->
     native.
 
-pub (value: NotificationEventMap) close(): Event ->
+pub (receiver: NotificationEventMap) close(): Event ->
     native.
 
-pub (value: NotificationEventMap) error(): Event ->
+pub (receiver: NotificationEventMap) error(): Event ->
     native.
 
-pub (value: NotificationEventMap) show(): Event ->
+pub (receiver: NotificationEventMap) show(): Event ->
     native.

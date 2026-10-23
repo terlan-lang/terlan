@@ -15,12 +15,12 @@ module std.js.Dom.RTCPeerConnectionIceErrorEventInit.
 
 pub opaque type RTCPeerConnectionIceErrorEventInit.
 
-pub (value: RTCPeerConnectionIceErrorEventInit) address(): Option[std.js.String.JsString].
+pub (receiver: RTCPeerConnectionIceErrorEventInit) address(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RTCPeerConnectionIceErrorEventInit) error_code(): std.js.Number.JsNumber.
+pub (receiver: RTCPeerConnectionIceErrorEventInit) error_code(): std.js.Number.JsNumber.
 
-pub (value: RTCPeerConnectionIceErrorEventInit) error_text(): std.js.String.JsString.
+pub (receiver: RTCPeerConnectionIceErrorEventInit) error_text(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RTCPeerConnectionIceErrorEventInit) port(): Option[std.js.Number.JsNumber].
+pub (receiver: RTCPeerConnectionIceErrorEventInit) port(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: RTCPeerConnectionIceErrorEventInit) url(): std.js.String.JsString.
+pub (receiver: RTCPeerConnectionIceErrorEventInit) url(): std.core.Option.Option[std.js.String.JsString].

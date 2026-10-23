@@ -14,10 +14,5 @@ module std.js.Dom.ClientQueryOptionsTest.
 
 import type std.js.Dom.ClientQueryOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub include_uncontrolled_typechecks(receiver: ClientQueryOptions): std.core.Bool ->
+pub include_uncontrolled_typechecks(receiver: ClientQueryOptions): std.core.Option.Option[Bool] ->
     receiver.include_uncontrolled().
-
-pub type__typechecks(receiver: ClientQueryOptions): ClientTypes ->
-    receiver.type_().

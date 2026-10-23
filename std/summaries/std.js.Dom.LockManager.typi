@@ -26,13 +26,4 @@ pub opaque type LockManager.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LockManager/query)
  */
-pub (value: LockManager) query(): std.js.Promise[LockManagerSnapshot].
-
-/**
- * The **`request()`** method of the LockManager interface requests a Lock object with parameters specifying its name and characteristics.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LockManager/request)
- */
-pub (value: LockManager) request(name: std.js.String.JsString, callback: LockGrantedCallback[T]): std.js.Promise[T].
-
-pub (value: LockManager) request(name: std.js.String.JsString, options: LockOptions, callback: LockGrantedCallback[T]): std.js.Promise[T].
+pub (receiver: LockManager) query(): std.js.Promise.Promise[std.js.Dom.LockManagerSnapshot.LockManagerSnapshot].

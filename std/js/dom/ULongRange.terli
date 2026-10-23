@@ -12,10 +12,11 @@
  */
 module std.js.Dom.ULongRange.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type ULongRange.
 
-pub (value: ULongRange) max(): JsNumber.
+pub (receiver: ULongRange) max(): Option[JsNumber].
 
-pub (value: ULongRange) min(): JsNumber.
+pub (receiver: ULongRange) min(): Option[JsNumber].

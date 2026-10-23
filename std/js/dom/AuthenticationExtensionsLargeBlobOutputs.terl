@@ -12,15 +12,15 @@
  */
 module std.js.Dom.AuthenticationExtensionsLargeBlobOutputs.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type AuthenticationExtensionsLargeBlobOutputs.
 
-pub (value: AuthenticationExtensionsLargeBlobOutputs) blob(): ArrayBuffer ->
+pub (receiver: AuthenticationExtensionsLargeBlobOutputs) blob(): Option[std.js.ArrayBuffer.ArrayBuffer] ->
     native.
 
-pub (value: AuthenticationExtensionsLargeBlobOutputs) supported(): Bool ->
+pub (receiver: AuthenticationExtensionsLargeBlobOutputs) supported(): Option[Bool] ->
     native.
 
-pub (value: AuthenticationExtensionsLargeBlobOutputs) written(): Bool ->
+pub (receiver: AuthenticationExtensionsLargeBlobOutputs) written(): Option[Bool] ->
     native.

@@ -14,5 +14,5 @@ module std.js.Dom.GetAnimationsOptions.
 
 pub opaque type GetAnimationsOptions.
 
-pub (value: GetAnimationsOptions) subtree(): std.core.Bool ->
+pub (receiver: GetAnimationsOptions) subtree(): std.core.Option.Option[Bool] ->
     native.

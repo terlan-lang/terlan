@@ -1,5 +1,7 @@
 module tests.js.std.ArrayTest.
 
+import std.js.Array.{from_list}.
+
 import type std.collections.List.
 import type std.js.Array.
 
@@ -7,7 +9,7 @@ pub accepts_array(value: Array[Int]): Array[Int] ->
     value.
 
 pub converts_from_list(values: List[Int]): Array[Int] ->
-    std.js.Array.from_list(values).
+    from_list(values).
 
 pub converts_to_list(values: Array[Int]): std.collections.List.List[Int] ->
     values.to_list().
@@ -18,4 +20,16 @@ pub reads_array_length(values: Array[Int]): Int ->
 pub reads_array_index(values: Array[Int], index: Int): Int ->
     values.get_at(index).
 
-pub generated_surface_contract(): Bool -> true.
+@test
+pub array_conversion_preserves_length_order_and_indexing(): Bool ->
+    let values = from_list([10, 20, 30]);
+    values.length() == 3
+        and values.get_at(1) == 20
+        and case values.to_list() {
+    [10, 20, 30] -> true;
+    _ -> false
+}.
+
+@test
+pub empty_array_conversion_preserves_zero_length(): Bool ->
+    std.js.Array.from_list[Int]([]).length() == 0.

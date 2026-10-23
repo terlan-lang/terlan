@@ -12,6 +12,8 @@
  */
 module std.js.Dom.WebGLShaderPrecisionFormat.
 
+import type std.js.Dom.GLint.{GLint}.
+
 /**
  * The **WebGLShaderPrecisionFormat** interface is part of the WebGL API and represents the information returned by calling the WebGLRenderingContext.getShaderPrecisionFormat() method.
  *
@@ -24,7 +26,7 @@ pub opaque type WebGLShaderPrecisionFormat.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLShaderPrecisionFormat/precision)
  */
-pub (value: WebGLShaderPrecisionFormat) precision(): GLint ->
+pub (receiver: WebGLShaderPrecisionFormat) precision(): GLint ->
     native.
 
 /**
@@ -32,7 +34,7 @@ pub (value: WebGLShaderPrecisionFormat) precision(): GLint ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLShaderPrecisionFormat/rangeMax)
  */
-pub (value: WebGLShaderPrecisionFormat) range_max(): GLint ->
+pub (receiver: WebGLShaderPrecisionFormat) range_max(): GLint ->
     native.
 
 /**
@@ -40,5 +42,5 @@ pub (value: WebGLShaderPrecisionFormat) range_max(): GLint ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLShaderPrecisionFormat/rangeMin)
  */
-pub (value: WebGLShaderPrecisionFormat) range_min(): GLint ->
+pub (receiver: WebGLShaderPrecisionFormat) range_min(): GLint ->
     native.

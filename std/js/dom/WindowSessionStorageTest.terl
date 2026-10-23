@@ -14,7 +14,5 @@ module std.js.Dom.WindowSessionStorageTest.
 
 import type std.js.Dom.WindowSessionStorage.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub session_storage_typechecks(receiver: WindowSessionStorage): Storage ->
+pub session_storage_typechecks(receiver: WindowSessionStorage): std.js.Dom.Storage.Storage ->
     receiver.session_storage().

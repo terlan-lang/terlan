@@ -12,6 +12,7 @@
  */
 module std.js.Dom.DeviceMotionEventAcceleration.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,7 +28,7 @@ pub opaque type DeviceMotionEventAcceleration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventAcceleration/x)
  */
-pub (value: DeviceMotionEventAcceleration) x(): Option[JsNumber] ->
+pub (receiver: DeviceMotionEventAcceleration) x(): Option[JsNumber] ->
     native.
 
 /**
@@ -35,7 +36,7 @@ pub (value: DeviceMotionEventAcceleration) x(): Option[JsNumber] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventAcceleration/y)
  */
-pub (value: DeviceMotionEventAcceleration) y(): Option[JsNumber] ->
+pub (receiver: DeviceMotionEventAcceleration) y(): Option[JsNumber] ->
     native.
 
 /**
@@ -43,5 +44,5 @@ pub (value: DeviceMotionEventAcceleration) y(): Option[JsNumber] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventAcceleration/z)
  */
-pub (value: DeviceMotionEventAcceleration) z(): Option[JsNumber] ->
+pub (receiver: DeviceMotionEventAcceleration) z(): Option[JsNumber] ->
     native.

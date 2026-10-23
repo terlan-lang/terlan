@@ -14,7 +14,7 @@ module std.js.Dom.LinkStyleTest.
 
 import type std.js.Dom.LinkStyle.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub sheet_typechecks(receiver: LinkStyle): Option[CSSStyleSheet] ->
+pub sheet_typechecks(
+    receiver: LinkStyle,
+): std.core.Option.Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
     receiver.sheet().

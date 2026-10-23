@@ -12,12 +12,15 @@
  */
 module std.js.Dom.PageSwapEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.PageSwapEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub activation_typechecks(receiver: PageSwapEventInit): Option[NavigationActivation] ->
+pub activation_typechecks(
+    receiver: PageSwapEventInit,
+): Option[std.js.Dom.NavigationActivation.NavigationActivation] ->
     receiver.activation().
 
-pub view_transition_typechecks(receiver: PageSwapEventInit): Option[ViewTransition] ->
+pub view_transition_typechecks(
+    receiver: PageSwapEventInit,
+): Option[std.js.Dom.ViewTransition.ViewTransition] ->
     receiver.view_transition().

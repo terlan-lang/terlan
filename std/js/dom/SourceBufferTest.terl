@@ -12,12 +12,12 @@
  */
 module std.js.Dom.SourceBufferTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.SourceBuffer.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub append_window_end_typechecks(receiver: SourceBuffer): JsNumber ->
     receiver.append_window_end().
@@ -25,11 +25,8 @@ pub append_window_end_typechecks(receiver: SourceBuffer): JsNumber ->
 pub append_window_start_typechecks(receiver: SourceBuffer): JsNumber ->
     receiver.append_window_start().
 
-pub buffered_typechecks(receiver: SourceBuffer): TimeRanges ->
+pub buffered_typechecks(receiver: SourceBuffer): std.js.Dom.TimeRanges.TimeRanges ->
     receiver.buffered().
-
-pub mode_typechecks(receiver: SourceBuffer): AppendMode ->
-    receiver.mode().
 
 pub timestamp_offset_typechecks(receiver: SourceBuffer): JsNumber ->
     receiver.timestamp_offset().
@@ -40,7 +37,10 @@ pub updating_typechecks(receiver: SourceBuffer): Bool ->
 pub abort_typechecks(receiver: SourceBuffer): Unit ->
     receiver.abort().
 
-pub append_buffer_typechecks(receiver: SourceBuffer, data: BufferSource): Unit ->
+pub append_buffer_typechecks(
+    receiver: SourceBuffer,
+    data: std.js.Dom.BufferSource.BufferSource,
+): Unit ->
     receiver.append_buffer(data).
 
 pub change_type_typechecks(receiver: SourceBuffer, type_: JsString): Unit ->
@@ -53,7 +53,7 @@ pub add_event_listener_typechecks(
     receiver: SourceBuffer,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -61,6 +61,6 @@ pub remove_event_listener_typechecks(
     receiver: SourceBuffer,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

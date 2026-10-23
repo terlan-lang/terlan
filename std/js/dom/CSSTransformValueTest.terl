@@ -14,13 +14,11 @@ module std.js.Dom.CSSTransformValueTest.
 
 import type std.js.Dom.CSSTransformValue.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub is2_d_typechecks(receiver: CSSTransformValue): std.core.Bool ->
+pub is2_d_typechecks(receiver: CSSTransformValue): Bool ->
     receiver.is2_d().
 
 pub length_typechecks(receiver: CSSTransformValue): std.js.Number.JsNumber ->
     receiver.length().
 
-pub to_matrix_typechecks(receiver: CSSTransformValue): DOMMatrix ->
+pub to_matrix_typechecks(receiver: CSSTransformValue): std.js.Dom.DOMMatrix.DOMMatrix ->
     receiver.to_matrix().

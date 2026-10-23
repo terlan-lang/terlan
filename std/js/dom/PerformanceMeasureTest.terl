@@ -13,5 +13,3 @@
 module std.js.Dom.PerformanceMeasureTest.
 
 import type std.js.Dom.PerformanceMeasure.
-
-pub generated_binding_surface_contract(): Bool -> true.

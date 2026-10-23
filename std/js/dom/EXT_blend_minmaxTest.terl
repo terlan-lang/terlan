@@ -13,5 +13,3 @@
 module std.js.Dom.EXT_blend_minmaxTest.
 
 import type std.js.Dom.EXT_blend_minmax.
-
-pub generated_binding_surface_contract(): Bool -> true.

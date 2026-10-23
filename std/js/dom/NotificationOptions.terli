@@ -12,23 +12,21 @@
  */
 module std.js.Dom.NotificationOptions.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type NotificationOptions.
 
-pub (value: NotificationOptions) badge(): JsString.
+pub (receiver: NotificationOptions) badge(): Option[JsString].
 
-pub (value: NotificationOptions) body(): JsString.
+pub (receiver: NotificationOptions) body(): Option[JsString].
 
-pub (value: NotificationOptions) dir(): NotificationDirection.
+pub (receiver: NotificationOptions) icon(): Option[JsString].
 
-pub (value: NotificationOptions) icon(): JsString.
+pub (receiver: NotificationOptions) lang(): Option[JsString].
 
-pub (value: NotificationOptions) lang(): JsString.
+pub (receiver: NotificationOptions) require_interaction(): Option[Bool].
 
-pub (value: NotificationOptions) require_interaction(): Bool.
+pub (receiver: NotificationOptions) silent(): Option[Bool].
 
-pub (value: NotificationOptions) silent(): Option[Bool].
-
-pub (value: NotificationOptions) tag(): JsString.
+pub (receiver: NotificationOptions) tag(): Option[JsString].

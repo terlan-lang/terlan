@@ -13,5 +13,3 @@
 module std.js.TemplateStringsArrayTest.
 
 import type std.js.TemplateStringsArray.
-
-pub generated_binding_surface_contract(): Bool -> true.

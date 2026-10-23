@@ -15,32 +15,32 @@ module std.js.Dom.MediaTrackSupportedConstraints.
 
 pub opaque type MediaTrackSupportedConstraints.
 
-pub (value: MediaTrackSupportedConstraints) aspect_ratio(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) aspect_ratio(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) auto_gain_control(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) auto_gain_control(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) background_blur(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) background_blur(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) channel_count(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) channel_count(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) device_id(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) device_id(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) display_surface(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) display_surface(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) echo_cancellation(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) echo_cancellation(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) facing_mode(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) facing_mode(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) frame_rate(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) frame_rate(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) group_id(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) group_id(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) height(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) height(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) noise_suppression(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) noise_suppression(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) sample_rate(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) sample_rate(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) sample_size(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) sample_size(): std.core.Option.Option[Bool].
 
-pub (value: MediaTrackSupportedConstraints) width(): std.core.Bool.
+pub (receiver: MediaTrackSupportedConstraints) width(): std.core.Option.Option[Bool].

@@ -12,21 +12,19 @@
  */
 module std.js.Dom.EncodedAudioChunkInit.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type EncodedAudioChunkInit.
 
-pub (value: EncodedAudioChunkInit) data(): AllowSharedBufferSource ->
+pub (receiver: EncodedAudioChunkInit) data(): std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource ->
     native.
 
-pub (value: EncodedAudioChunkInit) duration(): JsNumber ->
+pub (receiver: EncodedAudioChunkInit) duration(): Option[JsNumber] ->
     native.
 
-pub (value: EncodedAudioChunkInit) timestamp(): JsNumber ->
+pub (receiver: EncodedAudioChunkInit) timestamp(): JsNumber ->
     native.
 
-pub (value: EncodedAudioChunkInit) transfer(): std.js.Array[ArrayBuffer] ->
-    native.
-
-pub (value: EncodedAudioChunkInit) type_(): EncodedAudioChunkType ->
+pub (receiver: EncodedAudioChunkInit) transfer(): Option[std.js.Array.Array[std.js.ArrayBuffer.ArrayBuffer]] ->
     native.

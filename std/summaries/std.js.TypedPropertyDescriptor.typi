@@ -15,10 +15,10 @@ module std.js.TypedPropertyDescriptor.
 
 pub opaque type TypedPropertyDescriptor[T].
 
-pub (value: TypedPropertyDescriptor[T]) enumerable(): std.core.Bool.
+pub (receiver: TypedPropertyDescriptor[T]) enumerable(): std.core.Option.Option[Bool].
 
-pub (value: TypedPropertyDescriptor[T]) configurable(): std.core.Bool.
+pub (receiver: TypedPropertyDescriptor[T]) configurable(): std.core.Option.Option[Bool].
 
-pub (value: TypedPropertyDescriptor[T]) writable(): std.core.Bool.
+pub (receiver: TypedPropertyDescriptor[T]) writable(): std.core.Option.Option[Bool].
 
-pub (value: TypedPropertyDescriptor[T]) value(): T.
+pub (receiver: TypedPropertyDescriptor[T]) value(): std.core.Option.Option[T].

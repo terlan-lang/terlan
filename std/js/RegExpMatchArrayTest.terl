@@ -12,12 +12,11 @@
  */
 module std.js.RegExpMatchArrayTest.
 
+import type std.core.Option.{Option}.
 import type std.js.RegExpMatchArray.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub index_typechecks(receiver: RegExpMatchArray): std.js.Number.JsNumber ->
+pub index_typechecks(receiver: RegExpMatchArray): Option[std.js.Number.JsNumber] ->
     receiver.index().
 
-pub input_typechecks(receiver: RegExpMatchArray): std.js.String.JsString ->
+pub input_typechecks(receiver: RegExpMatchArray): Option[std.js.String.JsString] ->
     receiver.input().

@@ -14,7 +14,5 @@ module std.js.Dom.RTCErrorEventInitTest.
 
 import type std.js.Dom.RTCErrorEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub error_typechecks(receiver: RTCErrorEventInit): RTCError ->
+pub error_typechecks(receiver: RTCErrorEventInit): std.js.Dom.RTCError.RTCError ->
     receiver.error().

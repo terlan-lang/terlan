@@ -17,11 +17,5 @@ pub opaque type CanvasCompositing.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/globalAlpha)
  */
-pub (value: CanvasCompositing) global_alpha(): std.js.Number.JsNumber ->
-    native.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation)
- */
-pub (value: CanvasCompositing) global_composite_operation(): GlobalCompositeOperation ->
+pub (receiver: CanvasCompositing) global_alpha(): std.js.Number.JsNumber ->
     native.

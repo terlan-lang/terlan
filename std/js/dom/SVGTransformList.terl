@@ -12,6 +12,8 @@
  */
 module std.js.Dom.SVGTransformList.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.SVGTransform.{SVGTransform}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -26,7 +28,7 @@ pub opaque type SVGTransformList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/length)
  */
-pub (value: SVGTransformList) length(): JsNumber ->
+pub (receiver: SVGTransformList) length(): JsNumber ->
     native.
 
 /**
@@ -34,7 +36,7 @@ pub (value: SVGTransformList) length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/numberOfItems)
  */
-pub (value: SVGTransformList) number_of_items(): JsNumber ->
+pub (receiver: SVGTransformList) number_of_items(): JsNumber ->
     native.
 
 /**
@@ -42,7 +44,7 @@ pub (value: SVGTransformList) number_of_items(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/appendItem)
  */
-pub (value: SVGTransformList) append_item(new_item: SVGTransform): SVGTransform ->
+pub (receiver: SVGTransformList) append_item(new_item: SVGTransform): SVGTransform ->
     native.
 
 /**
@@ -50,7 +52,7 @@ pub (value: SVGTransformList) append_item(new_item: SVGTransform): SVGTransform 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/clear)
  */
-pub (value: SVGTransformList) clear(): std.core.Unit ->
+pub (receiver: SVGTransformList) clear(): std.core.Unit.Unit ->
     native.
 
 /**
@@ -58,7 +60,7 @@ pub (value: SVGTransformList) clear(): std.core.Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/consolidate)
  */
-pub (value: SVGTransformList) consolidate(): Option[SVGTransform] ->
+pub (receiver: SVGTransformList) consolidate(): Option[SVGTransform] ->
     native.
 
 /**
@@ -66,7 +68,9 @@ pub (value: SVGTransformList) consolidate(): Option[SVGTransform] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/createSVGTransformFromMatrix)
  */
-pub (value: SVGTransformList) create_svg_transform_from_matrix(matrix: DOMMatrix2DInit): SVGTransform ->
+pub (receiver: SVGTransformList) create_svg_transform_from_matrix(
+    matrix: Option[std.js.Dom.DOMMatrix2DInit.DOMMatrix2DInit],
+): SVGTransform ->
     native.
 
 /**
@@ -74,7 +78,7 @@ pub (value: SVGTransformList) create_svg_transform_from_matrix(matrix: DOMMatrix
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/getItem)
  */
-pub (value: SVGTransformList) get_item(index: JsNumber): SVGTransform ->
+pub (receiver: SVGTransformList) get_item(index: JsNumber): SVGTransform ->
     native.
 
 /**
@@ -82,7 +86,7 @@ pub (value: SVGTransformList) get_item(index: JsNumber): SVGTransform ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/initialize)
  */
-pub (value: SVGTransformList) initialize(new_item: SVGTransform): SVGTransform ->
+pub (receiver: SVGTransformList) initialize(new_item: SVGTransform): SVGTransform ->
     native.
 
 /**
@@ -90,7 +94,7 @@ pub (value: SVGTransformList) initialize(new_item: SVGTransform): SVGTransform -
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/insertItemBefore)
  */
-pub (value: SVGTransformList) insert_item_before(new_item: SVGTransform, index: JsNumber): SVGTransform ->
+pub (receiver: SVGTransformList) insert_item_before(new_item: SVGTransform, index: JsNumber): SVGTransform ->
     native.
 
 /**
@@ -98,7 +102,7 @@ pub (value: SVGTransformList) insert_item_before(new_item: SVGTransform, index: 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/removeItem)
  */
-pub (value: SVGTransformList) remove_item(index: JsNumber): SVGTransform ->
+pub (receiver: SVGTransformList) remove_item(index: JsNumber): SVGTransform ->
     native.
 
 /**
@@ -106,5 +110,5 @@ pub (value: SVGTransformList) remove_item(index: JsNumber): SVGTransform ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/replaceItem)
  */
-pub (value: SVGTransformList) replace_item(new_item: SVGTransform, index: JsNumber): SVGTransform ->
+pub (receiver: SVGTransformList) replace_item(new_item: SVGTransform, index: JsNumber): SVGTransform ->
     native.

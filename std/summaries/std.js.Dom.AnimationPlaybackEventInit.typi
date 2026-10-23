@@ -15,6 +15,6 @@ module std.js.Dom.AnimationPlaybackEventInit.
 
 pub opaque type AnimationPlaybackEventInit.
 
-pub (value: AnimationPlaybackEventInit) current_time(): Option[CSSNumberish].
+pub (receiver: AnimationPlaybackEventInit) current_time(): std.core.Option.Option[std.js.Dom.CSSNumberish.CSSNumberish].
 
-pub (value: AnimationPlaybackEventInit) timeline_time(): Option[CSSNumberish].
+pub (receiver: AnimationPlaybackEventInit) timeline_time(): std.core.Option.Option[std.js.Dom.CSSNumberish.CSSNumberish].

@@ -12,12 +12,13 @@
  */
 module std.js.Dom.CookieListItem.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type CookieListItem.
 
-pub (value: CookieListItem) name(): JsString ->
+pub (receiver: CookieListItem) name(): Option[JsString] ->
     native.
 
-pub (value: CookieListItem) value(): JsString ->
+pub (receiver: CookieListItem) value(): Option[JsString] ->
     native.

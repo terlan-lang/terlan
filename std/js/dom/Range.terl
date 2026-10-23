@@ -12,7 +12,9 @@
  */
 module std.js.Dom.Range.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.DocumentFragment.{DocumentFragment}.
+import type std.js.Dom.Node.{Node}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +30,7 @@ pub opaque type Range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/commonAncestorContainer)
  */
-pub (value: Range) common_ancestor_container(): Node ->
+pub (receiver: Range) common_ancestor_container(): Node ->
     native.
 
 /**
@@ -36,7 +38,7 @@ pub (value: Range) common_ancestor_container(): Node ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/cloneContents)
  */
-pub (value: Range) clone_contents(): DocumentFragment ->
+pub (receiver: Range) clone_contents(): DocumentFragment ->
     native.
 
 /**
@@ -44,7 +46,7 @@ pub (value: Range) clone_contents(): DocumentFragment ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/cloneRange)
  */
-pub (value: Range) clone_range(): Range ->
+pub (receiver: Range) clone_range(): Range ->
     native.
 
 /**
@@ -52,7 +54,7 @@ pub (value: Range) clone_range(): Range ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/collapse)
  */
-pub (value: Range) collapse(to_start: Bool): Unit ->
+pub (receiver: Range) collapse(to_start: std.core.Option.Option[Bool]): Unit ->
     native.
 
 /**
@@ -60,7 +62,7 @@ pub (value: Range) collapse(to_start: Bool): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/compareBoundaryPoints)
  */
-pub (value: Range) compare_boundary_points(how: JsNumber, source_range: Range): JsNumber ->
+pub (receiver: Range) compare_boundary_points(how: JsNumber, source_range: Range): JsNumber ->
     native.
 
 /**
@@ -68,7 +70,7 @@ pub (value: Range) compare_boundary_points(how: JsNumber, source_range: Range): 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/comparePoint)
  */
-pub (value: Range) compare_point(node: Node, offset: JsNumber): JsNumber ->
+pub (receiver: Range) compare_point(node: Node, offset: JsNumber): JsNumber ->
     native.
 
 /**
@@ -76,7 +78,7 @@ pub (value: Range) compare_point(node: Node, offset: JsNumber): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/createContextualFragment)
  */
-pub (value: Range) create_contextual_fragment(string: JsString): DocumentFragment ->
+pub (receiver: Range) create_contextual_fragment(string: JsString): DocumentFragment ->
     native.
 
 /**
@@ -84,7 +86,7 @@ pub (value: Range) create_contextual_fragment(string: JsString): DocumentFragmen
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/deleteContents)
  */
-pub (value: Range) delete_contents(): Unit ->
+pub (receiver: Range) delete_contents(): Unit ->
     native.
 
 /**
@@ -92,7 +94,7 @@ pub (value: Range) delete_contents(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/detach)
  */
-pub (value: Range) detach(): Unit ->
+pub (receiver: Range) detach(): Unit ->
     native.
 
 /**
@@ -100,7 +102,7 @@ pub (value: Range) detach(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/extractContents)
  */
-pub (value: Range) extract_contents(): DocumentFragment ->
+pub (receiver: Range) extract_contents(): DocumentFragment ->
     native.
 
 /**
@@ -108,7 +110,7 @@ pub (value: Range) extract_contents(): DocumentFragment ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/getBoundingClientRect)
  */
-pub (value: Range) get_bounding_client_rect(): DOMRect ->
+pub (receiver: Range) get_bounding_client_rect(): std.js.Dom.DOMRect.DOMRect ->
     native.
 
 /**
@@ -116,7 +118,7 @@ pub (value: Range) get_bounding_client_rect(): DOMRect ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/getClientRects)
  */
-pub (value: Range) get_client_rects(): DOMRectList ->
+pub (receiver: Range) get_client_rects(): std.js.Dom.DOMRectList.DOMRectList ->
     native.
 
 /**
@@ -124,7 +126,7 @@ pub (value: Range) get_client_rects(): DOMRectList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/insertNode)
  */
-pub (value: Range) insert_node(node: Node): Unit ->
+pub (receiver: Range) insert_node(node: Node): Unit ->
     native.
 
 /**
@@ -132,7 +134,7 @@ pub (value: Range) insert_node(node: Node): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/intersectsNode)
  */
-pub (value: Range) intersects_node(node: Node): Bool ->
+pub (receiver: Range) intersects_node(node: Node): Bool ->
     native.
 
 /**
@@ -140,7 +142,7 @@ pub (value: Range) intersects_node(node: Node): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/isPointInRange)
  */
-pub (value: Range) is_point_in_range(node: Node, offset: JsNumber): Bool ->
+pub (receiver: Range) is_point_in_range(node: Node, offset: JsNumber): Bool ->
     native.
 
 /**
@@ -148,7 +150,7 @@ pub (value: Range) is_point_in_range(node: Node, offset: JsNumber): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/selectNode)
  */
-pub (value: Range) select_node(node: Node): Unit ->
+pub (receiver: Range) select_node(node: Node): Unit ->
     native.
 
 /**
@@ -156,7 +158,7 @@ pub (value: Range) select_node(node: Node): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/selectNodeContents)
  */
-pub (value: Range) select_node_contents(node: Node): Unit ->
+pub (receiver: Range) select_node_contents(node: Node): Unit ->
     native.
 
 /**
@@ -164,7 +166,7 @@ pub (value: Range) select_node_contents(node: Node): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setEnd)
  */
-pub (value: Range) set_end(node: Node, offset: JsNumber): Unit ->
+pub (receiver: Range) set_end(node: Node, offset: JsNumber): Unit ->
     native.
 
 /**
@@ -172,7 +174,7 @@ pub (value: Range) set_end(node: Node, offset: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setEndAfter)
  */
-pub (value: Range) set_end_after(node: Node): Unit ->
+pub (receiver: Range) set_end_after(node: Node): Unit ->
     native.
 
 /**
@@ -180,7 +182,7 @@ pub (value: Range) set_end_after(node: Node): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setEndBefore)
  */
-pub (value: Range) set_end_before(node: Node): Unit ->
+pub (receiver: Range) set_end_before(node: Node): Unit ->
     native.
 
 /**
@@ -188,7 +190,7 @@ pub (value: Range) set_end_before(node: Node): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setStart)
  */
-pub (value: Range) set_start(node: Node, offset: JsNumber): Unit ->
+pub (receiver: Range) set_start(node: Node, offset: JsNumber): Unit ->
     native.
 
 /**
@@ -196,7 +198,7 @@ pub (value: Range) set_start(node: Node, offset: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setStartAfter)
  */
-pub (value: Range) set_start_after(node: Node): Unit ->
+pub (receiver: Range) set_start_after(node: Node): Unit ->
     native.
 
 /**
@@ -204,7 +206,7 @@ pub (value: Range) set_start_after(node: Node): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setStartBefore)
  */
-pub (value: Range) set_start_before(node: Node): Unit ->
+pub (receiver: Range) set_start_before(node: Node): Unit ->
     native.
 
 /**
@@ -212,8 +214,8 @@ pub (value: Range) set_start_before(node: Node): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/surroundContents)
  */
-pub (value: Range) surround_contents(new_parent: Node): Unit ->
+pub (receiver: Range) surround_contents(new_parent: Node): Unit ->
     native.
 
-pub (value: Range) to_string(): JsString ->
+pub (receiver: Range) to_string(): JsString ->
     native.

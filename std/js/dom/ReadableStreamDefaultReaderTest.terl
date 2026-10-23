@@ -14,12 +14,10 @@ module std.js.Dom.ReadableStreamDefaultReaderTest.
 
 import type std.js.Dom.ReadableStreamDefaultReader.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub read_typechecks(
     receiver: ReadableStreamDefaultReader[R],
-): std.js.Promise[ReadableStreamReadResult[R]] ->
+): std.js.Promise.Promise[std.js.Dom.ReadableStreamReadResult.ReadableStreamReadResult[R]] ->
     receiver.read().
 
-pub release_lock_typechecks(receiver: ReadableStreamDefaultReader[R]): std.core.Unit ->
+pub release_lock_typechecks(receiver: ReadableStreamDefaultReader[R]): std.core.Unit.Unit ->
     receiver.release_lock().

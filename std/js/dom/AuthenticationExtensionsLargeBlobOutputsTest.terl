@@ -12,16 +12,16 @@
  */
 module std.js.Dom.AuthenticationExtensionsLargeBlobOutputsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.AuthenticationExtensionsLargeBlobOutputs.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub blob_typechecks(receiver: AuthenticationExtensionsLargeBlobOutputs): ArrayBuffer ->
+pub blob_typechecks(
+    receiver: AuthenticationExtensionsLargeBlobOutputs,
+): Option[std.js.ArrayBuffer.ArrayBuffer] ->
     receiver.blob().
 
-pub supported_typechecks(receiver: AuthenticationExtensionsLargeBlobOutputs): Bool ->
+pub supported_typechecks(receiver: AuthenticationExtensionsLargeBlobOutputs): Option[Bool] ->
     receiver.supported().
 
-pub written_typechecks(receiver: AuthenticationExtensionsLargeBlobOutputs): Bool ->
+pub written_typechecks(receiver: AuthenticationExtensionsLargeBlobOutputs): Option[Bool] ->
     receiver.written().

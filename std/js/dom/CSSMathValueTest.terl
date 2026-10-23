@@ -13,8 +13,3 @@
 module std.js.Dom.CSSMathValueTest.
 
 import type std.js.Dom.CSSMathValue.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub operator_typechecks(receiver: CSSMathValue): CSSMathOperator ->
-    receiver.operator().

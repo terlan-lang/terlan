@@ -14,7 +14,7 @@ module std.js.Dom.OffscreenCanvasRenderingContext2DTest.
 
 import type std.js.Dom.OffscreenCanvasRenderingContext2D.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub canvas_typechecks(receiver: OffscreenCanvasRenderingContext2D): OffscreenCanvas ->
+pub canvas_typechecks(
+    receiver: OffscreenCanvasRenderingContext2D,
+): std.js.Dom.OffscreenCanvas.OffscreenCanvas ->
     receiver.canvas().

@@ -12,15 +12,17 @@
  */
 module std.js.Dom.PaymentDetailsModifierTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.PaymentDetailsModifier.
+import type std.js.Dom.PaymentItem.{PaymentItem}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub additional_display_items_typechecks(receiver: PaymentDetailsModifier): std.js.Array[PaymentItem] ->
+pub additional_display_items_typechecks(
+    receiver: PaymentDetailsModifier,
+): Option[std.js.Array.Array[PaymentItem]] ->
     receiver.additional_display_items().
 
 pub supported_methods_typechecks(receiver: PaymentDetailsModifier): std.js.String.JsString ->
     receiver.supported_methods().
 
-pub total_typechecks(receiver: PaymentDetailsModifier): PaymentItem ->
+pub total_typechecks(receiver: PaymentDetailsModifier): Option[PaymentItem] ->
     receiver.total().

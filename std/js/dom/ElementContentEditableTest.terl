@@ -15,8 +15,6 @@ module std.js.Dom.ElementContentEditableTest.
 import type std.js.Dom.ElementContentEditable.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub content_editable_typechecks(receiver: ElementContentEditable): JsString ->
     receiver.content_editable().
 
@@ -26,5 +24,5 @@ pub enter_key_hint_typechecks(receiver: ElementContentEditable): JsString ->
 pub input_mode_typechecks(receiver: ElementContentEditable): JsString ->
     receiver.input_mode().
 
-pub is_content_editable_typechecks(receiver: ElementContentEditable): std.core.Bool ->
+pub is_content_editable_typechecks(receiver: ElementContentEditable): Bool ->
     receiver.is_content_editable().

@@ -13,8 +13,3 @@
 module std.js.Dom.ResizeObserverOptionsTest.
 
 import type std.js.Dom.ResizeObserverOptions.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub box_typechecks(receiver: ResizeObserverOptions): ResizeObserverBoxOptions ->
-    receiver.box().

@@ -12,6 +12,8 @@
  */
 module std.js.Dom.PluginArray.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.Plugin.{Plugin}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -25,19 +27,19 @@ pub opaque type PluginArray.
 /**
  * @deprecated
  */
-pub (value: PluginArray) length(): JsNumber.
+pub (receiver: PluginArray) length(): JsNumber.
 
 /**
  * @deprecated
  */
-pub (value: PluginArray) item(index: JsNumber): Option[Plugin].
+pub (receiver: PluginArray) item(index: JsNumber): Option[Plugin].
 
 /**
  * @deprecated
  */
-pub (value: PluginArray) named_item(name: std.js.String.JsString): Option[Plugin].
+pub (receiver: PluginArray) named_item(name: std.js.String.JsString): Option[Plugin].
 
 /**
  * @deprecated
  */
-pub (value: PluginArray) refresh(): std.core.Unit.
+pub (receiver: PluginArray) refresh(): std.core.Unit.Unit.

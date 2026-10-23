@@ -12,12 +12,13 @@
  */
 module std.js.Dom.RTCReceivedRtpStreamStats.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type RTCReceivedRtpStreamStats.
 
-pub (value: RTCReceivedRtpStreamStats) jitter(): JsNumber.
+pub (receiver: RTCReceivedRtpStreamStats) jitter(): Option[JsNumber].
 
-pub (value: RTCReceivedRtpStreamStats) packets_lost(): JsNumber.
+pub (receiver: RTCReceivedRtpStreamStats) packets_lost(): Option[JsNumber].
 
-pub (value: RTCReceivedRtpStreamStats) packets_received(): JsNumber.
+pub (receiver: RTCReceivedRtpStreamStats) packets_received(): Option[JsNumber].

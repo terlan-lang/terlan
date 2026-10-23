@@ -12,9 +12,8 @@
  */
 module std.js.Dom.WebGLShaderPrecisionFormatTest.
 
+import type std.js.Dom.GLint.{GLint}.
 import type std.js.Dom.WebGLShaderPrecisionFormat.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub precision_typechecks(receiver: WebGLShaderPrecisionFormat): GLint ->
     receiver.precision().

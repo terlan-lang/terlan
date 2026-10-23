@@ -12,6 +12,8 @@
  */
 module std.js.Dom.IntersectionObserverEntry.
 
+import type std.js.Dom.DOMRectReadOnly.{DOMRectReadOnly}.
+
 /**
  * The **`IntersectionObserverEntry`** interface of the Intersection Observer API describes the intersection between the target element and its root container at a specific moment of transition.
  *
@@ -24,7 +26,7 @@ pub opaque type IntersectionObserverEntry.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/boundingClientRect)
  */
-pub (value: IntersectionObserverEntry) bounding_client_rect(): DOMRectReadOnly ->
+pub (receiver: IntersectionObserverEntry) bounding_client_rect(): DOMRectReadOnly ->
     native.
 
 /**
@@ -32,7 +34,7 @@ pub (value: IntersectionObserverEntry) bounding_client_rect(): DOMRectReadOnly -
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/intersectionRatio)
  */
-pub (value: IntersectionObserverEntry) intersection_ratio(): std.js.Number.JsNumber ->
+pub (receiver: IntersectionObserverEntry) intersection_ratio(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -40,7 +42,7 @@ pub (value: IntersectionObserverEntry) intersection_ratio(): std.js.Number.JsNum
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/intersectionRect)
  */
-pub (value: IntersectionObserverEntry) intersection_rect(): DOMRectReadOnly ->
+pub (receiver: IntersectionObserverEntry) intersection_rect(): DOMRectReadOnly ->
     native.
 
 /**
@@ -48,7 +50,7 @@ pub (value: IntersectionObserverEntry) intersection_rect(): DOMRectReadOnly ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/isIntersecting)
  */
-pub (value: IntersectionObserverEntry) is_intersecting(): std.core.Bool ->
+pub (receiver: IntersectionObserverEntry) is_intersecting(): Bool ->
     native.
 
 /**
@@ -56,7 +58,7 @@ pub (value: IntersectionObserverEntry) is_intersecting(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/rootBounds)
  */
-pub (value: IntersectionObserverEntry) root_bounds(): Option[DOMRectReadOnly] ->
+pub (receiver: IntersectionObserverEntry) root_bounds(): std.core.Option.Option[DOMRectReadOnly] ->
     native.
 
 /**
@@ -64,7 +66,7 @@ pub (value: IntersectionObserverEntry) root_bounds(): Option[DOMRectReadOnly] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/target)
  */
-pub (value: IntersectionObserverEntry) target_(): Element ->
+pub (receiver: IntersectionObserverEntry) target_(): std.js.Dom.Element.Element ->
     native.
 
 /**
@@ -72,5 +74,5 @@ pub (value: IntersectionObserverEntry) target_(): Element ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/time)
  */
-pub (value: IntersectionObserverEntry) time(): DOMHighResTimeStamp ->
+pub (receiver: IntersectionObserverEntry) time(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
     native.

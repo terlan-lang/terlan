@@ -12,30 +12,28 @@
  */
 module std.js.Dom.MutationObserverInitTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.MutationObserverInit.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub attribute_filter_typechecks(
     receiver: MutationObserverInit,
-): std.js.Array[std.js.String.JsString] ->
+): Option[std.js.Array.Array[std.js.String.JsString]] ->
     receiver.attribute_filter().
 
-pub attribute_old_value_typechecks(receiver: MutationObserverInit): Bool ->
+pub attribute_old_value_typechecks(receiver: MutationObserverInit): Option[Bool] ->
     receiver.attribute_old_value().
 
-pub attributes_typechecks(receiver: MutationObserverInit): Bool ->
+pub attributes_typechecks(receiver: MutationObserverInit): Option[Bool] ->
     receiver.attributes().
 
-pub character_data_typechecks(receiver: MutationObserverInit): Bool ->
+pub character_data_typechecks(receiver: MutationObserverInit): Option[Bool] ->
     receiver.character_data().
 
-pub character_data_old_value_typechecks(receiver: MutationObserverInit): Bool ->
+pub character_data_old_value_typechecks(receiver: MutationObserverInit): Option[Bool] ->
     receiver.character_data_old_value().
 
-pub child_list_typechecks(receiver: MutationObserverInit): Bool ->
+pub child_list_typechecks(receiver: MutationObserverInit): Option[Bool] ->
     receiver.child_list().
 
-pub subtree_typechecks(receiver: MutationObserverInit): Bool ->
+pub subtree_typechecks(receiver: MutationObserverInit): Option[Bool] ->
     receiver.subtree().

@@ -16,8 +16,8 @@ import type std.js.String.{JsString}.
 
 pub opaque type Collator.
 
-pub (value: Collator) compare(x: JsString, y: JsString): std.js.Number.JsNumber ->
+pub (receiver: Collator) compare(x: JsString, y: JsString): std.js.Number.JsNumber ->
     native.
 
-pub (value: Collator) resolved_options(): ResolvedCollatorOptions ->
+pub (receiver: Collator) resolved_options(): std.js.Intl.ResolvedCollatorOptions.ResolvedCollatorOptions ->
     native.

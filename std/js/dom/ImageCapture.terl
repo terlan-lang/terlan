@@ -12,7 +12,8 @@
  */
 module std.js.Dom.ImageCapture.
 
-import type std.js.{Promise}.
+import type std.js.Dom.PhotoSettings.{PhotoSettings}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`ImageCapture`** interface of the MediaStream Image Capture API provides methods to enable the capture of images or photos from a camera or other photographic device.
@@ -27,7 +28,7 @@ pub opaque type ImageCapture.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/track)
  */
-pub (value: ImageCapture) track(): MediaStreamTrack ->
+pub (receiver: ImageCapture) track(): std.js.Dom.MediaStreamTrack.MediaStreamTrack ->
     native.
 
 /**
@@ -35,7 +36,7 @@ pub (value: ImageCapture) track(): MediaStreamTrack ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/getPhotoCapabilities)
  */
-pub (value: ImageCapture) get_photo_capabilities(): Promise[PhotoCapabilities] ->
+pub (receiver: ImageCapture) get_photo_capabilities(): Promise[std.js.Dom.PhotoCapabilities.PhotoCapabilities] ->
     native.
 
 /**
@@ -43,7 +44,7 @@ pub (value: ImageCapture) get_photo_capabilities(): Promise[PhotoCapabilities] -
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/getPhotoSettings)
  */
-pub (value: ImageCapture) get_photo_settings(): Promise[PhotoSettings] ->
+pub (receiver: ImageCapture) get_photo_settings(): Promise[PhotoSettings] ->
     native.
 
 /**
@@ -51,5 +52,5 @@ pub (value: ImageCapture) get_photo_settings(): Promise[PhotoSettings] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/takePhoto)
  */
-pub (value: ImageCapture) take_photo(photo_settings: PhotoSettings): Promise[Blob] ->
+pub (receiver: ImageCapture) take_photo(photo_settings: std.core.Option.Option[PhotoSettings]): Promise[std.js.Dom.Blob.Blob] ->
     native.

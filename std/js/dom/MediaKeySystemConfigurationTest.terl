@@ -12,33 +12,27 @@
  */
 module std.js.Dom.MediaKeySystemConfigurationTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
 import type std.js.Dom.MediaKeySystemConfiguration.
+import type std.js.Dom.MediaKeySystemMediaCapability.{MediaKeySystemMediaCapability}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub audio_capabilities_typechecks(
     receiver: MediaKeySystemConfiguration,
-): Array[MediaKeySystemMediaCapability] ->
+): Option[Array[MediaKeySystemMediaCapability]] ->
     receiver.audio_capabilities().
 
-pub distinctive_identifier_typechecks(receiver: MediaKeySystemConfiguration): MediaKeysRequirement ->
-    receiver.distinctive_identifier().
-
-pub init_data_types_typechecks(receiver: MediaKeySystemConfiguration): Array[JsString] ->
+pub init_data_types_typechecks(receiver: MediaKeySystemConfiguration): Option[Array[JsString]] ->
     receiver.init_data_types().
 
-pub label_typechecks(receiver: MediaKeySystemConfiguration): JsString ->
+pub label_typechecks(receiver: MediaKeySystemConfiguration): Option[JsString] ->
     receiver.label().
 
-pub persistent_state_typechecks(receiver: MediaKeySystemConfiguration): MediaKeysRequirement ->
-    receiver.persistent_state().
-
-pub session_types_typechecks(receiver: MediaKeySystemConfiguration): Array[JsString] ->
+pub session_types_typechecks(receiver: MediaKeySystemConfiguration): Option[Array[JsString]] ->
     receiver.session_types().
 
 pub video_capabilities_typechecks(
     receiver: MediaKeySystemConfiguration,
-): Array[MediaKeySystemMediaCapability] ->
+): Option[Array[MediaKeySystemMediaCapability]] ->
     receiver.video_capabilities().

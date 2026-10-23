@@ -13,11 +13,12 @@
 module std.js.Dom.AuthenticationExtensionsPRFValuesTest.
 
 import type std.js.Dom.AuthenticationExtensionsPRFValues.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.BufferSource.{BufferSource}.
 
 pub first_typechecks(receiver: AuthenticationExtensionsPRFValues): BufferSource ->
     receiver.first().
 
-pub second_typechecks(receiver: AuthenticationExtensionsPRFValues): BufferSource ->
+pub second_typechecks(
+    receiver: AuthenticationExtensionsPRFValues,
+): std.core.Option.Option[BufferSource] ->
     receiver.second().

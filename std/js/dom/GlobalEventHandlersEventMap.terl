@@ -12,319 +12,333 @@
  */
 module std.js.Dom.GlobalEventHandlersEventMap.
 
+import type std.js.Dom.AnimationEvent.{AnimationEvent}.
+import type std.js.Dom.ClipboardEvent.{ClipboardEvent}.
+import type std.js.Dom.CompositionEvent.{CompositionEvent}.
+import type std.js.Dom.DragEvent.{DragEvent}.
+import type std.js.Dom.Event.{Event}.
+import type std.js.Dom.FocusEvent.{FocusEvent}.
+import type std.js.Dom.KeyboardEvent.{KeyboardEvent}.
+import type std.js.Dom.MouseEvent.{MouseEvent}.
+import type std.js.Dom.PointerEvent.{PointerEvent}.
+import type std.js.Dom.ToggleEvent.{ToggleEvent}.
+import type std.js.Dom.TouchEvent.{TouchEvent}.
+import type std.js.Dom.TransitionEvent.{TransitionEvent}.
+import type std.js.Dom.UIEvent.{UIEvent}.
+
 pub opaque type GlobalEventHandlersEventMap.
 
-pub (value: GlobalEventHandlersEventMap) abort(): UIEvent ->
+pub (receiver: GlobalEventHandlersEventMap) abort(): UIEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) animationcancel(): AnimationEvent ->
+pub (receiver: GlobalEventHandlersEventMap) animationcancel(): AnimationEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) animationend(): AnimationEvent ->
+pub (receiver: GlobalEventHandlersEventMap) animationend(): AnimationEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) animationiteration(): AnimationEvent ->
+pub (receiver: GlobalEventHandlersEventMap) animationiteration(): AnimationEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) animationstart(): AnimationEvent ->
+pub (receiver: GlobalEventHandlersEventMap) animationstart(): AnimationEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) auxclick(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) auxclick(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) beforeinput(): InputEvent ->
+pub (receiver: GlobalEventHandlersEventMap) beforeinput(): std.js.Dom.InputEvent.InputEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) beforematch(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) beforematch(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) beforetoggle(): ToggleEvent ->
+pub (receiver: GlobalEventHandlersEventMap) beforetoggle(): ToggleEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) blur(): FocusEvent ->
+pub (receiver: GlobalEventHandlersEventMap) blur(): FocusEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) cancel(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) cancel(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) canplay(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) canplay(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) canplaythrough(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) canplaythrough(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) change(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) change(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) click(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) click(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) close(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) close(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) compositionend(): CompositionEvent ->
+pub (receiver: GlobalEventHandlersEventMap) compositionend(): CompositionEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) compositionstart(): CompositionEvent ->
+pub (receiver: GlobalEventHandlersEventMap) compositionstart(): CompositionEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) compositionupdate(): CompositionEvent ->
+pub (receiver: GlobalEventHandlersEventMap) compositionupdate(): CompositionEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) contextlost(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) contextlost(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) contextmenu(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) contextmenu(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) contextrestored(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) contextrestored(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) copy(): ClipboardEvent ->
+pub (receiver: GlobalEventHandlersEventMap) copy(): ClipboardEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) cuechange(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) cuechange(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) cut(): ClipboardEvent ->
+pub (receiver: GlobalEventHandlersEventMap) cut(): ClipboardEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) dblclick(): MouseEvent ->
+pub (receiver: GlobalEventHandlersEventMap) dblclick(): MouseEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) drag(): DragEvent ->
+pub (receiver: GlobalEventHandlersEventMap) drag(): DragEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) dragend(): DragEvent ->
+pub (receiver: GlobalEventHandlersEventMap) dragend(): DragEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) dragenter(): DragEvent ->
+pub (receiver: GlobalEventHandlersEventMap) dragenter(): DragEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) dragleave(): DragEvent ->
+pub (receiver: GlobalEventHandlersEventMap) dragleave(): DragEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) dragover(): DragEvent ->
+pub (receiver: GlobalEventHandlersEventMap) dragover(): DragEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) dragstart(): DragEvent ->
+pub (receiver: GlobalEventHandlersEventMap) dragstart(): DragEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) drop(): DragEvent ->
+pub (receiver: GlobalEventHandlersEventMap) drop(): DragEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) durationchange(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) durationchange(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) emptied(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) emptied(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) ended(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) ended(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) error(): ErrorEvent ->
+pub (receiver: GlobalEventHandlersEventMap) error(): std.js.Dom.ErrorEvent.ErrorEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) focus(): FocusEvent ->
+pub (receiver: GlobalEventHandlersEventMap) focus(): FocusEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) focusin(): FocusEvent ->
+pub (receiver: GlobalEventHandlersEventMap) focusin(): FocusEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) focusout(): FocusEvent ->
+pub (receiver: GlobalEventHandlersEventMap) focusout(): FocusEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) formdata(): FormDataEvent ->
+pub (receiver: GlobalEventHandlersEventMap) formdata(): std.js.Dom.FormDataEvent.FormDataEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) gotpointercapture(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) gotpointercapture(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) input(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) input(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) invalid(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) invalid(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) keydown(): KeyboardEvent ->
+pub (receiver: GlobalEventHandlersEventMap) keydown(): KeyboardEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) keypress(): KeyboardEvent ->
+pub (receiver: GlobalEventHandlersEventMap) keypress(): KeyboardEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) keyup(): KeyboardEvent ->
+pub (receiver: GlobalEventHandlersEventMap) keyup(): KeyboardEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) load(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) load(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) loadeddata(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) loadeddata(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) loadedmetadata(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) loadedmetadata(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) loadstart(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) loadstart(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) lostpointercapture(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) lostpointercapture(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) mousedown(): MouseEvent ->
+pub (receiver: GlobalEventHandlersEventMap) mousedown(): MouseEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) mouseenter(): MouseEvent ->
+pub (receiver: GlobalEventHandlersEventMap) mouseenter(): MouseEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) mouseleave(): MouseEvent ->
+pub (receiver: GlobalEventHandlersEventMap) mouseleave(): MouseEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) mousemove(): MouseEvent ->
+pub (receiver: GlobalEventHandlersEventMap) mousemove(): MouseEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) mouseout(): MouseEvent ->
+pub (receiver: GlobalEventHandlersEventMap) mouseout(): MouseEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) mouseover(): MouseEvent ->
+pub (receiver: GlobalEventHandlersEventMap) mouseover(): MouseEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) mouseup(): MouseEvent ->
+pub (receiver: GlobalEventHandlersEventMap) mouseup(): MouseEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) paste(): ClipboardEvent ->
+pub (receiver: GlobalEventHandlersEventMap) paste(): ClipboardEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) pause(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) pause(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) play(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) play(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) playing(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) playing(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) pointercancel(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) pointercancel(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) pointerdown(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) pointerdown(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) pointerenter(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) pointerenter(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) pointerleave(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) pointerleave(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) pointermove(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) pointermove(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) pointerout(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) pointerout(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) pointerover(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) pointerover(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) pointerrawupdate(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) pointerrawupdate(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) pointerup(): PointerEvent ->
+pub (receiver: GlobalEventHandlersEventMap) pointerup(): PointerEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) progress(): ProgressEvent ->
+pub (receiver: GlobalEventHandlersEventMap) progress(): std.js.Dom.ProgressEvent.ProgressEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) ratechange(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) ratechange(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) reset(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) reset(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) resize(): UIEvent ->
+pub (receiver: GlobalEventHandlersEventMap) resize(): UIEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) scroll(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) scroll(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) scrollend(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) scrollend(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) securitypolicyviolation(): SecurityPolicyViolationEvent ->
+pub (receiver: GlobalEventHandlersEventMap) securitypolicyviolation(): std.js.Dom.SecurityPolicyViolationEvent.SecurityPolicyViolationEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) seeked(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) seeked(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) seeking(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) seeking(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) select(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) select(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) selectionchange(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) selectionchange(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) selectstart(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) selectstart(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) slotchange(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) slotchange(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) stalled(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) stalled(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) submit(): SubmitEvent ->
+pub (receiver: GlobalEventHandlersEventMap) submit(): std.js.Dom.SubmitEvent.SubmitEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) suspend(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) suspend(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) timeupdate(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) timeupdate(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) toggle(): ToggleEvent ->
+pub (receiver: GlobalEventHandlersEventMap) toggle(): ToggleEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) touchcancel(): TouchEvent ->
+pub (receiver: GlobalEventHandlersEventMap) touchcancel(): TouchEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) touchend(): TouchEvent ->
+pub (receiver: GlobalEventHandlersEventMap) touchend(): TouchEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) touchmove(): TouchEvent ->
+pub (receiver: GlobalEventHandlersEventMap) touchmove(): TouchEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) touchstart(): TouchEvent ->
+pub (receiver: GlobalEventHandlersEventMap) touchstart(): TouchEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) transitioncancel(): TransitionEvent ->
+pub (receiver: GlobalEventHandlersEventMap) transitioncancel(): TransitionEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) transitionend(): TransitionEvent ->
+pub (receiver: GlobalEventHandlersEventMap) transitionend(): TransitionEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) transitionrun(): TransitionEvent ->
+pub (receiver: GlobalEventHandlersEventMap) transitionrun(): TransitionEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) transitionstart(): TransitionEvent ->
+pub (receiver: GlobalEventHandlersEventMap) transitionstart(): TransitionEvent ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) volumechange(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) volumechange(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) waiting(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) waiting(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) webkitanimationend(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) webkitanimationend(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) webkitanimationiteration(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) webkitanimationiteration(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) webkitanimationstart(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) webkitanimationstart(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) webkittransitionend(): Event ->
+pub (receiver: GlobalEventHandlersEventMap) webkittransitionend(): Event ->
     native.
 
-pub (value: GlobalEventHandlersEventMap) wheel(): WheelEvent ->
+pub (receiver: GlobalEventHandlersEventMap) wheel(): std.js.Dom.WheelEvent.WheelEvent ->
     native.

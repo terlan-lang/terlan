@@ -14,8 +14,6 @@ module std.js.Dom.MediaErrorTest.
 
 import type std.js.Dom.MediaError.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub code_typechecks(receiver: MediaError): std.js.Number.JsNumber ->
     receiver.code().
 

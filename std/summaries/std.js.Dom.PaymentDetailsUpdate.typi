@@ -15,8 +15,8 @@ module std.js.Dom.PaymentDetailsUpdate.
 
 pub opaque type PaymentDetailsUpdate.
 
-pub (value: PaymentDetailsUpdate) error(): std.js.String.JsString.
+pub (receiver: PaymentDetailsUpdate) error(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: PaymentDetailsUpdate) shipping_address_errors(): AddressErrors.
+pub (receiver: PaymentDetailsUpdate) shipping_address_errors(): std.core.Option.Option[std.js.Dom.AddressErrors.AddressErrors].
 
-pub (value: PaymentDetailsUpdate) total(): PaymentItem.
+pub (receiver: PaymentDetailsUpdate) total(): std.core.Option.Option[std.js.Dom.PaymentItem.PaymentItem].

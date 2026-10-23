@@ -13,5 +13,3 @@
 module std.js.Dom.FullscreenOptions.
 
 pub opaque type FullscreenOptions.
-
-pub (value: FullscreenOptions) navigation_ui(): FullscreenNavigationUI.

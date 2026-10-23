@@ -12,10 +12,12 @@
  */
 module std.js.Dom.PaymentDetailsUpdate.
 
+import type std.core.Option.{Option}.
+
 pub opaque type PaymentDetailsUpdate.
 
-pub (value: PaymentDetailsUpdate) error(): std.js.String.JsString.
+pub (receiver: PaymentDetailsUpdate) error(): Option[std.js.String.JsString].
 
-pub (value: PaymentDetailsUpdate) shipping_address_errors(): AddressErrors.
+pub (receiver: PaymentDetailsUpdate) shipping_address_errors(): Option[std.js.Dom.AddressErrors.AddressErrors].
 
-pub (value: PaymentDetailsUpdate) total(): PaymentItem.
+pub (receiver: PaymentDetailsUpdate) total(): Option[std.js.Dom.PaymentItem.PaymentItem].

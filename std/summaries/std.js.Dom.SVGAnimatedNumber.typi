@@ -25,11 +25,11 @@ pub opaque type SVGAnimatedNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedNumber/animVal)
  */
-pub (value: SVGAnimatedNumber) anim_val(): std.js.Number.JsNumber.
+pub (receiver: SVGAnimatedNumber) anim_val(): std.js.Number.JsNumber.
 
 /**
  * The **`baseVal`** property of the SVGAnimatedNumber interface represents the base (non-animated) value of an animatable numeric attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedNumber/baseVal)
  */
-pub (value: SVGAnimatedNumber) base_val(): std.js.Number.JsNumber.
+pub (receiver: SVGAnimatedNumber) base_val(): std.js.Number.JsNumber.

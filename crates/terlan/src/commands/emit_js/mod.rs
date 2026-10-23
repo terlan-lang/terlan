@@ -8,6 +8,7 @@ mod declarations;
 mod direct_ast;
 mod direct_helpers;
 mod direct_reachability;
+mod js_bindings;
 mod oxc_backend;
 mod source_linking;
 mod std_core_string_intrinsics;
@@ -32,20 +33,26 @@ pub(crate) fn emit_core_module_with_template_runtime(
     core: &crate::terlan_typeck::CoreModule,
     syntax: &crate::terlan_syntax::SyntaxModuleOutput,
     source_path: &Path,
+    profile: crate::validation::target_profile::TargetProfile,
 ) -> Result<Option<String>, String> {
-    let linked =
-        source_linking::link_libraries(core, source_path).map_err(|error| error.to_string())?;
+    let mut linked = source_linking::link_libraries_with_profile(core, source_path, profile)
+        .map_err(|error| error.to_string())?;
+    let bindings = js_bindings::lower(&mut linked).map_err(|error| error.to_string())?;
     let core = &linked;
     let module_source = if let Some(source) = tail_recursion::emit_stack_safe_tail_module(core) {
         oxc_backend::emit_js_with_oxc_codegen(&source)?
     } else {
         let Some(source) = oxc_backend::emit_core_module_with_direct_oxc_ast(core) else {
+            if std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some() {
+                eprintln!("[js unsupported linked core] {}", core.contract_text());
+            }
             return Ok(None);
         };
         source
     };
     let runtime_source = format!(
-        "{}\n{}",
+        "{}\n{}\n{}",
+        bindings,
         template_runtime::emit_template_runtime(syntax, source_path)?,
         template_runtime::emit_structured_artifact_runtime(syntax, source_path)?
     );
@@ -110,6 +117,7 @@ pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
         &artifacts.core,
         &artifacts.syntax_output,
         Path::new(&args.path),
+        state.target_profile,
     ) {
         Ok(Some(js)) => js,
         Ok(None) => match oxc_backend::emit_core_module_with_oxc_codegen(&artifacts.core) {

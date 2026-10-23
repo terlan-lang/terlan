@@ -14,10 +14,8 @@ module std.js.Dom.CSSPageRuleTest.
 
 import type std.js.Dom.CSSPageRule.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub selector_text_typechecks(receiver: CSSPageRule): std.js.String.JsString ->
     receiver.selector_text().
 
-pub style_typechecks(receiver: CSSPageRule): CSSStyleDeclaration ->
+pub style_typechecks(receiver: CSSPageRule): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration ->
     receiver.style().

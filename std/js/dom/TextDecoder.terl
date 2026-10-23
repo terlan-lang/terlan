@@ -12,6 +12,8 @@
  */
 module std.js.Dom.TextDecoder.
 
+import type std.core.Option.{Option}.
+
 /**
  * The **`TextDecoder`** interface represents a decoder for a specific text encoding, such as `UTF-8`, `ISO-8859-2`, `KOI8-R`, `GBK`, etc.
  *
@@ -24,5 +26,8 @@ pub opaque type TextDecoder.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/decode)
  */
-pub (value: TextDecoder) decode(input: AllowSharedBufferSource, options: TextDecodeOptions): std.js.String.JsString ->
+pub (receiver: TextDecoder) decode(
+    input: Option[std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource],
+    options: Option[std.js.Dom.TextDecodeOptions.TextDecodeOptions],
+): std.js.String.JsString ->
     native.

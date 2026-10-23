@@ -126,6 +126,7 @@ pub(super) struct DomParamPlan {
     pub(super) js_name: String,
     pub(super) terlan_name: String,
     pub(super) optional: bool,
+    pub(super) rest: bool,
     pub(super) terlan_type: String,
 }
 
@@ -606,11 +607,14 @@ fn map_property(
     skipped: &mut Vec<DomSkippedDeclaration>,
 ) -> Option<DomPropertyPlan> {
     let mapping = map_ts_type_to_terlan(&property.ty);
-    let terlan_type = mapped_type_or_skip(
+    let mut terlan_type = mapped_type_or_skip(
         format!("{interface_name}.{}", property.name),
         mapping,
         skipped,
     )?;
+    if property.optional && !terlan_type.starts_with("Option[") {
+        terlan_type = format!("Option[{terlan_type}]");
+    }
 
     Some(DomPropertyPlan {
         js_name: property.name.clone(),
@@ -693,6 +697,7 @@ fn map_param(
         js_name: param.name.clone(),
         terlan_name: source_name_to_terlan_identifier(&param.name),
         optional: param.optional,
+        rest: param.rest,
         terlan_type,
     })
 }

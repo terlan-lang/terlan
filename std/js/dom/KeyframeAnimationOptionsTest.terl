@@ -12,12 +12,13 @@
  */
 module std.js.Dom.KeyframeAnimationOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.KeyframeAnimationOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub id_typechecks(receiver: KeyframeAnimationOptions): std.js.String.JsString ->
+pub id_typechecks(receiver: KeyframeAnimationOptions): Option[std.js.String.JsString] ->
     receiver.id().
 
-pub timeline_typechecks(receiver: KeyframeAnimationOptions): Option[AnimationTimeline] ->
+pub timeline_typechecks(
+    receiver: KeyframeAnimationOptions,
+): Option[std.js.Dom.AnimationTimeline.AnimationTimeline] ->
     receiver.timeline().

@@ -14,4 +14,4 @@
 module std.js.Dom.WebAssembly.ImportValue.
 
 pub type ImportValue =
-    ExportValue | std.js.Number.JsNumber.
+    std.js.Dom.WebAssembly.ExportValue.ExportValue | std.js.Number.JsNumber.

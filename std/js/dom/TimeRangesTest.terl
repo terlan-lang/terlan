@@ -15,8 +15,6 @@ module std.js.Dom.TimeRangesTest.
 import type std.js.Dom.TimeRanges.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub length_typechecks(receiver: TimeRanges): JsNumber ->
     receiver.length().
 

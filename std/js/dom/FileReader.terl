@@ -12,7 +12,10 @@
  */
 module std.js.Dom.FileReader.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Blob.{Blob}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +30,7 @@ pub opaque type FileReader.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/error)
  */
-pub (value: FileReader) error(): Option[DOMException] ->
+pub (receiver: FileReader) error(): Option[std.js.Dom.DOMException.DOMException] ->
     native.
 
 /**
@@ -35,7 +38,7 @@ pub (value: FileReader) error(): Option[DOMException] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/result)
  */
-pub (value: FileReader) result(): Option[ArrayBuffer | JsString] ->
+pub (receiver: FileReader) result(): Option[std.js.ArrayBuffer.ArrayBuffer | JsString] ->
     native.
 
 /**
@@ -43,7 +46,7 @@ pub (value: FileReader) result(): Option[ArrayBuffer | JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/abort)
  */
-pub (value: FileReader) abort(): Unit ->
+pub (receiver: FileReader) abort(): Unit ->
     native.
 
 /**
@@ -51,7 +54,7 @@ pub (value: FileReader) abort(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsArrayBuffer)
  */
-pub (value: FileReader) read_as_array_buffer(blob: Blob): Unit ->
+pub (receiver: FileReader) read_as_array_buffer(blob: Blob): Unit ->
     native.
 
 /**
@@ -60,7 +63,7 @@ pub (value: FileReader) read_as_array_buffer(blob: Blob): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsBinaryString)
  */
-pub (value: FileReader) read_as_binary_string(blob: Blob): Unit ->
+pub (receiver: FileReader) read_as_binary_string(blob: Blob): Unit ->
     native.
 
 /**
@@ -68,7 +71,7 @@ pub (value: FileReader) read_as_binary_string(blob: Blob): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsDataURL)
  */
-pub (value: FileReader) read_as_data_url(blob: Blob): Unit ->
+pub (receiver: FileReader) read_as_data_url(blob: Blob): Unit ->
     native.
 
 /**
@@ -76,19 +79,19 @@ pub (value: FileReader) read_as_data_url(blob: Blob): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsText)
  */
-pub (value: FileReader) read_as_text(blob: Blob, encoding: JsString): Unit ->
+pub (receiver: FileReader) read_as_text(blob: Blob, encoding: Option[JsString]): Unit ->
     native.
 
-pub (value: FileReader) add_event_listener(
+pub (receiver: FileReader) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: FileReader) remove_event_listener(
+pub (receiver: FileReader) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

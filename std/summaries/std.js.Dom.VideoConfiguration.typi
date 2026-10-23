@@ -15,22 +15,16 @@ module std.js.Dom.VideoConfiguration.
 
 pub opaque type VideoConfiguration.
 
-pub (value: VideoConfiguration) bitrate(): std.js.Number.JsNumber.
+pub (receiver: VideoConfiguration) bitrate(): std.js.Number.JsNumber.
 
-pub (value: VideoConfiguration) color_gamut(): ColorGamut.
+pub (receiver: VideoConfiguration) content_type(): std.js.String.JsString.
 
-pub (value: VideoConfiguration) content_type(): std.js.String.JsString.
+pub (receiver: VideoConfiguration) framerate(): std.js.Number.JsNumber.
 
-pub (value: VideoConfiguration) framerate(): std.js.Number.JsNumber.
+pub (receiver: VideoConfiguration) has_alpha_channel(): std.core.Option.Option[Bool].
 
-pub (value: VideoConfiguration) has_alpha_channel(): std.core.Bool.
+pub (receiver: VideoConfiguration) height(): std.js.Number.JsNumber.
 
-pub (value: VideoConfiguration) hdr_metadata_type(): HdrMetadataType.
+pub (receiver: VideoConfiguration) scalability_mode(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: VideoConfiguration) height(): std.js.Number.JsNumber.
-
-pub (value: VideoConfiguration) scalability_mode(): std.js.String.JsString.
-
-pub (value: VideoConfiguration) transfer_function(): TransferFunction.
-
-pub (value: VideoConfiguration) width(): std.js.Number.JsNumber.
+pub (receiver: VideoConfiguration) width(): std.js.Number.JsNumber.

@@ -14,7 +14,5 @@ module std.js.ErrorConstructorTest.
 
 import type std.js.ErrorConstructor.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: ErrorConstructor): Error ->
+pub prototype_typechecks(receiver: ErrorConstructor): std.js.Error.Error ->
     receiver.prototype().

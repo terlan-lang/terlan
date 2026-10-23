@@ -15,4 +15,4 @@ module std.js.Dom.EncodedAudioChunkMetadata.
 
 pub opaque type EncodedAudioChunkMetadata.
 
-pub (value: EncodedAudioChunkMetadata) decoder_config(): AudioDecoderConfig.
+pub (receiver: EncodedAudioChunkMetadata) decoder_config(): std.core.Option.Option[std.js.Dom.AudioDecoderConfig.AudioDecoderConfig].

@@ -13,5 +13,3 @@
 module std.js.Dom.MediaSourceHandleTest.
 
 import type std.js.Dom.MediaSourceHandle.
-
-pub generated_binding_surface_contract(): Bool -> true.

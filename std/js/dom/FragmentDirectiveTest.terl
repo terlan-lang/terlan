@@ -13,5 +13,3 @@
 module std.js.Dom.FragmentDirectiveTest.
 
 import type std.js.Dom.FragmentDirective.
-
-pub generated_binding_surface_contract(): Bool -> true.

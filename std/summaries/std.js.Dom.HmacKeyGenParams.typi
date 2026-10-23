@@ -15,6 +15,6 @@ module std.js.Dom.HmacKeyGenParams.
 
 pub opaque type HmacKeyGenParams.
 
-pub (value: HmacKeyGenParams) hash(): HashAlgorithmIdentifier.
+pub (receiver: HmacKeyGenParams) hash(): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier.
 
-pub (value: HmacKeyGenParams) length(): std.js.Number.JsNumber.
+pub (receiver: HmacKeyGenParams) length(): std.core.Option.Option[std.js.Number.JsNumber].

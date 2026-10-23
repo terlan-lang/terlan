@@ -25,7 +25,7 @@ pub opaque type WebTransportBidirectionalStream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportBidirectionalStream/readable)
  */
-pub (value: WebTransportBidirectionalStream) readable(): ReadableStream ->
+pub (receiver: WebTransportBidirectionalStream) readable(): std.js.Dom.ReadableStream.ReadableStream ->
     native.
 
 /**
@@ -33,5 +33,5 @@ pub (value: WebTransportBidirectionalStream) readable(): ReadableStream ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportBidirectionalStream/writable)
  */
-pub (value: WebTransportBidirectionalStream) writable(): WritableStream ->
+pub (receiver: WebTransportBidirectionalStream) writable(): std.js.Dom.WritableStream.WritableStream ->
     native.

@@ -15,8 +15,6 @@ module std.js.Dom.ImportMetaTest.
 import type std.js.Dom.ImportMeta.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub url_typechecks(receiver: ImportMeta): JsString ->
     receiver.url().
 

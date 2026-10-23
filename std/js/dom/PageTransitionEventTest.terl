@@ -14,7 +14,5 @@ module std.js.Dom.PageTransitionEventTest.
 
 import type std.js.Dom.PageTransitionEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub persisted_typechecks(receiver: PageTransitionEvent): std.core.Bool ->
+pub persisted_typechecks(receiver: PageTransitionEvent): Bool ->
     receiver.persisted().

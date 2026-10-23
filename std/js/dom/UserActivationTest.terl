@@ -12,10 +12,7 @@
  */
 module std.js.Dom.UserActivationTest.
 
-import type std.core.{Bool}.
 import type std.js.Dom.UserActivation.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub has_been_active_typechecks(receiver: UserActivation): Bool ->
     receiver.has_been_active().

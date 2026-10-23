@@ -20,4 +20,4 @@ pub opaque type TextEncoderCommon.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder/encoding)
  */
-pub (value: TextEncoderCommon) encoding(): std.js.String.JsString.
+pub (receiver: TextEncoderCommon) encoding(): std.js.String.JsString.

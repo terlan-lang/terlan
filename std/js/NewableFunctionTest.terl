@@ -12,16 +12,4 @@
  */
 module std.js.NewableFunctionTest.
 
-import type std.core.{Unit}.
 import type std.js.NewableFunction.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub apply_typechecks(receiver: NewableFunction, this_arg: T): Unit ->
-    receiver.apply(this_arg).
-
-pub apply_typechecks(receiver: NewableFunction, this_arg: T, args: A): Unit ->
-    receiver.apply(this_arg, args).
-
-pub call_typechecks(receiver: NewableFunction, this_arg: T): Unit ->
-    receiver.call(this_arg).

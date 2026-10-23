@@ -14,7 +14,5 @@ module std.js.Dom.BarPropTest.
 
 import type std.js.Dom.BarProp.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub visible_typechecks(receiver: BarProp): std.core.Bool ->
+pub visible_typechecks(receiver: BarProp): Bool ->
     receiver.visible().

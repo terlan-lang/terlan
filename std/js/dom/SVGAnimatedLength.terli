@@ -12,6 +12,8 @@
  */
 module std.js.Dom.SVGAnimatedLength.
 
+import type std.js.Dom.SVGLength.{SVGLength}.
+
 /**
  * The **`SVGAnimatedLength`** interface represents attributes of type \<length> which can be animated.
  *
@@ -24,11 +26,11 @@ pub opaque type SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedLength/animVal)
  */
-pub (value: SVGAnimatedLength) anim_val(): SVGLength.
+pub (receiver: SVGAnimatedLength) anim_val(): SVGLength.
 
 /**
  * The **`baseVal`** property of the SVGAnimatedLength interface contains the initial value of an SVG enumeration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedLength/baseVal)
  */
-pub (value: SVGAnimatedLength) base_val(): SVGLength.
+pub (receiver: SVGAnimatedLength) base_val(): SVGLength.

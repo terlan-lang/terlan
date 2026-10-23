@@ -14,9 +14,7 @@ module std.js.Dom.AesCtrParamsTest.
 
 import type std.js.Dom.AesCtrParams.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub counter_typechecks(receiver: AesCtrParams): BufferSource ->
+pub counter_typechecks(receiver: AesCtrParams): std.js.Dom.BufferSource.BufferSource ->
     receiver.counter().
 
 pub length_typechecks(receiver: AesCtrParams): std.js.Number.JsNumber ->

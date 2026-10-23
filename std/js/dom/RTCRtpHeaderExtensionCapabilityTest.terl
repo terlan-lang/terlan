@@ -14,7 +14,5 @@ module std.js.Dom.RTCRtpHeaderExtensionCapabilityTest.
 
 import type std.js.Dom.RTCRtpHeaderExtensionCapability.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub uri_typechecks(receiver: RTCRtpHeaderExtensionCapability): std.js.String.JsString ->
     receiver.uri().

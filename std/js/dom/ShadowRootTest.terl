@@ -12,11 +12,11 @@
  */
 module std.js.Dom.ShadowRootTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.ShadowRoot.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub clonable_typechecks(receiver: ShadowRoot): Bool ->
     receiver.clonable().
@@ -24,22 +24,19 @@ pub clonable_typechecks(receiver: ShadowRoot): Bool ->
 pub delegates_focus_typechecks(receiver: ShadowRoot): Bool ->
     receiver.delegates_focus().
 
-pub host_typechecks(receiver: ShadowRoot): Element ->
+pub host_typechecks(receiver: ShadowRoot): std.js.Dom.Element.Element ->
     receiver.host().
 
 pub inner_html_typechecks(receiver: ShadowRoot): JsString ->
     receiver.inner_html().
 
-pub mode_typechecks(receiver: ShadowRoot): ShadowRootMode ->
-    receiver.mode().
-
 pub serializable_typechecks(receiver: ShadowRoot): Bool ->
     receiver.serializable().
 
-pub slot_assignment_typechecks(receiver: ShadowRoot): SlotAssignmentMode ->
-    receiver.slot_assignment().
-
-pub get_html_typechecks(receiver: ShadowRoot, options: GetHTMLOptions): JsString ->
+pub get_html_typechecks(
+    receiver: ShadowRoot,
+    options: Option[std.js.Dom.GetHTMLOptions.GetHTMLOptions],
+): JsString ->
     receiver.get_html(options).
 
 pub set_html_unsafe_typechecks(receiver: ShadowRoot, html_: JsString): Unit ->
@@ -49,7 +46,7 @@ pub add_event_listener_typechecks(
     receiver: ShadowRoot,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -57,6 +54,6 @@ pub remove_event_listener_typechecks(
     receiver: ShadowRoot,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -13,5 +13,3 @@
 module std.js.Dom.PerformanceEntryListTest.
 
 import type std.js.Dom.PerformanceEntryList.
-
-pub generated_binding_surface_contract(): Bool -> true.

@@ -12,8 +12,8 @@
  */
 module std.js.Dom.NavigationPreloadManager.
 
-import type std.core.{Unit}.
-import type std.js.{Promise}.
+import type std.core.Unit.{Unit}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`NavigationPreloadManager`** interface of the Service Worker API provides methods for managing the preloading of resources in parallel with service worker bootup.
@@ -28,7 +28,7 @@ pub opaque type NavigationPreloadManager.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/disable)
  */
-pub (value: NavigationPreloadManager) disable(): Promise[Unit] ->
+pub (receiver: NavigationPreloadManager) disable(): Promise[Unit] ->
     native.
 
 /**
@@ -36,7 +36,7 @@ pub (value: NavigationPreloadManager) disable(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/enable)
  */
-pub (value: NavigationPreloadManager) enable(): Promise[Unit] ->
+pub (receiver: NavigationPreloadManager) enable(): Promise[Unit] ->
     native.
 
 /**
@@ -44,7 +44,7 @@ pub (value: NavigationPreloadManager) enable(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/getState)
  */
-pub (value: NavigationPreloadManager) get_state(): Promise[NavigationPreloadState] ->
+pub (receiver: NavigationPreloadManager) get_state(): Promise[std.js.Dom.NavigationPreloadState.NavigationPreloadState] ->
     native.
 
 /**
@@ -52,5 +52,5 @@ pub (value: NavigationPreloadManager) get_state(): Promise[NavigationPreloadStat
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/setHeaderValue)
  */
-pub (value: NavigationPreloadManager) set_header_value(value: std.js.String.JsString): Promise[Unit] ->
+pub (receiver: NavigationPreloadManager) set_header_value(value: std.js.String.JsString): Promise[Unit] ->
     native.

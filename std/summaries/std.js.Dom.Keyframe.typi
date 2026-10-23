@@ -15,8 +15,6 @@ module std.js.Dom.Keyframe.
 
 pub opaque type Keyframe.
 
-pub (value: Keyframe) composite(): CompositeOperationOrAuto.
+pub (receiver: Keyframe) easing(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: Keyframe) easing(): std.js.String.JsString.
-
-pub (value: Keyframe) offset(): Option[std.js.Number.JsNumber].
+pub (receiver: Keyframe) offset(): std.core.Option.Option[std.js.Number.JsNumber].

@@ -12,11 +12,10 @@
  */
 module std.js.Dom.URLSearchParamsTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.URLSearchParams.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub size_typechecks(receiver: URLSearchParams): std.js.Number.JsNumber ->
     receiver.size().
@@ -24,16 +23,16 @@ pub size_typechecks(receiver: URLSearchParams): std.js.Number.JsNumber ->
 pub append_typechecks(receiver: URLSearchParams, name: JsString, value: JsString): Unit ->
     receiver.append(name, value).
 
-pub delete_typechecks(receiver: URLSearchParams, name: JsString, value: JsString): Unit ->
+pub delete_typechecks(receiver: URLSearchParams, name: JsString, value: Option[JsString]): Unit ->
     receiver.delete(name, value).
 
 pub get_typechecks(receiver: URLSearchParams, name: JsString): Option[JsString] ->
     receiver.get(name).
 
-pub get_all_typechecks(receiver: URLSearchParams, name: JsString): std.js.Array[JsString] ->
+pub get_all_typechecks(receiver: URLSearchParams, name: JsString): std.js.Array.Array[JsString] ->
     receiver.get_all(name).
 
-pub has_typechecks(receiver: URLSearchParams, name: JsString, value: JsString): std.core.Bool ->
+pub has_typechecks(receiver: URLSearchParams, name: JsString, value: Option[JsString]): Bool ->
     receiver.has(name, value).
 
 pub set_typechecks(receiver: URLSearchParams, name: JsString, value: JsString): Unit ->

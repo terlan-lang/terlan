@@ -14,5 +14,5 @@ module std.js.Dom.GetComposedRangesOptions.
 
 pub opaque type GetComposedRangesOptions.
 
-pub (value: GetComposedRangesOptions) shadow_roots(): std.js.Array[ShadowRoot] ->
+pub (receiver: GetComposedRangesOptions) shadow_roots(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.ShadowRoot.ShadowRoot]] ->
     native.

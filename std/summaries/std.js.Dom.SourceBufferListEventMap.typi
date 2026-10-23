@@ -15,6 +15,6 @@ module std.js.Dom.SourceBufferListEventMap.
 
 pub opaque type SourceBufferListEventMap.
 
-pub (value: SourceBufferListEventMap) addsourcebuffer(): Event.
+pub (receiver: SourceBufferListEventMap) addsourcebuffer(): std.js.Dom.Event.Event.
 
-pub (value: SourceBufferListEventMap) removesourcebuffer(): Event.
+pub (receiver: SourceBufferListEventMap) removesourcebuffer(): std.js.Dom.Event.Event.

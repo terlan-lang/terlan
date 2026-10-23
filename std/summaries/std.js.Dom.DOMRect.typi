@@ -25,25 +25,25 @@ pub opaque type DOMRect.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRect/height)
  */
-pub (value: DOMRect) height(): std.js.Number.JsNumber.
+pub (receiver: DOMRect) height(): std.js.Number.JsNumber.
 
 /**
  * The **`width`** property of the DOMRect interface represents the width of the rectangle.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRect/width)
  */
-pub (value: DOMRect) width(): std.js.Number.JsNumber.
+pub (receiver: DOMRect) width(): std.js.Number.JsNumber.
 
 /**
  * The **`x`** property of the DOMRect interface represents the x-coordinate of the rectangle, which is the horizontal distance between the viewport's left edge and the rectangle's origin.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRect/x)
  */
-pub (value: DOMRect) x(): std.js.Number.JsNumber.
+pub (receiver: DOMRect) x(): std.js.Number.JsNumber.
 
 /**
  * The **`y`** property of the DOMRect interface represents the y-coordinate of the rectangle, which is the vertical distance between the viewport's top edge and the rectangle's origin.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRect/y)
  */
-pub (value: DOMRect) y(): std.js.Number.JsNumber.
+pub (receiver: DOMRect) y(): std.js.Number.JsNumber.

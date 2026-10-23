@@ -12,9 +12,8 @@
  */
 module std.js.Dom.SVGAnimatedAngleTest.
 
+import type std.js.Dom.SVGAngle.{SVGAngle}.
 import type std.js.Dom.SVGAnimatedAngle.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub anim_val_typechecks(receiver: SVGAnimatedAngle): SVGAngle ->
     receiver.anim_val().

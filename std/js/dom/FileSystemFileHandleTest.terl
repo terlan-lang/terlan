@@ -13,15 +13,13 @@
 module std.js.Dom.FileSystemFileHandleTest.
 
 import type std.js.Dom.FileSystemFileHandle.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Promise.{Promise}.
 
 pub create_writable_typechecks(
     receiver: FileSystemFileHandle,
-    options: FileSystemCreateWritableOptions,
-): Promise[FileSystemWritableFileStream] ->
+    options: std.core.Option.Option[std.js.Dom.FileSystemCreateWritableOptions.FileSystemCreateWritableOptions],
+): Promise[std.js.Dom.FileSystemWritableFileStream.FileSystemWritableFileStream] ->
     receiver.create_writable(options).
 
-pub get_file_typechecks(receiver: FileSystemFileHandle): Promise[File] ->
+pub get_file_typechecks(receiver: FileSystemFileHandle): Promise[std.js.Dom.File.File] ->
     receiver.get_file().

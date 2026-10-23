@@ -12,18 +12,22 @@
  */
 module std.js.Dom.WindowEventMap.
 
+import type std.js.Dom.DeviceOrientationEvent.{DeviceOrientationEvent}.
+import type std.js.Dom.Event.{Event}.
+import type std.js.Dom.GamepadEvent.{GamepadEvent}.
+
 pub opaque type WindowEventMap.
 
-pub (value: WindowEventMap) dom_content_loaded(): Event.
+pub (receiver: WindowEventMap) dom_content_loaded(): Event.
 
-pub (value: WindowEventMap) devicemotion(): DeviceMotionEvent.
+pub (receiver: WindowEventMap) devicemotion(): std.js.Dom.DeviceMotionEvent.DeviceMotionEvent.
 
-pub (value: WindowEventMap) deviceorientation(): DeviceOrientationEvent.
+pub (receiver: WindowEventMap) deviceorientation(): DeviceOrientationEvent.
 
-pub (value: WindowEventMap) deviceorientationabsolute(): DeviceOrientationEvent.
+pub (receiver: WindowEventMap) deviceorientationabsolute(): DeviceOrientationEvent.
 
-pub (value: WindowEventMap) gamepadconnected(): GamepadEvent.
+pub (receiver: WindowEventMap) gamepadconnected(): GamepadEvent.
 
-pub (value: WindowEventMap) gamepaddisconnected(): GamepadEvent.
+pub (receiver: WindowEventMap) gamepaddisconnected(): GamepadEvent.
 
-pub (value: WindowEventMap) orientationchange(): Event.
+pub (receiver: WindowEventMap) orientationchange(): Event.

@@ -12,15 +12,17 @@
  */
 module std.js.Dom.TouchEventInit.
 
-import type std.js.{Array}.
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.Touch.{Touch}.
 
 pub opaque type TouchEventInit.
 
-pub (value: TouchEventInit) changed_touches(): Array[Touch] ->
+pub (receiver: TouchEventInit) changed_touches(): Option[Array[Touch]] ->
     native.
 
-pub (value: TouchEventInit) target_touches(): Array[Touch] ->
+pub (receiver: TouchEventInit) target_touches(): Option[Array[Touch]] ->
     native.
 
-pub (value: TouchEventInit) touches(): Array[Touch] ->
+pub (receiver: TouchEventInit) touches(): Option[Array[Touch]] ->
     native.

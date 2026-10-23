@@ -14,7 +14,7 @@ module std.js.Dom.MediaTrackConstraintsTest.
 
 import type std.js.Dom.MediaTrackConstraints.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub advanced_typechecks(receiver: MediaTrackConstraints): std.js.Array[MediaTrackConstraintSet] ->
+pub advanced_typechecks(
+    receiver: MediaTrackConstraints,
+): std.core.Option.Option[std.js.Array.Array[std.js.Dom.MediaTrackConstraintSet.MediaTrackConstraintSet]] ->
     receiver.advanced().

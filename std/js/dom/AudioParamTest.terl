@@ -15,11 +15,6 @@ module std.js.Dom.AudioParamTest.
 import type std.js.Dom.AudioParam.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub automation_rate_typechecks(receiver: AudioParam): AutomationRate ->
-    receiver.automation_rate().
-
 pub default_value_typechecks(receiver: AudioParam): JsNumber ->
     receiver.default_value().
 
@@ -69,7 +64,7 @@ pub set_value_at_time_typechecks(
 
 pub set_value_curve_at_time_typechecks(
     receiver: AudioParam,
-    values: Float32Array | std.js.Array[JsNumber],
+    values: std.js.Float32Array.Float32Array | std.js.Array.Array[JsNumber],
     start_time: JsNumber,
     duration: JsNumber,
 ): AudioParam ->

@@ -12,21 +12,20 @@
  */
 module std.js.Dom.MediaSourceTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.MediaSource.
+import type std.js.Dom.SourceBuffer.{SourceBuffer}.
+import type std.js.Dom.SourceBufferList.{SourceBufferList}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub active_source_buffers_typechecks(receiver: MediaSource): SourceBufferList ->
     receiver.active_source_buffers().
 
 pub duration_typechecks(receiver: MediaSource): JsNumber ->
     receiver.duration().
-
-pub ready_state_typechecks(receiver: MediaSource): ReadyState ->
-    receiver.ready_state().
 
 pub source_buffers_typechecks(receiver: MediaSource): SourceBufferList ->
     receiver.source_buffers().
@@ -36,9 +35,6 @@ pub add_source_buffer_typechecks(receiver: MediaSource, type_: JsString): Source
 
 pub clear_live_seekable_range_typechecks(receiver: MediaSource): Unit ->
     receiver.clear_live_seekable_range().
-
-pub end_of_stream_typechecks(receiver: MediaSource, error: EndOfStreamError): Unit ->
-    receiver.end_of_stream(error).
 
 pub remove_source_buffer_typechecks(receiver: MediaSource, source_buffer: SourceBuffer): Unit ->
     receiver.remove_source_buffer(source_buffer).
@@ -50,7 +46,7 @@ pub add_event_listener_typechecks(
     receiver: MediaSource,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -58,6 +54,6 @@ pub remove_event_listener_typechecks(
     receiver: MediaSource,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

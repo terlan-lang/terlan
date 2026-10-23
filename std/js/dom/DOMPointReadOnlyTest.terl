@@ -15,8 +15,6 @@ module std.js.Dom.DOMPointReadOnlyTest.
 import type std.js.Dom.DOMPointReadOnly.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub w_typechecks(receiver: DOMPointReadOnly): JsNumber ->
     receiver.w().
 
@@ -29,5 +27,8 @@ pub y_typechecks(receiver: DOMPointReadOnly): JsNumber ->
 pub z_typechecks(receiver: DOMPointReadOnly): JsNumber ->
     receiver.z().
 
-pub matrix_transform_typechecks(receiver: DOMPointReadOnly, matrix: DOMMatrixInit): DOMPoint ->
+pub matrix_transform_typechecks(
+    receiver: DOMPointReadOnly,
+    matrix: std.core.Option.Option[std.js.Dom.DOMMatrixInit.DOMMatrixInit],
+): std.js.Dom.DOMPoint.DOMPoint ->
     receiver.matrix_transform(matrix).

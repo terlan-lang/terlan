@@ -14,7 +14,5 @@ module std.js.Dom.GetAnimationsOptionsTest.
 
 import type std.js.Dom.GetAnimationsOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub subtree_typechecks(receiver: GetAnimationsOptions): std.core.Bool ->
+pub subtree_typechecks(receiver: GetAnimationsOptions): std.core.Option.Option[Bool] ->
     receiver.subtree().

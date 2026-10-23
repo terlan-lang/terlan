@@ -12,7 +12,10 @@
  */
 module std.js.Dom.HTMLIFrameElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Document.{Document}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -25,7 +28,7 @@ pub opaque type HTMLIFrameElement.
 /**
  * @deprecated
  */
-pub (value: HTMLIFrameElement) align(): JsString ->
+pub (receiver: HTMLIFrameElement) align(): JsString ->
     native.
 
 /**
@@ -33,7 +36,7 @@ pub (value: HTMLIFrameElement) align(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/allow)
  */
-pub (value: HTMLIFrameElement) allow(): JsString ->
+pub (receiver: HTMLIFrameElement) allow(): JsString ->
     native.
 
 /**
@@ -41,7 +44,7 @@ pub (value: HTMLIFrameElement) allow(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/allowFullscreen)
  */
-pub (value: HTMLIFrameElement) allow_fullscreen(): Bool ->
+pub (receiver: HTMLIFrameElement) allow_fullscreen(): Bool ->
     native.
 
 /**
@@ -49,7 +52,7 @@ pub (value: HTMLIFrameElement) allow_fullscreen(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/contentDocument)
  */
-pub (value: HTMLIFrameElement) content_document(): Option[Document] ->
+pub (receiver: HTMLIFrameElement) content_document(): Option[Document] ->
     native.
 
 /**
@@ -57,13 +60,13 @@ pub (value: HTMLIFrameElement) content_document(): Option[Document] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/contentWindow)
  */
-pub (value: HTMLIFrameElement) content_window(): Option[WindowProxy] ->
+pub (receiver: HTMLIFrameElement) content_window(): Option[std.js.Dom.WindowProxy.WindowProxy] ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLIFrameElement) frame_border(): JsString ->
+pub (receiver: HTMLIFrameElement) frame_border(): JsString ->
     native.
 
 /**
@@ -71,25 +74,25 @@ pub (value: HTMLIFrameElement) frame_border(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/height)
  */
-pub (value: HTMLIFrameElement) height(): JsString ->
+pub (receiver: HTMLIFrameElement) height(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLIFrameElement) long_desc(): JsString ->
+pub (receiver: HTMLIFrameElement) long_desc(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLIFrameElement) margin_height(): JsString ->
+pub (receiver: HTMLIFrameElement) margin_height(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLIFrameElement) margin_width(): JsString ->
+pub (receiver: HTMLIFrameElement) margin_width(): JsString ->
     native.
 
 /**
@@ -97,15 +100,7 @@ pub (value: HTMLIFrameElement) margin_width(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/name)
  */
-pub (value: HTMLIFrameElement) name(): JsString ->
-    native.
-
-/**
- * The **`HTMLIFrameElement.referrerPolicy`** property reflects the HTML `referrerpolicy` attribute of the resource.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/referrerPolicy)
- */
-pub (value: HTMLIFrameElement) referrer_policy(): ReferrerPolicy ->
+pub (receiver: HTMLIFrameElement) name(): JsString ->
     native.
 
 /**
@@ -113,13 +108,13 @@ pub (value: HTMLIFrameElement) referrer_policy(): ReferrerPolicy ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/sandbox)
  */
-pub (value: HTMLIFrameElement) sandbox(): DOMTokenList ->
+pub (receiver: HTMLIFrameElement) sandbox(): std.js.Dom.DOMTokenList.DOMTokenList ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLIFrameElement) scrolling(): JsString ->
+pub (receiver: HTMLIFrameElement) scrolling(): JsString ->
     native.
 
 /**
@@ -127,7 +122,7 @@ pub (value: HTMLIFrameElement) scrolling(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/src)
  */
-pub (value: HTMLIFrameElement) src(): JsString ->
+pub (receiver: HTMLIFrameElement) src(): JsString ->
     native.
 
 /**
@@ -135,7 +130,7 @@ pub (value: HTMLIFrameElement) src(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/srcdoc)
  */
-pub (value: HTMLIFrameElement) srcdoc(): JsString ->
+pub (receiver: HTMLIFrameElement) srcdoc(): JsString ->
     native.
 
 /**
@@ -143,7 +138,7 @@ pub (value: HTMLIFrameElement) srcdoc(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/width)
  */
-pub (value: HTMLIFrameElement) width(): JsString ->
+pub (receiver: HTMLIFrameElement) width(): JsString ->
     native.
 
 /**
@@ -151,19 +146,19 @@ pub (value: HTMLIFrameElement) width(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/getSVGDocument)
  */
-pub (value: HTMLIFrameElement) get_svg_document(): Option[Document] ->
+pub (receiver: HTMLIFrameElement) get_svg_document(): Option[Document] ->
     native.
 
-pub (value: HTMLIFrameElement) add_event_listener(
+pub (receiver: HTMLIFrameElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLIFrameElement) remove_event_listener(
+pub (receiver: HTMLIFrameElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

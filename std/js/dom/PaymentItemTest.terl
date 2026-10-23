@@ -14,13 +14,11 @@ module std.js.Dom.PaymentItemTest.
 
 import type std.js.Dom.PaymentItem.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub amount_typechecks(receiver: PaymentItem): PaymentCurrencyAmount ->
+pub amount_typechecks(receiver: PaymentItem): std.js.Dom.PaymentCurrencyAmount.PaymentCurrencyAmount ->
     receiver.amount().
 
 pub label_typechecks(receiver: PaymentItem): std.js.String.JsString ->
     receiver.label().
 
-pub pending_typechecks(receiver: PaymentItem): std.core.Bool ->
+pub pending_typechecks(receiver: PaymentItem): std.core.Option.Option[Bool] ->
     receiver.pending().

@@ -26,18 +26,18 @@ pub opaque type MediaKeySystemAccess.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeySystemAccess/keySystem)
  */
-pub (value: MediaKeySystemAccess) key_system(): std.js.String.JsString.
+pub (receiver: MediaKeySystemAccess) key_system(): std.js.String.JsString.
 
 /**
  * The `MediaKeySystemAccess.createMediaKeys()` method returns a ```js-nolint createMediaKeys() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeySystemAccess/createMediaKeys)
  */
-pub (value: MediaKeySystemAccess) create_media_keys(): std.js.Promise[MediaKeys].
+pub (receiver: MediaKeySystemAccess) create_media_keys(): std.js.Promise.Promise[std.js.Dom.MediaKeys.MediaKeys].
 
 /**
  * The **`getConfiguration()`** method of the MediaKeySystemAccess interface returns an object with the supported combination of the following configuration options: - `initDataTypes` [MISSING: ReadOnlyInline] - : Returns a list of supported initialization data type names.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeySystemAccess/getConfiguration)
  */
-pub (value: MediaKeySystemAccess) get_configuration(): MediaKeySystemConfiguration.
+pub (receiver: MediaKeySystemAccess) get_configuration(): std.js.Dom.MediaKeySystemConfiguration.MediaKeySystemConfiguration.

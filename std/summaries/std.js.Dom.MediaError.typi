@@ -25,11 +25,11 @@ pub opaque type MediaError.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaError/code)
  */
-pub (value: MediaError) code(): std.js.Number.JsNumber.
+pub (receiver: MediaError) code(): std.js.Number.JsNumber.
 
 /**
  * The read-only property **`MediaError.message`** returns a human-readable string offering specific diagnostic details related to the error described by the `MediaError` object, or an empty string (`''`) if no diagnostic information can be determined or provided.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaError/message)
  */
-pub (value: MediaError) message(): std.js.String.JsString.
+pub (receiver: MediaError) message(): std.js.String.JsString.

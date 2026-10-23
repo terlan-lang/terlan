@@ -17,51 +17,16 @@ import type std.js.String.{JsString}.
 pub opaque type CanvasTextDrawingStyles.
 
 /**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/direction)
- */
-pub (value: CanvasTextDrawingStyles) direction(): CanvasDirection.
-
-/**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/font)
  */
-pub (value: CanvasTextDrawingStyles) font(): JsString.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fontKerning)
- */
-pub (value: CanvasTextDrawingStyles) font_kerning(): CanvasFontKerning.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fontStretch)
- */
-pub (value: CanvasTextDrawingStyles) font_stretch(): CanvasFontStretch.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fontVariantCaps)
- */
-pub (value: CanvasTextDrawingStyles) font_variant_caps(): CanvasFontVariantCaps.
+pub (receiver: CanvasTextDrawingStyles) font(): JsString.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/letterSpacing)
  */
-pub (value: CanvasTextDrawingStyles) letter_spacing(): JsString.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textAlign)
- */
-pub (value: CanvasTextDrawingStyles) text_align(): CanvasTextAlign.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textBaseline)
- */
-pub (value: CanvasTextDrawingStyles) text_baseline(): CanvasTextBaseline.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textRendering)
- */
-pub (value: CanvasTextDrawingStyles) text_rendering(): CanvasTextRendering.
+pub (receiver: CanvasTextDrawingStyles) letter_spacing(): JsString.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/wordSpacing)
  */
-pub (value: CanvasTextDrawingStyles) word_spacing(): JsString.
+pub (receiver: CanvasTextDrawingStyles) word_spacing(): JsString.

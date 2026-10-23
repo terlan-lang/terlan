@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLCanvasElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +30,7 @@ pub opaque type HTMLCanvasElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/height)
  */
-pub (value: HTMLCanvasElement) height(): JsNumber ->
+pub (receiver: HTMLCanvasElement) height(): JsNumber ->
     native.
 
 /**
@@ -36,7 +38,7 @@ pub (value: HTMLCanvasElement) height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/width)
  */
-pub (value: HTMLCanvasElement) width(): JsNumber ->
+pub (receiver: HTMLCanvasElement) width(): JsNumber ->
     native.
 
 /**
@@ -44,7 +46,7 @@ pub (value: HTMLCanvasElement) width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/captureStream)
  */
-pub (value: HTMLCanvasElement) capture_stream(frame_request_rate: JsNumber): MediaStream ->
+pub (receiver: HTMLCanvasElement) capture_stream(frame_request_rate: Option[JsNumber]): std.js.Dom.MediaStream.MediaStream ->
     native.
 
 /**
@@ -52,7 +54,11 @@ pub (value: HTMLCanvasElement) capture_stream(frame_request_rate: JsNumber): Med
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toBlob)
  */
-pub (value: HTMLCanvasElement) to_blob(callback: BlobCallback, type_: JsString, quality: JsNumber): Unit ->
+pub (receiver: HTMLCanvasElement) to_blob(
+    callback: std.js.Dom.BlobCallback.BlobCallback,
+    type_: Option[JsString],
+    quality: Option[JsNumber],
+): Unit ->
     native.
 
 /**
@@ -60,7 +66,7 @@ pub (value: HTMLCanvasElement) to_blob(callback: BlobCallback, type_: JsString, 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toDataURL)
  */
-pub (value: HTMLCanvasElement) to_data_url(type_: JsString, quality: JsNumber): JsString ->
+pub (receiver: HTMLCanvasElement) to_data_url(type_: Option[JsString], quality: Option[JsNumber]): JsString ->
     native.
 
 /**
@@ -68,19 +74,19 @@ pub (value: HTMLCanvasElement) to_data_url(type_: JsString, quality: JsNumber): 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/transferControlToOffscreen)
  */
-pub (value: HTMLCanvasElement) transfer_control_to_offscreen(): OffscreenCanvas ->
+pub (receiver: HTMLCanvasElement) transfer_control_to_offscreen(): std.js.Dom.OffscreenCanvas.OffscreenCanvas ->
     native.
 
-pub (value: HTMLCanvasElement) add_event_listener(
+pub (receiver: HTMLCanvasElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLCanvasElement) remove_event_listener(
+pub (receiver: HTMLCanvasElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

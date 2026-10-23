@@ -12,12 +12,11 @@
  */
 module std.js.Dom.IDBDatabaseInfoTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.IDBDatabaseInfo.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub name_typechecks(receiver: IDBDatabaseInfo): std.js.String.JsString ->
+pub name_typechecks(receiver: IDBDatabaseInfo): Option[std.js.String.JsString] ->
     receiver.name().
 
-pub version_typechecks(receiver: IDBDatabaseInfo): std.js.Number.JsNumber ->
+pub version_typechecks(receiver: IDBDatabaseInfo): Option[std.js.Number.JsNumber] ->
     receiver.version().

@@ -12,13 +12,33 @@
  */
 module std.js.Dom.WebGL2RenderingContextBaseTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.Float32List.{Float32List}.
+import type std.js.Dom.GLbitfield.{GLbitfield}.
+import type std.js.Dom.GLboolean.{GLboolean}.
+import type std.js.Dom.GLenum.{GLenum}.
+import type std.js.Dom.GLfloat.{GLfloat}.
+import type std.js.Dom.GLint.{GLint}.
+import type std.js.Dom.GLintptr.{GLintptr}.
+import type std.js.Dom.GLsizei.{GLsizei}.
+import type std.js.Dom.GLsizeiptr.{GLsizeiptr}.
+import type std.js.Dom.GLuint.{GLuint}.
+import type std.js.Dom.Int32List.{Int32List}.
+import type std.js.Dom.TexImageSource.{TexImageSource}.
+import type std.js.Dom.Uint32List.{Uint32List}.
 import type std.js.Dom.WebGL2RenderingContextBase.
+import type std.js.Dom.WebGLBuffer.{WebGLBuffer}.
+import type std.js.Dom.WebGLProgram.{WebGLProgram}.
+import type std.js.Dom.WebGLQuery.{WebGLQuery}.
+import type std.js.Dom.WebGLSampler.{WebGLSampler}.
+import type std.js.Dom.WebGLSync.{WebGLSync}.
+import type std.js.Dom.WebGLTransformFeedback.{WebGLTransformFeedback}.
+import type std.js.Dom.WebGLUniformLocation.{WebGLUniformLocation}.
+import type std.js.Dom.WebGLVertexArrayObject.{WebGLVertexArrayObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub begin_query_typechecks(
     receiver: WebGL2RenderingContextBase,
@@ -112,7 +132,7 @@ pub clear_bufferfv_typechecks(
     buffer: GLenum,
     drawbuffer: GLint,
     values: Float32List,
-    src_offset: JsNumber,
+    src_offset: Option[JsNumber],
 ): Unit ->
     receiver.clear_bufferfv(buffer, drawbuffer, values, src_offset).
 
@@ -121,7 +141,7 @@ pub clear_bufferiv_typechecks(
     buffer: GLenum,
     drawbuffer: GLint,
     values: Int32List,
-    src_offset: JsNumber,
+    src_offset: Option[JsNumber],
 ): Unit ->
     receiver.clear_bufferiv(buffer, drawbuffer, values, src_offset).
 
@@ -130,7 +150,7 @@ pub clear_bufferuiv_typechecks(
     buffer: GLenum,
     drawbuffer: GLint,
     values: Uint32List,
-    src_offset: JsNumber,
+    src_offset: Option[JsNumber],
 ): Unit ->
     receiver.clear_bufferuiv(buffer, drawbuffer, values, src_offset).
 
@@ -138,7 +158,7 @@ pub client_wait_sync_typechecks(
     receiver: WebGL2RenderingContextBase,
     sync: WebGLSync,
     flags: GLbitfield,
-    timeout: GLuint64,
+    timeout: std.js.Dom.GLuint64.GLuint64,
 ): GLenum ->
     receiver.client_wait_sync(sync, flags, timeout).
 
@@ -167,33 +187,6 @@ pub compressed_tex_image3_d_typechecks(
             offset,
         ).
 
-pub compressed_tex_image3_d_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    target_: GLenum,
-    level: GLint,
-    internalformat: GLenum,
-    width: GLsizei,
-    height: GLsizei,
-    depth: GLsizei,
-    border: GLint,
-    src_data: ArrayBufferView[ArrayBufferLike],
-    src_offset: JsNumber,
-    src_length_override: GLuint,
-): Unit ->
-    receiver
-        .compressed_tex_image3_d(
-            target_,
-            level,
-            internalformat,
-            width,
-            height,
-            depth,
-            border,
-            src_data,
-            src_offset,
-            src_length_override,
-        ).
-
 pub compressed_tex_sub_image3_d_typechecks(
     receiver: WebGL2RenderingContextBase,
     target_: GLenum,
@@ -221,37 +214,6 @@ pub compressed_tex_sub_image3_d_typechecks(
             format,
             image_size,
             offset,
-        ).
-
-pub compressed_tex_sub_image3_d_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    target_: GLenum,
-    level: GLint,
-    xoffset: GLint,
-    yoffset: GLint,
-    zoffset: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    depth: GLsizei,
-    format: GLenum,
-    src_data: ArrayBufferView[ArrayBufferLike],
-    src_offset: JsNumber,
-    src_length_override: GLuint,
-): Unit ->
-    receiver
-        .compressed_tex_sub_image3_d(
-            target_,
-            level,
-            xoffset,
-            yoffset,
-            zoffset,
-            width,
-            height,
-            depth,
-            format,
-            src_data,
-            src_offset,
-            src_length_override,
         ).
 
 pub copy_buffer_sub_data_typechecks(
@@ -366,7 +328,7 @@ pub framebuffer_texture_layer_typechecks(
     receiver: WebGL2RenderingContextBase,
     target_: GLenum,
     attachment: GLenum,
-    texture: Option[WebGLTexture],
+    texture: Option[std.js.Dom.WebGLTexture.WebGLTexture],
     level: GLint,
     layer: GLint,
 ): Unit ->
@@ -378,16 +340,6 @@ pub get_active_uniform_block_name_typechecks(
     uniform_block_index: GLuint,
 ): Option[JsString] ->
     receiver.get_active_uniform_block_name(program, uniform_block_index).
-
-pub get_buffer_sub_data_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    target_: GLenum,
-    src_byte_offset: GLintptr,
-    dst_buffer: ArrayBufferView[ArrayBufferLike],
-    dst_offset: JsNumber,
-    length: GLuint,
-): Unit ->
-    receiver.get_buffer_sub_data(target_, src_byte_offset, dst_buffer, dst_offset, length).
 
 pub get_frag_data_location_typechecks(
     receiver: WebGL2RenderingContextBase,
@@ -407,7 +359,7 @@ pub get_transform_feedback_varying_typechecks(
     receiver: WebGL2RenderingContextBase,
     program: WebGLProgram,
     index: GLuint,
-): Option[WebGLActiveInfo] ->
+): Option[std.js.Dom.WebGLActiveInfo.WebGLActiveInfo] ->
     receiver.get_transform_feedback_varying(program, index).
 
 pub get_uniform_block_index_typechecks(
@@ -528,7 +480,7 @@ pub tex_image3_d_typechecks(
             pbo_offset,
         ).
 
-pub tex_image3_d_typechecks(
+pub tex_image3_d_overload_2_typechecks(
     receiver: WebGL2RenderingContextBase,
     target_: GLenum,
     level: GLint,
@@ -542,7 +494,7 @@ pub tex_image3_d_typechecks(
     source: TexImageSource,
 ): Unit ->
     receiver
-        .tex_image3_d(
+        .tex_image3_d_overload_2(
             target_,
             level,
             internalformat,
@@ -553,62 +505,6 @@ pub tex_image3_d_typechecks(
             format,
             type_,
             source,
-        ).
-
-pub tex_image3_d_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    target_: GLenum,
-    level: GLint,
-    internalformat: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    depth: GLsizei,
-    border: GLint,
-    format: GLenum,
-    type_: GLenum,
-    src_data: Option[ArrayBufferView[ArrayBufferLike]],
-): Unit ->
-    receiver
-        .tex_image3_d(
-            target_,
-            level,
-            internalformat,
-            width,
-            height,
-            depth,
-            border,
-            format,
-            type_,
-            src_data,
-        ).
-
-pub tex_image3_d_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    target_: GLenum,
-    level: GLint,
-    internalformat: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    depth: GLsizei,
-    border: GLint,
-    format: GLenum,
-    type_: GLenum,
-    src_data: ArrayBufferView[ArrayBufferLike],
-    src_offset: JsNumber,
-): Unit ->
-    receiver
-        .tex_image3_d(
-            target_,
-            level,
-            internalformat,
-            width,
-            height,
-            depth,
-            border,
-            format,
-            type_,
-            src_data,
-            src_offset,
         ).
 
 pub tex_storage2_d_typechecks(
@@ -661,7 +557,7 @@ pub tex_sub_image3_d_typechecks(
             pbo_offset,
         ).
 
-pub tex_sub_image3_d_typechecks(
+pub tex_sub_image3_d_overload_2_typechecks(
     receiver: WebGL2RenderingContextBase,
     target_: GLenum,
     level: GLint,
@@ -676,7 +572,7 @@ pub tex_sub_image3_d_typechecks(
     source: TexImageSource,
 ): Unit ->
     receiver
-        .tex_sub_image3_d(
+        .tex_sub_image3_d_overload_2(
             target_,
             level,
             xoffset,
@@ -688,37 +584,6 @@ pub tex_sub_image3_d_typechecks(
             format,
             type_,
             source,
-        ).
-
-pub tex_sub_image3_d_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    target_: GLenum,
-    level: GLint,
-    xoffset: GLint,
-    yoffset: GLint,
-    zoffset: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    depth: GLsizei,
-    format: GLenum,
-    type_: GLenum,
-    src_data: Option[ArrayBufferView[ArrayBufferLike]],
-    src_offset: JsNumber,
-): Unit ->
-    receiver
-        .tex_sub_image3_d(
-            target_,
-            level,
-            xoffset,
-            yoffset,
-            zoffset,
-            width,
-            height,
-            depth,
-            format,
-            type_,
-            src_data,
-            src_offset,
         ).
 
 pub transform_feedback_varyings_typechecks(
@@ -740,8 +605,8 @@ pub uniform1uiv_typechecks(
     receiver: WebGL2RenderingContextBase,
     location: Option[WebGLUniformLocation],
     data: Uint32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     receiver.uniform1uiv(location, data, src_offset, src_length).
 
@@ -757,8 +622,8 @@ pub uniform2uiv_typechecks(
     receiver: WebGL2RenderingContextBase,
     location: Option[WebGLUniformLocation],
     data: Uint32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     receiver.uniform2uiv(location, data, src_offset, src_length).
 
@@ -775,8 +640,8 @@ pub uniform3uiv_typechecks(
     receiver: WebGL2RenderingContextBase,
     location: Option[WebGLUniformLocation],
     data: Uint32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     receiver.uniform3uiv(location, data, src_offset, src_length).
 
@@ -794,8 +659,8 @@ pub uniform4uiv_typechecks(
     receiver: WebGL2RenderingContextBase,
     location: Option[WebGLUniformLocation],
     data: Uint32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     receiver.uniform4uiv(location, data, src_offset, src_length).
 
@@ -812,8 +677,8 @@ pub uniform_matrix2x3fv_typechecks(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     receiver.uniform_matrix2x3fv(location, transpose, data, src_offset, src_length).
 
@@ -822,8 +687,8 @@ pub uniform_matrix2x4fv_typechecks(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     receiver.uniform_matrix2x4fv(location, transpose, data, src_offset, src_length).
 
@@ -832,8 +697,8 @@ pub uniform_matrix3x2fv_typechecks(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     receiver.uniform_matrix3x2fv(location, transpose, data, src_offset, src_length).
 
@@ -842,8 +707,8 @@ pub uniform_matrix3x4fv_typechecks(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     receiver.uniform_matrix3x4fv(location, transpose, data, src_offset, src_length).
 
@@ -852,8 +717,8 @@ pub uniform_matrix4x2fv_typechecks(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     receiver.uniform_matrix4x2fv(location, transpose, data, src_offset, src_length).
 
@@ -862,8 +727,8 @@ pub uniform_matrix4x3fv_typechecks(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     receiver.uniform_matrix4x3fv(location, transpose, data, src_offset, src_length).
 
@@ -922,6 +787,6 @@ pub wait_sync_typechecks(
     receiver: WebGL2RenderingContextBase,
     sync: WebGLSync,
     flags: GLbitfield,
-    timeout: GLint64,
+    timeout: std.js.Dom.GLint64.GLint64,
 ): Unit ->
     receiver.wait_sync(sync, flags, timeout).

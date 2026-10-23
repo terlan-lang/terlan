@@ -12,7 +12,8 @@
  */
 module std.js.Dom.ReadableByteStreamController.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 
 /**
  * The **`ReadableByteStreamController`** interface of the Streams API represents a controller for a readable byte stream.
@@ -26,7 +27,7 @@ pub opaque type ReadableByteStreamController.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/byobRequest)
  */
-pub (value: ReadableByteStreamController) byob_request(): Option[ReadableStreamBYOBRequest] ->
+pub (receiver: ReadableByteStreamController) byob_request(): Option[std.js.Dom.ReadableStreamBYOBRequest.ReadableStreamBYOBRequest] ->
     native.
 
 /**
@@ -34,7 +35,7 @@ pub (value: ReadableByteStreamController) byob_request(): Option[ReadableStreamB
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/desiredSize)
  */
-pub (value: ReadableByteStreamController) desired_size(): Option[std.js.Number.JsNumber] ->
+pub (receiver: ReadableByteStreamController) desired_size(): Option[std.js.Number.JsNumber] ->
     native.
 
 /**
@@ -42,7 +43,7 @@ pub (value: ReadableByteStreamController) desired_size(): Option[std.js.Number.J
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/close)
  */
-pub (value: ReadableByteStreamController) close(): Unit ->
+pub (receiver: ReadableByteStreamController) close(): Unit ->
     native.
 
 /**
@@ -50,5 +51,5 @@ pub (value: ReadableByteStreamController) close(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/enqueue)
  */
-pub (value: ReadableByteStreamController) enqueue(chunk: ArrayBufferView[ArrayBuffer]): Unit ->
+pub (receiver: ReadableByteStreamController) enqueue(chunk: std.js.ArrayBufferView.ArrayBufferView[std.js.ArrayBuffer.ArrayBuffer]): Unit ->
     native.

@@ -12,7 +12,8 @@
  */
 module std.js.Dom.KeyframeEffect.
 
-import type std.js.{Array}.
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
 
 /**
  * The **`KeyframeEffect`** interface of the Web Animations API lets us create sets of animatable properties and values, called **keyframes.** These can then be played using the Animation.Animation constructor.
@@ -22,27 +23,11 @@ import type std.js.{Array}.
 pub opaque type KeyframeEffect.
 
 /**
- * The **`composite`** property of a KeyframeEffect resolves how an element's animation impacts its underlying property values.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/composite)
- */
-pub (value: KeyframeEffect) composite(): CompositeOperation ->
-    native.
-
-/**
- * The **`iterationComposite`** property of a KeyframeEffect resolves how the animation's property value changes accumulate or override each other upon each of the animation's iterations.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/iterationComposite)
- */
-pub (value: KeyframeEffect) iteration_composite(): IterationCompositeOperation ->
-    native.
-
-/**
  * The **`pseudoElement`** property of a KeyframeEffect interface is a string representing the pseudo-element being animated.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/pseudoElement)
  */
-pub (value: KeyframeEffect) pseudo_element(): Option[std.js.String.JsString] ->
+pub (receiver: KeyframeEffect) pseudo_element(): Option[std.js.String.JsString] ->
     native.
 
 /**
@@ -50,7 +35,7 @@ pub (value: KeyframeEffect) pseudo_element(): Option[std.js.String.JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/target)
  */
-pub (value: KeyframeEffect) target_(): Option[Element] ->
+pub (receiver: KeyframeEffect) target_(): Option[std.js.Dom.Element.Element] ->
     native.
 
 /**
@@ -58,7 +43,7 @@ pub (value: KeyframeEffect) target_(): Option[Element] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/getKeyframes)
  */
-pub (value: KeyframeEffect) get_keyframes(): Array[ComputedKeyframe] ->
+pub (receiver: KeyframeEffect) get_keyframes(): Array[std.js.Dom.ComputedKeyframe.ComputedKeyframe] ->
     native.
 
 /**
@@ -66,5 +51,7 @@ pub (value: KeyframeEffect) get_keyframes(): Array[ComputedKeyframe] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/setKeyframes)
  */
-pub (value: KeyframeEffect) set_keyframes(keyframes: Option[PropertyIndexedKeyframes | Array[Keyframe]]): std.core.Unit ->
+pub (receiver: KeyframeEffect) set_keyframes(
+    keyframes: Option[std.js.Dom.PropertyIndexedKeyframes.PropertyIndexedKeyframes | Array[std.js.Dom.Keyframe.Keyframe]],
+): std.core.Unit.Unit ->
     native.

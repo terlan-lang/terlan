@@ -12,34 +12,34 @@
  */
 module std.js.Dom.EventModifierInit.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type EventModifierInit.
 
-pub (value: EventModifierInit) alt_key(): Bool.
+pub (receiver: EventModifierInit) alt_key(): Option[Bool].
 
-pub (value: EventModifierInit) ctrl_key(): Bool.
+pub (receiver: EventModifierInit) ctrl_key(): Option[Bool].
 
-pub (value: EventModifierInit) meta_key(): Bool.
+pub (receiver: EventModifierInit) meta_key(): Option[Bool].
 
-pub (value: EventModifierInit) modifier_alt_graph(): Bool.
+pub (receiver: EventModifierInit) modifier_alt_graph(): Option[Bool].
 
-pub (value: EventModifierInit) modifier_caps_lock(): Bool.
+pub (receiver: EventModifierInit) modifier_caps_lock(): Option[Bool].
 
-pub (value: EventModifierInit) modifier_fn(): Bool.
+pub (receiver: EventModifierInit) modifier_fn(): Option[Bool].
 
-pub (value: EventModifierInit) modifier_fn_lock(): Bool.
+pub (receiver: EventModifierInit) modifier_fn_lock(): Option[Bool].
 
-pub (value: EventModifierInit) modifier_hyper(): Bool.
+pub (receiver: EventModifierInit) modifier_hyper(): Option[Bool].
 
-pub (value: EventModifierInit) modifier_num_lock(): Bool.
+pub (receiver: EventModifierInit) modifier_num_lock(): Option[Bool].
 
-pub (value: EventModifierInit) modifier_scroll_lock(): Bool.
+pub (receiver: EventModifierInit) modifier_scroll_lock(): Option[Bool].
 
-pub (value: EventModifierInit) modifier_super(): Bool.
+pub (receiver: EventModifierInit) modifier_super(): Option[Bool].
 
-pub (value: EventModifierInit) modifier_symbol(): Bool.
+pub (receiver: EventModifierInit) modifier_symbol(): Option[Bool].
 
-pub (value: EventModifierInit) modifier_symbol_lock(): Bool.
+pub (receiver: EventModifierInit) modifier_symbol_lock(): Option[Bool].
 
-pub (value: EventModifierInit) shift_key(): Bool.
+pub (receiver: EventModifierInit) shift_key(): Option[Bool].

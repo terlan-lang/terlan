@@ -24,11 +24,11 @@ pub opaque type CountQueuingStrategy.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CountQueuingStrategy/highWaterMark)
  */
-pub (value: CountQueuingStrategy) high_water_mark(): std.js.Number.JsNumber ->
+pub (receiver: CountQueuingStrategy) high_water_mark(): std.js.Number.JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CountQueuingStrategy/size)
  */
-pub (value: CountQueuingStrategy) size(): QueuingStrategySize ->
+pub (receiver: CountQueuingStrategy) size(): std.js.Dom.QueuingStrategySize.QueuingStrategySize ->
     native.

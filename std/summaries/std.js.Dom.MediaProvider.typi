@@ -14,4 +14,4 @@
 module std.js.Dom.MediaProvider.
 
 pub type MediaProvider =
-    Blob | MediaSource | MediaStream.
+    std.js.Dom.Blob.Blob | std.js.Dom.MediaSource.MediaSource | std.js.Dom.MediaStream.MediaStream.

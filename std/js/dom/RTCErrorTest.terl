@@ -12,13 +12,9 @@
  */
 module std.js.Dom.RTCErrorTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.RTCError.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub error_detail_typechecks(receiver: RTCError): RTCErrorDetailType ->
-    receiver.error_detail().
 
 pub received_alert_typechecks(receiver: RTCError): Option[JsNumber] ->
     receiver.received_alert().

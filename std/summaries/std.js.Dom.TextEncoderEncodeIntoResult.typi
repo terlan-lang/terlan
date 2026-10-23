@@ -15,6 +15,6 @@ module std.js.Dom.TextEncoderEncodeIntoResult.
 
 pub opaque type TextEncoderEncodeIntoResult.
 
-pub (value: TextEncoderEncodeIntoResult) read(): std.js.Number.JsNumber.
+pub (receiver: TextEncoderEncodeIntoResult) read(): std.js.Number.JsNumber.
 
-pub (value: TextEncoderEncodeIntoResult) written(): std.js.Number.JsNumber.
+pub (receiver: TextEncoderEncodeIntoResult) written(): std.js.Number.JsNumber.

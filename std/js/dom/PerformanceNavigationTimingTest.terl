@@ -12,9 +12,8 @@
  */
 module std.js.Dom.PerformanceNavigationTimingTest.
 
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
 import type std.js.Dom.PerformanceNavigationTiming.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub dom_complete_typechecks(receiver: PerformanceNavigationTiming): DOMHighResTimeStamp ->
     receiver.dom_complete().
@@ -40,9 +39,6 @@ pub load_event_start_typechecks(receiver: PerformanceNavigationTiming): DOMHighR
 
 pub redirect_count_typechecks(receiver: PerformanceNavigationTiming): std.js.Number.JsNumber ->
     receiver.redirect_count().
-
-pub type__typechecks(receiver: PerformanceNavigationTiming): NavigationTimingType ->
-    receiver.type_().
 
 pub unload_event_end_typechecks(receiver: PerformanceNavigationTiming): DOMHighResTimeStamp ->
     receiver.unload_event_end().

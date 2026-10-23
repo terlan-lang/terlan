@@ -13,8 +13,3 @@
 module std.js.Dom.AvcEncoderConfigTest.
 
 import type std.js.Dom.AvcEncoderConfig.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub format_typechecks(receiver: AvcEncoderConfig): AvcBitstreamFormat ->
-    receiver.format().

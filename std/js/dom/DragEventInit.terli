@@ -14,4 +14,4 @@ module std.js.Dom.DragEventInit.
 
 pub opaque type DragEventInit.
 
-pub (value: DragEventInit) data_transfer(): Option[DataTransfer].
+pub (receiver: DragEventInit) data_transfer(): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer].

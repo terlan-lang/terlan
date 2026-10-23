@@ -27,7 +27,7 @@ pub opaque type DOMException.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMException/code)
  */
-pub (value: DOMException) code(): std.js.Number.JsNumber ->
+pub (receiver: DOMException) code(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -35,7 +35,7 @@ pub (value: DOMException) code(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMException/message)
  */
-pub (value: DOMException) message(): JsString ->
+pub (receiver: DOMException) message(): JsString ->
     native.
 
 /**
@@ -43,5 +43,5 @@ pub (value: DOMException) message(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMException/name)
  */
-pub (value: DOMException) name(): JsString ->
+pub (receiver: DOMException) name(): JsString ->
     native.

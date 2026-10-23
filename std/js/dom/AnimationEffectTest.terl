@@ -14,13 +14,16 @@ module std.js.Dom.AnimationEffectTest.
 
 import type std.js.Dom.AnimationEffect.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub get_computed_timing_typechecks(receiver: AnimationEffect): ComputedEffectTiming ->
+pub get_computed_timing_typechecks(
+    receiver: AnimationEffect,
+): std.js.Dom.ComputedEffectTiming.ComputedEffectTiming ->
     receiver.get_computed_timing().
 
-pub get_timing_typechecks(receiver: AnimationEffect): EffectTiming ->
+pub get_timing_typechecks(receiver: AnimationEffect): std.js.Dom.EffectTiming.EffectTiming ->
     receiver.get_timing().
 
-pub update_timing_typechecks(receiver: AnimationEffect, timing: OptionalEffectTiming): std.core.Unit ->
+pub update_timing_typechecks(
+    receiver: AnimationEffect,
+    timing: std.core.Option.Option[std.js.Dom.OptionalEffectTiming.OptionalEffectTiming],
+): std.core.Unit.Unit ->
     receiver.update_timing(timing).

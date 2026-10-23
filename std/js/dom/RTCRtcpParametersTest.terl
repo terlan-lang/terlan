@@ -12,12 +12,11 @@
  */
 module std.js.Dom.RTCRtcpParametersTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.RTCRtcpParameters.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub cname_typechecks(receiver: RTCRtcpParameters): std.js.String.JsString ->
+pub cname_typechecks(receiver: RTCRtcpParameters): Option[std.js.String.JsString] ->
     receiver.cname().
 
-pub reduced_size_typechecks(receiver: RTCRtcpParameters): std.core.Bool ->
+pub reduced_size_typechecks(receiver: RTCRtcpParameters): Option[Bool] ->
     receiver.reduced_size().

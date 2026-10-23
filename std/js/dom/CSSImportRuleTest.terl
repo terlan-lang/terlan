@@ -12,10 +12,9 @@
  */
 module std.js.Dom.CSSImportRuleTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.CSSImportRule.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub href_typechecks(receiver: CSSImportRule): JsString ->
     receiver.href().
@@ -23,10 +22,10 @@ pub href_typechecks(receiver: CSSImportRule): JsString ->
 pub layer_name_typechecks(receiver: CSSImportRule): Option[JsString] ->
     receiver.layer_name().
 
-pub media_typechecks(receiver: CSSImportRule): MediaList ->
+pub media_typechecks(receiver: CSSImportRule): std.js.Dom.MediaList.MediaList ->
     receiver.media().
 
-pub style_sheet_typechecks(receiver: CSSImportRule): Option[CSSStyleSheet] ->
+pub style_sheet_typechecks(receiver: CSSImportRule): Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
     receiver.style_sheet().
 
 pub supports_text_typechecks(receiver: CSSImportRule): Option[JsString] ->

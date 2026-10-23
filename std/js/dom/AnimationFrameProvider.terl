@@ -19,11 +19,13 @@ pub opaque type AnimationFrameProvider.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DedicatedWorkerGlobalScope/cancelAnimationFrame)
  */
-pub (value: AnimationFrameProvider) cancel_animation_frame(handle: JsNumber): std.core.Unit ->
+pub (receiver: AnimationFrameProvider) cancel_animation_frame(handle: JsNumber): std.core.Unit.Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DedicatedWorkerGlobalScope/requestAnimationFrame)
  */
-pub (value: AnimationFrameProvider) request_animation_frame(callback: FrameRequestCallback): JsNumber ->
+pub (receiver: AnimationFrameProvider) request_animation_frame(
+    callback: std.js.Dom.FrameRequestCallback.FrameRequestCallback,
+): JsNumber ->
     native.

@@ -12,10 +12,13 @@
  */
 module std.js.Dom.Animation.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.CSSNumberish.{CSSNumberish}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
 
 /**
  * The **`Animation`** interface of the Web Animations API represents a single animation player and provides playback controls and a timeline for an animation node or source.
@@ -29,7 +32,7 @@ pub opaque type Animation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/currentTime)
  */
-pub (value: Animation) current_time(): Option[CSSNumberish] ->
+pub (receiver: Animation) current_time(): Option[CSSNumberish] ->
     native.
 
 /**
@@ -37,7 +40,7 @@ pub (value: Animation) current_time(): Option[CSSNumberish] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/effect)
  */
-pub (value: Animation) effect(): Option[AnimationEffect] ->
+pub (receiver: Animation) effect(): Option[std.js.Dom.AnimationEffect.AnimationEffect] ->
     native.
 
 /**
@@ -45,7 +48,7 @@ pub (value: Animation) effect(): Option[AnimationEffect] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/finished)
  */
-pub (value: Animation) finished(): Promise[Animation] ->
+pub (receiver: Animation) finished(): Promise[Animation] ->
     native.
 
 /**
@@ -53,7 +56,7 @@ pub (value: Animation) finished(): Promise[Animation] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/id)
  */
-pub (value: Animation) id(): JsString ->
+pub (receiver: Animation) id(): JsString ->
     native.
 
 /**
@@ -61,15 +64,7 @@ pub (value: Animation) id(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/pending)
  */
-pub (value: Animation) pending(): Bool ->
-    native.
-
-/**
- * The read-only **`Animation.playState`** property of the Web Animations API returns an enumerated value describing the playback state of an animation.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/playState)
- */
-pub (value: Animation) play_state(): AnimationPlayState ->
+pub (receiver: Animation) pending(): Bool ->
     native.
 
 /**
@@ -77,7 +72,7 @@ pub (value: Animation) play_state(): AnimationPlayState ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/playbackRate)
  */
-pub (value: Animation) playback_rate(): JsNumber ->
+pub (receiver: Animation) playback_rate(): JsNumber ->
     native.
 
 /**
@@ -85,15 +80,7 @@ pub (value: Animation) playback_rate(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/ready)
  */
-pub (value: Animation) ready(): Promise[Animation] ->
-    native.
-
-/**
- * The read-only **`Animation.replaceState`** property of the Web Animations API indicates whether the animation has been removed by the browser automatically after being replaced by another animation.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/replaceState)
- */
-pub (value: Animation) replace_state(): AnimationReplaceState ->
+pub (receiver: Animation) ready(): Promise[Animation] ->
     native.
 
 /**
@@ -101,7 +88,7 @@ pub (value: Animation) replace_state(): AnimationReplaceState ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/startTime)
  */
-pub (value: Animation) start_time(): Option[CSSNumberish] ->
+pub (receiver: Animation) start_time(): Option[CSSNumberish] ->
     native.
 
 /**
@@ -109,7 +96,7 @@ pub (value: Animation) start_time(): Option[CSSNumberish] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/timeline)
  */
-pub (value: Animation) timeline(): Option[AnimationTimeline] ->
+pub (receiver: Animation) timeline(): Option[std.js.Dom.AnimationTimeline.AnimationTimeline] ->
     native.
 
 /**
@@ -117,7 +104,7 @@ pub (value: Animation) timeline(): Option[AnimationTimeline] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/cancel)
  */
-pub (value: Animation) cancel(): Unit ->
+pub (receiver: Animation) cancel(): Unit ->
     native.
 
 /**
@@ -125,7 +112,7 @@ pub (value: Animation) cancel(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/commitStyles)
  */
-pub (value: Animation) commit_styles(): Unit ->
+pub (receiver: Animation) commit_styles(): Unit ->
     native.
 
 /**
@@ -133,7 +120,7 @@ pub (value: Animation) commit_styles(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/finish)
  */
-pub (value: Animation) finish(): Unit ->
+pub (receiver: Animation) finish(): Unit ->
     native.
 
 /**
@@ -141,7 +128,7 @@ pub (value: Animation) finish(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/pause)
  */
-pub (value: Animation) pause(): Unit ->
+pub (receiver: Animation) pause(): Unit ->
     native.
 
 /**
@@ -149,7 +136,7 @@ pub (value: Animation) pause(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/persist)
  */
-pub (value: Animation) persist(): Unit ->
+pub (receiver: Animation) persist(): Unit ->
     native.
 
 /**
@@ -157,7 +144,7 @@ pub (value: Animation) persist(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/play)
  */
-pub (value: Animation) play(): Unit ->
+pub (receiver: Animation) play(): Unit ->
     native.
 
 /**
@@ -165,7 +152,7 @@ pub (value: Animation) play(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/reverse)
  */
-pub (value: Animation) reverse(): Unit ->
+pub (receiver: Animation) reverse(): Unit ->
     native.
 
 /**
@@ -173,19 +160,19 @@ pub (value: Animation) reverse(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/updatePlaybackRate)
  */
-pub (value: Animation) update_playback_rate(playback_rate: JsNumber): Unit ->
+pub (receiver: Animation) update_playback_rate(playback_rate: JsNumber): Unit ->
     native.
 
-pub (value: Animation) add_event_listener(
+pub (receiver: Animation) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: Animation) remove_event_listener(
+pub (receiver: Animation) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

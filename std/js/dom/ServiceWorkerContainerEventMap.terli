@@ -12,10 +12,12 @@
  */
 module std.js.Dom.ServiceWorkerContainerEventMap.
 
+import type std.js.Dom.MessageEvent.{MessageEvent}.
+
 pub opaque type ServiceWorkerContainerEventMap.
 
-pub (value: ServiceWorkerContainerEventMap) controllerchange(): Event.
+pub (receiver: ServiceWorkerContainerEventMap) controllerchange(): std.js.Dom.Event.Event.
 
-pub (value: ServiceWorkerContainerEventMap) message(): MessageEvent.
+pub (receiver: ServiceWorkerContainerEventMap) message(): MessageEvent.
 
-pub (value: ServiceWorkerContainerEventMap) messageerror(): MessageEvent.
+pub (receiver: ServiceWorkerContainerEventMap) messageerror(): MessageEvent.

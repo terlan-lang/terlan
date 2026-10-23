@@ -12,27 +12,25 @@
  */
 module std.js.Dom.CookieInit.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type CookieInit.
 
-pub (value: CookieInit) domain(): Option[JsString] ->
+pub (receiver: CookieInit) domain(): Option[JsString] ->
     native.
 
-pub (value: CookieInit) expires(): Option[DOMHighResTimeStamp] ->
+pub (receiver: CookieInit) expires(): Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp] ->
     native.
 
-pub (value: CookieInit) name(): JsString ->
+pub (receiver: CookieInit) name(): JsString ->
     native.
 
-pub (value: CookieInit) partitioned(): std.core.Bool ->
+pub (receiver: CookieInit) partitioned(): Option[Bool] ->
     native.
 
-pub (value: CookieInit) path(): JsString ->
+pub (receiver: CookieInit) path(): Option[JsString] ->
     native.
 
-pub (value: CookieInit) same_site(): CookieSameSite ->
-    native.
-
-pub (value: CookieInit) value(): JsString ->
+pub (receiver: CookieInit) value(): JsString ->
     native.

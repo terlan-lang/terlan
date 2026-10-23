@@ -137,6 +137,15 @@ pub(super) fn is_direct_oxc_js_identifier(name: &str) -> bool {
         && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '$')
 }
 
+/// Keeps legal Terlan bindings distinct from JavaScript keywords and strict-mode names.
+pub(super) fn oxc_binding_name<'a>(ast: oxc_ast::AstBuilder<'a>, name: &str) -> &'a str {
+    if oxc_syntax::keyword::is_reserved_keyword(name) || matches!(name, "eval" | "arguments") {
+        oxc_ident_name(ast, &format!("$binding${name}"))
+    } else {
+        oxc_ident_name(ast, name)
+    }
+}
+
 /// Maps a CoreIR binary operator to an Oxc binary operator.
 ///
 /// Inputs:

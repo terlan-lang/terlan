@@ -12,4 +12,6 @@
  */
 module std.js.Dom.Uint32List.
 
-pub type Uint32List = Uint32Array[ArrayBufferLike] | std.js.Array[GLuint].
+pub type Uint32List =
+      std.js.Uint32Array.Uint32Array[ArrayBufferLike]
+    | std.js.Array.Array[std.js.Dom.GLuint.GLuint].

@@ -27,7 +27,7 @@ pub opaque type DOMStringList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMStringList/length)
  */
-pub (value: DOMStringList) length(): JsNumber ->
+pub (receiver: DOMStringList) length(): JsNumber ->
     native.
 
 /**
@@ -35,7 +35,7 @@ pub (value: DOMStringList) length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMStringList/contains)
  */
-pub (value: DOMStringList) contains(string: JsString): std.core.Bool ->
+pub (receiver: DOMStringList) contains(string: JsString): Bool ->
     native.
 
 /**
@@ -43,5 +43,5 @@ pub (value: DOMStringList) contains(string: JsString): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMStringList/item)
  */
-pub (value: DOMStringList) item(index: JsNumber): Option[JsString] ->
+pub (receiver: DOMStringList) item(index: JsNumber): std.core.Option.Option[JsString] ->
     native.

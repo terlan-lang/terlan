@@ -12,7 +12,8 @@
  */
 module std.js.Dom.Node.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.Dom.ChildNode.{ChildNode}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +29,7 @@ pub opaque type Node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/baseURI)
  */
-pub (value: Node) base_uri(): JsString ->
+pub (receiver: Node) base_uri(): JsString ->
     native.
 
 /**
@@ -36,7 +37,7 @@ pub (value: Node) base_uri(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/childNodes)
  */
-pub (value: Node) child_nodes(): NodeListOf[ChildNode] ->
+pub (receiver: Node) child_nodes(): std.js.Dom.NodeListOf.NodeListOf[ChildNode] ->
     native.
 
 /**
@@ -44,7 +45,7 @@ pub (value: Node) child_nodes(): NodeListOf[ChildNode] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/firstChild)
  */
-pub (value: Node) first_child(): Option[ChildNode] ->
+pub (receiver: Node) first_child(): Option[ChildNode] ->
     native.
 
 /**
@@ -52,7 +53,7 @@ pub (value: Node) first_child(): Option[ChildNode] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/isConnected)
  */
-pub (value: Node) is_connected(): Bool ->
+pub (receiver: Node) is_connected(): Bool ->
     native.
 
 /**
@@ -60,7 +61,7 @@ pub (value: Node) is_connected(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/lastChild)
  */
-pub (value: Node) last_child(): Option[ChildNode] ->
+pub (receiver: Node) last_child(): Option[ChildNode] ->
     native.
 
 /**
@@ -68,7 +69,7 @@ pub (value: Node) last_child(): Option[ChildNode] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nextSibling)
  */
-pub (value: Node) next_sibling(): Option[ChildNode] ->
+pub (receiver: Node) next_sibling(): Option[ChildNode] ->
     native.
 
 /**
@@ -76,7 +77,7 @@ pub (value: Node) next_sibling(): Option[ChildNode] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeName)
  */
-pub (value: Node) node_name(): JsString ->
+pub (receiver: Node) node_name(): JsString ->
     native.
 
 /**
@@ -84,7 +85,7 @@ pub (value: Node) node_name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeType)
  */
-pub (value: Node) node_type(): JsNumber ->
+pub (receiver: Node) node_type(): JsNumber ->
     native.
 
 /**
@@ -92,7 +93,7 @@ pub (value: Node) node_type(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/nodeValue)
  */
-pub (value: Node) node_value(): Option[JsString] ->
+pub (receiver: Node) node_value(): Option[JsString] ->
     native.
 
 /**
@@ -100,7 +101,7 @@ pub (value: Node) node_value(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/ownerDocument)
  */
-pub (value: Node) owner_document(): Option[Document] ->
+pub (receiver: Node) owner_document(): Option[std.js.Dom.Document.Document] ->
     native.
 
 /**
@@ -108,7 +109,7 @@ pub (value: Node) owner_document(): Option[Document] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentElement)
  */
-pub (value: Node) parent_element(): Option[HTMLElement] ->
+pub (receiver: Node) parent_element(): Option[std.js.Dom.HTMLElement.HTMLElement] ->
     native.
 
 /**
@@ -116,7 +117,7 @@ pub (value: Node) parent_element(): Option[HTMLElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentNode)
  */
-pub (value: Node) parent_node(): Option[ParentNode] ->
+pub (receiver: Node) parent_node(): Option[std.js.Dom.ParentNode.ParentNode] ->
     native.
 
 /**
@@ -124,7 +125,7 @@ pub (value: Node) parent_node(): Option[ParentNode] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/previousSibling)
  */
-pub (value: Node) previous_sibling(): Option[ChildNode] ->
+pub (receiver: Node) previous_sibling(): Option[ChildNode] ->
     native.
 
 /**
@@ -132,15 +133,7 @@ pub (value: Node) previous_sibling(): Option[ChildNode] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/textContent)
  */
-pub (value: Node) text_content(): Option[JsString] ->
-    native.
-
-/**
- * The **`appendChild()`** method of the Node interface adds a node to the end of the list of children of a specified parent node.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/appendChild)
- */
-pub (value: Node) append_child(node: T): T ->
+pub (receiver: Node) text_content(): Option[JsString] ->
     native.
 
 /**
@@ -148,7 +141,7 @@ pub (value: Node) append_child(node: T): T ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/cloneNode)
  */
-pub (value: Node) clone_node(subtree: Bool): Node ->
+pub (receiver: Node) clone_node(subtree: Option[Bool]): Node ->
     native.
 
 /**
@@ -156,7 +149,7 @@ pub (value: Node) clone_node(subtree: Bool): Node ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/compareDocumentPosition)
  */
-pub (value: Node) compare_document_position(other: Node): JsNumber ->
+pub (receiver: Node) compare_document_position(other: Node): JsNumber ->
     native.
 
 /**
@@ -164,7 +157,7 @@ pub (value: Node) compare_document_position(other: Node): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/contains)
  */
-pub (value: Node) contains(other: Option[Node]): Bool ->
+pub (receiver: Node) contains(other: Option[Node]): Bool ->
     native.
 
 /**
@@ -172,7 +165,7 @@ pub (value: Node) contains(other: Option[Node]): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/getRootNode)
  */
-pub (value: Node) get_root_node(options: GetRootNodeOptions): Node ->
+pub (receiver: Node) get_root_node(options: Option[std.js.Dom.GetRootNodeOptions.GetRootNodeOptions]): Node ->
     native.
 
 /**
@@ -180,15 +173,7 @@ pub (value: Node) get_root_node(options: GetRootNodeOptions): Node ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/hasChildNodes)
  */
-pub (value: Node) has_child_nodes(): Bool ->
-    native.
-
-/**
- * The **`insertBefore()`** method of the Node interface inserts a node before a _reference node_ as a child of a specified _parent node_.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/insertBefore)
- */
-pub (value: Node) insert_before(node: T, child: Option[Node]): T ->
+pub (receiver: Node) has_child_nodes(): Bool ->
     native.
 
 /**
@@ -196,7 +181,7 @@ pub (value: Node) insert_before(node: T, child: Option[Node]): T ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/isDefaultNamespace)
  */
-pub (value: Node) is_default_namespace(namespace: Option[JsString]): Bool ->
+pub (receiver: Node) is_default_namespace(namespace: Option[JsString]): Bool ->
     native.
 
 /**
@@ -204,7 +189,7 @@ pub (value: Node) is_default_namespace(namespace: Option[JsString]): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/isEqualNode)
  */
-pub (value: Node) is_equal_node(other_node: Option[Node]): Bool ->
+pub (receiver: Node) is_equal_node(other_node: Option[Node]): Bool ->
     native.
 
 /**
@@ -212,7 +197,7 @@ pub (value: Node) is_equal_node(other_node: Option[Node]): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/isSameNode)
  */
-pub (value: Node) is_same_node(other_node: Option[Node]): Bool ->
+pub (receiver: Node) is_same_node(other_node: Option[Node]): Bool ->
     native.
 
 /**
@@ -220,7 +205,7 @@ pub (value: Node) is_same_node(other_node: Option[Node]): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/lookupNamespaceURI)
  */
-pub (value: Node) lookup_namespace_uri(prefix: Option[JsString]): Option[JsString] ->
+pub (receiver: Node) lookup_namespace_uri(prefix: Option[JsString]): Option[JsString] ->
     native.
 
 /**
@@ -228,7 +213,7 @@ pub (value: Node) lookup_namespace_uri(prefix: Option[JsString]): Option[JsStrin
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/lookupPrefix)
  */
-pub (value: Node) lookup_prefix(namespace: Option[JsString]): Option[JsString] ->
+pub (receiver: Node) lookup_prefix(namespace: Option[JsString]): Option[JsString] ->
     native.
 
 /**
@@ -236,21 +221,5 @@ pub (value: Node) lookup_prefix(namespace: Option[JsString]): Option[JsString] -
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/normalize)
  */
-pub (value: Node) normalize(): std.core.Unit ->
-    native.
-
-/**
- * The **`removeChild()`** method of the Node interface removes a child node from the DOM and returns the removed node.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/removeChild)
- */
-pub (value: Node) remove_child(child: T): T ->
-    native.
-
-/**
- * The **`replaceChild()`** method of the Node interface replaces a child node within the given (parent) node.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/replaceChild)
- */
-pub (value: Node) replace_child(node: Node, child: T): T ->
+pub (receiver: Node) normalize(): std.core.Unit.Unit ->
     native.

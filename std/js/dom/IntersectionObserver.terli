@@ -12,8 +12,9 @@
  */
 module std.js.Dom.IntersectionObserver.
 
-import type std.core.{Unit}.
-import type std.js.{Array}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.Element.{Element}.
 
 /**
  * The **`IntersectionObserver`** interface of the Intersection Observer API provides a way to asynchronously observe changes in the intersection of a target element with an ancestor element or with a top-level document's viewport.
@@ -27,46 +28,46 @@ pub opaque type IntersectionObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserver/root)
  */
-pub (value: IntersectionObserver) root(): Option[Document | Element].
+pub (receiver: IntersectionObserver) root(): std.core.Option.Option[std.js.Dom.Document.Document | Element].
 
 /**
  * The IntersectionObserver interface's read-only **`rootMargin`** property is a string with syntax similar to that of the CSS margin property.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserver/rootMargin)
  */
-pub (value: IntersectionObserver) root_margin(): std.js.String.JsString.
+pub (receiver: IntersectionObserver) root_margin(): std.js.String.JsString.
 
 /**
  * The IntersectionObserver interface's read-only **`thresholds`** property returns the list of intersection thresholds that was specified when the observer was instantiated with only one threshold ratio was provided when instantiating the object, this will be an array containing that single value.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserver/thresholds)
  */
-pub (value: IntersectionObserver) thresholds(): Array[std.js.Number.JsNumber].
+pub (receiver: IntersectionObserver) thresholds(): Array[std.js.Number.JsNumber].
 
 /**
  * The IntersectionObserver method **`disconnect()`** stops watching all of its target elements for visibility changes.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserver/disconnect)
  */
-pub (value: IntersectionObserver) disconnect(): Unit.
+pub (receiver: IntersectionObserver) disconnect(): Unit.
 
 /**
  * The IntersectionObserver method **`observe()`** adds an element to the set of target elements being watched by the `IntersectionObserver`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserver/observe)
  */
-pub (value: IntersectionObserver) observe(target_: Element): Unit.
+pub (receiver: IntersectionObserver) observe(target_: Element): Unit.
 
 /**
  * The IntersectionObserver method **`takeRecords()`** returns an array of has experienced an intersection change since the last time the intersections were checked, either explicitly through a call to this method or implicitly by an automatic call to the observer's callback.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserver/takeRecords)
  */
-pub (value: IntersectionObserver) take_records(): Array[IntersectionObserverEntry].
+pub (receiver: IntersectionObserver) take_records(): Array[std.js.Dom.IntersectionObserverEntry.IntersectionObserverEntry].
 
 /**
  * The IntersectionObserver method **`unobserve()`** instructs the `IntersectionObserver` to stop observing the specified target element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserver/unobserve)
  */
-pub (value: IntersectionObserver) unobserve(target_: Element): Unit.
+pub (receiver: IntersectionObserver) unobserve(target_: Element): Unit.

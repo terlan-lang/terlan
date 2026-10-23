@@ -12,51 +12,54 @@
  */
 module std.js.Dom.MediaTrackConstraintSetTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.ConstrainBoolean.{ConstrainBoolean}.
+import type std.js.Dom.ConstrainDOMString.{ConstrainDOMString}.
+import type std.js.Dom.ConstrainDouble.{ConstrainDouble}.
+import type std.js.Dom.ConstrainULong.{ConstrainULong}.
 import type std.js.Dom.MediaTrackConstraintSet.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub aspect_ratio_typechecks(receiver: MediaTrackConstraintSet): ConstrainDouble ->
+pub aspect_ratio_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainDouble] ->
     receiver.aspect_ratio().
 
-pub auto_gain_control_typechecks(receiver: MediaTrackConstraintSet): ConstrainBoolean ->
+pub auto_gain_control_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainBoolean] ->
     receiver.auto_gain_control().
 
-pub background_blur_typechecks(receiver: MediaTrackConstraintSet): ConstrainBoolean ->
+pub background_blur_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainBoolean] ->
     receiver.background_blur().
 
-pub channel_count_typechecks(receiver: MediaTrackConstraintSet): ConstrainULong ->
+pub channel_count_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainULong] ->
     receiver.channel_count().
 
-pub device_id_typechecks(receiver: MediaTrackConstraintSet): ConstrainDOMString ->
+pub device_id_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainDOMString] ->
     receiver.device_id().
 
-pub display_surface_typechecks(receiver: MediaTrackConstraintSet): ConstrainDOMString ->
+pub display_surface_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainDOMString] ->
     receiver.display_surface().
 
-pub echo_cancellation_typechecks(receiver: MediaTrackConstraintSet): ConstrainBoolean ->
+pub echo_cancellation_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainBoolean] ->
     receiver.echo_cancellation().
 
-pub facing_mode_typechecks(receiver: MediaTrackConstraintSet): ConstrainDOMString ->
+pub facing_mode_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainDOMString] ->
     receiver.facing_mode().
 
-pub frame_rate_typechecks(receiver: MediaTrackConstraintSet): ConstrainDouble ->
+pub frame_rate_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainDouble] ->
     receiver.frame_rate().
 
-pub group_id_typechecks(receiver: MediaTrackConstraintSet): ConstrainDOMString ->
+pub group_id_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainDOMString] ->
     receiver.group_id().
 
-pub height_typechecks(receiver: MediaTrackConstraintSet): ConstrainULong ->
+pub height_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainULong] ->
     receiver.height().
 
-pub noise_suppression_typechecks(receiver: MediaTrackConstraintSet): ConstrainBoolean ->
+pub noise_suppression_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainBoolean] ->
     receiver.noise_suppression().
 
-pub sample_rate_typechecks(receiver: MediaTrackConstraintSet): ConstrainULong ->
+pub sample_rate_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainULong] ->
     receiver.sample_rate().
 
-pub sample_size_typechecks(receiver: MediaTrackConstraintSet): ConstrainULong ->
+pub sample_size_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainULong] ->
     receiver.sample_size().
 
-pub width_typechecks(receiver: MediaTrackConstraintSet): ConstrainULong ->
+pub width_typechecks(receiver: MediaTrackConstraintSet): Option[ConstrainULong] ->
     receiver.width().

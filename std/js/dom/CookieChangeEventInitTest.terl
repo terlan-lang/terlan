@@ -12,12 +12,12 @@
  */
 module std.js.Dom.CookieChangeEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.CookieChangeEventInit.
+import type std.js.Dom.CookieList.{CookieList}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub changed_typechecks(receiver: CookieChangeEventInit): CookieList ->
+pub changed_typechecks(receiver: CookieChangeEventInit): Option[CookieList] ->
     receiver.changed().
 
-pub deleted_typechecks(receiver: CookieChangeEventInit): CookieList ->
+pub deleted_typechecks(receiver: CookieChangeEventInit): Option[CookieList] ->
     receiver.deleted().

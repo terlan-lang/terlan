@@ -12,9 +12,9 @@
  */
 module std.js.Dom.XMLHttpRequestEventTargetEventMapTest.
 
+import type std.js.Dom.ProgressEvent.{ProgressEvent}.
+import type std.js.Dom.XMLHttpRequestEventTarget.{XMLHttpRequestEventTarget}.
 import type std.js.Dom.XMLHttpRequestEventTargetEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub abort_typechecks(
     receiver: XMLHttpRequestEventTargetEventMap,

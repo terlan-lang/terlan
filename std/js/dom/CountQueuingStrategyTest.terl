@@ -14,10 +14,10 @@ module std.js.Dom.CountQueuingStrategyTest.
 
 import type std.js.Dom.CountQueuingStrategy.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub high_water_mark_typechecks(receiver: CountQueuingStrategy): std.js.Number.JsNumber ->
     receiver.high_water_mark().
 
-pub size_typechecks(receiver: CountQueuingStrategy): QueuingStrategySize ->
+pub size_typechecks(
+    receiver: CountQueuingStrategy,
+): std.js.Dom.QueuingStrategySize.QueuingStrategySize ->
     receiver.size().

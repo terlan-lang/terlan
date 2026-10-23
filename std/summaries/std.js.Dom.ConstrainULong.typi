@@ -14,4 +14,4 @@
 module std.js.Dom.ConstrainULong.
 
 pub type ConstrainULong =
-    ConstrainULongRange | std.js.Number.JsNumber.
+    std.js.Dom.ConstrainULongRange.ConstrainULongRange | std.js.Number.JsNumber.

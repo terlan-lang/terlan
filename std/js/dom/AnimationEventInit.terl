@@ -12,15 +12,16 @@
  */
 module std.js.Dom.AnimationEventInit.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type AnimationEventInit.
 
-pub (value: AnimationEventInit) animation_name(): JsString ->
+pub (receiver: AnimationEventInit) animation_name(): Option[JsString] ->
     native.
 
-pub (value: AnimationEventInit) elapsed_time(): std.js.Number.JsNumber ->
+pub (receiver: AnimationEventInit) elapsed_time(): Option[std.js.Number.JsNumber] ->
     native.
 
-pub (value: AnimationEventInit) pseudo_element(): JsString ->
+pub (receiver: AnimationEventInit) pseudo_element(): Option[JsString] ->
     native.

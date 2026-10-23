@@ -13,5 +13,3 @@
 module std.js.MapConstructorTest.
 
 import type std.js.MapConstructor.
-
-pub generated_binding_surface_contract(): Bool -> true.

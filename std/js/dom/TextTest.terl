@@ -14,8 +14,6 @@ module std.js.Dom.TextTest.
 
 import type std.js.Dom.Text.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub whole_text_typechecks(receiver: Text): std.js.String.JsString ->
     receiver.whole_text().
 

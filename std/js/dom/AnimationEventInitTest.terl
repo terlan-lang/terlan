@@ -12,16 +12,15 @@
  */
 module std.js.Dom.AnimationEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.AnimationEventInit.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub animation_name_typechecks(receiver: AnimationEventInit): JsString ->
+pub animation_name_typechecks(receiver: AnimationEventInit): Option[JsString] ->
     receiver.animation_name().
 
-pub elapsed_time_typechecks(receiver: AnimationEventInit): std.js.Number.JsNumber ->
+pub elapsed_time_typechecks(receiver: AnimationEventInit): Option[std.js.Number.JsNumber] ->
     receiver.elapsed_time().
 
-pub pseudo_element_typechecks(receiver: AnimationEventInit): JsString ->
+pub pseudo_element_typechecks(receiver: AnimationEventInit): Option[JsString] ->
     receiver.pseudo_element().

@@ -12,36 +12,39 @@
  */
 module std.js.Dom.BaseAudioContextTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.AudioBuffer.{AudioBuffer}.
 import type std.js.Dom.BaseAudioContext.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Float32Array.{Float32Array}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub audio_worklet_typechecks(receiver: BaseAudioContext): AudioWorklet ->
+pub audio_worklet_typechecks(receiver: BaseAudioContext): std.js.Dom.AudioWorklet.AudioWorklet ->
     receiver.audio_worklet().
 
 pub current_time_typechecks(receiver: BaseAudioContext): JsNumber ->
     receiver.current_time().
 
-pub destination_typechecks(receiver: BaseAudioContext): AudioDestinationNode ->
+pub destination_typechecks(
+    receiver: BaseAudioContext,
+): std.js.Dom.AudioDestinationNode.AudioDestinationNode ->
     receiver.destination().
 
-pub listener_typechecks(receiver: BaseAudioContext): AudioListener ->
+pub listener_typechecks(receiver: BaseAudioContext): std.js.Dom.AudioListener.AudioListener ->
     receiver.listener().
 
 pub sample_rate_typechecks(receiver: BaseAudioContext): JsNumber ->
     receiver.sample_rate().
 
-pub state_typechecks(receiver: BaseAudioContext): AudioContextState ->
-    receiver.state().
-
-pub create_analyser_typechecks(receiver: BaseAudioContext): AnalyserNode ->
+pub create_analyser_typechecks(receiver: BaseAudioContext): std.js.Dom.AnalyserNode.AnalyserNode ->
     receiver.create_analyser().
 
-pub create_biquad_filter_typechecks(receiver: BaseAudioContext): BiquadFilterNode ->
+pub create_biquad_filter_typechecks(
+    receiver: BaseAudioContext,
+): std.js.Dom.BiquadFilterNode.BiquadFilterNode ->
     receiver.create_biquad_filter().
 
 pub create_buffer_typechecks(
@@ -52,85 +55,100 @@ pub create_buffer_typechecks(
 ): AudioBuffer ->
     receiver.create_buffer(number_of_channels, length, sample_rate).
 
-pub create_buffer_source_typechecks(receiver: BaseAudioContext): AudioBufferSourceNode ->
+pub create_buffer_source_typechecks(
+    receiver: BaseAudioContext,
+): std.js.Dom.AudioBufferSourceNode.AudioBufferSourceNode ->
     receiver.create_buffer_source().
 
 pub create_channel_merger_typechecks(
     receiver: BaseAudioContext,
-    number_of_inputs: JsNumber,
-): ChannelMergerNode ->
+    number_of_inputs: Option[JsNumber],
+): std.js.Dom.ChannelMergerNode.ChannelMergerNode ->
     receiver.create_channel_merger(number_of_inputs).
 
 pub create_channel_splitter_typechecks(
     receiver: BaseAudioContext,
-    number_of_outputs: JsNumber,
-): ChannelSplitterNode ->
+    number_of_outputs: Option[JsNumber],
+): std.js.Dom.ChannelSplitterNode.ChannelSplitterNode ->
     receiver.create_channel_splitter(number_of_outputs).
 
-pub create_constant_source_typechecks(receiver: BaseAudioContext): ConstantSourceNode ->
+pub create_constant_source_typechecks(
+    receiver: BaseAudioContext,
+): std.js.Dom.ConstantSourceNode.ConstantSourceNode ->
     receiver.create_constant_source().
 
-pub create_convolver_typechecks(receiver: BaseAudioContext): ConvolverNode ->
+pub create_convolver_typechecks(receiver: BaseAudioContext): std.js.Dom.ConvolverNode.ConvolverNode ->
     receiver.create_convolver().
 
-pub create_delay_typechecks(receiver: BaseAudioContext, max_delay_time: JsNumber): DelayNode ->
+pub create_delay_typechecks(
+    receiver: BaseAudioContext,
+    max_delay_time: Option[JsNumber],
+): std.js.Dom.DelayNode.DelayNode ->
     receiver.create_delay(max_delay_time).
 
-pub create_dynamics_compressor_typechecks(receiver: BaseAudioContext): DynamicsCompressorNode ->
+pub create_dynamics_compressor_typechecks(
+    receiver: BaseAudioContext,
+): std.js.Dom.DynamicsCompressorNode.DynamicsCompressorNode ->
     receiver.create_dynamics_compressor().
 
-pub create_gain_typechecks(receiver: BaseAudioContext): GainNode ->
+pub create_gain_typechecks(receiver: BaseAudioContext): std.js.Dom.GainNode.GainNode ->
     receiver.create_gain().
 
 pub create_iir_filter_typechecks(
     receiver: BaseAudioContext,
     feedforward: Array[JsNumber],
     feedback: Array[JsNumber],
-): IIRFilterNode ->
+): std.js.Dom.IIRFilterNode.IIRFilterNode ->
     receiver.create_iir_filter(feedforward, feedback).
 
-pub create_oscillator_typechecks(receiver: BaseAudioContext): OscillatorNode ->
+pub create_oscillator_typechecks(
+    receiver: BaseAudioContext,
+): std.js.Dom.OscillatorNode.OscillatorNode ->
     receiver.create_oscillator().
 
-pub create_panner_typechecks(receiver: BaseAudioContext): PannerNode ->
+pub create_panner_typechecks(receiver: BaseAudioContext): std.js.Dom.PannerNode.PannerNode ->
     receiver.create_panner().
 
 pub create_periodic_wave_typechecks(
     receiver: BaseAudioContext,
     real: Float32Array | Array[JsNumber],
     imag: Float32Array | Array[JsNumber],
-    constraints: PeriodicWaveConstraints,
-): PeriodicWave ->
+    constraints: Option[std.js.Dom.PeriodicWaveConstraints.PeriodicWaveConstraints],
+): std.js.Dom.PeriodicWave.PeriodicWave ->
     receiver.create_periodic_wave(real, imag, constraints).
 
 pub create_script_processor_typechecks(
     receiver: BaseAudioContext,
-    buffer_size: JsNumber,
-    number_of_input_channels: JsNumber,
-    number_of_output_channels: JsNumber,
-): ScriptProcessorNode ->
+    buffer_size: Option[JsNumber],
+    number_of_input_channels: Option[JsNumber],
+    number_of_output_channels: Option[JsNumber],
+): std.js.Dom.ScriptProcessorNode.ScriptProcessorNode ->
     receiver
         .create_script_processor(buffer_size, number_of_input_channels, number_of_output_channels).
 
-pub create_stereo_panner_typechecks(receiver: BaseAudioContext): StereoPannerNode ->
+pub create_stereo_panner_typechecks(
+    receiver: BaseAudioContext,
+): std.js.Dom.StereoPannerNode.StereoPannerNode ->
     receiver.create_stereo_panner().
 
-pub create_wave_shaper_typechecks(receiver: BaseAudioContext): WaveShaperNode ->
+pub create_wave_shaper_typechecks(
+    receiver: BaseAudioContext,
+): std.js.Dom.WaveShaperNode.WaveShaperNode ->
     receiver.create_wave_shaper().
 
 pub decode_audio_data_typechecks(
     receiver: BaseAudioContext,
-    audio_data: ArrayBuffer,
-    success_callback: Option[DecodeSuccessCallback],
-    error_callback: Option[DecodeErrorCallback],
-): std.js.Promise[AudioBuffer] ->
+    audio_data: std.js.ArrayBuffer.ArrayBuffer,
+    success_callback: Option[Option[std.js.Dom.DecodeSuccessCallback.DecodeSuccessCallback]],
+    error_callback: Option[Option[std.js.Dom.DecodeErrorCallback.DecodeErrorCallback]],
+): std.js.Promise.Promise[AudioBuffer] ->
     receiver.decode_audio_data(audio_data, success_callback, error_callback).
 
 pub add_event_listener_typechecks(
     receiver: BaseAudioContext,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -138,6 +156,6 @@ pub remove_event_listener_typechecks(
     receiver: BaseAudioContext,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

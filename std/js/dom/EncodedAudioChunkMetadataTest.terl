@@ -14,7 +14,7 @@ module std.js.Dom.EncodedAudioChunkMetadataTest.
 
 import type std.js.Dom.EncodedAudioChunkMetadata.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub decoder_config_typechecks(receiver: EncodedAudioChunkMetadata): AudioDecoderConfig ->
+pub decoder_config_typechecks(
+    receiver: EncodedAudioChunkMetadata,
+): std.core.Option.Option[std.js.Dom.AudioDecoderConfig.AudioDecoderConfig] ->
     receiver.decoder_config().

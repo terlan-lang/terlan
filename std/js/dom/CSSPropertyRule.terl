@@ -26,7 +26,7 @@ pub opaque type CSSPropertyRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSPropertyRule/inherits)
  */
-pub (value: CSSPropertyRule) inherits(): std.core.Bool ->
+pub (receiver: CSSPropertyRule) inherits(): Bool ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: CSSPropertyRule) inherits(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSPropertyRule/initialValue)
  */
-pub (value: CSSPropertyRule) initial_value(): Option[JsString] ->
+pub (receiver: CSSPropertyRule) initial_value(): std.core.Option.Option[JsString] ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: CSSPropertyRule) initial_value(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSPropertyRule/name)
  */
-pub (value: CSSPropertyRule) name(): JsString ->
+pub (receiver: CSSPropertyRule) name(): JsString ->
     native.
 
 /**
@@ -50,5 +50,5 @@ pub (value: CSSPropertyRule) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSPropertyRule/syntax)
  */
-pub (value: CSSPropertyRule) syntax(): JsString ->
+pub (receiver: CSSPropertyRule) syntax(): JsString ->
     native.

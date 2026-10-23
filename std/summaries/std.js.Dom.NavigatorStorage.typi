@@ -21,4 +21,4 @@ pub opaque type NavigatorStorage.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/storage)
  */
-pub (value: NavigatorStorage) storage(): StorageManager.
+pub (receiver: NavigatorStorage) storage(): std.js.Dom.StorageManager.StorageManager.

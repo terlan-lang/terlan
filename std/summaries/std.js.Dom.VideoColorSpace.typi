@@ -25,32 +25,11 @@ pub opaque type VideoColorSpace.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace/fullRange)
  */
-pub (value: VideoColorSpace) full_range(): Option[std.core.Bool].
-
-/**
- * The **`matrix`** read-only property of the VideoColorSpace interface returns the matrix coefficient of the video.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace/matrix)
- */
-pub (value: VideoColorSpace) matrix(): Option[VideoMatrixCoefficients].
-
-/**
- * The **`primaries`** read-only property of the VideoColorSpace interface returns the color gamut of the video.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace/primaries)
- */
-pub (value: VideoColorSpace) primaries(): Option[VideoColorPrimaries].
-
-/**
- * The **`transfer`** read-only property of the VideoColorSpace interface returns the opto-electronic transfer characteristics of the video.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace/transfer)
- */
-pub (value: VideoColorSpace) transfer(): Option[VideoTransferCharacteristics].
+pub (receiver: VideoColorSpace) full_range(): std.core.Option.Option[Bool].
 
 /**
  * The **`toJSON()`** method of the VideoColorSpace interface is a _serializer_ that returns a JSON representation of the `VideoColorSpace` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace/toJSON)
  */
-pub (value: VideoColorSpace) to_json(): VideoColorSpaceInit.
+pub (receiver: VideoColorSpace) to_json(): std.js.Dom.VideoColorSpaceInit.VideoColorSpaceInit.

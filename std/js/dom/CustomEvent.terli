@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CustomEvent.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 /**
  * The **`CustomEvent`** interface represents events initialized by an application for any purpose.
@@ -26,7 +26,7 @@ pub opaque type CustomEvent[T].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomEvent/detail)
  */
-pub (value: CustomEvent[T]) detail(): T.
+pub (receiver: CustomEvent[T]) detail(): T.
 
 /**
  * The **`CustomEvent.initCustomEvent()`** method initializes a CustomEvent object.
@@ -34,9 +34,9 @@ pub (value: CustomEvent[T]) detail(): T.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomEvent/initCustomEvent)
  */
-pub (value: CustomEvent[T]) init_custom_event(
+pub (receiver: CustomEvent[T]) init_custom_event(
     type_: std.js.String.JsString,
-    bubbles: Bool,
-    cancelable: Bool,
-    detail: T,
-): std.core.Unit.
+    bubbles: Option[Bool],
+    cancelable: Option[Bool],
+    detail: Option[T],
+): std.core.Unit.Unit.

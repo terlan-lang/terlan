@@ -28,7 +28,7 @@ pub opaque type PerformanceNavigation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigation/redirectCount)
  */
-pub (value: PerformanceNavigation) redirect_count(): JsNumber.
+pub (receiver: PerformanceNavigation) redirect_count(): JsNumber.
 
 /**
  * The legacy **`PerformanceNavigation.type`** read-only property returns an `unsigned short` containing a constant describing how the navigation to this page was done.
@@ -36,4 +36,4 @@ pub (value: PerformanceNavigation) redirect_count(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigation/type)
  */
-pub (value: PerformanceNavigation) type_(): JsNumber.
+pub (receiver: PerformanceNavigation) type_(): JsNumber.

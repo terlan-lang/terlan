@@ -25,11 +25,11 @@ pub opaque type RTCCertificate.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCCertificate/expires)
  */
-pub (value: RTCCertificate) expires(): EpochTimeStamp.
+pub (receiver: RTCCertificate) expires(): std.js.Dom.EpochTimeStamp.EpochTimeStamp.
 
 /**
  * The **`getFingerprints()`** method of the **RTCCertificate** interface is used to get an array of certificate fingerprints.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCCertificate/getFingerprints)
  */
-pub (value: RTCCertificate) get_fingerprints(): std.js.Array[RTCDtlsFingerprint].
+pub (receiver: RTCCertificate) get_fingerprints(): std.js.Array.Array[std.js.Dom.RTCDtlsFingerprint.RTCDtlsFingerprint].

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.PerformanceObserver.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 
 /**
  * The **`PerformanceObserver`** interface is used to observe performance measurement events and be notified of new PerformanceEntry as they are recorded in the browser's _performance timeline_.
@@ -26,18 +26,20 @@ pub opaque type PerformanceObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceObserver/disconnect)
  */
-pub (value: PerformanceObserver) disconnect(): Unit.
+pub (receiver: PerformanceObserver) disconnect(): Unit.
 
 /**
  * The **`observe()`** method of the **PerformanceObserver** interface is used to specify the set of performance entry types to observe.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceObserver/observe)
  */
-pub (value: PerformanceObserver) observe(options: PerformanceObserverInit): Unit.
+pub (receiver: PerformanceObserver) observe(
+    options: std.core.Option.Option[std.js.Dom.PerformanceObserverInit.PerformanceObserverInit],
+): Unit.
 
 /**
  * The **`takeRecords()`** method of the PerformanceObserver interface returns the current list of PerformanceEntry objects stored in the performance observer, emptying it out.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceObserver/takeRecords)
  */
-pub (value: PerformanceObserver) take_records(): PerformanceEntryList.
+pub (receiver: PerformanceObserver) take_records(): std.js.Dom.PerformanceEntryList.PerformanceEntryList.

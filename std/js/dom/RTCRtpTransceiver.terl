@@ -12,7 +12,7 @@
  */
 module std.js.Dom.RTCRtpTransceiver.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 
 /**
  * The WebRTC interface **`RTCRtpTransceiver`** describes a permanent pairing of an RTCRtpSender and an RTCRtpReceiver, along with some shared state.
@@ -22,27 +22,11 @@ import type std.core.{Unit}.
 pub opaque type RTCRtpTransceiver.
 
 /**
- * The read-only RTCRtpTransceiver property **`currentDirection`** is a string which indicates the current negotiated directionality of the transceiver.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/currentDirection)
- */
-pub (value: RTCRtpTransceiver) current_direction(): Option[RTCRtpTransceiverDirection] ->
-    native.
-
-/**
- * The RTCRtpTransceiver property **`direction`** is a string that indicates the transceiver's _preferred_ directionality.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/direction)
- */
-pub (value: RTCRtpTransceiver) direction(): RTCRtpTransceiverDirection ->
-    native.
-
-/**
  * The read-only RTCRtpTransceiver interface's **`mid`** property specifies the negotiated media ID (`mid`) which the local and remote peers have agreed upon to uniquely identify the stream's pairing of sender and receiver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/mid)
  */
-pub (value: RTCRtpTransceiver) mid(): Option[std.js.String.JsString] ->
+pub (receiver: RTCRtpTransceiver) mid(): std.core.Option.Option[std.js.String.JsString] ->
     native.
 
 /**
@@ -50,7 +34,7 @@ pub (value: RTCRtpTransceiver) mid(): Option[std.js.String.JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/receiver)
  */
-pub (value: RTCRtpTransceiver) receiver(): RTCRtpReceiver ->
+pub (receiver: RTCRtpTransceiver) receiver(): std.js.Dom.RTCRtpReceiver.RTCRtpReceiver ->
     native.
 
 /**
@@ -58,7 +42,7 @@ pub (value: RTCRtpTransceiver) receiver(): RTCRtpReceiver ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/sender)
  */
-pub (value: RTCRtpTransceiver) sender(): RTCRtpSender ->
+pub (receiver: RTCRtpTransceiver) sender(): std.js.Dom.RTCRtpSender.RTCRtpSender ->
     native.
 
 /**
@@ -66,7 +50,7 @@ pub (value: RTCRtpTransceiver) sender(): RTCRtpSender ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/setCodecPreferences)
  */
-pub (value: RTCRtpTransceiver) set_codec_preferences(codecs: std.js.Array[RTCRtpCodec]): Unit ->
+pub (receiver: RTCRtpTransceiver) set_codec_preferences(codecs: std.js.Array.Array[std.js.Dom.RTCRtpCodec.RTCRtpCodec]): Unit ->
     native.
 
 /**
@@ -74,5 +58,5 @@ pub (value: RTCRtpTransceiver) set_codec_preferences(codecs: std.js.Array[RTCRtp
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/stop)
  */
-pub (value: RTCRtpTransceiver) stop(): Unit ->
+pub (receiver: RTCRtpTransceiver) stop(): Unit ->
     native.

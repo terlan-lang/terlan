@@ -25,18 +25,18 @@ pub opaque type GamepadButton.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GamepadButton/pressed)
  */
-pub (value: GamepadButton) pressed(): std.core.Bool.
+pub (receiver: GamepadButton) pressed(): Bool.
 
 /**
  * The **`touched`** property of the a button capable of detecting touch is currently touched (`true`) or not touched (`false`).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GamepadButton/touched)
  */
-pub (value: GamepadButton) touched(): std.core.Bool.
+pub (receiver: GamepadButton) touched(): Bool.
 
 /**
  * The **`GamepadButton.value`** property of the current state of analog buttons on many modern gamepads, such as the triggers.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GamepadButton/value)
  */
-pub (value: GamepadButton) value(): std.js.Number.JsNumber.
+pub (receiver: GamepadButton) value(): std.js.Number.JsNumber.

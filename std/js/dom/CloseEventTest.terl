@@ -14,13 +14,11 @@ module std.js.Dom.CloseEventTest.
 
 import type std.js.Dom.CloseEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub code_typechecks(receiver: CloseEvent): std.js.Number.JsNumber ->
     receiver.code().
 
 pub reason_typechecks(receiver: CloseEvent): std.js.String.JsString ->
     receiver.reason().
 
-pub was_clean_typechecks(receiver: CloseEvent): std.core.Bool ->
+pub was_clean_typechecks(receiver: CloseEvent): Bool ->
     receiver.was_clean().

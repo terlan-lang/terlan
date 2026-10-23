@@ -12,10 +12,11 @@
  */
 module std.js.Dom.ConstrainDoubleRange.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type ConstrainDoubleRange.
 
-pub (value: ConstrainDoubleRange) exact(): JsNumber.
+pub (receiver: ConstrainDoubleRange) exact(): Option[JsNumber].
 
-pub (value: ConstrainDoubleRange) ideal(): JsNumber.
+pub (receiver: ConstrainDoubleRange) ideal(): Option[JsNumber].

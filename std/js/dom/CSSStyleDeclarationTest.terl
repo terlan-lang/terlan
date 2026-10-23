@@ -12,11 +12,10 @@
  */
 module std.js.Dom.CSSStyleDeclarationTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.CSSStyleDeclaration.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub accent_color_typechecks(receiver: CSSStyleDeclaration): JsString ->
     receiver.accent_color().
@@ -957,7 +956,7 @@ pub page_break_inside_typechecks(receiver: CSSStyleDeclaration): JsString ->
 pub paint_order_typechecks(receiver: CSSStyleDeclaration): JsString ->
     receiver.paint_order().
 
-pub parent_rule_typechecks(receiver: CSSStyleDeclaration): Option[CSSRule] ->
+pub parent_rule_typechecks(receiver: CSSStyleDeclaration): Option[std.js.Dom.CSSRule.CSSRule] ->
     receiver.parent_rule().
 
 pub perspective_typechecks(receiver: CSSStyleDeclaration): JsString ->
@@ -1561,6 +1560,6 @@ pub set_property_typechecks(
     receiver: CSSStyleDeclaration,
     property: JsString,
     value: Option[JsString],
-    priority: JsString,
-): std.core.Unit ->
+    priority: Option[JsString],
+): std.core.Unit.Unit ->
     receiver.set_property(property, value, priority).

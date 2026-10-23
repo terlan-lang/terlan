@@ -13,8 +13,3 @@
 module std.js.Dom.ReadableStreamGetReaderOptionsTest.
 
 import type std.js.Dom.ReadableStreamGetReaderOptions.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub mode_typechecks(receiver: ReadableStreamGetReaderOptions): ReadableStreamReaderMode ->
-    receiver.mode().

@@ -12,9 +12,20 @@
  */
 module std.js.Dom.GlobalEventHandlersEventMapTest.
 
+import type std.js.Dom.AnimationEvent.{AnimationEvent}.
+import type std.js.Dom.ClipboardEvent.{ClipboardEvent}.
+import type std.js.Dom.CompositionEvent.{CompositionEvent}.
+import type std.js.Dom.DragEvent.{DragEvent}.
+import type std.js.Dom.Event.{Event}.
+import type std.js.Dom.FocusEvent.{FocusEvent}.
 import type std.js.Dom.GlobalEventHandlersEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.KeyboardEvent.{KeyboardEvent}.
+import type std.js.Dom.MouseEvent.{MouseEvent}.
+import type std.js.Dom.PointerEvent.{PointerEvent}.
+import type std.js.Dom.ToggleEvent.{ToggleEvent}.
+import type std.js.Dom.TouchEvent.{TouchEvent}.
+import type std.js.Dom.TransitionEvent.{TransitionEvent}.
+import type std.js.Dom.UIEvent.{UIEvent}.
 
 pub abort_typechecks(receiver: GlobalEventHandlersEventMap): UIEvent ->
     receiver.abort().
@@ -34,7 +45,7 @@ pub animationstart_typechecks(receiver: GlobalEventHandlersEventMap): AnimationE
 pub auxclick_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
     receiver.auxclick().
 
-pub beforeinput_typechecks(receiver: GlobalEventHandlersEventMap): InputEvent ->
+pub beforeinput_typechecks(receiver: GlobalEventHandlersEventMap): std.js.Dom.InputEvent.InputEvent ->
     receiver.beforeinput().
 
 pub beforematch_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
@@ -124,7 +135,7 @@ pub emptied_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
 pub ended_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
     receiver.ended().
 
-pub error_typechecks(receiver: GlobalEventHandlersEventMap): ErrorEvent ->
+pub error_typechecks(receiver: GlobalEventHandlersEventMap): std.js.Dom.ErrorEvent.ErrorEvent ->
     receiver.error().
 
 pub focus_typechecks(receiver: GlobalEventHandlersEventMap): FocusEvent ->
@@ -136,7 +147,9 @@ pub focusin_typechecks(receiver: GlobalEventHandlersEventMap): FocusEvent ->
 pub focusout_typechecks(receiver: GlobalEventHandlersEventMap): FocusEvent ->
     receiver.focusout().
 
-pub formdata_typechecks(receiver: GlobalEventHandlersEventMap): FormDataEvent ->
+pub formdata_typechecks(
+    receiver: GlobalEventHandlersEventMap,
+): std.js.Dom.FormDataEvent.FormDataEvent ->
     receiver.formdata().
 
 pub gotpointercapture_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
@@ -232,7 +245,9 @@ pub pointerrawupdate_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
 pub pointerup_typechecks(receiver: GlobalEventHandlersEventMap): PointerEvent ->
     receiver.pointerup().
 
-pub progress_typechecks(receiver: GlobalEventHandlersEventMap): ProgressEvent ->
+pub progress_typechecks(
+    receiver: GlobalEventHandlersEventMap,
+): std.js.Dom.ProgressEvent.ProgressEvent ->
     receiver.progress().
 
 pub ratechange_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
@@ -252,7 +267,7 @@ pub scrollend_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
 
 pub securitypolicyviolation_typechecks(
     receiver: GlobalEventHandlersEventMap,
-): SecurityPolicyViolationEvent ->
+): std.js.Dom.SecurityPolicyViolationEvent.SecurityPolicyViolationEvent ->
     receiver.securitypolicyviolation().
 
 pub seeked_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
@@ -276,7 +291,7 @@ pub slotchange_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
 pub stalled_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
     receiver.stalled().
 
-pub submit_typechecks(receiver: GlobalEventHandlersEventMap): SubmitEvent ->
+pub submit_typechecks(receiver: GlobalEventHandlersEventMap): std.js.Dom.SubmitEvent.SubmitEvent ->
     receiver.submit().
 
 pub suspend_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
@@ -330,5 +345,5 @@ pub webkitanimationstart_typechecks(receiver: GlobalEventHandlersEventMap): Even
 pub webkittransitionend_typechecks(receiver: GlobalEventHandlersEventMap): Event ->
     receiver.webkittransitionend().
 
-pub wheel_typechecks(receiver: GlobalEventHandlersEventMap): WheelEvent ->
+pub wheel_typechecks(receiver: GlobalEventHandlersEventMap): std.js.Dom.WheelEvent.WheelEvent ->
     receiver.wheel().

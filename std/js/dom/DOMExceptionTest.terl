@@ -15,8 +15,6 @@ module std.js.Dom.DOMExceptionTest.
 import type std.js.Dom.DOMException.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub code_typechecks(receiver: DOMException): std.js.Number.JsNumber ->
     receiver.code().
 

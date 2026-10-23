@@ -13,8 +13,7 @@
 module std.js.Dom.SVGAnimatedLengthListTest.
 
 import type std.js.Dom.SVGAnimatedLengthList.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.SVGLengthList.{SVGLengthList}.
 
 pub anim_val_typechecks(receiver: SVGAnimatedLengthList): SVGLengthList ->
     receiver.anim_val().

@@ -24,7 +24,7 @@ pub opaque type TransformStream[I, O].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransformStream/readable)
  */
-pub (value: TransformStream[I, O]) readable(): ReadableStream[O] ->
+pub (receiver: TransformStream[I, O]) readable(): std.js.Dom.ReadableStream.ReadableStream[O] ->
     native.
 
 /**
@@ -32,5 +32,5 @@ pub (value: TransformStream[I, O]) readable(): ReadableStream[O] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransformStream/writable)
  */
-pub (value: TransformStream[I, O]) writable(): WritableStream[I] ->
+pub (receiver: TransformStream[I, O]) writable(): std.js.Dom.WritableStream.WritableStream[I] ->
     native.

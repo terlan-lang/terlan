@@ -13,6 +13,3 @@
 module std.js.WeakSetConstructor.
 
 pub opaque type WeakSetConstructor.
-
-pub (value: WeakSetConstructor) prototype(): WeakSet[WeakKey] ->
-    native.

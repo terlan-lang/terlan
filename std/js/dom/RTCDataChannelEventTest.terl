@@ -14,7 +14,5 @@ module std.js.Dom.RTCDataChannelEventTest.
 
 import type std.js.Dom.RTCDataChannelEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub channel_typechecks(receiver: RTCDataChannelEvent): RTCDataChannel ->
+pub channel_typechecks(receiver: RTCDataChannelEvent): std.js.Dom.RTCDataChannel.RTCDataChannel ->
     receiver.channel().

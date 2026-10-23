@@ -15,8 +15,6 @@ module std.js.Dom.SVGAnimatedNumberTest.
 import type std.js.Dom.SVGAnimatedNumber.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub anim_val_typechecks(receiver: SVGAnimatedNumber): JsNumber ->
     receiver.anim_val().
 

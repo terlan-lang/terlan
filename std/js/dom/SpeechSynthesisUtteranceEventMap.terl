@@ -12,25 +12,27 @@
  */
 module std.js.Dom.SpeechSynthesisUtteranceEventMap.
 
+import type std.js.Dom.SpeechSynthesisEvent.{SpeechSynthesisEvent}.
+
 pub opaque type SpeechSynthesisUtteranceEventMap.
 
-pub (value: SpeechSynthesisUtteranceEventMap) boundary(): SpeechSynthesisEvent ->
+pub (receiver: SpeechSynthesisUtteranceEventMap) boundary(): SpeechSynthesisEvent ->
     native.
 
-pub (value: SpeechSynthesisUtteranceEventMap) end(): SpeechSynthesisEvent ->
+pub (receiver: SpeechSynthesisUtteranceEventMap) end(): SpeechSynthesisEvent ->
     native.
 
-pub (value: SpeechSynthesisUtteranceEventMap) error(): SpeechSynthesisErrorEvent ->
+pub (receiver: SpeechSynthesisUtteranceEventMap) error(): std.js.Dom.SpeechSynthesisErrorEvent.SpeechSynthesisErrorEvent ->
     native.
 
-pub (value: SpeechSynthesisUtteranceEventMap) mark(): SpeechSynthesisEvent ->
+pub (receiver: SpeechSynthesisUtteranceEventMap) mark(): SpeechSynthesisEvent ->
     native.
 
-pub (value: SpeechSynthesisUtteranceEventMap) pause(): SpeechSynthesisEvent ->
+pub (receiver: SpeechSynthesisUtteranceEventMap) pause(): SpeechSynthesisEvent ->
     native.
 
-pub (value: SpeechSynthesisUtteranceEventMap) resume(): SpeechSynthesisEvent ->
+pub (receiver: SpeechSynthesisUtteranceEventMap) resume(): SpeechSynthesisEvent ->
     native.
 
-pub (value: SpeechSynthesisUtteranceEventMap) start(): SpeechSynthesisEvent ->
+pub (receiver: SpeechSynthesisUtteranceEventMap) start(): SpeechSynthesisEvent ->
     native.

@@ -12,8 +12,10 @@
  */
 module std.js.Dom.PushSubscriptionOptionsInit.
 
+import type std.core.Option.{Option}.
+
 pub opaque type PushSubscriptionOptionsInit.
 
-pub (value: PushSubscriptionOptionsInit) application_server_key(): Option[BufferSource | std.js.String.JsString].
+pub (receiver: PushSubscriptionOptionsInit) application_server_key(): Option[std.js.Dom.BufferSource.BufferSource | std.js.String.JsString].
 
-pub (value: PushSubscriptionOptionsInit) user_visible_only(): std.core.Bool.
+pub (receiver: PushSubscriptionOptionsInit) user_visible_only(): Option[Bool].

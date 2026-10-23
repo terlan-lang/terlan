@@ -12,21 +12,25 @@
  */
 module std.js.Dom.UnderlyingSourceTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.UnderlyingSource.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub auto_allocate_chunk_size_typechecks(receiver: UnderlyingSource[R]): std.js.Number.JsNumber ->
+pub auto_allocate_chunk_size_typechecks(
+    receiver: UnderlyingSource[R],
+): Option[std.js.Number.JsNumber] ->
     receiver.auto_allocate_chunk_size().
 
-pub cancel_typechecks(receiver: UnderlyingSource[R]): UnderlyingSourceCancelCallback ->
+pub cancel_typechecks(
+    receiver: UnderlyingSource[R],
+): Option[std.js.Dom.UnderlyingSourceCancelCallback.UnderlyingSourceCancelCallback] ->
     receiver.cancel().
 
-pub pull_typechecks(receiver: UnderlyingSource[R]): UnderlyingSourcePullCallback[R] ->
+pub pull_typechecks(
+    receiver: UnderlyingSource[R],
+): Option[std.js.Dom.UnderlyingSourcePullCallback.UnderlyingSourcePullCallback[R]] ->
     receiver.pull().
 
-pub start_typechecks(receiver: UnderlyingSource[R]): UnderlyingSourceStartCallback[R] ->
+pub start_typechecks(
+    receiver: UnderlyingSource[R],
+): Option[std.js.Dom.UnderlyingSourceStartCallback.UnderlyingSourceStartCallback[R]] ->
     receiver.start().
-
-pub type__typechecks(receiver: UnderlyingSource[R]): ReadableStreamType ->
-    receiver.type_().

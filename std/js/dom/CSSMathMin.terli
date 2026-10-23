@@ -24,4 +24,4 @@ pub opaque type CSSMathMin.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathMin/values)
  */
-pub (value: CSSMathMin) values(): CSSNumericArray.
+pub (receiver: CSSMathMin) values(): std.js.Dom.CSSNumericArray.CSSNumericArray.

@@ -12,19 +12,15 @@
  */
 module std.js.Dom.MediaSessionActionDetailsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.MediaSessionActionDetails.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub action_typechecks(receiver: MediaSessionActionDetails): MediaSessionAction ->
-    receiver.action().
-
-pub fast_seek_typechecks(receiver: MediaSessionActionDetails): std.core.Bool ->
+pub fast_seek_typechecks(receiver: MediaSessionActionDetails): Option[Bool] ->
     receiver.fast_seek().
 
-pub seek_offset_typechecks(receiver: MediaSessionActionDetails): JsNumber ->
+pub seek_offset_typechecks(receiver: MediaSessionActionDetails): Option[JsNumber] ->
     receiver.seek_offset().
 
-pub seek_time_typechecks(receiver: MediaSessionActionDetails): JsNumber ->
+pub seek_time_typechecks(receiver: MediaSessionActionDetails): Option[JsNumber] ->
     receiver.seek_time().

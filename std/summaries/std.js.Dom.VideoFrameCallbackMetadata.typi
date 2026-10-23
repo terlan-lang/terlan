@@ -15,22 +15,22 @@ module std.js.Dom.VideoFrameCallbackMetadata.
 
 pub opaque type VideoFrameCallbackMetadata.
 
-pub (value: VideoFrameCallbackMetadata) capture_time(): DOMHighResTimeStamp.
+pub (receiver: VideoFrameCallbackMetadata) capture_time(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp].
 
-pub (value: VideoFrameCallbackMetadata) expected_display_time(): DOMHighResTimeStamp.
+pub (receiver: VideoFrameCallbackMetadata) expected_display_time(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
 
-pub (value: VideoFrameCallbackMetadata) height(): std.js.Number.JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) height(): std.js.Number.JsNumber.
 
-pub (value: VideoFrameCallbackMetadata) media_time(): std.js.Number.JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) media_time(): std.js.Number.JsNumber.
 
-pub (value: VideoFrameCallbackMetadata) presentation_time(): DOMHighResTimeStamp.
+pub (receiver: VideoFrameCallbackMetadata) presentation_time(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
 
-pub (value: VideoFrameCallbackMetadata) presented_frames(): std.js.Number.JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) presented_frames(): std.js.Number.JsNumber.
 
-pub (value: VideoFrameCallbackMetadata) processing_duration(): std.js.Number.JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) processing_duration(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: VideoFrameCallbackMetadata) receive_time(): DOMHighResTimeStamp.
+pub (receiver: VideoFrameCallbackMetadata) receive_time(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp].
 
-pub (value: VideoFrameCallbackMetadata) rtp_timestamp(): std.js.Number.JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) rtp_timestamp(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: VideoFrameCallbackMetadata) width(): std.js.Number.JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) width(): std.js.Number.JsNumber.

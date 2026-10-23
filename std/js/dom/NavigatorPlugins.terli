@@ -12,8 +12,6 @@
  */
 module std.js.Dom.NavigatorPlugins.
 
-import type std.core.{Bool}.
-
 pub opaque type NavigatorPlugins.
 
 /**
@@ -21,23 +19,23 @@ pub opaque type NavigatorPlugins.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/mimeTypes)
  */
-pub (value: NavigatorPlugins) mime_types(): MimeTypeArray.
+pub (receiver: NavigatorPlugins) mime_types(): std.js.Dom.MimeTypeArray.MimeTypeArray.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/pdfViewerEnabled)
  */
-pub (value: NavigatorPlugins) pdf_viewer_enabled(): Bool.
+pub (receiver: NavigatorPlugins) pdf_viewer_enabled(): Bool.
 
 /**
  * @deprecated
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/plugins)
  */
-pub (value: NavigatorPlugins) plugins(): PluginArray.
+pub (receiver: NavigatorPlugins) plugins(): std.js.Dom.PluginArray.PluginArray.
 
 /**
  * @deprecated
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/javaEnabled)
  */
-pub (value: NavigatorPlugins) java_enabled(): Bool.
+pub (receiver: NavigatorPlugins) java_enabled(): Bool.

@@ -12,6 +12,7 @@
  */
 module std.js.Dom.StylePropertyMapReadOnly.
 
+import type std.js.Dom.CSSStyleValue.{CSSStyleValue}.
 import type std.js.String.{JsString}.
 
 /**
@@ -26,7 +27,7 @@ pub opaque type StylePropertyMapReadOnly.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StylePropertyMapReadOnly/size)
  */
-pub (value: StylePropertyMapReadOnly) size(): std.js.Number.JsNumber ->
+pub (receiver: StylePropertyMapReadOnly) size(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -34,7 +35,7 @@ pub (value: StylePropertyMapReadOnly) size(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StylePropertyMapReadOnly/get)
  */
-pub (value: StylePropertyMapReadOnly) get(property: JsString): Option[CSSStyleValue] ->
+pub (receiver: StylePropertyMapReadOnly) get(property: JsString): std.core.Option.Option[CSSStyleValue] ->
     native.
 
 /**
@@ -42,7 +43,7 @@ pub (value: StylePropertyMapReadOnly) get(property: JsString): Option[CSSStyleVa
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StylePropertyMapReadOnly/getAll)
  */
-pub (value: StylePropertyMapReadOnly) get_all(property: JsString): std.js.Array[CSSStyleValue] ->
+pub (receiver: StylePropertyMapReadOnly) get_all(property: JsString): std.js.Array.Array[CSSStyleValue] ->
     native.
 
 /**
@@ -50,5 +51,5 @@ pub (value: StylePropertyMapReadOnly) get_all(property: JsString): std.js.Array[
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StylePropertyMapReadOnly/has)
  */
-pub (value: StylePropertyMapReadOnly) has(property: JsString): std.core.Bool ->
+pub (receiver: StylePropertyMapReadOnly) has(property: JsString): Bool ->
     native.

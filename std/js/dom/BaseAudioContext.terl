@@ -12,10 +12,14 @@
  */
 module std.js.Dom.BaseAudioContext.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.AudioBuffer.{AudioBuffer}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Float32Array.{Float32Array}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
 /**
  * The `BaseAudioContext` interface of the Web Audio API acts as a base definition for online and offline audio-processing graphs, as represented by AudioContext and OfflineAudioContext respectively.
@@ -30,7 +34,7 @@ pub opaque type BaseAudioContext.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/audioWorklet)
  */
-pub (value: BaseAudioContext) audio_worklet(): AudioWorklet ->
+pub (receiver: BaseAudioContext) audio_worklet(): std.js.Dom.AudioWorklet.AudioWorklet ->
     native.
 
 /**
@@ -38,7 +42,7 @@ pub (value: BaseAudioContext) audio_worklet(): AudioWorklet ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/currentTime)
  */
-pub (value: BaseAudioContext) current_time(): JsNumber ->
+pub (receiver: BaseAudioContext) current_time(): JsNumber ->
     native.
 
 /**
@@ -46,7 +50,7 @@ pub (value: BaseAudioContext) current_time(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/destination)
  */
-pub (value: BaseAudioContext) destination(): AudioDestinationNode ->
+pub (receiver: BaseAudioContext) destination(): std.js.Dom.AudioDestinationNode.AudioDestinationNode ->
     native.
 
 /**
@@ -54,7 +58,7 @@ pub (value: BaseAudioContext) destination(): AudioDestinationNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/listener)
  */
-pub (value: BaseAudioContext) listener(): AudioListener ->
+pub (receiver: BaseAudioContext) listener(): std.js.Dom.AudioListener.AudioListener ->
     native.
 
 /**
@@ -62,15 +66,7 @@ pub (value: BaseAudioContext) listener(): AudioListener ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/sampleRate)
  */
-pub (value: BaseAudioContext) sample_rate(): JsNumber ->
-    native.
-
-/**
- * The `state` read-only property of the BaseAudioContext interface returns the current state of the `AudioContext`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/state)
- */
-pub (value: BaseAudioContext) state(): AudioContextState ->
+pub (receiver: BaseAudioContext) sample_rate(): JsNumber ->
     native.
 
 /**
@@ -78,7 +74,7 @@ pub (value: BaseAudioContext) state(): AudioContextState ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createAnalyser)
  */
-pub (value: BaseAudioContext) create_analyser(): AnalyserNode ->
+pub (receiver: BaseAudioContext) create_analyser(): std.js.Dom.AnalyserNode.AnalyserNode ->
     native.
 
 /**
@@ -86,7 +82,7 @@ pub (value: BaseAudioContext) create_analyser(): AnalyserNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createBiquadFilter)
  */
-pub (value: BaseAudioContext) create_biquad_filter(): BiquadFilterNode ->
+pub (receiver: BaseAudioContext) create_biquad_filter(): std.js.Dom.BiquadFilterNode.BiquadFilterNode ->
     native.
 
 /**
@@ -94,7 +90,7 @@ pub (value: BaseAudioContext) create_biquad_filter(): BiquadFilterNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createBuffer)
  */
-pub (value: BaseAudioContext) create_buffer(
+pub (receiver: BaseAudioContext) create_buffer(
     number_of_channels: JsNumber,
     length: JsNumber,
     sample_rate: JsNumber,
@@ -106,7 +102,7 @@ pub (value: BaseAudioContext) create_buffer(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createBufferSource)
  */
-pub (value: BaseAudioContext) create_buffer_source(): AudioBufferSourceNode ->
+pub (receiver: BaseAudioContext) create_buffer_source(): std.js.Dom.AudioBufferSourceNode.AudioBufferSourceNode ->
     native.
 
 /**
@@ -114,7 +110,9 @@ pub (value: BaseAudioContext) create_buffer_source(): AudioBufferSourceNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createChannelMerger)
  */
-pub (value: BaseAudioContext) create_channel_merger(number_of_inputs: JsNumber): ChannelMergerNode ->
+pub (receiver: BaseAudioContext) create_channel_merger(
+    number_of_inputs: Option[JsNumber],
+): std.js.Dom.ChannelMergerNode.ChannelMergerNode ->
     native.
 
 /**
@@ -122,7 +120,9 @@ pub (value: BaseAudioContext) create_channel_merger(number_of_inputs: JsNumber):
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createChannelSplitter)
  */
-pub (value: BaseAudioContext) create_channel_splitter(number_of_outputs: JsNumber): ChannelSplitterNode ->
+pub (receiver: BaseAudioContext) create_channel_splitter(
+    number_of_outputs: Option[JsNumber],
+): std.js.Dom.ChannelSplitterNode.ChannelSplitterNode ->
     native.
 
 /**
@@ -130,7 +130,7 @@ pub (value: BaseAudioContext) create_channel_splitter(number_of_outputs: JsNumbe
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createConstantSource)
  */
-pub (value: BaseAudioContext) create_constant_source(): ConstantSourceNode ->
+pub (receiver: BaseAudioContext) create_constant_source(): std.js.Dom.ConstantSourceNode.ConstantSourceNode ->
     native.
 
 /**
@@ -138,7 +138,7 @@ pub (value: BaseAudioContext) create_constant_source(): ConstantSourceNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createConvolver)
  */
-pub (value: BaseAudioContext) create_convolver(): ConvolverNode ->
+pub (receiver: BaseAudioContext) create_convolver(): std.js.Dom.ConvolverNode.ConvolverNode ->
     native.
 
 /**
@@ -146,7 +146,7 @@ pub (value: BaseAudioContext) create_convolver(): ConvolverNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createDelay)
  */
-pub (value: BaseAudioContext) create_delay(max_delay_time: JsNumber): DelayNode ->
+pub (receiver: BaseAudioContext) create_delay(max_delay_time: Option[JsNumber]): std.js.Dom.DelayNode.DelayNode ->
     native.
 
 /**
@@ -154,7 +154,7 @@ pub (value: BaseAudioContext) create_delay(max_delay_time: JsNumber): DelayNode 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createDynamicsCompressor)
  */
-pub (value: BaseAudioContext) create_dynamics_compressor(): DynamicsCompressorNode ->
+pub (receiver: BaseAudioContext) create_dynamics_compressor(): std.js.Dom.DynamicsCompressorNode.DynamicsCompressorNode ->
     native.
 
 /**
@@ -162,7 +162,7 @@ pub (value: BaseAudioContext) create_dynamics_compressor(): DynamicsCompressorNo
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createGain)
  */
-pub (value: BaseAudioContext) create_gain(): GainNode ->
+pub (receiver: BaseAudioContext) create_gain(): std.js.Dom.GainNode.GainNode ->
     native.
 
 /**
@@ -170,7 +170,10 @@ pub (value: BaseAudioContext) create_gain(): GainNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createIIRFilter)
  */
-pub (value: BaseAudioContext) create_iir_filter(feedforward: Array[JsNumber], feedback: Array[JsNumber]): IIRFilterNode ->
+pub (receiver: BaseAudioContext) create_iir_filter(
+    feedforward: Array[JsNumber],
+    feedback: Array[JsNumber],
+): std.js.Dom.IIRFilterNode.IIRFilterNode ->
     native.
 
 /**
@@ -178,7 +181,7 @@ pub (value: BaseAudioContext) create_iir_filter(feedforward: Array[JsNumber], fe
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createOscillator)
  */
-pub (value: BaseAudioContext) create_oscillator(): OscillatorNode ->
+pub (receiver: BaseAudioContext) create_oscillator(): std.js.Dom.OscillatorNode.OscillatorNode ->
     native.
 
 /**
@@ -186,7 +189,7 @@ pub (value: BaseAudioContext) create_oscillator(): OscillatorNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createPanner)
  */
-pub (value: BaseAudioContext) create_panner(): PannerNode ->
+pub (receiver: BaseAudioContext) create_panner(): std.js.Dom.PannerNode.PannerNode ->
     native.
 
 /**
@@ -194,11 +197,11 @@ pub (value: BaseAudioContext) create_panner(): PannerNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createPeriodicWave)
  */
-pub (value: BaseAudioContext) create_periodic_wave(
+pub (receiver: BaseAudioContext) create_periodic_wave(
     real: Float32Array | Array[JsNumber],
     imag: Float32Array | Array[JsNumber],
-    constraints: PeriodicWaveConstraints,
-): PeriodicWave ->
+    constraints: Option[std.js.Dom.PeriodicWaveConstraints.PeriodicWaveConstraints],
+): std.js.Dom.PeriodicWave.PeriodicWave ->
     native.
 
 /**
@@ -207,11 +210,11 @@ pub (value: BaseAudioContext) create_periodic_wave(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createScriptProcessor)
  */
-pub (value: BaseAudioContext) create_script_processor(
-    buffer_size: JsNumber,
-    number_of_input_channels: JsNumber,
-    number_of_output_channels: JsNumber,
-): ScriptProcessorNode ->
+pub (receiver: BaseAudioContext) create_script_processor(
+    buffer_size: Option[JsNumber],
+    number_of_input_channels: Option[JsNumber],
+    number_of_output_channels: Option[JsNumber],
+): std.js.Dom.ScriptProcessorNode.ScriptProcessorNode ->
     native.
 
 /**
@@ -219,7 +222,7 @@ pub (value: BaseAudioContext) create_script_processor(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createStereoPanner)
  */
-pub (value: BaseAudioContext) create_stereo_panner(): StereoPannerNode ->
+pub (receiver: BaseAudioContext) create_stereo_panner(): std.js.Dom.StereoPannerNode.StereoPannerNode ->
     native.
 
 /**
@@ -227,7 +230,7 @@ pub (value: BaseAudioContext) create_stereo_panner(): StereoPannerNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createWaveShaper)
  */
-pub (value: BaseAudioContext) create_wave_shaper(): WaveShaperNode ->
+pub (receiver: BaseAudioContext) create_wave_shaper(): std.js.Dom.WaveShaperNode.WaveShaperNode ->
     native.
 
 /**
@@ -235,23 +238,23 @@ pub (value: BaseAudioContext) create_wave_shaper(): WaveShaperNode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/decodeAudioData)
  */
-pub (value: BaseAudioContext) decode_audio_data(
-    audio_data: ArrayBuffer,
-    success_callback: Option[DecodeSuccessCallback],
-    error_callback: Option[DecodeErrorCallback],
-): std.js.Promise[AudioBuffer] ->
+pub (receiver: BaseAudioContext) decode_audio_data(
+    audio_data: std.js.ArrayBuffer.ArrayBuffer,
+    success_callback: Option[Option[std.js.Dom.DecodeSuccessCallback.DecodeSuccessCallback]],
+    error_callback: Option[Option[std.js.Dom.DecodeErrorCallback.DecodeErrorCallback]],
+): std.js.Promise.Promise[AudioBuffer] ->
     native.
 
-pub (value: BaseAudioContext) add_event_listener(
+pub (receiver: BaseAudioContext) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: BaseAudioContext) remove_event_listener(
+pub (receiver: BaseAudioContext) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

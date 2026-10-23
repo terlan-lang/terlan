@@ -14,7 +14,7 @@ module std.js.Dom.MIDIConnectionEventInitTest.
 
 import type std.js.Dom.MIDIConnectionEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub port_typechecks(receiver: MIDIConnectionEventInit): MIDIPort ->
+pub port_typechecks(
+    receiver: MIDIConnectionEventInit,
+): std.core.Option.Option[std.js.Dom.MIDIPort.MIDIPort] ->
     receiver.port().

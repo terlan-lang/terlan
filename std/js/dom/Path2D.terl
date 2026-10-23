@@ -24,5 +24,8 @@ pub opaque type Path2D.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Path2D/addPath)
  */
-pub (value: Path2D) add_path(path: Path2D, transform: DOMMatrix2DInit): std.core.Unit ->
+pub (receiver: Path2D) add_path(
+    path: Path2D,
+    transform: std.core.Option.Option[std.js.Dom.DOMMatrix2DInit.DOMMatrix2DInit],
+): std.core.Unit.Unit ->
     native.

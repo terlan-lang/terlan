@@ -14,13 +14,13 @@ module std.js.Dom.ImageBitmapRenderingContextTest.
 
 import type std.js.Dom.ImageBitmapRenderingContext.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub canvas_typechecks(receiver: ImageBitmapRenderingContext): HTMLCanvasElement | OffscreenCanvas ->
+pub canvas_typechecks(
+    receiver: ImageBitmapRenderingContext,
+): std.js.Dom.HTMLCanvasElement.HTMLCanvasElement | std.js.Dom.OffscreenCanvas.OffscreenCanvas ->
     receiver.canvas().
 
 pub transfer_from_image_bitmap_typechecks(
     receiver: ImageBitmapRenderingContext,
-    bitmap: Option[ImageBitmap],
-): std.core.Unit ->
+    bitmap: std.core.Option.Option[std.js.Dom.ImageBitmap.ImageBitmap],
+): std.core.Unit.Unit ->
     receiver.transfer_from_image_bitmap(bitmap).

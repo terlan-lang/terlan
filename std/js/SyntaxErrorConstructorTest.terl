@@ -14,7 +14,5 @@ module std.js.SyntaxErrorConstructorTest.
 
 import type std.js.SyntaxErrorConstructor.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: SyntaxErrorConstructor): SyntaxError ->
+pub prototype_typechecks(receiver: SyntaxErrorConstructor): std.js.SyntaxError.SyntaxError ->
     receiver.prototype().

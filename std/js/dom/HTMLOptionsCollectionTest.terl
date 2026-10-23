@@ -12,11 +12,10 @@
  */
 module std.js.Dom.HTMLOptionsCollectionTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.HTMLOptionsCollection.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub length_typechecks(receiver: HTMLOptionsCollection): JsNumber ->
     receiver.length().
@@ -26,8 +25,8 @@ pub selected_index_typechecks(receiver: HTMLOptionsCollection): JsNumber ->
 
 pub add_typechecks(
     receiver: HTMLOptionsCollection,
-    element: HTMLOptGroupElement | HTMLOptionElement,
-    before: Option[HTMLElement | JsNumber],
+    element: std.js.Dom.HTMLOptGroupElement.HTMLOptGroupElement | std.js.Dom.HTMLOptionElement.HTMLOptionElement,
+    before: Option[Option[std.js.Dom.HTMLElement.HTMLElement | JsNumber]],
 ): Unit ->
     receiver.add(element, before).
 

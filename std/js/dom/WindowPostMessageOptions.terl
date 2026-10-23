@@ -14,5 +14,5 @@ module std.js.Dom.WindowPostMessageOptions.
 
 pub opaque type WindowPostMessageOptions.
 
-pub (value: WindowPostMessageOptions) target_origin(): std.js.String.JsString ->
+pub (receiver: WindowPostMessageOptions) target_origin(): std.core.Option.Option[std.js.String.JsString] ->
     native.

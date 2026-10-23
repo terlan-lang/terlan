@@ -13,5 +13,3 @@
 module std.js.Dom.EventCountsTest.
 
 import type std.js.Dom.EventCounts.
-
-pub generated_binding_surface_contract(): Bool -> true.

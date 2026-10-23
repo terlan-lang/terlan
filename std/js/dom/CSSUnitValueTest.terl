@@ -14,8 +14,6 @@ module std.js.Dom.CSSUnitValueTest.
 
 import type std.js.Dom.CSSUnitValue.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub unit_typechecks(receiver: CSSUnitValue): std.js.String.JsString ->
     receiver.unit().
 

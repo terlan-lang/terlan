@@ -15,32 +15,30 @@ module std.js.Dom.TouchInit.
 
 pub opaque type TouchInit.
 
-pub (value: TouchInit) altitude_angle(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) altitude_angle(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) azimuth_angle(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) azimuth_angle(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) client_x(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) client_x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) client_y(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) client_y(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) force(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) force(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) identifier(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) identifier(): std.js.Number.JsNumber.
 
-pub (value: TouchInit) page_x(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) page_x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) page_y(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) page_y(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) radius_x(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) radius_x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) radius_y(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) radius_y(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) rotation_angle(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) rotation_angle(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) screen_x(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) screen_x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) screen_y(): std.js.Number.JsNumber.
+pub (receiver: TouchInit) screen_y(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: TouchInit) target_(): EventTarget.
-
-pub (value: TouchInit) touch_type(): TouchType.
+pub (receiver: TouchInit) target_(): std.js.Dom.EventTarget.EventTarget.

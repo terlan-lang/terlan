@@ -13,8 +13,7 @@
 module std.js.Dom.CSSMathClampTest.
 
 import type std.js.Dom.CSSMathClamp.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.CSSNumericValue.{CSSNumericValue}.
 
 pub lower_typechecks(receiver: CSSMathClamp): CSSNumericValue ->
     receiver.lower().

@@ -14,7 +14,5 @@ module std.js.Dom.CSSConditionRuleTest.
 
 import type std.js.Dom.CSSConditionRule.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub condition_text_typechecks(receiver: CSSConditionRule): std.js.String.JsString ->
     receiver.condition_text().

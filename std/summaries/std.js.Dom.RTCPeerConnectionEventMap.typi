@@ -15,20 +15,20 @@ module std.js.Dom.RTCPeerConnectionEventMap.
 
 pub opaque type RTCPeerConnectionEventMap.
 
-pub (value: RTCPeerConnectionEventMap) connectionstatechange(): Event.
+pub (receiver: RTCPeerConnectionEventMap) connectionstatechange(): std.js.Dom.Event.Event.
 
-pub (value: RTCPeerConnectionEventMap) datachannel(): RTCDataChannelEvent.
+pub (receiver: RTCPeerConnectionEventMap) datachannel(): std.js.Dom.RTCDataChannelEvent.RTCDataChannelEvent.
 
-pub (value: RTCPeerConnectionEventMap) icecandidate(): RTCPeerConnectionIceEvent.
+pub (receiver: RTCPeerConnectionEventMap) icecandidate(): std.js.Dom.RTCPeerConnectionIceEvent.RTCPeerConnectionIceEvent.
 
-pub (value: RTCPeerConnectionEventMap) icecandidateerror(): RTCPeerConnectionIceErrorEvent.
+pub (receiver: RTCPeerConnectionEventMap) icecandidateerror(): std.js.Dom.RTCPeerConnectionIceErrorEvent.RTCPeerConnectionIceErrorEvent.
 
-pub (value: RTCPeerConnectionEventMap) iceconnectionstatechange(): Event.
+pub (receiver: RTCPeerConnectionEventMap) iceconnectionstatechange(): std.js.Dom.Event.Event.
 
-pub (value: RTCPeerConnectionEventMap) icegatheringstatechange(): Event.
+pub (receiver: RTCPeerConnectionEventMap) icegatheringstatechange(): std.js.Dom.Event.Event.
 
-pub (value: RTCPeerConnectionEventMap) negotiationneeded(): Event.
+pub (receiver: RTCPeerConnectionEventMap) negotiationneeded(): std.js.Dom.Event.Event.
 
-pub (value: RTCPeerConnectionEventMap) signalingstatechange(): Event.
+pub (receiver: RTCPeerConnectionEventMap) signalingstatechange(): std.js.Dom.Event.Event.
 
-pub (value: RTCPeerConnectionEventMap) track(): RTCTrackEvent.
+pub (receiver: RTCPeerConnectionEventMap) track(): std.js.Dom.RTCTrackEvent.RTCTrackEvent.

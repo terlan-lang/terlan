@@ -12,10 +12,11 @@
  */
 module std.js.Dom.VideoFrameTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DOMRectReadOnly.{DOMRectReadOnly}.
 import type std.js.Dom.VideoFrame.
+import type std.js.Dom.VideoFrameCopyToOptions.{VideoFrameCopyToOptions}.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub coded_height_typechecks(receiver: VideoFrame): JsNumber ->
     receiver.coded_height().
@@ -26,7 +27,7 @@ pub coded_rect_typechecks(receiver: VideoFrame): Option[DOMRectReadOnly] ->
 pub coded_width_typechecks(receiver: VideoFrame): JsNumber ->
     receiver.coded_width().
 
-pub color_space_typechecks(receiver: VideoFrame): VideoColorSpace ->
+pub color_space_typechecks(receiver: VideoFrame): std.js.Dom.VideoColorSpace.VideoColorSpace ->
     receiver.color_space().
 
 pub display_height_typechecks(receiver: VideoFrame): JsNumber ->
@@ -38,27 +39,27 @@ pub display_width_typechecks(receiver: VideoFrame): JsNumber ->
 pub duration_typechecks(receiver: VideoFrame): Option[JsNumber] ->
     receiver.duration().
 
-pub format_typechecks(receiver: VideoFrame): Option[VideoPixelFormat] ->
-    receiver.format().
-
 pub timestamp_typechecks(receiver: VideoFrame): JsNumber ->
     receiver.timestamp().
 
 pub visible_rect_typechecks(receiver: VideoFrame): Option[DOMRectReadOnly] ->
     receiver.visible_rect().
 
-pub allocation_size_typechecks(receiver: VideoFrame, options: VideoFrameCopyToOptions): JsNumber ->
+pub allocation_size_typechecks(
+    receiver: VideoFrame,
+    options: Option[VideoFrameCopyToOptions],
+): JsNumber ->
     receiver.allocation_size(options).
 
 pub clone_typechecks(receiver: VideoFrame): VideoFrame ->
     receiver.clone().
 
-pub close_typechecks(receiver: VideoFrame): std.core.Unit ->
+pub close_typechecks(receiver: VideoFrame): std.core.Unit.Unit ->
     receiver.close().
 
 pub copy_to_typechecks(
     receiver: VideoFrame,
-    destination: AllowSharedBufferSource,
-    options: VideoFrameCopyToOptions,
-): std.js.Promise[std.js.Array[PlaneLayout]] ->
+    destination: std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource,
+    options: Option[VideoFrameCopyToOptions],
+): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]] ->
     receiver.copy_to(destination, options).

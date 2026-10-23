@@ -14,10 +14,5 @@ module std.js.Dom.HighlightTest.
 
 import type std.js.Dom.Highlight.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub priority_typechecks(receiver: Highlight): std.js.Number.JsNumber ->
     receiver.priority().
-
-pub type__typechecks(receiver: Highlight): HighlightType ->
-    receiver.type_().

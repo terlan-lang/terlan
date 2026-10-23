@@ -14,7 +14,5 @@ module std.js.Dom.EcdhKeyDeriveParamsTest.
 
 import type std.js.Dom.EcdhKeyDeriveParams.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub public_typechecks(receiver: EcdhKeyDeriveParams): CryptoKey ->
+pub public_typechecks(receiver: EcdhKeyDeriveParams): std.js.Dom.CryptoKey.CryptoKey ->
     receiver.public().

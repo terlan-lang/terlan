@@ -13,5 +13,3 @@
 module std.js.Dom.ConstrainDoubleTest.
 
 import type std.js.Dom.ConstrainDouble.
-
-pub generated_binding_surface_contract(): Bool -> true.

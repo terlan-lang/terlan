@@ -12,20 +12,20 @@
  */
 module std.js.Dom.MutationObserverTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.MutationObserver.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub disconnect_typechecks(receiver: MutationObserver): Unit ->
     receiver.disconnect().
 
 pub observe_typechecks(
     receiver: MutationObserver,
-    target_: Node,
-    options: MutationObserverInit,
+    target_: std.js.Dom.Node.Node,
+    options: std.core.Option.Option[std.js.Dom.MutationObserverInit.MutationObserverInit],
 ): Unit ->
     receiver.observe(target_, options).
 
-pub take_records_typechecks(receiver: MutationObserver): std.js.Array[MutationRecord] ->
+pub take_records_typechecks(
+    receiver: MutationObserver,
+): std.js.Array.Array[std.js.Dom.MutationRecord.MutationRecord] ->
     receiver.take_records().

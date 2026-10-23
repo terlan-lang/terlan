@@ -13,5 +13,3 @@
 module std.js.Dom.WebGLFramebufferTest.
 
 import type std.js.Dom.WebGLFramebuffer.
-
-pub generated_binding_surface_contract(): Bool -> true.

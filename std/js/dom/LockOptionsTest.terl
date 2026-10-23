@@ -12,19 +12,14 @@
  */
 module std.js.Dom.LockOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.LockOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub if_available_typechecks(receiver: LockOptions): Bool ->
+pub if_available_typechecks(receiver: LockOptions): Option[Bool] ->
     receiver.if_available().
 
-pub mode_typechecks(receiver: LockOptions): LockMode ->
-    receiver.mode().
-
-pub signal_typechecks(receiver: LockOptions): AbortSignal ->
+pub signal_typechecks(receiver: LockOptions): Option[std.js.Dom.AbortSignal.AbortSignal] ->
     receiver.signal().
 
-pub steal_typechecks(receiver: LockOptions): Bool ->
+pub steal_typechecks(receiver: LockOptions): Option[Bool] ->
     receiver.steal().

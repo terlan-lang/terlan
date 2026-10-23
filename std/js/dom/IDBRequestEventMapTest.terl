@@ -12,9 +12,8 @@
  */
 module std.js.Dom.IDBRequestEventMapTest.
 
+import type std.js.Dom.Event.{Event}.
 import type std.js.Dom.IDBRequestEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub error_typechecks(receiver: IDBRequestEventMap): Event ->
     receiver.error().

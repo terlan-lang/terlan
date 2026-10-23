@@ -15,6 +15,6 @@ module std.js.Dom.RTCRtpCapabilities.
 
 pub opaque type RTCRtpCapabilities.
 
-pub (value: RTCRtpCapabilities) codecs(): std.js.Array[RTCRtpCodec].
+pub (receiver: RTCRtpCapabilities) codecs(): std.js.Array.Array[std.js.Dom.RTCRtpCodec.RTCRtpCodec].
 
-pub (value: RTCRtpCapabilities) header_extensions(): std.js.Array[RTCRtpHeaderExtensionCapability].
+pub (receiver: RTCRtpCapabilities) header_extensions(): std.js.Array.Array[std.js.Dom.RTCRtpHeaderExtensionCapability.RTCRtpHeaderExtensionCapability].

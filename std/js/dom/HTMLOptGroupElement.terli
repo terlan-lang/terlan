@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLOptGroupElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,23 +29,23 @@ pub opaque type HTMLOptGroupElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptGroupElement/disabled)
  */
-pub (value: HTMLOptGroupElement) disabled(): Bool.
+pub (receiver: HTMLOptGroupElement) disabled(): Bool.
 
 /**
  * The **`label`** property of the HTMLOptGroupElement interface is a string value that reflects the optgroup element's `label` attribute, which provides a textual label to the group of options.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptGroupElement/label)
  */
-pub (value: HTMLOptGroupElement) label(): JsString.
+pub (receiver: HTMLOptGroupElement) label(): JsString.
 
-pub (value: HTMLOptGroupElement) add_event_listener(
+pub (receiver: HTMLOptGroupElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: HTMLOptGroupElement) remove_event_listener(
+pub (receiver: HTMLOptGroupElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

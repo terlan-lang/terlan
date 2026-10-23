@@ -14,10 +14,8 @@ module std.js.Dom.GenericTransformStreamTest.
 
 import type std.js.Dom.GenericTransformStream.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub readable_typechecks(receiver: GenericTransformStream): ReadableStream ->
+pub readable_typechecks(receiver: GenericTransformStream): std.js.Dom.ReadableStream.ReadableStream ->
     receiver.readable().
 
-pub writable_typechecks(receiver: GenericTransformStream): WritableStream ->
+pub writable_typechecks(receiver: GenericTransformStream): std.js.Dom.WritableStream.WritableStream ->
     receiver.writable().

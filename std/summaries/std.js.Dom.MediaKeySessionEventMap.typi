@@ -15,6 +15,6 @@ module std.js.Dom.MediaKeySessionEventMap.
 
 pub opaque type MediaKeySessionEventMap.
 
-pub (value: MediaKeySessionEventMap) keystatuseschange(): Event.
+pub (receiver: MediaKeySessionEventMap) keystatuseschange(): std.js.Dom.Event.Event.
 
-pub (value: MediaKeySessionEventMap) message(): MediaKeyMessageEvent.
+pub (receiver: MediaKeySessionEventMap) message(): std.js.Dom.MediaKeyMessageEvent.MediaKeyMessageEvent.

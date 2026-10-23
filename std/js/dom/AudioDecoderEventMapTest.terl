@@ -14,7 +14,5 @@ module std.js.Dom.AudioDecoderEventMapTest.
 
 import type std.js.Dom.AudioDecoderEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub dequeue_typechecks(receiver: AudioDecoderEventMap): Event ->
+pub dequeue_typechecks(receiver: AudioDecoderEventMap): std.js.Dom.Event.Event ->
     receiver.dequeue().

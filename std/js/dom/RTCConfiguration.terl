@@ -12,24 +12,16 @@
  */
 module std.js.Dom.RTCConfiguration.
 
-import type std.js.{Array}.
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
 
 pub opaque type RTCConfiguration.
 
-pub (value: RTCConfiguration) bundle_policy(): RTCBundlePolicy ->
+pub (receiver: RTCConfiguration) certificates(): Option[Array[std.js.Dom.RTCCertificate.RTCCertificate]] ->
     native.
 
-pub (value: RTCConfiguration) certificates(): Array[RTCCertificate] ->
+pub (receiver: RTCConfiguration) ice_candidate_pool_size(): Option[std.js.Number.JsNumber] ->
     native.
 
-pub (value: RTCConfiguration) ice_candidate_pool_size(): std.js.Number.JsNumber ->
-    native.
-
-pub (value: RTCConfiguration) ice_servers(): Array[RTCIceServer] ->
-    native.
-
-pub (value: RTCConfiguration) ice_transport_policy(): RTCIceTransportPolicy ->
-    native.
-
-pub (value: RTCConfiguration) rtcp_mux_policy(): RTCRtcpMuxPolicy ->
+pub (receiver: RTCConfiguration) ice_servers(): Option[Array[std.js.Dom.RTCIceServer.RTCIceServer]] ->
     native.

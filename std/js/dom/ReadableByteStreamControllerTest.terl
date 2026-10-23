@@ -12,14 +12,13 @@
  */
 module std.js.Dom.ReadableByteStreamControllerTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.ReadableByteStreamController.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub byob_request_typechecks(
     receiver: ReadableByteStreamController,
-): Option[ReadableStreamBYOBRequest] ->
+): Option[std.js.Dom.ReadableStreamBYOBRequest.ReadableStreamBYOBRequest] ->
     receiver.byob_request().
 
 pub desired_size_typechecks(receiver: ReadableByteStreamController): Option[std.js.Number.JsNumber] ->
@@ -30,6 +29,6 @@ pub close_typechecks(receiver: ReadableByteStreamController): Unit ->
 
 pub enqueue_typechecks(
     receiver: ReadableByteStreamController,
-    chunk: ArrayBufferView[ArrayBuffer],
+    chunk: std.js.ArrayBufferView.ArrayBufferView[std.js.ArrayBuffer.ArrayBuffer],
 ): Unit ->
     receiver.enqueue(chunk).

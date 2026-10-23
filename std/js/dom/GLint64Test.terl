@@ -13,5 +13,3 @@
 module std.js.Dom.GLint64Test.
 
 import type std.js.Dom.GLint64.
-
-pub generated_binding_surface_contract(): Bool -> true.

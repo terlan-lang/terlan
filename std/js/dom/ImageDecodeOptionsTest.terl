@@ -12,12 +12,11 @@
  */
 module std.js.Dom.ImageDecodeOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.ImageDecodeOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub complete_frames_only_typechecks(receiver: ImageDecodeOptions): std.core.Bool ->
+pub complete_frames_only_typechecks(receiver: ImageDecodeOptions): Option[Bool] ->
     receiver.complete_frames_only().
 
-pub frame_index_typechecks(receiver: ImageDecodeOptions): std.js.Number.JsNumber ->
+pub frame_index_typechecks(receiver: ImageDecodeOptions): Option[std.js.Number.JsNumber] ->
     receiver.frame_index().

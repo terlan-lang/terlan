@@ -12,10 +12,12 @@
  */
 module std.js.Dom.CSSMathClamp.
 
+import type std.js.Dom.CSSNumericValue.{CSSNumericValue}.
+
 pub opaque type CSSMathClamp.
 
-pub (value: CSSMathClamp) lower(): CSSNumericValue.
+pub (receiver: CSSMathClamp) lower(): CSSNumericValue.
 
-pub (value: CSSMathClamp) upper(): CSSNumericValue.
+pub (receiver: CSSMathClamp) upper(): CSSNumericValue.
 
-pub (value: CSSMathClamp) value(): CSSNumericValue.
+pub (receiver: CSSMathClamp) value(): CSSNumericValue.

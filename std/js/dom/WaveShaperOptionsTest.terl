@@ -14,12 +14,7 @@ module std.js.Dom.WaveShaperOptionsTest.
 
 import type std.js.Dom.WaveShaperOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub curve_typechecks(
     receiver: WaveShaperOptions,
-): Float32Array | std.js.Array[std.js.Number.JsNumber] ->
+): std.core.Option.Option[std.js.Float32Array.Float32Array | std.js.Array.Array[std.js.Number.JsNumber]] ->
     receiver.curve().
-
-pub oversample_typechecks(receiver: WaveShaperOptions): OverSampleType ->
-    receiver.oversample().

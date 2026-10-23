@@ -26,25 +26,25 @@ pub opaque type MediaMetadata.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaMetadata/album)
  */
-pub (value: MediaMetadata) album(): JsString.
+pub (receiver: MediaMetadata) album(): JsString.
 
 /**
  * The **`artist`** property of the creator, etc., of the media to be played.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaMetadata/artist)
  */
-pub (value: MediaMetadata) artist(): JsString.
+pub (receiver: MediaMetadata) artist(): JsString.
 
 /**
  * The **`artwork`** property of the objects representing images associated with playing media.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaMetadata/artwork)
  */
-pub (value: MediaMetadata) artwork(): std.js.Array[MediaImage].
+pub (receiver: MediaMetadata) artwork(): std.js.Array.Array[std.js.Dom.MediaImage.MediaImage].
 
 /**
  * The **`title`** property of the played.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaMetadata/title)
  */
-pub (value: MediaMetadata) title(): JsString.
+pub (receiver: MediaMetadata) title(): JsString.

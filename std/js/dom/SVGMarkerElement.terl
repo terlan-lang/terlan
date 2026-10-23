@@ -12,7 +12,11 @@
  */
 module std.js.Dom.SVGMarkerElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedEnumeration.{SVGAnimatedEnumeration}.
+import type std.js.Dom.SVGAnimatedLength.{SVGAnimatedLength}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +31,7 @@ pub opaque type SVGMarkerElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/markerHeight)
  */
-pub (value: SVGMarkerElement) marker_height(): SVGAnimatedLength ->
+pub (receiver: SVGMarkerElement) marker_height(): SVGAnimatedLength ->
     native.
 
 /**
@@ -35,7 +39,7 @@ pub (value: SVGMarkerElement) marker_height(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/markerUnits)
  */
-pub (value: SVGMarkerElement) marker_units(): SVGAnimatedEnumeration ->
+pub (receiver: SVGMarkerElement) marker_units(): SVGAnimatedEnumeration ->
     native.
 
 /**
@@ -43,7 +47,7 @@ pub (value: SVGMarkerElement) marker_units(): SVGAnimatedEnumeration ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/markerWidth)
  */
-pub (value: SVGMarkerElement) marker_width(): SVGAnimatedLength ->
+pub (receiver: SVGMarkerElement) marker_width(): SVGAnimatedLength ->
     native.
 
 /**
@@ -51,7 +55,7 @@ pub (value: SVGMarkerElement) marker_width(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/orientAngle)
  */
-pub (value: SVGMarkerElement) orient_angle(): SVGAnimatedAngle ->
+pub (receiver: SVGMarkerElement) orient_angle(): std.js.Dom.SVGAnimatedAngle.SVGAnimatedAngle ->
     native.
 
 /**
@@ -59,7 +63,7 @@ pub (value: SVGMarkerElement) orient_angle(): SVGAnimatedAngle ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/orientType)
  */
-pub (value: SVGMarkerElement) orient_type(): SVGAnimatedEnumeration ->
+pub (receiver: SVGMarkerElement) orient_type(): SVGAnimatedEnumeration ->
     native.
 
 /**
@@ -67,7 +71,7 @@ pub (value: SVGMarkerElement) orient_type(): SVGAnimatedEnumeration ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/refX)
  */
-pub (value: SVGMarkerElement) ref_x(): SVGAnimatedLength ->
+pub (receiver: SVGMarkerElement) ref_x(): SVGAnimatedLength ->
     native.
 
 /**
@@ -75,7 +79,7 @@ pub (value: SVGMarkerElement) ref_x(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/refY)
  */
-pub (value: SVGMarkerElement) ref_y(): SVGAnimatedLength ->
+pub (receiver: SVGMarkerElement) ref_y(): SVGAnimatedLength ->
     native.
 
 /**
@@ -83,7 +87,7 @@ pub (value: SVGMarkerElement) ref_y(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/setOrientToAngle)
  */
-pub (value: SVGMarkerElement) set_orient_to_angle(angle: SVGAngle): Unit ->
+pub (receiver: SVGMarkerElement) set_orient_to_angle(angle: std.js.Dom.SVGAngle.SVGAngle): Unit ->
     native.
 
 /**
@@ -91,19 +95,19 @@ pub (value: SVGMarkerElement) set_orient_to_angle(angle: SVGAngle): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/setOrientToAuto)
  */
-pub (value: SVGMarkerElement) set_orient_to_auto(): Unit ->
+pub (receiver: SVGMarkerElement) set_orient_to_auto(): Unit ->
     native.
 
-pub (value: SVGMarkerElement) add_event_listener(
+pub (receiver: SVGMarkerElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SVGMarkerElement) remove_event_listener(
+pub (receiver: SVGMarkerElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

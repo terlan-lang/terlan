@@ -14,5 +14,5 @@ module std.js.Dom.RsaPssParams.
 
 pub opaque type RsaPssParams.
 
-pub (value: RsaPssParams) salt_length(): std.js.Number.JsNumber ->
+pub (receiver: RsaPssParams) salt_length(): std.js.Number.JsNumber ->
     native.

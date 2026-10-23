@@ -13,5 +13,3 @@
 module std.js.Dom.GLenumTest.
 
 import type std.js.Dom.GLenum.
-
-pub generated_binding_surface_contract(): Bool -> true.

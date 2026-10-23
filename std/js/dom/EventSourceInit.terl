@@ -14,5 +14,5 @@ module std.js.Dom.EventSourceInit.
 
 pub opaque type EventSourceInit.
 
-pub (value: EventSourceInit) with_credentials(): std.core.Bool ->
+pub (receiver: EventSourceInit) with_credentials(): std.core.Option.Option[Bool] ->
     native.

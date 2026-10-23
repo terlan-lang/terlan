@@ -25,4 +25,4 @@ pub opaque type AnimationTimeline.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationTimeline/currentTime)
  */
-pub (value: AnimationTimeline) current_time(): Option[CSSNumberish].
+pub (receiver: AnimationTimeline) current_time(): std.core.Option.Option[std.js.Dom.CSSNumberish.CSSNumberish].

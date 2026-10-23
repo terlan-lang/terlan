@@ -12,4 +12,4 @@
  */
 module std.js.Dom.GLboolean.
 
-pub type GLboolean = std.core.Bool.
+pub type GLboolean = Bool.

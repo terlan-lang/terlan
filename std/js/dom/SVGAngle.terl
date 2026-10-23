@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SVGAngle.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,7 +27,7 @@ pub opaque type SVGAngle.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/unitType)
  */
-pub (value: SVGAngle) unit_type(): JsNumber ->
+pub (receiver: SVGAngle) unit_type(): JsNumber ->
     native.
 
 /**
@@ -35,7 +35,7 @@ pub (value: SVGAngle) unit_type(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/value)
  */
-pub (value: SVGAngle) value(): JsNumber ->
+pub (receiver: SVGAngle) value(): JsNumber ->
     native.
 
 /**
@@ -43,7 +43,7 @@ pub (value: SVGAngle) value(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/valueAsString)
  */
-pub (value: SVGAngle) value_as_string(): std.js.String.JsString ->
+pub (receiver: SVGAngle) value_as_string(): std.js.String.JsString ->
     native.
 
 /**
@@ -51,7 +51,7 @@ pub (value: SVGAngle) value_as_string(): std.js.String.JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/valueInSpecifiedUnits)
  */
-pub (value: SVGAngle) value_in_specified_units(): JsNumber ->
+pub (receiver: SVGAngle) value_in_specified_units(): JsNumber ->
     native.
 
 /**
@@ -59,7 +59,7 @@ pub (value: SVGAngle) value_in_specified_units(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/convertToSpecifiedUnits)
  */
-pub (value: SVGAngle) convert_to_specified_units(unit_type: JsNumber): Unit ->
+pub (receiver: SVGAngle) convert_to_specified_units(unit_type: JsNumber): Unit ->
     native.
 
 /**
@@ -67,5 +67,5 @@ pub (value: SVGAngle) convert_to_specified_units(unit_type: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/newValueSpecifiedUnits)
  */
-pub (value: SVGAngle) new_value_specified_units(unit_type: JsNumber, value_in_specified_units: JsNumber): Unit ->
+pub (receiver: SVGAngle) new_value_specified_units(unit_type: JsNumber, value_in_specified_units: JsNumber): Unit ->
     native.

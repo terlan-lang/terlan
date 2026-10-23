@@ -12,7 +12,10 @@
  */
 module std.js.Dom.AudioBuffer.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.js.Float32Array.{Float32Array}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,7 +30,7 @@ pub opaque type AudioBuffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/duration)
  */
-pub (value: AudioBuffer) duration(): JsNumber ->
+pub (receiver: AudioBuffer) duration(): JsNumber ->
     native.
 
 /**
@@ -35,7 +38,7 @@ pub (value: AudioBuffer) duration(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/length)
  */
-pub (value: AudioBuffer) length(): JsNumber ->
+pub (receiver: AudioBuffer) length(): JsNumber ->
     native.
 
 /**
@@ -43,7 +46,7 @@ pub (value: AudioBuffer) length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/numberOfChannels)
  */
-pub (value: AudioBuffer) number_of_channels(): JsNumber ->
+pub (receiver: AudioBuffer) number_of_channels(): JsNumber ->
     native.
 
 /**
@@ -51,7 +54,7 @@ pub (value: AudioBuffer) number_of_channels(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/sampleRate)
  */
-pub (value: AudioBuffer) sample_rate(): JsNumber ->
+pub (receiver: AudioBuffer) sample_rate(): JsNumber ->
     native.
 
 /**
@@ -59,10 +62,10 @@ pub (value: AudioBuffer) sample_rate(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/copyFromChannel)
  */
-pub (value: AudioBuffer) copy_from_channel(
+pub (receiver: AudioBuffer) copy_from_channel(
     destination: Float32Array[ArrayBuffer],
     channel_number: JsNumber,
-    buffer_offset: JsNumber,
+    buffer_offset: Option[JsNumber],
 ): Unit ->
     native.
 
@@ -71,10 +74,10 @@ pub (value: AudioBuffer) copy_from_channel(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/copyToChannel)
  */
-pub (value: AudioBuffer) copy_to_channel(
+pub (receiver: AudioBuffer) copy_to_channel(
     source: Float32Array[ArrayBuffer],
     channel_number: JsNumber,
-    buffer_offset: JsNumber,
+    buffer_offset: Option[JsNumber],
 ): Unit ->
     native.
 
@@ -83,5 +86,5 @@ pub (value: AudioBuffer) copy_to_channel(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/getChannelData)
  */
-pub (value: AudioBuffer) get_channel_data(channel: JsNumber): Float32Array[ArrayBuffer] ->
+pub (receiver: AudioBuffer) get_channel_data(channel: JsNumber): Float32Array[ArrayBuffer] ->
     native.

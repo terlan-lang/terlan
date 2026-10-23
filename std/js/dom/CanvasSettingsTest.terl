@@ -14,7 +14,7 @@ module std.js.Dom.CanvasSettingsTest.
 
 import type std.js.Dom.CanvasSettings.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub get_context_attributes_typechecks(receiver: CanvasSettings): CanvasRenderingContext2DSettings ->
+pub get_context_attributes_typechecks(
+    receiver: CanvasSettings,
+): std.js.Dom.CanvasRenderingContext2DSettings.CanvasRenderingContext2DSettings ->
     receiver.get_context_attributes().

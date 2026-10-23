@@ -14,7 +14,5 @@ module std.js.Dom.CSSMediaRuleTest.
 
 import type std.js.Dom.CSSMediaRule.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub media_typechecks(receiver: CSSMediaRule): MediaList ->
+pub media_typechecks(receiver: CSSMediaRule): std.js.Dom.MediaList.MediaList ->
     receiver.media().

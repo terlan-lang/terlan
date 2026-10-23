@@ -26,18 +26,18 @@ pub opaque type TimeRanges.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TimeRanges/length)
  */
-pub (value: TimeRanges) length(): JsNumber.
+pub (receiver: TimeRanges) length(): JsNumber.
 
 /**
  * The **`end()`** method of the TimeRanges interface returns the time offset (in seconds) at which a specified time range ends.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TimeRanges/end)
  */
-pub (value: TimeRanges) end(index: JsNumber): JsNumber.
+pub (receiver: TimeRanges) end(index: JsNumber): JsNumber.
 
 /**
  * The **`start()`** method of the TimeRanges interface returns the time offset (in seconds) at which a specified time range begins.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TimeRanges/start)
  */
-pub (value: TimeRanges) start(index: JsNumber): JsNumber.
+pub (receiver: TimeRanges) start(index: JsNumber): JsNumber.

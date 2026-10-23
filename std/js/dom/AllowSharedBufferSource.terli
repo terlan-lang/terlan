@@ -12,4 +12,6 @@
  */
 module std.js.Dom.AllowSharedBufferSource.
 
-pub type AllowSharedBufferSource = ArrayBufferLike | ArrayBufferView[ArrayBufferLike].
+pub type AllowSharedBufferSource =
+      ArrayBufferLike
+    | std.js.ArrayBufferView.ArrayBufferView[ArrayBufferLike].

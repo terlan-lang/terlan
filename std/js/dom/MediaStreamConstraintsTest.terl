@@ -12,19 +12,18 @@
  */
 module std.js.Dom.MediaStreamConstraintsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.MediaStreamConstraints.
+import type std.js.Dom.MediaTrackConstraints.{MediaTrackConstraints}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub audio_typechecks(receiver: MediaStreamConstraints): MediaTrackConstraints | Bool ->
+pub audio_typechecks(receiver: MediaStreamConstraints): Option[Bool | MediaTrackConstraints] ->
     receiver.audio().
 
-pub peer_identity_typechecks(receiver: MediaStreamConstraints): std.js.String.JsString ->
+pub peer_identity_typechecks(receiver: MediaStreamConstraints): Option[std.js.String.JsString] ->
     receiver.peer_identity().
 
-pub prefer_current_tab_typechecks(receiver: MediaStreamConstraints): Bool ->
+pub prefer_current_tab_typechecks(receiver: MediaStreamConstraints): Option[Bool] ->
     receiver.prefer_current_tab().
 
-pub video_typechecks(receiver: MediaStreamConstraints): MediaTrackConstraints | Bool ->
+pub video_typechecks(receiver: MediaStreamConstraints): Option[Bool | MediaTrackConstraints] ->
     receiver.video().

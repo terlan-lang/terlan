@@ -12,51 +12,51 @@
  */
 module std.js.Dom.RTCIceCandidatePairStats.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
 pub opaque type RTCIceCandidatePairStats.
 
-pub (value: RTCIceCandidatePairStats) available_incoming_bitrate(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) available_incoming_bitrate(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) available_outgoing_bitrate(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) available_outgoing_bitrate(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) bytes_discarded_on_send(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) bytes_discarded_on_send(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) bytes_received(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) bytes_received(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) bytes_sent(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) bytes_sent(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) consent_requests_sent(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) consent_requests_sent(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) current_round_trip_time(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) current_round_trip_time(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) last_packet_received_timestamp(): DOMHighResTimeStamp.
+pub (receiver: RTCIceCandidatePairStats) last_packet_received_timestamp(): Option[DOMHighResTimeStamp].
 
-pub (value: RTCIceCandidatePairStats) last_packet_sent_timestamp(): DOMHighResTimeStamp.
+pub (receiver: RTCIceCandidatePairStats) last_packet_sent_timestamp(): Option[DOMHighResTimeStamp].
 
-pub (value: RTCIceCandidatePairStats) local_candidate_id(): JsString.
+pub (receiver: RTCIceCandidatePairStats) local_candidate_id(): JsString.
 
-pub (value: RTCIceCandidatePairStats) nominated(): std.core.Bool.
+pub (receiver: RTCIceCandidatePairStats) nominated(): Option[Bool].
 
-pub (value: RTCIceCandidatePairStats) packets_discarded_on_send(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) packets_discarded_on_send(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) packets_received(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) packets_received(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) packets_sent(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) packets_sent(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) remote_candidate_id(): JsString.
+pub (receiver: RTCIceCandidatePairStats) remote_candidate_id(): JsString.
 
-pub (value: RTCIceCandidatePairStats) requests_received(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) requests_received(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) requests_sent(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) requests_sent(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) responses_received(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) responses_received(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) responses_sent(): JsNumber.
+pub (receiver: RTCIceCandidatePairStats) responses_sent(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) state(): RTCStatsIceCandidatePairState.
+pub (receiver: RTCIceCandidatePairStats) total_round_trip_time(): Option[JsNumber].
 
-pub (value: RTCIceCandidatePairStats) total_round_trip_time(): JsNumber.
-
-pub (value: RTCIceCandidatePairStats) transport_id(): JsString.
+pub (receiver: RTCIceCandidatePairStats) transport_id(): JsString.

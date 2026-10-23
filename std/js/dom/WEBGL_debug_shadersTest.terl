@@ -14,10 +14,8 @@ module std.js.Dom.WEBGL_debug_shadersTest.
 
 import type std.js.Dom.WEBGL_debug_shaders.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub get_translated_shader_source_typechecks(
     receiver: WEBGL_debug_shaders,
-    shader: WebGLShader,
+    shader: std.js.Dom.WebGLShader.WebGLShader,
 ): std.js.String.JsString ->
     receiver.get_translated_shader_source(shader).

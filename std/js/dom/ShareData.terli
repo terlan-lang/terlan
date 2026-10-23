@@ -12,14 +12,15 @@
  */
 module std.js.Dom.ShareData.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type ShareData.
 
-pub (value: ShareData) files(): std.js.Array[File].
+pub (receiver: ShareData) files(): Option[std.js.Array.Array[std.js.Dom.File.File]].
 
-pub (value: ShareData) text(): JsString.
+pub (receiver: ShareData) text(): Option[JsString].
 
-pub (value: ShareData) title(): JsString.
+pub (receiver: ShareData) title(): Option[JsString].
 
-pub (value: ShareData) url(): JsString.
+pub (receiver: ShareData) url(): Option[JsString].

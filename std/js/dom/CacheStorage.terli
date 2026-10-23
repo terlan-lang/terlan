@@ -12,9 +12,9 @@
  */
 module std.js.Dom.CacheStorage.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
 
 /**
  * The **`CacheStorage`** interface represents the storage for Cache objects.
@@ -29,32 +29,35 @@ pub opaque type CacheStorage.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/delete)
  */
-pub (value: CacheStorage) delete(cache_name: JsString): Promise[Bool].
+pub (receiver: CacheStorage) delete(cache_name: JsString): Promise[Bool].
 
 /**
  * The **`has()`** method of the CacheStorage interface returns a Promise that resolves to `true` if a You can access `CacheStorage` through the Window.caches property in windows or through the WorkerGlobalScope.caches property in workers.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/has)
  */
-pub (value: CacheStorage) has(cache_name: JsString): Promise[Bool].
+pub (receiver: CacheStorage) has(cache_name: JsString): Promise[Bool].
 
 /**
  * The **`keys()`** method of the CacheStorage interface returns a Promise that will resolve with an array containing strings corresponding to all of the named Cache objects tracked by the CacheStorage object in the order they were created.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/keys)
  */
-pub (value: CacheStorage) keys(): Promise[std.js.Array[JsString]].
+pub (receiver: CacheStorage) keys(): Promise[std.js.Array.Array[JsString]].
 
 /**
  * The **`match()`** method of the CacheStorage interface checks if a given Request or URL string is a key for a stored Response.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/match)
  */
-pub (value: CacheStorage) match(request: RequestInfo | URL, options: MultiCacheQueryOptions): Promise[Option[Response]].
+pub (receiver: CacheStorage) match(
+    request: std.js.Dom.RequestInfo.RequestInfo | std.js.Dom.URL.URL,
+    options: Option[std.js.Dom.MultiCacheQueryOptions.MultiCacheQueryOptions],
+): Promise[Option[std.js.Dom.Response.Response]].
 
 /**
  * The **`open()`** method of the the Cache object matching the `cacheName`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/open)
  */
-pub (value: CacheStorage) open(cache_name: JsString): Promise[Cache].
+pub (receiver: CacheStorage) open(cache_name: JsString): Promise[std.js.Dom.Cache.Cache].

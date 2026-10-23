@@ -25,11 +25,11 @@ pub opaque type TextTrackCueList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCueList/length)
  */
-pub (value: TextTrackCueList) length(): std.js.Number.JsNumber.
+pub (receiver: TextTrackCueList) length(): std.js.Number.JsNumber.
 
 /**
  * The **`getCueById()`** method of the TextTrackCueList interface returns the first VTTCue in the list represented by the `TextTrackCueList` object whose identifier matches the value of `id`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCueList/getCueById)
  */
-pub (value: TextTrackCueList) get_cue_by_id(id: std.js.String.JsString): Option[TextTrackCue].
+pub (receiver: TextTrackCueList) get_cue_by_id(id: std.js.String.JsString): std.core.Option.Option[std.js.Dom.TextTrackCue.TextTrackCue].

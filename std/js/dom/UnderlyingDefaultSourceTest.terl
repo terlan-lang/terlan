@@ -14,7 +14,7 @@ module std.js.Dom.UnderlyingDefaultSourceTest.
 
 import type std.js.Dom.UnderlyingDefaultSource.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub cancel_typechecks(receiver: UnderlyingDefaultSource[R]): UnderlyingSourceCancelCallback ->
+pub cancel_typechecks(
+    receiver: UnderlyingDefaultSource[R],
+): std.core.Option.Option[std.js.Dom.UnderlyingSourceCancelCallback.UnderlyingSourceCancelCallback] ->
     receiver.cancel().

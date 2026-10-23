@@ -13,10 +13,7 @@
 module std.js.Dom.PropertyIndexedKeyframes.
 
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
 pub opaque type PropertyIndexedKeyframes.
 
-pub (value: PropertyIndexedKeyframes) composite(): CompositeOperationOrAuto | Array[CompositeOperationOrAuto].
-
-pub (value: PropertyIndexedKeyframes) easing(): Array[JsString] | JsString.
+pub (receiver: PropertyIndexedKeyframes) easing(): std.core.Option.Option[std.js.Array.Array[JsString] | JsString].

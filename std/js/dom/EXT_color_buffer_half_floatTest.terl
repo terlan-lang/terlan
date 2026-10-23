@@ -13,5 +13,3 @@
 module std.js.Dom.EXT_color_buffer_half_floatTest.
 
 import type std.js.Dom.EXT_color_buffer_half_float.
-
-pub generated_binding_surface_contract(): Bool -> true.

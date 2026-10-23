@@ -12,15 +12,16 @@
  */
 module std.js.Dom.PerformanceObserverInit.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type PerformanceObserverInit.
 
-pub (value: PerformanceObserverInit) buffered(): std.core.Bool ->
+pub (receiver: PerformanceObserverInit) buffered(): Option[Bool] ->
     native.
 
-pub (value: PerformanceObserverInit) entry_types(): std.js.Array[JsString] ->
+pub (receiver: PerformanceObserverInit) entry_types(): Option[std.js.Array.Array[JsString]] ->
     native.
 
-pub (value: PerformanceObserverInit) type_(): JsString ->
+pub (receiver: PerformanceObserverInit) type_(): Option[JsString] ->
     native.

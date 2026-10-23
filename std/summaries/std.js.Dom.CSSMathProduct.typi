@@ -25,4 +25,4 @@ pub opaque type CSSMathProduct.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathProduct/values)
  */
-pub (value: CSSMathProduct) values(): CSSNumericArray.
+pub (receiver: CSSMathProduct) values(): std.js.Dom.CSSNumericArray.CSSNumericArray.

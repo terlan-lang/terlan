@@ -12,6 +12,9 @@
  */
 module std.js.Dom.NodeIterator.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.Node.{Node}.
+
 /**
  * The **`NodeIterator`** interface represents an iterator to traverse nodes of a DOM subtree in document order.
  *
@@ -20,19 +23,11 @@ module std.js.Dom.NodeIterator.
 pub opaque type NodeIterator.
 
 /**
- * The **`NodeIterator.filter`** read-only property returns a `NodeFilter` object, that is an object which implements an `acceptNode(node)` method, used to screen nodes.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/filter)
- */
-pub (value: NodeIterator) filter(): Option[NodeFilter] ->
-    native.
-
-/**
  * The **`NodeIterator.pointerBeforeReferenceNode`** read-only property returns a boolean flag that indicates whether the `NodeFilter` is anchored before (if this value is `true`) or after (if this value is `false`) the anchor node indicated by the A boolean.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/pointerBeforeReferenceNode)
  */
-pub (value: NodeIterator) pointer_before_reference_node(): std.core.Bool ->
+pub (receiver: NodeIterator) pointer_before_reference_node(): Bool ->
     native.
 
 /**
@@ -40,7 +35,7 @@ pub (value: NodeIterator) pointer_before_reference_node(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/referenceNode)
  */
-pub (value: NodeIterator) reference_node(): Node ->
+pub (receiver: NodeIterator) reference_node(): Node ->
     native.
 
 /**
@@ -48,7 +43,7 @@ pub (value: NodeIterator) reference_node(): Node ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/root)
  */
-pub (value: NodeIterator) root(): Node ->
+pub (receiver: NodeIterator) root(): Node ->
     native.
 
 /**
@@ -56,7 +51,7 @@ pub (value: NodeIterator) root(): Node ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/whatToShow)
  */
-pub (value: NodeIterator) what_to_show(): std.js.Number.JsNumber ->
+pub (receiver: NodeIterator) what_to_show(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -65,7 +60,7 @@ pub (value: NodeIterator) what_to_show(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/detach)
  */
-pub (value: NodeIterator) detach(): std.core.Unit ->
+pub (receiver: NodeIterator) detach(): std.core.Unit.Unit ->
     native.
 
 /**
@@ -73,7 +68,7 @@ pub (value: NodeIterator) detach(): std.core.Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/nextNode)
  */
-pub (value: NodeIterator) next_node(): Option[Node] ->
+pub (receiver: NodeIterator) next_node(): Option[Node] ->
     native.
 
 /**
@@ -81,5 +76,5 @@ pub (value: NodeIterator) next_node(): Option[Node] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/previousNode)
  */
-pub (value: NodeIterator) previous_node(): Option[Node] ->
+pub (receiver: NodeIterator) previous_node(): Option[Node] ->
     native.

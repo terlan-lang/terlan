@@ -14,10 +14,8 @@ module std.js.Dom.SVGAnimatedRectTest.
 
 import type std.js.Dom.SVGAnimatedRect.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub anim_val_typechecks(receiver: SVGAnimatedRect): DOMRectReadOnly ->
+pub anim_val_typechecks(receiver: SVGAnimatedRect): std.js.Dom.DOMRectReadOnly.DOMRectReadOnly ->
     receiver.anim_val().
 
-pub base_val_typechecks(receiver: SVGAnimatedRect): DOMRect ->
+pub base_val_typechecks(receiver: SVGAnimatedRect): std.js.Dom.DOMRect.DOMRect ->
     receiver.base_val().

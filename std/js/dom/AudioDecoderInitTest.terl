@@ -14,10 +14,12 @@ module std.js.Dom.AudioDecoderInitTest.
 
 import type std.js.Dom.AudioDecoderInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub error_typechecks(receiver: AudioDecoderInit): WebCodecsErrorCallback ->
+pub error_typechecks(
+    receiver: AudioDecoderInit,
+): std.js.Dom.WebCodecsErrorCallback.WebCodecsErrorCallback ->
     receiver.error().
 
-pub output_typechecks(receiver: AudioDecoderInit): AudioDataOutputCallback ->
+pub output_typechecks(
+    receiver: AudioDecoderInit,
+): std.js.Dom.AudioDataOutputCallback.AudioDataOutputCallback ->
     receiver.output().

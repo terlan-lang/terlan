@@ -12,11 +12,11 @@
  */
 module std.js.Dom.HTMLDialogElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.HTMLDialogElement.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub open_typechecks(receiver: HTMLDialogElement): Bool ->
     receiver.open().
@@ -24,10 +24,10 @@ pub open_typechecks(receiver: HTMLDialogElement): Bool ->
 pub return_value_typechecks(receiver: HTMLDialogElement): JsString ->
     receiver.return_value().
 
-pub close_typechecks(receiver: HTMLDialogElement, return_value: JsString): Unit ->
+pub close_typechecks(receiver: HTMLDialogElement, return_value: Option[JsString]): Unit ->
     receiver.close(return_value).
 
-pub request_close_typechecks(receiver: HTMLDialogElement, return_value: JsString): Unit ->
+pub request_close_typechecks(receiver: HTMLDialogElement, return_value: Option[JsString]): Unit ->
     receiver.request_close(return_value).
 
 pub show_typechecks(receiver: HTMLDialogElement): Unit ->
@@ -40,7 +40,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLDialogElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -48,6 +48,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLDialogElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

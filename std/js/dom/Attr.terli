@@ -12,6 +12,7 @@
  */
 module std.js.Dom.Attr.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -26,37 +27,37 @@ pub opaque type Attr.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/localName)
  */
-pub (value: Attr) local_name(): JsString.
+pub (receiver: Attr) local_name(): JsString.
 
 /**
  * The read-only **`name`** property of the Attr interface returns the _qualified name_ of an attribute, that is the name of the attribute, with the namespace prefix, if any, in front of it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/name)
  */
-pub (value: Attr) name(): JsString.
+pub (receiver: Attr) name(): JsString.
 
 /**
  * The read-only **`namespaceURI`** property of the Attr interface returns the namespace URI of the attribute, or `null` if the element is not in a namespace.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/namespaceURI)
  */
-pub (value: Attr) namespace_uri(): Option[JsString].
+pub (receiver: Attr) namespace_uri(): Option[JsString].
 
-pub (value: Attr) owner_document(): Document.
+pub (receiver: Attr) owner_document(): std.js.Dom.Document.Document.
 
 /**
  * The read-only **`ownerElement`** property of the Attr interface returns the Element the attribute belongs to.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/ownerElement)
  */
-pub (value: Attr) owner_element(): Option[Element].
+pub (receiver: Attr) owner_element(): Option[std.js.Dom.Element.Element].
 
 /**
  * The read-only **`prefix`** property of the Attr returns the namespace prefix of the attribute, or `null` if no prefix is specified.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/prefix)
  */
-pub (value: Attr) prefix(): Option[JsString].
+pub (receiver: Attr) prefix(): Option[JsString].
 
 /**
  * The read-only **`specified`** property of the Attr interface always returns `true`.
@@ -64,16 +65,16 @@ pub (value: Attr) prefix(): Option[JsString].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/specified)
  */
-pub (value: Attr) specified(): std.core.Bool.
+pub (receiver: Attr) specified(): Bool.
 
 /**
  * The **`value`** property of the Attr interface contains the value of the attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/value)
  */
-pub (value: Attr) value(): JsString.
+pub (receiver: Attr) value(): JsString.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent)
  */
-pub (value: Attr) text_content(): JsString.
+pub (receiver: Attr) text_content(): JsString.

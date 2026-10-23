@@ -12,11 +12,8 @@
  */
 module std.js.Intl.ResolvedCollatorOptionsTest.
 
-import type std.core.{Bool}.
 import type std.js.Intl.ResolvedCollatorOptions.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub locale_typechecks(receiver: ResolvedCollatorOptions): JsString ->
     receiver.locale().

@@ -25,25 +25,25 @@ pub opaque type HTMLOptionsCollection.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/length)
  */
-pub (value: HTMLOptionsCollection) length(): std.js.Number.JsNumber.
+pub (receiver: HTMLOptionsCollection) length(): std.js.Number.JsNumber.
 
 /**
  * The **`selectedIndex`** property of the HTMLOptionsCollection interface is the numeric index of the first selected option element, if any, or `−1` if no `<option>` is selected.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/selectedIndex)
  */
-pub (value: HTMLOptionsCollection) selected_index(): std.js.Number.JsNumber.
+pub (receiver: HTMLOptionsCollection) selected_index(): std.js.Number.JsNumber.
 
 /**
  * The **`add()`** method of the HTMLOptionsCollection interface adds an HTMLOptionElement or HTMLOptGroupElement to this `HTMLOptionsCollection`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/add)
  */
-pub (value: HTMLOptionsCollection) add(element: HTMLOptGroupElement | HTMLOptionElement, before: Option[HTMLElement | std.js.Number.JsNumber]): std.core.Unit.
+pub (receiver: HTMLOptionsCollection) add(element: std.js.Dom.HTMLOptGroupElement.HTMLOptGroupElement | std.js.Dom.HTMLOptionElement.HTMLOptionElement, before: std.core.Option.Option[std.core.Option.Option[std.js.Dom.HTMLElement.HTMLElement | std.js.Number.JsNumber]]): std.core.Unit.Unit.
 
 /**
  * The **`remove()`** method of the HTMLOptionsCollection interface removes the option element specified by the index from this collection.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/remove)
  */
-pub (value: HTMLOptionsCollection) remove(index: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: HTMLOptionsCollection) remove(index: std.js.Number.JsNumber): std.core.Unit.Unit.

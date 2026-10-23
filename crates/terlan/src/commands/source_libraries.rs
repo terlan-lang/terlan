@@ -1,37 +1,27 @@
-//! Locates shipped library implementations for all source backends.
+//! Locates source implementations and standard-library summaries.
 
+pub(crate) use crate::support::library_paths::imported_std_summary_path;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn imported_std_source_path(module: &str, active_path: &Path) -> Option<PathBuf> {
     if !module.starts_with("std.") {
         return None;
     }
-    let relative = PathBuf::from(format!("{}.terl", module.replace('.', "/")));
-    let mut candidates = Vec::new();
-    if let Some(root) = repository_root_from_std_path(active_path) {
-        candidates.push(root.join(&relative));
+    let literal = PathBuf::from(format!("{}.terl", module.replace('.', "/")));
+    if let Some(path) = crate::support::library_paths::shipped_std_path(&literal, active_path) {
+        return Some(path);
     }
-    if let Ok(current_dir) = std::env::current_dir() {
-        candidates.push(current_dir.join(&relative));
-    }
-    if let Some(share_root) = crate::commands::release_layout::installed_share_root() {
-        candidates.push(share_root.join(&relative));
-    }
-    candidates.push(
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../..")
-            .join(&relative),
-    );
-    candidates.into_iter().find(|candidate| candidate.is_file())
+    let mut segments = module.split('.').collect::<Vec<_>>();
+    let name = segments.pop()?;
+    let directory = segments
+        .into_iter()
+        .map(crate::terlan_hir::source_name_to_terlan_identifier)
+        .collect::<Vec<_>>()
+        .join("/");
+    let relative = PathBuf::from(format!("{directory}/{name}.terl"));
+    crate::support::library_paths::shipped_std_path(&relative, active_path)
 }
 
-fn repository_root_from_std_path(path: &Path) -> Option<PathBuf> {
-    let mut current = path.parent();
-    while let Some(directory) = current {
-        if directory.file_name().and_then(|name| name.to_str()) == Some("std") {
-            return directory.parent().map(Path::to_path_buf);
-        }
-        current = directory.parent();
-    }
-    None
-}
+#[cfg(test)]
+#[path = "source_libraries_test.rs"]
+mod tests;

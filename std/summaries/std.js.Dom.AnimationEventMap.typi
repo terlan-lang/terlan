@@ -15,8 +15,8 @@ module std.js.Dom.AnimationEventMap.
 
 pub opaque type AnimationEventMap.
 
-pub (value: AnimationEventMap) cancel(): AnimationPlaybackEvent.
+pub (receiver: AnimationEventMap) cancel(): std.js.Dom.AnimationPlaybackEvent.AnimationPlaybackEvent.
 
-pub (value: AnimationEventMap) finish(): AnimationPlaybackEvent.
+pub (receiver: AnimationEventMap) finish(): std.js.Dom.AnimationPlaybackEvent.AnimationPlaybackEvent.
 
-pub (value: AnimationEventMap) remove(): AnimationPlaybackEvent.
+pub (receiver: AnimationEventMap) remove(): std.js.Dom.AnimationPlaybackEvent.AnimationPlaybackEvent.

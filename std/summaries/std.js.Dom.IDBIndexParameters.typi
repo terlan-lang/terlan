@@ -15,6 +15,6 @@ module std.js.Dom.IDBIndexParameters.
 
 pub opaque type IDBIndexParameters.
 
-pub (value: IDBIndexParameters) multi_entry(): std.core.Bool.
+pub (receiver: IDBIndexParameters) multi_entry(): std.core.Option.Option[Bool].
 
-pub (value: IDBIndexParameters) unique(): std.core.Bool.
+pub (receiver: IDBIndexParameters) unique(): std.core.Option.Option[Bool].

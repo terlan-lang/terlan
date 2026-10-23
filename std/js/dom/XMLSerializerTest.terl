@@ -14,7 +14,8 @@ module std.js.Dom.XMLSerializerTest.
 
 import type std.js.Dom.XMLSerializer.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub serialize_to_string_typechecks(receiver: XMLSerializer, root: Node): std.js.String.JsString ->
+pub serialize_to_string_typechecks(
+    receiver: XMLSerializer,
+    root: std.js.Dom.Node.Node,
+): std.js.String.JsString ->
     receiver.serialize_to_string(root).

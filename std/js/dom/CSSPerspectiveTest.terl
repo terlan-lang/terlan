@@ -14,7 +14,5 @@ module std.js.Dom.CSSPerspectiveTest.
 
 import type std.js.Dom.CSSPerspective.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub length_typechecks(receiver: CSSPerspective): CSSPerspectiveValue ->
+pub length_typechecks(receiver: CSSPerspective): std.js.Dom.CSSPerspectiveValue.CSSPerspectiveValue ->
     receiver.length().

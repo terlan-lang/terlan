@@ -12,7 +12,8 @@
  */
 module std.js.Dom.HTMLOptionsCollection.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,23 +28,23 @@ pub opaque type HTMLOptionsCollection.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/length)
  */
-pub (value: HTMLOptionsCollection) length(): JsNumber.
+pub (receiver: HTMLOptionsCollection) length(): JsNumber.
 
 /**
  * The **`selectedIndex`** property of the HTMLOptionsCollection interface is the numeric index of the first selected option element, if any, or `−1` if no `<option>` is selected.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/selectedIndex)
  */
-pub (value: HTMLOptionsCollection) selected_index(): JsNumber.
+pub (receiver: HTMLOptionsCollection) selected_index(): JsNumber.
 
 /**
  * The **`add()`** method of the HTMLOptionsCollection interface adds an HTMLOptionElement or HTMLOptGroupElement to this `HTMLOptionsCollection`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/add)
  */
-pub (value: HTMLOptionsCollection) add(
-    element: HTMLOptGroupElement | HTMLOptionElement,
-    before: Option[HTMLElement | JsNumber],
+pub (receiver: HTMLOptionsCollection) add(
+    element: std.js.Dom.HTMLOptGroupElement.HTMLOptGroupElement | std.js.Dom.HTMLOptionElement.HTMLOptionElement,
+    before: Option[Option[std.js.Dom.HTMLElement.HTMLElement | JsNumber]],
 ): Unit.
 
 /**
@@ -51,4 +52,4 @@ pub (value: HTMLOptionsCollection) add(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/remove)
  */
-pub (value: HTMLOptionsCollection) remove(index: JsNumber): Unit.
+pub (receiver: HTMLOptionsCollection) remove(index: JsNumber): Unit.

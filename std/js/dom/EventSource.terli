@@ -12,7 +12,9 @@
  */
 module std.js.Dom.EventSource.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,37 +29,37 @@ pub opaque type EventSource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/readyState)
  */
-pub (value: EventSource) ready_state(): std.js.Number.JsNumber.
+pub (receiver: EventSource) ready_state(): std.js.Number.JsNumber.
 
 /**
  * The **`url`** read-only property of the URL of the source.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/url)
  */
-pub (value: EventSource) url(): JsString.
+pub (receiver: EventSource) url(): JsString.
 
 /**
  * The **`withCredentials`** read-only property of the the `EventSource` object was instantiated with CORS credentials set.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/withCredentials)
  */
-pub (value: EventSource) with_credentials(): Bool.
+pub (receiver: EventSource) with_credentials(): Bool.
 
 /**
  * The **`close()`** method of the EventSource interface closes the connection, if one is made, and sets the ```js-nolint close() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/close)
  */
-pub (value: EventSource) close(): Unit.
+pub (receiver: EventSource) close(): Unit.
 
-pub (value: EventSource) add_event_listener(
+pub (receiver: EventSource) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: EventSource) remove_event_listener(
+pub (receiver: EventSource) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

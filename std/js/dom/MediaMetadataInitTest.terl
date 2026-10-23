@@ -12,19 +12,20 @@
  */
 module std.js.Dom.MediaMetadataInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.MediaMetadataInit.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub album_typechecks(receiver: MediaMetadataInit): JsString ->
+pub album_typechecks(receiver: MediaMetadataInit): Option[JsString] ->
     receiver.album().
 
-pub artist_typechecks(receiver: MediaMetadataInit): JsString ->
+pub artist_typechecks(receiver: MediaMetadataInit): Option[JsString] ->
     receiver.artist().
 
-pub artwork_typechecks(receiver: MediaMetadataInit): std.js.Array[MediaImage] ->
+pub artwork_typechecks(
+    receiver: MediaMetadataInit,
+): Option[std.js.Array.Array[std.js.Dom.MediaImage.MediaImage]] ->
     receiver.artwork().
 
-pub title_typechecks(receiver: MediaMetadataInit): JsString ->
+pub title_typechecks(receiver: MediaMetadataInit): Option[JsString] ->
     receiver.title().

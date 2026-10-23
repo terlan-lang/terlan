@@ -12,16 +12,19 @@
  */
 module std.js.Dom.DOMQuadInit.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DOMPointInit.{DOMPointInit}.
+
 pub opaque type DOMQuadInit.
 
-pub (value: DOMQuadInit) p1(): DOMPointInit ->
+pub (receiver: DOMQuadInit) p1(): Option[DOMPointInit] ->
     native.
 
-pub (value: DOMQuadInit) p2(): DOMPointInit ->
+pub (receiver: DOMQuadInit) p2(): Option[DOMPointInit] ->
     native.
 
-pub (value: DOMQuadInit) p3(): DOMPointInit ->
+pub (receiver: DOMQuadInit) p3(): Option[DOMPointInit] ->
     native.
 
-pub (value: DOMQuadInit) p4(): DOMPointInit ->
+pub (receiver: DOMQuadInit) p4(): Option[DOMPointInit] ->
     native.

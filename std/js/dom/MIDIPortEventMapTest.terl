@@ -14,7 +14,7 @@ module std.js.Dom.MIDIPortEventMapTest.
 
 import type std.js.Dom.MIDIPortEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub statechange_typechecks(receiver: MIDIPortEventMap): MIDIConnectionEvent ->
+pub statechange_typechecks(
+    receiver: MIDIPortEventMap,
+): std.js.Dom.MIDIConnectionEvent.MIDIConnectionEvent ->
     receiver.statechange().

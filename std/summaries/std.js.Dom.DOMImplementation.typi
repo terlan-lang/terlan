@@ -25,18 +25,18 @@ pub opaque type DOMImplementation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMImplementation/createDocument)
  */
-pub (value: DOMImplementation) create_document(namespace: Option[std.js.String.JsString], qualified_name: Option[std.js.String.JsString], doctype: Option[DocumentType]): XMLDocument.
+pub (receiver: DOMImplementation) create_document(namespace: std.core.Option.Option[std.js.String.JsString], qualified_name: std.core.Option.Option[std.js.String.JsString], doctype: std.core.Option.Option[std.core.Option.Option[std.js.Dom.DocumentType.DocumentType]]): std.js.Dom.XMLDocument.XMLDocument.
 
 /**
  * The **`DOMImplementation.createDocumentType()`** method returns a DocumentType object which can either be used with into the document via methods like Node.insertBefore() or ```js-nolint createDocumentType(qualifiedNameStr, publicId, systemId) ``` - `qualifiedNameStr` - : A string containing the qualified name, like `svg:svg`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMImplementation/createDocumentType)
  */
-pub (value: DOMImplementation) create_document_type(name: std.js.String.JsString, public_id: std.js.String.JsString, system_id: std.js.String.JsString): DocumentType.
+pub (receiver: DOMImplementation) create_document_type(name: std.js.String.JsString, public_id: std.js.String.JsString, system_id: std.js.String.JsString): std.js.Dom.DocumentType.DocumentType.
 
 /**
  * The **`DOMImplementation.createHTMLDocument()`** method creates a new HTML Document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMImplementation/createHTMLDocument)
  */
-pub (value: DOMImplementation) create_html_document(title: std.js.String.JsString): Document.
+pub (receiver: DOMImplementation) create_html_document(title: std.core.Option.Option[std.js.String.JsString]): std.js.Dom.Document.Document.

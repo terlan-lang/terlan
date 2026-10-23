@@ -13,5 +13,3 @@
 module std.js.ImportAttributesTest.
 
 import type std.js.ImportAttributes.
-
-pub generated_binding_surface_contract(): Bool -> true.

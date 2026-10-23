@@ -14,7 +14,5 @@ module std.js.Dom.ReadableStreamReadDoneResultTest.
 
 import type std.js.Dom.ReadableStreamReadDoneResult.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub value_typechecks(receiver: ReadableStreamReadDoneResult[T]): Option[T] ->
+pub value_typechecks(receiver: ReadableStreamReadDoneResult[T]): std.core.Option.Option[T] ->
     receiver.value().

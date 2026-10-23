@@ -12,27 +12,8 @@
  */
 module std.js.Dom.XPathEvaluatorBaseTest.
 
+import type std.js.Dom.Node.{Node}.
 import type std.js.Dom.XPathEvaluatorBase.
-import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub create_expression_typechecks(
-    receiver: XPathEvaluatorBase,
-    expression: JsString,
-    resolver: Option[XPathNSResolver],
-): XPathExpression ->
-    receiver.create_expression(expression, resolver).
 
 pub create_ns_resolver_typechecks(receiver: XPathEvaluatorBase, node_resolver: Node): Node ->
     receiver.create_ns_resolver(node_resolver).
-
-pub evaluate_typechecks(
-    receiver: XPathEvaluatorBase,
-    expression: JsString,
-    context_node: Node,
-    resolver: Option[XPathNSResolver],
-    type_: std.js.Number.JsNumber,
-    result: Option[XPathResult],
-): XPathResult ->
-    receiver.evaluate(expression, context_node, resolver, type_, result).

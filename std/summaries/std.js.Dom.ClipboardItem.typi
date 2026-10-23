@@ -22,22 +22,15 @@ module std.js.Dom.ClipboardItem.
 pub opaque type ClipboardItem.
 
 /**
- * The read-only **`presentationStyle`** property of the ClipboardItem interface returns a string indicating how an item should be presented.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem/presentationStyle)
- */
-pub (value: ClipboardItem) presentation_style(): PresentationStyle.
-
-/**
  * The read-only **`types`** property of the ClipboardItem interface returns an Array of MIME type available within the ClipboardItem.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem/types)
  */
-pub (value: ClipboardItem) types(): std.js.Array[std.js.String.JsString].
+pub (receiver: ClipboardItem) types(): std.js.Array.Array[std.js.String.JsString].
 
 /**
  * The **`getType()`** method of the ClipboardItem interface returns a Promise that resolves with a Blob of the requested MIME type or an error if the MIME type is not found.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem/getType)
  */
-pub (value: ClipboardItem) get_type(type_: std.js.String.JsString): std.js.Promise[Blob].
+pub (receiver: ClipboardItem) get_type(type_: std.js.String.JsString): std.js.Promise.Promise[std.js.Dom.Blob.Blob].

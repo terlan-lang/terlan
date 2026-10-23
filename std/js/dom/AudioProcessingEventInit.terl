@@ -12,13 +12,15 @@
  */
 module std.js.Dom.AudioProcessingEventInit.
 
+import type std.js.Dom.AudioBuffer.{AudioBuffer}.
+
 pub opaque type AudioProcessingEventInit.
 
-pub (value: AudioProcessingEventInit) input_buffer(): AudioBuffer ->
+pub (receiver: AudioProcessingEventInit) input_buffer(): AudioBuffer ->
     native.
 
-pub (value: AudioProcessingEventInit) output_buffer(): AudioBuffer ->
+pub (receiver: AudioProcessingEventInit) output_buffer(): AudioBuffer ->
     native.
 
-pub (value: AudioProcessingEventInit) playback_time(): std.js.Number.JsNumber ->
+pub (receiver: AudioProcessingEventInit) playback_time(): std.js.Number.JsNumber ->
     native.

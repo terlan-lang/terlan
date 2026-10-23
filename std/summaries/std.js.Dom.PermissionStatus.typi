@@ -25,15 +25,8 @@ pub opaque type PermissionStatus.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PermissionStatus/name)
  */
-pub (value: PermissionStatus) name(): std.js.String.JsString.
+pub (receiver: PermissionStatus) name(): std.js.String.JsString.
 
-/**
- * The **`state`** read-only property of the This property returns one of `'granted'`, `'denied'`, or `'prompt'`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PermissionStatus/state)
- */
-pub (value: PermissionStatus) state(): PermissionState.
+pub (receiver: PermissionStatus) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: PermissionStatus) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
-
-pub (value: PermissionStatus) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: PermissionStatus) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

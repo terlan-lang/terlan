@@ -26,39 +26,32 @@ pub opaque type PushSubscription.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/endpoint)
  */
-pub (value: PushSubscription) endpoint(): std.js.String.JsString.
+pub (receiver: PushSubscription) endpoint(): std.js.String.JsString.
 
 /**
  * The **`expirationTime`** read-only property of the of the subscription expiration time associated with the push subscription, if there is one, or `null` otherwise.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/expirationTime)
  */
-pub (value: PushSubscription) expiration_time(): Option[EpochTimeStamp].
+pub (receiver: PushSubscription) expiration_time(): std.core.Option.Option[std.js.Dom.EpochTimeStamp.EpochTimeStamp].
 
 /**
  * The **`options`** read-only property of the PushSubscription interface is an object containing the options used to create the subscription.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/options)
  */
-pub (value: PushSubscription) options(): PushSubscriptionOptions.
-
-/**
- * The `getKey()` method of the PushSubscription interface returns an ArrayBuffer representing a client public key, which can then be sent to a server and used in encrypting push message data.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/getKey)
- */
-pub (value: PushSubscription) get_key(name: PushEncryptionKeyName): Option[ArrayBuffer].
+pub (receiver: PushSubscription) options(): std.js.Dom.PushSubscriptionOptions.PushSubscriptionOptions.
 
 /**
  * The `toJSON()` method of the PushSubscription interface is a standard serializer: it returns a JSON representation of the subscription properties, providing a useful shortcut.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/toJSON)
  */
-pub (value: PushSubscription) to_json(): PushSubscriptionJSON.
+pub (receiver: PushSubscription) to_json(): std.js.Dom.PushSubscriptionJSON.PushSubscriptionJSON.
 
 /**
  * The `unsubscribe()` method of the PushSubscription interface returns a Promise that resolves to a boolean value when the current subscription is successfully unsubscribed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscription/unsubscribe)
  */
-pub (value: PushSubscription) unsubscribe(): std.js.Promise[std.core.Bool].
+pub (receiver: PushSubscription) unsubscribe(): std.js.Promise.Promise[Bool].

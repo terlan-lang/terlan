@@ -14,7 +14,5 @@ module std.js.Dom.EventSourceInitTest.
 
 import type std.js.Dom.EventSourceInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub with_credentials_typechecks(receiver: EventSourceInit): std.core.Bool ->
+pub with_credentials_typechecks(receiver: EventSourceInit): std.core.Option.Option[Bool] ->
     receiver.with_credentials().

@@ -15,10 +15,11 @@ module std.js.Dom.StyleSheetListTest.
 import type std.js.Dom.StyleSheetList.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub length_typechecks(receiver: StyleSheetList): JsNumber ->
     receiver.length().
 
-pub item_typechecks(receiver: StyleSheetList, index: JsNumber): Option[CSSStyleSheet] ->
+pub item_typechecks(
+    receiver: StyleSheetList,
+    index: JsNumber,
+): std.core.Option.Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
     receiver.item(index).

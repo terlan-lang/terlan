@@ -26,7 +26,7 @@ pub opaque type SVGPreserveAspectRatio.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPreserveAspectRatio/align)
  */
-pub (value: SVGPreserveAspectRatio) align(): JsNumber ->
+pub (receiver: SVGPreserveAspectRatio) align(): JsNumber ->
     native.
 
 /**
@@ -34,5 +34,5 @@ pub (value: SVGPreserveAspectRatio) align(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPreserveAspectRatio/meetOrSlice)
  */
-pub (value: SVGPreserveAspectRatio) meet_or_slice(): JsNumber ->
+pub (receiver: SVGPreserveAspectRatio) meet_or_slice(): JsNumber ->
     native.

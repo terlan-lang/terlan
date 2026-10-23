@@ -25,64 +25,50 @@ pub opaque type ShadowRoot.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/clonable)
  */
-pub (value: ShadowRoot) clonable(): std.core.Bool.
+pub (receiver: ShadowRoot) clonable(): Bool.
 
 /**
  * The **`delegatesFocus`** read-only property of the ShadowRoot interface returns `true` if the shadow root delegates focus, and `false` otherwise.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/delegatesFocus)
  */
-pub (value: ShadowRoot) delegates_focus(): std.core.Bool.
+pub (receiver: ShadowRoot) delegates_focus(): Bool.
 
 /**
  * The **`host`** read-only property of the ShadowRoot returns a reference to the DOM element the `ShadowRoot` is attached to.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/host)
  */
-pub (value: ShadowRoot) host(): Element.
+pub (receiver: ShadowRoot) host(): std.js.Dom.Element.Element.
 
 /**
  * The **`innerHTML`** property of the ShadowRoot interface sets gets or sets the HTML markup to the DOM tree inside the `ShadowRoot`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/innerHTML)
  */
-pub (value: ShadowRoot) inner_html(): std.js.String.JsString.
-
-/**
- * The **`mode`** read-only property of the ShadowRoot specifies its mode — either `open` or `closed`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/mode)
- */
-pub (value: ShadowRoot) mode(): ShadowRootMode.
+pub (receiver: ShadowRoot) inner_html(): std.js.String.JsString.
 
 /**
  * The **`serializable`** read-only property of the ShadowRoot interface returns `true` if the shadow root is serializable.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/serializable)
  */
-pub (value: ShadowRoot) serializable(): std.core.Bool.
-
-/**
- * The read-only **`slotAssignment`** property of the ShadowRoot interface returns the _slot assignment mode_ for the shadow DOM tree.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/slotAssignment)
- */
-pub (value: ShadowRoot) slot_assignment(): SlotAssignmentMode.
+pub (receiver: ShadowRoot) serializable(): Bool.
 
 /**
  * The **`getHTML()`** method of the ShadowRoot interface is used to serialize a shadow root's DOM to an HTML string.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/getHTML)
  */
-pub (value: ShadowRoot) get_html(options: GetHTMLOptions): std.js.String.JsString.
+pub (receiver: ShadowRoot) get_html(options: std.core.Option.Option[std.js.Dom.GetHTMLOptions.GetHTMLOptions]): std.js.String.JsString.
 
 /**
  * The **`setHTMLUnsafe()`** method of the ShadowRoot interface can be used to parse a string of HTML into a DocumentFragment, optionally filtering out unwanted elements and attributes, and then use it to replace the existing tree in the Shadow DOM.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/setHTMLUnsafe)
  */
-pub (value: ShadowRoot) set_html_unsafe(html_: std.js.String.JsString): std.core.Unit.
+pub (receiver: ShadowRoot) set_html_unsafe(html_: std.js.String.JsString): std.core.Unit.Unit.
 
-pub (value: ShadowRoot) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: ShadowRoot) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: ShadowRoot) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: ShadowRoot) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

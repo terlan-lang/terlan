@@ -16,11 +16,11 @@ import type std.js.String.{JsString}.
 
 pub opaque type Error.
 
-pub (value: Error) name(): JsString ->
+pub (receiver: Error) name(): JsString ->
     native.
 
-pub (value: Error) message(): JsString ->
+pub (receiver: Error) message(): JsString ->
     native.
 
-pub (value: Error) stack(): JsString ->
+pub (receiver: Error) stack(): std.core.Option.Option[JsString] ->
     native.

@@ -12,13 +12,10 @@
  */
 module std.js.Dom.ResponseTest.
 
-import type std.core.{Bool}.
 import type std.js.Dom.Response.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub headers_typechecks(receiver: Response): Headers ->
+pub headers_typechecks(receiver: Response): std.js.Dom.Headers.Headers ->
     receiver.headers().
 
 pub ok_typechecks(receiver: Response): Bool ->
@@ -32,9 +29,6 @@ pub status_typechecks(receiver: Response): std.js.Number.JsNumber ->
 
 pub status_text_typechecks(receiver: Response): JsString ->
     receiver.status_text().
-
-pub type__typechecks(receiver: Response): ResponseType ->
-    receiver.type_().
 
 pub url_typechecks(receiver: Response): JsString ->
     receiver.url().

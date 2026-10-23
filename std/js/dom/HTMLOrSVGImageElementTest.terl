@@ -13,5 +13,3 @@
 module std.js.Dom.HTMLOrSVGImageElementTest.
 
 import type std.js.Dom.HTMLOrSVGImageElement.
-
-pub generated_binding_surface_contract(): Bool -> true.

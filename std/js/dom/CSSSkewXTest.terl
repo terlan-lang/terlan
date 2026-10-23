@@ -14,7 +14,5 @@ module std.js.Dom.CSSSkewXTest.
 
 import type std.js.Dom.CSSSkewX.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub ax_typechecks(receiver: CSSSkewX): CSSNumericValue ->
+pub ax_typechecks(receiver: CSSSkewX): std.js.Dom.CSSNumericValue.CSSNumericValue ->
     receiver.ax().

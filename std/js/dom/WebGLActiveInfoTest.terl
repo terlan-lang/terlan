@@ -14,13 +14,11 @@ module std.js.Dom.WebGLActiveInfoTest.
 
 import type std.js.Dom.WebGLActiveInfo.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub name_typechecks(receiver: WebGLActiveInfo): std.js.String.JsString ->
     receiver.name().
 
-pub size_typechecks(receiver: WebGLActiveInfo): GLint ->
+pub size_typechecks(receiver: WebGLActiveInfo): std.js.Dom.GLint.GLint ->
     receiver.size().
 
-pub type__typechecks(receiver: WebGLActiveInfo): GLenum ->
+pub type__typechecks(receiver: WebGLActiveInfo): std.js.Dom.GLenum.GLenum ->
     receiver.type_().

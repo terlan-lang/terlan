@@ -14,19 +14,10 @@ module std.js.Dom.VideoColorSpaceTest.
 
 import type std.js.Dom.VideoColorSpace.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub full_range_typechecks(receiver: VideoColorSpace): Option[std.core.Bool] ->
+pub full_range_typechecks(receiver: VideoColorSpace): std.core.Option.Option[Bool] ->
     receiver.full_range().
 
-pub matrix_typechecks(receiver: VideoColorSpace): Option[VideoMatrixCoefficients] ->
-    receiver.matrix().
-
-pub primaries_typechecks(receiver: VideoColorSpace): Option[VideoColorPrimaries] ->
-    receiver.primaries().
-
-pub transfer_typechecks(receiver: VideoColorSpace): Option[VideoTransferCharacteristics] ->
-    receiver.transfer().
-
-pub to_json_typechecks(receiver: VideoColorSpace): VideoColorSpaceInit ->
+pub to_json_typechecks(
+    receiver: VideoColorSpace,
+): std.js.Dom.VideoColorSpaceInit.VideoColorSpaceInit ->
     receiver.to_json().

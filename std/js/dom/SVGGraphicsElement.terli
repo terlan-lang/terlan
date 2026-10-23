@@ -12,7 +12,10 @@
  */
 module std.js.Dom.SVGGraphicsElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.DOMMatrix.{DOMMatrix}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,37 +30,39 @@ pub opaque type SVGGraphicsElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement/transform)
  */
-pub (value: SVGGraphicsElement) transform(): SVGAnimatedTransformList.
+pub (receiver: SVGGraphicsElement) transform(): std.js.Dom.SVGAnimatedTransformList.SVGAnimatedTransformList.
 
 /**
  * The **`SVGGraphicsElement.getBBox()`** method allows us to determine the coordinates of the smallest rectangle in which the object fits.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement/getBBox)
  */
-pub (value: SVGGraphicsElement) get_b_box(options: SVGBoundingBoxOptions): DOMRect.
+pub (receiver: SVGGraphicsElement) get_b_box(
+    options: Option[std.js.Dom.SVGBoundingBoxOptions.SVGBoundingBoxOptions],
+): std.js.Dom.DOMRect.DOMRect.
 
 /**
  * The `getCTM()` method of the SVGGraphicsElement interface represents the matrix that transforms the current element's coordinate system to its SVG viewport's coordinate system.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement/getCTM)
  */
-pub (value: SVGGraphicsElement) get_ctm(): Option[DOMMatrix].
+pub (receiver: SVGGraphicsElement) get_ctm(): Option[DOMMatrix].
 
 /**
  * The `getScreenCTM()` method of the SVGGraphicsElement interface represents the matrix that transforms the current element's coordinate system to the coordinate system of the SVG viewport for the SVG document fragment.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGraphicsElement/getScreenCTM)
  */
-pub (value: SVGGraphicsElement) get_screen_ctm(): Option[DOMMatrix].
+pub (receiver: SVGGraphicsElement) get_screen_ctm(): Option[DOMMatrix].
 
-pub (value: SVGGraphicsElement) add_event_listener(
+pub (receiver: SVGGraphicsElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: SVGGraphicsElement) remove_event_listener(
+pub (receiver: SVGGraphicsElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

@@ -12,28 +12,27 @@
  */
 module std.js.Intl.ResolvedCollatorOptions.
 
-import type std.core.{Bool}.
 import type std.js.String.{JsString}.
 
 pub opaque type ResolvedCollatorOptions.
 
-pub (value: ResolvedCollatorOptions) locale(): JsString ->
+pub (receiver: ResolvedCollatorOptions) locale(): JsString ->
     native.
 
-pub (value: ResolvedCollatorOptions) usage(): JsString ->
+pub (receiver: ResolvedCollatorOptions) usage(): JsString ->
     native.
 
-pub (value: ResolvedCollatorOptions) sensitivity(): JsString ->
+pub (receiver: ResolvedCollatorOptions) sensitivity(): JsString ->
     native.
 
-pub (value: ResolvedCollatorOptions) ignore_punctuation(): Bool ->
+pub (receiver: ResolvedCollatorOptions) ignore_punctuation(): Bool ->
     native.
 
-pub (value: ResolvedCollatorOptions) collation(): JsString ->
+pub (receiver: ResolvedCollatorOptions) collation(): JsString ->
     native.
 
-pub (value: ResolvedCollatorOptions) case_first(): JsString ->
+pub (receiver: ResolvedCollatorOptions) case_first(): JsString ->
     native.
 
-pub (value: ResolvedCollatorOptions) numeric(): Bool ->
+pub (receiver: ResolvedCollatorOptions) numeric(): Bool ->
     native.

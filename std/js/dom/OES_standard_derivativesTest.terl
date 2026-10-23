@@ -13,5 +13,3 @@
 module std.js.Dom.OES_standard_derivativesTest.
 
 import type std.js.Dom.OES_standard_derivatives.
-
-pub generated_binding_surface_contract(): Bool -> true.

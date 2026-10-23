@@ -12,12 +12,11 @@
  */
 module std.js.Dom.DeviceOrientationEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.DeviceOrientationEventInit.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub absolute_typechecks(receiver: DeviceOrientationEventInit): std.core.Bool ->
+pub absolute_typechecks(receiver: DeviceOrientationEventInit): Option[Bool] ->
     receiver.absolute().
 
 pub alpha_typechecks(receiver: DeviceOrientationEventInit): Option[JsNumber] ->

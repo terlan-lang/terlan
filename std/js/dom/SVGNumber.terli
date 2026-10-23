@@ -24,4 +24,4 @@ pub opaque type SVGNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumber/value)
  */
-pub (value: SVGNumber) value(): std.js.Number.JsNumber.
+pub (receiver: SVGNumber) value(): std.js.Number.JsNumber.

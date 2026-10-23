@@ -12,12 +12,13 @@
  */
 module std.js.Dom.TransitionEventInit.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type TransitionEventInit.
 
-pub (value: TransitionEventInit) elapsed_time(): std.js.Number.JsNumber.
+pub (receiver: TransitionEventInit) elapsed_time(): Option[std.js.Number.JsNumber].
 
-pub (value: TransitionEventInit) property_name(): JsString.
+pub (receiver: TransitionEventInit) property_name(): Option[JsString].
 
-pub (value: TransitionEventInit) pseudo_element(): JsString.
+pub (receiver: TransitionEventInit) pseudo_element(): Option[JsString].

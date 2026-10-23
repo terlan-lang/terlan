@@ -25,4 +25,4 @@ pub opaque type PageTransitionEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PageTransitionEvent/persisted)
  */
-pub (value: PageTransitionEvent) persisted(): std.core.Bool.
+pub (receiver: PageTransitionEvent) persisted(): Bool.

@@ -12,10 +12,13 @@
  */
 module std.js.Dom.AnimationPlaybackEventInit.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.CSSNumberish.{CSSNumberish}.
+
 pub opaque type AnimationPlaybackEventInit.
 
-pub (value: AnimationPlaybackEventInit) current_time(): Option[CSSNumberish] ->
+pub (receiver: AnimationPlaybackEventInit) current_time(): Option[CSSNumberish] ->
     native.
 
-pub (value: AnimationPlaybackEventInit) timeline_time(): Option[CSSNumberish] ->
+pub (receiver: AnimationPlaybackEventInit) timeline_time(): Option[CSSNumberish] ->
     native.

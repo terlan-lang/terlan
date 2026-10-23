@@ -12,17 +12,17 @@
  */
 module std.js.Dom.DOMImplementationTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.DOMImplementation.
+import type std.js.Dom.DocumentType.{DocumentType}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub create_document_typechecks(
     receiver: DOMImplementation,
     namespace: Option[JsString],
     qualified_name: Option[JsString],
-    doctype: Option[DocumentType],
-): XMLDocument ->
+    doctype: Option[Option[DocumentType]],
+): std.js.Dom.XMLDocument.XMLDocument ->
     receiver.create_document(namespace, qualified_name, doctype).
 
 pub create_document_type_typechecks(
@@ -33,5 +33,8 @@ pub create_document_type_typechecks(
 ): DocumentType ->
     receiver.create_document_type(name, public_id, system_id).
 
-pub create_html_document_typechecks(receiver: DOMImplementation, title: JsString): Document ->
+pub create_html_document_typechecks(
+    receiver: DOMImplementation,
+    title: Option[JsString],
+): std.js.Dom.Document.Document ->
     receiver.create_html_document(title).

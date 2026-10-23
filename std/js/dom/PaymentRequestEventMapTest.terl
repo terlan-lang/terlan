@@ -13,10 +13,11 @@
 module std.js.Dom.PaymentRequestEventMapTest.
 
 import type std.js.Dom.PaymentRequestEventMap.
+import type std.js.Dom.PaymentRequestUpdateEvent.{PaymentRequestUpdateEvent}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub paymentmethodchange_typechecks(receiver: PaymentRequestEventMap): PaymentMethodChangeEvent ->
+pub paymentmethodchange_typechecks(
+    receiver: PaymentRequestEventMap,
+): std.js.Dom.PaymentMethodChangeEvent.PaymentMethodChangeEvent ->
     receiver.paymentmethodchange().
 
 pub shippingaddresschange_typechecks(receiver: PaymentRequestEventMap): PaymentRequestUpdateEvent ->

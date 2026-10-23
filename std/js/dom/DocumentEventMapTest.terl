@@ -13,8 +13,7 @@
 module std.js.Dom.DocumentEventMapTest.
 
 import type std.js.Dom.DocumentEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.Event.{Event}.
 
 pub dom_content_loaded_typechecks(receiver: DocumentEventMap): Event ->
     receiver.dom_content_loaded().

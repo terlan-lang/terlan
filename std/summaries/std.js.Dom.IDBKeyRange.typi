@@ -25,11 +25,11 @@ pub opaque type IDBKeyRange.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBKeyRange/lowerOpen)
  */
-pub (value: IDBKeyRange) lower_open(): std.core.Bool.
+pub (receiver: IDBKeyRange) lower_open(): Bool.
 
 /**
  * The **`upperOpen`** read-only property of the upper-bound value is included in the key range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBKeyRange/upperOpen)
  */
-pub (value: IDBKeyRange) upper_open(): std.core.Bool.
+pub (receiver: IDBKeyRange) upper_open(): Bool.

@@ -15,6 +15,6 @@ module std.js.Dom.CSSViewTransitionRule.
 
 pub opaque type CSSViewTransitionRule.
 
-pub (value: CSSViewTransitionRule) navigation(): std.js.String.JsString.
+pub (receiver: CSSViewTransitionRule) navigation(): std.js.String.JsString.
 
-pub (value: CSSViewTransitionRule) types(): std.js.Array[std.js.String.JsString].
+pub (receiver: CSSViewTransitionRule) types(): std.js.Array.Array[std.js.String.JsString].

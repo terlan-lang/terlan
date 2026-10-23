@@ -19,7 +19,7 @@ module std.js.Dom.ProcessingInstruction.
  */
 pub opaque type ProcessingInstruction.
 
-pub (value: ProcessingInstruction) owner_document(): Document ->
+pub (receiver: ProcessingInstruction) owner_document(): std.js.Dom.Document.Document ->
     native.
 
 /**
@@ -27,5 +27,5 @@ pub (value: ProcessingInstruction) owner_document(): Document ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProcessingInstruction/target)
  */
-pub (value: ProcessingInstruction) target_(): std.js.String.JsString ->
+pub (receiver: ProcessingInstruction) target_(): std.js.String.JsString ->
     native.

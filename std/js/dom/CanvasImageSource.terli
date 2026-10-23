@@ -13,9 +13,9 @@
 module std.js.Dom.CanvasImageSource.
 
 pub type CanvasImageSource =
-      HTMLCanvasElement
-    | HTMLOrSVGImageElement
-    | HTMLVideoElement
-    | ImageBitmap
-    | OffscreenCanvas
-    | VideoFrame.
+      std.js.Dom.HTMLCanvasElement.HTMLCanvasElement
+    | std.js.Dom.HTMLOrSVGImageElement.HTMLOrSVGImageElement
+    | std.js.Dom.HTMLVideoElement.HTMLVideoElement
+    | std.js.Dom.ImageBitmap.ImageBitmap
+    | std.js.Dom.OffscreenCanvas.OffscreenCanvas
+    | std.js.Dom.VideoFrame.VideoFrame.

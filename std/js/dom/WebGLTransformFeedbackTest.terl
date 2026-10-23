@@ -13,5 +13,3 @@
 module std.js.Dom.WebGLTransformFeedbackTest.
 
 import type std.js.Dom.WebGLTransformFeedback.
-
-pub generated_binding_surface_contract(): Bool -> true.

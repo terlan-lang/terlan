@@ -27,7 +27,7 @@ pub opaque type TextEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEvent/data)
  */
-pub (value: TextEvent) data(): std.js.String.JsString.
+pub (receiver: TextEvent) data(): std.js.String.JsString.
 
 /**
  * The **`initTextEventEvent()`** method of the TextEvent interface initializes the value of a `TextEvent` after it has been created.
@@ -35,4 +35,4 @@ pub (value: TextEvent) data(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEvent/initTextEvent)
  */
-pub (value: TextEvent) init_text_event(type_: std.js.String.JsString, bubbles: std.core.Bool, cancelable: std.core.Bool, view: Option[Window], data: std.js.String.JsString): std.core.Unit.
+pub (receiver: TextEvent) init_text_event(type_: std.js.String.JsString, bubbles: std.core.Option.Option[Bool], cancelable: std.core.Option.Option[Bool], view: std.core.Option.Option[std.core.Option.Option[std.js.Dom.Window.Window]], data: std.core.Option.Option[std.js.String.JsString]): std.core.Unit.Unit.

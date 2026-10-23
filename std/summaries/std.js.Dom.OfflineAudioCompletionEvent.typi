@@ -25,4 +25,4 @@ pub opaque type OfflineAudioCompletionEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OfflineAudioCompletionEvent/renderedBuffer)
  */
-pub (value: OfflineAudioCompletionEvent) rendered_buffer(): AudioBuffer.
+pub (receiver: OfflineAudioCompletionEvent) rendered_buffer(): std.js.Dom.AudioBuffer.AudioBuffer.

@@ -12,16 +12,16 @@
  */
 module std.js.Dom.CheckVisibilityOptions.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type CheckVisibilityOptions.
 
-pub (value: CheckVisibilityOptions) check_opacity(): Bool.
+pub (receiver: CheckVisibilityOptions) check_opacity(): Option[Bool].
 
-pub (value: CheckVisibilityOptions) check_visibility_css(): Bool.
+pub (receiver: CheckVisibilityOptions) check_visibility_css(): Option[Bool].
 
-pub (value: CheckVisibilityOptions) content_visibility_auto(): Bool.
+pub (receiver: CheckVisibilityOptions) content_visibility_auto(): Option[Bool].
 
-pub (value: CheckVisibilityOptions) opacity_property(): Bool.
+pub (receiver: CheckVisibilityOptions) opacity_property(): Option[Bool].
 
-pub (value: CheckVisibilityOptions) visibility_property(): Bool.
+pub (receiver: CheckVisibilityOptions) visibility_property(): Option[Bool].

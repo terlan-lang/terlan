@@ -12,9 +12,8 @@
  */
 module std.js.Dom.MediaSourceEventMapTest.
 
+import type std.js.Dom.Event.{Event}.
 import type std.js.Dom.MediaSourceEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub sourceclose_typechecks(receiver: MediaSourceEventMap): Event ->
     receiver.sourceclose().

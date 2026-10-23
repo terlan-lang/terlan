@@ -12,13 +12,13 @@
  */
 module std.js.RegExpTest.
 
-import type std.core.{Bool}.
 import type std.js.RegExp.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub exec_typechecks(receiver: RegExp, string: JsString): Option[RegExpExecArray] ->
+pub exec_typechecks(
+    receiver: RegExp,
+    string: JsString,
+): std.core.Option.Option[std.js.RegExpExecArray.RegExpExecArray] ->
     receiver.exec(string).
 
 pub test_typechecks(receiver: RegExp, string: JsString): Bool ->

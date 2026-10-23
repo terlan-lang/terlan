@@ -12,7 +12,9 @@
  */
 module std.js.Dom.ShadowRoot.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type ShadowRoot.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/clonable)
  */
-pub (value: ShadowRoot) clonable(): Bool ->
+pub (receiver: ShadowRoot) clonable(): Bool ->
     native.
 
 /**
@@ -35,7 +37,7 @@ pub (value: ShadowRoot) clonable(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/delegatesFocus)
  */
-pub (value: ShadowRoot) delegates_focus(): Bool ->
+pub (receiver: ShadowRoot) delegates_focus(): Bool ->
     native.
 
 /**
@@ -43,7 +45,7 @@ pub (value: ShadowRoot) delegates_focus(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/host)
  */
-pub (value: ShadowRoot) host(): Element ->
+pub (receiver: ShadowRoot) host(): std.js.Dom.Element.Element ->
     native.
 
 /**
@@ -51,15 +53,7 @@ pub (value: ShadowRoot) host(): Element ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/innerHTML)
  */
-pub (value: ShadowRoot) inner_html(): JsString ->
-    native.
-
-/**
- * The **`mode`** read-only property of the ShadowRoot specifies its mode — either `open` or `closed`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/mode)
- */
-pub (value: ShadowRoot) mode(): ShadowRootMode ->
+pub (receiver: ShadowRoot) inner_html(): JsString ->
     native.
 
 /**
@@ -67,15 +61,7 @@ pub (value: ShadowRoot) mode(): ShadowRootMode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/serializable)
  */
-pub (value: ShadowRoot) serializable(): Bool ->
-    native.
-
-/**
- * The read-only **`slotAssignment`** property of the ShadowRoot interface returns the _slot assignment mode_ for the shadow DOM tree.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/slotAssignment)
- */
-pub (value: ShadowRoot) slot_assignment(): SlotAssignmentMode ->
+pub (receiver: ShadowRoot) serializable(): Bool ->
     native.
 
 /**
@@ -83,7 +69,7 @@ pub (value: ShadowRoot) slot_assignment(): SlotAssignmentMode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/getHTML)
  */
-pub (value: ShadowRoot) get_html(options: GetHTMLOptions): JsString ->
+pub (receiver: ShadowRoot) get_html(options: Option[std.js.Dom.GetHTMLOptions.GetHTMLOptions]): JsString ->
     native.
 
 /**
@@ -91,19 +77,19 @@ pub (value: ShadowRoot) get_html(options: GetHTMLOptions): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/setHTMLUnsafe)
  */
-pub (value: ShadowRoot) set_html_unsafe(html_: JsString): Unit ->
+pub (receiver: ShadowRoot) set_html_unsafe(html_: JsString): Unit ->
     native.
 
-pub (value: ShadowRoot) add_event_listener(
+pub (receiver: ShadowRoot) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: ShadowRoot) remove_event_listener(
+pub (receiver: ShadowRoot) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

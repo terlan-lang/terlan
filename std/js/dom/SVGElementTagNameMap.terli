@@ -14,128 +14,128 @@ module std.js.Dom.SVGElementTagNameMap.
 
 pub opaque type SVGElementTagNameMap.
 
-pub (value: SVGElementTagNameMap) a(): SVGAElement.
+pub (receiver: SVGElementTagNameMap) a(): std.js.Dom.SVGAElement.SVGAElement.
 
-pub (value: SVGElementTagNameMap) animate(): SVGAnimateElement.
+pub (receiver: SVGElementTagNameMap) animate(): std.js.Dom.SVGAnimateElement.SVGAnimateElement.
 
-pub (value: SVGElementTagNameMap) animate_motion(): SVGAnimateMotionElement.
+pub (receiver: SVGElementTagNameMap) animate_motion(): std.js.Dom.SVGAnimateMotionElement.SVGAnimateMotionElement.
 
-pub (value: SVGElementTagNameMap) animate_transform(): SVGAnimateTransformElement.
+pub (receiver: SVGElementTagNameMap) animate_transform(): std.js.Dom.SVGAnimateTransformElement.SVGAnimateTransformElement.
 
-pub (value: SVGElementTagNameMap) circle(): SVGCircleElement.
+pub (receiver: SVGElementTagNameMap) circle(): std.js.Dom.SVGCircleElement.SVGCircleElement.
 
-pub (value: SVGElementTagNameMap) clip_path(): SVGClipPathElement.
+pub (receiver: SVGElementTagNameMap) clip_path(): std.js.Dom.SVGClipPathElement.SVGClipPathElement.
 
-pub (value: SVGElementTagNameMap) defs(): SVGDefsElement.
+pub (receiver: SVGElementTagNameMap) defs(): std.js.Dom.SVGDefsElement.SVGDefsElement.
 
-pub (value: SVGElementTagNameMap) desc(): SVGDescElement.
+pub (receiver: SVGElementTagNameMap) desc(): std.js.Dom.SVGDescElement.SVGDescElement.
 
-pub (value: SVGElementTagNameMap) ellipse(): SVGEllipseElement.
+pub (receiver: SVGElementTagNameMap) ellipse(): std.js.Dom.SVGEllipseElement.SVGEllipseElement.
 
-pub (value: SVGElementTagNameMap) fe_blend(): SVGFEBlendElement.
+pub (receiver: SVGElementTagNameMap) fe_blend(): std.js.Dom.SVGFEBlendElement.SVGFEBlendElement.
 
-pub (value: SVGElementTagNameMap) fe_color_matrix(): SVGFEColorMatrixElement.
+pub (receiver: SVGElementTagNameMap) fe_color_matrix(): std.js.Dom.SVGFEColorMatrixElement.SVGFEColorMatrixElement.
 
-pub (value: SVGElementTagNameMap) fe_component_transfer(): SVGFEComponentTransferElement.
+pub (receiver: SVGElementTagNameMap) fe_component_transfer(): std.js.Dom.SVGFEComponentTransferElement.SVGFEComponentTransferElement.
 
-pub (value: SVGElementTagNameMap) fe_composite(): SVGFECompositeElement.
+pub (receiver: SVGElementTagNameMap) fe_composite(): std.js.Dom.SVGFECompositeElement.SVGFECompositeElement.
 
-pub (value: SVGElementTagNameMap) fe_convolve_matrix(): SVGFEConvolveMatrixElement.
+pub (receiver: SVGElementTagNameMap) fe_convolve_matrix(): std.js.Dom.SVGFEConvolveMatrixElement.SVGFEConvolveMatrixElement.
 
-pub (value: SVGElementTagNameMap) fe_diffuse_lighting(): SVGFEDiffuseLightingElement.
+pub (receiver: SVGElementTagNameMap) fe_diffuse_lighting(): std.js.Dom.SVGFEDiffuseLightingElement.SVGFEDiffuseLightingElement.
 
-pub (value: SVGElementTagNameMap) fe_displacement_map(): SVGFEDisplacementMapElement.
+pub (receiver: SVGElementTagNameMap) fe_displacement_map(): std.js.Dom.SVGFEDisplacementMapElement.SVGFEDisplacementMapElement.
 
-pub (value: SVGElementTagNameMap) fe_distant_light(): SVGFEDistantLightElement.
+pub (receiver: SVGElementTagNameMap) fe_distant_light(): std.js.Dom.SVGFEDistantLightElement.SVGFEDistantLightElement.
 
-pub (value: SVGElementTagNameMap) fe_drop_shadow(): SVGFEDropShadowElement.
+pub (receiver: SVGElementTagNameMap) fe_drop_shadow(): std.js.Dom.SVGFEDropShadowElement.SVGFEDropShadowElement.
 
-pub (value: SVGElementTagNameMap) fe_flood(): SVGFEFloodElement.
+pub (receiver: SVGElementTagNameMap) fe_flood(): std.js.Dom.SVGFEFloodElement.SVGFEFloodElement.
 
-pub (value: SVGElementTagNameMap) fe_func_a(): SVGFEFuncAElement.
+pub (receiver: SVGElementTagNameMap) fe_func_a(): std.js.Dom.SVGFEFuncAElement.SVGFEFuncAElement.
 
-pub (value: SVGElementTagNameMap) fe_func_b(): SVGFEFuncBElement.
+pub (receiver: SVGElementTagNameMap) fe_func_b(): std.js.Dom.SVGFEFuncBElement.SVGFEFuncBElement.
 
-pub (value: SVGElementTagNameMap) fe_func_g(): SVGFEFuncGElement.
+pub (receiver: SVGElementTagNameMap) fe_func_g(): std.js.Dom.SVGFEFuncGElement.SVGFEFuncGElement.
 
-pub (value: SVGElementTagNameMap) fe_func_r(): SVGFEFuncRElement.
+pub (receiver: SVGElementTagNameMap) fe_func_r(): std.js.Dom.SVGFEFuncRElement.SVGFEFuncRElement.
 
-pub (value: SVGElementTagNameMap) fe_gaussian_blur(): SVGFEGaussianBlurElement.
+pub (receiver: SVGElementTagNameMap) fe_gaussian_blur(): std.js.Dom.SVGFEGaussianBlurElement.SVGFEGaussianBlurElement.
 
-pub (value: SVGElementTagNameMap) fe_image(): SVGFEImageElement.
+pub (receiver: SVGElementTagNameMap) fe_image(): std.js.Dom.SVGFEImageElement.SVGFEImageElement.
 
-pub (value: SVGElementTagNameMap) fe_merge(): SVGFEMergeElement.
+pub (receiver: SVGElementTagNameMap) fe_merge(): std.js.Dom.SVGFEMergeElement.SVGFEMergeElement.
 
-pub (value: SVGElementTagNameMap) fe_merge_node(): SVGFEMergeNodeElement.
+pub (receiver: SVGElementTagNameMap) fe_merge_node(): std.js.Dom.SVGFEMergeNodeElement.SVGFEMergeNodeElement.
 
-pub (value: SVGElementTagNameMap) fe_morphology(): SVGFEMorphologyElement.
+pub (receiver: SVGElementTagNameMap) fe_morphology(): std.js.Dom.SVGFEMorphologyElement.SVGFEMorphologyElement.
 
-pub (value: SVGElementTagNameMap) fe_offset(): SVGFEOffsetElement.
+pub (receiver: SVGElementTagNameMap) fe_offset(): std.js.Dom.SVGFEOffsetElement.SVGFEOffsetElement.
 
-pub (value: SVGElementTagNameMap) fe_point_light(): SVGFEPointLightElement.
+pub (receiver: SVGElementTagNameMap) fe_point_light(): std.js.Dom.SVGFEPointLightElement.SVGFEPointLightElement.
 
-pub (value: SVGElementTagNameMap) fe_specular_lighting(): SVGFESpecularLightingElement.
+pub (receiver: SVGElementTagNameMap) fe_specular_lighting(): std.js.Dom.SVGFESpecularLightingElement.SVGFESpecularLightingElement.
 
-pub (value: SVGElementTagNameMap) fe_spot_light(): SVGFESpotLightElement.
+pub (receiver: SVGElementTagNameMap) fe_spot_light(): std.js.Dom.SVGFESpotLightElement.SVGFESpotLightElement.
 
-pub (value: SVGElementTagNameMap) fe_tile(): SVGFETileElement.
+pub (receiver: SVGElementTagNameMap) fe_tile(): std.js.Dom.SVGFETileElement.SVGFETileElement.
 
-pub (value: SVGElementTagNameMap) fe_turbulence(): SVGFETurbulenceElement.
+pub (receiver: SVGElementTagNameMap) fe_turbulence(): std.js.Dom.SVGFETurbulenceElement.SVGFETurbulenceElement.
 
-pub (value: SVGElementTagNameMap) filter(): SVGFilterElement.
+pub (receiver: SVGElementTagNameMap) filter(): std.js.Dom.SVGFilterElement.SVGFilterElement.
 
-pub (value: SVGElementTagNameMap) foreign_object(): SVGForeignObjectElement.
+pub (receiver: SVGElementTagNameMap) foreign_object(): std.js.Dom.SVGForeignObjectElement.SVGForeignObjectElement.
 
-pub (value: SVGElementTagNameMap) g(): SVGGElement.
+pub (receiver: SVGElementTagNameMap) g(): std.js.Dom.SVGGElement.SVGGElement.
 
-pub (value: SVGElementTagNameMap) image(): SVGImageElement.
+pub (receiver: SVGElementTagNameMap) image(): std.js.Dom.SVGImageElement.SVGImageElement.
 
-pub (value: SVGElementTagNameMap) line(): SVGLineElement.
+pub (receiver: SVGElementTagNameMap) line(): std.js.Dom.SVGLineElement.SVGLineElement.
 
-pub (value: SVGElementTagNameMap) linear_gradient(): SVGLinearGradientElement.
+pub (receiver: SVGElementTagNameMap) linear_gradient(): std.js.Dom.SVGLinearGradientElement.SVGLinearGradientElement.
 
-pub (value: SVGElementTagNameMap) marker(): SVGMarkerElement.
+pub (receiver: SVGElementTagNameMap) marker(): std.js.Dom.SVGMarkerElement.SVGMarkerElement.
 
-pub (value: SVGElementTagNameMap) mask(): SVGMaskElement.
+pub (receiver: SVGElementTagNameMap) mask(): std.js.Dom.SVGMaskElement.SVGMaskElement.
 
-pub (value: SVGElementTagNameMap) metadata(): SVGMetadataElement.
+pub (receiver: SVGElementTagNameMap) metadata(): std.js.Dom.SVGMetadataElement.SVGMetadataElement.
 
-pub (value: SVGElementTagNameMap) mpath(): SVGMPathElement.
+pub (receiver: SVGElementTagNameMap) mpath(): std.js.Dom.SVGMPathElement.SVGMPathElement.
 
-pub (value: SVGElementTagNameMap) path(): SVGPathElement.
+pub (receiver: SVGElementTagNameMap) path(): std.js.Dom.SVGPathElement.SVGPathElement.
 
-pub (value: SVGElementTagNameMap) pattern(): SVGPatternElement.
+pub (receiver: SVGElementTagNameMap) pattern(): std.js.Dom.SVGPatternElement.SVGPatternElement.
 
-pub (value: SVGElementTagNameMap) polygon(): SVGPolygonElement.
+pub (receiver: SVGElementTagNameMap) polygon(): std.js.Dom.SVGPolygonElement.SVGPolygonElement.
 
-pub (value: SVGElementTagNameMap) polyline(): SVGPolylineElement.
+pub (receiver: SVGElementTagNameMap) polyline(): std.js.Dom.SVGPolylineElement.SVGPolylineElement.
 
-pub (value: SVGElementTagNameMap) radial_gradient(): SVGRadialGradientElement.
+pub (receiver: SVGElementTagNameMap) radial_gradient(): std.js.Dom.SVGRadialGradientElement.SVGRadialGradientElement.
 
-pub (value: SVGElementTagNameMap) rect(): SVGRectElement.
+pub (receiver: SVGElementTagNameMap) rect(): std.js.Dom.SVGRectElement.SVGRectElement.
 
-pub (value: SVGElementTagNameMap) script(): SVGScriptElement.
+pub (receiver: SVGElementTagNameMap) script(): std.js.Dom.SVGScriptElement.SVGScriptElement.
 
-pub (value: SVGElementTagNameMap) set(): SVGSetElement.
+pub (receiver: SVGElementTagNameMap) set(): std.js.Dom.SVGSetElement.SVGSetElement.
 
-pub (value: SVGElementTagNameMap) stop(): SVGStopElement.
+pub (receiver: SVGElementTagNameMap) stop(): std.js.Dom.SVGStopElement.SVGStopElement.
 
-pub (value: SVGElementTagNameMap) style(): SVGStyleElement.
+pub (receiver: SVGElementTagNameMap) style(): std.js.Dom.SVGStyleElement.SVGStyleElement.
 
-pub (value: SVGElementTagNameMap) svg(): SVGSVGElement.
+pub (receiver: SVGElementTagNameMap) svg(): std.js.Dom.SVGSVGElement.SVGSVGElement.
 
-pub (value: SVGElementTagNameMap) switch(): SVGSwitchElement.
+pub (receiver: SVGElementTagNameMap) switch(): std.js.Dom.SVGSwitchElement.SVGSwitchElement.
 
-pub (value: SVGElementTagNameMap) symbol(): SVGSymbolElement.
+pub (receiver: SVGElementTagNameMap) symbol(): std.js.Dom.SVGSymbolElement.SVGSymbolElement.
 
-pub (value: SVGElementTagNameMap) text(): SVGTextElement.
+pub (receiver: SVGElementTagNameMap) text(): std.js.Dom.SVGTextElement.SVGTextElement.
 
-pub (value: SVGElementTagNameMap) text_path(): SVGTextPathElement.
+pub (receiver: SVGElementTagNameMap) text_path(): std.js.Dom.SVGTextPathElement.SVGTextPathElement.
 
-pub (value: SVGElementTagNameMap) title(): SVGTitleElement.
+pub (receiver: SVGElementTagNameMap) title(): std.js.Dom.SVGTitleElement.SVGTitleElement.
 
-pub (value: SVGElementTagNameMap) tspan(): SVGTSpanElement.
+pub (receiver: SVGElementTagNameMap) tspan(): std.js.Dom.SVGTSpanElement.SVGTSpanElement.
 
-pub (value: SVGElementTagNameMap) use(): SVGUseElement.
+pub (receiver: SVGElementTagNameMap) use(): std.js.Dom.SVGUseElement.SVGUseElement.
 
-pub (value: SVGElementTagNameMap) view(): SVGViewElement.
+pub (receiver: SVGElementTagNameMap) view(): std.js.Dom.SVGViewElement.SVGViewElement.

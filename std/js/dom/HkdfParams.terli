@@ -12,10 +12,12 @@
  */
 module std.js.Dom.HkdfParams.
 
+import type std.js.Dom.BufferSource.{BufferSource}.
+
 pub opaque type HkdfParams.
 
-pub (value: HkdfParams) hash(): HashAlgorithmIdentifier.
+pub (receiver: HkdfParams) hash(): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier.
 
-pub (value: HkdfParams) info(): BufferSource.
+pub (receiver: HkdfParams) info(): BufferSource.
 
-pub (value: HkdfParams) salt(): BufferSource.
+pub (receiver: HkdfParams) salt(): BufferSource.

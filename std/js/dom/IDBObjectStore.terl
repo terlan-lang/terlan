@@ -12,9 +12,14 @@
  */
 module std.js.Dom.IDBObjectStore.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.IDBIndex.{IDBIndex}.
+import type std.js.Dom.IDBKeyRange.{IDBKeyRange}.
+import type std.js.Dom.IDBRequest.{IDBRequest}.
+import type std.js.Dom.IDBValidKey.{IDBValidKey}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
 /**
  * The **`IDBObjectStore`** interface of the IndexedDB API represents an object store in a database.
@@ -28,7 +33,7 @@ pub opaque type IDBObjectStore.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/autoIncrement)
  */
-pub (value: IDBObjectStore) auto_increment(): std.core.Bool ->
+pub (receiver: IDBObjectStore) auto_increment(): Bool ->
     native.
 
 /**
@@ -36,7 +41,7 @@ pub (value: IDBObjectStore) auto_increment(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/indexNames)
  */
-pub (value: IDBObjectStore) index_names(): DOMStringList ->
+pub (receiver: IDBObjectStore) index_names(): std.js.Dom.DOMStringList.DOMStringList ->
     native.
 
 /**
@@ -44,7 +49,7 @@ pub (value: IDBObjectStore) index_names(): DOMStringList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/keyPath)
  */
-pub (value: IDBObjectStore) key_path(): Option[Array[JsString] | JsString] ->
+pub (receiver: IDBObjectStore) key_path(): Option[Array[JsString] | JsString] ->
     native.
 
 /**
@@ -52,7 +57,7 @@ pub (value: IDBObjectStore) key_path(): Option[Array[JsString] | JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/name)
  */
-pub (value: IDBObjectStore) name(): JsString ->
+pub (receiver: IDBObjectStore) name(): JsString ->
     native.
 
 /**
@@ -60,7 +65,7 @@ pub (value: IDBObjectStore) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/transaction)
  */
-pub (value: IDBObjectStore) transaction(): IDBTransaction ->
+pub (receiver: IDBObjectStore) transaction(): std.js.Dom.IDBTransaction.IDBTransaction ->
     native.
 
 /**
@@ -68,7 +73,7 @@ pub (value: IDBObjectStore) transaction(): IDBTransaction ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/count)
  */
-pub (value: IDBObjectStore) count(query: IDBKeyRange | IDBValidKey): IDBRequest[JsNumber] ->
+pub (receiver: IDBObjectStore) count(query: Option[IDBKeyRange | IDBValidKey]): IDBRequest[JsNumber] ->
     native.
 
 /**
@@ -76,10 +81,10 @@ pub (value: IDBObjectStore) count(query: IDBKeyRange | IDBValidKey): IDBRequest[
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/createIndex)
  */
-pub (value: IDBObjectStore) create_index(
+pub (receiver: IDBObjectStore) create_index(
     name: JsString,
     key_path: Array[JsString] | JsString,
-    options: IDBIndexParameters,
+    options: Option[std.js.Dom.IDBIndexParameters.IDBIndexParameters],
 ): IDBIndex ->
     native.
 
@@ -88,7 +93,7 @@ pub (value: IDBObjectStore) create_index(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/deleteIndex)
  */
-pub (value: IDBObjectStore) delete_index(name: JsString): std.core.Unit ->
+pub (receiver: IDBObjectStore) delete_index(name: JsString): std.core.Unit.Unit ->
     native.
 
 /**
@@ -96,9 +101,9 @@ pub (value: IDBObjectStore) delete_index(name: JsString): std.core.Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/getAllKeys)
  */
-pub (value: IDBObjectStore) get_all_keys(
-    query: Option[IDBKeyRange | IDBValidKey],
-    count: JsNumber,
+pub (receiver: IDBObjectStore) get_all_keys(
+    query: Option[Option[IDBKeyRange | IDBValidKey]],
+    count: Option[JsNumber],
 ): IDBRequest[Array[IDBValidKey]] ->
     native.
 
@@ -107,7 +112,7 @@ pub (value: IDBObjectStore) get_all_keys(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/getKey)
  */
-pub (value: IDBObjectStore) get_key(query: IDBKeyRange | IDBValidKey): IDBRequest[Option[IDBValidKey]] ->
+pub (receiver: IDBObjectStore) get_key(query: IDBKeyRange | IDBValidKey): IDBRequest[Option[IDBValidKey]] ->
     native.
 
 /**
@@ -115,27 +120,5 @@ pub (value: IDBObjectStore) get_key(query: IDBKeyRange | IDBValidKey): IDBReques
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/index)
  */
-pub (value: IDBObjectStore) index(name: JsString): IDBIndex ->
-    native.
-
-/**
- * The **`openCursor()`** method of the and, in a separate thread, returns a new IDBCursorWithValue object.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/openCursor)
- */
-pub (value: IDBObjectStore) open_cursor(
-    query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection,
-): IDBRequest[Option[IDBCursorWithValue]] ->
-    native.
-
-/**
- * The **`openKeyCursor()`** method of the whose result will be set to an IDBCursor that can be used to iterate through matching results.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/openKeyCursor)
- */
-pub (value: IDBObjectStore) open_key_cursor(
-    query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection,
-): IDBRequest[Option[IDBCursor]] ->
+pub (receiver: IDBObjectStore) index(name: JsString): IDBIndex ->
     native.

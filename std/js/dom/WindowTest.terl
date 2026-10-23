@@ -12,12 +12,17 @@
  */
 module std.js.Dom.WindowTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.BarProp.{BarProp}.
+import type std.js.Dom.Element.{Element}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.Navigator.{Navigator}.
+import type std.js.Dom.ScrollToOptions.{ScrollToOptions}.
 import type std.js.Dom.Window.
+import type std.js.Dom.WindowProxy.{WindowProxy}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub client_information_typechecks(receiver: Window): Navigator ->
     receiver.client_information().
@@ -25,22 +30,24 @@ pub client_information_typechecks(receiver: Window): Navigator ->
 pub closed_typechecks(receiver: Window): Bool ->
     receiver.closed().
 
-pub cookie_store_typechecks(receiver: Window): CookieStore ->
+pub cookie_store_typechecks(receiver: Window): std.js.Dom.CookieStore.CookieStore ->
     receiver.cookie_store().
 
-pub custom_elements_typechecks(receiver: Window): CustomElementRegistry ->
+pub custom_elements_typechecks(
+    receiver: Window,
+): std.js.Dom.CustomElementRegistry.CustomElementRegistry ->
     receiver.custom_elements().
 
 pub device_pixel_ratio_typechecks(receiver: Window): JsNumber ->
     receiver.device_pixel_ratio().
 
-pub document_typechecks(receiver: Window): Document ->
+pub document_typechecks(receiver: Window): std.js.Dom.Document.Document ->
     receiver.document().
 
-pub event_typechecks(receiver: Window): Option[Event] ->
+pub event_typechecks(receiver: Window): Option[std.js.Dom.Event.Event] ->
     receiver.event().
 
-pub external_typechecks(receiver: Window): External ->
+pub external_typechecks(receiver: Window): std.js.Dom.External.External ->
     receiver.external().
 
 pub frame_element_typechecks(receiver: Window): Option[Element] ->
@@ -49,7 +56,7 @@ pub frame_element_typechecks(receiver: Window): Option[Element] ->
 pub frames_typechecks(receiver: Window): WindowProxy ->
     receiver.frames().
 
-pub history_typechecks(receiver: Window): History ->
+pub history_typechecks(receiver: Window): std.js.Dom.History.History ->
     receiver.history().
 
 pub inner_height_typechecks(receiver: Window): JsNumber ->
@@ -61,7 +68,7 @@ pub inner_width_typechecks(receiver: Window): JsNumber ->
 pub length_typechecks(receiver: Window): JsNumber ->
     receiver.length().
 
-pub location_typechecks(receiver: Window): Location ->
+pub location_typechecks(receiver: Window): std.js.Dom.Location.Location ->
     receiver.location().
 
 pub locationbar_typechecks(receiver: Window): BarProp ->
@@ -100,7 +107,7 @@ pub parent_typechecks(receiver: Window): WindowProxy ->
 pub personalbar_typechecks(receiver: Window): BarProp ->
     receiver.personalbar().
 
-pub screen_typechecks(receiver: Window): Screen ->
+pub screen_typechecks(receiver: Window): std.js.Dom.Screen.Screen ->
     receiver.screen().
 
 pub screen_left_typechecks(receiver: Window): JsNumber ->
@@ -124,7 +131,7 @@ pub scroll_y_typechecks(receiver: Window): JsNumber ->
 pub scrollbars_typechecks(receiver: Window): BarProp ->
     receiver.scrollbars().
 
-pub speech_synthesis_typechecks(receiver: Window): SpeechSynthesis ->
+pub speech_synthesis_typechecks(receiver: Window): std.js.Dom.SpeechSynthesis.SpeechSynthesis ->
     receiver.speech_synthesis().
 
 pub status_typechecks(receiver: Window): JsString ->
@@ -139,7 +146,7 @@ pub toolbar_typechecks(receiver: Window): BarProp ->
 pub top_typechecks(receiver: Window): Option[WindowProxy] ->
     receiver.top().
 
-pub visual_viewport_typechecks(receiver: Window): Option[VisualViewport] ->
+pub visual_viewport_typechecks(receiver: Window): Option[std.js.Dom.VisualViewport.VisualViewport] ->
     receiver.visual_viewport().
 
 pub blur_typechecks(receiver: Window): Unit ->
@@ -154,7 +161,7 @@ pub capture_events_typechecks(receiver: Window): Unit ->
 pub close_typechecks(receiver: Window): Unit ->
     receiver.close().
 
-pub confirm_typechecks(receiver: Window, message: JsString): Bool ->
+pub confirm_typechecks(receiver: Window, message: Option[JsString]): Bool ->
     receiver.confirm(message).
 
 pub focus_typechecks(receiver: Window): Unit ->
@@ -163,14 +170,17 @@ pub focus_typechecks(receiver: Window): Unit ->
 pub get_computed_style_typechecks(
     receiver: Window,
     elt: Element,
-    pseudo_elt: Option[JsString],
-): CSSStyleDeclaration ->
+    pseudo_elt: Option[Option[JsString]],
+): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration ->
     receiver.get_computed_style(elt, pseudo_elt).
 
-pub get_selection_typechecks(receiver: Window): Option[Selection] ->
+pub get_selection_typechecks(receiver: Window): Option[std.js.Dom.Selection.Selection] ->
     receiver.get_selection().
 
-pub match_media_typechecks(receiver: Window, query: JsString): MediaQueryList ->
+pub match_media_typechecks(
+    receiver: Window,
+    query: JsString,
+): std.js.Dom.MediaQueryList.MediaQueryList ->
     receiver.match_media(query).
 
 pub move_by_typechecks(receiver: Window, x: JsNumber, y: JsNumber): Unit ->
@@ -181,16 +191,20 @@ pub move_to_typechecks(receiver: Window, x: JsNumber, y: JsNumber): Unit ->
 
 pub open_typechecks(
     receiver: Window,
-    url: URL | JsString,
-    target_: JsString,
-    features: JsString,
+    url: Option[std.js.Dom.URL.URL | JsString],
+    target_: Option[JsString],
+    features: Option[JsString],
 ): Option[WindowProxy] ->
     receiver.open(url, target_, features).
 
 pub print_typechecks(receiver: Window): Unit ->
     receiver.print().
 
-pub prompt_typechecks(receiver: Window, message: JsString, default: JsString): Option[JsString] ->
+pub prompt_typechecks(
+    receiver: Window,
+    message: Option[JsString],
+    default: Option[JsString],
+): Option[JsString] ->
     receiver.prompt(message, default).
 
 pub release_events_typechecks(receiver: Window): Unit ->
@@ -198,8 +212,8 @@ pub release_events_typechecks(receiver: Window): Unit ->
 
 pub request_idle_callback_typechecks(
     receiver: Window,
-    callback: IdleRequestCallback,
-    options: IdleRequestOptions,
+    callback: std.js.Dom.IdleRequestCallback.IdleRequestCallback,
+    options: Option[std.js.Dom.IdleRequestOptions.IdleRequestOptions],
 ): JsNumber ->
     receiver.request_idle_callback(callback, options).
 
@@ -209,23 +223,23 @@ pub resize_by_typechecks(receiver: Window, x: JsNumber, y: JsNumber): Unit ->
 pub resize_to_typechecks(receiver: Window, width: JsNumber, height: JsNumber): Unit ->
     receiver.resize_to(width, height).
 
-pub scroll_typechecks(receiver: Window, options: ScrollToOptions): Unit ->
+pub scroll_typechecks(receiver: Window, options: Option[ScrollToOptions]): Unit ->
     receiver.scroll(options).
 
-pub scroll_typechecks(receiver: Window, x: JsNumber, y: JsNumber): Unit ->
-    receiver.scroll(x, y).
+pub scroll_overload_2_typechecks(receiver: Window, x: JsNumber, y: JsNumber): Unit ->
+    receiver.scroll_overload_2(x, y).
 
-pub scroll_by_typechecks(receiver: Window, options: ScrollToOptions): Unit ->
+pub scroll_by_typechecks(receiver: Window, options: Option[ScrollToOptions]): Unit ->
     receiver.scroll_by(options).
 
-pub scroll_by_typechecks(receiver: Window, x: JsNumber, y: JsNumber): Unit ->
-    receiver.scroll_by(x, y).
+pub scroll_by_overload_2_typechecks(receiver: Window, x: JsNumber, y: JsNumber): Unit ->
+    receiver.scroll_by_overload_2(x, y).
 
-pub scroll_to_typechecks(receiver: Window, options: ScrollToOptions): Unit ->
+pub scroll_to_typechecks(receiver: Window, options: Option[ScrollToOptions]): Unit ->
     receiver.scroll_to(options).
 
-pub scroll_to_typechecks(receiver: Window, x: JsNumber, y: JsNumber): Unit ->
-    receiver.scroll_to(x, y).
+pub scroll_to_overload_2_typechecks(receiver: Window, x: JsNumber, y: JsNumber): Unit ->
+    receiver.scroll_to_overload_2(x, y).
 
 pub stop_typechecks(receiver: Window): Unit ->
     receiver.stop().
@@ -234,7 +248,7 @@ pub add_event_listener_typechecks(
     receiver: Window,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -242,6 +256,6 @@ pub remove_event_listener_typechecks(
     receiver: Window,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

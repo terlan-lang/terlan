@@ -14,8 +14,8 @@ module std.js.Dom.BlobEventInit.
 
 pub opaque type BlobEventInit.
 
-pub (value: BlobEventInit) data(): Blob ->
+pub (receiver: BlobEventInit) data(): std.js.Dom.Blob.Blob ->
     native.
 
-pub (value: BlobEventInit) timecode(): DOMHighResTimeStamp ->
+pub (receiver: BlobEventInit) timecode(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp] ->
     native.

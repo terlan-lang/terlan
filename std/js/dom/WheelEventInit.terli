@@ -12,14 +12,15 @@
  */
 module std.js.Dom.WheelEventInit.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type WheelEventInit.
 
-pub (value: WheelEventInit) delta_mode(): JsNumber.
+pub (receiver: WheelEventInit) delta_mode(): Option[JsNumber].
 
-pub (value: WheelEventInit) delta_x(): JsNumber.
+pub (receiver: WheelEventInit) delta_x(): Option[JsNumber].
 
-pub (value: WheelEventInit) delta_y(): JsNumber.
+pub (receiver: WheelEventInit) delta_y(): Option[JsNumber].
 
-pub (value: WheelEventInit) delta_z(): JsNumber.
+pub (receiver: WheelEventInit) delta_z(): Option[JsNumber].

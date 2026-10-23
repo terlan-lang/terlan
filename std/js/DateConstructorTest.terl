@@ -12,12 +12,11 @@
  */
 module std.js.DateConstructorTest.
 
+import type std.core.Option.{Option}.
 import type std.js.DateConstructor.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: DateConstructor): Date ->
+pub prototype_typechecks(receiver: DateConstructor): std.js.Date.Date ->
     receiver.prototype().
 
 pub parse_typechecks(receiver: DateConstructor, s: std.js.String.JsString): JsNumber ->
@@ -27,11 +26,11 @@ pub utc_typechecks(
     receiver: DateConstructor,
     year: JsNumber,
     month_index: JsNumber,
-    date: JsNumber,
-    hours: JsNumber,
-    minutes: JsNumber,
-    seconds: JsNumber,
-    ms: JsNumber,
+    date: Option[JsNumber],
+    hours: Option[JsNumber],
+    minutes: Option[JsNumber],
+    seconds: Option[JsNumber],
+    ms: Option[JsNumber],
 ): JsNumber ->
     receiver.utc(year, month_index, date, hours, minutes, seconds, ms).
 

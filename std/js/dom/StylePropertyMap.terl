@@ -12,7 +12,9 @@
  */
 module std.js.Dom.StylePropertyMap.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.CSSStyleValue.{CSSStyleValue}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type StylePropertyMap.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StylePropertyMap/append)
  */
-pub (value: StylePropertyMap) append(property: JsString): Unit ->
+pub (receiver: StylePropertyMap) append(property: JsString, values: Array[CSSStyleValue | JsString]): Unit ->
     native.
 
 /**
@@ -35,7 +37,7 @@ pub (value: StylePropertyMap) append(property: JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StylePropertyMap/clear)
  */
-pub (value: StylePropertyMap) clear(): Unit ->
+pub (receiver: StylePropertyMap) clear(): Unit ->
     native.
 
 /**
@@ -43,7 +45,7 @@ pub (value: StylePropertyMap) clear(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StylePropertyMap/delete)
  */
-pub (value: StylePropertyMap) delete(property: JsString): Unit ->
+pub (receiver: StylePropertyMap) delete(property: JsString): Unit ->
     native.
 
 /**
@@ -51,5 +53,5 @@ pub (value: StylePropertyMap) delete(property: JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StylePropertyMap/set)
  */
-pub (value: StylePropertyMap) set(property: JsString): Unit ->
+pub (receiver: StylePropertyMap) set(property: JsString, values: Array[CSSStyleValue | JsString]): Unit ->
     native.

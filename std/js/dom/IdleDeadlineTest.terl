@@ -14,10 +14,10 @@ module std.js.Dom.IdleDeadlineTest.
 
 import type std.js.Dom.IdleDeadline.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub did_timeout_typechecks(receiver: IdleDeadline): std.core.Bool ->
+pub did_timeout_typechecks(receiver: IdleDeadline): Bool ->
     receiver.did_timeout().
 
-pub time_remaining_typechecks(receiver: IdleDeadline): DOMHighResTimeStamp ->
+pub time_remaining_typechecks(
+    receiver: IdleDeadline,
+): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
     receiver.time_remaining().

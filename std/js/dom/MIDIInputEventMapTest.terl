@@ -14,7 +14,7 @@ module std.js.Dom.MIDIInputEventMapTest.
 
 import type std.js.Dom.MIDIInputEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub midimessage_typechecks(receiver: MIDIInputEventMap): MIDIMessageEvent ->
+pub midimessage_typechecks(
+    receiver: MIDIInputEventMap,
+): std.js.Dom.MIDIMessageEvent.MIDIMessageEvent ->
     receiver.midimessage().

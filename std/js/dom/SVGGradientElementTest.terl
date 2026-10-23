@@ -12,13 +12,16 @@
  */
 module std.js.Dom.SVGGradientElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedEnumeration.{SVGAnimatedEnumeration}.
 import type std.js.Dom.SVGGradientElement.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub gradient_transform_typechecks(receiver: SVGGradientElement): SVGAnimatedTransformList ->
+pub gradient_transform_typechecks(
+    receiver: SVGGradientElement,
+): std.js.Dom.SVGAnimatedTransformList.SVGAnimatedTransformList ->
     receiver.gradient_transform().
 
 pub gradient_units_typechecks(receiver: SVGGradientElement): SVGAnimatedEnumeration ->
@@ -31,7 +34,7 @@ pub add_event_listener_typechecks(
     receiver: SVGGradientElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -39,6 +42,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGGradientElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

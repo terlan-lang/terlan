@@ -15,10 +15,10 @@ module std.js.Dom.ErrorEventInit.
 
 pub opaque type ErrorEventInit.
 
-pub (value: ErrorEventInit) colno(): std.js.Number.JsNumber.
+pub (receiver: ErrorEventInit) colno(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: ErrorEventInit) filename(): std.js.String.JsString.
+pub (receiver: ErrorEventInit) filename(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: ErrorEventInit) lineno(): std.js.Number.JsNumber.
+pub (receiver: ErrorEventInit) lineno(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: ErrorEventInit) message(): std.js.String.JsString.
+pub (receiver: ErrorEventInit) message(): std.core.Option.Option[std.js.String.JsString].

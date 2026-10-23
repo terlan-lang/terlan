@@ -12,16 +12,19 @@
  */
 module std.js.Dom.SVGFEMorphologyElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedNumber.{SVGAnimatedNumber}.
 import type std.js.Dom.SVGFEMorphologyElement.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub in1_typechecks(receiver: SVGFEMorphologyElement): SVGAnimatedString ->
+pub in1_typechecks(receiver: SVGFEMorphologyElement): std.js.Dom.SVGAnimatedString.SVGAnimatedString ->
     receiver.in1().
 
-pub operator_typechecks(receiver: SVGFEMorphologyElement): SVGAnimatedEnumeration ->
+pub operator_typechecks(
+    receiver: SVGFEMorphologyElement,
+): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration ->
     receiver.operator().
 
 pub radius_x_typechecks(receiver: SVGFEMorphologyElement): SVGAnimatedNumber ->
@@ -34,7 +37,7 @@ pub add_event_listener_typechecks(
     receiver: SVGFEMorphologyElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -42,6 +45,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGFEMorphologyElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

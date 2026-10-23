@@ -12,9 +12,12 @@
  */
 module std.js.Dom.ServiceWorkerRegistration.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.ServiceWorker.{ServiceWorker}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
 
 /**
  * The **`ServiceWorkerRegistration`** interface of the Service Worker API represents the service worker registration.
@@ -29,7 +32,7 @@ pub opaque type ServiceWorkerRegistration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/active)
  */
-pub (value: ServiceWorkerRegistration) active(): Option[ServiceWorker] ->
+pub (receiver: ServiceWorkerRegistration) active(): Option[ServiceWorker] ->
     native.
 
 /**
@@ -37,7 +40,7 @@ pub (value: ServiceWorkerRegistration) active(): Option[ServiceWorker] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/cookies)
  */
-pub (value: ServiceWorkerRegistration) cookies(): CookieStoreManager ->
+pub (receiver: ServiceWorkerRegistration) cookies(): std.js.Dom.CookieStoreManager.CookieStoreManager ->
     native.
 
 /**
@@ -45,7 +48,7 @@ pub (value: ServiceWorkerRegistration) cookies(): CookieStoreManager ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/installing)
  */
-pub (value: ServiceWorkerRegistration) installing(): Option[ServiceWorker] ->
+pub (receiver: ServiceWorkerRegistration) installing(): Option[ServiceWorker] ->
     native.
 
 /**
@@ -53,7 +56,7 @@ pub (value: ServiceWorkerRegistration) installing(): Option[ServiceWorker] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/navigationPreload)
  */
-pub (value: ServiceWorkerRegistration) navigation_preload(): NavigationPreloadManager ->
+pub (receiver: ServiceWorkerRegistration) navigation_preload(): std.js.Dom.NavigationPreloadManager.NavigationPreloadManager ->
     native.
 
 /**
@@ -61,7 +64,7 @@ pub (value: ServiceWorkerRegistration) navigation_preload(): NavigationPreloadMa
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/pushManager)
  */
-pub (value: ServiceWorkerRegistration) push_manager(): PushManager ->
+pub (receiver: ServiceWorkerRegistration) push_manager(): std.js.Dom.PushManager.PushManager ->
     native.
 
 /**
@@ -69,15 +72,7 @@ pub (value: ServiceWorkerRegistration) push_manager(): PushManager ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/scope)
  */
-pub (value: ServiceWorkerRegistration) scope(): JsString ->
-    native.
-
-/**
- * The **`updateViaCache`** read-only property of the ServiceWorkerRegistration interface returns the value of the setting used to determine the circumstances in which the browser will consult the HTTP cache when it tries to update the service worker or any scripts that are imported via WorkerGlobalScope.importScripts.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/updateViaCache)
- */
-pub (value: ServiceWorkerRegistration) update_via_cache(): ServiceWorkerUpdateViaCache ->
+pub (receiver: ServiceWorkerRegistration) scope(): JsString ->
     native.
 
 /**
@@ -85,7 +80,7 @@ pub (value: ServiceWorkerRegistration) update_via_cache(): ServiceWorkerUpdateVi
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/waiting)
  */
-pub (value: ServiceWorkerRegistration) waiting(): Option[ServiceWorker] ->
+pub (receiver: ServiceWorkerRegistration) waiting(): Option[ServiceWorker] ->
     native.
 
 /**
@@ -93,7 +88,9 @@ pub (value: ServiceWorkerRegistration) waiting(): Option[ServiceWorker] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/getNotifications)
  */
-pub (value: ServiceWorkerRegistration) get_notifications(filter: GetNotificationOptions): Promise[std.js.Array[Notification]] ->
+pub (receiver: ServiceWorkerRegistration) get_notifications(
+    filter: Option[std.js.Dom.GetNotificationOptions.GetNotificationOptions],
+): Promise[std.js.Array.Array[std.js.Dom.Notification.Notification]] ->
     native.
 
 /**
@@ -101,7 +98,10 @@ pub (value: ServiceWorkerRegistration) get_notifications(filter: GetNotification
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/showNotification)
  */
-pub (value: ServiceWorkerRegistration) show_notification(title: JsString, options: NotificationOptions): Promise[Unit] ->
+pub (receiver: ServiceWorkerRegistration) show_notification(
+    title: JsString,
+    options: Option[std.js.Dom.NotificationOptions.NotificationOptions],
+): Promise[Unit] ->
     native.
 
 /**
@@ -109,7 +109,7 @@ pub (value: ServiceWorkerRegistration) show_notification(title: JsString, option
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/unregister)
  */
-pub (value: ServiceWorkerRegistration) unregister(): Promise[Bool] ->
+pub (receiver: ServiceWorkerRegistration) unregister(): Promise[Bool] ->
     native.
 
 /**
@@ -117,19 +117,19 @@ pub (value: ServiceWorkerRegistration) unregister(): Promise[Bool] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/update)
  */
-pub (value: ServiceWorkerRegistration) update(): Promise[ServiceWorkerRegistration] ->
+pub (receiver: ServiceWorkerRegistration) update(): Promise[ServiceWorkerRegistration] ->
     native.
 
-pub (value: ServiceWorkerRegistration) add_event_listener(
+pub (receiver: ServiceWorkerRegistration) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: ServiceWorkerRegistration) remove_event_listener(
+pub (receiver: ServiceWorkerRegistration) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

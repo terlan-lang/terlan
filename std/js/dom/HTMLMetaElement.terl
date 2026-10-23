@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLMetaElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type HTMLMetaElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMetaElement/content)
  */
-pub (value: HTMLMetaElement) content(): JsString ->
+pub (receiver: HTMLMetaElement) content(): JsString ->
     native.
 
 /**
@@ -35,7 +37,7 @@ pub (value: HTMLMetaElement) content(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMetaElement/httpEquiv)
  */
-pub (value: HTMLMetaElement) http_equiv(): JsString ->
+pub (receiver: HTMLMetaElement) http_equiv(): JsString ->
     native.
 
 /**
@@ -43,7 +45,7 @@ pub (value: HTMLMetaElement) http_equiv(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMetaElement/media)
  */
-pub (value: HTMLMetaElement) media(): JsString ->
+pub (receiver: HTMLMetaElement) media(): JsString ->
     native.
 
 /**
@@ -51,7 +53,7 @@ pub (value: HTMLMetaElement) media(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMetaElement/name)
  */
-pub (value: HTMLMetaElement) name(): JsString ->
+pub (receiver: HTMLMetaElement) name(): JsString ->
     native.
 
 /**
@@ -60,19 +62,19 @@ pub (value: HTMLMetaElement) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMetaElement/scheme)
  */
-pub (value: HTMLMetaElement) scheme(): JsString ->
+pub (receiver: HTMLMetaElement) scheme(): JsString ->
     native.
 
-pub (value: HTMLMetaElement) add_event_listener(
+pub (receiver: HTMLMetaElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLMetaElement) remove_event_listener(
+pub (receiver: HTMLMetaElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

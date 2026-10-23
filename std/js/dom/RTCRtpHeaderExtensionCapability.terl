@@ -14,5 +14,5 @@ module std.js.Dom.RTCRtpHeaderExtensionCapability.
 
 pub opaque type RTCRtpHeaderExtensionCapability.
 
-pub (value: RTCRtpHeaderExtensionCapability) uri(): std.js.String.JsString ->
+pub (receiver: RTCRtpHeaderExtensionCapability) uri(): std.js.String.JsString ->
     native.

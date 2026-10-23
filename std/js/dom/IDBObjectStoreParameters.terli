@@ -12,10 +12,11 @@
  */
 module std.js.Dom.IDBObjectStoreParameters.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type IDBObjectStoreParameters.
 
-pub (value: IDBObjectStoreParameters) auto_increment(): std.core.Bool.
+pub (receiver: IDBObjectStoreParameters) auto_increment(): Option[Bool].
 
-pub (value: IDBObjectStoreParameters) key_path(): Option[std.js.Array[JsString] | JsString].
+pub (receiver: IDBObjectStoreParameters) key_path(): Option[std.js.Array.Array[JsString] | JsString].

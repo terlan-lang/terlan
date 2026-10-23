@@ -26,7 +26,7 @@ pub opaque type DOMRectReadOnly.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/bottom)
  */
-pub (value: DOMRectReadOnly) bottom(): JsNumber ->
+pub (receiver: DOMRectReadOnly) bottom(): JsNumber ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: DOMRectReadOnly) bottom(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/height)
  */
-pub (value: DOMRectReadOnly) height(): JsNumber ->
+pub (receiver: DOMRectReadOnly) height(): JsNumber ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: DOMRectReadOnly) height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/left)
  */
-pub (value: DOMRectReadOnly) left(): JsNumber ->
+pub (receiver: DOMRectReadOnly) left(): JsNumber ->
     native.
 
 /**
@@ -50,7 +50,7 @@ pub (value: DOMRectReadOnly) left(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/right)
  */
-pub (value: DOMRectReadOnly) right(): JsNumber ->
+pub (receiver: DOMRectReadOnly) right(): JsNumber ->
     native.
 
 /**
@@ -58,7 +58,7 @@ pub (value: DOMRectReadOnly) right(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/top)
  */
-pub (value: DOMRectReadOnly) top(): JsNumber ->
+pub (receiver: DOMRectReadOnly) top(): JsNumber ->
     native.
 
 /**
@@ -66,7 +66,7 @@ pub (value: DOMRectReadOnly) top(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/width)
  */
-pub (value: DOMRectReadOnly) width(): JsNumber ->
+pub (receiver: DOMRectReadOnly) width(): JsNumber ->
     native.
 
 /**
@@ -74,7 +74,7 @@ pub (value: DOMRectReadOnly) width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/x)
  */
-pub (value: DOMRectReadOnly) x(): JsNumber ->
+pub (receiver: DOMRectReadOnly) x(): JsNumber ->
     native.
 
 /**
@@ -82,5 +82,5 @@ pub (value: DOMRectReadOnly) x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/y)
  */
-pub (value: DOMRectReadOnly) y(): JsNumber ->
+pub (receiver: DOMRectReadOnly) y(): JsNumber ->
     native.

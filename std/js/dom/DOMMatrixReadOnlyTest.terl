@@ -12,11 +12,11 @@
  */
 module std.js.Dom.DOMMatrixReadOnlyTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.js.Dom.DOMMatrix.{DOMMatrix}.
 import type std.js.Dom.DOMMatrixReadOnly.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub a_typechecks(receiver: DOMMatrixReadOnly): JsNumber ->
     receiver.a().
@@ -99,76 +99,90 @@ pub flip_y_typechecks(receiver: DOMMatrixReadOnly): DOMMatrix ->
 pub inverse_typechecks(receiver: DOMMatrixReadOnly): DOMMatrix ->
     receiver.inverse().
 
-pub multiply_typechecks(receiver: DOMMatrixReadOnly, other: DOMMatrixInit): DOMMatrix ->
+pub multiply_typechecks(
+    receiver: DOMMatrixReadOnly,
+    other: Option[std.js.Dom.DOMMatrixInit.DOMMatrixInit],
+): DOMMatrix ->
     receiver.multiply(other).
 
 pub rotate_typechecks(
     receiver: DOMMatrixReadOnly,
-    rot_x: JsNumber,
-    rot_y: JsNumber,
-    rot_z: JsNumber,
+    rot_x: Option[JsNumber],
+    rot_y: Option[JsNumber],
+    rot_z: Option[JsNumber],
 ): DOMMatrix ->
     receiver.rotate(rot_x, rot_y, rot_z).
 
 pub rotate_axis_angle_typechecks(
     receiver: DOMMatrixReadOnly,
-    x: JsNumber,
-    y: JsNumber,
-    z: JsNumber,
-    angle: JsNumber,
+    x: Option[JsNumber],
+    y: Option[JsNumber],
+    z: Option[JsNumber],
+    angle: Option[JsNumber],
 ): DOMMatrix ->
     receiver.rotate_axis_angle(x, y, z, angle).
 
-pub rotate_from_vector_typechecks(receiver: DOMMatrixReadOnly, x: JsNumber, y: JsNumber): DOMMatrix ->
+pub rotate_from_vector_typechecks(
+    receiver: DOMMatrixReadOnly,
+    x: Option[JsNumber],
+    y: Option[JsNumber],
+): DOMMatrix ->
     receiver.rotate_from_vector(x, y).
 
 pub scale_typechecks(
     receiver: DOMMatrixReadOnly,
-    scale_x: JsNumber,
-    scale_y: JsNumber,
-    scale_z: JsNumber,
-    origin_x: JsNumber,
-    origin_y: JsNumber,
-    origin_z: JsNumber,
+    scale_x: Option[JsNumber],
+    scale_y: Option[JsNumber],
+    scale_z: Option[JsNumber],
+    origin_x: Option[JsNumber],
+    origin_y: Option[JsNumber],
+    origin_z: Option[JsNumber],
 ): DOMMatrix ->
     receiver.scale(scale_x, scale_y, scale_z, origin_x, origin_y, origin_z).
 
 pub scale3d_typechecks(
     receiver: DOMMatrixReadOnly,
-    scale: JsNumber,
-    origin_x: JsNumber,
-    origin_y: JsNumber,
-    origin_z: JsNumber,
+    scale: Option[JsNumber],
+    origin_x: Option[JsNumber],
+    origin_y: Option[JsNumber],
+    origin_z: Option[JsNumber],
 ): DOMMatrix ->
     receiver.scale3d(scale, origin_x, origin_y, origin_z).
 
 pub scale_non_uniform_typechecks(
     receiver: DOMMatrixReadOnly,
-    scale_x: JsNumber,
-    scale_y: JsNumber,
+    scale_x: Option[JsNumber],
+    scale_y: Option[JsNumber],
 ): DOMMatrix ->
     receiver.scale_non_uniform(scale_x, scale_y).
 
-pub skew_x_typechecks(receiver: DOMMatrixReadOnly, sx: JsNumber): DOMMatrix ->
+pub skew_x_typechecks(receiver: DOMMatrixReadOnly, sx: Option[JsNumber]): DOMMatrix ->
     receiver.skew_x(sx).
 
-pub skew_y_typechecks(receiver: DOMMatrixReadOnly, sy: JsNumber): DOMMatrix ->
+pub skew_y_typechecks(receiver: DOMMatrixReadOnly, sy: Option[JsNumber]): DOMMatrix ->
     receiver.skew_y(sy).
 
-pub to_float32_array_typechecks(receiver: DOMMatrixReadOnly): Float32Array[ArrayBuffer] ->
+pub to_float32_array_typechecks(
+    receiver: DOMMatrixReadOnly,
+): std.js.Float32Array.Float32Array[ArrayBuffer] ->
     receiver.to_float32_array().
 
-pub to_float64_array_typechecks(receiver: DOMMatrixReadOnly): Float64Array[ArrayBuffer] ->
+pub to_float64_array_typechecks(
+    receiver: DOMMatrixReadOnly,
+): std.js.Float64Array.Float64Array[ArrayBuffer] ->
     receiver.to_float64_array().
 
-pub transform_point_typechecks(receiver: DOMMatrixReadOnly, point: DOMPointInit): DOMPoint ->
+pub transform_point_typechecks(
+    receiver: DOMMatrixReadOnly,
+    point: Option[std.js.Dom.DOMPointInit.DOMPointInit],
+): std.js.Dom.DOMPoint.DOMPoint ->
     receiver.transform_point(point).
 
 pub translate_typechecks(
     receiver: DOMMatrixReadOnly,
-    tx: JsNumber,
-    ty: JsNumber,
-    tz: JsNumber,
+    tx: Option[JsNumber],
+    ty: Option[JsNumber],
+    tz: Option[JsNumber],
 ): DOMMatrix ->
     receiver.translate(tx, ty, tz).
 

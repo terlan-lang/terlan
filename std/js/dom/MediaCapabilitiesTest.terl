@@ -13,18 +13,16 @@
 module std.js.Dom.MediaCapabilitiesTest.
 
 import type std.js.Dom.MediaCapabilities.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Promise.{Promise}.
 
 pub decoding_info_typechecks(
     receiver: MediaCapabilities,
-    configuration: MediaDecodingConfiguration,
-): Promise[MediaCapabilitiesDecodingInfo] ->
+    configuration: std.js.Dom.MediaDecodingConfiguration.MediaDecodingConfiguration,
+): Promise[std.js.Dom.MediaCapabilitiesDecodingInfo.MediaCapabilitiesDecodingInfo] ->
     receiver.decoding_info(configuration).
 
 pub encoding_info_typechecks(
     receiver: MediaCapabilities,
-    configuration: MediaEncodingConfiguration,
-): Promise[MediaCapabilitiesEncodingInfo] ->
+    configuration: std.js.Dom.MediaEncodingConfiguration.MediaEncodingConfiguration,
+): Promise[std.js.Dom.MediaCapabilitiesEncodingInfo.MediaCapabilitiesEncodingInfo] ->
     receiver.encoding_info(configuration).

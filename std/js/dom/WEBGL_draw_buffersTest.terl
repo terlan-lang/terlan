@@ -14,10 +14,8 @@ module std.js.Dom.WEBGL_draw_buffersTest.
 
 import type std.js.Dom.WEBGL_draw_buffers.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub draw_buffers_webgl_typechecks(
     receiver: WEBGL_draw_buffers,
-    buffers: std.js.Array[GLenum],
-): std.core.Unit ->
+    buffers: std.js.Array.Array[std.js.Dom.GLenum.GLenum],
+): std.core.Unit.Unit ->
     receiver.draw_buffers_webgl(buffers).

@@ -13,8 +13,3 @@
 module std.js.Dom.ClipboardItemOptionsTest.
 
 import type std.js.Dom.ClipboardItemOptions.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub presentation_style_typechecks(receiver: ClipboardItemOptions): PresentationStyle ->
-    receiver.presentation_style().

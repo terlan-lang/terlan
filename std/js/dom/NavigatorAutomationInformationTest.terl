@@ -14,7 +14,5 @@ module std.js.Dom.NavigatorAutomationInformationTest.
 
 import type std.js.Dom.NavigatorAutomationInformation.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub webdriver_typechecks(receiver: NavigatorAutomationInformation): std.core.Bool ->
+pub webdriver_typechecks(receiver: NavigatorAutomationInformation): Bool ->
     receiver.webdriver().

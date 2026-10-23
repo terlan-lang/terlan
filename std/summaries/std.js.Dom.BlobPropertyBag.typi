@@ -15,6 +15,4 @@ module std.js.Dom.BlobPropertyBag.
 
 pub opaque type BlobPropertyBag.
 
-pub (value: BlobPropertyBag) endings(): EndingType.
-
-pub (value: BlobPropertyBag) type_(): std.js.String.JsString.
+pub (receiver: BlobPropertyBag) type_(): std.core.Option.Option[std.js.String.JsString].

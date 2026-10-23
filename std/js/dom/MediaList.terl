@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MediaList.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +28,7 @@ pub opaque type MediaList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaList/length)
  */
-pub (value: MediaList) length(): JsNumber ->
+pub (receiver: MediaList) length(): JsNumber ->
     native.
 
 /**
@@ -36,10 +36,10 @@ pub (value: MediaList) length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaList/mediaText)
  */
-pub (value: MediaList) media_text(): JsString ->
+pub (receiver: MediaList) media_text(): JsString ->
     native.
 
-pub (value: MediaList) to_string(): JsString ->
+pub (receiver: MediaList) to_string(): JsString ->
     native.
 
 /**
@@ -47,7 +47,7 @@ pub (value: MediaList) to_string(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaList/appendMedium)
  */
-pub (value: MediaList) append_medium(medium: JsString): Unit ->
+pub (receiver: MediaList) append_medium(medium: JsString): Unit ->
     native.
 
 /**
@@ -55,7 +55,7 @@ pub (value: MediaList) append_medium(medium: JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaList/deleteMedium)
  */
-pub (value: MediaList) delete_medium(medium: JsString): Unit ->
+pub (receiver: MediaList) delete_medium(medium: JsString): Unit ->
     native.
 
 /**
@@ -63,5 +63,5 @@ pub (value: MediaList) delete_medium(medium: JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaList/item)
  */
-pub (value: MediaList) item(index: JsNumber): Option[JsString] ->
+pub (receiver: MediaList) item(index: JsNumber): std.core.Option.Option[JsString] ->
     native.

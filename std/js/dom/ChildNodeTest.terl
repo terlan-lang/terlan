@@ -12,19 +12,20 @@
  */
 module std.js.Dom.ChildNodeTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
 import type std.js.Dom.ChildNode.
+import type std.js.Dom.Node.{Node}.
+import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
+pub after__typechecks(receiver: ChildNode, nodes: Array[Node | JsString]): Unit ->
+    receiver.after_(nodes).
 
-pub after__typechecks(receiver: ChildNode): Unit ->
-    receiver.after_().
-
-pub before_typechecks(receiver: ChildNode): Unit ->
-    receiver.before().
+pub before_typechecks(receiver: ChildNode, nodes: Array[Node | JsString]): Unit ->
+    receiver.before(nodes).
 
 pub remove_typechecks(receiver: ChildNode): Unit ->
     receiver.remove().
 
-pub replace_with_typechecks(receiver: ChildNode): Unit ->
-    receiver.replace_with().
+pub replace_with_typechecks(receiver: ChildNode, nodes: Array[Node | JsString]): Unit ->
+    receiver.replace_with(nodes).

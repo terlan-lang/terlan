@@ -12,24 +12,23 @@
  */
 module std.js.Dom.FontFaceDescriptors.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type FontFaceDescriptors.
 
-pub (value: FontFaceDescriptors) ascent_override(): JsString.
+pub (receiver: FontFaceDescriptors) ascent_override(): Option[JsString].
 
-pub (value: FontFaceDescriptors) descent_override(): JsString.
+pub (receiver: FontFaceDescriptors) descent_override(): Option[JsString].
 
-pub (value: FontFaceDescriptors) display(): FontDisplay.
+pub (receiver: FontFaceDescriptors) feature_settings(): Option[JsString].
 
-pub (value: FontFaceDescriptors) feature_settings(): JsString.
+pub (receiver: FontFaceDescriptors) line_gap_override(): Option[JsString].
 
-pub (value: FontFaceDescriptors) line_gap_override(): JsString.
+pub (receiver: FontFaceDescriptors) stretch(): Option[JsString].
 
-pub (value: FontFaceDescriptors) stretch(): JsString.
+pub (receiver: FontFaceDescriptors) style(): Option[JsString].
 
-pub (value: FontFaceDescriptors) style(): JsString.
+pub (receiver: FontFaceDescriptors) unicode_range(): Option[JsString].
 
-pub (value: FontFaceDescriptors) unicode_range(): JsString.
-
-pub (value: FontFaceDescriptors) weight(): JsString.
+pub (receiver: FontFaceDescriptors) weight(): Option[JsString].

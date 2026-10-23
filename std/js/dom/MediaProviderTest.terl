@@ -13,5 +13,3 @@
 module std.js.Dom.MediaProviderTest.
 
 import type std.js.Dom.MediaProvider.
-
-pub generated_binding_surface_contract(): Bool -> true.

@@ -14,5 +14,5 @@ module std.js.Dom.KeyAlgorithm.
 
 pub opaque type KeyAlgorithm.
 
-pub (value: KeyAlgorithm) name(): std.js.String.JsString ->
+pub (receiver: KeyAlgorithm) name(): std.js.String.JsString ->
     native.

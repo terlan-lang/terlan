@@ -14,7 +14,7 @@ module std.js.Dom.InputDeviceInfoTest.
 
 import type std.js.Dom.InputDeviceInfo.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub get_capabilities_typechecks(receiver: InputDeviceInfo): MediaTrackCapabilities ->
+pub get_capabilities_typechecks(
+    receiver: InputDeviceInfo,
+): std.js.Dom.MediaTrackCapabilities.MediaTrackCapabilities ->
     receiver.get_capabilities().

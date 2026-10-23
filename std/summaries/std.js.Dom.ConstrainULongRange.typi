@@ -15,6 +15,6 @@ module std.js.Dom.ConstrainULongRange.
 
 pub opaque type ConstrainULongRange.
 
-pub (value: ConstrainULongRange) exact(): std.js.Number.JsNumber.
+pub (receiver: ConstrainULongRange) exact(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: ConstrainULongRange) ideal(): std.js.Number.JsNumber.
+pub (receiver: ConstrainULongRange) ideal(): std.core.Option.Option[std.js.Number.JsNumber].

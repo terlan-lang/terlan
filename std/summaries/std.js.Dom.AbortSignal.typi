@@ -25,15 +25,15 @@ pub opaque type AbortSignal.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal/aborted)
  */
-pub (value: AbortSignal) aborted(): std.core.Bool.
+pub (receiver: AbortSignal) aborted(): Bool.
 
 /**
  * The **`throwIfAborted()`** method throws the signal's abort AbortSignal.reason if the signal has been aborted; otherwise it does nothing.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal/throwIfAborted)
  */
-pub (value: AbortSignal) throw_if_aborted(): std.core.Unit.
+pub (receiver: AbortSignal) throw_if_aborted(): std.core.Unit.Unit.
 
-pub (value: AbortSignal) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: AbortSignal) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: AbortSignal) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: AbortSignal) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

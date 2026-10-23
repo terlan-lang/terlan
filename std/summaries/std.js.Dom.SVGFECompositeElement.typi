@@ -25,50 +25,50 @@ pub opaque type SVGFECompositeElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/in1)
  */
-pub (value: SVGFECompositeElement) in1(): SVGAnimatedString.
+pub (receiver: SVGFECompositeElement) in1(): std.js.Dom.SVGAnimatedString.SVGAnimatedString.
 
 /**
  * The **`in2`** read-only property of the SVGFECompositeElement interface reflects the in2 attribute of the given feComposite element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/in2)
  */
-pub (value: SVGFECompositeElement) in2(): SVGAnimatedString.
+pub (receiver: SVGFECompositeElement) in2(): std.js.Dom.SVGAnimatedString.SVGAnimatedString.
 
 /**
  * The **`k1`** read-only property of the SVGFECompositeElement interface reflects the k1 attribute of the given feComposite element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/k1)
  */
-pub (value: SVGFECompositeElement) k1(): SVGAnimatedNumber.
+pub (receiver: SVGFECompositeElement) k1(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`k2`** read-only property of the SVGFECompositeElement interface reflects the k2 attribute of the given feComposite element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/k2)
  */
-pub (value: SVGFECompositeElement) k2(): SVGAnimatedNumber.
+pub (receiver: SVGFECompositeElement) k2(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`k3`** read-only property of the SVGFECompositeElement interface reflects the k3 attribute of the given feComposite element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/k3)
  */
-pub (value: SVGFECompositeElement) k3(): SVGAnimatedNumber.
+pub (receiver: SVGFECompositeElement) k3(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`k4`** read-only property of the SVGFECompositeElement interface reflects the k4 attribute of the given feComposite element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/k4)
  */
-pub (value: SVGFECompositeElement) k4(): SVGAnimatedNumber.
+pub (receiver: SVGFECompositeElement) k4(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`operator`** read-only property of the SVGFECompositeElement interface reflects the operator attribute of the given feComposite element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFECompositeElement/operator)
  */
-pub (value: SVGFECompositeElement) operator(): SVGAnimatedEnumeration.
+pub (receiver: SVGFECompositeElement) operator(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration.
 
-pub (value: SVGFECompositeElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGFECompositeElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: SVGFECompositeElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGFECompositeElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

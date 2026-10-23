@@ -14,10 +14,12 @@ module std.js.Dom.VideoEncoderInitTest.
 
 import type std.js.Dom.VideoEncoderInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub error_typechecks(receiver: VideoEncoderInit): WebCodecsErrorCallback ->
+pub error_typechecks(
+    receiver: VideoEncoderInit,
+): std.js.Dom.WebCodecsErrorCallback.WebCodecsErrorCallback ->
     receiver.error().
 
-pub output_typechecks(receiver: VideoEncoderInit): EncodedVideoChunkOutputCallback ->
+pub output_typechecks(
+    receiver: VideoEncoderInit,
+): std.js.Dom.EncodedVideoChunkOutputCallback.EncodedVideoChunkOutputCallback ->
     receiver.output().

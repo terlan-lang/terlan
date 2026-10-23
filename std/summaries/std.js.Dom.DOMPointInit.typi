@@ -15,10 +15,10 @@ module std.js.Dom.DOMPointInit.
 
 pub opaque type DOMPointInit.
 
-pub (value: DOMPointInit) w(): std.js.Number.JsNumber.
+pub (receiver: DOMPointInit) w(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMPointInit) x(): std.js.Number.JsNumber.
+pub (receiver: DOMPointInit) x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMPointInit) y(): std.js.Number.JsNumber.
+pub (receiver: DOMPointInit) y(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMPointInit) z(): std.js.Number.JsNumber.
+pub (receiver: DOMPointInit) z(): std.core.Option.Option[std.js.Number.JsNumber].

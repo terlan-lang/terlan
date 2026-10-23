@@ -14,5 +14,5 @@ module std.js.Dom.PictureInPictureWindowEventMap.
 
 pub opaque type PictureInPictureWindowEventMap.
 
-pub (value: PictureInPictureWindowEventMap) resize(): Event ->
+pub (receiver: PictureInPictureWindowEventMap) resize(): std.js.Dom.Event.Event ->
     native.

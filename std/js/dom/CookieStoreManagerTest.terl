@@ -12,11 +12,11 @@
  */
 module std.js.Dom.CookieStoreManagerTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.CookieStoreGetOptions.{CookieStoreGetOptions}.
 import type std.js.Dom.CookieStoreManager.
-import type std.js.{Array, Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Promise.{Promise}.
 
 pub get_subscriptions_typechecks(
     receiver: CookieStoreManager,

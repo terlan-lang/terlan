@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLFormElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type HTMLFormElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/acceptCharset)
  */
-pub (value: HTMLFormElement) accept_charset(): JsString ->
+pub (receiver: HTMLFormElement) accept_charset(): JsString ->
     native.
 
 /**
@@ -35,15 +37,7 @@ pub (value: HTMLFormElement) accept_charset(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/action)
  */
-pub (value: HTMLFormElement) action(): JsString ->
-    native.
-
-/**
- * The **`autocomplete`** property of the HTMLFormElement interface indicates whether the value of the form's controls can be automatically completed by the browser.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/autocomplete)
- */
-pub (value: HTMLFormElement) autocomplete(): AutoFillBase ->
+pub (receiver: HTMLFormElement) action(): JsString ->
     native.
 
 /**
@@ -51,7 +45,7 @@ pub (value: HTMLFormElement) autocomplete(): AutoFillBase ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/elements)
  */
-pub (value: HTMLFormElement) elements(): HTMLFormControlsCollection ->
+pub (receiver: HTMLFormElement) elements(): std.js.Dom.HTMLFormControlsCollection.HTMLFormControlsCollection ->
     native.
 
 /**
@@ -59,7 +53,7 @@ pub (value: HTMLFormElement) elements(): HTMLFormControlsCollection ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/encoding)
  */
-pub (value: HTMLFormElement) encoding(): JsString ->
+pub (receiver: HTMLFormElement) encoding(): JsString ->
     native.
 
 /**
@@ -67,7 +61,7 @@ pub (value: HTMLFormElement) encoding(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/enctype)
  */
-pub (value: HTMLFormElement) enctype(): JsString ->
+pub (receiver: HTMLFormElement) enctype(): JsString ->
     native.
 
 /**
@@ -75,7 +69,7 @@ pub (value: HTMLFormElement) enctype(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/length)
  */
-pub (value: HTMLFormElement) length(): std.js.Number.JsNumber ->
+pub (receiver: HTMLFormElement) length(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -83,7 +77,7 @@ pub (value: HTMLFormElement) length(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/method)
  */
-pub (value: HTMLFormElement) method(): JsString ->
+pub (receiver: HTMLFormElement) method(): JsString ->
     native.
 
 /**
@@ -91,7 +85,7 @@ pub (value: HTMLFormElement) method(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/name)
  */
-pub (value: HTMLFormElement) name(): JsString ->
+pub (receiver: HTMLFormElement) name(): JsString ->
     native.
 
 /**
@@ -99,7 +93,7 @@ pub (value: HTMLFormElement) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/noValidate)
  */
-pub (value: HTMLFormElement) no_validate(): Bool ->
+pub (receiver: HTMLFormElement) no_validate(): Bool ->
     native.
 
 /**
@@ -107,7 +101,7 @@ pub (value: HTMLFormElement) no_validate(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/rel)
  */
-pub (value: HTMLFormElement) rel(): JsString ->
+pub (receiver: HTMLFormElement) rel(): JsString ->
     native.
 
 /**
@@ -115,7 +109,7 @@ pub (value: HTMLFormElement) rel(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/relList)
  */
-pub (value: HTMLFormElement) rel_list(): DOMTokenList ->
+pub (receiver: HTMLFormElement) rel_list(): std.js.Dom.DOMTokenList.DOMTokenList ->
     native.
 
 /**
@@ -123,7 +117,7 @@ pub (value: HTMLFormElement) rel_list(): DOMTokenList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/target)
  */
-pub (value: HTMLFormElement) target_(): JsString ->
+pub (receiver: HTMLFormElement) target_(): JsString ->
     native.
 
 /**
@@ -131,7 +125,7 @@ pub (value: HTMLFormElement) target_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/checkValidity)
  */
-pub (value: HTMLFormElement) check_validity(): Bool ->
+pub (receiver: HTMLFormElement) check_validity(): Bool ->
     native.
 
 /**
@@ -139,7 +133,7 @@ pub (value: HTMLFormElement) check_validity(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/reportValidity)
  */
-pub (value: HTMLFormElement) report_validity(): Bool ->
+pub (receiver: HTMLFormElement) report_validity(): Bool ->
     native.
 
 /**
@@ -147,7 +141,7 @@ pub (value: HTMLFormElement) report_validity(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/requestSubmit)
  */
-pub (value: HTMLFormElement) request_submit(submitter: Option[HTMLElement]): Unit ->
+pub (receiver: HTMLFormElement) request_submit(submitter: Option[Option[std.js.Dom.HTMLElement.HTMLElement]]): Unit ->
     native.
 
 /**
@@ -155,7 +149,7 @@ pub (value: HTMLFormElement) request_submit(submitter: Option[HTMLElement]): Uni
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/reset)
  */
-pub (value: HTMLFormElement) reset(): Unit ->
+pub (receiver: HTMLFormElement) reset(): Unit ->
     native.
 
 /**
@@ -163,19 +157,19 @@ pub (value: HTMLFormElement) reset(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/submit)
  */
-pub (value: HTMLFormElement) submit(): Unit ->
+pub (receiver: HTMLFormElement) submit(): Unit ->
     native.
 
-pub (value: HTMLFormElement) add_event_listener(
+pub (receiver: HTMLFormElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLFormElement) remove_event_listener(
+pub (receiver: HTMLFormElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

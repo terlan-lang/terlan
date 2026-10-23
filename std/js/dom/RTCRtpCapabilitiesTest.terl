@@ -12,15 +12,13 @@
  */
 module std.js.Dom.RTCRtpCapabilitiesTest.
 
+import type std.js.Array.{Array}.
 import type std.js.Dom.RTCRtpCapabilities.
-import type std.js.{Array}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub codecs_typechecks(receiver: RTCRtpCapabilities): Array[RTCRtpCodec] ->
+pub codecs_typechecks(receiver: RTCRtpCapabilities): Array[std.js.Dom.RTCRtpCodec.RTCRtpCodec] ->
     receiver.codecs().
 
 pub header_extensions_typechecks(
     receiver: RTCRtpCapabilities,
-): Array[RTCRtpHeaderExtensionCapability] ->
+): Array[std.js.Dom.RTCRtpHeaderExtensionCapability.RTCRtpHeaderExtensionCapability] ->
     receiver.header_extensions().

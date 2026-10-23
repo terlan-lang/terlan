@@ -12,12 +12,11 @@
  */
 module std.js.Dom.ConvolverOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.ConvolverOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub buffer_typechecks(receiver: ConvolverOptions): Option[AudioBuffer] ->
+pub buffer_typechecks(receiver: ConvolverOptions): Option[std.js.Dom.AudioBuffer.AudioBuffer] ->
     receiver.buffer().
 
-pub disable_normalization_typechecks(receiver: ConvolverOptions): std.core.Bool ->
+pub disable_normalization_typechecks(receiver: ConvolverOptions): Option[Bool] ->
     receiver.disable_normalization().

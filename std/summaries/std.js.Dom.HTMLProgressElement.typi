@@ -25,29 +25,29 @@ pub opaque type HTMLProgressElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLProgressElement/labels)
  */
-pub (value: HTMLProgressElement) labels(): NodeListOf[HTMLLabelElement].
+pub (receiver: HTMLProgressElement) labels(): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement].
 
 /**
  * The **`max`** property of the HTMLProgressElement interface represents the upper bound of the progress element's range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLProgressElement/max)
  */
-pub (value: HTMLProgressElement) max(): std.js.Number.JsNumber.
+pub (receiver: HTMLProgressElement) max(): std.js.Number.JsNumber.
 
 /**
  * The **`position`** read-only property of the HTMLProgressElement interface returns current progress of the progress element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLProgressElement/position)
  */
-pub (value: HTMLProgressElement) position(): std.js.Number.JsNumber.
+pub (receiver: HTMLProgressElement) position(): std.js.Number.JsNumber.
 
 /**
  * The **`value`** property of the HTMLProgressElement interface represents the current progress of the progress element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLProgressElement/value)
  */
-pub (value: HTMLProgressElement) value(): std.js.Number.JsNumber.
+pub (receiver: HTMLProgressElement) value(): std.js.Number.JsNumber.
 
-pub (value: HTMLProgressElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLProgressElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLProgressElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLProgressElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

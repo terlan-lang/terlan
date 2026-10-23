@@ -1,5 +1,7 @@
 module tests.js.std.StringTest.
 
+import std.js.String.{from_core}.
+
 import type std.js.String.{JsString}.
 
 pub accepts_js_string(value: JsString): JsString ->
@@ -9,6 +11,10 @@ pub converts_to_core(value: JsString): String ->
     value.to_core().
 
 pub converts_from_core(value: String): JsString ->
-    std.js.String.from_core(value).
+    from_core(value).
 
-pub generated_surface_contract(): Bool -> true.
+@test
+pub string_conversions_preserve_unicode_and_empty_values(): Bool ->
+    from_core("").to_core() == ""
+        and from_core("Rīga 🦊").to_core() == "Rīga 🦊"
+        and from_core("a\u0000b").to_core() == "a\u0000b".

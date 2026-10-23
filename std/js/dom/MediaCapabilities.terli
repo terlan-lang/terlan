@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MediaCapabilities.
 
-import type std.js.{Promise}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`MediaCapabilities`** interface of the Media Capabilities API provides information about the decoding abilities of the device, system and browser.
@@ -26,11 +26,15 @@ pub opaque type MediaCapabilities.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaCapabilities/decodingInfo)
  */
-pub (value: MediaCapabilities) decoding_info(configuration: MediaDecodingConfiguration): Promise[MediaCapabilitiesDecodingInfo].
+pub (receiver: MediaCapabilities) decoding_info(
+    configuration: std.js.Dom.MediaDecodingConfiguration.MediaDecodingConfiguration,
+): Promise[std.js.Dom.MediaCapabilitiesDecodingInfo.MediaCapabilitiesDecodingInfo].
 
 /**
  * The **`encodingInfo()`** method of the MediaCapabilities interface returns a promise that fulfills with the tested media configuration's capabilities for encoding media.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaCapabilities/encodingInfo)
  */
-pub (value: MediaCapabilities) encoding_info(configuration: MediaEncodingConfiguration): Promise[MediaCapabilitiesEncodingInfo].
+pub (receiver: MediaCapabilities) encoding_info(
+    configuration: std.js.Dom.MediaEncodingConfiguration.MediaEncodingConfiguration,
+): Promise[std.js.Dom.MediaCapabilitiesEncodingInfo.MediaCapabilitiesEncodingInfo].

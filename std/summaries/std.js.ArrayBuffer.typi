@@ -24,9 +24,9 @@ pub opaque type ArrayBuffer.
 /**
  * Read-only. The length of the ArrayBuffer (in bytes).
  */
-pub (value: ArrayBuffer) byte_length(): std.js.Number.JsNumber.
+pub (receiver: ArrayBuffer) byte_length(): std.js.Number.JsNumber.
 
 /**
  * Returns a section of an ArrayBuffer.
  */
-pub (value: ArrayBuffer) slice(begin: std.js.Number.JsNumber, end: std.js.Number.JsNumber): ArrayBuffer.
+pub (receiver: ArrayBuffer) slice(begin: std.core.Option.Option[std.js.Number.JsNumber], end: std.core.Option.Option[std.js.Number.JsNumber]): ArrayBuffer.

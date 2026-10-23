@@ -13,8 +13,7 @@
 module std.js.Dom.BroadcastChannelEventMapTest.
 
 import type std.js.Dom.BroadcastChannelEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.MessageEvent.{MessageEvent}.
 
 pub message_typechecks(receiver: BroadcastChannelEventMap): MessageEvent ->
     receiver.message().

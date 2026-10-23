@@ -14,10 +14,8 @@ module std.js.Dom.PaymentDetailsInitTest.
 
 import type std.js.Dom.PaymentDetailsInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub id_typechecks(receiver: PaymentDetailsInit): std.js.String.JsString ->
+pub id_typechecks(receiver: PaymentDetailsInit): std.core.Option.Option[std.js.String.JsString] ->
     receiver.id().
 
-pub total_typechecks(receiver: PaymentDetailsInit): PaymentItem ->
+pub total_typechecks(receiver: PaymentDetailsInit): std.js.Dom.PaymentItem.PaymentItem ->
     receiver.total().

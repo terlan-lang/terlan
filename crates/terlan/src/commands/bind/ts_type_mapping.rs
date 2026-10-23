@@ -155,8 +155,8 @@ fn map_ts_type_inner(ty: &TsTypeRef) -> Result<String, TsTypeSkip> {
     match ty {
         TsTypeRef::Primitive(TsPrimitiveType::String) => Ok("std.js.String.JsString".to_string()),
         TsTypeRef::Primitive(TsPrimitiveType::Number) => Ok("std.js.Number.JsNumber".to_string()),
-        TsTypeRef::Primitive(TsPrimitiveType::Boolean) => Ok("std.core.Bool".to_string()),
-        TsTypeRef::Primitive(TsPrimitiveType::Void) => Ok("std.core.Unit".to_string()),
+        TsTypeRef::Primitive(TsPrimitiveType::Boolean) => Ok("Bool".to_string()),
+        TsTypeRef::Primitive(TsPrimitiveType::Void) => Ok("Unit".to_string()),
         TsTypeRef::Named(name) => Ok(name.clone()),
         TsTypeRef::Generic { name, args } => map_ts_generic_to_terlan(name, args),
         TsTypeRef::StringLiteral(_)

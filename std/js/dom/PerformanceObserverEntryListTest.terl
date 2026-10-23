@@ -12,10 +12,9 @@
  */
 module std.js.Dom.PerformanceObserverEntryListTest.
 
+import type std.js.Dom.PerformanceEntryList.{PerformanceEntryList}.
 import type std.js.Dom.PerformanceObserverEntryList.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub get_entries_typechecks(receiver: PerformanceObserverEntryList): PerformanceEntryList ->
     receiver.get_entries().
@@ -23,7 +22,7 @@ pub get_entries_typechecks(receiver: PerformanceObserverEntryList): PerformanceE
 pub get_entries_by_name_typechecks(
     receiver: PerformanceObserverEntryList,
     name: JsString,
-    type_: JsString,
+    type_: std.core.Option.Option[JsString],
 ): PerformanceEntryList ->
     receiver.get_entries_by_name(name, type_).
 

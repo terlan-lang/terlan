@@ -14,7 +14,7 @@ module std.js.Dom.RTCCertificateExpirationTest.
 
 import type std.js.Dom.RTCCertificateExpiration.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub expires_typechecks(receiver: RTCCertificateExpiration): std.js.Number.JsNumber ->
+pub expires_typechecks(
+    receiver: RTCCertificateExpiration,
+): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.expires().

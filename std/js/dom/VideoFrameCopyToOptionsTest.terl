@@ -12,18 +12,13 @@
  */
 module std.js.Dom.VideoFrameCopyToOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.VideoFrameCopyToOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub color_space_typechecks(receiver: VideoFrameCopyToOptions): PredefinedColorSpace ->
-    receiver.color_space().
-
-pub format_typechecks(receiver: VideoFrameCopyToOptions): VideoPixelFormat ->
-    receiver.format().
-
-pub layout_typechecks(receiver: VideoFrameCopyToOptions): std.js.Array[PlaneLayout] ->
+pub layout_typechecks(
+    receiver: VideoFrameCopyToOptions,
+): Option[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]] ->
     receiver.layout().
 
-pub rect_typechecks(receiver: VideoFrameCopyToOptions): DOMRectInit ->
+pub rect_typechecks(receiver: VideoFrameCopyToOptions): Option[std.js.Dom.DOMRectInit.DOMRectInit] ->
     receiver.rect().

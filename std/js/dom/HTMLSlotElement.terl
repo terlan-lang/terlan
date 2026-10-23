@@ -12,9 +12,13 @@
  */
 module std.js.Dom.HTMLSlotElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.AssignedNodesOptions.{AssignedNodesOptions}.
+import type std.js.Dom.Element.{Element}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
 /**
  * The **`HTMLSlotElement`** interface of the Shadow DOM API enables access to the name and assigned nodes of an HTML slot element.
@@ -28,7 +32,7 @@ pub opaque type HTMLSlotElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/name)
  */
-pub (value: HTMLSlotElement) name(): JsString ->
+pub (receiver: HTMLSlotElement) name(): JsString ->
     native.
 
 /**
@@ -36,7 +40,7 @@ pub (value: HTMLSlotElement) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/assign)
  */
-pub (value: HTMLSlotElement) assign(): Unit ->
+pub (receiver: HTMLSlotElement) assign(nodes: Array[Element | std.js.Dom.Text.Text]): Unit ->
     native.
 
 /**
@@ -44,7 +48,7 @@ pub (value: HTMLSlotElement) assign(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/assignedElements)
  */
-pub (value: HTMLSlotElement) assigned_elements(options: AssignedNodesOptions): Array[Element] ->
+pub (receiver: HTMLSlotElement) assigned_elements(options: Option[AssignedNodesOptions]): Array[Element] ->
     native.
 
 /**
@@ -52,19 +56,19 @@ pub (value: HTMLSlotElement) assigned_elements(options: AssignedNodesOptions): A
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/assignedNodes)
  */
-pub (value: HTMLSlotElement) assigned_nodes(options: AssignedNodesOptions): Array[Node] ->
+pub (receiver: HTMLSlotElement) assigned_nodes(options: Option[AssignedNodesOptions]): Array[std.js.Dom.Node.Node] ->
     native.
 
-pub (value: HTMLSlotElement) add_event_listener(
+pub (receiver: HTMLSlotElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLSlotElement) remove_event_listener(
+pub (receiver: HTMLSlotElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

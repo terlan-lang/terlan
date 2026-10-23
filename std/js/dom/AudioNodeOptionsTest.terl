@@ -14,13 +14,7 @@ module std.js.Dom.AudioNodeOptionsTest.
 
 import type std.js.Dom.AudioNodeOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub channel_count_typechecks(receiver: AudioNodeOptions): std.js.Number.JsNumber ->
+pub channel_count_typechecks(
+    receiver: AudioNodeOptions,
+): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.channel_count().
-
-pub channel_count_mode_typechecks(receiver: AudioNodeOptions): ChannelCountMode ->
-    receiver.channel_count_mode().
-
-pub channel_interpretation_typechecks(receiver: AudioNodeOptions): ChannelInterpretation ->
-    receiver.channel_interpretation().

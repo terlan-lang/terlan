@@ -14,6 +14,6 @@ module std.js.IArguments.
 
 pub opaque type IArguments.
 
-pub (value: IArguments) length(): std.js.Number.JsNumber.
+pub (receiver: IArguments) length(): std.js.Number.JsNumber.
 
-pub (value: IArguments) callee(): Function.
+pub (receiver: IArguments) callee(): std.js.Function.Function.

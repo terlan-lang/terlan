@@ -14,9 +14,9 @@ module std.js.Dom.MediaEncryptedEventTest.
 
 import type std.js.Dom.MediaEncryptedEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub init_data_typechecks(receiver: MediaEncryptedEvent): Option[ArrayBuffer] ->
+pub init_data_typechecks(
+    receiver: MediaEncryptedEvent,
+): std.core.Option.Option[std.js.ArrayBuffer.ArrayBuffer] ->
     receiver.init_data().
 
 pub init_data_type_typechecks(receiver: MediaEncryptedEvent): std.js.String.JsString ->

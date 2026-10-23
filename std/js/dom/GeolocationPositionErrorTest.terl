@@ -14,8 +14,6 @@ module std.js.Dom.GeolocationPositionErrorTest.
 
 import type std.js.Dom.GeolocationPositionError.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub code_typechecks(receiver: GeolocationPositionError): std.js.Number.JsNumber ->
     receiver.code().
 

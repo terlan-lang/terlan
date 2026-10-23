@@ -12,22 +12,23 @@
  */
 module std.js.Dom.AuthenticationExtensionsClientInputsJSONTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.AuthenticationExtensionsClientInputsJSON.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub appid_typechecks(receiver: AuthenticationExtensionsClientInputsJSON): std.js.String.JsString ->
+pub appid_typechecks(
+    receiver: AuthenticationExtensionsClientInputsJSON,
+): Option[std.js.String.JsString] ->
     receiver.appid().
 
-pub cred_props_typechecks(receiver: AuthenticationExtensionsClientInputsJSON): std.core.Bool ->
+pub cred_props_typechecks(receiver: AuthenticationExtensionsClientInputsJSON): Option[Bool] ->
     receiver.cred_props().
 
 pub large_blob_typechecks(
     receiver: AuthenticationExtensionsClientInputsJSON,
-): AuthenticationExtensionsLargeBlobInputsJSON ->
+): Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputsJSON.AuthenticationExtensionsLargeBlobInputsJSON] ->
     receiver.large_blob().
 
 pub prf_typechecks(
     receiver: AuthenticationExtensionsClientInputsJSON,
-): AuthenticationExtensionsPRFInputsJSON ->
+): Option[std.js.Dom.AuthenticationExtensionsPRFInputsJSON.AuthenticationExtensionsPRFInputsJSON] ->
     receiver.prf().

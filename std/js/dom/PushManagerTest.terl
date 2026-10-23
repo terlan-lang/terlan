@@ -12,22 +12,16 @@
  */
 module std.js.Dom.PushManagerTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.PushManager.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.PushSubscription.{PushSubscription}.
+import type std.js.Promise.{Promise}.
 
 pub get_subscription_typechecks(receiver: PushManager): Promise[Option[PushSubscription]] ->
     receiver.get_subscription().
 
-pub permission_state_typechecks(
-    receiver: PushManager,
-    options: PushSubscriptionOptionsInit,
-): Promise[PermissionState] ->
-    receiver.permission_state(options).
-
 pub subscribe_typechecks(
     receiver: PushManager,
-    options: PushSubscriptionOptionsInit,
+    options: Option[std.js.Dom.PushSubscriptionOptionsInit.PushSubscriptionOptionsInit],
 ): Promise[PushSubscription] ->
     receiver.subscribe(options).

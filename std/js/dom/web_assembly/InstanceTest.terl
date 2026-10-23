@@ -14,7 +14,5 @@ module std.js.Dom.WebAssembly.InstanceTest.
 
 import type std.js.Dom.WebAssembly.Instance.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub exports_typechecks(receiver: Instance): Exports ->
+pub exports_typechecks(receiver: Instance): std.js.Dom.WebAssembly.Exports.Exports ->
     receiver.exports().

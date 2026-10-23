@@ -14,7 +14,5 @@ module std.js.Dom.CSSKeywordValueTest.
 
 import type std.js.Dom.CSSKeywordValue.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub value_typechecks(receiver: CSSKeywordValue): std.js.String.JsString ->
     receiver.value().

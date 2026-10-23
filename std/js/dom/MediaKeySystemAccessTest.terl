@@ -14,13 +14,15 @@ module std.js.Dom.MediaKeySystemAccessTest.
 
 import type std.js.Dom.MediaKeySystemAccess.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub key_system_typechecks(receiver: MediaKeySystemAccess): std.js.String.JsString ->
     receiver.key_system().
 
-pub create_media_keys_typechecks(receiver: MediaKeySystemAccess): std.js.Promise[MediaKeys] ->
+pub create_media_keys_typechecks(
+    receiver: MediaKeySystemAccess,
+): std.js.Promise.Promise[std.js.Dom.MediaKeys.MediaKeys] ->
     receiver.create_media_keys().
 
-pub get_configuration_typechecks(receiver: MediaKeySystemAccess): MediaKeySystemConfiguration ->
+pub get_configuration_typechecks(
+    receiver: MediaKeySystemAccess,
+): std.js.Dom.MediaKeySystemConfiguration.MediaKeySystemConfiguration ->
     receiver.get_configuration().

@@ -13,5 +13,3 @@
 module std.js.Dom.EncodedAudioChunkOutputCallbackTest.
 
 import type std.js.Dom.EncodedAudioChunkOutputCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

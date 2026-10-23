@@ -12,7 +12,9 @@
  */
 module std.js.Dom.Event.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventTarget.{EventTarget}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type Event.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/bubbles)
  */
-pub (value: Event) bubbles(): Bool ->
+pub (receiver: Event) bubbles(): Bool ->
     native.
 
 /**
@@ -36,7 +38,7 @@ pub (value: Event) bubbles(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/cancelBubble)
  */
-pub (value: Event) cancel_bubble(): Bool ->
+pub (receiver: Event) cancel_bubble(): Bool ->
     native.
 
 /**
@@ -44,7 +46,7 @@ pub (value: Event) cancel_bubble(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/cancelable)
  */
-pub (value: Event) cancelable(): Bool ->
+pub (receiver: Event) cancelable(): Bool ->
     native.
 
 /**
@@ -52,7 +54,7 @@ pub (value: Event) cancelable(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/composed)
  */
-pub (value: Event) composed(): Bool ->
+pub (receiver: Event) composed(): Bool ->
     native.
 
 /**
@@ -60,7 +62,7 @@ pub (value: Event) composed(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/currentTarget)
  */
-pub (value: Event) current_target(): Option[EventTarget] ->
+pub (receiver: Event) current_target(): Option[EventTarget] ->
     native.
 
 /**
@@ -68,7 +70,7 @@ pub (value: Event) current_target(): Option[EventTarget] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/defaultPrevented)
  */
-pub (value: Event) default_prevented(): Bool ->
+pub (receiver: Event) default_prevented(): Bool ->
     native.
 
 /**
@@ -76,7 +78,7 @@ pub (value: Event) default_prevented(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/eventPhase)
  */
-pub (value: Event) event_phase(): std.js.Number.JsNumber ->
+pub (receiver: Event) event_phase(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -84,7 +86,7 @@ pub (value: Event) event_phase(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/isTrusted)
  */
-pub (value: Event) is_trusted(): Bool ->
+pub (receiver: Event) is_trusted(): Bool ->
     native.
 
 /**
@@ -93,7 +95,7 @@ pub (value: Event) is_trusted(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/returnValue)
  */
-pub (value: Event) return_value(): Bool ->
+pub (receiver: Event) return_value(): Bool ->
     native.
 
 /**
@@ -102,7 +104,7 @@ pub (value: Event) return_value(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/srcElement)
  */
-pub (value: Event) src_element(): Option[EventTarget] ->
+pub (receiver: Event) src_element(): Option[EventTarget] ->
     native.
 
 /**
@@ -110,7 +112,7 @@ pub (value: Event) src_element(): Option[EventTarget] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/target)
  */
-pub (value: Event) target_(): Option[EventTarget] ->
+pub (receiver: Event) target_(): Option[EventTarget] ->
     native.
 
 /**
@@ -118,7 +120,7 @@ pub (value: Event) target_(): Option[EventTarget] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/timeStamp)
  */
-pub (value: Event) time_stamp(): DOMHighResTimeStamp ->
+pub (receiver: Event) time_stamp(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
     native.
 
 /**
@@ -126,7 +128,7 @@ pub (value: Event) time_stamp(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/type)
  */
-pub (value: Event) type_(): JsString ->
+pub (receiver: Event) type_(): JsString ->
     native.
 
 /**
@@ -134,7 +136,7 @@ pub (value: Event) type_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/composedPath)
  */
-pub (value: Event) composed_path(): std.js.Array[EventTarget] ->
+pub (receiver: Event) composed_path(): std.js.Array.Array[EventTarget] ->
     native.
 
 /**
@@ -143,7 +145,7 @@ pub (value: Event) composed_path(): std.js.Array[EventTarget] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/initEvent)
  */
-pub (value: Event) init_event(type_: JsString, bubbles: Bool, cancelable: Bool): Unit ->
+pub (receiver: Event) init_event(type_: JsString, bubbles: Option[Bool], cancelable: Option[Bool]): Unit ->
     native.
 
 /**
@@ -151,7 +153,7 @@ pub (value: Event) init_event(type_: JsString, bubbles: Bool, cancelable: Bool):
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/preventDefault)
  */
-pub (value: Event) prevent_default(): Unit ->
+pub (receiver: Event) prevent_default(): Unit ->
     native.
 
 /**
@@ -159,7 +161,7 @@ pub (value: Event) prevent_default(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/stopImmediatePropagation)
  */
-pub (value: Event) stop_immediate_propagation(): Unit ->
+pub (receiver: Event) stop_immediate_propagation(): Unit ->
     native.
 
 /**
@@ -167,5 +169,5 @@ pub (value: Event) stop_immediate_propagation(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/stopPropagation)
  */
-pub (value: Event) stop_propagation(): Unit ->
+pub (receiver: Event) stop_propagation(): Unit ->
     native.

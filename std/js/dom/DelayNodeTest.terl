@@ -14,7 +14,5 @@ module std.js.Dom.DelayNodeTest.
 
 import type std.js.Dom.DelayNode.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub delay_time_typechecks(receiver: DelayNode): AudioParam ->
+pub delay_time_typechecks(receiver: DelayNode): std.js.Dom.AudioParam.AudioParam ->
     receiver.delay_time().

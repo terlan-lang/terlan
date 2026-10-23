@@ -12,52 +12,50 @@
  */
 module std.js.Dom.MediaTrackSupportedConstraintsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.MediaTrackSupportedConstraints.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub aspect_ratio_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub aspect_ratio_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.aspect_ratio().
 
-pub auto_gain_control_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub auto_gain_control_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.auto_gain_control().
 
-pub background_blur_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub background_blur_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.background_blur().
 
-pub channel_count_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub channel_count_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.channel_count().
 
-pub device_id_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub device_id_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.device_id().
 
-pub display_surface_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub display_surface_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.display_surface().
 
-pub echo_cancellation_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub echo_cancellation_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.echo_cancellation().
 
-pub facing_mode_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub facing_mode_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.facing_mode().
 
-pub frame_rate_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub frame_rate_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.frame_rate().
 
-pub group_id_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub group_id_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.group_id().
 
-pub height_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub height_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.height().
 
-pub noise_suppression_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub noise_suppression_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.noise_suppression().
 
-pub sample_rate_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub sample_rate_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.sample_rate().
 
-pub sample_size_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub sample_size_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.sample_size().
 
-pub width_typechecks(receiver: MediaTrackSupportedConstraints): Bool ->
+pub width_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->
     receiver.width().

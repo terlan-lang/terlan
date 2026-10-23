@@ -12,7 +12,9 @@
  */
 module std.js.Dom.SourceBuffer.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +30,7 @@ pub opaque type SourceBuffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/appendWindowEnd)
  */
-pub (value: SourceBuffer) append_window_end(): JsNumber ->
+pub (receiver: SourceBuffer) append_window_end(): JsNumber ->
     native.
 
 /**
@@ -36,7 +38,7 @@ pub (value: SourceBuffer) append_window_end(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/appendWindowStart)
  */
-pub (value: SourceBuffer) append_window_start(): JsNumber ->
+pub (receiver: SourceBuffer) append_window_start(): JsNumber ->
     native.
 
 /**
@@ -44,15 +46,7 @@ pub (value: SourceBuffer) append_window_start(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/buffered)
  */
-pub (value: SourceBuffer) buffered(): TimeRanges ->
-    native.
-
-/**
- * The **`mode`** property of the SourceBuffer interface controls whether media segments can be appended to the `SourceBuffer` in any order, or in a strict sequence.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/mode)
- */
-pub (value: SourceBuffer) mode(): AppendMode ->
+pub (receiver: SourceBuffer) buffered(): std.js.Dom.TimeRanges.TimeRanges ->
     native.
 
 /**
@@ -60,7 +54,7 @@ pub (value: SourceBuffer) mode(): AppendMode ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/timestampOffset)
  */
-pub (value: SourceBuffer) timestamp_offset(): JsNumber ->
+pub (receiver: SourceBuffer) timestamp_offset(): JsNumber ->
     native.
 
 /**
@@ -68,7 +62,7 @@ pub (value: SourceBuffer) timestamp_offset(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/updating)
  */
-pub (value: SourceBuffer) updating(): Bool ->
+pub (receiver: SourceBuffer) updating(): Bool ->
     native.
 
 /**
@@ -76,7 +70,7 @@ pub (value: SourceBuffer) updating(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/abort)
  */
-pub (value: SourceBuffer) abort(): Unit ->
+pub (receiver: SourceBuffer) abort(): Unit ->
     native.
 
 /**
@@ -84,7 +78,7 @@ pub (value: SourceBuffer) abort(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/appendBuffer)
  */
-pub (value: SourceBuffer) append_buffer(data: BufferSource): Unit ->
+pub (receiver: SourceBuffer) append_buffer(data: std.js.Dom.BufferSource.BufferSource): Unit ->
     native.
 
 /**
@@ -92,7 +86,7 @@ pub (value: SourceBuffer) append_buffer(data: BufferSource): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/changeType)
  */
-pub (value: SourceBuffer) change_type(type_: JsString): Unit ->
+pub (receiver: SourceBuffer) change_type(type_: JsString): Unit ->
     native.
 
 /**
@@ -100,19 +94,19 @@ pub (value: SourceBuffer) change_type(type_: JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/remove)
  */
-pub (value: SourceBuffer) remove(start: JsNumber, end: JsNumber): Unit ->
+pub (receiver: SourceBuffer) remove(start: JsNumber, end: JsNumber): Unit ->
     native.
 
-pub (value: SourceBuffer) add_event_listener(
+pub (receiver: SourceBuffer) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SourceBuffer) remove_event_listener(
+pub (receiver: SourceBuffer) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

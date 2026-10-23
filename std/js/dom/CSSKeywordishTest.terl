@@ -13,5 +13,3 @@
 module std.js.Dom.CSSKeywordishTest.
 
 import type std.js.Dom.CSSKeywordish.
-
-pub generated_binding_surface_contract(): Bool -> true.

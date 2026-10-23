@@ -14,22 +14,23 @@ module std.js.Dom.PushSubscriptionTest.
 
 import type std.js.Dom.PushSubscription.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub endpoint_typechecks(receiver: PushSubscription): std.js.String.JsString ->
     receiver.endpoint().
 
-pub expiration_time_typechecks(receiver: PushSubscription): Option[EpochTimeStamp] ->
+pub expiration_time_typechecks(
+    receiver: PushSubscription,
+): std.core.Option.Option[std.js.Dom.EpochTimeStamp.EpochTimeStamp] ->
     receiver.expiration_time().
 
-pub options_typechecks(receiver: PushSubscription): PushSubscriptionOptions ->
+pub options_typechecks(
+    receiver: PushSubscription,
+): std.js.Dom.PushSubscriptionOptions.PushSubscriptionOptions ->
     receiver.options().
 
-pub get_key_typechecks(receiver: PushSubscription, name: PushEncryptionKeyName): Option[ArrayBuffer] ->
-    receiver.get_key(name).
-
-pub to_json_typechecks(receiver: PushSubscription): PushSubscriptionJSON ->
+pub to_json_typechecks(
+    receiver: PushSubscription,
+): std.js.Dom.PushSubscriptionJSON.PushSubscriptionJSON ->
     receiver.to_json().
 
-pub unsubscribe_typechecks(receiver: PushSubscription): std.js.Promise[std.core.Bool] ->
+pub unsubscribe_typechecks(receiver: PushSubscription): std.js.Promise.Promise[Bool] ->
     receiver.unsubscribe().

@@ -26,10 +26,10 @@ pub opaque type DocumentType.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DocumentType/name)
  */
-pub (value: DocumentType) name(): JsString ->
+pub (receiver: DocumentType) name(): JsString ->
     native.
 
-pub (value: DocumentType) owner_document(): Document ->
+pub (receiver: DocumentType) owner_document(): std.js.Dom.Document.Document ->
     native.
 
 /**
@@ -37,7 +37,7 @@ pub (value: DocumentType) owner_document(): Document ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DocumentType/publicId)
  */
-pub (value: DocumentType) public_id(): JsString ->
+pub (receiver: DocumentType) public_id(): JsString ->
     native.
 
 /**
@@ -45,5 +45,5 @@ pub (value: DocumentType) public_id(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DocumentType/systemId)
  */
-pub (value: DocumentType) system_id(): JsString ->
+pub (receiver: DocumentType) system_id(): JsString ->
     native.

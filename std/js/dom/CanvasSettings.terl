@@ -17,5 +17,5 @@ pub opaque type CanvasSettings.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/getContextAttributes)
  */
-pub (value: CanvasSettings) get_context_attributes(): CanvasRenderingContext2DSettings ->
+pub (receiver: CanvasSettings) get_context_attributes(): std.js.Dom.CanvasRenderingContext2DSettings.CanvasRenderingContext2DSettings ->
     native.

@@ -15,8 +15,8 @@ module std.js.ConcatArray.
 
 pub opaque type ConcatArray[T].
 
-pub (value: ConcatArray[T]) length(): std.js.Number.JsNumber.
+pub (receiver: ConcatArray[T]) length(): std.js.Number.JsNumber.
 
-pub (value: ConcatArray[T]) join(separator: std.js.String.JsString): std.js.String.JsString.
+pub (receiver: ConcatArray[T]) join(separator: std.core.Option.Option[std.js.String.JsString]): std.js.String.JsString.
 
-pub (value: ConcatArray[T]) slice(start: std.js.Number.JsNumber, end: std.js.Number.JsNumber): std.js.Array[T].
+pub (receiver: ConcatArray[T]) slice(start: std.core.Option.Option[std.js.Number.JsNumber], end: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Array.Array[T].

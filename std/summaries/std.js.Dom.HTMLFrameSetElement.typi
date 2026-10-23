@@ -24,13 +24,13 @@ pub opaque type HTMLFrameSetElement.
 /**
  * @deprecated
  */
-pub (value: HTMLFrameSetElement) cols(): std.js.String.JsString.
+pub (receiver: HTMLFrameSetElement) cols(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLFrameSetElement) rows(): std.js.String.JsString.
+pub (receiver: HTMLFrameSetElement) rows(): std.js.String.JsString.
 
-pub (value: HTMLFrameSetElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLFrameSetElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLFrameSetElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLFrameSetElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

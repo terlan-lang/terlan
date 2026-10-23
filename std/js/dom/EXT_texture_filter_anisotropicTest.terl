@@ -13,5 +13,3 @@
 module std.js.Dom.EXT_texture_filter_anisotropicTest.
 
 import type std.js.Dom.EXT_texture_filter_anisotropic.
-
-pub generated_binding_surface_contract(): Bool -> true.

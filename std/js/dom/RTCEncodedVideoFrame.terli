@@ -24,23 +24,16 @@ pub opaque type RTCEncodedVideoFrame.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCEncodedVideoFrame/data)
  */
-pub (value: RTCEncodedVideoFrame) data(): ArrayBuffer.
+pub (receiver: RTCEncodedVideoFrame) data(): std.js.ArrayBuffer.ArrayBuffer.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCEncodedVideoFrame/timestamp)
  */
-pub (value: RTCEncodedVideoFrame) timestamp(): std.js.Number.JsNumber.
-
-/**
- * The **`type`** read-only property of the RTCEncodedVideoFrame interface indicates whether this frame is a key frame, delta frame, or empty frame.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCEncodedVideoFrame/type)
- */
-pub (value: RTCEncodedVideoFrame) type_(): RTCEncodedVideoFrameType.
+pub (receiver: RTCEncodedVideoFrame) timestamp(): std.js.Number.JsNumber.
 
 /**
  * The **`getMetadata()`** method of the RTCEncodedVideoFrame interface returns an object containing the metadata associated with the frame.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCEncodedVideoFrame/getMetadata)
  */
-pub (value: RTCEncodedVideoFrame) get_metadata(): RTCEncodedVideoFrameMetadata.
+pub (receiver: RTCEncodedVideoFrame) get_metadata(): std.js.Dom.RTCEncodedVideoFrameMetadata.RTCEncodedVideoFrameMetadata.

@@ -12,14 +12,13 @@
  */
 module std.js.Dom.ConstrainDOMStringParametersTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
 import type std.js.Dom.ConstrainDOMStringParameters.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub exact_typechecks(receiver: ConstrainDOMStringParameters): Array[JsString] | JsString ->
+pub exact_typechecks(receiver: ConstrainDOMStringParameters): Option[Array[JsString] | JsString] ->
     receiver.exact().
 
-pub ideal_typechecks(receiver: ConstrainDOMStringParameters): Array[JsString] | JsString ->
+pub ideal_typechecks(receiver: ConstrainDOMStringParameters): Option[Array[JsString] | JsString] ->
     receiver.ideal().

@@ -12,12 +12,13 @@
  */
 module std.js.Dom.SVGFEDropShadowElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedNumber.{SVGAnimatedNumber}.
 import type std.js.Dom.SVGFEDropShadowElement.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub dx_typechecks(receiver: SVGFEDropShadowElement): SVGAnimatedNumber ->
     receiver.dx().
@@ -25,7 +26,7 @@ pub dx_typechecks(receiver: SVGFEDropShadowElement): SVGAnimatedNumber ->
 pub dy_typechecks(receiver: SVGFEDropShadowElement): SVGAnimatedNumber ->
     receiver.dy().
 
-pub in1_typechecks(receiver: SVGFEDropShadowElement): SVGAnimatedString ->
+pub in1_typechecks(receiver: SVGFEDropShadowElement): std.js.Dom.SVGAnimatedString.SVGAnimatedString ->
     receiver.in1().
 
 pub std_deviation_x_typechecks(receiver: SVGFEDropShadowElement): SVGAnimatedNumber ->
@@ -45,7 +46,7 @@ pub add_event_listener_typechecks(
     receiver: SVGFEDropShadowElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -53,6 +54,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGFEDropShadowElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

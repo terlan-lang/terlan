@@ -25,18 +25,18 @@ pub opaque type ReadableStreamDefaultController[R].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/desiredSize)
  */
-pub (value: ReadableStreamDefaultController[R]) desired_size(): Option[std.js.Number.JsNumber].
+pub (receiver: ReadableStreamDefaultController[R]) desired_size(): std.core.Option.Option[std.js.Number.JsNumber].
 
 /**
  * The **`close()`** method of the ReadableStreamDefaultController interface closes the associated stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/close)
  */
-pub (value: ReadableStreamDefaultController[R]) close(): std.core.Unit.
+pub (receiver: ReadableStreamDefaultController[R]) close(): std.core.Unit.Unit.
 
 /**
  * The **`enqueue()`** method of the ```js-nolint enqueue(chunk) ``` - `chunk` - : The chunk to enqueue.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/enqueue)
  */
-pub (value: ReadableStreamDefaultController[R]) enqueue(chunk: R): std.core.Unit.
+pub (receiver: ReadableStreamDefaultController[R]) enqueue(chunk: std.core.Option.Option[R]): std.core.Unit.Unit.

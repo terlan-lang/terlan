@@ -14,7 +14,5 @@ module std.js.Dom.CSSNumericArrayTest.
 
 import type std.js.Dom.CSSNumericArray.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub length_typechecks(receiver: CSSNumericArray): std.js.Number.JsNumber ->
     receiver.length().

@@ -24,4 +24,4 @@ pub opaque type RTCDTMFToneChangeEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDTMFToneChangeEvent/tone)
  */
-pub (value: RTCDTMFToneChangeEvent) tone(): std.js.String.JsString.
+pub (receiver: RTCDTMFToneChangeEvent) tone(): std.js.String.JsString.

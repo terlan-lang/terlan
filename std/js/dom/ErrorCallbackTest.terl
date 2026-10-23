@@ -13,5 +13,3 @@
 module std.js.Dom.ErrorCallbackTest.
 
 import type std.js.Dom.ErrorCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

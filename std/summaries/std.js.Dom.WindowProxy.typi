@@ -14,4 +14,4 @@
 module std.js.Dom.WindowProxy.
 
 pub type WindowProxy =
-    Window.
+    std.js.Dom.Window.Window.

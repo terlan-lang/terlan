@@ -12,35 +12,57 @@
  */
 module std.js.Dom.WebGL2RenderingContextBase.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.Float32List.{Float32List}.
+import type std.js.Dom.GLbitfield.{GLbitfield}.
+import type std.js.Dom.GLboolean.{GLboolean}.
+import type std.js.Dom.GLenum.{GLenum}.
+import type std.js.Dom.GLfloat.{GLfloat}.
+import type std.js.Dom.GLint.{GLint}.
+import type std.js.Dom.GLintptr.{GLintptr}.
+import type std.js.Dom.GLsizei.{GLsizei}.
+import type std.js.Dom.GLsizeiptr.{GLsizeiptr}.
+import type std.js.Dom.GLuint.{GLuint}.
+import type std.js.Dom.Int32List.{Int32List}.
+import type std.js.Dom.TexImageSource.{TexImageSource}.
+import type std.js.Dom.Uint32List.{Uint32List}.
+import type std.js.Dom.WebGLBuffer.{WebGLBuffer}.
+import type std.js.Dom.WebGLProgram.{WebGLProgram}.
+import type std.js.Dom.WebGLQuery.{WebGLQuery}.
+import type std.js.Dom.WebGLSampler.{WebGLSampler}.
+import type std.js.Dom.WebGLSync.{WebGLSync}.
+import type std.js.Dom.WebGLTransformFeedback.{WebGLTransformFeedback}.
+import type std.js.Dom.WebGLUniformLocation.{WebGLUniformLocation}.
+import type std.js.Dom.WebGLVertexArrayObject.{WebGLVertexArrayObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
 pub opaque type WebGL2RenderingContextBase.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/beginQuery)
  */
-pub (value: WebGL2RenderingContextBase) begin_query(target_: GLenum, query: WebGLQuery): Unit ->
+pub (receiver: WebGL2RenderingContextBase) begin_query(target_: GLenum, query: WebGLQuery): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/beginTransformFeedback)
  */
-pub (value: WebGL2RenderingContextBase) begin_transform_feedback(primitive_mode: GLenum): Unit ->
+pub (receiver: WebGL2RenderingContextBase) begin_transform_feedback(primitive_mode: GLenum): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/bindBufferBase)
  */
-pub (value: WebGL2RenderingContextBase) bind_buffer_base(target_: GLenum, index: GLuint, buffer: Option[WebGLBuffer]): Unit ->
+pub (receiver: WebGL2RenderingContextBase) bind_buffer_base(target_: GLenum, index: GLuint, buffer: Option[WebGLBuffer]): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/bindBufferRange)
  */
-pub (value: WebGL2RenderingContextBase) bind_buffer_range(
+pub (receiver: WebGL2RenderingContextBase) bind_buffer_range(
     target_: GLenum,
     index: GLuint,
     buffer: Option[WebGLBuffer],
@@ -52,25 +74,25 @@ pub (value: WebGL2RenderingContextBase) bind_buffer_range(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/bindSampler)
  */
-pub (value: WebGL2RenderingContextBase) bind_sampler(unit: GLuint, sampler: Option[WebGLSampler]): Unit ->
+pub (receiver: WebGL2RenderingContextBase) bind_sampler(unit: GLuint, sampler: Option[WebGLSampler]): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/bindTransformFeedback)
  */
-pub (value: WebGL2RenderingContextBase) bind_transform_feedback(target_: GLenum, tf: Option[WebGLTransformFeedback]): Unit ->
+pub (receiver: WebGL2RenderingContextBase) bind_transform_feedback(target_: GLenum, tf: Option[WebGLTransformFeedback]): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/bindVertexArray)
  */
-pub (value: WebGL2RenderingContextBase) bind_vertex_array(array: Option[WebGLVertexArrayObject]): Unit ->
+pub (receiver: WebGL2RenderingContextBase) bind_vertex_array(array: Option[WebGLVertexArrayObject]): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/blitFramebuffer)
  */
-pub (value: WebGL2RenderingContextBase) blit_framebuffer(
+pub (receiver: WebGL2RenderingContextBase) blit_framebuffer(
     src_x0: GLint,
     src_y0: GLint,
     src_x1: GLint,
@@ -87,47 +109,56 @@ pub (value: WebGL2RenderingContextBase) blit_framebuffer(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/clearBuffer)
  */
-pub (value: WebGL2RenderingContextBase) clear_bufferfi(buffer: GLenum, drawbuffer: GLint, depth: GLfloat, stencil: GLint): Unit ->
+pub (receiver: WebGL2RenderingContextBase) clear_bufferfi(buffer: GLenum, drawbuffer: GLint, depth: GLfloat, stencil: GLint): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/clearBuffer)
  */
-pub (value: WebGL2RenderingContextBase) clear_bufferfv(
+pub (receiver: WebGL2RenderingContextBase) clear_bufferfv(
     buffer: GLenum,
     drawbuffer: GLint,
     values: Float32List,
-    src_offset: JsNumber,
+    src_offset: Option[JsNumber],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/clearBuffer)
  */
-pub (value: WebGL2RenderingContextBase) clear_bufferiv(buffer: GLenum, drawbuffer: GLint, values: Int32List, src_offset: JsNumber): Unit ->
+pub (receiver: WebGL2RenderingContextBase) clear_bufferiv(
+    buffer: GLenum,
+    drawbuffer: GLint,
+    values: Int32List,
+    src_offset: Option[JsNumber],
+): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/clearBuffer)
  */
-pub (value: WebGL2RenderingContextBase) clear_bufferuiv(
+pub (receiver: WebGL2RenderingContextBase) clear_bufferuiv(
     buffer: GLenum,
     drawbuffer: GLint,
     values: Uint32List,
-    src_offset: JsNumber,
+    src_offset: Option[JsNumber],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/clientWaitSync)
  */
-pub (value: WebGL2RenderingContextBase) client_wait_sync(sync: WebGLSync, flags: GLbitfield, timeout: GLuint64): GLenum ->
+pub (receiver: WebGL2RenderingContextBase) client_wait_sync(
+    sync: WebGLSync,
+    flags: GLbitfield,
+    timeout: std.js.Dom.GLuint64.GLuint64,
+): GLenum ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/compressedTexImage3D)
  */
-pub (value: WebGL2RenderingContextBase) compressed_tex_image3_d(
+pub (receiver: WebGL2RenderingContextBase) compressed_tex_image3_d(
     target_: GLenum,
     level: GLint,
     internalformat: GLenum,
@@ -137,27 +168,13 @@ pub (value: WebGL2RenderingContextBase) compressed_tex_image3_d(
     border: GLint,
     image_size: GLsizei,
     offset: GLintptr,
-): Unit ->
-    native.
-
-pub (value: WebGL2RenderingContextBase) compressed_tex_image3_d(
-    target_: GLenum,
-    level: GLint,
-    internalformat: GLenum,
-    width: GLsizei,
-    height: GLsizei,
-    depth: GLsizei,
-    border: GLint,
-    src_data: ArrayBufferView[ArrayBufferLike],
-    src_offset: JsNumber,
-    src_length_override: GLuint,
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/compressedTexSubImage3D)
  */
-pub (value: WebGL2RenderingContextBase) compressed_tex_sub_image3_d(
+pub (receiver: WebGL2RenderingContextBase) compressed_tex_sub_image3_d(
     target_: GLenum,
     level: GLint,
     xoffset: GLint,
@@ -172,26 +189,10 @@ pub (value: WebGL2RenderingContextBase) compressed_tex_sub_image3_d(
 ): Unit ->
     native.
 
-pub (value: WebGL2RenderingContextBase) compressed_tex_sub_image3_d(
-    target_: GLenum,
-    level: GLint,
-    xoffset: GLint,
-    yoffset: GLint,
-    zoffset: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    depth: GLsizei,
-    format: GLenum,
-    src_data: ArrayBufferView[ArrayBufferLike],
-    src_offset: JsNumber,
-    src_length_override: GLuint,
-): Unit ->
-    native.
-
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/copyBufferSubData)
  */
-pub (value: WebGL2RenderingContextBase) copy_buffer_sub_data(
+pub (receiver: WebGL2RenderingContextBase) copy_buffer_sub_data(
     read_target: GLenum,
     write_target: GLenum,
     read_offset: GLintptr,
@@ -203,7 +204,7 @@ pub (value: WebGL2RenderingContextBase) copy_buffer_sub_data(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/copyTexSubImage3D)
  */
-pub (value: WebGL2RenderingContextBase) copy_tex_sub_image3_d(
+pub (receiver: WebGL2RenderingContextBase) copy_tex_sub_image3_d(
     target_: GLenum,
     level: GLint,
     xoffset: GLint,
@@ -219,73 +220,73 @@ pub (value: WebGL2RenderingContextBase) copy_tex_sub_image3_d(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/createQuery)
  */
-pub (value: WebGL2RenderingContextBase) create_query(): WebGLQuery ->
+pub (receiver: WebGL2RenderingContextBase) create_query(): WebGLQuery ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/createSampler)
  */
-pub (value: WebGL2RenderingContextBase) create_sampler(): WebGLSampler ->
+pub (receiver: WebGL2RenderingContextBase) create_sampler(): WebGLSampler ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/createTransformFeedback)
  */
-pub (value: WebGL2RenderingContextBase) create_transform_feedback(): WebGLTransformFeedback ->
+pub (receiver: WebGL2RenderingContextBase) create_transform_feedback(): WebGLTransformFeedback ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/createVertexArray)
  */
-pub (value: WebGL2RenderingContextBase) create_vertex_array(): WebGLVertexArrayObject ->
+pub (receiver: WebGL2RenderingContextBase) create_vertex_array(): WebGLVertexArrayObject ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/deleteQuery)
  */
-pub (value: WebGL2RenderingContextBase) delete_query(query: Option[WebGLQuery]): Unit ->
+pub (receiver: WebGL2RenderingContextBase) delete_query(query: Option[WebGLQuery]): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/deleteSampler)
  */
-pub (value: WebGL2RenderingContextBase) delete_sampler(sampler: Option[WebGLSampler]): Unit ->
+pub (receiver: WebGL2RenderingContextBase) delete_sampler(sampler: Option[WebGLSampler]): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/deleteSync)
  */
-pub (value: WebGL2RenderingContextBase) delete_sync(sync: Option[WebGLSync]): Unit ->
+pub (receiver: WebGL2RenderingContextBase) delete_sync(sync: Option[WebGLSync]): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/deleteTransformFeedback)
  */
-pub (value: WebGL2RenderingContextBase) delete_transform_feedback(tf: Option[WebGLTransformFeedback]): Unit ->
+pub (receiver: WebGL2RenderingContextBase) delete_transform_feedback(tf: Option[WebGLTransformFeedback]): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/deleteVertexArray)
  */
-pub (value: WebGL2RenderingContextBase) delete_vertex_array(vertex_array: Option[WebGLVertexArrayObject]): Unit ->
+pub (receiver: WebGL2RenderingContextBase) delete_vertex_array(vertex_array: Option[WebGLVertexArrayObject]): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/drawArraysInstanced)
  */
-pub (value: WebGL2RenderingContextBase) draw_arrays_instanced(mode: GLenum, first: GLint, count: GLsizei, instance_count: GLsizei): Unit ->
+pub (receiver: WebGL2RenderingContextBase) draw_arrays_instanced(mode: GLenum, first: GLint, count: GLsizei, instance_count: GLsizei): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/drawBuffers)
  */
-pub (value: WebGL2RenderingContextBase) draw_buffers(buffers: Array[GLenum]): Unit ->
+pub (receiver: WebGL2RenderingContextBase) draw_buffers(buffers: Array[GLenum]): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/drawElementsInstanced)
  */
-pub (value: WebGL2RenderingContextBase) draw_elements_instanced(
+pub (receiver: WebGL2RenderingContextBase) draw_elements_instanced(
     mode: GLenum,
     count: GLsizei,
     type_: GLenum,
@@ -297,7 +298,7 @@ pub (value: WebGL2RenderingContextBase) draw_elements_instanced(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/drawRangeElements)
  */
-pub (value: WebGL2RenderingContextBase) draw_range_elements(
+pub (receiver: WebGL2RenderingContextBase) draw_range_elements(
     mode: GLenum,
     start: GLuint,
     end: GLuint,
@@ -310,28 +311,28 @@ pub (value: WebGL2RenderingContextBase) draw_range_elements(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/endQuery)
  */
-pub (value: WebGL2RenderingContextBase) end_query(target_: GLenum): Unit ->
+pub (receiver: WebGL2RenderingContextBase) end_query(target_: GLenum): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/endTransformFeedback)
  */
-pub (value: WebGL2RenderingContextBase) end_transform_feedback(): Unit ->
+pub (receiver: WebGL2RenderingContextBase) end_transform_feedback(): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/fenceSync)
  */
-pub (value: WebGL2RenderingContextBase) fence_sync(condition: GLenum, flags: GLbitfield): Option[WebGLSync] ->
+pub (receiver: WebGL2RenderingContextBase) fence_sync(condition: GLenum, flags: GLbitfield): Option[WebGLSync] ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/framebufferTextureLayer)
  */
-pub (value: WebGL2RenderingContextBase) framebuffer_texture_layer(
+pub (receiver: WebGL2RenderingContextBase) framebuffer_texture_layer(
     target_: GLenum,
     attachment: GLenum,
-    texture: Option[WebGLTexture],
+    texture: Option[std.js.Dom.WebGLTexture.WebGLTexture],
     level: GLint,
     layer: GLint,
 ): Unit ->
@@ -340,52 +341,43 @@ pub (value: WebGL2RenderingContextBase) framebuffer_texture_layer(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/getActiveUniformBlockName)
  */
-pub (value: WebGL2RenderingContextBase) get_active_uniform_block_name(
+pub (receiver: WebGL2RenderingContextBase) get_active_uniform_block_name(
     program: WebGLProgram,
     uniform_block_index: GLuint,
 ): Option[JsString] ->
     native.
 
 /**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/getBufferSubData)
- */
-pub (value: WebGL2RenderingContextBase) get_buffer_sub_data(
-    target_: GLenum,
-    src_byte_offset: GLintptr,
-    dst_buffer: ArrayBufferView[ArrayBufferLike],
-    dst_offset: JsNumber,
-    length: GLuint,
-): Unit ->
-    native.
-
-/**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/getFragDataLocation)
  */
-pub (value: WebGL2RenderingContextBase) get_frag_data_location(program: WebGLProgram, name: JsString): GLint ->
+pub (receiver: WebGL2RenderingContextBase) get_frag_data_location(program: WebGLProgram, name: JsString): GLint ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/getQuery)
  */
-pub (value: WebGL2RenderingContextBase) get_query(target_: GLenum, pname: GLenum): Option[WebGLQuery] ->
+pub (receiver: WebGL2RenderingContextBase) get_query(target_: GLenum, pname: GLenum): Option[WebGLQuery] ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/getTransformFeedbackVarying)
  */
-pub (value: WebGL2RenderingContextBase) get_transform_feedback_varying(program: WebGLProgram, index: GLuint): Option[WebGLActiveInfo] ->
+pub (receiver: WebGL2RenderingContextBase) get_transform_feedback_varying(
+    program: WebGLProgram,
+    index: GLuint,
+): Option[std.js.Dom.WebGLActiveInfo.WebGLActiveInfo] ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/getUniformBlockIndex)
  */
-pub (value: WebGL2RenderingContextBase) get_uniform_block_index(program: WebGLProgram, uniform_block_name: JsString): GLuint ->
+pub (receiver: WebGL2RenderingContextBase) get_uniform_block_index(program: WebGLProgram, uniform_block_name: JsString): GLuint ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/getUniformIndices)
  */
-pub (value: WebGL2RenderingContextBase) get_uniform_indices(
+pub (receiver: WebGL2RenderingContextBase) get_uniform_indices(
     program: WebGLProgram,
     uniform_names: Array[JsString],
 ): Option[Array[GLuint]] ->
@@ -394,13 +386,13 @@ pub (value: WebGL2RenderingContextBase) get_uniform_indices(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/invalidateFramebuffer)
  */
-pub (value: WebGL2RenderingContextBase) invalidate_framebuffer(target_: GLenum, attachments: Array[GLenum]): Unit ->
+pub (receiver: WebGL2RenderingContextBase) invalidate_framebuffer(target_: GLenum, attachments: Array[GLenum]): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/invalidateSubFramebuffer)
  */
-pub (value: WebGL2RenderingContextBase) invalidate_sub_framebuffer(
+pub (receiver: WebGL2RenderingContextBase) invalidate_sub_framebuffer(
     target_: GLenum,
     attachments: Array[GLenum],
     x: GLint,
@@ -413,49 +405,49 @@ pub (value: WebGL2RenderingContextBase) invalidate_sub_framebuffer(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/isQuery)
  */
-pub (value: WebGL2RenderingContextBase) is_query(query: Option[WebGLQuery]): GLboolean ->
+pub (receiver: WebGL2RenderingContextBase) is_query(query: Option[WebGLQuery]): GLboolean ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/isSampler)
  */
-pub (value: WebGL2RenderingContextBase) is_sampler(sampler: Option[WebGLSampler]): GLboolean ->
+pub (receiver: WebGL2RenderingContextBase) is_sampler(sampler: Option[WebGLSampler]): GLboolean ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/isSync)
  */
-pub (value: WebGL2RenderingContextBase) is_sync(sync: Option[WebGLSync]): GLboolean ->
+pub (receiver: WebGL2RenderingContextBase) is_sync(sync: Option[WebGLSync]): GLboolean ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/isTransformFeedback)
  */
-pub (value: WebGL2RenderingContextBase) is_transform_feedback(tf: Option[WebGLTransformFeedback]): GLboolean ->
+pub (receiver: WebGL2RenderingContextBase) is_transform_feedback(tf: Option[WebGLTransformFeedback]): GLboolean ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/isVertexArray)
  */
-pub (value: WebGL2RenderingContextBase) is_vertex_array(vertex_array: Option[WebGLVertexArrayObject]): GLboolean ->
+pub (receiver: WebGL2RenderingContextBase) is_vertex_array(vertex_array: Option[WebGLVertexArrayObject]): GLboolean ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/pauseTransformFeedback)
  */
-pub (value: WebGL2RenderingContextBase) pause_transform_feedback(): Unit ->
+pub (receiver: WebGL2RenderingContextBase) pause_transform_feedback(): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/readBuffer)
  */
-pub (value: WebGL2RenderingContextBase) read_buffer(src: GLenum): Unit ->
+pub (receiver: WebGL2RenderingContextBase) read_buffer(src: GLenum): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/renderbufferStorageMultisample)
  */
-pub (value: WebGL2RenderingContextBase) renderbuffer_storage_multisample(
+pub (receiver: WebGL2RenderingContextBase) renderbuffer_storage_multisample(
     target_: GLenum,
     samples: GLsizei,
     internalformat: GLenum,
@@ -467,25 +459,25 @@ pub (value: WebGL2RenderingContextBase) renderbuffer_storage_multisample(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/resumeTransformFeedback)
  */
-pub (value: WebGL2RenderingContextBase) resume_transform_feedback(): Unit ->
+pub (receiver: WebGL2RenderingContextBase) resume_transform_feedback(): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/samplerParameter)
  */
-pub (value: WebGL2RenderingContextBase) sampler_parameterf(sampler: WebGLSampler, pname: GLenum, param: GLfloat): Unit ->
+pub (receiver: WebGL2RenderingContextBase) sampler_parameterf(sampler: WebGLSampler, pname: GLenum, param: GLfloat): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/samplerParameter)
  */
-pub (value: WebGL2RenderingContextBase) sampler_parameteri(sampler: WebGLSampler, pname: GLenum, param: GLint): Unit ->
+pub (receiver: WebGL2RenderingContextBase) sampler_parameteri(sampler: WebGLSampler, pname: GLenum, param: GLint): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/texImage3D)
  */
-pub (value: WebGL2RenderingContextBase) tex_image3_d(
+pub (receiver: WebGL2RenderingContextBase) tex_image3_d(
     target_: GLenum,
     level: GLint,
     internalformat: GLint,
@@ -499,7 +491,7 @@ pub (value: WebGL2RenderingContextBase) tex_image3_d(
 ): Unit ->
     native.
 
-pub (value: WebGL2RenderingContextBase) tex_image3_d(
+pub (receiver: WebGL2RenderingContextBase) tex_image3_d_overload_2(
     target_: GLenum,
     level: GLint,
     internalformat: GLint,
@@ -513,39 +505,10 @@ pub (value: WebGL2RenderingContextBase) tex_image3_d(
 ): Unit ->
     native.
 
-pub (value: WebGL2RenderingContextBase) tex_image3_d(
-    target_: GLenum,
-    level: GLint,
-    internalformat: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    depth: GLsizei,
-    border: GLint,
-    format: GLenum,
-    type_: GLenum,
-    src_data: Option[ArrayBufferView[ArrayBufferLike]],
-): Unit ->
-    native.
-
-pub (value: WebGL2RenderingContextBase) tex_image3_d(
-    target_: GLenum,
-    level: GLint,
-    internalformat: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    depth: GLsizei,
-    border: GLint,
-    format: GLenum,
-    type_: GLenum,
-    src_data: ArrayBufferView[ArrayBufferLike],
-    src_offset: JsNumber,
-): Unit ->
-    native.
-
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/texStorage2D)
  */
-pub (value: WebGL2RenderingContextBase) tex_storage2_d(
+pub (receiver: WebGL2RenderingContextBase) tex_storage2_d(
     target_: GLenum,
     levels: GLsizei,
     internalformat: GLenum,
@@ -557,7 +520,7 @@ pub (value: WebGL2RenderingContextBase) tex_storage2_d(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/texStorage3D)
  */
-pub (value: WebGL2RenderingContextBase) tex_storage3_d(
+pub (receiver: WebGL2RenderingContextBase) tex_storage3_d(
     target_: GLenum,
     levels: GLsizei,
     internalformat: GLenum,
@@ -570,7 +533,7 @@ pub (value: WebGL2RenderingContextBase) tex_storage3_d(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/texSubImage3D)
  */
-pub (value: WebGL2RenderingContextBase) tex_sub_image3_d(
+pub (receiver: WebGL2RenderingContextBase) tex_sub_image3_d(
     target_: GLenum,
     level: GLint,
     xoffset: GLint,
@@ -585,7 +548,7 @@ pub (value: WebGL2RenderingContextBase) tex_sub_image3_d(
 ): Unit ->
     native.
 
-pub (value: WebGL2RenderingContextBase) tex_sub_image3_d(
+pub (receiver: WebGL2RenderingContextBase) tex_sub_image3_d_overload_2(
     target_: GLenum,
     level: GLint,
     xoffset: GLint,
@@ -600,26 +563,10 @@ pub (value: WebGL2RenderingContextBase) tex_sub_image3_d(
 ): Unit ->
     native.
 
-pub (value: WebGL2RenderingContextBase) tex_sub_image3_d(
-    target_: GLenum,
-    level: GLint,
-    xoffset: GLint,
-    yoffset: GLint,
-    zoffset: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    depth: GLsizei,
-    format: GLenum,
-    type_: GLenum,
-    src_data: Option[ArrayBufferView[ArrayBufferLike]],
-    src_offset: JsNumber,
-): Unit ->
-    native.
-
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/transformFeedbackVaryings)
  */
-pub (value: WebGL2RenderingContextBase) transform_feedback_varyings(
+pub (receiver: WebGL2RenderingContextBase) transform_feedback_varyings(
     program: WebGLProgram,
     varyings: Array[JsString],
     buffer_mode: GLenum,
@@ -629,58 +576,58 @@ pub (value: WebGL2RenderingContextBase) transform_feedback_varyings(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
  */
-pub (value: WebGL2RenderingContextBase) uniform1ui(location: Option[WebGLUniformLocation], v0: GLuint): Unit ->
+pub (receiver: WebGL2RenderingContextBase) uniform1ui(location: Option[WebGLUniformLocation], v0: GLuint): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
  */
-pub (value: WebGL2RenderingContextBase) uniform1uiv(
+pub (receiver: WebGL2RenderingContextBase) uniform1uiv(
     location: Option[WebGLUniformLocation],
     data: Uint32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
  */
-pub (value: WebGL2RenderingContextBase) uniform2ui(location: Option[WebGLUniformLocation], v0: GLuint, v1: GLuint): Unit ->
+pub (receiver: WebGL2RenderingContextBase) uniform2ui(location: Option[WebGLUniformLocation], v0: GLuint, v1: GLuint): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
  */
-pub (value: WebGL2RenderingContextBase) uniform2uiv(
+pub (receiver: WebGL2RenderingContextBase) uniform2uiv(
     location: Option[WebGLUniformLocation],
     data: Uint32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
  */
-pub (value: WebGL2RenderingContextBase) uniform3ui(location: Option[WebGLUniformLocation], v0: GLuint, v1: GLuint, v2: GLuint): Unit ->
+pub (receiver: WebGL2RenderingContextBase) uniform3ui(location: Option[WebGLUniformLocation], v0: GLuint, v1: GLuint, v2: GLuint): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
  */
-pub (value: WebGL2RenderingContextBase) uniform3uiv(
+pub (receiver: WebGL2RenderingContextBase) uniform3uiv(
     location: Option[WebGLUniformLocation],
     data: Uint32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
  */
-pub (value: WebGL2RenderingContextBase) uniform4ui(
+pub (receiver: WebGL2RenderingContextBase) uniform4ui(
     location: Option[WebGLUniformLocation],
     v0: GLuint,
     v1: GLuint,
@@ -692,18 +639,18 @@ pub (value: WebGL2RenderingContextBase) uniform4ui(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
  */
-pub (value: WebGL2RenderingContextBase) uniform4uiv(
+pub (receiver: WebGL2RenderingContextBase) uniform4uiv(
     location: Option[WebGLUniformLocation],
     data: Uint32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformBlockBinding)
  */
-pub (value: WebGL2RenderingContextBase) uniform_block_binding(
+pub (receiver: WebGL2RenderingContextBase) uniform_block_binding(
     program: WebGLProgram,
     uniform_block_index: GLuint,
     uniform_block_binding: GLuint,
@@ -713,109 +660,109 @@ pub (value: WebGL2RenderingContextBase) uniform_block_binding(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
  */
-pub (value: WebGL2RenderingContextBase) uniform_matrix2x3fv(
+pub (receiver: WebGL2RenderingContextBase) uniform_matrix2x3fv(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
  */
-pub (value: WebGL2RenderingContextBase) uniform_matrix2x4fv(
+pub (receiver: WebGL2RenderingContextBase) uniform_matrix2x4fv(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
  */
-pub (value: WebGL2RenderingContextBase) uniform_matrix3x2fv(
+pub (receiver: WebGL2RenderingContextBase) uniform_matrix3x2fv(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
  */
-pub (value: WebGL2RenderingContextBase) uniform_matrix3x4fv(
+pub (receiver: WebGL2RenderingContextBase) uniform_matrix3x4fv(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
  */
-pub (value: WebGL2RenderingContextBase) uniform_matrix4x2fv(
+pub (receiver: WebGL2RenderingContextBase) uniform_matrix4x2fv(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
  */
-pub (value: WebGL2RenderingContextBase) uniform_matrix4x3fv(
+pub (receiver: WebGL2RenderingContextBase) uniform_matrix4x3fv(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     data: Float32List,
-    src_offset: JsNumber,
-    src_length: GLuint,
+    src_offset: Option[JsNumber],
+    src_length: Option[GLuint],
 ): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/vertexAttribDivisor)
  */
-pub (value: WebGL2RenderingContextBase) vertex_attrib_divisor(index: GLuint, divisor: GLuint): Unit ->
+pub (receiver: WebGL2RenderingContextBase) vertex_attrib_divisor(index: GLuint, divisor: GLuint): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/vertexAttribI)
  */
-pub (value: WebGL2RenderingContextBase) vertex_attrib_i4i(index: GLuint, x: GLint, y: GLint, z: GLint, w: GLint): Unit ->
+pub (receiver: WebGL2RenderingContextBase) vertex_attrib_i4i(index: GLuint, x: GLint, y: GLint, z: GLint, w: GLint): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/vertexAttribI)
  */
-pub (value: WebGL2RenderingContextBase) vertex_attrib_i4iv(index: GLuint, values: Int32List): Unit ->
+pub (receiver: WebGL2RenderingContextBase) vertex_attrib_i4iv(index: GLuint, values: Int32List): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/vertexAttribI)
  */
-pub (value: WebGL2RenderingContextBase) vertex_attrib_i4ui(index: GLuint, x: GLuint, y: GLuint, z: GLuint, w: GLuint): Unit ->
+pub (receiver: WebGL2RenderingContextBase) vertex_attrib_i4ui(index: GLuint, x: GLuint, y: GLuint, z: GLuint, w: GLuint): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/vertexAttribI)
  */
-pub (value: WebGL2RenderingContextBase) vertex_attrib_i4uiv(index: GLuint, values: Uint32List): Unit ->
+pub (receiver: WebGL2RenderingContextBase) vertex_attrib_i4uiv(index: GLuint, values: Uint32List): Unit ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/vertexAttribIPointer)
  */
-pub (value: WebGL2RenderingContextBase) vertex_attrib_i_pointer(
+pub (receiver: WebGL2RenderingContextBase) vertex_attrib_i_pointer(
     index: GLuint,
     size: GLint,
     type_: GLenum,
@@ -827,5 +774,5 @@ pub (value: WebGL2RenderingContextBase) vertex_attrib_i_pointer(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/waitSync)
  */
-pub (value: WebGL2RenderingContextBase) wait_sync(sync: WebGLSync, flags: GLbitfield, timeout: GLint64): Unit ->
+pub (receiver: WebGL2RenderingContextBase) wait_sync(sync: WebGLSync, flags: GLbitfield, timeout: std.js.Dom.GLint64.GLint64): Unit ->
     native.

@@ -12,18 +12,25 @@
  */
 module std.js.Dom.UnderlyingSinkTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.UnderlyingSink.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub abort_typechecks(receiver: UnderlyingSink[W]): UnderlyingSinkAbortCallback ->
+pub abort_typechecks(
+    receiver: UnderlyingSink[W],
+): Option[std.js.Dom.UnderlyingSinkAbortCallback.UnderlyingSinkAbortCallback] ->
     receiver.abort().
 
-pub close_typechecks(receiver: UnderlyingSink[W]): UnderlyingSinkCloseCallback ->
+pub close_typechecks(
+    receiver: UnderlyingSink[W],
+): Option[std.js.Dom.UnderlyingSinkCloseCallback.UnderlyingSinkCloseCallback] ->
     receiver.close().
 
-pub start_typechecks(receiver: UnderlyingSink[W]): UnderlyingSinkStartCallback ->
+pub start_typechecks(
+    receiver: UnderlyingSink[W],
+): Option[std.js.Dom.UnderlyingSinkStartCallback.UnderlyingSinkStartCallback] ->
     receiver.start().
 
-pub write_typechecks(receiver: UnderlyingSink[W]): UnderlyingSinkWriteCallback[W] ->
+pub write_typechecks(
+    receiver: UnderlyingSink[W],
+): Option[std.js.Dom.UnderlyingSinkWriteCallback.UnderlyingSinkWriteCallback[W]] ->
     receiver.write().

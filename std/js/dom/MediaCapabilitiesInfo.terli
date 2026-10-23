@@ -12,12 +12,10 @@
  */
 module std.js.Dom.MediaCapabilitiesInfo.
 
-import type std.core.{Bool}.
-
 pub opaque type MediaCapabilitiesInfo.
 
-pub (value: MediaCapabilitiesInfo) power_efficient(): Bool.
+pub (receiver: MediaCapabilitiesInfo) power_efficient(): Bool.
 
-pub (value: MediaCapabilitiesInfo) smooth(): Bool.
+pub (receiver: MediaCapabilitiesInfo) smooth(): Bool.
 
-pub (value: MediaCapabilitiesInfo) supported(): Bool.
+pub (receiver: MediaCapabilitiesInfo) supported(): Bool.

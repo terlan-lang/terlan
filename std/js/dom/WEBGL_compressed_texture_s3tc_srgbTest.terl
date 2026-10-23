@@ -13,5 +13,3 @@
 module std.js.Dom.WEBGL_compressed_texture_s3tc_srgbTest.
 
 import type std.js.Dom.WEBGL_compressed_texture_s3tc_srgb.
-
-pub generated_binding_surface_contract(): Bool -> true.

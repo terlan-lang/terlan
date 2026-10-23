@@ -15,8 +15,8 @@ module std.js.Error.
 
 pub opaque type Error.
 
-pub (value: Error) name(): std.js.String.JsString.
+pub (receiver: Error) name(): std.js.String.JsString.
 
-pub (value: Error) message(): std.js.String.JsString.
+pub (receiver: Error) message(): std.js.String.JsString.
 
-pub (value: Error) stack(): std.js.String.JsString.
+pub (receiver: Error) stack(): std.core.Option.Option[std.js.String.JsString].

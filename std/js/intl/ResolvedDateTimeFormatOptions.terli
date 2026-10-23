@@ -12,34 +12,35 @@
  */
 module std.js.Intl.ResolvedDateTimeFormatOptions.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type ResolvedDateTimeFormatOptions.
 
-pub (value: ResolvedDateTimeFormatOptions) locale(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) locale(): JsString.
 
-pub (value: ResolvedDateTimeFormatOptions) calendar(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) calendar(): JsString.
 
-pub (value: ResolvedDateTimeFormatOptions) numbering_system(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) numbering_system(): JsString.
 
-pub (value: ResolvedDateTimeFormatOptions) time_zone(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) time_zone(): JsString.
 
-pub (value: ResolvedDateTimeFormatOptions) hour12(): std.core.Bool.
+pub (receiver: ResolvedDateTimeFormatOptions) hour12(): Option[Bool].
 
-pub (value: ResolvedDateTimeFormatOptions) weekday(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) weekday(): Option[JsString].
 
-pub (value: ResolvedDateTimeFormatOptions) era(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) era(): Option[JsString].
 
-pub (value: ResolvedDateTimeFormatOptions) year(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) year(): Option[JsString].
 
-pub (value: ResolvedDateTimeFormatOptions) month(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) month(): Option[JsString].
 
-pub (value: ResolvedDateTimeFormatOptions) day(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) day(): Option[JsString].
 
-pub (value: ResolvedDateTimeFormatOptions) hour(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) hour(): Option[JsString].
 
-pub (value: ResolvedDateTimeFormatOptions) minute(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) minute(): Option[JsString].
 
-pub (value: ResolvedDateTimeFormatOptions) second(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) second(): Option[JsString].
 
-pub (value: ResolvedDateTimeFormatOptions) time_zone_name(): JsString.
+pub (receiver: ResolvedDateTimeFormatOptions) time_zone_name(): Option[JsString].

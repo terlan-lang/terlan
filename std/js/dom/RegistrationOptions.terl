@@ -14,11 +14,5 @@ module std.js.Dom.RegistrationOptions.
 
 pub opaque type RegistrationOptions.
 
-pub (value: RegistrationOptions) scope(): std.js.String.JsString ->
-    native.
-
-pub (value: RegistrationOptions) type_(): WorkerType ->
-    native.
-
-pub (value: RegistrationOptions) update_via_cache(): ServiceWorkerUpdateViaCache ->
+pub (receiver: RegistrationOptions) scope(): std.core.Option.Option[std.js.String.JsString] ->
     native.

@@ -12,16 +12,15 @@
  */
 module std.js.Dom.CSSStyleSheetInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.CSSStyleSheetInit.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub base_url_typechecks(receiver: CSSStyleSheetInit): JsString ->
+pub base_url_typechecks(receiver: CSSStyleSheetInit): Option[JsString] ->
     receiver.base_url().
 
-pub disabled_typechecks(receiver: CSSStyleSheetInit): std.core.Bool ->
+pub disabled_typechecks(receiver: CSSStyleSheetInit): Option[Bool] ->
     receiver.disabled().
 
-pub media_typechecks(receiver: CSSStyleSheetInit): MediaList | JsString ->
+pub media_typechecks(receiver: CSSStyleSheetInit): Option[std.js.Dom.MediaList.MediaList | JsString] ->
     receiver.media().

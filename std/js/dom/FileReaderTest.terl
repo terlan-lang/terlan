@@ -12,16 +12,17 @@
  */
 module std.js.Dom.FileReaderTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Blob.{Blob}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.FileReader.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub error_typechecks(receiver: FileReader): Option[DOMException] ->
+pub error_typechecks(receiver: FileReader): Option[std.js.Dom.DOMException.DOMException] ->
     receiver.error().
 
-pub result_typechecks(receiver: FileReader): Option[ArrayBuffer | JsString] ->
+pub result_typechecks(receiver: FileReader): Option[std.js.ArrayBuffer.ArrayBuffer | JsString] ->
     receiver.result().
 
 pub abort_typechecks(receiver: FileReader): Unit ->
@@ -36,14 +37,14 @@ pub read_as_binary_string_typechecks(receiver: FileReader, blob: Blob): Unit ->
 pub read_as_data_url_typechecks(receiver: FileReader, blob: Blob): Unit ->
     receiver.read_as_data_url(blob).
 
-pub read_as_text_typechecks(receiver: FileReader, blob: Blob, encoding: JsString): Unit ->
+pub read_as_text_typechecks(receiver: FileReader, blob: Blob, encoding: Option[JsString]): Unit ->
     receiver.read_as_text(blob, encoding).
 
 pub add_event_listener_typechecks(
     receiver: FileReader,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -51,6 +52,6 @@ pub remove_event_listener_typechecks(
     receiver: FileReader,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

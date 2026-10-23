@@ -14,4 +14,4 @@ module std.js.Dom.AudioEncoderEventMap.
 
 pub opaque type AudioEncoderEventMap.
 
-pub (value: AudioEncoderEventMap) dequeue(): Event.
+pub (receiver: AudioEncoderEventMap) dequeue(): std.js.Dom.Event.Event.

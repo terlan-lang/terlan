@@ -12,12 +12,11 @@
  */
 module std.js.Dom.PaymentRequestUpdateEventTest.
 
+import type std.js.Dom.PaymentDetailsUpdate.{PaymentDetailsUpdate}.
 import type std.js.Dom.PaymentRequestUpdateEvent.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub update_with_typechecks(
     receiver: PaymentRequestUpdateEvent,
-    details_promise: PaymentDetailsUpdate | PromiseLike[PaymentDetailsUpdate],
-): std.core.Unit ->
+    details_promise: PaymentDetailsUpdate | std.js.PromiseLike.PromiseLike[PaymentDetailsUpdate],
+): std.core.Unit.Unit ->
     receiver.update_with(details_promise).

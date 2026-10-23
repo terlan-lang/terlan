@@ -14,5 +14,5 @@ module std.js.Dom.MIDIMessageEventInit.
 
 pub opaque type MIDIMessageEventInit.
 
-pub (value: MIDIMessageEventInit) data(): Uint8Array[ArrayBuffer] ->
+pub (receiver: MIDIMessageEventInit) data(): std.core.Option.Option[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]] ->
     native.

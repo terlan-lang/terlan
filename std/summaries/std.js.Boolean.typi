@@ -18,4 +18,4 @@ pub opaque type Boolean.
 /**
  * Returns the primitive value of the specified object.
  */
-pub (value: Boolean) value_of(): std.core.Bool.
+pub (receiver: Boolean) value_of(): Bool.

@@ -20,18 +20,16 @@ module std.js.Dom.VTTRegion.
  */
 pub opaque type VTTRegion.
 
-pub (value: VTTRegion) id(): std.js.String.JsString.
+pub (receiver: VTTRegion) id(): std.js.String.JsString.
 
-pub (value: VTTRegion) lines(): std.js.Number.JsNumber.
+pub (receiver: VTTRegion) lines(): std.js.Number.JsNumber.
 
-pub (value: VTTRegion) region_anchor_x(): std.js.Number.JsNumber.
+pub (receiver: VTTRegion) region_anchor_x(): std.js.Number.JsNumber.
 
-pub (value: VTTRegion) region_anchor_y(): std.js.Number.JsNumber.
+pub (receiver: VTTRegion) region_anchor_y(): std.js.Number.JsNumber.
 
-pub (value: VTTRegion) scroll(): ScrollSetting.
+pub (receiver: VTTRegion) viewport_anchor_x(): std.js.Number.JsNumber.
 
-pub (value: VTTRegion) viewport_anchor_x(): std.js.Number.JsNumber.
+pub (receiver: VTTRegion) viewport_anchor_y(): std.js.Number.JsNumber.
 
-pub (value: VTTRegion) viewport_anchor_y(): std.js.Number.JsNumber.
-
-pub (value: VTTRegion) width(): std.js.Number.JsNumber.
+pub (receiver: VTTRegion) width(): std.js.Number.JsNumber.

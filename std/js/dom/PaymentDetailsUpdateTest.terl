@@ -12,15 +12,16 @@
  */
 module std.js.Dom.PaymentDetailsUpdateTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.PaymentDetailsUpdate.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub error_typechecks(receiver: PaymentDetailsUpdate): std.js.String.JsString ->
+pub error_typechecks(receiver: PaymentDetailsUpdate): Option[std.js.String.JsString] ->
     receiver.error().
 
-pub shipping_address_errors_typechecks(receiver: PaymentDetailsUpdate): AddressErrors ->
+pub shipping_address_errors_typechecks(
+    receiver: PaymentDetailsUpdate,
+): Option[std.js.Dom.AddressErrors.AddressErrors] ->
     receiver.shipping_address_errors().
 
-pub total_typechecks(receiver: PaymentDetailsUpdate): PaymentItem ->
+pub total_typechecks(receiver: PaymentDetailsUpdate): Option[std.js.Dom.PaymentItem.PaymentItem] ->
     receiver.total().

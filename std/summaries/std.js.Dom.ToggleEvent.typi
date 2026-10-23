@@ -25,11 +25,11 @@ pub opaque type ToggleEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ToggleEvent/newState)
  */
-pub (value: ToggleEvent) new_state(): std.js.String.JsString.
+pub (receiver: ToggleEvent) new_state(): std.js.String.JsString.
 
 /**
  * The **`oldState`** read-only property of the ToggleEvent interface is a string representing the state the element is transitioning from.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ToggleEvent/oldState)
  */
-pub (value: ToggleEvent) old_state(): std.js.String.JsString.
+pub (receiver: ToggleEvent) old_state(): std.js.String.JsString.

@@ -14,7 +14,5 @@ module std.js.Dom.RsaHashedKeyAlgorithmTest.
 
 import type std.js.Dom.RsaHashedKeyAlgorithm.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub hash_typechecks(receiver: RsaHashedKeyAlgorithm): KeyAlgorithm ->
+pub hash_typechecks(receiver: RsaHashedKeyAlgorithm): std.js.Dom.KeyAlgorithm.KeyAlgorithm ->
     receiver.hash().

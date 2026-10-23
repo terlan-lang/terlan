@@ -15,17 +15,15 @@ module std.js.Dom.CSSGroupingRuleTest.
 import type std.js.Dom.CSSGroupingRule.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub css_rules_typechecks(receiver: CSSGroupingRule): CSSRuleList ->
+pub css_rules_typechecks(receiver: CSSGroupingRule): std.js.Dom.CSSRuleList.CSSRuleList ->
     receiver.css_rules().
 
-pub delete_rule_typechecks(receiver: CSSGroupingRule, index: JsNumber): std.core.Unit ->
+pub delete_rule_typechecks(receiver: CSSGroupingRule, index: JsNumber): std.core.Unit.Unit ->
     receiver.delete_rule(index).
 
 pub insert_rule_typechecks(
     receiver: CSSGroupingRule,
     rule: std.js.String.JsString,
-    index: JsNumber,
+    index: std.core.Option.Option[JsNumber],
 ): JsNumber ->
     receiver.insert_rule(rule, index).

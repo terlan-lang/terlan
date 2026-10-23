@@ -25,7 +25,7 @@ pub opaque type CustomEvent[T].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomEvent/detail)
  */
-pub (value: CustomEvent[T]) detail(): T.
+pub (receiver: CustomEvent[T]) detail(): T.
 
 /**
  * The **`CustomEvent.initCustomEvent()`** method initializes a CustomEvent object.
@@ -33,4 +33,4 @@ pub (value: CustomEvent[T]) detail(): T.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomEvent/initCustomEvent)
  */
-pub (value: CustomEvent[T]) init_custom_event(type_: std.js.String.JsString, bubbles: std.core.Bool, cancelable: std.core.Bool, detail: T): std.core.Unit.
+pub (receiver: CustomEvent[T]) init_custom_event(type_: std.js.String.JsString, bubbles: std.core.Option.Option[Bool], cancelable: std.core.Option.Option[Bool], detail: std.core.Option.Option[T]): std.core.Unit.Unit.

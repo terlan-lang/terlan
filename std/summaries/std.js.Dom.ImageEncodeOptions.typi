@@ -15,6 +15,6 @@ module std.js.Dom.ImageEncodeOptions.
 
 pub opaque type ImageEncodeOptions.
 
-pub (value: ImageEncodeOptions) quality(): std.js.Number.JsNumber.
+pub (receiver: ImageEncodeOptions) quality(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: ImageEncodeOptions) type_(): std.js.String.JsString.
+pub (receiver: ImageEncodeOptions) type_(): std.core.Option.Option[std.js.String.JsString].

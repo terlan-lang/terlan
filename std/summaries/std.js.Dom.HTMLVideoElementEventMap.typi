@@ -15,6 +15,6 @@ module std.js.Dom.HTMLVideoElementEventMap.
 
 pub opaque type HTMLVideoElementEventMap.
 
-pub (value: HTMLVideoElementEventMap) enterpictureinpicture(): PictureInPictureEvent.
+pub (receiver: HTMLVideoElementEventMap) enterpictureinpicture(): std.js.Dom.PictureInPictureEvent.PictureInPictureEvent.
 
-pub (value: HTMLVideoElementEventMap) leavepictureinpicture(): PictureInPictureEvent.
+pub (receiver: HTMLVideoElementEventMap) leavepictureinpicture(): std.js.Dom.PictureInPictureEvent.PictureInPictureEvent.

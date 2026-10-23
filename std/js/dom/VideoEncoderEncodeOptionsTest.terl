@@ -12,12 +12,13 @@
  */
 module std.js.Dom.VideoEncoderEncodeOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.VideoEncoderEncodeOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub avc_typechecks(receiver: VideoEncoderEncodeOptions): VideoEncoderEncodeOptionsForAvc ->
+pub avc_typechecks(
+    receiver: VideoEncoderEncodeOptions,
+): Option[std.js.Dom.VideoEncoderEncodeOptionsForAvc.VideoEncoderEncodeOptionsForAvc] ->
     receiver.avc().
 
-pub key_frame_typechecks(receiver: VideoEncoderEncodeOptions): std.core.Bool ->
+pub key_frame_typechecks(receiver: VideoEncoderEncodeOptions): Option[Bool] ->
     receiver.key_frame().

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.NotificationEventMapTest.
 
+import type std.js.Dom.Event.{Event}.
 import type std.js.Dom.NotificationEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub click_typechecks(receiver: NotificationEventMap): Event ->
     receiver.click().

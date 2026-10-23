@@ -12,53 +12,55 @@
  */
 module std.js.Dom.MediaTrackCapabilities.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.DoubleRange.{DoubleRange}.
+import type std.js.Dom.ULongRange.{ULongRange}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
 pub opaque type MediaTrackCapabilities.
 
-pub (value: MediaTrackCapabilities) aspect_ratio(): DoubleRange ->
+pub (receiver: MediaTrackCapabilities) aspect_ratio(): Option[DoubleRange] ->
     native.
 
-pub (value: MediaTrackCapabilities) auto_gain_control(): Array[Bool] ->
+pub (receiver: MediaTrackCapabilities) auto_gain_control(): Option[Array[Bool]] ->
     native.
 
-pub (value: MediaTrackCapabilities) background_blur(): Array[Bool] ->
+pub (receiver: MediaTrackCapabilities) background_blur(): Option[Array[Bool]] ->
     native.
 
-pub (value: MediaTrackCapabilities) channel_count(): ULongRange ->
+pub (receiver: MediaTrackCapabilities) channel_count(): Option[ULongRange] ->
     native.
 
-pub (value: MediaTrackCapabilities) device_id(): JsString ->
+pub (receiver: MediaTrackCapabilities) device_id(): Option[JsString] ->
     native.
 
-pub (value: MediaTrackCapabilities) display_surface(): JsString ->
+pub (receiver: MediaTrackCapabilities) display_surface(): Option[JsString] ->
     native.
 
-pub (value: MediaTrackCapabilities) echo_cancellation(): Array[Bool] ->
+pub (receiver: MediaTrackCapabilities) echo_cancellation(): Option[Array[Bool]] ->
     native.
 
-pub (value: MediaTrackCapabilities) facing_mode(): Array[JsString] ->
+pub (receiver: MediaTrackCapabilities) facing_mode(): Option[Array[JsString]] ->
     native.
 
-pub (value: MediaTrackCapabilities) frame_rate(): DoubleRange ->
+pub (receiver: MediaTrackCapabilities) frame_rate(): Option[DoubleRange] ->
     native.
 
-pub (value: MediaTrackCapabilities) group_id(): JsString ->
+pub (receiver: MediaTrackCapabilities) group_id(): Option[JsString] ->
     native.
 
-pub (value: MediaTrackCapabilities) height(): ULongRange ->
+pub (receiver: MediaTrackCapabilities) height(): Option[ULongRange] ->
     native.
 
-pub (value: MediaTrackCapabilities) noise_suppression(): Array[Bool] ->
+pub (receiver: MediaTrackCapabilities) noise_suppression(): Option[Array[Bool]] ->
     native.
 
-pub (value: MediaTrackCapabilities) sample_rate(): ULongRange ->
+pub (receiver: MediaTrackCapabilities) sample_rate(): Option[ULongRange] ->
     native.
 
-pub (value: MediaTrackCapabilities) sample_size(): ULongRange ->
+pub (receiver: MediaTrackCapabilities) sample_size(): Option[ULongRange] ->
     native.
 
-pub (value: MediaTrackCapabilities) width(): ULongRange ->
+pub (receiver: MediaTrackCapabilities) width(): Option[ULongRange] ->
     native.

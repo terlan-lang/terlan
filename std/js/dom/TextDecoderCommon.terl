@@ -12,8 +12,6 @@
  */
 module std.js.Dom.TextDecoderCommon.
 
-import type std.core.{Bool}.
-
 pub opaque type TextDecoderCommon.
 
 /**
@@ -21,7 +19,7 @@ pub opaque type TextDecoderCommon.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/encoding)
  */
-pub (value: TextDecoderCommon) encoding(): std.js.String.JsString ->
+pub (receiver: TextDecoderCommon) encoding(): std.js.String.JsString ->
     native.
 
 /**
@@ -29,7 +27,7 @@ pub (value: TextDecoderCommon) encoding(): std.js.String.JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/fatal)
  */
-pub (value: TextDecoderCommon) fatal(): Bool ->
+pub (receiver: TextDecoderCommon) fatal(): Bool ->
     native.
 
 /**
@@ -37,5 +35,5 @@ pub (value: TextDecoderCommon) fatal(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/ignoreBOM)
  */
-pub (value: TextDecoderCommon) ignore_bom(): Bool ->
+pub (receiver: TextDecoderCommon) ignore_bom(): Bool ->
     native.

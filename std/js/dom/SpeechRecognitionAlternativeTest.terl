@@ -14,8 +14,6 @@ module std.js.Dom.SpeechRecognitionAlternativeTest.
 
 import type std.js.Dom.SpeechRecognitionAlternative.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub confidence_typechecks(receiver: SpeechRecognitionAlternative): std.js.Number.JsNumber ->
     receiver.confidence().
 

@@ -12,6 +12,7 @@
  */
 module std.js.Dom.PerformanceResourceTiming.
 
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -27,7 +28,7 @@ pub opaque type PerformanceResourceTiming.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/connectEnd)
  */
-pub (value: PerformanceResourceTiming) connect_end(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) connect_end(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -35,7 +36,7 @@ pub (value: PerformanceResourceTiming) connect_end(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/connectStart)
  */
-pub (value: PerformanceResourceTiming) connect_start(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) connect_start(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -43,7 +44,7 @@ pub (value: PerformanceResourceTiming) connect_start(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/decodedBodySize)
  */
-pub (value: PerformanceResourceTiming) decoded_body_size(): JsNumber ->
+pub (receiver: PerformanceResourceTiming) decoded_body_size(): JsNumber ->
     native.
 
 /**
@@ -51,7 +52,7 @@ pub (value: PerformanceResourceTiming) decoded_body_size(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/domainLookupEnd)
  */
-pub (value: PerformanceResourceTiming) domain_lookup_end(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) domain_lookup_end(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -59,7 +60,7 @@ pub (value: PerformanceResourceTiming) domain_lookup_end(): DOMHighResTimeStamp 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/domainLookupStart)
  */
-pub (value: PerformanceResourceTiming) domain_lookup_start(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) domain_lookup_start(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -67,7 +68,7 @@ pub (value: PerformanceResourceTiming) domain_lookup_start(): DOMHighResTimeStam
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/encodedBodySize)
  */
-pub (value: PerformanceResourceTiming) encoded_body_size(): JsNumber ->
+pub (receiver: PerformanceResourceTiming) encoded_body_size(): JsNumber ->
     native.
 
 /**
@@ -75,7 +76,7 @@ pub (value: PerformanceResourceTiming) encoded_body_size(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/fetchStart)
  */
-pub (value: PerformanceResourceTiming) fetch_start(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) fetch_start(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -83,7 +84,7 @@ pub (value: PerformanceResourceTiming) fetch_start(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/initiatorType)
  */
-pub (value: PerformanceResourceTiming) initiator_type(): JsString ->
+pub (receiver: PerformanceResourceTiming) initiator_type(): JsString ->
     native.
 
 /**
@@ -91,7 +92,7 @@ pub (value: PerformanceResourceTiming) initiator_type(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/nextHopProtocol)
  */
-pub (value: PerformanceResourceTiming) next_hop_protocol(): JsString ->
+pub (receiver: PerformanceResourceTiming) next_hop_protocol(): JsString ->
     native.
 
 /**
@@ -99,7 +100,7 @@ pub (value: PerformanceResourceTiming) next_hop_protocol(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/redirectEnd)
  */
-pub (value: PerformanceResourceTiming) redirect_end(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) redirect_end(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -107,7 +108,7 @@ pub (value: PerformanceResourceTiming) redirect_end(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/redirectStart)
  */
-pub (value: PerformanceResourceTiming) redirect_start(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) redirect_start(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -115,7 +116,7 @@ pub (value: PerformanceResourceTiming) redirect_start(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/requestStart)
  */
-pub (value: PerformanceResourceTiming) request_start(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) request_start(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -123,7 +124,7 @@ pub (value: PerformanceResourceTiming) request_start(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/responseEnd)
  */
-pub (value: PerformanceResourceTiming) response_end(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) response_end(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -131,7 +132,7 @@ pub (value: PerformanceResourceTiming) response_end(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/responseStart)
  */
-pub (value: PerformanceResourceTiming) response_start(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) response_start(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -139,7 +140,7 @@ pub (value: PerformanceResourceTiming) response_start(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/responseStatus)
  */
-pub (value: PerformanceResourceTiming) response_status(): JsNumber ->
+pub (receiver: PerformanceResourceTiming) response_status(): JsNumber ->
     native.
 
 /**
@@ -147,7 +148,7 @@ pub (value: PerformanceResourceTiming) response_status(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/secureConnectionStart)
  */
-pub (value: PerformanceResourceTiming) secure_connection_start(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) secure_connection_start(): DOMHighResTimeStamp ->
     native.
 
 /**
@@ -155,7 +156,7 @@ pub (value: PerformanceResourceTiming) secure_connection_start(): DOMHighResTime
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/serverTiming)
  */
-pub (value: PerformanceResourceTiming) server_timing(): std.js.Array[PerformanceServerTiming] ->
+pub (receiver: PerformanceResourceTiming) server_timing(): std.js.Array.Array[std.js.Dom.PerformanceServerTiming.PerformanceServerTiming] ->
     native.
 
 /**
@@ -163,7 +164,7 @@ pub (value: PerformanceResourceTiming) server_timing(): std.js.Array[Performance
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/transferSize)
  */
-pub (value: PerformanceResourceTiming) transfer_size(): JsNumber ->
+pub (receiver: PerformanceResourceTiming) transfer_size(): JsNumber ->
     native.
 
 /**
@@ -171,5 +172,5 @@ pub (value: PerformanceResourceTiming) transfer_size(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/workerStart)
  */
-pub (value: PerformanceResourceTiming) worker_start(): DOMHighResTimeStamp ->
+pub (receiver: PerformanceResourceTiming) worker_start(): DOMHighResTimeStamp ->
     native.

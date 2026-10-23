@@ -14,7 +14,5 @@ module std.js.Dom.CSSMathMaxTest.
 
 import type std.js.Dom.CSSMathMax.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub values_typechecks(receiver: CSSMathMax): CSSNumericArray ->
+pub values_typechecks(receiver: CSSMathMax): std.js.Dom.CSSNumericArray.CSSNumericArray ->
     receiver.values().

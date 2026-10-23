@@ -14,10 +14,10 @@ module std.js.Dom.PopoverInvokerElementTest.
 
 import type std.js.Dom.PopoverInvokerElement.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub popover_target_action_typechecks(receiver: PopoverInvokerElement): std.js.String.JsString ->
     receiver.popover_target_action().
 
-pub popover_target_element_typechecks(receiver: PopoverInvokerElement): Option[Element] ->
+pub popover_target_element_typechecks(
+    receiver: PopoverInvokerElement,
+): std.core.Option.Option[std.js.Dom.Element.Element] ->
     receiver.popover_target_element().

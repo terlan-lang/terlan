@@ -14,4 +14,4 @@ module std.js.Dom.RTCErrorEventInit.
 
 pub opaque type RTCErrorEventInit.
 
-pub (value: RTCErrorEventInit) error(): RTCError.
+pub (receiver: RTCErrorEventInit) error(): std.js.Dom.RTCError.RTCError.

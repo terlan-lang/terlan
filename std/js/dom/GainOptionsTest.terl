@@ -14,7 +14,5 @@ module std.js.Dom.GainOptionsTest.
 
 import type std.js.Dom.GainOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub gain_typechecks(receiver: GainOptions): std.js.Number.JsNumber ->
+pub gain_typechecks(receiver: GainOptions): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.gain().

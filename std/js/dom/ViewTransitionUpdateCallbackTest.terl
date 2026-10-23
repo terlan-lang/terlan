@@ -13,5 +13,3 @@
 module std.js.Dom.ViewTransitionUpdateCallbackTest.
 
 import type std.js.Dom.ViewTransitionUpdateCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

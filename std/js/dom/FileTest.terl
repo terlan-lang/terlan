@@ -15,8 +15,6 @@ module std.js.Dom.FileTest.
 import type std.js.Dom.File.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub last_modified_typechecks(receiver: File): std.js.Number.JsNumber ->
     receiver.last_modified().
 

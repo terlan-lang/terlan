@@ -12,16 +12,15 @@
  */
 module std.js.Dom.RsaOtherPrimesInfoTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.RsaOtherPrimesInfo.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub d_typechecks(receiver: RsaOtherPrimesInfo): JsString ->
+pub d_typechecks(receiver: RsaOtherPrimesInfo): Option[JsString] ->
     receiver.d().
 
-pub r_typechecks(receiver: RsaOtherPrimesInfo): JsString ->
+pub r_typechecks(receiver: RsaOtherPrimesInfo): Option[JsString] ->
     receiver.r().
 
-pub t_typechecks(receiver: RsaOtherPrimesInfo): JsString ->
+pub t_typechecks(receiver: RsaOtherPrimesInfo): Option[JsString] ->
     receiver.t().

@@ -12,17 +12,17 @@
  */
 module std.js.Dom.CSSStyleSheetTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.CSSRuleList.{CSSRuleList}.
 import type std.js.Dom.CSSStyleSheet.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub css_rules_typechecks(receiver: CSSStyleSheet): CSSRuleList ->
     receiver.css_rules().
 
-pub owner_rule_typechecks(receiver: CSSStyleSheet): Option[CSSRule] ->
+pub owner_rule_typechecks(receiver: CSSStyleSheet): Option[std.js.Dom.CSSRule.CSSRule] ->
     receiver.owner_rule().
 
 pub rules_typechecks(receiver: CSSStyleSheet): CSSRuleList ->
@@ -30,22 +30,29 @@ pub rules_typechecks(receiver: CSSStyleSheet): CSSRuleList ->
 
 pub add_rule_typechecks(
     receiver: CSSStyleSheet,
-    selector: JsString,
-    style: JsString,
-    index: JsNumber,
+    selector: Option[JsString],
+    style: Option[JsString],
+    index: Option[JsNumber],
 ): JsNumber ->
     receiver.add_rule(selector, style, index).
 
 pub delete_rule_typechecks(receiver: CSSStyleSheet, index: JsNumber): Unit ->
     receiver.delete_rule(index).
 
-pub insert_rule_typechecks(receiver: CSSStyleSheet, rule: JsString, index: JsNumber): JsNumber ->
+pub insert_rule_typechecks(
+    receiver: CSSStyleSheet,
+    rule: JsString,
+    index: Option[JsNumber],
+): JsNumber ->
     receiver.insert_rule(rule, index).
 
-pub remove_rule_typechecks(receiver: CSSStyleSheet, index: JsNumber): Unit ->
+pub remove_rule_typechecks(receiver: CSSStyleSheet, index: Option[JsNumber]): Unit ->
     receiver.remove_rule(index).
 
-pub replace_typechecks(receiver: CSSStyleSheet, text: JsString): std.js.Promise[CSSStyleSheet] ->
+pub replace_typechecks(
+    receiver: CSSStyleSheet,
+    text: JsString,
+): std.js.Promise.Promise[CSSStyleSheet] ->
     receiver.replace(text).
 
 pub replace_sync_typechecks(receiver: CSSStyleSheet, text: JsString): Unit ->

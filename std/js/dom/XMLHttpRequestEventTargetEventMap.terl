@@ -12,25 +12,28 @@
  */
 module std.js.Dom.XMLHttpRequestEventTargetEventMap.
 
+import type std.js.Dom.ProgressEvent.{ProgressEvent}.
+import type std.js.Dom.XMLHttpRequestEventTarget.{XMLHttpRequestEventTarget}.
+
 pub opaque type XMLHttpRequestEventTargetEventMap.
 
-pub (value: XMLHttpRequestEventTargetEventMap) abort(): ProgressEvent[XMLHttpRequestEventTarget] ->
+pub (receiver: XMLHttpRequestEventTargetEventMap) abort(): ProgressEvent[XMLHttpRequestEventTarget] ->
     native.
 
-pub (value: XMLHttpRequestEventTargetEventMap) error(): ProgressEvent[XMLHttpRequestEventTarget] ->
+pub (receiver: XMLHttpRequestEventTargetEventMap) error(): ProgressEvent[XMLHttpRequestEventTarget] ->
     native.
 
-pub (value: XMLHttpRequestEventTargetEventMap) load(): ProgressEvent[XMLHttpRequestEventTarget] ->
+pub (receiver: XMLHttpRequestEventTargetEventMap) load(): ProgressEvent[XMLHttpRequestEventTarget] ->
     native.
 
-pub (value: XMLHttpRequestEventTargetEventMap) loadend(): ProgressEvent[XMLHttpRequestEventTarget] ->
+pub (receiver: XMLHttpRequestEventTargetEventMap) loadend(): ProgressEvent[XMLHttpRequestEventTarget] ->
     native.
 
-pub (value: XMLHttpRequestEventTargetEventMap) loadstart(): ProgressEvent[XMLHttpRequestEventTarget] ->
+pub (receiver: XMLHttpRequestEventTargetEventMap) loadstart(): ProgressEvent[XMLHttpRequestEventTarget] ->
     native.
 
-pub (value: XMLHttpRequestEventTargetEventMap) progress(): ProgressEvent[XMLHttpRequestEventTarget] ->
+pub (receiver: XMLHttpRequestEventTargetEventMap) progress(): ProgressEvent[XMLHttpRequestEventTarget] ->
     native.
 
-pub (value: XMLHttpRequestEventTargetEventMap) timeout(): ProgressEvent[XMLHttpRequestEventTarget] ->
+pub (receiver: XMLHttpRequestEventTargetEventMap) timeout(): ProgressEvent[XMLHttpRequestEventTarget] ->
     native.

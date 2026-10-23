@@ -15,12 +15,10 @@ module std.js.Dom.MimeTypeTest.
 import type std.js.Dom.MimeType.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub description_typechecks(receiver: MimeType): JsString ->
     receiver.description().
 
-pub enabled_plugin_typechecks(receiver: MimeType): Plugin ->
+pub enabled_plugin_typechecks(receiver: MimeType): std.js.Dom.Plugin.Plugin ->
     receiver.enabled_plugin().
 
 pub suffixes_typechecks(receiver: MimeType): JsString ->

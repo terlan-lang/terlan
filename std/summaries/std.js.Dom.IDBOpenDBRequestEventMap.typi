@@ -15,6 +15,6 @@ module std.js.Dom.IDBOpenDBRequestEventMap.
 
 pub opaque type IDBOpenDBRequestEventMap.
 
-pub (value: IDBOpenDBRequestEventMap) blocked(): IDBVersionChangeEvent.
+pub (receiver: IDBOpenDBRequestEventMap) blocked(): std.js.Dom.IDBVersionChangeEvent.IDBVersionChangeEvent.
 
-pub (value: IDBOpenDBRequestEventMap) upgradeneeded(): IDBVersionChangeEvent.
+pub (receiver: IDBOpenDBRequestEventMap) upgradeneeded(): std.js.Dom.IDBVersionChangeEvent.IDBVersionChangeEvent.

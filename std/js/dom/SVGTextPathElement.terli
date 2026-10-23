@@ -12,7 +12,10 @@
  */
 module std.js.Dom.SVGTextPathElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedEnumeration.{SVGAnimatedEnumeration}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,30 +30,30 @@ pub opaque type SVGTextPathElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPathElement/method)
  */
-pub (value: SVGTextPathElement) method(): SVGAnimatedEnumeration.
+pub (receiver: SVGTextPathElement) method(): SVGAnimatedEnumeration.
 
 /**
  * The **`spacing`** read-only property of the SVGTextPathElement interface reflects the spacing attribute of the given textPath element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPathElement/spacing)
  */
-pub (value: SVGTextPathElement) spacing(): SVGAnimatedEnumeration.
+pub (receiver: SVGTextPathElement) spacing(): SVGAnimatedEnumeration.
 
 /**
  * The **`startOffset`** read-only property of the SVGTextPathElement interface reflects the X component of the startOffset attribute of the given textPath, which defines an offset from the start of the path for the initial current text position along the path after converting the path to the `<textPath>` element's coordinate system.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPathElement/startOffset)
  */
-pub (value: SVGTextPathElement) start_offset(): SVGAnimatedLength.
+pub (receiver: SVGTextPathElement) start_offset(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
 
-pub (value: SVGTextPathElement) add_event_listener(
+pub (receiver: SVGTextPathElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: SVGTextPathElement) remove_event_listener(
+pub (receiver: SVGTextPathElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

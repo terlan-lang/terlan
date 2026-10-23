@@ -15,14 +15,6 @@ module std.js.Dom.ImageBitmapOptions.
 
 pub opaque type ImageBitmapOptions.
 
-pub (value: ImageBitmapOptions) color_space_conversion(): ColorSpaceConversion.
+pub (receiver: ImageBitmapOptions) resize_height(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: ImageBitmapOptions) image_orientation(): ImageOrientation.
-
-pub (value: ImageBitmapOptions) premultiply_alpha(): PremultiplyAlpha.
-
-pub (value: ImageBitmapOptions) resize_height(): std.js.Number.JsNumber.
-
-pub (value: ImageBitmapOptions) resize_quality(): ResizeQuality.
-
-pub (value: ImageBitmapOptions) resize_width(): std.js.Number.JsNumber.
+pub (receiver: ImageBitmapOptions) resize_width(): std.core.Option.Option[std.js.Number.JsNumber].

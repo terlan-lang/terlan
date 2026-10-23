@@ -14,7 +14,7 @@ module std.js.Dom.FontFaceSetLoadEventInitTest.
 
 import type std.js.Dom.FontFaceSetLoadEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub fontfaces_typechecks(receiver: FontFaceSetLoadEventInit): std.js.Array[FontFace] ->
+pub fontfaces_typechecks(
+    receiver: FontFaceSetLoadEventInit,
+): std.core.Option.Option[std.js.Array.Array[std.js.Dom.FontFace.FontFace]] ->
     receiver.fontfaces().

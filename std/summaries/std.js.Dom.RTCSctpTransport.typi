@@ -25,29 +25,22 @@ pub opaque type RTCSctpTransport.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCSctpTransport/maxChannels)
  */
-pub (value: RTCSctpTransport) max_channels(): Option[std.js.Number.JsNumber].
+pub (receiver: RTCSctpTransport) max_channels(): std.core.Option.Option[std.js.Number.JsNumber].
 
 /**
  * The **`maxMessageSize`** read-only property of the RTCSctpTransport interface indicates the maximum size of a message that can be sent using the RTCDataChannel.send() method.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCSctpTransport/maxMessageSize)
  */
-pub (value: RTCSctpTransport) max_message_size(): std.js.Number.JsNumber.
-
-/**
- * The **`state`** read-only property of the RTCSctpTransport interface provides information which describes a Stream Control Transmission Protocol (SCTP) transport state.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCSctpTransport/state)
- */
-pub (value: RTCSctpTransport) state(): RTCSctpTransportState.
+pub (receiver: RTCSctpTransport) max_message_size(): std.js.Number.JsNumber.
 
 /**
  * The **`transport`** read-only property of the RTCSctpTransport interface returns a RTCDtlsTransport object representing the DTLS transport used for the transmission and receipt of data packets.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCSctpTransport/transport)
  */
-pub (value: RTCSctpTransport) transport(): RTCDtlsTransport.
+pub (receiver: RTCSctpTransport) transport(): std.js.Dom.RTCDtlsTransport.RTCDtlsTransport.
 
-pub (value: RTCSctpTransport) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: RTCSctpTransport) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: RTCSctpTransport) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: RTCSctpTransport) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

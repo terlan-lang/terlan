@@ -14,7 +14,7 @@ module std.js.Dom.MIDIMessageEventTest.
 
 import type std.js.Dom.MIDIMessageEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub data_typechecks(receiver: MIDIMessageEvent): Option[Uint8Array[ArrayBuffer]] ->
+pub data_typechecks(
+    receiver: MIDIMessageEvent,
+): std.core.Option.Option[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]] ->
     receiver.data().

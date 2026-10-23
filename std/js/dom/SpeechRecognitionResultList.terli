@@ -27,11 +27,11 @@ pub opaque type SpeechRecognitionResultList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResultList/length)
  */
-pub (value: SpeechRecognitionResultList) length(): JsNumber.
+pub (receiver: SpeechRecognitionResultList) length(): JsNumber.
 
 /**
  * The **`item`** getter of the syntax.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResultList/item)
  */
-pub (value: SpeechRecognitionResultList) item(index: JsNumber): SpeechRecognitionResult.
+pub (receiver: SpeechRecognitionResultList) item(index: JsNumber): std.js.Dom.SpeechRecognitionResult.SpeechRecognitionResult.

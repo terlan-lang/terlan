@@ -13,5 +13,3 @@
 module std.js.Dom.UnderlyingSinkCloseCallbackTest.
 
 import type std.js.Dom.UnderlyingSinkCloseCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

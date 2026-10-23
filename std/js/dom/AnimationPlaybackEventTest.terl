@@ -12,9 +12,9 @@
  */
 module std.js.Dom.AnimationPlaybackEventTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.AnimationPlaybackEvent.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.CSSNumberish.{CSSNumberish}.
 
 pub current_time_typechecks(receiver: AnimationPlaybackEvent): Option[CSSNumberish] ->
     receiver.current_time().

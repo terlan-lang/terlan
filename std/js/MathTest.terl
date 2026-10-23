@@ -12,10 +12,9 @@
  */
 module std.js.MathTest.
 
+import type std.js.Array.{Array}.
 import type std.js.Math.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub e_typechecks(receiver: Math): JsNumber ->
     receiver.e().
@@ -71,11 +70,11 @@ pub floor_typechecks(receiver: Math, x: JsNumber): JsNumber ->
 pub log_typechecks(receiver: Math, x: JsNumber): JsNumber ->
     receiver.log(x).
 
-pub max_typechecks(receiver: Math): JsNumber ->
-    receiver.max().
+pub max_typechecks(receiver: Math, values: Array[JsNumber]): JsNumber ->
+    receiver.max(values).
 
-pub min_typechecks(receiver: Math): JsNumber ->
-    receiver.min().
+pub min_typechecks(receiver: Math, values: Array[JsNumber]): JsNumber ->
+    receiver.min(values).
 
 pub pow_typechecks(receiver: Math, x: JsNumber, y: JsNumber): JsNumber ->
     receiver.pow(x, y).

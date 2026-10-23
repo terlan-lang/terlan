@@ -12,14 +12,17 @@
  */
 module std.js.Dom.WindowEventMapTest.
 
+import type std.js.Dom.DeviceOrientationEvent.{DeviceOrientationEvent}.
+import type std.js.Dom.Event.{Event}.
+import type std.js.Dom.GamepadEvent.{GamepadEvent}.
 import type std.js.Dom.WindowEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub dom_content_loaded_typechecks(receiver: WindowEventMap): Event ->
     receiver.dom_content_loaded().
 
-pub devicemotion_typechecks(receiver: WindowEventMap): DeviceMotionEvent ->
+pub devicemotion_typechecks(
+    receiver: WindowEventMap,
+): std.js.Dom.DeviceMotionEvent.DeviceMotionEvent ->
     receiver.devicemotion().
 
 pub deviceorientation_typechecks(receiver: WindowEventMap): DeviceOrientationEvent ->

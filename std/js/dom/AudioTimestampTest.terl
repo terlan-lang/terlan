@@ -12,12 +12,13 @@
  */
 module std.js.Dom.AudioTimestampTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.AudioTimestamp.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub context_time_typechecks(receiver: AudioTimestamp): std.js.Number.JsNumber ->
+pub context_time_typechecks(receiver: AudioTimestamp): Option[std.js.Number.JsNumber] ->
     receiver.context_time().
 
-pub performance_time_typechecks(receiver: AudioTimestamp): DOMHighResTimeStamp ->
+pub performance_time_typechecks(
+    receiver: AudioTimestamp,
+): Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp] ->
     receiver.performance_time().

@@ -14,7 +14,7 @@ module std.js.Dom.ScriptProcessorNodeEventMapTest.
 
 import type std.js.Dom.ScriptProcessorNodeEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub audioprocess_typechecks(receiver: ScriptProcessorNodeEventMap): AudioProcessingEvent ->
+pub audioprocess_typechecks(
+    receiver: ScriptProcessorNodeEventMap,
+): std.js.Dom.AudioProcessingEvent.AudioProcessingEvent ->
     receiver.audioprocess().

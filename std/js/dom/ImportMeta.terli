@@ -16,6 +16,6 @@ import type std.js.String.{JsString}.
 
 pub opaque type ImportMeta.
 
-pub (value: ImportMeta) url(): JsString.
+pub (receiver: ImportMeta) url(): JsString.
 
-pub (value: ImportMeta) resolve(specifier: JsString): JsString.
+pub (receiver: ImportMeta) resolve(specifier: JsString): JsString.

@@ -12,13 +12,12 @@
  */
 module std.js.Dom.TextDecoderTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.TextDecoder.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub decode_typechecks(
     receiver: TextDecoder,
-    input: AllowSharedBufferSource,
-    options: TextDecodeOptions,
+    input: Option[std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource],
+    options: Option[std.js.Dom.TextDecodeOptions.TextDecodeOptions],
 ): std.js.String.JsString ->
     receiver.decode(input, options).

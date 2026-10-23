@@ -15,6 +15,6 @@ module std.js.Dom.ImageDecodeOptions.
 
 pub opaque type ImageDecodeOptions.
 
-pub (value: ImageDecodeOptions) complete_frames_only(): std.core.Bool.
+pub (receiver: ImageDecodeOptions) complete_frames_only(): std.core.Option.Option[Bool].
 
-pub (value: ImageDecodeOptions) frame_index(): std.js.Number.JsNumber.
+pub (receiver: ImageDecodeOptions) frame_index(): std.core.Option.Option[std.js.Number.JsNumber].

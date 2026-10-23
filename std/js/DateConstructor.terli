@@ -12,17 +12,18 @@
  */
 module std.js.DateConstructor.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type DateConstructor.
 
-pub (value: DateConstructor) prototype(): Date.
+pub (receiver: DateConstructor) prototype(): std.js.Date.Date.
 
 /**
  * Parses a string containing a date, and returns the number of milliseconds between that date and midnight, January 1, 1970.
  * @param s A date string
  */
-pub (value: DateConstructor) parse(s: std.js.String.JsString): JsNumber.
+pub (receiver: DateConstructor) parse(s: std.js.String.JsString): JsNumber.
 
 /**
  * Returns the number of milliseconds between midnight, January 1, 1970 Universal Coordinated Time (UTC) (or GMT) and the specified date.
@@ -34,17 +35,17 @@ pub (value: DateConstructor) parse(s: std.js.String.JsString): JsNumber.
  * @param seconds Must be supplied if milliseconds is supplied. A number from 0 to 59 that specifies the seconds.
  * @param ms A number from 0 to 999 that specifies the milliseconds.
  */
-pub (value: DateConstructor) utc(
+pub (receiver: DateConstructor) utc(
     year: JsNumber,
     month_index: JsNumber,
-    date: JsNumber,
-    hours: JsNumber,
-    minutes: JsNumber,
-    seconds: JsNumber,
-    ms: JsNumber,
+    date: Option[JsNumber],
+    hours: Option[JsNumber],
+    minutes: Option[JsNumber],
+    seconds: Option[JsNumber],
+    ms: Option[JsNumber],
 ): JsNumber.
 
 /**
  * Returns the number of milliseconds elapsed since midnight, January 1, 1970 Universal Coordinated Time (UTC).
  */
-pub (value: DateConstructor) now(): JsNumber.
+pub (receiver: DateConstructor) now(): JsNumber.

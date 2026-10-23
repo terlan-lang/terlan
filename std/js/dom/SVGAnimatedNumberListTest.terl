@@ -13,8 +13,7 @@
 module std.js.Dom.SVGAnimatedNumberListTest.
 
 import type std.js.Dom.SVGAnimatedNumberList.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.SVGNumberList.{SVGNumberList}.
 
 pub anim_val_typechecks(receiver: SVGAnimatedNumberList): SVGNumberList ->
     receiver.anim_val().

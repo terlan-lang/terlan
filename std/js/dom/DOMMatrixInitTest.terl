@@ -12,40 +12,39 @@
  */
 module std.js.Dom.DOMMatrixInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.DOMMatrixInit.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub is2_d_typechecks(receiver: DOMMatrixInit): std.core.Bool ->
+pub is2_d_typechecks(receiver: DOMMatrixInit): Option[Bool] ->
     receiver.is2_d().
 
-pub m13_typechecks(receiver: DOMMatrixInit): JsNumber ->
+pub m13_typechecks(receiver: DOMMatrixInit): Option[JsNumber] ->
     receiver.m13().
 
-pub m14_typechecks(receiver: DOMMatrixInit): JsNumber ->
+pub m14_typechecks(receiver: DOMMatrixInit): Option[JsNumber] ->
     receiver.m14().
 
-pub m23_typechecks(receiver: DOMMatrixInit): JsNumber ->
+pub m23_typechecks(receiver: DOMMatrixInit): Option[JsNumber] ->
     receiver.m23().
 
-pub m24_typechecks(receiver: DOMMatrixInit): JsNumber ->
+pub m24_typechecks(receiver: DOMMatrixInit): Option[JsNumber] ->
     receiver.m24().
 
-pub m31_typechecks(receiver: DOMMatrixInit): JsNumber ->
+pub m31_typechecks(receiver: DOMMatrixInit): Option[JsNumber] ->
     receiver.m31().
 
-pub m32_typechecks(receiver: DOMMatrixInit): JsNumber ->
+pub m32_typechecks(receiver: DOMMatrixInit): Option[JsNumber] ->
     receiver.m32().
 
-pub m33_typechecks(receiver: DOMMatrixInit): JsNumber ->
+pub m33_typechecks(receiver: DOMMatrixInit): Option[JsNumber] ->
     receiver.m33().
 
-pub m34_typechecks(receiver: DOMMatrixInit): JsNumber ->
+pub m34_typechecks(receiver: DOMMatrixInit): Option[JsNumber] ->
     receiver.m34().
 
-pub m43_typechecks(receiver: DOMMatrixInit): JsNumber ->
+pub m43_typechecks(receiver: DOMMatrixInit): Option[JsNumber] ->
     receiver.m43().
 
-pub m44_typechecks(receiver: DOMMatrixInit): JsNumber ->
+pub m44_typechecks(receiver: DOMMatrixInit): Option[JsNumber] ->
     receiver.m44().

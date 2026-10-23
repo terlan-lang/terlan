@@ -12,10 +12,9 @@
  */
 module std.js.Dom.CookieStoreDeleteOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.CookieStoreDeleteOptions.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub domain_typechecks(receiver: CookieStoreDeleteOptions): Option[JsString] ->
     receiver.domain().
@@ -23,8 +22,8 @@ pub domain_typechecks(receiver: CookieStoreDeleteOptions): Option[JsString] ->
 pub name_typechecks(receiver: CookieStoreDeleteOptions): JsString ->
     receiver.name().
 
-pub partitioned_typechecks(receiver: CookieStoreDeleteOptions): std.core.Bool ->
+pub partitioned_typechecks(receiver: CookieStoreDeleteOptions): Option[Bool] ->
     receiver.partitioned().
 
-pub path_typechecks(receiver: CookieStoreDeleteOptions): JsString ->
+pub path_typechecks(receiver: CookieStoreDeleteOptions): Option[JsString] ->
     receiver.path().

@@ -15,4 +15,4 @@ module std.js.Dom.CookieStoreEventMap.
 
 pub opaque type CookieStoreEventMap.
 
-pub (value: CookieStoreEventMap) change(): CookieChangeEvent.
+pub (receiver: CookieStoreEventMap) change(): std.js.Dom.CookieChangeEvent.CookieChangeEvent.

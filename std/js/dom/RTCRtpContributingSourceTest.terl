@@ -15,9 +15,7 @@ module std.js.Dom.RTCRtpContributingSourceTest.
 import type std.js.Dom.RTCRtpContributingSource.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub audio_level_typechecks(receiver: RTCRtpContributingSource): JsNumber ->
+pub audio_level_typechecks(receiver: RTCRtpContributingSource): std.core.Option.Option[JsNumber] ->
     receiver.audio_level().
 
 pub rtp_timestamp_typechecks(receiver: RTCRtpContributingSource): JsNumber ->
@@ -26,5 +24,7 @@ pub rtp_timestamp_typechecks(receiver: RTCRtpContributingSource): JsNumber ->
 pub source_typechecks(receiver: RTCRtpContributingSource): JsNumber ->
     receiver.source().
 
-pub timestamp_typechecks(receiver: RTCRtpContributingSource): DOMHighResTimeStamp ->
+pub timestamp_typechecks(
+    receiver: RTCRtpContributingSource,
+): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
     receiver.timestamp().

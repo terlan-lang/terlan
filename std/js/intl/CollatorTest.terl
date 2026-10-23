@@ -15,10 +15,10 @@ module std.js.Intl.CollatorTest.
 import type std.js.Intl.Collator.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub compare_typechecks(receiver: Collator, x: JsString, y: JsString): std.js.Number.JsNumber ->
     receiver.compare(x, y).
 
-pub resolved_options_typechecks(receiver: Collator): ResolvedCollatorOptions ->
+pub resolved_options_typechecks(
+    receiver: Collator,
+): std.js.Intl.ResolvedCollatorOptions.ResolvedCollatorOptions ->
     receiver.resolved_options().

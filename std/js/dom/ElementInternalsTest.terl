@@ -12,28 +12,29 @@
  */
 module std.js.Dom.ElementInternalsTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.ElementInternals.
+import type std.js.Dom.File.{File}.
+import type std.js.Dom.FormData.{FormData}.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub form_typechecks(receiver: ElementInternals): Option[HTMLFormElement] ->
+pub form_typechecks(receiver: ElementInternals): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
     receiver.form().
 
-pub labels_typechecks(receiver: ElementInternals): NodeList ->
+pub labels_typechecks(receiver: ElementInternals): std.js.Dom.NodeList.NodeList ->
     receiver.labels().
 
-pub shadow_root_typechecks(receiver: ElementInternals): Option[ShadowRoot] ->
+pub shadow_root_typechecks(receiver: ElementInternals): Option[std.js.Dom.ShadowRoot.ShadowRoot] ->
     receiver.shadow_root().
 
-pub states_typechecks(receiver: ElementInternals): CustomStateSet ->
+pub states_typechecks(receiver: ElementInternals): std.js.Dom.CustomStateSet.CustomStateSet ->
     receiver.states().
 
 pub validation_message_typechecks(receiver: ElementInternals): JsString ->
     receiver.validation_message().
 
-pub validity_typechecks(receiver: ElementInternals): ValidityState ->
+pub validity_typechecks(receiver: ElementInternals): std.js.Dom.ValidityState.ValidityState ->
     receiver.validity().
 
 pub will_validate_typechecks(receiver: ElementInternals): Bool ->
@@ -48,14 +49,14 @@ pub report_validity_typechecks(receiver: ElementInternals): Bool ->
 pub set_form_value_typechecks(
     receiver: ElementInternals,
     value: Option[File | FormData | JsString],
-    state: Option[File | FormData | JsString],
+    state: Option[Option[File | FormData | JsString]],
 ): Unit ->
     receiver.set_form_value(value, state).
 
 pub set_validity_typechecks(
     receiver: ElementInternals,
-    flags: ValidityStateFlags,
-    message: JsString,
-    anchor: HTMLElement,
+    flags: Option[std.js.Dom.ValidityStateFlags.ValidityStateFlags],
+    message: Option[JsString],
+    anchor: Option[std.js.Dom.HTMLElement.HTMLElement],
 ): Unit ->
     receiver.set_validity(flags, message, anchor).

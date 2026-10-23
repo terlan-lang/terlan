@@ -25,18 +25,11 @@ pub opaque type RTCSessionDescription.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCSessionDescription/sdp)
  */
-pub (value: RTCSessionDescription) sdp(): std.js.String.JsString.
-
-/**
- * The property **`RTCSessionDescription.type`** is a read-only string value which describes the description's type.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCSessionDescription/type)
- */
-pub (value: RTCSessionDescription) type_(): RTCSdpType.
+pub (receiver: RTCSessionDescription) sdp(): std.js.String.JsString.
 
 /**
  * The **`RTCSessionDescription.toJSON()`** method generates a ```js-nolint toJSON() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCSessionDescription/toJSON)
  */
-pub (value: RTCSessionDescription) to_json(): RTCSessionDescriptionInit.
+pub (receiver: RTCSessionDescription) to_json(): std.js.Dom.RTCSessionDescriptionInit.RTCSessionDescriptionInit.

@@ -12,8 +12,8 @@
  */
 module std.js.Dom.ViewTransition.
 
-import type std.core.{Unit}.
-import type std.js.{Promise}.
+import type std.core.Unit.{Unit}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`ViewTransition`** interface of the View Transition API represents an active view transition, and provides functionality to react to the transition reaching different states (e.g., ready to run the animation, or animation finished) or skip the transition altogether.
@@ -27,7 +27,7 @@ pub opaque type ViewTransition.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ViewTransition/finished)
  */
-pub (value: ViewTransition) finished(): Promise[Unit] ->
+pub (receiver: ViewTransition) finished(): Promise[Unit] ->
     native.
 
 /**
@@ -35,10 +35,10 @@ pub (value: ViewTransition) finished(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ViewTransition/ready)
  */
-pub (value: ViewTransition) ready(): Promise[Unit] ->
+pub (receiver: ViewTransition) ready(): Promise[Unit] ->
     native.
 
-pub (value: ViewTransition) types(): ViewTransitionTypeSet ->
+pub (receiver: ViewTransition) types(): std.js.Dom.ViewTransitionTypeSet.ViewTransitionTypeSet ->
     native.
 
 /**
@@ -46,7 +46,7 @@ pub (value: ViewTransition) types(): ViewTransitionTypeSet ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ViewTransition/updateCallbackDone)
  */
-pub (value: ViewTransition) update_callback_done(): Promise[Unit] ->
+pub (receiver: ViewTransition) update_callback_done(): Promise[Unit] ->
     native.
 
 /**
@@ -54,5 +54,5 @@ pub (value: ViewTransition) update_callback_done(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ViewTransition/skipTransition)
  */
-pub (value: ViewTransition) skip_transition(): Unit ->
+pub (receiver: ViewTransition) skip_transition(): Unit ->
     native.

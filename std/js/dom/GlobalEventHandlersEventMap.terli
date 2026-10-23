@@ -12,214 +12,228 @@
  */
 module std.js.Dom.GlobalEventHandlersEventMap.
 
+import type std.js.Dom.AnimationEvent.{AnimationEvent}.
+import type std.js.Dom.ClipboardEvent.{ClipboardEvent}.
+import type std.js.Dom.CompositionEvent.{CompositionEvent}.
+import type std.js.Dom.DragEvent.{DragEvent}.
+import type std.js.Dom.Event.{Event}.
+import type std.js.Dom.FocusEvent.{FocusEvent}.
+import type std.js.Dom.KeyboardEvent.{KeyboardEvent}.
+import type std.js.Dom.MouseEvent.{MouseEvent}.
+import type std.js.Dom.PointerEvent.{PointerEvent}.
+import type std.js.Dom.ToggleEvent.{ToggleEvent}.
+import type std.js.Dom.TouchEvent.{TouchEvent}.
+import type std.js.Dom.TransitionEvent.{TransitionEvent}.
+import type std.js.Dom.UIEvent.{UIEvent}.
+
 pub opaque type GlobalEventHandlersEventMap.
 
-pub (value: GlobalEventHandlersEventMap) abort(): UIEvent.
+pub (receiver: GlobalEventHandlersEventMap) abort(): UIEvent.
 
-pub (value: GlobalEventHandlersEventMap) animationcancel(): AnimationEvent.
+pub (receiver: GlobalEventHandlersEventMap) animationcancel(): AnimationEvent.
 
-pub (value: GlobalEventHandlersEventMap) animationend(): AnimationEvent.
+pub (receiver: GlobalEventHandlersEventMap) animationend(): AnimationEvent.
 
-pub (value: GlobalEventHandlersEventMap) animationiteration(): AnimationEvent.
+pub (receiver: GlobalEventHandlersEventMap) animationiteration(): AnimationEvent.
 
-pub (value: GlobalEventHandlersEventMap) animationstart(): AnimationEvent.
+pub (receiver: GlobalEventHandlersEventMap) animationstart(): AnimationEvent.
 
-pub (value: GlobalEventHandlersEventMap) auxclick(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) auxclick(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) beforeinput(): InputEvent.
+pub (receiver: GlobalEventHandlersEventMap) beforeinput(): std.js.Dom.InputEvent.InputEvent.
 
-pub (value: GlobalEventHandlersEventMap) beforematch(): Event.
+pub (receiver: GlobalEventHandlersEventMap) beforematch(): Event.
 
-pub (value: GlobalEventHandlersEventMap) beforetoggle(): ToggleEvent.
+pub (receiver: GlobalEventHandlersEventMap) beforetoggle(): ToggleEvent.
 
-pub (value: GlobalEventHandlersEventMap) blur(): FocusEvent.
+pub (receiver: GlobalEventHandlersEventMap) blur(): FocusEvent.
 
-pub (value: GlobalEventHandlersEventMap) cancel(): Event.
+pub (receiver: GlobalEventHandlersEventMap) cancel(): Event.
 
-pub (value: GlobalEventHandlersEventMap) canplay(): Event.
+pub (receiver: GlobalEventHandlersEventMap) canplay(): Event.
 
-pub (value: GlobalEventHandlersEventMap) canplaythrough(): Event.
+pub (receiver: GlobalEventHandlersEventMap) canplaythrough(): Event.
 
-pub (value: GlobalEventHandlersEventMap) change(): Event.
+pub (receiver: GlobalEventHandlersEventMap) change(): Event.
 
-pub (value: GlobalEventHandlersEventMap) click(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) click(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) close(): Event.
+pub (receiver: GlobalEventHandlersEventMap) close(): Event.
 
-pub (value: GlobalEventHandlersEventMap) compositionend(): CompositionEvent.
+pub (receiver: GlobalEventHandlersEventMap) compositionend(): CompositionEvent.
 
-pub (value: GlobalEventHandlersEventMap) compositionstart(): CompositionEvent.
+pub (receiver: GlobalEventHandlersEventMap) compositionstart(): CompositionEvent.
 
-pub (value: GlobalEventHandlersEventMap) compositionupdate(): CompositionEvent.
+pub (receiver: GlobalEventHandlersEventMap) compositionupdate(): CompositionEvent.
 
-pub (value: GlobalEventHandlersEventMap) contextlost(): Event.
+pub (receiver: GlobalEventHandlersEventMap) contextlost(): Event.
 
-pub (value: GlobalEventHandlersEventMap) contextmenu(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) contextmenu(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) contextrestored(): Event.
+pub (receiver: GlobalEventHandlersEventMap) contextrestored(): Event.
 
-pub (value: GlobalEventHandlersEventMap) copy(): ClipboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) copy(): ClipboardEvent.
 
-pub (value: GlobalEventHandlersEventMap) cuechange(): Event.
+pub (receiver: GlobalEventHandlersEventMap) cuechange(): Event.
 
-pub (value: GlobalEventHandlersEventMap) cut(): ClipboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) cut(): ClipboardEvent.
 
-pub (value: GlobalEventHandlersEventMap) dblclick(): MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) dblclick(): MouseEvent.
 
-pub (value: GlobalEventHandlersEventMap) drag(): DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) drag(): DragEvent.
 
-pub (value: GlobalEventHandlersEventMap) dragend(): DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) dragend(): DragEvent.
 
-pub (value: GlobalEventHandlersEventMap) dragenter(): DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) dragenter(): DragEvent.
 
-pub (value: GlobalEventHandlersEventMap) dragleave(): DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) dragleave(): DragEvent.
 
-pub (value: GlobalEventHandlersEventMap) dragover(): DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) dragover(): DragEvent.
 
-pub (value: GlobalEventHandlersEventMap) dragstart(): DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) dragstart(): DragEvent.
 
-pub (value: GlobalEventHandlersEventMap) drop(): DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) drop(): DragEvent.
 
-pub (value: GlobalEventHandlersEventMap) durationchange(): Event.
+pub (receiver: GlobalEventHandlersEventMap) durationchange(): Event.
 
-pub (value: GlobalEventHandlersEventMap) emptied(): Event.
+pub (receiver: GlobalEventHandlersEventMap) emptied(): Event.
 
-pub (value: GlobalEventHandlersEventMap) ended(): Event.
+pub (receiver: GlobalEventHandlersEventMap) ended(): Event.
 
-pub (value: GlobalEventHandlersEventMap) error(): ErrorEvent.
+pub (receiver: GlobalEventHandlersEventMap) error(): std.js.Dom.ErrorEvent.ErrorEvent.
 
-pub (value: GlobalEventHandlersEventMap) focus(): FocusEvent.
+pub (receiver: GlobalEventHandlersEventMap) focus(): FocusEvent.
 
-pub (value: GlobalEventHandlersEventMap) focusin(): FocusEvent.
+pub (receiver: GlobalEventHandlersEventMap) focusin(): FocusEvent.
 
-pub (value: GlobalEventHandlersEventMap) focusout(): FocusEvent.
+pub (receiver: GlobalEventHandlersEventMap) focusout(): FocusEvent.
 
-pub (value: GlobalEventHandlersEventMap) formdata(): FormDataEvent.
+pub (receiver: GlobalEventHandlersEventMap) formdata(): std.js.Dom.FormDataEvent.FormDataEvent.
 
-pub (value: GlobalEventHandlersEventMap) gotpointercapture(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) gotpointercapture(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) input(): Event.
+pub (receiver: GlobalEventHandlersEventMap) input(): Event.
 
-pub (value: GlobalEventHandlersEventMap) invalid(): Event.
+pub (receiver: GlobalEventHandlersEventMap) invalid(): Event.
 
-pub (value: GlobalEventHandlersEventMap) keydown(): KeyboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) keydown(): KeyboardEvent.
 
-pub (value: GlobalEventHandlersEventMap) keypress(): KeyboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) keypress(): KeyboardEvent.
 
-pub (value: GlobalEventHandlersEventMap) keyup(): KeyboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) keyup(): KeyboardEvent.
 
-pub (value: GlobalEventHandlersEventMap) load(): Event.
+pub (receiver: GlobalEventHandlersEventMap) load(): Event.
 
-pub (value: GlobalEventHandlersEventMap) loadeddata(): Event.
+pub (receiver: GlobalEventHandlersEventMap) loadeddata(): Event.
 
-pub (value: GlobalEventHandlersEventMap) loadedmetadata(): Event.
+pub (receiver: GlobalEventHandlersEventMap) loadedmetadata(): Event.
 
-pub (value: GlobalEventHandlersEventMap) loadstart(): Event.
+pub (receiver: GlobalEventHandlersEventMap) loadstart(): Event.
 
-pub (value: GlobalEventHandlersEventMap) lostpointercapture(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) lostpointercapture(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) mousedown(): MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mousedown(): MouseEvent.
 
-pub (value: GlobalEventHandlersEventMap) mouseenter(): MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mouseenter(): MouseEvent.
 
-pub (value: GlobalEventHandlersEventMap) mouseleave(): MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mouseleave(): MouseEvent.
 
-pub (value: GlobalEventHandlersEventMap) mousemove(): MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mousemove(): MouseEvent.
 
-pub (value: GlobalEventHandlersEventMap) mouseout(): MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mouseout(): MouseEvent.
 
-pub (value: GlobalEventHandlersEventMap) mouseover(): MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mouseover(): MouseEvent.
 
-pub (value: GlobalEventHandlersEventMap) mouseup(): MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mouseup(): MouseEvent.
 
-pub (value: GlobalEventHandlersEventMap) paste(): ClipboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) paste(): ClipboardEvent.
 
-pub (value: GlobalEventHandlersEventMap) pause(): Event.
+pub (receiver: GlobalEventHandlersEventMap) pause(): Event.
 
-pub (value: GlobalEventHandlersEventMap) play(): Event.
+pub (receiver: GlobalEventHandlersEventMap) play(): Event.
 
-pub (value: GlobalEventHandlersEventMap) playing(): Event.
+pub (receiver: GlobalEventHandlersEventMap) playing(): Event.
 
-pub (value: GlobalEventHandlersEventMap) pointercancel(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointercancel(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) pointerdown(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerdown(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) pointerenter(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerenter(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) pointerleave(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerleave(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) pointermove(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointermove(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) pointerout(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerout(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) pointerover(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerover(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) pointerrawupdate(): Event.
+pub (receiver: GlobalEventHandlersEventMap) pointerrawupdate(): Event.
 
-pub (value: GlobalEventHandlersEventMap) pointerup(): PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerup(): PointerEvent.
 
-pub (value: GlobalEventHandlersEventMap) progress(): ProgressEvent.
+pub (receiver: GlobalEventHandlersEventMap) progress(): std.js.Dom.ProgressEvent.ProgressEvent.
 
-pub (value: GlobalEventHandlersEventMap) ratechange(): Event.
+pub (receiver: GlobalEventHandlersEventMap) ratechange(): Event.
 
-pub (value: GlobalEventHandlersEventMap) reset(): Event.
+pub (receiver: GlobalEventHandlersEventMap) reset(): Event.
 
-pub (value: GlobalEventHandlersEventMap) resize(): UIEvent.
+pub (receiver: GlobalEventHandlersEventMap) resize(): UIEvent.
 
-pub (value: GlobalEventHandlersEventMap) scroll(): Event.
+pub (receiver: GlobalEventHandlersEventMap) scroll(): Event.
 
-pub (value: GlobalEventHandlersEventMap) scrollend(): Event.
+pub (receiver: GlobalEventHandlersEventMap) scrollend(): Event.
 
-pub (value: GlobalEventHandlersEventMap) securitypolicyviolation(): SecurityPolicyViolationEvent.
+pub (receiver: GlobalEventHandlersEventMap) securitypolicyviolation(): std.js.Dom.SecurityPolicyViolationEvent.SecurityPolicyViolationEvent.
 
-pub (value: GlobalEventHandlersEventMap) seeked(): Event.
+pub (receiver: GlobalEventHandlersEventMap) seeked(): Event.
 
-pub (value: GlobalEventHandlersEventMap) seeking(): Event.
+pub (receiver: GlobalEventHandlersEventMap) seeking(): Event.
 
-pub (value: GlobalEventHandlersEventMap) select(): Event.
+pub (receiver: GlobalEventHandlersEventMap) select(): Event.
 
-pub (value: GlobalEventHandlersEventMap) selectionchange(): Event.
+pub (receiver: GlobalEventHandlersEventMap) selectionchange(): Event.
 
-pub (value: GlobalEventHandlersEventMap) selectstart(): Event.
+pub (receiver: GlobalEventHandlersEventMap) selectstart(): Event.
 
-pub (value: GlobalEventHandlersEventMap) slotchange(): Event.
+pub (receiver: GlobalEventHandlersEventMap) slotchange(): Event.
 
-pub (value: GlobalEventHandlersEventMap) stalled(): Event.
+pub (receiver: GlobalEventHandlersEventMap) stalled(): Event.
 
-pub (value: GlobalEventHandlersEventMap) submit(): SubmitEvent.
+pub (receiver: GlobalEventHandlersEventMap) submit(): std.js.Dom.SubmitEvent.SubmitEvent.
 
-pub (value: GlobalEventHandlersEventMap) suspend(): Event.
+pub (receiver: GlobalEventHandlersEventMap) suspend(): Event.
 
-pub (value: GlobalEventHandlersEventMap) timeupdate(): Event.
+pub (receiver: GlobalEventHandlersEventMap) timeupdate(): Event.
 
-pub (value: GlobalEventHandlersEventMap) toggle(): ToggleEvent.
+pub (receiver: GlobalEventHandlersEventMap) toggle(): ToggleEvent.
 
-pub (value: GlobalEventHandlersEventMap) touchcancel(): TouchEvent.
+pub (receiver: GlobalEventHandlersEventMap) touchcancel(): TouchEvent.
 
-pub (value: GlobalEventHandlersEventMap) touchend(): TouchEvent.
+pub (receiver: GlobalEventHandlersEventMap) touchend(): TouchEvent.
 
-pub (value: GlobalEventHandlersEventMap) touchmove(): TouchEvent.
+pub (receiver: GlobalEventHandlersEventMap) touchmove(): TouchEvent.
 
-pub (value: GlobalEventHandlersEventMap) touchstart(): TouchEvent.
+pub (receiver: GlobalEventHandlersEventMap) touchstart(): TouchEvent.
 
-pub (value: GlobalEventHandlersEventMap) transitioncancel(): TransitionEvent.
+pub (receiver: GlobalEventHandlersEventMap) transitioncancel(): TransitionEvent.
 
-pub (value: GlobalEventHandlersEventMap) transitionend(): TransitionEvent.
+pub (receiver: GlobalEventHandlersEventMap) transitionend(): TransitionEvent.
 
-pub (value: GlobalEventHandlersEventMap) transitionrun(): TransitionEvent.
+pub (receiver: GlobalEventHandlersEventMap) transitionrun(): TransitionEvent.
 
-pub (value: GlobalEventHandlersEventMap) transitionstart(): TransitionEvent.
+pub (receiver: GlobalEventHandlersEventMap) transitionstart(): TransitionEvent.
 
-pub (value: GlobalEventHandlersEventMap) volumechange(): Event.
+pub (receiver: GlobalEventHandlersEventMap) volumechange(): Event.
 
-pub (value: GlobalEventHandlersEventMap) waiting(): Event.
+pub (receiver: GlobalEventHandlersEventMap) waiting(): Event.
 
-pub (value: GlobalEventHandlersEventMap) webkitanimationend(): Event.
+pub (receiver: GlobalEventHandlersEventMap) webkitanimationend(): Event.
 
-pub (value: GlobalEventHandlersEventMap) webkitanimationiteration(): Event.
+pub (receiver: GlobalEventHandlersEventMap) webkitanimationiteration(): Event.
 
-pub (value: GlobalEventHandlersEventMap) webkitanimationstart(): Event.
+pub (receiver: GlobalEventHandlersEventMap) webkitanimationstart(): Event.
 
-pub (value: GlobalEventHandlersEventMap) webkittransitionend(): Event.
+pub (receiver: GlobalEventHandlersEventMap) webkittransitionend(): Event.
 
-pub (value: GlobalEventHandlersEventMap) wheel(): WheelEvent.
+pub (receiver: GlobalEventHandlersEventMap) wheel(): std.js.Dom.WheelEvent.WheelEvent.

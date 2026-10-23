@@ -13,14 +13,10 @@
 module std.js.Dom.NavigationActivationTest.
 
 import type std.js.Dom.NavigationActivation.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.NavigationHistoryEntry.{NavigationHistoryEntry}.
 
 pub entry_typechecks(receiver: NavigationActivation): NavigationHistoryEntry ->
     receiver.entry().
 
-pub from__typechecks(receiver: NavigationActivation): Option[NavigationHistoryEntry] ->
+pub from__typechecks(receiver: NavigationActivation): std.core.Option.Option[NavigationHistoryEntry] ->
     receiver.from_().
-
-pub navigation_type_typechecks(receiver: NavigationActivation): NavigationType ->
-    receiver.navigation_type().

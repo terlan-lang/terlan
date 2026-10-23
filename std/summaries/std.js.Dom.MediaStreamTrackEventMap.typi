@@ -15,8 +15,8 @@ module std.js.Dom.MediaStreamTrackEventMap.
 
 pub opaque type MediaStreamTrackEventMap.
 
-pub (value: MediaStreamTrackEventMap) ended(): Event.
+pub (receiver: MediaStreamTrackEventMap) ended(): std.js.Dom.Event.Event.
 
-pub (value: MediaStreamTrackEventMap) mute(): Event.
+pub (receiver: MediaStreamTrackEventMap) mute(): std.js.Dom.Event.Event.
 
-pub (value: MediaStreamTrackEventMap) unmute(): Event.
+pub (receiver: MediaStreamTrackEventMap) unmute(): std.js.Dom.Event.Event.

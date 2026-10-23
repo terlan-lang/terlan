@@ -15,14 +15,12 @@ module std.js.Dom.RTCErrorInit.
 
 pub opaque type RTCErrorInit.
 
-pub (value: RTCErrorInit) error_detail(): RTCErrorDetailType.
+pub (receiver: RTCErrorInit) http_request_status_code(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: RTCErrorInit) http_request_status_code(): std.js.Number.JsNumber.
+pub (receiver: RTCErrorInit) received_alert(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: RTCErrorInit) received_alert(): std.js.Number.JsNumber.
+pub (receiver: RTCErrorInit) sctp_cause_code(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: RTCErrorInit) sctp_cause_code(): std.js.Number.JsNumber.
+pub (receiver: RTCErrorInit) sdp_line_number(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: RTCErrorInit) sdp_line_number(): std.js.Number.JsNumber.
-
-pub (value: RTCErrorInit) sent_alert(): std.js.Number.JsNumber.
+pub (receiver: RTCErrorInit) sent_alert(): std.core.Option.Option[std.js.Number.JsNumber].

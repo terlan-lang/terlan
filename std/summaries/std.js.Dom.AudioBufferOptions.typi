@@ -15,8 +15,8 @@ module std.js.Dom.AudioBufferOptions.
 
 pub opaque type AudioBufferOptions.
 
-pub (value: AudioBufferOptions) length(): std.js.Number.JsNumber.
+pub (receiver: AudioBufferOptions) length(): std.js.Number.JsNumber.
 
-pub (value: AudioBufferOptions) number_of_channels(): std.js.Number.JsNumber.
+pub (receiver: AudioBufferOptions) number_of_channels(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: AudioBufferOptions) sample_rate(): std.js.Number.JsNumber.
+pub (receiver: AudioBufferOptions) sample_rate(): std.js.Number.JsNumber.

@@ -12,11 +12,10 @@
  */
 module std.js.Dom.ServiceWorkerContainerEventMapTest.
 
+import type std.js.Dom.MessageEvent.{MessageEvent}.
 import type std.js.Dom.ServiceWorkerContainerEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub controllerchange_typechecks(receiver: ServiceWorkerContainerEventMap): Event ->
+pub controllerchange_typechecks(receiver: ServiceWorkerContainerEventMap): std.js.Dom.Event.Event ->
     receiver.controllerchange().
 
 pub message_typechecks(receiver: ServiceWorkerContainerEventMap): MessageEvent ->

@@ -12,13 +12,11 @@
  */
 module std.js.Dom.TextDecoderOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.TextDecoderOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub fatal_typechecks(receiver: TextDecoderOptions): Bool ->
+pub fatal_typechecks(receiver: TextDecoderOptions): Option[Bool] ->
     receiver.fatal().
 
-pub ignore_bom_typechecks(receiver: TextDecoderOptions): Bool ->
+pub ignore_bom_typechecks(receiver: TextDecoderOptions): Option[Bool] ->
     receiver.ignore_bom().

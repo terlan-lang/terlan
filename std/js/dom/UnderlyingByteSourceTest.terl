@@ -12,12 +12,15 @@
  */
 module std.js.Dom.UnderlyingByteSourceTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.UnderlyingByteSource.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub auto_allocate_chunk_size_typechecks(receiver: UnderlyingByteSource): std.js.Number.JsNumber ->
+pub auto_allocate_chunk_size_typechecks(
+    receiver: UnderlyingByteSource,
+): Option[std.js.Number.JsNumber] ->
     receiver.auto_allocate_chunk_size().
 
-pub cancel_typechecks(receiver: UnderlyingByteSource): UnderlyingSourceCancelCallback ->
+pub cancel_typechecks(
+    receiver: UnderlyingByteSource,
+): Option[std.js.Dom.UnderlyingSourceCancelCallback.UnderlyingSourceCancelCallback] ->
     receiver.cancel().

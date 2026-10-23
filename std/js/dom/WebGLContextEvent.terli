@@ -24,4 +24,4 @@ pub opaque type WebGLContextEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLContextEvent/statusMessage)
  */
-pub (value: WebGLContextEvent) status_message(): std.js.String.JsString.
+pub (receiver: WebGLContextEvent) status_message(): std.js.String.JsString.

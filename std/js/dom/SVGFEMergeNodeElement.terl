@@ -12,7 +12,9 @@
  */
 module std.js.Dom.SVGFEMergeNodeElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,19 +29,19 @@ pub opaque type SVGFEMergeNodeElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEMergeNodeElement/in1)
  */
-pub (value: SVGFEMergeNodeElement) in1(): SVGAnimatedString ->
+pub (receiver: SVGFEMergeNodeElement) in1(): std.js.Dom.SVGAnimatedString.SVGAnimatedString ->
     native.
 
-pub (value: SVGFEMergeNodeElement) add_event_listener(
+pub (receiver: SVGFEMergeNodeElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SVGFEMergeNodeElement) remove_event_listener(
+pub (receiver: SVGFEMergeNodeElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

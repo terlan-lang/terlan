@@ -25,7 +25,7 @@ pub opaque type CryptoKey.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/algorithm)
  */
-pub (value: CryptoKey) algorithm(): KeyAlgorithm ->
+pub (receiver: CryptoKey) algorithm(): std.js.Dom.KeyAlgorithm.KeyAlgorithm ->
     native.
 
 /**
@@ -33,21 +33,5 @@ pub (value: CryptoKey) algorithm(): KeyAlgorithm ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/extractable)
  */
-pub (value: CryptoKey) extractable(): std.core.Bool ->
-    native.
-
-/**
- * The read-only **`type`** property of the CryptoKey interface indicates which kind of key is represented by the object.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/type)
- */
-pub (value: CryptoKey) type_(): KeyType ->
-    native.
-
-/**
- * The read-only **`usages`** property of the CryptoKey interface indicates what can be done with the key.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/usages)
- */
-pub (value: CryptoKey) usages(): std.js.Array[KeyUsage] ->
+pub (receiver: CryptoKey) extractable(): Bool ->
     native.

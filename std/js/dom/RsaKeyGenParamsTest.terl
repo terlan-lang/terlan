@@ -14,10 +14,8 @@ module std.js.Dom.RsaKeyGenParamsTest.
 
 import type std.js.Dom.RsaKeyGenParams.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub modulus_length_typechecks(receiver: RsaKeyGenParams): std.js.Number.JsNumber ->
     receiver.modulus_length().
 
-pub public_exponent_typechecks(receiver: RsaKeyGenParams): BigInteger ->
+pub public_exponent_typechecks(receiver: RsaKeyGenParams): std.js.Dom.BigInteger.BigInteger ->
     receiver.public_exponent().

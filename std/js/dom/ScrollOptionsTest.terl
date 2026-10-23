@@ -13,8 +13,3 @@
 module std.js.Dom.ScrollOptionsTest.
 
 import type std.js.Dom.ScrollOptions.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub behavior_typechecks(receiver: ScrollOptions): ScrollBehavior ->
-    receiver.behavior().

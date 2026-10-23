@@ -12,11 +12,12 @@
  */
 module std.js.Dom.HTMLIFrameElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Document.{Document}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.HTMLIFrameElement.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub align_typechecks(receiver: HTMLIFrameElement): JsString ->
     receiver.align().
@@ -30,7 +31,9 @@ pub allow_fullscreen_typechecks(receiver: HTMLIFrameElement): Bool ->
 pub content_document_typechecks(receiver: HTMLIFrameElement): Option[Document] ->
     receiver.content_document().
 
-pub content_window_typechecks(receiver: HTMLIFrameElement): Option[WindowProxy] ->
+pub content_window_typechecks(
+    receiver: HTMLIFrameElement,
+): Option[std.js.Dom.WindowProxy.WindowProxy] ->
     receiver.content_window().
 
 pub frame_border_typechecks(receiver: HTMLIFrameElement): JsString ->
@@ -51,10 +54,7 @@ pub margin_width_typechecks(receiver: HTMLIFrameElement): JsString ->
 pub name_typechecks(receiver: HTMLIFrameElement): JsString ->
     receiver.name().
 
-pub referrer_policy_typechecks(receiver: HTMLIFrameElement): ReferrerPolicy ->
-    receiver.referrer_policy().
-
-pub sandbox_typechecks(receiver: HTMLIFrameElement): DOMTokenList ->
+pub sandbox_typechecks(receiver: HTMLIFrameElement): std.js.Dom.DOMTokenList.DOMTokenList ->
     receiver.sandbox().
 
 pub scrolling_typechecks(receiver: HTMLIFrameElement): JsString ->
@@ -76,7 +76,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLIFrameElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -84,6 +84,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLIFrameElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

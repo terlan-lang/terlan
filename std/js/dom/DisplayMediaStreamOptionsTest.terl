@@ -12,13 +12,12 @@
  */
 module std.js.Dom.DisplayMediaStreamOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.DisplayMediaStreamOptions.
+import type std.js.Dom.MediaTrackConstraints.{MediaTrackConstraints}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub audio_typechecks(receiver: DisplayMediaStreamOptions): MediaTrackConstraints | Bool ->
+pub audio_typechecks(receiver: DisplayMediaStreamOptions): Option[Bool | MediaTrackConstraints] ->
     receiver.audio().
 
-pub video_typechecks(receiver: DisplayMediaStreamOptions): MediaTrackConstraints | Bool ->
+pub video_typechecks(receiver: DisplayMediaStreamOptions): Option[Bool | MediaTrackConstraints] ->
     receiver.video().

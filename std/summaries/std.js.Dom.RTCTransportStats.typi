@@ -15,34 +15,26 @@ module std.js.Dom.RTCTransportStats.
 
 pub opaque type RTCTransportStats.
 
-pub (value: RTCTransportStats) bytes_received(): std.js.Number.JsNumber.
+pub (receiver: RTCTransportStats) bytes_received(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: RTCTransportStats) bytes_sent(): std.js.Number.JsNumber.
+pub (receiver: RTCTransportStats) bytes_sent(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: RTCTransportStats) dtls_cipher(): std.js.String.JsString.
+pub (receiver: RTCTransportStats) dtls_cipher(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RTCTransportStats) dtls_role(): RTCDtlsRole.
+pub (receiver: RTCTransportStats) ice_local_username_fragment(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RTCTransportStats) dtls_state(): RTCDtlsTransportState.
+pub (receiver: RTCTransportStats) local_certificate_id(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RTCTransportStats) ice_local_username_fragment(): std.js.String.JsString.
+pub (receiver: RTCTransportStats) packets_received(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: RTCTransportStats) ice_role(): RTCIceRole.
+pub (receiver: RTCTransportStats) packets_sent(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: RTCTransportStats) ice_state(): RTCIceTransportState.
+pub (receiver: RTCTransportStats) remote_certificate_id(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RTCTransportStats) local_certificate_id(): std.js.String.JsString.
+pub (receiver: RTCTransportStats) selected_candidate_pair_changes(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: RTCTransportStats) packets_received(): std.js.Number.JsNumber.
+pub (receiver: RTCTransportStats) selected_candidate_pair_id(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RTCTransportStats) packets_sent(): std.js.Number.JsNumber.
+pub (receiver: RTCTransportStats) srtp_cipher(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RTCTransportStats) remote_certificate_id(): std.js.String.JsString.
-
-pub (value: RTCTransportStats) selected_candidate_pair_changes(): std.js.Number.JsNumber.
-
-pub (value: RTCTransportStats) selected_candidate_pair_id(): std.js.String.JsString.
-
-pub (value: RTCTransportStats) srtp_cipher(): std.js.String.JsString.
-
-pub (value: RTCTransportStats) tls_version(): std.js.String.JsString.
+pub (receiver: RTCTransportStats) tls_version(): std.core.Option.Option[std.js.String.JsString].

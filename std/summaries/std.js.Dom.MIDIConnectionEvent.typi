@@ -26,4 +26,4 @@ pub opaque type MIDIConnectionEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIConnectionEvent/port)
  */
-pub (value: MIDIConnectionEvent) port(): Option[MIDIPort].
+pub (receiver: MIDIConnectionEvent) port(): std.core.Option.Option[std.js.Dom.MIDIPort.MIDIPort].

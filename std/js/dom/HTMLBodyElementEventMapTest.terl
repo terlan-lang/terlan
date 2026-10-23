@@ -13,5 +13,3 @@
 module std.js.Dom.HTMLBodyElementEventMapTest.
 
 import type std.js.Dom.HTMLBodyElementEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.

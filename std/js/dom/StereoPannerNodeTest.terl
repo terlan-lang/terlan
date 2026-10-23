@@ -14,7 +14,5 @@ module std.js.Dom.StereoPannerNodeTest.
 
 import type std.js.Dom.StereoPannerNode.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub pan_typechecks(receiver: StereoPannerNode): AudioParam ->
+pub pan_typechecks(receiver: StereoPannerNode): std.js.Dom.AudioParam.AudioParam ->
     receiver.pan().

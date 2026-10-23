@@ -26,7 +26,7 @@ pub opaque type HTMLCollectionBase.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCollection/length)
  */
-pub (value: HTMLCollectionBase) length(): JsNumber ->
+pub (receiver: HTMLCollectionBase) length(): JsNumber ->
     native.
 
 /**
@@ -34,5 +34,5 @@ pub (value: HTMLCollectionBase) length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCollection/item)
  */
-pub (value: HTMLCollectionBase) item(index: JsNumber): Option[Element] ->
+pub (receiver: HTMLCollectionBase) item(index: JsNumber): std.core.Option.Option[std.js.Dom.Element.Element] ->
     native.

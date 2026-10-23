@@ -26,7 +26,7 @@ pub opaque type SpeechSynthesisEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisEvent/charIndex)
  */
-pub (value: SpeechSynthesisEvent) char_index(): JsNumber ->
+pub (receiver: SpeechSynthesisEvent) char_index(): JsNumber ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: SpeechSynthesisEvent) char_index(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisEvent/charLength)
  */
-pub (value: SpeechSynthesisEvent) char_length(): JsNumber ->
+pub (receiver: SpeechSynthesisEvent) char_length(): JsNumber ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: SpeechSynthesisEvent) char_length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisEvent/elapsedTime)
  */
-pub (value: SpeechSynthesisEvent) elapsed_time(): JsNumber ->
+pub (receiver: SpeechSynthesisEvent) elapsed_time(): JsNumber ->
     native.
 
 /**
@@ -50,7 +50,7 @@ pub (value: SpeechSynthesisEvent) elapsed_time(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisEvent/name)
  */
-pub (value: SpeechSynthesisEvent) name(): std.js.String.JsString ->
+pub (receiver: SpeechSynthesisEvent) name(): std.js.String.JsString ->
     native.
 
 /**
@@ -58,5 +58,5 @@ pub (value: SpeechSynthesisEvent) name(): std.js.String.JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisEvent/utterance)
  */
-pub (value: SpeechSynthesisEvent) utterance(): SpeechSynthesisUtterance ->
+pub (receiver: SpeechSynthesisEvent) utterance(): std.js.Dom.SpeechSynthesisUtterance.SpeechSynthesisUtterance ->
     native.

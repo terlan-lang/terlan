@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLTrackElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type HTMLTrackElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/default)
  */
-pub (value: HTMLTrackElement) default(): Bool ->
+pub (receiver: HTMLTrackElement) default(): Bool ->
     native.
 
 /**
@@ -35,7 +37,7 @@ pub (value: HTMLTrackElement) default(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/kind)
  */
-pub (value: HTMLTrackElement) kind(): JsString ->
+pub (receiver: HTMLTrackElement) kind(): JsString ->
     native.
 
 /**
@@ -43,7 +45,7 @@ pub (value: HTMLTrackElement) kind(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/label)
  */
-pub (value: HTMLTrackElement) label(): JsString ->
+pub (receiver: HTMLTrackElement) label(): JsString ->
     native.
 
 /**
@@ -51,7 +53,7 @@ pub (value: HTMLTrackElement) label(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/readyState)
  */
-pub (value: HTMLTrackElement) ready_state(): std.js.Number.JsNumber ->
+pub (receiver: HTMLTrackElement) ready_state(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -59,7 +61,7 @@ pub (value: HTMLTrackElement) ready_state(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/src)
  */
-pub (value: HTMLTrackElement) src(): JsString ->
+pub (receiver: HTMLTrackElement) src(): JsString ->
     native.
 
 /**
@@ -67,7 +69,7 @@ pub (value: HTMLTrackElement) src(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/srclang)
  */
-pub (value: HTMLTrackElement) srclang(): JsString ->
+pub (receiver: HTMLTrackElement) srclang(): JsString ->
     native.
 
 /**
@@ -75,19 +77,19 @@ pub (value: HTMLTrackElement) srclang(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/track)
  */
-pub (value: HTMLTrackElement) track(): TextTrack ->
+pub (receiver: HTMLTrackElement) track(): std.js.Dom.TextTrack.TextTrack ->
     native.
 
-pub (value: HTMLTrackElement) add_event_listener(
+pub (receiver: HTMLTrackElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLTrackElement) remove_event_listener(
+pub (receiver: HTMLTrackElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

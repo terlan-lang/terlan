@@ -12,36 +12,37 @@
  */
 module std.js.Dom.AddressErrors.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type AddressErrors.
 
-pub (value: AddressErrors) address_line(): JsString ->
+pub (receiver: AddressErrors) address_line(): Option[JsString] ->
     native.
 
-pub (value: AddressErrors) city(): JsString ->
+pub (receiver: AddressErrors) city(): Option[JsString] ->
     native.
 
-pub (value: AddressErrors) country(): JsString ->
+pub (receiver: AddressErrors) country(): Option[JsString] ->
     native.
 
-pub (value: AddressErrors) dependent_locality(): JsString ->
+pub (receiver: AddressErrors) dependent_locality(): Option[JsString] ->
     native.
 
-pub (value: AddressErrors) organization(): JsString ->
+pub (receiver: AddressErrors) organization(): Option[JsString] ->
     native.
 
-pub (value: AddressErrors) phone(): JsString ->
+pub (receiver: AddressErrors) phone(): Option[JsString] ->
     native.
 
-pub (value: AddressErrors) postal_code(): JsString ->
+pub (receiver: AddressErrors) postal_code(): Option[JsString] ->
     native.
 
-pub (value: AddressErrors) recipient(): JsString ->
+pub (receiver: AddressErrors) recipient(): Option[JsString] ->
     native.
 
-pub (value: AddressErrors) region(): JsString ->
+pub (receiver: AddressErrors) region(): Option[JsString] ->
     native.
 
-pub (value: AddressErrors) sorting_code(): JsString ->
+pub (receiver: AddressErrors) sorting_code(): Option[JsString] ->
     native.

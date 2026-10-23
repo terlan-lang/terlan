@@ -12,111 +12,113 @@
  */
 module std.js.Dom.RTCInboundRtpStreamStats.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
 pub opaque type RTCInboundRtpStreamStats.
 
-pub (value: RTCInboundRtpStreamStats) audio_level(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) audio_level(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) bytes_received(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) bytes_received(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) concealed_samples(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) concealed_samples(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) concealment_events(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) concealment_events(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) decoder_implementation(): JsString.
+pub (receiver: RTCInboundRtpStreamStats) decoder_implementation(): Option[JsString].
 
-pub (value: RTCInboundRtpStreamStats) estimated_playout_timestamp(): DOMHighResTimeStamp.
+pub (receiver: RTCInboundRtpStreamStats) estimated_playout_timestamp(): Option[DOMHighResTimeStamp].
 
-pub (value: RTCInboundRtpStreamStats) fec_bytes_received(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) fec_bytes_received(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) fec_packets_discarded(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) fec_packets_discarded(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) fec_packets_received(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) fec_packets_received(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) fec_ssrc(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) fec_ssrc(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) fir_count(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) fir_count(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) frame_height(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) frame_height(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) frame_width(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) frame_width(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) frames_assembled_from_multiple_packets(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) frames_assembled_from_multiple_packets(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) frames_decoded(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) frames_decoded(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) frames_dropped(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) frames_dropped(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) frames_per_second(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) frames_per_second(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) frames_received(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) frames_received(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) frames_rendered(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) frames_rendered(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) freeze_count(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) freeze_count(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) header_bytes_received(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) header_bytes_received(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) inserted_samples_for_deceleration(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) inserted_samples_for_deceleration(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) jitter_buffer_delay(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_delay(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) jitter_buffer_emitted_count(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_emitted_count(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) jitter_buffer_minimum_delay(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_minimum_delay(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) jitter_buffer_target_delay(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_target_delay(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) key_frames_decoded(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) key_frames_decoded(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) last_packet_received_timestamp(): DOMHighResTimeStamp.
+pub (receiver: RTCInboundRtpStreamStats) last_packet_received_timestamp(): Option[DOMHighResTimeStamp].
 
-pub (value: RTCInboundRtpStreamStats) mid(): JsString.
+pub (receiver: RTCInboundRtpStreamStats) mid(): Option[JsString].
 
-pub (value: RTCInboundRtpStreamStats) nack_count(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) nack_count(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) packets_discarded(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) packets_discarded(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) pause_count(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) pause_count(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) playout_id(): JsString.
+pub (receiver: RTCInboundRtpStreamStats) playout_id(): Option[JsString].
 
-pub (value: RTCInboundRtpStreamStats) pli_count(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) pli_count(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) qp_sum(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) qp_sum(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) remote_id(): JsString.
+pub (receiver: RTCInboundRtpStreamStats) remote_id(): Option[JsString].
 
-pub (value: RTCInboundRtpStreamStats) removed_samples_for_acceleration(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) removed_samples_for_acceleration(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) retransmitted_bytes_received(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) retransmitted_bytes_received(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) retransmitted_packets_received(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) retransmitted_packets_received(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) rtx_ssrc(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) rtx_ssrc(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) silent_concealed_samples(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) silent_concealed_samples(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) total_assembly_time(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) total_assembly_time(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) total_audio_energy(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) total_audio_energy(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) total_decode_time(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) total_decode_time(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) total_freezes_duration(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) total_freezes_duration(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) total_inter_frame_delay(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) total_inter_frame_delay(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) total_pauses_duration(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) total_pauses_duration(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) total_processing_delay(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) total_processing_delay(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) total_samples_duration(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) total_samples_duration(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) total_samples_received(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) total_samples_received(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) total_squared_inter_frame_delay(): JsNumber.
+pub (receiver: RTCInboundRtpStreamStats) total_squared_inter_frame_delay(): Option[JsNumber].
 
-pub (value: RTCInboundRtpStreamStats) track_identifier(): JsString.
+pub (receiver: RTCInboundRtpStreamStats) track_identifier(): JsString.

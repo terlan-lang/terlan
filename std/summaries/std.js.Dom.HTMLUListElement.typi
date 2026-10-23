@@ -23,13 +23,13 @@ pub opaque type HTMLUListElement.
 /**
  * @deprecated
  */
-pub (value: HTMLUListElement) compact(): std.core.Bool.
+pub (receiver: HTMLUListElement) compact(): Bool.
 
 /**
  * @deprecated
  */
-pub (value: HTMLUListElement) type_(): std.js.String.JsString.
+pub (receiver: HTMLUListElement) type_(): std.js.String.JsString.
 
-pub (value: HTMLUListElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLUListElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLUListElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLUListElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

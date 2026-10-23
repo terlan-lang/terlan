@@ -12,32 +12,27 @@
  */
 module std.js.Dom.NotificationOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.NotificationOptions.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub badge_typechecks(receiver: NotificationOptions): JsString ->
+pub badge_typechecks(receiver: NotificationOptions): Option[JsString] ->
     receiver.badge().
 
-pub body_typechecks(receiver: NotificationOptions): JsString ->
+pub body_typechecks(receiver: NotificationOptions): Option[JsString] ->
     receiver.body().
 
-pub dir_typechecks(receiver: NotificationOptions): NotificationDirection ->
-    receiver.dir().
-
-pub icon_typechecks(receiver: NotificationOptions): JsString ->
+pub icon_typechecks(receiver: NotificationOptions): Option[JsString] ->
     receiver.icon().
 
-pub lang_typechecks(receiver: NotificationOptions): JsString ->
+pub lang_typechecks(receiver: NotificationOptions): Option[JsString] ->
     receiver.lang().
 
-pub require_interaction_typechecks(receiver: NotificationOptions): Bool ->
+pub require_interaction_typechecks(receiver: NotificationOptions): Option[Bool] ->
     receiver.require_interaction().
 
 pub silent_typechecks(receiver: NotificationOptions): Option[Bool] ->
     receiver.silent().
 
-pub tag_typechecks(receiver: NotificationOptions): JsString ->
+pub tag_typechecks(receiver: NotificationOptions): Option[JsString] ->
     receiver.tag().

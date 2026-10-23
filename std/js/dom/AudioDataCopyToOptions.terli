@@ -12,14 +12,13 @@
  */
 module std.js.Dom.AudioDataCopyToOptions.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type AudioDataCopyToOptions.
 
-pub (value: AudioDataCopyToOptions) format(): AudioSampleFormat.
+pub (receiver: AudioDataCopyToOptions) frame_count(): Option[JsNumber].
 
-pub (value: AudioDataCopyToOptions) frame_count(): JsNumber.
+pub (receiver: AudioDataCopyToOptions) frame_offset(): Option[JsNumber].
 
-pub (value: AudioDataCopyToOptions) frame_offset(): JsNumber.
-
-pub (value: AudioDataCopyToOptions) plane_index(): JsNumber.
+pub (receiver: AudioDataCopyToOptions) plane_index(): JsNumber.

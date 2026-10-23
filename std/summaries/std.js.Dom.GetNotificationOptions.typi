@@ -15,4 +15,4 @@ module std.js.Dom.GetNotificationOptions.
 
 pub opaque type GetNotificationOptions.
 
-pub (value: GetNotificationOptions) tag(): std.js.String.JsString.
+pub (receiver: GetNotificationOptions) tag(): std.core.Option.Option[std.js.String.JsString].

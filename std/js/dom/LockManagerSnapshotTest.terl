@@ -12,13 +12,13 @@
  */
 module std.js.Dom.LockManagerSnapshotTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.LockInfo.{LockInfo}.
 import type std.js.Dom.LockManagerSnapshot.
-import type std.js.{Array}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub held_typechecks(receiver: LockManagerSnapshot): Array[LockInfo] ->
+pub held_typechecks(receiver: LockManagerSnapshot): Option[Array[LockInfo]] ->
     receiver.held().
 
-pub pending_typechecks(receiver: LockManagerSnapshot): Array[LockInfo] ->
+pub pending_typechecks(receiver: LockManagerSnapshot): Option[Array[LockInfo]] ->
     receiver.pending().

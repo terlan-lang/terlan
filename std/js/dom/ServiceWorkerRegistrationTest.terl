@@ -12,47 +12,49 @@
  */
 module std.js.Dom.ServiceWorkerRegistrationTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.ServiceWorker.{ServiceWorker}.
 import type std.js.Dom.ServiceWorkerRegistration.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub active_typechecks(receiver: ServiceWorkerRegistration): Option[ServiceWorker] ->
     receiver.active().
 
-pub cookies_typechecks(receiver: ServiceWorkerRegistration): CookieStoreManager ->
+pub cookies_typechecks(
+    receiver: ServiceWorkerRegistration,
+): std.js.Dom.CookieStoreManager.CookieStoreManager ->
     receiver.cookies().
 
 pub installing_typechecks(receiver: ServiceWorkerRegistration): Option[ServiceWorker] ->
     receiver.installing().
 
-pub navigation_preload_typechecks(receiver: ServiceWorkerRegistration): NavigationPreloadManager ->
+pub navigation_preload_typechecks(
+    receiver: ServiceWorkerRegistration,
+): std.js.Dom.NavigationPreloadManager.NavigationPreloadManager ->
     receiver.navigation_preload().
 
-pub push_manager_typechecks(receiver: ServiceWorkerRegistration): PushManager ->
+pub push_manager_typechecks(receiver: ServiceWorkerRegistration): std.js.Dom.PushManager.PushManager ->
     receiver.push_manager().
 
 pub scope_typechecks(receiver: ServiceWorkerRegistration): JsString ->
     receiver.scope().
-
-pub update_via_cache_typechecks(receiver: ServiceWorkerRegistration): ServiceWorkerUpdateViaCache ->
-    receiver.update_via_cache().
 
 pub waiting_typechecks(receiver: ServiceWorkerRegistration): Option[ServiceWorker] ->
     receiver.waiting().
 
 pub get_notifications_typechecks(
     receiver: ServiceWorkerRegistration,
-    filter: GetNotificationOptions,
-): Promise[std.js.Array[Notification]] ->
+    filter: Option[std.js.Dom.GetNotificationOptions.GetNotificationOptions],
+): Promise[std.js.Array.Array[std.js.Dom.Notification.Notification]] ->
     receiver.get_notifications(filter).
 
 pub show_notification_typechecks(
     receiver: ServiceWorkerRegistration,
     title: JsString,
-    options: NotificationOptions,
+    options: Option[std.js.Dom.NotificationOptions.NotificationOptions],
 ): Promise[Unit] ->
     receiver.show_notification(title, options).
 
@@ -66,7 +68,7 @@ pub add_event_listener_typechecks(
     receiver: ServiceWorkerRegistration,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -74,6 +76,6 @@ pub remove_event_listener_typechecks(
     receiver: ServiceWorkerRegistration,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

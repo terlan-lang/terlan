@@ -21,82 +21,54 @@ module std.js.Dom.VTTCue.
 pub opaque type VTTCue.
 
 /**
- * The **`align`** property of the VTTCue interface represents the alignment of all of the lines of text in the text box.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/align)
- */
-pub (value: VTTCue) align(): AlignSetting.
-
-/**
  * The **`line`** property of the VTTCue interface represents the cue line of this WebVTT cue.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/line)
  */
-pub (value: VTTCue) line(): LineAndPositionSetting.
-
-/**
- * The **`lineAlign`** property of the VTTCue interface represents the alignment of this VTT cue.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/lineAlign)
- */
-pub (value: VTTCue) line_align(): LineAlignSetting.
+pub (receiver: VTTCue) line(): std.js.Dom.LineAndPositionSetting.LineAndPositionSetting.
 
 /**
  * The **`position`** property of the VTTCue interface represents the indentation of the cue within the line.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/position)
  */
-pub (value: VTTCue) position(): LineAndPositionSetting.
-
-/**
- * The **`positionAlign`** property of the VTTCue interface is used to determine what VTTCue.position is anchored to.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/positionAlign)
- */
-pub (value: VTTCue) position_align(): PositionAlignSetting.
+pub (receiver: VTTCue) position(): std.js.Dom.LineAndPositionSetting.LineAndPositionSetting.
 
 /**
  * The **`region`** property of the VTTCue interface returns and sets the VTTRegion that this cue belongs to.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/region)
  */
-pub (value: VTTCue) region(): Option[VTTRegion].
+pub (receiver: VTTCue) region(): std.core.Option.Option[std.js.Dom.VTTRegion.VTTRegion].
 
 /**
  * The **`size`** property of the VTTCue interface represents the size of the cue as a percentage of the video size.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/size)
  */
-pub (value: VTTCue) size(): std.js.Number.JsNumber.
+pub (receiver: VTTCue) size(): std.js.Number.JsNumber.
 
 /**
  * The **`snapToLines`** property of the VTTCue interface is a Boolean indicating if the VTTCue.line property is an integer number of lines, or a percentage of the video size.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/snapToLines)
  */
-pub (value: VTTCue) snap_to_lines(): std.core.Bool.
+pub (receiver: VTTCue) snap_to_lines(): Bool.
 
 /**
  * The **`text`** property of the VTTCue interface represents the text contents of the cue.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/text)
  */
-pub (value: VTTCue) text(): std.js.String.JsString.
-
-/**
- * The **`vertical`** property of the VTTCue interface is a string representing the cue's writing direction.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/vertical)
- */
-pub (value: VTTCue) vertical(): DirectionSetting.
+pub (receiver: VTTCue) text(): std.js.String.JsString.
 
 /**
  * The **`getCueAsHTML()`** method of the VTTCue interface returns a DocumentFragment containing the cue content.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/getCueAsHTML)
  */
-pub (value: VTTCue) get_cue_as_html(): DocumentFragment.
+pub (receiver: VTTCue) get_cue_as_html(): std.js.Dom.DocumentFragment.DocumentFragment.
 
-pub (value: VTTCue) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: VTTCue) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: VTTCue) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: VTTCue) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

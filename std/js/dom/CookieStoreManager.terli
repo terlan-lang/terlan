@@ -12,8 +12,10 @@
  */
 module std.js.Dom.CookieStoreManager.
 
-import type std.core.{Unit}.
-import type std.js.{Array, Promise}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.CookieStoreGetOptions.{CookieStoreGetOptions}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`CookieStoreManager`** interface of the Cookie Store API allows service workers to subscribe to cookie change events.
@@ -28,18 +30,18 @@ pub opaque type CookieStoreManager.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStoreManager/getSubscriptions)
  */
-pub (value: CookieStoreManager) get_subscriptions(): Promise[Array[CookieStoreGetOptions]].
+pub (receiver: CookieStoreManager) get_subscriptions(): Promise[Array[CookieStoreGetOptions]].
 
 /**
  * The **`subscribe()`** method of the CookieStoreManager interface subscribes a ServiceWorkerRegistration to cookie change events.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStoreManager/subscribe)
  */
-pub (value: CookieStoreManager) subscribe(subscriptions: Array[CookieStoreGetOptions]): Promise[Unit].
+pub (receiver: CookieStoreManager) subscribe(subscriptions: Array[CookieStoreGetOptions]): Promise[Unit].
 
 /**
  * The **`unsubscribe()`** method of the CookieStoreManager interface stops the ServiceWorkerRegistration from receiving previously subscribed events.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStoreManager/unsubscribe)
  */
-pub (value: CookieStoreManager) unsubscribe(subscriptions: Array[CookieStoreGetOptions]): Promise[Unit].
+pub (receiver: CookieStoreManager) unsubscribe(subscriptions: Array[CookieStoreGetOptions]): Promise[Unit].

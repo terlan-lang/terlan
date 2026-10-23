@@ -12,13 +12,12 @@
  */
 module std.js.Dom.CookieStoreGetOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.CookieStoreGetOptions.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub name_typechecks(receiver: CookieStoreGetOptions): JsString ->
+pub name_typechecks(receiver: CookieStoreGetOptions): Option[JsString] ->
     receiver.name().
 
-pub url_typechecks(receiver: CookieStoreGetOptions): JsString ->
+pub url_typechecks(receiver: CookieStoreGetOptions): Option[JsString] ->
     receiver.url().

@@ -14,10 +14,8 @@ module std.js.Dom.RsaKeyAlgorithmTest.
 
 import type std.js.Dom.RsaKeyAlgorithm.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub modulus_length_typechecks(receiver: RsaKeyAlgorithm): std.js.Number.JsNumber ->
     receiver.modulus_length().
 
-pub public_exponent_typechecks(receiver: RsaKeyAlgorithm): BigInteger ->
+pub public_exponent_typechecks(receiver: RsaKeyAlgorithm): std.js.Dom.BigInteger.BigInteger ->
     receiver.public_exponent().

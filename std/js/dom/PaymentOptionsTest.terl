@@ -12,22 +12,17 @@
  */
 module std.js.Dom.PaymentOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.PaymentOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub request_payer_email_typechecks(receiver: PaymentOptions): Bool ->
+pub request_payer_email_typechecks(receiver: PaymentOptions): Option[Bool] ->
     receiver.request_payer_email().
 
-pub request_payer_name_typechecks(receiver: PaymentOptions): Bool ->
+pub request_payer_name_typechecks(receiver: PaymentOptions): Option[Bool] ->
     receiver.request_payer_name().
 
-pub request_payer_phone_typechecks(receiver: PaymentOptions): Bool ->
+pub request_payer_phone_typechecks(receiver: PaymentOptions): Option[Bool] ->
     receiver.request_payer_phone().
 
-pub request_shipping_typechecks(receiver: PaymentOptions): Bool ->
+pub request_shipping_typechecks(receiver: PaymentOptions): Option[Bool] ->
     receiver.request_shipping().
-
-pub shipping_type_typechecks(receiver: PaymentOptions): PaymentShippingType ->
-    receiver.shipping_type().

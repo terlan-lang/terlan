@@ -12,10 +12,12 @@
  */
 module std.js.Dom.LockManagerSnapshot.
 
-import type std.js.{Array}.
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.LockInfo.{LockInfo}.
 
 pub opaque type LockManagerSnapshot.
 
-pub (value: LockManagerSnapshot) held(): Array[LockInfo].
+pub (receiver: LockManagerSnapshot) held(): Option[Array[LockInfo]].
 
-pub (value: LockManagerSnapshot) pending(): Array[LockInfo].
+pub (receiver: LockManagerSnapshot) pending(): Option[Array[LockInfo]].

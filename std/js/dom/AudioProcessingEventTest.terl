@@ -12,9 +12,8 @@
  */
 module std.js.Dom.AudioProcessingEventTest.
 
+import type std.js.Dom.AudioBuffer.{AudioBuffer}.
 import type std.js.Dom.AudioProcessingEvent.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub input_buffer_typechecks(receiver: AudioProcessingEvent): AudioBuffer ->
     receiver.input_buffer().

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.DataTransfer.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +28,7 @@ pub opaque type DataTransfer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/files)
  */
-pub (value: DataTransfer) files(): FileList ->
+pub (receiver: DataTransfer) files(): std.js.Dom.FileList.FileList ->
     native.
 
 /**
@@ -36,7 +36,7 @@ pub (value: DataTransfer) files(): FileList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/items)
  */
-pub (value: DataTransfer) items(): DataTransferItemList ->
+pub (receiver: DataTransfer) items(): std.js.Dom.DataTransferItemList.DataTransferItemList ->
     native.
 
 /**
@@ -44,7 +44,7 @@ pub (value: DataTransfer) items(): DataTransferItemList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/types)
  */
-pub (value: DataTransfer) types(): std.js.Array[JsString] ->
+pub (receiver: DataTransfer) types(): std.js.Array.Array[JsString] ->
     native.
 
 /**
@@ -52,7 +52,7 @@ pub (value: DataTransfer) types(): std.js.Array[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/clearData)
  */
-pub (value: DataTransfer) clear_data(format: JsString): Unit ->
+pub (receiver: DataTransfer) clear_data(format: std.core.Option.Option[JsString]): Unit ->
     native.
 
 /**
@@ -60,7 +60,7 @@ pub (value: DataTransfer) clear_data(format: JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/getData)
  */
-pub (value: DataTransfer) get_data(format: JsString): JsString ->
+pub (receiver: DataTransfer) get_data(format: JsString): JsString ->
     native.
 
 /**
@@ -68,7 +68,7 @@ pub (value: DataTransfer) get_data(format: JsString): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/setData)
  */
-pub (value: DataTransfer) set_data(format: JsString, data: JsString): Unit ->
+pub (receiver: DataTransfer) set_data(format: JsString, data: JsString): Unit ->
     native.
 
 /**
@@ -76,5 +76,5 @@ pub (value: DataTransfer) set_data(format: JsString, data: JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/setDragImage)
  */
-pub (value: DataTransfer) set_drag_image(image: Element, x: JsNumber, y: JsNumber): Unit ->
+pub (receiver: DataTransfer) set_drag_image(image: std.js.Dom.Element.Element, x: JsNumber, y: JsNumber): Unit ->
     native.

@@ -12,15 +12,13 @@
  */
 module std.js.Dom.LockInfo.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type LockInfo.
 
-pub (value: LockInfo) client_id(): JsString ->
+pub (receiver: LockInfo) client_id(): Option[JsString] ->
     native.
 
-pub (value: LockInfo) mode(): LockMode ->
-    native.
-
-pub (value: LockInfo) name(): JsString ->
+pub (receiver: LockInfo) name(): Option[JsString] ->
     native.

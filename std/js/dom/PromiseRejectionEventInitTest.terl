@@ -13,5 +13,3 @@
 module std.js.Dom.PromiseRejectionEventInitTest.
 
 import type std.js.Dom.PromiseRejectionEventInit.
-
-pub generated_binding_surface_contract(): Bool -> true.

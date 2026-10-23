@@ -15,6 +15,6 @@ module std.js.Dom.MessageEventTargetEventMap.
 
 pub opaque type MessageEventTargetEventMap.
 
-pub (value: MessageEventTargetEventMap) message(): MessageEvent.
+pub (receiver: MessageEventTargetEventMap) message(): std.js.Dom.MessageEvent.MessageEvent.
 
-pub (value: MessageEventTargetEventMap) messageerror(): MessageEvent.
+pub (receiver: MessageEventTargetEventMap) messageerror(): std.js.Dom.MessageEvent.MessageEvent.

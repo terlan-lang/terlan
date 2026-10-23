@@ -12,7 +12,9 @@
  */
 module std.js.Dom.XSLTProcessor.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Document.{Document}.
+import type std.js.Dom.Node.{Node}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type XSLTProcessor.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/clearParameters)
  */
-pub (value: XSLTProcessor) clear_parameters(): Unit ->
+pub (receiver: XSLTProcessor) clear_parameters(): Unit ->
     native.
 
 /**
@@ -35,7 +37,7 @@ pub (value: XSLTProcessor) clear_parameters(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/importStylesheet)
  */
-pub (value: XSLTProcessor) import_stylesheet(style: Node): Unit ->
+pub (receiver: XSLTProcessor) import_stylesheet(style: Node): Unit ->
     native.
 
 /**
@@ -43,7 +45,7 @@ pub (value: XSLTProcessor) import_stylesheet(style: Node): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/removeParameter)
  */
-pub (value: XSLTProcessor) remove_parameter(namespace_uri: Option[JsString], local_name: JsString): Unit ->
+pub (receiver: XSLTProcessor) remove_parameter(namespace_uri: std.core.Option.Option[JsString], local_name: JsString): Unit ->
     native.
 
 /**
@@ -51,7 +53,7 @@ pub (value: XSLTProcessor) remove_parameter(namespace_uri: Option[JsString], loc
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/reset)
  */
-pub (value: XSLTProcessor) reset(): Unit ->
+pub (receiver: XSLTProcessor) reset(): Unit ->
     native.
 
 /**
@@ -59,7 +61,7 @@ pub (value: XSLTProcessor) reset(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/transformToDocument)
  */
-pub (value: XSLTProcessor) transform_to_document(source: Node): Document ->
+pub (receiver: XSLTProcessor) transform_to_document(source: Node): Document ->
     native.
 
 /**
@@ -67,5 +69,8 @@ pub (value: XSLTProcessor) transform_to_document(source: Node): Document ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/transformToFragment)
  */
-pub (value: XSLTProcessor) transform_to_fragment(source: Node, output: Document): DocumentFragment ->
+pub (receiver: XSLTProcessor) transform_to_fragment(
+    source: Node,
+    output: Document,
+): std.js.Dom.DocumentFragment.DocumentFragment ->
     native.

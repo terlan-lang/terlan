@@ -14,7 +14,7 @@ module std.js.Dom.VideoEncoderEncodeOptionsForAvcTest.
 
 import type std.js.Dom.VideoEncoderEncodeOptionsForAvc.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub quantizer_typechecks(receiver: VideoEncoderEncodeOptionsForAvc): Option[std.js.Number.JsNumber] ->
+pub quantizer_typechecks(
+    receiver: VideoEncoderEncodeOptionsForAvc,
+): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.quantizer().

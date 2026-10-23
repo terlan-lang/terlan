@@ -14,7 +14,5 @@ module std.js.Dom.AudioDestinationNodeTest.
 
 import type std.js.Dom.AudioDestinationNode.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub max_channel_count_typechecks(receiver: AudioDestinationNode): std.js.Number.JsNumber ->
     receiver.max_channel_count().

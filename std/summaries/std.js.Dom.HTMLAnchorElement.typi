@@ -23,91 +23,91 @@ pub opaque type HTMLAnchorElement.
 /**
  * @deprecated
  */
-pub (value: HTMLAnchorElement) charset(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) charset(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLAnchorElement) coords(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) coords(): std.js.String.JsString.
 
 /**
  * The **`HTMLAnchorElement.download`** property is a string indicating that the linked resource is intended to be downloaded rather than displayed in the browser.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/download)
  */
-pub (value: HTMLAnchorElement) download(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) download(): std.js.String.JsString.
 
 /**
  * The **`hreflang`** property of the HTMLAnchorElement interface is a string that is the language of the linked resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/hreflang)
  */
-pub (value: HTMLAnchorElement) hreflang(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) hreflang(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLAnchorElement) name(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) name(): std.js.String.JsString.
 
 /**
  * The **`ping`** property of the HTMLAnchorElement interface is a space-separated list of URLs.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/ping)
  */
-pub (value: HTMLAnchorElement) ping(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) ping(): std.js.String.JsString.
 
 /**
  * The **`HTMLAnchorElement.referrerPolicy`** property reflect the HTML `referrerpolicy` attribute of the A string; one of the following: - `no-referrer` - : The Referer header will be omitted entirely.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/referrerPolicy)
  */
-pub (value: HTMLAnchorElement) referrer_policy(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) referrer_policy(): std.js.String.JsString.
 
 /**
  * The **`HTMLAnchorElement.rel`** property reflects the `rel` attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/rel)
  */
-pub (value: HTMLAnchorElement) rel(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) rel(): std.js.String.JsString.
 
 /**
  * The **`HTMLAnchorElement.relList`** read-only property reflects the `rel` attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/relList)
  */
-pub (value: HTMLAnchorElement) rel_list(): DOMTokenList.
+pub (receiver: HTMLAnchorElement) rel_list(): std.js.Dom.DOMTokenList.DOMTokenList.
 
 /**
  * @deprecated
  */
-pub (value: HTMLAnchorElement) rev(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) rev(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLAnchorElement) shape(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) shape(): std.js.String.JsString.
 
 /**
  * The **`target`** property of the HTMLAnchorElement interface is a string that indicates where to display the linked resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/target)
  */
-pub (value: HTMLAnchorElement) target_(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) target_(): std.js.String.JsString.
 
 /**
  * The **`text`** property of the HTMLAnchorElement represents the text inside the element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/text)
  */
-pub (value: HTMLAnchorElement) text(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) text(): std.js.String.JsString.
 
 /**
  * The **`type`** property of the HTMLAnchorElement interface is a string that indicates the MIME type of the linked resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAnchorElement/type)
  */
-pub (value: HTMLAnchorElement) type_(): std.js.String.JsString.
+pub (receiver: HTMLAnchorElement) type_(): std.js.String.JsString.
 
-pub (value: HTMLAnchorElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLAnchorElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLAnchorElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLAnchorElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

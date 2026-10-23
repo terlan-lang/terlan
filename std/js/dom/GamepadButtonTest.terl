@@ -12,10 +12,7 @@
  */
 module std.js.Dom.GamepadButtonTest.
 
-import type std.core.{Bool}.
 import type std.js.Dom.GamepadButton.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub pressed_typechecks(receiver: GamepadButton): Bool ->
     receiver.pressed().

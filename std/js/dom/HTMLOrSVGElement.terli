@@ -12,36 +12,37 @@
  */
 module std.js.Dom.HTMLOrSVGElement.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 
 pub opaque type HTMLOrSVGElement.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/autofocus)
  */
-pub (value: HTMLOrSVGElement) autofocus(): std.core.Bool.
+pub (receiver: HTMLOrSVGElement) autofocus(): Bool.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/dataset)
  */
-pub (value: HTMLOrSVGElement) dataset(): DOMStringMap.
+pub (receiver: HTMLOrSVGElement) dataset(): std.js.Dom.DOMStringMap.DOMStringMap.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/nonce)
  */
-pub (value: HTMLOrSVGElement) nonce(): std.js.String.JsString.
+pub (receiver: HTMLOrSVGElement) nonce(): Option[std.js.String.JsString].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/tabIndex)
  */
-pub (value: HTMLOrSVGElement) tab_index(): std.js.Number.JsNumber.
+pub (receiver: HTMLOrSVGElement) tab_index(): std.js.Number.JsNumber.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/blur)
  */
-pub (value: HTMLOrSVGElement) blur(): Unit.
+pub (receiver: HTMLOrSVGElement) blur(): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/focus)
  */
-pub (value: HTMLOrSVGElement) focus(options: FocusOptions): Unit.
+pub (receiver: HTMLOrSVGElement) focus(options: Option[std.js.Dom.FocusOptions.FocusOptions]): Unit.

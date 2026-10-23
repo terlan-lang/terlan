@@ -12,8 +12,10 @@
  */
 module std.js.Dom.HTMLCollectionOf.
 
+import type std.core.Option.{Option}.
+
 pub opaque type HTMLCollectionOf[T].
 
-pub (value: HTMLCollectionOf[T]) item(index: std.js.Number.JsNumber): Option[T].
+pub (receiver: HTMLCollectionOf[T]) item(index: std.js.Number.JsNumber): Option[T].
 
-pub (value: HTMLCollectionOf[T]) named_item(name: std.js.String.JsString): Option[T].
+pub (receiver: HTMLCollectionOf[T]) named_item(name: std.js.String.JsString): Option[T].

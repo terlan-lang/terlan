@@ -101,6 +101,7 @@ pub(super) fn parse_parameter(
     Ok(TsParameterDeclaration {
         name,
         optional: parameter.optional,
+        rest: false,
         ty: parse_optional_type_annotation(parameter.type_annotation.as_deref())?,
     })
 }

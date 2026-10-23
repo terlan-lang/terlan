@@ -12,11 +12,10 @@
  */
 module std.js.Dom.StorageEventTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.Dom.Storage.{Storage}.
 import type std.js.Dom.StorageEvent.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub key_typechecks(receiver: StorageEvent): Option[JsString] ->
     receiver.key().
@@ -36,14 +35,14 @@ pub url_typechecks(receiver: StorageEvent): JsString ->
 pub init_storage_event_typechecks(
     receiver: StorageEvent,
     type_: JsString,
-    bubbles: Bool,
-    cancelable: Bool,
-    key: Option[JsString],
-    old_value: Option[JsString],
-    new_value: Option[JsString],
-    url: URL | JsString,
-    storage_area: Option[Storage],
-): std.core.Unit ->
+    bubbles: Option[Bool],
+    cancelable: Option[Bool],
+    key: Option[Option[JsString]],
+    old_value: Option[Option[JsString]],
+    new_value: Option[Option[JsString]],
+    url: Option[std.js.Dom.URL.URL | JsString],
+    storage_area: Option[Option[Storage]],
+): std.core.Unit.Unit ->
     receiver
         .init_storage_event(
             type_,

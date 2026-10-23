@@ -14,7 +14,7 @@ module std.js.Dom.FocusEventTest.
 
 import type std.js.Dom.FocusEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub related_target_typechecks(receiver: FocusEvent): Option[EventTarget] ->
+pub related_target_typechecks(
+    receiver: FocusEvent,
+): std.core.Option.Option[std.js.Dom.EventTarget.EventTarget] ->
     receiver.related_target().

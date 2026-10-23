@@ -12,43 +12,42 @@
  */
 module std.js.Dom.DOMMatrix2DInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.DOMMatrix2DInit.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub a_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub a_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.a().
 
-pub b_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub b_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.b().
 
-pub c_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub c_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.c().
 
-pub d_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub d_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.d().
 
-pub e_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub e_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.e().
 
-pub f_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub f_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.f().
 
-pub m11_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub m11_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.m11().
 
-pub m12_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub m12_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.m12().
 
-pub m21_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub m21_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.m21().
 
-pub m22_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub m22_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.m22().
 
-pub m41_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub m41_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.m41().
 
-pub m42_typechecks(receiver: DOMMatrix2DInit): JsNumber ->
+pub m42_typechecks(receiver: DOMMatrix2DInit): Option[JsNumber] ->
     receiver.m42().

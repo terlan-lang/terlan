@@ -12,8 +12,18 @@
  */
 module std.js.Dom.SubtleCrypto.
 
-import type std.core.{Bool}.
-import type std.js.{Array, Promise}.
+import type std.core.Option.{Option}.
+import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.js.Dom.AesCbcParams.{AesCbcParams}.
+import type std.js.Dom.AesCtrParams.{AesCtrParams}.
+import type std.js.Dom.AesGcmParams.{AesGcmParams}.
+import type std.js.Dom.AlgorithmIdentifier.{AlgorithmIdentifier}.
+import type std.js.Dom.BufferSource.{BufferSource}.
+import type std.js.Dom.CryptoKey.{CryptoKey}.
+import type std.js.Dom.EcdsaParams.{EcdsaParams}.
+import type std.js.Dom.RsaOaepParams.{RsaOaepParams}.
+import type std.js.Dom.RsaPssParams.{RsaPssParams}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`SubtleCrypto`** interface of the Web Crypto API provides a number of low-level cryptographic functions.
@@ -28,7 +38,7 @@ pub opaque type SubtleCrypto.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/decrypt)
  */
-pub (value: SubtleCrypto) decrypt(
+pub (receiver: SubtleCrypto) decrypt(
     algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
     key: CryptoKey,
     data: BufferSource,
@@ -40,25 +50,11 @@ pub (value: SubtleCrypto) decrypt(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/deriveBits)
  */
-pub (value: SubtleCrypto) derive_bits(
-    algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params,
+pub (receiver: SubtleCrypto) derive_bits(
+    algorithm: AlgorithmIdentifier | std.js.Dom.EcdhKeyDeriveParams.EcdhKeyDeriveParams | std.js.Dom.HkdfParams.HkdfParams | std.js.Dom.Pbkdf2Params.Pbkdf2Params,
     base_key: CryptoKey,
-    length: Option[std.js.Number.JsNumber],
+    length: Option[Option[std.js.Number.JsNumber]],
 ): Promise[ArrayBuffer] ->
-    native.
-
-/**
- * The **`deriveKey()`** method of the SubtleCrypto interface can be used to derive a secret key from a master key.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/deriveKey)
- */
-pub (value: SubtleCrypto) derive_key(
-    algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params,
-    base_key: CryptoKey,
-    derived_key_type: AesDerivedKeyParams | AlgorithmIdentifier | HkdfParams | HmacImportParams | Pbkdf2Params,
-    extractable: Bool,
-    key_usages: Array[KeyUsage],
-): Promise[CryptoKey] ->
     native.
 
 /**
@@ -66,7 +62,7 @@ pub (value: SubtleCrypto) derive_key(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/digest)
  */
-pub (value: SubtleCrypto) digest(algorithm: AlgorithmIdentifier, data: BufferSource): Promise[ArrayBuffer] ->
+pub (receiver: SubtleCrypto) digest(algorithm: AlgorithmIdentifier, data: BufferSource): Promise[ArrayBuffer] ->
     native.
 
 /**
@@ -74,35 +70,11 @@ pub (value: SubtleCrypto) digest(algorithm: AlgorithmIdentifier, data: BufferSou
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/encrypt)
  */
-pub (value: SubtleCrypto) encrypt(
+pub (receiver: SubtleCrypto) encrypt(
     algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
     key: CryptoKey,
     data: BufferSource,
 ): Promise[ArrayBuffer] ->
-    native.
-
-pub (value: SubtleCrypto) export_key(format: KeyFormat, key: CryptoKey): Promise[ArrayBuffer | JsonWebKey] ->
-    native.
-
-pub (value: SubtleCrypto) generate_key(
-    algorithm: EcKeyGenParams | RsaHashedKeyGenParams,
-    extractable: Bool,
-    key_usages: Array[KeyUsage],
-): Promise[CryptoKeyPair] ->
-    native.
-
-pub (value: SubtleCrypto) generate_key(
-    algorithm: AesKeyGenParams | HmacKeyGenParams | Pbkdf2Params,
-    extractable: Bool,
-    key_usages: Array[KeyUsage],
-): Promise[CryptoKey] ->
-    native.
-
-pub (value: SubtleCrypto) generate_key(
-    algorithm: AlgorithmIdentifier,
-    extractable: Bool,
-    key_usages: Array[KeyUsage],
-): Promise[CryptoKey | CryptoKeyPair] ->
     native.
 
 /**
@@ -110,27 +82,11 @@ pub (value: SubtleCrypto) generate_key(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/sign)
  */
-pub (value: SubtleCrypto) sign(
+pub (receiver: SubtleCrypto) sign(
     algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams,
     key: CryptoKey,
     data: BufferSource,
 ): Promise[ArrayBuffer] ->
-    native.
-
-/**
- * The **`unwrapKey()`** method of the SubtleCrypto interface 'unwraps' a key.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/unwrapKey)
- */
-pub (value: SubtleCrypto) unwrap_key(
-    format: KeyFormat,
-    wrapped_key: BufferSource,
-    unwrapping_key: CryptoKey,
-    unwrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
-    unwrapped_key_algorithm: AesKeyAlgorithm | AlgorithmIdentifier | EcKeyImportParams | HmacImportParams | RsaHashedImportParams,
-    extractable: Bool,
-    key_usages: Array[KeyUsage],
-): Promise[CryptoKey] ->
     native.
 
 /**
@@ -138,23 +94,10 @@ pub (value: SubtleCrypto) unwrap_key(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/verify)
  */
-pub (value: SubtleCrypto) verify(
+pub (receiver: SubtleCrypto) verify(
     algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams,
     key: CryptoKey,
     signature: BufferSource,
     data: BufferSource,
 ): Promise[Bool] ->
-    native.
-
-/**
- * The **`wrapKey()`** method of the SubtleCrypto interface 'wraps' a key.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/wrapKey)
- */
-pub (value: SubtleCrypto) wrap_key(
-    format: KeyFormat,
-    key: CryptoKey,
-    wrapping_key: CryptoKey,
-    wrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
-): Promise[ArrayBuffer] ->
     native.

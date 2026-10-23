@@ -13,19 +13,14 @@
 module std.js.Dom.FontFaceTest.
 
 import type std.js.Dom.FontFace.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub ascent_override_typechecks(receiver: FontFace): JsString ->
     receiver.ascent_override().
 
 pub descent_override_typechecks(receiver: FontFace): JsString ->
     receiver.descent_override().
-
-pub display_typechecks(receiver: FontFace): FontDisplay ->
-    receiver.display().
 
 pub family_typechecks(receiver: FontFace): JsString ->
     receiver.family().
@@ -38,9 +33,6 @@ pub line_gap_override_typechecks(receiver: FontFace): JsString ->
 
 pub loaded_typechecks(receiver: FontFace): Promise[FontFace] ->
     receiver.loaded().
-
-pub status_typechecks(receiver: FontFace): FontFaceLoadStatus ->
-    receiver.status().
 
 pub stretch_typechecks(receiver: FontFace): JsString ->
     receiver.stretch().

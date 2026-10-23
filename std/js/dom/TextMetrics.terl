@@ -26,7 +26,7 @@ pub opaque type TextMetrics.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/actualBoundingBoxAscent)
  */
-pub (value: TextMetrics) actual_bounding_box_ascent(): JsNumber ->
+pub (receiver: TextMetrics) actual_bounding_box_ascent(): JsNumber ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: TextMetrics) actual_bounding_box_ascent(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/actualBoundingBoxDescent)
  */
-pub (value: TextMetrics) actual_bounding_box_descent(): JsNumber ->
+pub (receiver: TextMetrics) actual_bounding_box_descent(): JsNumber ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: TextMetrics) actual_bounding_box_descent(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/actualBoundingBoxLeft)
  */
-pub (value: TextMetrics) actual_bounding_box_left(): JsNumber ->
+pub (receiver: TextMetrics) actual_bounding_box_left(): JsNumber ->
     native.
 
 /**
@@ -50,7 +50,7 @@ pub (value: TextMetrics) actual_bounding_box_left(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/actualBoundingBoxRight)
  */
-pub (value: TextMetrics) actual_bounding_box_right(): JsNumber ->
+pub (receiver: TextMetrics) actual_bounding_box_right(): JsNumber ->
     native.
 
 /**
@@ -58,7 +58,7 @@ pub (value: TextMetrics) actual_bounding_box_right(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/alphabeticBaseline)
  */
-pub (value: TextMetrics) alphabetic_baseline(): JsNumber ->
+pub (receiver: TextMetrics) alphabetic_baseline(): JsNumber ->
     native.
 
 /**
@@ -66,7 +66,7 @@ pub (value: TextMetrics) alphabetic_baseline(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/emHeightAscent)
  */
-pub (value: TextMetrics) em_height_ascent(): JsNumber ->
+pub (receiver: TextMetrics) em_height_ascent(): JsNumber ->
     native.
 
 /**
@@ -74,7 +74,7 @@ pub (value: TextMetrics) em_height_ascent(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/emHeightDescent)
  */
-pub (value: TextMetrics) em_height_descent(): JsNumber ->
+pub (receiver: TextMetrics) em_height_descent(): JsNumber ->
     native.
 
 /**
@@ -82,7 +82,7 @@ pub (value: TextMetrics) em_height_descent(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/fontBoundingBoxAscent)
  */
-pub (value: TextMetrics) font_bounding_box_ascent(): JsNumber ->
+pub (receiver: TextMetrics) font_bounding_box_ascent(): JsNumber ->
     native.
 
 /**
@@ -90,7 +90,7 @@ pub (value: TextMetrics) font_bounding_box_ascent(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/fontBoundingBoxDescent)
  */
-pub (value: TextMetrics) font_bounding_box_descent(): JsNumber ->
+pub (receiver: TextMetrics) font_bounding_box_descent(): JsNumber ->
     native.
 
 /**
@@ -98,7 +98,7 @@ pub (value: TextMetrics) font_bounding_box_descent(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/hangingBaseline)
  */
-pub (value: TextMetrics) hanging_baseline(): JsNumber ->
+pub (receiver: TextMetrics) hanging_baseline(): JsNumber ->
     native.
 
 /**
@@ -106,7 +106,7 @@ pub (value: TextMetrics) hanging_baseline(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/ideographicBaseline)
  */
-pub (value: TextMetrics) ideographic_baseline(): JsNumber ->
+pub (receiver: TextMetrics) ideographic_baseline(): JsNumber ->
     native.
 
 /**
@@ -114,5 +114,5 @@ pub (value: TextMetrics) ideographic_baseline(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextMetrics/width)
  */
-pub (value: TextMetrics) width(): JsNumber ->
+pub (receiver: TextMetrics) width(): JsNumber ->
     native.

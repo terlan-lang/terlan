@@ -14,6 +14,8 @@ cargo build --locked -p terlan --bin terlan-serve-runtime --no-default-features 
 terlc="$CARGO_TARGET_DIR/debug/terlc"
 echo 'pre-commit: Terlan formatting'
 make --no-print-directory -f crates/terlan/cli.mk terlan-format-check TERLAN_FORMAT_COMPILER="$terlc"
+echo 'pre-commit: complete Playwright browser matrix'
+bash scripts/git_hooks/js_browser.sh
 echo 'pre-commit: hook policy and snapshot regression tests'
 "$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl
 bash scripts/git_hooks_test.sh
@@ -92,6 +94,8 @@ while IFS= read -r lane; do
     terlan)
       while IFS= read -r path; do
         if [[ "$path" == tests/fixtures/* || "$path" == docs/grammar/fixtures/* ]]; then continue; fi
+        # JavaScript sources execute through the browser matrix above.
+        if [[ "$path" == std/js/* || "$path" == tests/js/* ]]; then continue; fi
         if [[ "$path" == *.terl || "$path" == *.terls || "$path" == *.terli || "$path" == *terlan.toml ]]; then
           check_terlan_source "$path"
           # Package builds do not include script entry files outside source roots.

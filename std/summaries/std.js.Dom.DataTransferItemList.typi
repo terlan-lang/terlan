@@ -25,27 +25,27 @@ pub opaque type DataTransferItemList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/length)
  */
-pub (value: DataTransferItemList) length(): std.js.Number.JsNumber.
+pub (receiver: DataTransferItemList) length(): std.js.Number.JsNumber.
 
 /**
  * The **`DataTransferItemList.add()`** method creates a new list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/add)
  */
-pub (value: DataTransferItemList) add(data: std.js.String.JsString, type_: std.js.String.JsString): Option[DataTransferItem].
+pub (receiver: DataTransferItemList) add(data: std.js.String.JsString, type_: std.js.String.JsString): std.core.Option.Option[std.js.Dom.DataTransferItem.DataTransferItem].
 
-pub (value: DataTransferItemList) add(data: File): Option[DataTransferItem].
+pub (receiver: DataTransferItemList) add_overload_2(data: std.js.Dom.File.File): std.core.Option.Option[std.js.Dom.DataTransferItem.DataTransferItem].
 
 /**
  * The DataTransferItemList method **`clear()`** removes all DataTransferItem objects from the drag data items list, leaving the list empty.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/clear)
  */
-pub (value: DataTransferItemList) clear(): std.core.Unit.
+pub (receiver: DataTransferItemList) clear(): std.core.Unit.Unit.
 
 /**
  * The **`DataTransferItemList.remove()`** method removes the less than zero or greater than one less than the length of the list, the list will not be changed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/remove)
  */
-pub (value: DataTransferItemList) remove(index: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: DataTransferItemList) remove(index: std.js.Number.JsNumber): std.core.Unit.Unit.

@@ -13,5 +13,3 @@
 module std.js.Dom.EncodedVideoChunkOutputCallbackTest.
 
 import type std.js.Dom.EncodedVideoChunkOutputCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

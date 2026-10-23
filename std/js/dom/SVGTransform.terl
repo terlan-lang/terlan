@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SVGTransform.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,7 +27,7 @@ pub opaque type SVGTransform.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/angle)
  */
-pub (value: SVGTransform) angle(): JsNumber ->
+pub (receiver: SVGTransform) angle(): JsNumber ->
     native.
 
 /**
@@ -35,7 +35,7 @@ pub (value: SVGTransform) angle(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/matrix)
  */
-pub (value: SVGTransform) matrix(): DOMMatrix ->
+pub (receiver: SVGTransform) matrix(): std.js.Dom.DOMMatrix.DOMMatrix ->
     native.
 
 /**
@@ -43,7 +43,7 @@ pub (value: SVGTransform) matrix(): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/type)
  */
-pub (value: SVGTransform) type_(): JsNumber ->
+pub (receiver: SVGTransform) type_(): JsNumber ->
     native.
 
 /**
@@ -51,7 +51,7 @@ pub (value: SVGTransform) type_(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setMatrix)
  */
-pub (value: SVGTransform) set_matrix(matrix: DOMMatrix2DInit): Unit ->
+pub (receiver: SVGTransform) set_matrix(matrix: std.core.Option.Option[std.js.Dom.DOMMatrix2DInit.DOMMatrix2DInit]): Unit ->
     native.
 
 /**
@@ -59,7 +59,7 @@ pub (value: SVGTransform) set_matrix(matrix: DOMMatrix2DInit): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setRotate)
  */
-pub (value: SVGTransform) set_rotate(angle: JsNumber, cx: JsNumber, cy: JsNumber): Unit ->
+pub (receiver: SVGTransform) set_rotate(angle: JsNumber, cx: JsNumber, cy: JsNumber): Unit ->
     native.
 
 /**
@@ -67,7 +67,7 @@ pub (value: SVGTransform) set_rotate(angle: JsNumber, cx: JsNumber, cy: JsNumber
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setScale)
  */
-pub (value: SVGTransform) set_scale(sx: JsNumber, sy: JsNumber): Unit ->
+pub (receiver: SVGTransform) set_scale(sx: JsNumber, sy: JsNumber): Unit ->
     native.
 
 /**
@@ -75,7 +75,7 @@ pub (value: SVGTransform) set_scale(sx: JsNumber, sy: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setSkewX)
  */
-pub (value: SVGTransform) set_skew_x(angle: JsNumber): Unit ->
+pub (receiver: SVGTransform) set_skew_x(angle: JsNumber): Unit ->
     native.
 
 /**
@@ -83,7 +83,7 @@ pub (value: SVGTransform) set_skew_x(angle: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setSkewY)
  */
-pub (value: SVGTransform) set_skew_y(angle: JsNumber): Unit ->
+pub (receiver: SVGTransform) set_skew_y(angle: JsNumber): Unit ->
     native.
 
 /**
@@ -91,5 +91,5 @@ pub (value: SVGTransform) set_skew_y(angle: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setTranslate)
  */
-pub (value: SVGTransform) set_translate(tx: JsNumber, ty: JsNumber): Unit ->
+pub (receiver: SVGTransform) set_translate(tx: JsNumber, ty: JsNumber): Unit ->
     native.

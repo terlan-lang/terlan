@@ -26,46 +26,46 @@ pub opaque type Cache.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/add)
  */
-pub (value: Cache) add(request: RequestInfo | URL): std.js.Promise[std.core.Unit].
+pub (receiver: Cache) add(request: std.js.Dom.RequestInfo.RequestInfo | std.js.Dom.URL.URL): std.js.Promise.Promise[std.core.Unit.Unit].
 
 /**
  * The **`addAll()`** method of the Cache interface takes an array of URLs, retrieves them, and adds the resulting response objects to the given cache.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/addAll)
  */
-pub (value: Cache) add_all(requests: std.js.Array[RequestInfo]): std.js.Promise[std.core.Unit].
+pub (receiver: Cache) add_all(requests: std.js.Array.Array[std.js.Dom.RequestInfo.RequestInfo]): std.js.Promise.Promise[std.core.Unit.Unit].
 
 /**
  * The **`delete()`** method of the Cache interface finds the Cache entry whose key is the request, and if found, deletes the Cache entry and returns a Promise that resolves to `true`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/delete)
  */
-pub (value: Cache) delete(request: RequestInfo | URL, options: CacheQueryOptions): std.js.Promise[std.core.Bool].
+pub (receiver: Cache) delete(request: std.js.Dom.RequestInfo.RequestInfo | std.js.Dom.URL.URL, options: std.core.Option.Option[std.js.Dom.CacheQueryOptions.CacheQueryOptions]): std.js.Promise.Promise[Bool].
 
 /**
  * The **`keys()`** method of the Cache interface returns a representing the keys of the Cache.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/keys)
  */
-pub (value: Cache) keys(request: RequestInfo | URL, options: CacheQueryOptions): std.js.Promise[std.js.Array[Request]].
+pub (receiver: Cache) keys(request: std.core.Option.Option[std.js.Dom.RequestInfo.RequestInfo | std.js.Dom.URL.URL], options: std.core.Option.Option[std.js.Dom.CacheQueryOptions.CacheQueryOptions]): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.Request.Request]].
 
 /**
  * The **`match()`** method of the Cache interface returns a Promise that resolves to the Response associated with the first matching request in the Cache object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/match)
  */
-pub (value: Cache) match(request: RequestInfo | URL, options: CacheQueryOptions): std.js.Promise[Option[Response]].
+pub (receiver: Cache) match(request: std.js.Dom.RequestInfo.RequestInfo | std.js.Dom.URL.URL, options: std.core.Option.Option[std.js.Dom.CacheQueryOptions.CacheQueryOptions]): std.js.Promise.Promise[std.core.Option.Option[std.js.Dom.Response.Response]].
 
 /**
  * The **`matchAll()`** method of the Cache interface returns a Promise that resolves to an array of all matching responses in the Cache object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/matchAll)
  */
-pub (value: Cache) match_all(request: RequestInfo | URL, options: CacheQueryOptions): std.js.Promise[std.js.Array[Response]].
+pub (receiver: Cache) match_all(request: std.core.Option.Option[std.js.Dom.RequestInfo.RequestInfo | std.js.Dom.URL.URL], options: std.core.Option.Option[std.js.Dom.CacheQueryOptions.CacheQueryOptions]): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.Response.Response]].
 
 /**
  * The **`put()`** method of the Often, you will just want to Window/fetch one or more requests, then add the result straight to your cache.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/put)
  */
-pub (value: Cache) put(request: RequestInfo | URL, response: Response): std.js.Promise[std.core.Unit].
+pub (receiver: Cache) put(request: std.js.Dom.RequestInfo.RequestInfo | std.js.Dom.URL.URL, response: std.js.Dom.Response.Response): std.js.Promise.Promise[std.core.Unit.Unit].

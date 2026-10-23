@@ -12,20 +12,20 @@
  */
 module std.js.Dom.MediaKeySessionTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.BufferSource.{BufferSource}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.MediaKeySession.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub closed_typechecks(receiver: MediaKeySession): Promise[MediaKeySessionClosedReason] ->
-    receiver.closed().
 
 pub expiration_typechecks(receiver: MediaKeySession): std.js.Number.JsNumber ->
     receiver.expiration().
 
-pub key_statuses_typechecks(receiver: MediaKeySession): MediaKeyStatusMap ->
+pub key_statuses_typechecks(
+    receiver: MediaKeySession,
+): std.js.Dom.MediaKeyStatusMap.MediaKeyStatusMap ->
     receiver.key_statuses().
 
 pub session_id_typechecks(receiver: MediaKeySession): JsString ->
@@ -54,7 +54,7 @@ pub add_event_listener_typechecks(
     receiver: MediaKeySession,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -62,6 +62,6 @@ pub remove_event_listener_typechecks(
     receiver: MediaKeySession,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

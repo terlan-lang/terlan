@@ -13,5 +13,3 @@
 module std.js.Dom.CSSPerspectiveValueTest.
 
 import type std.js.Dom.CSSPerspectiveValue.
-
-pub generated_binding_surface_contract(): Bool -> true.

@@ -12,12 +12,11 @@
  */
 module std.js.ImportCallOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.ImportCallOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub assert_typechecks(receiver: ImportCallOptions): ImportAssertions ->
+pub assert_typechecks(receiver: ImportCallOptions): Option[std.js.ImportAssertions.ImportAssertions] ->
     receiver.assert().
 
-pub with__typechecks(receiver: ImportCallOptions): ImportAttributes ->
+pub with__typechecks(receiver: ImportCallOptions): Option[std.js.ImportAttributes.ImportAttributes] ->
     receiver.with_().

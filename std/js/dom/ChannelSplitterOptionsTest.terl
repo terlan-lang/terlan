@@ -14,7 +14,7 @@ module std.js.Dom.ChannelSplitterOptionsTest.
 
 import type std.js.Dom.ChannelSplitterOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub number_of_outputs_typechecks(receiver: ChannelSplitterOptions): std.js.Number.JsNumber ->
+pub number_of_outputs_typechecks(
+    receiver: ChannelSplitterOptions,
+): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.number_of_outputs().

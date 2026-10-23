@@ -12,10 +12,12 @@
  */
 module std.js.Dom.ImageDecodeOptions.
 
+import type std.core.Option.{Option}.
+
 pub opaque type ImageDecodeOptions.
 
-pub (value: ImageDecodeOptions) complete_frames_only(): std.core.Bool ->
+pub (receiver: ImageDecodeOptions) complete_frames_only(): Option[Bool] ->
     native.
 
-pub (value: ImageDecodeOptions) frame_index(): std.js.Number.JsNumber ->
+pub (receiver: ImageDecodeOptions) frame_index(): Option[std.js.Number.JsNumber] ->
     native.

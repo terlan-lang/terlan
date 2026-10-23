@@ -14,4 +14,4 @@ module std.js.Dom.ReadableStreamReadValueResult.
 
 pub opaque type ReadableStreamReadValueResult[T].
 
-pub (value: ReadableStreamReadValueResult[T]) value(): T.
+pub (receiver: ReadableStreamReadValueResult[T]) value(): T.

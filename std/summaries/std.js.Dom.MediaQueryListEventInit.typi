@@ -15,6 +15,6 @@ module std.js.Dom.MediaQueryListEventInit.
 
 pub opaque type MediaQueryListEventInit.
 
-pub (value: MediaQueryListEventInit) matches(): std.core.Bool.
+pub (receiver: MediaQueryListEventInit) matches(): std.core.Option.Option[Bool].
 
-pub (value: MediaQueryListEventInit) media(): std.js.String.JsString.
+pub (receiver: MediaQueryListEventInit) media(): std.core.Option.Option[std.js.String.JsString].

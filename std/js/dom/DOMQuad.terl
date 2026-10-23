@@ -12,6 +12,8 @@
  */
 module std.js.Dom.DOMQuad.
 
+import type std.js.Dom.DOMPoint.{DOMPoint}.
+
 /**
  * A `DOMQuad` is a collection of four `DOMPoint`s defining the corners of an arbitrary quadrilateral.
  *
@@ -24,7 +26,7 @@ pub opaque type DOMQuad.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad/p1)
  */
-pub (value: DOMQuad) p1(): DOMPoint ->
+pub (receiver: DOMQuad) p1(): DOMPoint ->
     native.
 
 /**
@@ -32,7 +34,7 @@ pub (value: DOMQuad) p1(): DOMPoint ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad/p2)
  */
-pub (value: DOMQuad) p2(): DOMPoint ->
+pub (receiver: DOMQuad) p2(): DOMPoint ->
     native.
 
 /**
@@ -40,7 +42,7 @@ pub (value: DOMQuad) p2(): DOMPoint ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad/p3)
  */
-pub (value: DOMQuad) p3(): DOMPoint ->
+pub (receiver: DOMQuad) p3(): DOMPoint ->
     native.
 
 /**
@@ -48,7 +50,7 @@ pub (value: DOMQuad) p3(): DOMPoint ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad/p4)
  */
-pub (value: DOMQuad) p4(): DOMPoint ->
+pub (receiver: DOMQuad) p4(): DOMPoint ->
     native.
 
 /**
@@ -56,5 +58,5 @@ pub (value: DOMQuad) p4(): DOMPoint ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad/getBounds)
  */
-pub (value: DOMQuad) get_bounds(): DOMRect ->
+pub (receiver: DOMQuad) get_bounds(): std.js.Dom.DOMRect.DOMRect ->
     native.

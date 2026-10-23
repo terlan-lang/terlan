@@ -12,14 +12,18 @@
  */
 module std.js.Dom.ServiceWorkerContainerTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.ServiceWorkerContainer.
+import type std.js.Dom.ServiceWorkerRegistration.{ServiceWorkerRegistration}.
+import type std.js.Dom.URL.{URL}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub controller_typechecks(receiver: ServiceWorkerContainer): Option[ServiceWorker] ->
+pub controller_typechecks(
+    receiver: ServiceWorkerContainer,
+): Option[std.js.Dom.ServiceWorker.ServiceWorker] ->
     receiver.controller().
 
 pub ready_typechecks(receiver: ServiceWorkerContainer): Promise[ServiceWorkerRegistration] ->
@@ -27,19 +31,19 @@ pub ready_typechecks(receiver: ServiceWorkerContainer): Promise[ServiceWorkerReg
 
 pub get_registration_typechecks(
     receiver: ServiceWorkerContainer,
-    client_url: URL | JsString,
+    client_url: Option[URL | JsString],
 ): Promise[Option[ServiceWorkerRegistration]] ->
     receiver.get_registration(client_url).
 
 pub get_registrations_typechecks(
     receiver: ServiceWorkerContainer,
-): Promise[std.js.Array[ServiceWorkerRegistration]] ->
+): Promise[std.js.Array.Array[ServiceWorkerRegistration]] ->
     receiver.get_registrations().
 
 pub register_typechecks(
     receiver: ServiceWorkerContainer,
     script_url: URL | JsString,
-    options: RegistrationOptions,
+    options: Option[std.js.Dom.RegistrationOptions.RegistrationOptions],
 ): Promise[ServiceWorkerRegistration] ->
     receiver.register(script_url, options).
 
@@ -50,7 +54,7 @@ pub add_event_listener_typechecks(
     receiver: ServiceWorkerContainer,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -58,6 +62,6 @@ pub remove_event_listener_typechecks(
     receiver: ServiceWorkerContainer,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

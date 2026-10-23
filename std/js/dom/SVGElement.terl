@@ -12,7 +12,9 @@
  */
 module std.js.Dom.SVGElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type SVGElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGElement/ownerSVGElement)
  */
-pub (value: SVGElement) owner_svg_element(): Option[SVGSVGElement] ->
+pub (receiver: SVGElement) owner_svg_element(): Option[std.js.Dom.SVGSVGElement.SVGSVGElement] ->
     native.
 
 /**
@@ -35,19 +37,19 @@ pub (value: SVGElement) owner_svg_element(): Option[SVGSVGElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGElement/viewportElement)
  */
-pub (value: SVGElement) viewport_element(): Option[SVGElement] ->
+pub (receiver: SVGElement) viewport_element(): Option[SVGElement] ->
     native.
 
-pub (value: SVGElement) add_event_listener(
+pub (receiver: SVGElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SVGElement) remove_event_listener(
+pub (receiver: SVGElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

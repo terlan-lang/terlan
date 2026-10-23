@@ -13,8 +13,3 @@
 module std.js.Dom.MediaEncodingConfigurationTest.
 
 import type std.js.Dom.MediaEncodingConfiguration.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub type__typechecks(receiver: MediaEncodingConfiguration): MediaEncodingType ->
-    receiver.type_().

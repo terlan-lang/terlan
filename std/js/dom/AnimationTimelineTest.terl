@@ -14,7 +14,7 @@ module std.js.Dom.AnimationTimelineTest.
 
 import type std.js.Dom.AnimationTimeline.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub current_time_typechecks(receiver: AnimationTimeline): Option[CSSNumberish] ->
+pub current_time_typechecks(
+    receiver: AnimationTimeline,
+): std.core.Option.Option[std.js.Dom.CSSNumberish.CSSNumberish] ->
     receiver.current_time().

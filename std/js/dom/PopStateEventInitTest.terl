@@ -13,5 +13,3 @@
 module std.js.Dom.PopStateEventInitTest.
 
 import type std.js.Dom.PopStateEventInit.
-
-pub generated_binding_surface_contract(): Bool -> true.

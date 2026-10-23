@@ -25,33 +25,33 @@ pub opaque type Plugin.
  * Returns the plugin's description.
  * @deprecated
  */
-pub (value: Plugin) description(): std.js.String.JsString.
+pub (receiver: Plugin) description(): std.js.String.JsString.
 
 /**
  * Returns the plugin library's filename, if applicable on the current platform.
  * @deprecated
  */
-pub (value: Plugin) filename(): std.js.String.JsString.
+pub (receiver: Plugin) filename(): std.js.String.JsString.
 
 /**
  * Returns the number of MIME types, represented by MimeType objects, supported by the plugin.
  * @deprecated
  */
-pub (value: Plugin) length(): std.js.Number.JsNumber.
+pub (receiver: Plugin) length(): std.js.Number.JsNumber.
 
 /**
  * Returns the plugin's name.
  * @deprecated
  */
-pub (value: Plugin) name(): std.js.String.JsString.
+pub (receiver: Plugin) name(): std.js.String.JsString.
 
 /**
  * Returns the specified MimeType object.
  * @deprecated
  */
-pub (value: Plugin) item(index: std.js.Number.JsNumber): Option[MimeType].
+pub (receiver: Plugin) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.MimeType.MimeType].
 
 /**
  * @deprecated
  */
-pub (value: Plugin) named_item(name: std.js.String.JsString): Option[MimeType].
+pub (receiver: Plugin) named_item(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.MimeType.MimeType].

@@ -15,16 +15,12 @@ module std.js.Dom.MediaKeySystemConfiguration.
 
 pub opaque type MediaKeySystemConfiguration.
 
-pub (value: MediaKeySystemConfiguration) audio_capabilities(): std.js.Array[MediaKeySystemMediaCapability].
+pub (receiver: MediaKeySystemConfiguration) audio_capabilities(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.MediaKeySystemMediaCapability.MediaKeySystemMediaCapability]].
 
-pub (value: MediaKeySystemConfiguration) distinctive_identifier(): MediaKeysRequirement.
+pub (receiver: MediaKeySystemConfiguration) init_data_types(): std.core.Option.Option[std.js.Array.Array[std.js.String.JsString]].
 
-pub (value: MediaKeySystemConfiguration) init_data_types(): std.js.Array[std.js.String.JsString].
+pub (receiver: MediaKeySystemConfiguration) label(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: MediaKeySystemConfiguration) label(): std.js.String.JsString.
+pub (receiver: MediaKeySystemConfiguration) session_types(): std.core.Option.Option[std.js.Array.Array[std.js.String.JsString]].
 
-pub (value: MediaKeySystemConfiguration) persistent_state(): MediaKeysRequirement.
-
-pub (value: MediaKeySystemConfiguration) session_types(): std.js.Array[std.js.String.JsString].
-
-pub (value: MediaKeySystemConfiguration) video_capabilities(): std.js.Array[MediaKeySystemMediaCapability].
+pub (receiver: MediaKeySystemConfiguration) video_capabilities(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.MediaKeySystemMediaCapability.MediaKeySystemMediaCapability]].

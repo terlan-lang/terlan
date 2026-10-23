@@ -12,12 +12,12 @@
  */
 module std.js.Dom.RangeTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.DocumentFragment.{DocumentFragment}.
+import type std.js.Dom.Node.{Node}.
 import type std.js.Dom.Range.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub common_ancestor_container_typechecks(receiver: Range): Node ->
     receiver.common_ancestor_container().
@@ -28,7 +28,7 @@ pub clone_contents_typechecks(receiver: Range): DocumentFragment ->
 pub clone_range_typechecks(receiver: Range): Range ->
     receiver.clone_range().
 
-pub collapse_typechecks(receiver: Range, to_start: Bool): Unit ->
+pub collapse_typechecks(receiver: Range, to_start: std.core.Option.Option[Bool]): Unit ->
     receiver.collapse(to_start).
 
 pub compare_boundary_points_typechecks(
@@ -53,10 +53,10 @@ pub detach_typechecks(receiver: Range): Unit ->
 pub extract_contents_typechecks(receiver: Range): DocumentFragment ->
     receiver.extract_contents().
 
-pub get_bounding_client_rect_typechecks(receiver: Range): DOMRect ->
+pub get_bounding_client_rect_typechecks(receiver: Range): std.js.Dom.DOMRect.DOMRect ->
     receiver.get_bounding_client_rect().
 
-pub get_client_rects_typechecks(receiver: Range): DOMRectList ->
+pub get_client_rects_typechecks(receiver: Range): std.js.Dom.DOMRectList.DOMRectList ->
     receiver.get_client_rects().
 
 pub insert_node_typechecks(receiver: Range, node: Node): Unit ->

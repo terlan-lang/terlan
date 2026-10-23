@@ -12,12 +12,10 @@
  */
 module std.js.Dom.FileSystemWritableFileStreamTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.FileSystemWritableFileStream.
 import type std.js.Number.{JsNumber}.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Promise.{Promise}.
 
 pub seek_typechecks(receiver: FileSystemWritableFileStream, position: JsNumber): Promise[Unit] ->
     receiver.seek(position).
@@ -27,6 +25,6 @@ pub truncate_typechecks(receiver: FileSystemWritableFileStream, size: JsNumber):
 
 pub write_typechecks(
     receiver: FileSystemWritableFileStream,
-    data: FileSystemWriteChunkType,
+    data: std.js.Dom.FileSystemWriteChunkType.FileSystemWriteChunkType,
 ): Promise[Unit] ->
     receiver.write(data).

@@ -15,6 +15,6 @@ module std.js.Dom.GetHTMLOptions.
 
 pub opaque type GetHTMLOptions.
 
-pub (value: GetHTMLOptions) serializable_shadow_roots(): std.core.Bool.
+pub (receiver: GetHTMLOptions) serializable_shadow_roots(): std.core.Option.Option[Bool].
 
-pub (value: GetHTMLOptions) shadow_roots(): std.js.Array[ShadowRoot].
+pub (receiver: GetHTMLOptions) shadow_roots(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.ShadowRoot.ShadowRoot]].

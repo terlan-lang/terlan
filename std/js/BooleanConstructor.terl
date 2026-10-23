@@ -14,5 +14,5 @@ module std.js.BooleanConstructor.
 
 pub opaque type BooleanConstructor.
 
-pub (value: BooleanConstructor) prototype(): Boolean ->
+pub (receiver: BooleanConstructor) prototype(): std.js.Boolean.Boolean ->
     native.

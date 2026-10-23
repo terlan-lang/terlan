@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CompositionEvent.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +27,7 @@ pub opaque type CompositionEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CompositionEvent/data)
  */
-pub (value: CompositionEvent) data(): JsString ->
+pub (receiver: CompositionEvent) data(): JsString ->
     native.
 
 /**
@@ -36,11 +36,11 @@ pub (value: CompositionEvent) data(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CompositionEvent/initCompositionEvent)
  */
-pub (value: CompositionEvent) init_composition_event(
+pub (receiver: CompositionEvent) init_composition_event(
     type_arg: JsString,
-    bubbles_arg: Bool,
-    cancelable_arg: Bool,
-    view_arg: Option[WindowProxy],
-    data_arg: JsString,
-): std.core.Unit ->
+    bubbles_arg: Option[Bool],
+    cancelable_arg: Option[Bool],
+    view_arg: Option[Option[std.js.Dom.WindowProxy.WindowProxy]],
+    data_arg: Option[JsString],
+): std.core.Unit.Unit ->
     native.

@@ -15,10 +15,10 @@ module std.js.Dom.PaymentShippingOption.
 
 pub opaque type PaymentShippingOption.
 
-pub (value: PaymentShippingOption) amount(): PaymentCurrencyAmount.
+pub (receiver: PaymentShippingOption) amount(): std.js.Dom.PaymentCurrencyAmount.PaymentCurrencyAmount.
 
-pub (value: PaymentShippingOption) id(): std.js.String.JsString.
+pub (receiver: PaymentShippingOption) id(): std.js.String.JsString.
 
-pub (value: PaymentShippingOption) label(): std.js.String.JsString.
+pub (receiver: PaymentShippingOption) label(): std.js.String.JsString.
 
-pub (value: PaymentShippingOption) selected(): std.core.Bool.
+pub (receiver: PaymentShippingOption) selected(): std.core.Option.Option[Bool].

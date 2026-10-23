@@ -15,12 +15,10 @@ module std.js.Dom.CSSPropertyRuleTest.
 import type std.js.Dom.CSSPropertyRule.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub inherits_typechecks(receiver: CSSPropertyRule): std.core.Bool ->
+pub inherits_typechecks(receiver: CSSPropertyRule): Bool ->
     receiver.inherits().
 
-pub initial_value_typechecks(receiver: CSSPropertyRule): Option[JsString] ->
+pub initial_value_typechecks(receiver: CSSPropertyRule): std.core.Option.Option[JsString] ->
     receiver.initial_value().
 
 pub name_typechecks(receiver: CSSPropertyRule): JsString ->

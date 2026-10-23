@@ -14,10 +14,12 @@ module std.js.Dom.TransformStreamTest.
 
 import type std.js.Dom.TransformStream.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub readable_typechecks(receiver: TransformStream[I, O]): ReadableStream[O] ->
+pub readable_typechecks(
+    receiver: TransformStream[I, O],
+): std.js.Dom.ReadableStream.ReadableStream[O] ->
     receiver.readable().
 
-pub writable_typechecks(receiver: TransformStream[I, O]): WritableStream[I] ->
+pub writable_typechecks(
+    receiver: TransformStream[I, O],
+): std.js.Dom.WritableStream.WritableStream[I] ->
     receiver.writable().

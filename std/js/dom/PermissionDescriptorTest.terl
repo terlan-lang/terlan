@@ -13,8 +13,3 @@
 module std.js.Dom.PermissionDescriptorTest.
 
 import type std.js.Dom.PermissionDescriptor.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub name_typechecks(receiver: PermissionDescriptor): PermissionName ->
-    receiver.name().

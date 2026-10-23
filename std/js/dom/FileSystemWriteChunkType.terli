@@ -12,4 +12,8 @@
  */
 module std.js.Dom.FileSystemWriteChunkType.
 
-pub type FileSystemWriteChunkType = Blob | BufferSource | WriteParams | std.js.String.JsString.
+pub type FileSystemWriteChunkType =
+      std.js.Dom.Blob.Blob
+    | std.js.Dom.BufferSource.BufferSource
+    | std.js.Dom.WriteParams.WriteParams
+    | std.js.String.JsString.

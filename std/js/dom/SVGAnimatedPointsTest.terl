@@ -13,8 +13,7 @@
 module std.js.Dom.SVGAnimatedPointsTest.
 
 import type std.js.Dom.SVGAnimatedPoints.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.SVGPointList.{SVGPointList}.
 
 pub animated_points_typechecks(receiver: SVGAnimatedPoints): SVGPointList ->
     receiver.animated_points().

@@ -13,5 +13,3 @@
 module std.js.Dom.Base64URLStringTest.
 
 import type std.js.Dom.Base64URLString.
-
-pub generated_binding_surface_contract(): Bool -> true.

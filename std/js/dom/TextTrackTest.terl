@@ -12,11 +12,13 @@
  */
 module std.js.Dom.TextTrackTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.TextTrack.
+import type std.js.Dom.TextTrackCue.{TextTrackCue}.
+import type std.js.Dom.TextTrackCueList.{TextTrackCueList}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub active_cues_typechecks(receiver: TextTrack): Option[TextTrackCueList] ->
     receiver.active_cues().
@@ -30,17 +32,11 @@ pub id_typechecks(receiver: TextTrack): JsString ->
 pub in_band_metadata_track_dispatch_type_typechecks(receiver: TextTrack): JsString ->
     receiver.in_band_metadata_track_dispatch_type().
 
-pub kind_typechecks(receiver: TextTrack): TextTrackKind ->
-    receiver.kind().
-
 pub label_typechecks(receiver: TextTrack): JsString ->
     receiver.label().
 
 pub language_typechecks(receiver: TextTrack): JsString ->
     receiver.language().
-
-pub mode_typechecks(receiver: TextTrack): TextTrackMode ->
-    receiver.mode().
 
 pub add_cue_typechecks(receiver: TextTrack, cue: TextTrackCue): Unit ->
     receiver.add_cue(cue).
@@ -52,7 +48,7 @@ pub add_event_listener_typechecks(
     receiver: TextTrack,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -60,6 +56,6 @@ pub remove_event_listener_typechecks(
     receiver: TextTrack,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -26,7 +26,7 @@ pub opaque type WheelEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaMode)
  */
-pub (value: WheelEvent) delta_mode(): JsNumber ->
+pub (receiver: WheelEvent) delta_mode(): JsNumber ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: WheelEvent) delta_mode(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaX)
  */
-pub (value: WheelEvent) delta_x(): JsNumber ->
+pub (receiver: WheelEvent) delta_x(): JsNumber ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: WheelEvent) delta_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaY)
  */
-pub (value: WheelEvent) delta_y(): JsNumber ->
+pub (receiver: WheelEvent) delta_y(): JsNumber ->
     native.
 
 /**
@@ -50,5 +50,5 @@ pub (value: WheelEvent) delta_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaZ)
  */
-pub (value: WheelEvent) delta_z(): JsNumber ->
+pub (receiver: WheelEvent) delta_z(): JsNumber ->
     native.

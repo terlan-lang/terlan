@@ -12,13 +12,15 @@
  */
 module std.js.Dom.RTCIceTransportEventMap.
 
+import type std.js.Dom.Event.{Event}.
+
 pub opaque type RTCIceTransportEventMap.
 
-pub (value: RTCIceTransportEventMap) gatheringstatechange(): Event ->
+pub (receiver: RTCIceTransportEventMap) gatheringstatechange(): Event ->
     native.
 
-pub (value: RTCIceTransportEventMap) selectedcandidatepairchange(): Event ->
+pub (receiver: RTCIceTransportEventMap) selectedcandidatepairchange(): Event ->
     native.
 
-pub (value: RTCIceTransportEventMap) statechange(): Event ->
+pub (receiver: RTCIceTransportEventMap) statechange(): Event ->
     native.

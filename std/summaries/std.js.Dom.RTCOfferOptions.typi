@@ -15,8 +15,8 @@ module std.js.Dom.RTCOfferOptions.
 
 pub opaque type RTCOfferOptions.
 
-pub (value: RTCOfferOptions) ice_restart(): std.core.Bool.
+pub (receiver: RTCOfferOptions) ice_restart(): std.core.Option.Option[Bool].
 
-pub (value: RTCOfferOptions) offer_to_receive_audio(): std.core.Bool.
+pub (receiver: RTCOfferOptions) offer_to_receive_audio(): std.core.Option.Option[Bool].
 
-pub (value: RTCOfferOptions) offer_to_receive_video(): std.core.Bool.
+pub (receiver: RTCOfferOptions) offer_to_receive_video(): std.core.Option.Option[Bool].

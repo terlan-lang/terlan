@@ -25,81 +25,81 @@ pub opaque type Touch.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/clientX)
  */
-pub (value: Touch) client_x(): std.js.Number.JsNumber.
+pub (receiver: Touch) client_x(): std.js.Number.JsNumber.
 
 /**
  * The **`Touch.clientY`** read-only property returns the Y coordinate of the touch point relative to the browser's viewport, not including any scroll offset.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/clientY)
  */
-pub (value: Touch) client_y(): std.js.Number.JsNumber.
+pub (receiver: Touch) client_y(): std.js.Number.JsNumber.
 
 /**
  * The **`Touch.force`** read-only property returns the amount of pressure the user is applying to the touch surface for a Touch point.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/force)
  */
-pub (value: Touch) force(): std.js.Number.JsNumber.
+pub (receiver: Touch) force(): std.js.Number.JsNumber.
 
 /**
  * The **`Touch.identifier`** returns a value uniquely identifying this point of contact with the touch surface.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/identifier)
  */
-pub (value: Touch) identifier(): std.js.Number.JsNumber.
+pub (receiver: Touch) identifier(): std.js.Number.JsNumber.
 
 /**
  * The **`Touch.pageX`** read-only property returns the X coordinate of the touch point relative to the viewport, including any scroll offset.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/pageX)
  */
-pub (value: Touch) page_x(): std.js.Number.JsNumber.
+pub (receiver: Touch) page_x(): std.js.Number.JsNumber.
 
 /**
  * The **`Touch.pageY`** read-only property returns the Y coordinate of the touch point relative to the viewport, including any scroll offset.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/pageY)
  */
-pub (value: Touch) page_y(): std.js.Number.JsNumber.
+pub (receiver: Touch) page_y(): std.js.Number.JsNumber.
 
 /**
  * The **`radiusX`** read-only property of the Touch interface returns the X radius of the ellipse that most closely circumscribes the area of contact with the touch surface.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/radiusX)
  */
-pub (value: Touch) radius_x(): std.js.Number.JsNumber.
+pub (receiver: Touch) radius_x(): std.js.Number.JsNumber.
 
 /**
  * The **`radiusY`** read-only property of the Touch interface returns the Y radius of the ellipse that most closely circumscribes the area of contact with the touch surface.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/radiusY)
  */
-pub (value: Touch) radius_y(): std.js.Number.JsNumber.
+pub (receiver: Touch) radius_y(): std.js.Number.JsNumber.
 
 /**
  * The **`rotationAngle`** read-only property of the Touch interface returns the rotation angle, in degrees, of the contact area ellipse defined by Touch.radiusX and Touch.radiusY.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/rotationAngle)
  */
-pub (value: Touch) rotation_angle(): std.js.Number.JsNumber.
+pub (receiver: Touch) rotation_angle(): std.js.Number.JsNumber.
 
 /**
  * Returns the X coordinate of the touch point relative to the screen, not including any scroll offset.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/screenX)
  */
-pub (value: Touch) screen_x(): std.js.Number.JsNumber.
+pub (receiver: Touch) screen_x(): std.js.Number.JsNumber.
 
 /**
  * Returns the Y coordinate of the touch point relative to the screen, not including any scroll offset.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/screenY)
  */
-pub (value: Touch) screen_y(): std.js.Number.JsNumber.
+pub (receiver: Touch) screen_y(): std.js.Number.JsNumber.
 
 /**
  * The read-only **`target`** property of the `Touch` interface returns the (EventTarget) on which the touch contact started when it was first placed on the surface, even if the touch point has since moved outside the interactive area of that element or even been removed from the document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/target)
  */
-pub (value: Touch) target_(): EventTarget.
+pub (receiver: Touch) target_(): std.js.Dom.EventTarget.EventTarget.

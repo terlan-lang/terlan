@@ -12,7 +12,9 @@
  */
 module std.js.Dom.MIDIOutput.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -28,16 +30,19 @@ pub opaque type MIDIOutput.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIOutput/send)
  */
-pub (value: MIDIOutput) send(data: std.js.Array[std.js.Number.JsNumber], timestamp: DOMHighResTimeStamp): Unit.
-
-pub (value: MIDIOutput) add_event_listener(
-    type_: JsString,
-    listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+pub (receiver: MIDIOutput) send(
+    data: std.js.Array.Array[std.js.Number.JsNumber],
+    timestamp: Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp],
 ): Unit.
 
-pub (value: MIDIOutput) remove_event_listener(
+pub (receiver: MIDIOutput) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+): Unit.
+
+pub (receiver: MIDIOutput) remove_event_listener(
+    type_: JsString,
+    listener: EventListenerOrEventListenerObject,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

@@ -24,68 +24,68 @@ pub opaque type HTMLMarqueeElement.
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) behavior(): std.js.String.JsString.
+pub (receiver: HTMLMarqueeElement) behavior(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) bg_color(): std.js.String.JsString.
+pub (receiver: HTMLMarqueeElement) bg_color(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) direction(): std.js.String.JsString.
+pub (receiver: HTMLMarqueeElement) direction(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) height(): std.js.String.JsString.
+pub (receiver: HTMLMarqueeElement) height(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) hspace(): std.js.Number.JsNumber.
+pub (receiver: HTMLMarqueeElement) hspace(): std.js.Number.JsNumber.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) loop(): std.js.Number.JsNumber.
+pub (receiver: HTMLMarqueeElement) loop(): std.js.Number.JsNumber.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) scroll_amount(): std.js.Number.JsNumber.
+pub (receiver: HTMLMarqueeElement) scroll_amount(): std.js.Number.JsNumber.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) scroll_delay(): std.js.Number.JsNumber.
+pub (receiver: HTMLMarqueeElement) scroll_delay(): std.js.Number.JsNumber.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) true_speed(): std.core.Bool.
+pub (receiver: HTMLMarqueeElement) true_speed(): Bool.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) vspace(): std.js.Number.JsNumber.
+pub (receiver: HTMLMarqueeElement) vspace(): std.js.Number.JsNumber.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) width(): std.js.String.JsString.
+pub (receiver: HTMLMarqueeElement) width(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) start(): std.core.Unit.
+pub (receiver: HTMLMarqueeElement) start(): std.core.Unit.Unit.
 
 /**
  * @deprecated
  */
-pub (value: HTMLMarqueeElement) stop(): std.core.Unit.
+pub (receiver: HTMLMarqueeElement) stop(): std.core.Unit.Unit.
 
-pub (value: HTMLMarqueeElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLMarqueeElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLMarqueeElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLMarqueeElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.WEBGL_lose_context.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 
 /**
  * The **WEBGL_lose_context** extension is part of the WebGL API and exposes functions to simulate losing and restoring a WebGLRenderingContext.
@@ -26,7 +26,7 @@ pub opaque type WEBGL_lose_context.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_lose_context/loseContext)
  */
-pub (value: WEBGL_lose_context) lose_context(): Unit ->
+pub (receiver: WEBGL_lose_context) lose_context(): Unit ->
     native.
 
 /**
@@ -34,5 +34,5 @@ pub (value: WEBGL_lose_context) lose_context(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_lose_context/restoreContext)
  */
-pub (value: WEBGL_lose_context) restore_context(): Unit ->
+pub (receiver: WEBGL_lose_context) restore_context(): Unit ->
     native.

@@ -12,10 +12,7 @@
  */
 module std.js.Dom.MediaCapabilitiesInfoTest.
 
-import type std.core.{Bool}.
 import type std.js.Dom.MediaCapabilitiesInfo.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub power_efficient_typechecks(receiver: MediaCapabilitiesInfo): Bool ->
     receiver.power_efficient().

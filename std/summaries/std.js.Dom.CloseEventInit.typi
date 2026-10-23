@@ -15,8 +15,8 @@ module std.js.Dom.CloseEventInit.
 
 pub opaque type CloseEventInit.
 
-pub (value: CloseEventInit) code(): std.js.Number.JsNumber.
+pub (receiver: CloseEventInit) code(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: CloseEventInit) reason(): std.js.String.JsString.
+pub (receiver: CloseEventInit) reason(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: CloseEventInit) was_clean(): std.core.Bool.
+pub (receiver: CloseEventInit) was_clean(): std.core.Option.Option[Bool].

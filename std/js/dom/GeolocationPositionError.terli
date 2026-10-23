@@ -24,11 +24,11 @@ pub opaque type GeolocationPositionError.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationPositionError/code)
  */
-pub (value: GeolocationPositionError) code(): std.js.Number.JsNumber.
+pub (receiver: GeolocationPositionError) code(): std.js.Number.JsNumber.
 
 /**
  * The **`message`** read-only property of the GeolocationPositionError interface returns a human-readable string describing the details of the error.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationPositionError/message)
  */
-pub (value: GeolocationPositionError) message(): std.js.String.JsString.
+pub (receiver: GeolocationPositionError) message(): std.js.String.JsString.

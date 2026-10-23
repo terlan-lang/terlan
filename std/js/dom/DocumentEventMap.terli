@@ -12,18 +12,20 @@
  */
 module std.js.Dom.DocumentEventMap.
 
+import type std.js.Dom.Event.{Event}.
+
 pub opaque type DocumentEventMap.
 
-pub (value: DocumentEventMap) dom_content_loaded(): Event.
+pub (receiver: DocumentEventMap) dom_content_loaded(): Event.
 
-pub (value: DocumentEventMap) fullscreenchange(): Event.
+pub (receiver: DocumentEventMap) fullscreenchange(): Event.
 
-pub (value: DocumentEventMap) fullscreenerror(): Event.
+pub (receiver: DocumentEventMap) fullscreenerror(): Event.
 
-pub (value: DocumentEventMap) pointerlockchange(): Event.
+pub (receiver: DocumentEventMap) pointerlockchange(): Event.
 
-pub (value: DocumentEventMap) pointerlockerror(): Event.
+pub (receiver: DocumentEventMap) pointerlockerror(): Event.
 
-pub (value: DocumentEventMap) readystatechange(): Event.
+pub (receiver: DocumentEventMap) readystatechange(): Event.
 
-pub (value: DocumentEventMap) visibilitychange(): Event.
+pub (receiver: DocumentEventMap) visibilitychange(): Event.

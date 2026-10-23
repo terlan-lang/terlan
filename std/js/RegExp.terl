@@ -12,7 +12,6 @@
  */
 module std.js.RegExp.
 
-import type std.core.{Bool}.
 import type std.js.String.{JsString}.
 
 pub opaque type RegExp.
@@ -21,39 +20,39 @@ pub opaque type RegExp.
  * Executes a search on a string using a regular expression pattern, and returns an array containing the results of that search.
  * @param string The String object or string literal on which to perform the search.
  */
-pub (value: RegExp) exec(string: JsString): Option[RegExpExecArray] ->
+pub (receiver: RegExp) exec(string: JsString): std.core.Option.Option[std.js.RegExpExecArray.RegExpExecArray] ->
     native.
 
 /**
  * Returns a Boolean value that indicates whether or not a pattern exists in a searched string.
  * @param string String on which to perform the search.
  */
-pub (value: RegExp) test(string: JsString): Bool ->
+pub (receiver: RegExp) test(string: JsString): Bool ->
     native.
 
 /**
  * Returns a copy of the text of the regular expression pattern. Read-only. The regExp argument is a Regular expression object. It can be a variable name or a literal.
  */
-pub (value: RegExp) source(): JsString ->
+pub (receiver: RegExp) source(): JsString ->
     native.
 
 /**
  * Returns a Boolean value indicating the state of the global flag (g) used with a regular expression. Default is false. Read-only.
  */
-pub (value: RegExp) global(): Bool ->
+pub (receiver: RegExp) global(): Bool ->
     native.
 
 /**
  * Returns a Boolean value indicating the state of the ignoreCase flag (i) used with a regular expression. Default is false. Read-only.
  */
-pub (value: RegExp) ignore_case(): Bool ->
+pub (receiver: RegExp) ignore_case(): Bool ->
     native.
 
 /**
  * Returns a Boolean value indicating the state of the multiline flag (m) used with a regular expression. Default is false. Read-only.
  */
-pub (value: RegExp) multiline(): Bool ->
+pub (receiver: RegExp) multiline(): Bool ->
     native.
 
-pub (value: RegExp) last_index(): std.js.Number.JsNumber ->
+pub (receiver: RegExp) last_index(): std.js.Number.JsNumber ->
     native.

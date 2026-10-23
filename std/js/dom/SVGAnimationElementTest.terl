@@ -12,14 +12,16 @@
  */
 module std.js.Dom.SVGAnimationElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.SVGAnimationElement.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub target_element_typechecks(receiver: SVGAnimationElement): Option[SVGElement] ->
+pub target_element_typechecks(
+    receiver: SVGAnimationElement,
+): Option[std.js.Dom.SVGElement.SVGElement] ->
     receiver.target_element().
 
 pub begin_element_typechecks(receiver: SVGAnimationElement): Unit ->
@@ -47,7 +49,7 @@ pub add_event_listener_typechecks(
     receiver: SVGAnimationElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -55,6 +57,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGAnimationElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

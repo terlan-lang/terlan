@@ -14,16 +14,18 @@ module std.js.Dom.RTCTrackEventInitTest.
 
 import type std.js.Dom.RTCTrackEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub receiver_typechecks(receiver: RTCTrackEventInit): RTCRtpReceiver ->
+pub receiver_typechecks(receiver: RTCTrackEventInit): std.js.Dom.RTCRtpReceiver.RTCRtpReceiver ->
     receiver.receiver().
 
-pub streams_typechecks(receiver: RTCTrackEventInit): std.js.Array[MediaStream] ->
+pub streams_typechecks(
+    receiver: RTCTrackEventInit,
+): std.core.Option.Option[std.js.Array.Array[std.js.Dom.MediaStream.MediaStream]] ->
     receiver.streams().
 
-pub track_typechecks(receiver: RTCTrackEventInit): MediaStreamTrack ->
+pub track_typechecks(receiver: RTCTrackEventInit): std.js.Dom.MediaStreamTrack.MediaStreamTrack ->
     receiver.track().
 
-pub transceiver_typechecks(receiver: RTCTrackEventInit): RTCRtpTransceiver ->
+pub transceiver_typechecks(
+    receiver: RTCTrackEventInit,
+): std.js.Dom.RTCRtpTransceiver.RTCRtpTransceiver ->
     receiver.transceiver().

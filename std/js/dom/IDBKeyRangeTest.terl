@@ -12,10 +12,7 @@
  */
 module std.js.Dom.IDBKeyRangeTest.
 
-import type std.core.{Bool}.
 import type std.js.Dom.IDBKeyRange.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub lower_open_typechecks(receiver: IDBKeyRange): Bool ->
     receiver.lower_open().

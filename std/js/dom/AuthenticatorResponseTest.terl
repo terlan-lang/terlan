@@ -14,7 +14,5 @@ module std.js.Dom.AuthenticatorResponseTest.
 
 import type std.js.Dom.AuthenticatorResponse.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub client_data_json_typechecks(receiver: AuthenticatorResponse): ArrayBuffer ->
+pub client_data_json_typechecks(receiver: AuthenticatorResponse): std.js.ArrayBuffer.ArrayBuffer ->
     receiver.client_data_json().

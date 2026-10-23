@@ -15,8 +15,6 @@ module std.js.Dom.MessageEventTest.
 import type std.js.Dom.MessageEvent.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub data_typechecks(receiver: MessageEvent[T]): T ->
     receiver.data().
 
@@ -26,8 +24,12 @@ pub last_event_id_typechecks(receiver: MessageEvent[T]): JsString ->
 pub origin_typechecks(receiver: MessageEvent[T]): JsString ->
     receiver.origin().
 
-pub ports_typechecks(receiver: MessageEvent[T]): std.js.Array[MessagePort] ->
+pub ports_typechecks(
+    receiver: MessageEvent[T],
+): std.js.Array.Array[std.js.Dom.MessagePort.MessagePort] ->
     receiver.ports().
 
-pub source_typechecks(receiver: MessageEvent[T]): Option[MessageEventSource] ->
+pub source_typechecks(
+    receiver: MessageEvent[T],
+): std.core.Option.Option[std.js.Dom.MessageEventSource.MessageEventSource] ->
     receiver.source().

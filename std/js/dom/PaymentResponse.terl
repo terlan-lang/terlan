@@ -12,9 +12,10 @@
  */
 module std.js.Dom.PaymentResponse.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
 
 /**
  * The **`PaymentResponse`** interface of the Payment Request API is returned after a user selects a payment method and approves a payment request.
@@ -29,7 +30,7 @@ pub opaque type PaymentResponse.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/methodName)
  */
-pub (value: PaymentResponse) method_name(): JsString ->
+pub (receiver: PaymentResponse) method_name(): JsString ->
     native.
 
 /**
@@ -37,7 +38,7 @@ pub (value: PaymentResponse) method_name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/payerEmail)
  */
-pub (value: PaymentResponse) payer_email(): Option[JsString] ->
+pub (receiver: PaymentResponse) payer_email(): Option[JsString] ->
     native.
 
 /**
@@ -45,7 +46,7 @@ pub (value: PaymentResponse) payer_email(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/payerName)
  */
-pub (value: PaymentResponse) payer_name(): Option[JsString] ->
+pub (receiver: PaymentResponse) payer_name(): Option[JsString] ->
     native.
 
 /**
@@ -53,7 +54,7 @@ pub (value: PaymentResponse) payer_name(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/payerPhone)
  */
-pub (value: PaymentResponse) payer_phone(): Option[JsString] ->
+pub (receiver: PaymentResponse) payer_phone(): Option[JsString] ->
     native.
 
 /**
@@ -61,7 +62,7 @@ pub (value: PaymentResponse) payer_phone(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/requestId)
  */
-pub (value: PaymentResponse) request_id(): JsString ->
+pub (receiver: PaymentResponse) request_id(): JsString ->
     native.
 
 /**
@@ -69,7 +70,7 @@ pub (value: PaymentResponse) request_id(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/shippingAddress)
  */
-pub (value: PaymentResponse) shipping_address(): Option[PaymentAddress] ->
+pub (receiver: PaymentResponse) shipping_address(): Option[std.js.Dom.PaymentAddress.PaymentAddress] ->
     native.
 
 /**
@@ -77,15 +78,7 @@ pub (value: PaymentResponse) shipping_address(): Option[PaymentAddress] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/shippingOption)
  */
-pub (value: PaymentResponse) shipping_option(): Option[JsString] ->
-    native.
-
-/**
- * The PaymentRequest method **`complete()`** of the Payment Request API notifies the user interface to be closed.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/complete)
- */
-pub (value: PaymentResponse) complete(result: PaymentComplete): Promise[Unit] ->
+pub (receiver: PaymentResponse) shipping_option(): Option[JsString] ->
     native.
 
 /**
@@ -93,19 +86,21 @@ pub (value: PaymentResponse) complete(result: PaymentComplete): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/retry)
  */
-pub (value: PaymentResponse) retry(error_fields: PaymentValidationErrors): Promise[Unit] ->
+pub (receiver: PaymentResponse) retry(
+    error_fields: Option[std.js.Dom.PaymentValidationErrors.PaymentValidationErrors],
+): std.js.Promise.Promise[Unit] ->
     native.
 
-pub (value: PaymentResponse) add_event_listener(
+pub (receiver: PaymentResponse) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: PaymentResponse) remove_event_listener(
+pub (receiver: PaymentResponse) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

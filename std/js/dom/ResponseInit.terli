@@ -12,10 +12,10 @@
  */
 module std.js.Dom.ResponseInit.
 
+import type std.core.Option.{Option}.
+
 pub opaque type ResponseInit.
 
-pub (value: ResponseInit) headers(): HeadersInit.
+pub (receiver: ResponseInit) status(): Option[std.js.Number.JsNumber].
 
-pub (value: ResponseInit) status(): std.js.Number.JsNumber.
-
-pub (value: ResponseInit) status_text(): std.js.String.JsString.
+pub (receiver: ResponseInit) status_text(): Option[std.js.String.JsString].

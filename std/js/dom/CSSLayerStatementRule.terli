@@ -24,4 +24,4 @@ pub opaque type CSSLayerStatementRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSLayerStatementRule/nameList)
  */
-pub (value: CSSLayerStatementRule) name_list(): std.js.Array[std.js.String.JsString].
+pub (receiver: CSSLayerStatementRule) name_list(): std.js.Array.Array[std.js.String.JsString].

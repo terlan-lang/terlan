@@ -15,14 +15,8 @@ module std.js.Dom.RTCConfiguration.
 
 pub opaque type RTCConfiguration.
 
-pub (value: RTCConfiguration) bundle_policy(): RTCBundlePolicy.
+pub (receiver: RTCConfiguration) certificates(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.RTCCertificate.RTCCertificate]].
 
-pub (value: RTCConfiguration) certificates(): std.js.Array[RTCCertificate].
+pub (receiver: RTCConfiguration) ice_candidate_pool_size(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: RTCConfiguration) ice_candidate_pool_size(): std.js.Number.JsNumber.
-
-pub (value: RTCConfiguration) ice_servers(): std.js.Array[RTCIceServer].
-
-pub (value: RTCConfiguration) ice_transport_policy(): RTCIceTransportPolicy.
-
-pub (value: RTCConfiguration) rtcp_mux_policy(): RTCRtcpMuxPolicy.
+pub (receiver: RTCConfiguration) ice_servers(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.RTCIceServer.RTCIceServer]].

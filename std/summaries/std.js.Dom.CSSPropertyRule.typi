@@ -25,25 +25,25 @@ pub opaque type CSSPropertyRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSPropertyRule/inherits)
  */
-pub (value: CSSPropertyRule) inherits(): std.core.Bool.
+pub (receiver: CSSPropertyRule) inherits(): Bool.
 
 /**
  * The read-only **`initialValue`** nullable property of the CSSPropertyRule interface returns the initial value of the custom property registration represented by the @property rule, controlling the property's initial value.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSPropertyRule/initialValue)
  */
-pub (value: CSSPropertyRule) initial_value(): Option[std.js.String.JsString].
+pub (receiver: CSSPropertyRule) initial_value(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The read-only **`name`** property of the CSSPropertyRule interface represents the property name, this being the serialization of the name given to the custom property in the @property rule's prelude.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSPropertyRule/name)
  */
-pub (value: CSSPropertyRule) name(): std.js.String.JsString.
+pub (receiver: CSSPropertyRule) name(): std.js.String.JsString.
 
 /**
  * The read-only **`syntax`** property of the CSSPropertyRule interface returns the literal syntax of the custom property registration represented by the @property rule, controlling how the property's value is parsed at computed-value time.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSPropertyRule/syntax)
  */
-pub (value: CSSPropertyRule) syntax(): std.js.String.JsString.
+pub (receiver: CSSPropertyRule) syntax(): std.js.String.JsString.

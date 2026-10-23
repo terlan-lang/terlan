@@ -12,10 +12,8 @@
  */
 module std.js.Dom.TouchEventTest.
 
-import type std.core.{Bool}.
 import type std.js.Dom.TouchEvent.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.TouchList.{TouchList}.
 
 pub alt_key_typechecks(receiver: TouchEvent): Bool ->
     receiver.alt_key().

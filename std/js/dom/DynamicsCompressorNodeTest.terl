@@ -12,9 +12,8 @@
  */
 module std.js.Dom.DynamicsCompressorNodeTest.
 
+import type std.js.Dom.AudioParam.{AudioParam}.
 import type std.js.Dom.DynamicsCompressorNode.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub attack_typechecks(receiver: DynamicsCompressorNode): AudioParam ->
     receiver.attack().

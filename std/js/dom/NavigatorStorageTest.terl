@@ -14,7 +14,5 @@ module std.js.Dom.NavigatorStorageTest.
 
 import type std.js.Dom.NavigatorStorage.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub storage_typechecks(receiver: NavigatorStorage): StorageManager ->
+pub storage_typechecks(receiver: NavigatorStorage): std.js.Dom.StorageManager.StorageManager ->
     receiver.storage().

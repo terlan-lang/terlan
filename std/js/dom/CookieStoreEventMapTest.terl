@@ -14,7 +14,5 @@ module std.js.Dom.CookieStoreEventMapTest.
 
 import type std.js.Dom.CookieStoreEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub change_typechecks(receiver: CookieStoreEventMap): CookieChangeEvent ->
+pub change_typechecks(receiver: CookieStoreEventMap): std.js.Dom.CookieChangeEvent.CookieChangeEvent ->
     receiver.change().

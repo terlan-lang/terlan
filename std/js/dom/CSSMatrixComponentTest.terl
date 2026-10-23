@@ -14,7 +14,5 @@ module std.js.Dom.CSSMatrixComponentTest.
 
 import type std.js.Dom.CSSMatrixComponent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub matrix_typechecks(receiver: CSSMatrixComponent): DOMMatrix ->
+pub matrix_typechecks(receiver: CSSMatrixComponent): std.js.Dom.DOMMatrix.DOMMatrix ->
     receiver.matrix().

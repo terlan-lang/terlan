@@ -14,7 +14,7 @@ module std.js.Dom.PeriodicWaveConstraintsTest.
 
 import type std.js.Dom.PeriodicWaveConstraints.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub disable_normalization_typechecks(receiver: PeriodicWaveConstraints): std.core.Bool ->
+pub disable_normalization_typechecks(
+    receiver: PeriodicWaveConstraints,
+): std.core.Option.Option[Bool] ->
     receiver.disable_normalization().

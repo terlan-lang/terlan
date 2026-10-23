@@ -12,19 +12,17 @@
  */
 module std.js.TypedPropertyDescriptorTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.TypedPropertyDescriptor.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub enumerable_typechecks(receiver: TypedPropertyDescriptor[T]): Bool ->
+pub enumerable_typechecks(receiver: TypedPropertyDescriptor[T]): Option[Bool] ->
     receiver.enumerable().
 
-pub configurable_typechecks(receiver: TypedPropertyDescriptor[T]): Bool ->
+pub configurable_typechecks(receiver: TypedPropertyDescriptor[T]): Option[Bool] ->
     receiver.configurable().
 
-pub writable_typechecks(receiver: TypedPropertyDescriptor[T]): Bool ->
+pub writable_typechecks(receiver: TypedPropertyDescriptor[T]): Option[Bool] ->
     receiver.writable().
 
-pub value_typechecks(receiver: TypedPropertyDescriptor[T]): T ->
+pub value_typechecks(receiver: TypedPropertyDescriptor[T]): Option[T] ->
     receiver.value().

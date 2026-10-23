@@ -601,6 +601,7 @@ pub(super) fn emit_release_js_module(
         &compiled.core,
         &compiled.syntax_output,
         Path::new(source_path),
+        contract.profile,
     )?
     .ok_or_else(|| {
         format!(

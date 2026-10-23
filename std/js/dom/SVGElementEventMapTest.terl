@@ -13,5 +13,3 @@
 module std.js.Dom.SVGElementEventMapTest.
 
 import type std.js.Dom.SVGElementEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.

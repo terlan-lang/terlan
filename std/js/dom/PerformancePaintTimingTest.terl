@@ -13,5 +13,3 @@
 module std.js.Dom.PerformancePaintTimingTest.
 
 import type std.js.Dom.PerformancePaintTiming.
-
-pub generated_binding_surface_contract(): Bool -> true.

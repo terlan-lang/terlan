@@ -12,16 +12,16 @@
  */
 module std.js.Dom.MIDIAccessTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.MIDIAccess.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub inputs_typechecks(receiver: MIDIAccess): MIDIInputMap ->
+pub inputs_typechecks(receiver: MIDIAccess): std.js.Dom.MIDIInputMap.MIDIInputMap ->
     receiver.inputs().
 
-pub outputs_typechecks(receiver: MIDIAccess): MIDIOutputMap ->
+pub outputs_typechecks(receiver: MIDIAccess): std.js.Dom.MIDIOutputMap.MIDIOutputMap ->
     receiver.outputs().
 
 pub sysex_enabled_typechecks(receiver: MIDIAccess): Bool ->
@@ -31,7 +31,7 @@ pub add_event_listener_typechecks(
     receiver: MIDIAccess,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -39,6 +39,6 @@ pub remove_event_listener_typechecks(
     receiver: MIDIAccess,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

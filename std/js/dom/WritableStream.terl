@@ -24,7 +24,7 @@ pub opaque type WritableStream[W].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStream/locked)
  */
-pub (value: WritableStream[W]) locked(): std.core.Bool ->
+pub (receiver: WritableStream[W]) locked(): Bool ->
     native.
 
 /**
@@ -32,7 +32,7 @@ pub (value: WritableStream[W]) locked(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStream/close)
  */
-pub (value: WritableStream[W]) close(): std.js.Promise[std.core.Unit] ->
+pub (receiver: WritableStream[W]) close(): std.js.Promise.Promise[std.core.Unit.Unit] ->
     native.
 
 /**
@@ -40,5 +40,5 @@ pub (value: WritableStream[W]) close(): std.js.Promise[std.core.Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStream/getWriter)
  */
-pub (value: WritableStream[W]) get_writer(): WritableStreamDefaultWriter[W] ->
+pub (receiver: WritableStream[W]) get_writer(): std.js.Dom.WritableStreamDefaultWriter.WritableStreamDefaultWriter[W] ->
     native.

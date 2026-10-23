@@ -12,10 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedBooleanTest.
 
-import type std.core.{Bool}.
 import type std.js.Dom.SVGAnimatedBoolean.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub anim_val_typechecks(receiver: SVGAnimatedBoolean): Bool ->
     receiver.anim_val().

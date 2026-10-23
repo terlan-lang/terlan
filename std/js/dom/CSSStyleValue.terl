@@ -19,5 +19,5 @@ module std.js.Dom.CSSStyleValue.
  */
 pub opaque type CSSStyleValue.
 
-pub (value: CSSStyleValue) to_string(): std.js.String.JsString ->
+pub (receiver: CSSStyleValue) to_string(): std.js.String.JsString ->
     native.

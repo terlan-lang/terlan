@@ -12,12 +12,12 @@
  */
 module std.js.Dom.RTCSctpTransportTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.RTCSctpTransport.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub max_channels_typechecks(receiver: RTCSctpTransport): Option[JsNumber] ->
     receiver.max_channels().
@@ -25,17 +25,14 @@ pub max_channels_typechecks(receiver: RTCSctpTransport): Option[JsNumber] ->
 pub max_message_size_typechecks(receiver: RTCSctpTransport): JsNumber ->
     receiver.max_message_size().
 
-pub state_typechecks(receiver: RTCSctpTransport): RTCSctpTransportState ->
-    receiver.state().
-
-pub transport_typechecks(receiver: RTCSctpTransport): RTCDtlsTransport ->
+pub transport_typechecks(receiver: RTCSctpTransport): std.js.Dom.RTCDtlsTransport.RTCDtlsTransport ->
     receiver.transport().
 
 pub add_event_listener_typechecks(
     receiver: RTCSctpTransport,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -43,6 +40,6 @@ pub remove_event_listener_typechecks(
     receiver: RTCSctpTransport,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -12,7 +12,9 @@
  */
 module std.js.Dom.DOMMatrixReadOnly.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.js.Dom.DOMMatrix.{DOMMatrix}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -25,37 +27,37 @@ pub opaque type DOMMatrixReadOnly.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) a(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) a(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) b(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) b(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) c(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) c(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) d(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) d(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) e(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) e(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) f(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) f(): JsNumber ->
     native.
 
 /**
@@ -63,7 +65,7 @@ pub (value: DOMMatrixReadOnly) f(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/is2D)
  */
-pub (value: DOMMatrixReadOnly) is2_d(): Bool ->
+pub (receiver: DOMMatrixReadOnly) is2_d(): Bool ->
     native.
 
 /**
@@ -71,103 +73,103 @@ pub (value: DOMMatrixReadOnly) is2_d(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/isIdentity)
  */
-pub (value: DOMMatrixReadOnly) is_identity(): Bool ->
+pub (receiver: DOMMatrixReadOnly) is_identity(): Bool ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m11(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m11(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m12(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m12(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m13(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m13(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m14(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m14(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m21(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m21(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m22(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m22(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m23(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m23(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m24(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m24(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m31(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m31(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m32(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m32(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m33(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m33(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m34(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m34(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m41(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m41(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m42(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m42(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m43(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m43(): JsNumber ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly#instance_properties)
  */
-pub (value: DOMMatrixReadOnly) m44(): JsNumber ->
+pub (receiver: DOMMatrixReadOnly) m44(): JsNumber ->
     native.
 
 /**
@@ -175,7 +177,7 @@ pub (value: DOMMatrixReadOnly) m44(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/flipX)
  */
-pub (value: DOMMatrixReadOnly) flip_x(): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) flip_x(): DOMMatrix ->
     native.
 
 /**
@@ -183,7 +185,7 @@ pub (value: DOMMatrixReadOnly) flip_x(): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/flipY)
  */
-pub (value: DOMMatrixReadOnly) flip_y(): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) flip_y(): DOMMatrix ->
     native.
 
 /**
@@ -191,7 +193,7 @@ pub (value: DOMMatrixReadOnly) flip_y(): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/inverse)
  */
-pub (value: DOMMatrixReadOnly) inverse(): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) inverse(): DOMMatrix ->
     native.
 
 /**
@@ -199,7 +201,7 @@ pub (value: DOMMatrixReadOnly) inverse(): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/multiply)
  */
-pub (value: DOMMatrixReadOnly) multiply(other: DOMMatrixInit): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) multiply(other: Option[std.js.Dom.DOMMatrixInit.DOMMatrixInit]): DOMMatrix ->
     native.
 
 /**
@@ -207,7 +209,7 @@ pub (value: DOMMatrixReadOnly) multiply(other: DOMMatrixInit): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/rotate)
  */
-pub (value: DOMMatrixReadOnly) rotate(rot_x: JsNumber, rot_y: JsNumber, rot_z: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) rotate(rot_x: Option[JsNumber], rot_y: Option[JsNumber], rot_z: Option[JsNumber]): DOMMatrix ->
     native.
 
 /**
@@ -215,7 +217,12 @@ pub (value: DOMMatrixReadOnly) rotate(rot_x: JsNumber, rot_y: JsNumber, rot_z: J
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/rotateAxisAngle)
  */
-pub (value: DOMMatrixReadOnly) rotate_axis_angle(x: JsNumber, y: JsNumber, z: JsNumber, angle: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) rotate_axis_angle(
+    x: Option[JsNumber],
+    y: Option[JsNumber],
+    z: Option[JsNumber],
+    angle: Option[JsNumber],
+): DOMMatrix ->
     native.
 
 /**
@@ -223,7 +230,7 @@ pub (value: DOMMatrixReadOnly) rotate_axis_angle(x: JsNumber, y: JsNumber, z: Js
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/rotateFromVector)
  */
-pub (value: DOMMatrixReadOnly) rotate_from_vector(x: JsNumber, y: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) rotate_from_vector(x: Option[JsNumber], y: Option[JsNumber]): DOMMatrix ->
     native.
 
 /**
@@ -231,13 +238,13 @@ pub (value: DOMMatrixReadOnly) rotate_from_vector(x: JsNumber, y: JsNumber): DOM
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/scale)
  */
-pub (value: DOMMatrixReadOnly) scale(
-    scale_x: JsNumber,
-    scale_y: JsNumber,
-    scale_z: JsNumber,
-    origin_x: JsNumber,
-    origin_y: JsNumber,
-    origin_z: JsNumber,
+pub (receiver: DOMMatrixReadOnly) scale(
+    scale_x: Option[JsNumber],
+    scale_y: Option[JsNumber],
+    scale_z: Option[JsNumber],
+    origin_x: Option[JsNumber],
+    origin_y: Option[JsNumber],
+    origin_z: Option[JsNumber],
 ): DOMMatrix ->
     native.
 
@@ -246,13 +253,18 @@ pub (value: DOMMatrixReadOnly) scale(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/scale3d)
  */
-pub (value: DOMMatrixReadOnly) scale3d(scale: JsNumber, origin_x: JsNumber, origin_y: JsNumber, origin_z: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) scale3d(
+    scale: Option[JsNumber],
+    origin_x: Option[JsNumber],
+    origin_y: Option[JsNumber],
+    origin_z: Option[JsNumber],
+): DOMMatrix ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: DOMMatrixReadOnly) scale_non_uniform(scale_x: JsNumber, scale_y: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) scale_non_uniform(scale_x: Option[JsNumber], scale_y: Option[JsNumber]): DOMMatrix ->
     native.
 
 /**
@@ -260,7 +272,7 @@ pub (value: DOMMatrixReadOnly) scale_non_uniform(scale_x: JsNumber, scale_y: JsN
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/skewX)
  */
-pub (value: DOMMatrixReadOnly) skew_x(sx: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) skew_x(sx: Option[JsNumber]): DOMMatrix ->
     native.
 
 /**
@@ -268,7 +280,7 @@ pub (value: DOMMatrixReadOnly) skew_x(sx: JsNumber): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/skewY)
  */
-pub (value: DOMMatrixReadOnly) skew_y(sy: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) skew_y(sy: Option[JsNumber]): DOMMatrix ->
     native.
 
 /**
@@ -276,7 +288,7 @@ pub (value: DOMMatrixReadOnly) skew_y(sy: JsNumber): DOMMatrix ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/toFloat32Array)
  */
-pub (value: DOMMatrixReadOnly) to_float32_array(): Float32Array[ArrayBuffer] ->
+pub (receiver: DOMMatrixReadOnly) to_float32_array(): std.js.Float32Array.Float32Array[ArrayBuffer] ->
     native.
 
 /**
@@ -284,7 +296,7 @@ pub (value: DOMMatrixReadOnly) to_float32_array(): Float32Array[ArrayBuffer] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/toFloat64Array)
  */
-pub (value: DOMMatrixReadOnly) to_float64_array(): Float64Array[ArrayBuffer] ->
+pub (receiver: DOMMatrixReadOnly) to_float64_array(): std.js.Float64Array.Float64Array[ArrayBuffer] ->
     native.
 
 /**
@@ -292,7 +304,9 @@ pub (value: DOMMatrixReadOnly) to_float64_array(): Float64Array[ArrayBuffer] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/transformPoint)
  */
-pub (value: DOMMatrixReadOnly) transform_point(point: DOMPointInit): DOMPoint ->
+pub (receiver: DOMMatrixReadOnly) transform_point(
+    point: Option[std.js.Dom.DOMPointInit.DOMPointInit],
+): std.js.Dom.DOMPoint.DOMPoint ->
     native.
 
 /**
@@ -300,8 +314,8 @@ pub (value: DOMMatrixReadOnly) transform_point(point: DOMPointInit): DOMPoint ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/translate)
  */
-pub (value: DOMMatrixReadOnly) translate(tx: JsNumber, ty: JsNumber, tz: JsNumber): DOMMatrix ->
+pub (receiver: DOMMatrixReadOnly) translate(tx: Option[JsNumber], ty: Option[JsNumber], tz: Option[JsNumber]): DOMMatrix ->
     native.
 
-pub (value: DOMMatrixReadOnly) to_string(): std.js.String.JsString ->
+pub (receiver: DOMMatrixReadOnly) to_string(): std.js.String.JsString ->
     native.

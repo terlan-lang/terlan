@@ -13,5 +13,3 @@
 module std.js.URIErrorTest.
 
 import type std.js.URIError.
-
-pub generated_binding_surface_contract(): Bool -> true.

@@ -25,18 +25,18 @@ pub opaque type Geolocation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Geolocation/clearWatch)
  */
-pub (value: Geolocation) clear_watch(watch_id: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: Geolocation) clear_watch(watch_id: std.js.Number.JsNumber): std.core.Unit.Unit.
 
 /**
  * The **`getCurrentPosition()`** method of the Geolocation interface is used to get the current position of the device.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Geolocation/getCurrentPosition)
  */
-pub (value: Geolocation) get_current_position(success_callback: PositionCallback, error_callback: Option[PositionErrorCallback], options: PositionOptions): std.core.Unit.
+pub (receiver: Geolocation) get_current_position(success_callback: std.js.Dom.PositionCallback.PositionCallback, error_callback: std.core.Option.Option[std.core.Option.Option[std.js.Dom.PositionErrorCallback.PositionErrorCallback]], options: std.core.Option.Option[std.js.Dom.PositionOptions.PositionOptions]): std.core.Unit.Unit.
 
 /**
  * The **`watchPosition()`** method of the Geolocation interface is used to register a handler function that will be called automatically each time the position of the device changes.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Geolocation/watchPosition)
  */
-pub (value: Geolocation) watch_position(success_callback: PositionCallback, error_callback: Option[PositionErrorCallback], options: PositionOptions): std.js.Number.JsNumber.
+pub (receiver: Geolocation) watch_position(success_callback: std.js.Dom.PositionCallback.PositionCallback, error_callback: std.core.Option.Option[std.core.Option.Option[std.js.Dom.PositionErrorCallback.PositionErrorCallback]], options: std.core.Option.Option[std.js.Dom.PositionOptions.PositionOptions]): std.js.Number.JsNumber.

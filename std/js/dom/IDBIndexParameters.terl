@@ -12,12 +12,12 @@
  */
 module std.js.Dom.IDBIndexParameters.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type IDBIndexParameters.
 
-pub (value: IDBIndexParameters) multi_entry(): Bool ->
+pub (receiver: IDBIndexParameters) multi_entry(): Option[Bool] ->
     native.
 
-pub (value: IDBIndexParameters) unique(): Bool ->
+pub (receiver: IDBIndexParameters) unique(): Option[Bool] ->
     native.

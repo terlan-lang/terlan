@@ -15,15 +15,13 @@ module std.js.Dom.DocumentFragmentTest.
 import type std.js.Dom.DocumentFragment.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub owner_document_typechecks(receiver: DocumentFragment): Document ->
+pub owner_document_typechecks(receiver: DocumentFragment): std.js.Dom.Document.Document ->
     receiver.owner_document().
 
 pub get_element_by_id_typechecks(
     receiver: DocumentFragment,
     element_id: JsString,
-): Option[HTMLElement] ->
+): std.core.Option.Option[std.js.Dom.HTMLElement.HTMLElement] ->
     receiver.get_element_by_id(element_id).
 
 pub text_content_typechecks(receiver: DocumentFragment): JsString ->

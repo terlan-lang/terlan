@@ -13,5 +13,3 @@
 module std.js.PromiseLikeTest.
 
 import type std.js.PromiseLike.
-
-pub generated_binding_surface_contract(): Bool -> true.

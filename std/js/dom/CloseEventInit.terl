@@ -12,13 +12,15 @@
  */
 module std.js.Dom.CloseEventInit.
 
+import type std.core.Option.{Option}.
+
 pub opaque type CloseEventInit.
 
-pub (value: CloseEventInit) code(): std.js.Number.JsNumber ->
+pub (receiver: CloseEventInit) code(): Option[std.js.Number.JsNumber] ->
     native.
 
-pub (value: CloseEventInit) reason(): std.js.String.JsString ->
+pub (receiver: CloseEventInit) reason(): Option[std.js.String.JsString] ->
     native.
 
-pub (value: CloseEventInit) was_clean(): std.core.Bool ->
+pub (receiver: CloseEventInit) was_clean(): Option[Bool] ->
     native.

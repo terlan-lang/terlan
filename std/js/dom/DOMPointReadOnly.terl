@@ -26,7 +26,7 @@ pub opaque type DOMPointReadOnly.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/w)
  */
-pub (value: DOMPointReadOnly) w(): JsNumber ->
+pub (receiver: DOMPointReadOnly) w(): JsNumber ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: DOMPointReadOnly) w(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/x)
  */
-pub (value: DOMPointReadOnly) x(): JsNumber ->
+pub (receiver: DOMPointReadOnly) x(): JsNumber ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: DOMPointReadOnly) x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/y)
  */
-pub (value: DOMPointReadOnly) y(): JsNumber ->
+pub (receiver: DOMPointReadOnly) y(): JsNumber ->
     native.
 
 /**
@@ -50,7 +50,7 @@ pub (value: DOMPointReadOnly) y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/z)
  */
-pub (value: DOMPointReadOnly) z(): JsNumber ->
+pub (receiver: DOMPointReadOnly) z(): JsNumber ->
     native.
 
 /**
@@ -58,5 +58,7 @@ pub (value: DOMPointReadOnly) z(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/matrixTransform)
  */
-pub (value: DOMPointReadOnly) matrix_transform(matrix: DOMMatrixInit): DOMPoint ->
+pub (receiver: DOMPointReadOnly) matrix_transform(
+    matrix: std.core.Option.Option[std.js.Dom.DOMMatrixInit.DOMMatrixInit],
+): std.js.Dom.DOMPoint.DOMPoint ->
     native.

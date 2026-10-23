@@ -12,9 +12,8 @@
  */
 module std.js.Dom.MessageEventTargetEventMapTest.
 
+import type std.js.Dom.MessageEvent.{MessageEvent}.
 import type std.js.Dom.MessageEventTargetEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub message_typechecks(receiver: MessageEventTargetEventMap): MessageEvent ->
     receiver.message().

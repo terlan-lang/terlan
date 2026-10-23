@@ -26,29 +26,29 @@ pub opaque type MediaDevices.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDevices/enumerateDevices)
  */
-pub (value: MediaDevices) enumerate_devices(): std.js.Promise[std.js.Array[MediaDeviceInfo]].
+pub (receiver: MediaDevices) enumerate_devices(): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.MediaDeviceInfo.MediaDeviceInfo]].
 
 /**
  * The **`getDisplayMedia()`** method of the MediaDevices interface prompts the user to select and grant permission to capture the contents of a display or portion thereof (such as a window) as a MediaStream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDevices/getDisplayMedia)
  */
-pub (value: MediaDevices) get_display_media(options: DisplayMediaStreamOptions): std.js.Promise[MediaStream].
+pub (receiver: MediaDevices) get_display_media(options: std.core.Option.Option[std.js.Dom.DisplayMediaStreamOptions.DisplayMediaStreamOptions]): std.js.Promise.Promise[std.js.Dom.MediaStream.MediaStream].
 
 /**
  * The **`getSupportedConstraints()`** method of the MediaDevices interface returns an object based on the MediaTrackSupportedConstraints dictionary, whose member fields each specify one of the constrainable properties the user agent understands.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDevices/getSupportedConstraints)
  */
-pub (value: MediaDevices) get_supported_constraints(): MediaTrackSupportedConstraints.
+pub (receiver: MediaDevices) get_supported_constraints(): std.js.Dom.MediaTrackSupportedConstraints.MediaTrackSupportedConstraints.
 
 /**
  * The **`getUserMedia()`** method of the MediaDevices interface prompts the user for permission to use a media input which produces a MediaStream with tracks containing the requested types of media.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDevices/getUserMedia)
  */
-pub (value: MediaDevices) get_user_media(constraints: MediaStreamConstraints): std.js.Promise[MediaStream].
+pub (receiver: MediaDevices) get_user_media(constraints: std.core.Option.Option[std.js.Dom.MediaStreamConstraints.MediaStreamConstraints]): std.js.Promise.Promise[std.js.Dom.MediaStream.MediaStream].
 
-pub (value: MediaDevices) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: MediaDevices) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: MediaDevices) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: MediaDevices) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

@@ -13,5 +13,3 @@
 module std.js.Dom.RemotePlaybackAvailabilityCallbackTest.
 
 import type std.js.Dom.RemotePlaybackAvailabilityCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

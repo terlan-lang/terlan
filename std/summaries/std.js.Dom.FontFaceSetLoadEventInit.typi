@@ -15,4 +15,4 @@ module std.js.Dom.FontFaceSetLoadEventInit.
 
 pub opaque type FontFaceSetLoadEventInit.
 
-pub (value: FontFaceSetLoadEventInit) fontfaces(): std.js.Array[FontFace].
+pub (receiver: FontFaceSetLoadEventInit) fontfaces(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.FontFace.FontFace]].

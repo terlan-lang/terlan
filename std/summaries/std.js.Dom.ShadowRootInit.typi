@@ -15,14 +15,10 @@ module std.js.Dom.ShadowRootInit.
 
 pub opaque type ShadowRootInit.
 
-pub (value: ShadowRootInit) clonable(): std.core.Bool.
+pub (receiver: ShadowRootInit) clonable(): std.core.Option.Option[Bool].
 
-pub (value: ShadowRootInit) custom_element_registry(): CustomElementRegistry.
+pub (receiver: ShadowRootInit) custom_element_registry(): std.core.Option.Option[std.js.Dom.CustomElementRegistry.CustomElementRegistry].
 
-pub (value: ShadowRootInit) delegates_focus(): std.core.Bool.
+pub (receiver: ShadowRootInit) delegates_focus(): std.core.Option.Option[Bool].
 
-pub (value: ShadowRootInit) mode(): ShadowRootMode.
-
-pub (value: ShadowRootInit) serializable(): std.core.Bool.
-
-pub (value: ShadowRootInit) slot_assignment(): SlotAssignmentMode.
+pub (receiver: ShadowRootInit) serializable(): std.core.Option.Option[Bool].

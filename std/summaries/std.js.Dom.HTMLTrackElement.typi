@@ -25,50 +25,50 @@ pub opaque type HTMLTrackElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/default)
  */
-pub (value: HTMLTrackElement) default(): std.core.Bool.
+pub (receiver: HTMLTrackElement) default(): Bool.
 
 /**
  * The **`kind`** property of the HTMLTrackElement interface represents the type of track, or how the text track is meant to be used.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/kind)
  */
-pub (value: HTMLTrackElement) kind(): std.js.String.JsString.
+pub (receiver: HTMLTrackElement) kind(): std.js.String.JsString.
 
 /**
  * The **`label`** property of the HTMLTrackElement represents the user-readable title displayed when listing subtitle, caption, and audio descriptions for a track.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/label)
  */
-pub (value: HTMLTrackElement) label(): std.js.String.JsString.
+pub (receiver: HTMLTrackElement) label(): std.js.String.JsString.
 
 /**
  * The **`readyState`** read-only property of the HTMLTrackElement interface returns a number representing the track element's text track readiness state: 0.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/readyState)
  */
-pub (value: HTMLTrackElement) ready_state(): std.js.Number.JsNumber.
+pub (receiver: HTMLTrackElement) ready_state(): std.js.Number.JsNumber.
 
 /**
  * The **`src`** property of the HTMLTrackElement interface reflects the value of the track element's `src` attribute, which indicates the URL of the text track's data.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/src)
  */
-pub (value: HTMLTrackElement) src(): std.js.String.JsString.
+pub (receiver: HTMLTrackElement) src(): std.js.String.JsString.
 
 /**
  * The **`srclang`** property of the HTMLTrackElement interface reflects the value of the track element's `srclang` attribute or the empty string if not defined.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/srclang)
  */
-pub (value: HTMLTrackElement) srclang(): std.js.String.JsString.
+pub (receiver: HTMLTrackElement) srclang(): std.js.String.JsString.
 
 /**
  * The **`track`** read-only property of the HTMLTrackElement interface returns a TextTrack object corresponding to the text track of the track element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/track)
  */
-pub (value: HTMLTrackElement) track(): TextTrack.
+pub (receiver: HTMLTrackElement) track(): std.js.Dom.TextTrack.TextTrack.
 
-pub (value: HTMLTrackElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLTrackElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLTrackElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLTrackElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

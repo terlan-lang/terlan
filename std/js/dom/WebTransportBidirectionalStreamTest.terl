@@ -14,10 +14,12 @@ module std.js.Dom.WebTransportBidirectionalStreamTest.
 
 import type std.js.Dom.WebTransportBidirectionalStream.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub readable_typechecks(receiver: WebTransportBidirectionalStream): ReadableStream ->
+pub readable_typechecks(
+    receiver: WebTransportBidirectionalStream,
+): std.js.Dom.ReadableStream.ReadableStream ->
     receiver.readable().
 
-pub writable_typechecks(receiver: WebTransportBidirectionalStream): WritableStream ->
+pub writable_typechecks(
+    receiver: WebTransportBidirectionalStream,
+): std.js.Dom.WritableStream.WritableStream ->
     receiver.writable().

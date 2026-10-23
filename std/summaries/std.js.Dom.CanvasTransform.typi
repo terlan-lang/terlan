@@ -18,36 +18,36 @@ pub opaque type CanvasTransform.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/getTransform)
  */
-pub (value: CanvasTransform) get_transform(): DOMMatrix.
+pub (receiver: CanvasTransform) get_transform(): std.js.Dom.DOMMatrix.DOMMatrix.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/resetTransform)
  */
-pub (value: CanvasTransform) reset_transform(): std.core.Unit.
+pub (receiver: CanvasTransform) reset_transform(): std.core.Unit.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/rotate)
  */
-pub (value: CanvasTransform) rotate(angle: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: CanvasTransform) rotate(angle: std.js.Number.JsNumber): std.core.Unit.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/scale)
  */
-pub (value: CanvasTransform) scale(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: CanvasTransform) scale(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/setTransform)
  */
-pub (value: CanvasTransform) set_transform(a: std.js.Number.JsNumber, b: std.js.Number.JsNumber, c: std.js.Number.JsNumber, d: std.js.Number.JsNumber, e: std.js.Number.JsNumber, f: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: CanvasTransform) set_transform(a: std.js.Number.JsNumber, b: std.js.Number.JsNumber, c: std.js.Number.JsNumber, d: std.js.Number.JsNumber, e: std.js.Number.JsNumber, f: std.js.Number.JsNumber): std.core.Unit.Unit.
 
-pub (value: CanvasTransform) set_transform(transform: DOMMatrix2DInit): std.core.Unit.
+pub (receiver: CanvasTransform) set_transform_overload_2(transform: std.core.Option.Option[std.js.Dom.DOMMatrix2DInit.DOMMatrix2DInit]): std.core.Unit.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/transform)
  */
-pub (value: CanvasTransform) transform(a: std.js.Number.JsNumber, b: std.js.Number.JsNumber, c: std.js.Number.JsNumber, d: std.js.Number.JsNumber, e: std.js.Number.JsNumber, f: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: CanvasTransform) transform(a: std.js.Number.JsNumber, b: std.js.Number.JsNumber, c: std.js.Number.JsNumber, d: std.js.Number.JsNumber, e: std.js.Number.JsNumber, f: std.js.Number.JsNumber): std.core.Unit.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/translate)
  */
-pub (value: CanvasTransform) translate(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: CanvasTransform) translate(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.

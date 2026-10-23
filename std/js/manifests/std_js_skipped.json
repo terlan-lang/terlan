@@ -2490,8 +2490,8 @@
       "source": "std.js.Dom.AnimationTimeline"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "Attr.textContent"
     },
     {
@@ -2810,8 +2810,8 @@
       "source": "std.js.Dom.CSSCounterStyleRule"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "CSSFontFaceRule.style"
     },
     {
@@ -2840,8 +2840,8 @@
       "source": "std.js.Dom.CSSImageValue"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "CSSImportRule.media"
     },
     {
@@ -2850,8 +2850,8 @@
       "source": "std.js.Dom.CSSImportRule"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "CSSKeyframeRule.style"
     },
     {
@@ -2930,8 +2930,8 @@
       "source": "std.js.Dom.CSSMatrixComponent"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "CSSMediaRule.media"
     },
     {
@@ -2945,8 +2945,8 @@
       "source": "std.js.Dom.CSSNamespaceRule"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "CSSNestedDeclarations.style"
     },
     {
@@ -2975,8 +2975,8 @@
       "source": "std.js.Dom.CSSNumericValue"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "CSSPageRule.style"
     },
     {
@@ -3115,8 +3115,8 @@
       "source": "std.js.Dom.CSSStyleDeclaration"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "CSSStyleRule.style"
     },
     {
@@ -3270,8 +3270,8 @@
       "source": "std.js.Dom.ChannelSplitterNode"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "CharacterData.textContent"
     },
     {
@@ -3550,9 +3550,9 @@
       "source": "std.js.Dom.DOMException"
     },
     {
-      "detail": "BooleanLiteral(true)",
-      "reason": "ts_bindgen.unsupported_literal_type",
-      "source": "DOMImplementation.hasFeature return"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "DOMImplementation.hasFeature parameter args"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -3740,8 +3740,8 @@
       "source": "Document.defaultView"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "Document.location"
     },
     {
@@ -4177,7 +4177,7 @@
     {
       "detail": "Null",
       "reason": "ts_bindgen.nullish_without_value_type",
-      "source": "Document.textContent return"
+      "source": "Document.textContent"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -4195,8 +4195,8 @@
       "source": "std.js.Dom.Document"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "DocumentFragment.textContent"
     },
     {
@@ -4212,7 +4212,7 @@
     {
       "detail": "Null",
       "reason": "ts_bindgen.nullish_without_value_type",
-      "source": "DocumentType.textContent return"
+      "source": "DocumentType.textContent"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -4370,8 +4370,8 @@
       "source": "EXT_texture_norm16.RGBA16_SNORM_EXT"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "Element.classList"
     },
     {
@@ -4385,8 +4385,8 @@
       "source": "Element.onfullscreenerror"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "Element.part"
     },
     {
@@ -4440,8 +4440,8 @@
       "source": "Element.getElementsByTagNameNS parameter namespaceURI#3"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "Element.textContent"
     },
     {
@@ -4460,8 +4460,8 @@
       "source": "std.js.Dom.Element"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "ElementCSSInlineStyle.style"
     },
     {
@@ -5385,8 +5385,8 @@
       "source": "std.js.Dom.HTMLAllCollection"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "HTMLAnchorElement.relList"
     },
     {
@@ -5405,8 +5405,8 @@
       "source": "std.js.Dom.HTMLAnchorElement"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "HTMLAreaElement.relList"
     },
     {
@@ -5745,8 +5745,8 @@
       "source": "std.js.Dom.HTMLFormControlsCollection"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "HTMLFormElement.relList"
     },
     {
@@ -5870,8 +5870,8 @@
       "source": "HTMLIFrameElement.loading"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "HTMLIFrameElement.sandbox"
     },
     {
@@ -5990,8 +5990,8 @@
       "source": "std.js.Dom.HTMLLegendElement"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "HTMLLinkElement.blocking"
     },
     {
@@ -6000,13 +6000,13 @@
       "source": "HTMLLinkElement.fetchPriority"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "HTMLLinkElement.relList"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "HTMLLinkElement.sizes"
     },
     {
@@ -6255,8 +6255,8 @@
       "source": "std.js.Dom.HTMLOptionsCollection"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "HTMLOutputElement.htmlFor"
     },
     {
@@ -6365,8 +6365,8 @@
       "source": "std.js.Dom.HTMLQuoteElement"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "HTMLScriptElement.blocking"
     },
     {
@@ -6460,8 +6460,8 @@
       "source": "std.js.Dom.HTMLSpanElement"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "HTMLStyleElement.blocking"
     },
     {
@@ -8945,8 +8945,8 @@
       "source": "std.js.Dom.Response"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "SVGAElement.relList"
     },
     {
@@ -11115,8 +11115,8 @@
       "source": "std.js.Dom.StylePropertyMapReadOnly"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "StyleSheet.media"
     },
     {
@@ -15220,8 +15220,8 @@
       "source": "std.js.Dom.WheelEvent"
     },
     {
-      "detail": "generated bindings require explicit TypeScript annotations",
-      "reason": "ts_bindgen.missing_type_annotation",
+      "detail": "property setter bindings are not emitted yet",
+      "reason": "ts_bindgen.unsupported_property_setter",
       "source": "Window.location"
     },
     {
@@ -15408,6 +15408,16 @@
       "detail": "Any",
       "reason": "ts_bindgen.unsupported_any",
       "source": "WindowOrWorkerGlobalScope.reportError parameter e"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "WindowOrWorkerGlobalScope.setInterval parameter arguments"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "WindowOrWorkerGlobalScope.setTimeout parameter arguments"
     },
     {
       "detail": "Any",
@@ -16147,12 +16157,67 @@
     {
       "detail": "Any",
       "reason": "ts_bindgen.unsupported_any",
+      "source": "Console.assert parameter data"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Console.debug parameter data"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
       "source": "Console.dir parameter item"
     },
     {
       "detail": "Any",
       "reason": "ts_bindgen.unsupported_any",
+      "source": "Console.dirxml parameter data"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Console.error parameter data"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Console.group parameter data"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Console.groupCollapsed parameter data"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Console.info parameter data"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Console.log parameter data"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
       "source": "Console.table parameter tabularData"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Console.timeLog parameter data"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Console.trace parameter data"
+    },
+    {
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Console.warn parameter data"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -18538,6 +18603,1941 @@
       "detail": "unsupported type alias target StringLiteral(\"\")",
       "reason": "ts_bindgen.unsupported_literal_type",
       "source": "std.js.Dom.XMLHttpRequestResponseType"
+    },
+    {
+      "detail": "member hasOwnProperty references unavailable type PropertyKey",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Object.hasOwnProperty"
+    },
+    {
+      "detail": "member propertyIsEnumerable references unavailable type PropertyKey",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Object.propertyIsEnumerable"
+    },
+    {
+      "detail": "member seal references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ObjectConstructor.seal"
+    },
+    {
+      "detail": "member freeze references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ObjectConstructor.freeze"
+    },
+    {
+      "detail": "member freeze references unavailable type Readonly",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ObjectConstructor.freeze#2"
+    },
+    {
+      "detail": "member freeze references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ObjectConstructor.freeze#3"
+    },
+    {
+      "detail": "member freeze references unavailable type Readonly",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ObjectConstructor.freeze#4"
+    },
+    {
+      "detail": "member freeze references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ObjectConstructor.freeze#5"
+    },
+    {
+      "detail": "member preventExtensions references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ObjectConstructor.preventExtensions"
+    },
+    {
+      "detail": "member apply references unavailable type R",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CallableFunction.apply"
+    },
+    {
+      "detail": "member apply references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CallableFunction.apply#2"
+    },
+    {
+      "detail": "member apply references unavailable type A",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CallableFunction.apply#3"
+    },
+    {
+      "detail": "member apply references unavailable type R",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CallableFunction.apply#4"
+    },
+    {
+      "detail": "member apply references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CallableFunction.apply#5"
+    },
+    {
+      "detail": "member call references unavailable type A",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CallableFunction.call"
+    },
+    {
+      "detail": "member call references unavailable type R",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CallableFunction.call#2"
+    },
+    {
+      "detail": "member call references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CallableFunction.call#3"
+    },
+    {
+      "detail": "member bind references unavailable type OmitThisParameter",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CallableFunction.bind"
+    },
+    {
+      "detail": "member bind references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CallableFunction.bind#2"
+    },
+    {
+      "detail": "member bind references unavailable type ThisParameterType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CallableFunction.bind#3"
+    },
+    {
+      "detail": "member apply references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NewableFunction.apply"
+    },
+    {
+      "detail": "member apply references unavailable type A",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NewableFunction.apply#2"
+    },
+    {
+      "detail": "member apply references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NewableFunction.apply#3"
+    },
+    {
+      "detail": "member call references unavailable type A",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NewableFunction.call"
+    },
+    {
+      "detail": "member call references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NewableFunction.call#2"
+    },
+    {
+      "detail": "member prototype references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "DataViewConstructor.prototype"
+    },
+    {
+      "detail": "member prototype references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Int8ArrayConstructor.prototype"
+    },
+    {
+      "detail": "member prototype references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Uint8ArrayConstructor.prototype"
+    },
+    {
+      "detail": "member prototype references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Uint8ClampedArrayConstructor.prototype"
+    },
+    {
+      "detail": "member prototype references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Int16ArrayConstructor.prototype"
+    },
+    {
+      "detail": "member prototype references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Uint16ArrayConstructor.prototype"
+    },
+    {
+      "detail": "member prototype references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Int32ArrayConstructor.prototype"
+    },
+    {
+      "detail": "member prototype references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Uint32ArrayConstructor.prototype"
+    },
+    {
+      "detail": "member prototype references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Float32ArrayConstructor.prototype"
+    },
+    {
+      "detail": "member prototype references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Float64ArrayConstructor.prototype"
+    },
+    {
+      "detail": "member style references unavailable type NumberFormatOptionsStyle",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NumberFormatOptions.style"
+    },
+    {
+      "detail": "member currencyDisplay references unavailable type NumberFormatOptionsCurrencyDisplay",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NumberFormatOptions.currencyDisplay"
+    },
+    {
+      "detail": "member useGrouping references unavailable type NumberFormatOptionsUseGrouping",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NumberFormatOptions.useGrouping"
+    },
+    {
+      "detail": "member style references unavailable type NumberFormatOptionsStyle",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ResolvedNumberFormatOptions.style"
+    },
+    {
+      "detail": "member currencyDisplay references unavailable type NumberFormatOptionsCurrencyDisplay",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ResolvedNumberFormatOptions.currencyDisplay"
+    },
+    {
+      "detail": "member useGrouping references unavailable type ResolvedNumberFormatOptionsUseGrouping",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ResolvedNumberFormatOptions.useGrouping"
+    },
+    {
+      "detail": "member prototype references unavailable type WeakKey",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WeakSetConstructor.prototype"
+    },
+    {
+      "detail": "member latencyHint references unavailable type AudioContextLatencyCategory",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioContextOptions.latencyHint"
+    },
+    {
+      "detail": "member format references unavailable type AudioSampleFormat",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioDataCopyToOptions.format"
+    },
+    {
+      "detail": "member format references unavailable type AudioSampleFormat",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioDataInit.format"
+    },
+    {
+      "detail": "member bitrateMode references unavailable type BitrateMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioEncoderConfig.bitrateMode"
+    },
+    {
+      "detail": "member channelCountMode references unavailable type ChannelCountMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioNodeOptions.channelCountMode"
+    },
+    {
+      "detail": "member channelInterpretation references unavailable type ChannelInterpretation",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioNodeOptions.channelInterpretation"
+    },
+    {
+      "detail": "member parameterData references unavailable type Record",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioWorkletNodeOptions.parameterData"
+    },
+    {
+      "detail": "member evalByCredential references unavailable type Record",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AuthenticationExtensionsPRFInputs.evalByCredential"
+    },
+    {
+      "detail": "member evalByCredential references unavailable type Record",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AuthenticationExtensionsPRFInputsJSON.evalByCredential"
+    },
+    {
+      "detail": "member authenticatorAttachment references unavailable type AuthenticatorAttachment",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AuthenticatorSelectionCriteria.authenticatorAttachment"
+    },
+    {
+      "detail": "member residentKey references unavailable type ResidentKeyRequirement",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AuthenticatorSelectionCriteria.residentKey"
+    },
+    {
+      "detail": "member userVerification references unavailable type UserVerificationRequirement",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AuthenticatorSelectionCriteria.userVerification"
+    },
+    {
+      "detail": "member format references unavailable type AvcBitstreamFormat",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AvcEncoderConfig.format"
+    },
+    {
+      "detail": "member type references unavailable type BiquadFilterType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "BiquadFilterOptions.type"
+    },
+    {
+      "detail": "member endings references unavailable type EndingType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "BlobPropertyBag.endings"
+    },
+    {
+      "detail": "member percentHint references unavailable type CSSNumericBaseType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CSSNumericType.percentHint"
+    },
+    {
+      "detail": "member colorSpace references unavailable type PredefinedColorSpace",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasRenderingContext2DSettings.colorSpace"
+    },
+    {
+      "detail": "member type references unavailable type ClientTypes",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ClientQueryOptions.type"
+    },
+    {
+      "detail": "member presentationStyle references unavailable type PresentationStyle",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ClipboardItemOptions.presentationStyle"
+    },
+    {
+      "detail": "member composite references unavailable type CompositeOperationOrAuto",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ComputedKeyframe.composite"
+    },
+    {
+      "detail": "member sameSite references unavailable type CookieSameSite",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CookieInit.sameSite"
+    },
+    {
+      "detail": "member mediation references unavailable type CredentialMediationRequirement",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CredentialRequestOptions.mediation"
+    },
+    {
+      "detail": "member direction references unavailable type PlaybackDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "EffectTiming.direction"
+    },
+    {
+      "detail": "member fill references unavailable type FillMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "EffectTiming.fill"
+    },
+    {
+      "detail": "member type references unavailable type EncodedAudioChunkType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "EncodedAudioChunkInit.type"
+    },
+    {
+      "detail": "member type references unavailable type EncodedVideoChunkType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "EncodedVideoChunkInit.type"
+    },
+    {
+      "detail": "member display references unavailable type FontDisplay",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "FontFaceDescriptors.display"
+    },
+    {
+      "detail": "member navigationUI references unavailable type FullscreenNavigationUI",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "FullscreenOptions.navigationUI"
+    },
+    {
+      "detail": "member durability references unavailable type IDBTransactionDurability",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "IDBTransactionOptions.durability"
+    },
+    {
+      "detail": "member colorSpaceConversion references unavailable type ColorSpaceConversion",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ImageBitmapOptions.colorSpaceConversion"
+    },
+    {
+      "detail": "member imageOrientation references unavailable type ImageOrientation",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ImageBitmapOptions.imageOrientation"
+    },
+    {
+      "detail": "member premultiplyAlpha references unavailable type PremultiplyAlpha",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ImageBitmapOptions.premultiplyAlpha"
+    },
+    {
+      "detail": "member resizeQuality references unavailable type ResizeQuality",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ImageBitmapOptions.resizeQuality"
+    },
+    {
+      "detail": "member colorSpace references unavailable type PredefinedColorSpace",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ImageDataSettings.colorSpace"
+    },
+    {
+      "detail": "member colorSpaceConversion references unavailable type ColorSpaceConversion",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ImageDecoderInit.colorSpaceConversion"
+    },
+    {
+      "detail": "member composite references unavailable type CompositeOperationOrAuto",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Keyframe.composite"
+    },
+    {
+      "detail": "member composite references unavailable type CompositeOperation",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "KeyframeEffectOptions.composite"
+    },
+    {
+      "detail": "member iterationComposite references unavailable type IterationCompositeOperation",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "KeyframeEffectOptions.iterationComposite"
+    },
+    {
+      "detail": "member mode references unavailable type LockMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "LockInfo.mode"
+    },
+    {
+      "detail": "member mode references unavailable type LockMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "LockOptions.mode"
+    },
+    {
+      "detail": "member distinctiveIdentifier references unavailable type MediaKeysRequirement",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaCapabilitiesKeySystemConfiguration.distinctiveIdentifier"
+    },
+    {
+      "detail": "member persistentState references unavailable type MediaKeysRequirement",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaCapabilitiesKeySystemConfiguration.persistentState"
+    },
+    {
+      "detail": "member type references unavailable type MediaDecodingType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaDecodingConfiguration.type"
+    },
+    {
+      "detail": "member type references unavailable type MediaEncodingType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaEncodingConfiguration.type"
+    },
+    {
+      "detail": "member messageType references unavailable type MediaKeyMessageType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaKeyMessageEventInit.messageType"
+    },
+    {
+      "detail": "member distinctiveIdentifier references unavailable type MediaKeysRequirement",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaKeySystemConfiguration.distinctiveIdentifier"
+    },
+    {
+      "detail": "member persistentState references unavailable type MediaKeysRequirement",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaKeySystemConfiguration.persistentState"
+    },
+    {
+      "detail": "member action references unavailable type MediaSessionAction",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaSessionActionDetails.action"
+    },
+    {
+      "detail": "member dir references unavailable type NotificationDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NotificationOptions.dir"
+    },
+    {
+      "detail": "member direction references unavailable type PlaybackDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "OptionalEffectTiming.direction"
+    },
+    {
+      "detail": "member fill references unavailable type FillMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "OptionalEffectTiming.fill"
+    },
+    {
+      "detail": "member format references unavailable type OpusBitstreamFormat",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "OpusEncoderConfig.format"
+    },
+    {
+      "detail": "member type references unavailable type OscillatorType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "OscillatorOptions.type"
+    },
+    {
+      "detail": "member distanceModel references unavailable type DistanceModelType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PannerOptions.distanceModel"
+    },
+    {
+      "detail": "member panningModel references unavailable type PanningModelType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PannerOptions.panningModel"
+    },
+    {
+      "detail": "member shippingType references unavailable type PaymentShippingType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PaymentOptions.shippingType"
+    },
+    {
+      "detail": "member name references unavailable type PermissionName",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PermissionDescriptor.name"
+    },
+    {
+      "detail": "member fillLightMode references unavailable type FillLightMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PhotoCapabilities.fillLightMode"
+    },
+    {
+      "detail": "member redEyeReduction references unavailable type RedEyeReduction",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PhotoCapabilities.redEyeReduction"
+    },
+    {
+      "detail": "member fillLightMode references unavailable type FillLightMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PhotoSettings.fillLightMode"
+    },
+    {
+      "detail": "member composite references unavailable type CompositeOperationOrAuto",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PropertyIndexedKeyframes.composite"
+    },
+    {
+      "detail": "member attestation references unavailable type AttestationConveyancePreference",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PublicKeyCredentialCreationOptions.attestation"
+    },
+    {
+      "detail": "member transports references unavailable type AuthenticatorTransport",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PublicKeyCredentialDescriptor.transports"
+    },
+    {
+      "detail": "member type references unavailable type PublicKeyCredentialType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PublicKeyCredentialDescriptor.type"
+    },
+    {
+      "detail": "member type references unavailable type PublicKeyCredentialType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PublicKeyCredentialParameters.type"
+    },
+    {
+      "detail": "member userVerification references unavailable type UserVerificationRequirement",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PublicKeyCredentialRequestOptions.userVerification"
+    },
+    {
+      "detail": "member keys references unavailable type Record",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PushSubscriptionJSON.keys"
+    },
+    {
+      "detail": "member bundlePolicy references unavailable type RTCBundlePolicy",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCConfiguration.bundlePolicy"
+    },
+    {
+      "detail": "member iceTransportPolicy references unavailable type RTCIceTransportPolicy",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCConfiguration.iceTransportPolicy"
+    },
+    {
+      "detail": "member rtcpMuxPolicy references unavailable type RTCRtcpMuxPolicy",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCConfiguration.rtcpMuxPolicy"
+    },
+    {
+      "detail": "member errorDetail references unavailable type RTCErrorDetailType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCErrorInit.errorDetail"
+    },
+    {
+      "detail": "member state references unavailable type RTCStatsIceCandidatePairState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCIceCandidatePairStats.state"
+    },
+    {
+      "detail": "member type references unavailable type RTCSdpType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCLocalSessionDescriptionInit.type"
+    },
+    {
+      "detail": "member qualityLimitationDurations references unavailable type Record",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCOutboundRtpStreamStats.qualityLimitationDurations"
+    },
+    {
+      "detail": "member qualityLimitationReason references unavailable type RTCQualityLimitationReason",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCOutboundRtpStreamStats.qualityLimitationReason"
+    },
+    {
+      "detail": "member networkPriority references unavailable type RTCPriorityType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCRtpEncodingParameters.networkPriority"
+    },
+    {
+      "detail": "member priority references unavailable type RTCPriorityType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCRtpEncodingParameters.priority"
+    },
+    {
+      "detail": "member degradationPreference references unavailable type RTCDegradationPreference",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCRtpSendParameters.degradationPreference"
+    },
+    {
+      "detail": "member direction references unavailable type RTCRtpTransceiverDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCRtpTransceiverInit.direction"
+    },
+    {
+      "detail": "member type references unavailable type RTCSdpType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCSessionDescriptionInit.type"
+    },
+    {
+      "detail": "member type references unavailable type RTCStatsType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCStats.type"
+    },
+    {
+      "detail": "member dtlsRole references unavailable type RTCDtlsRole",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCTransportStats.dtlsRole"
+    },
+    {
+      "detail": "member dtlsState references unavailable type RTCDtlsTransportState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCTransportStats.dtlsState"
+    },
+    {
+      "detail": "member iceRole references unavailable type RTCIceRole",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCTransportStats.iceRole"
+    },
+    {
+      "detail": "member iceState references unavailable type RTCIceTransportState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCTransportStats.iceState"
+    },
+    {
+      "detail": "member mode references unavailable type ReadableStreamReaderMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ReadableStreamGetReaderOptions.mode"
+    },
+    {
+      "detail": "member type references unavailable type WorkerType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RegistrationOptions.type"
+    },
+    {
+      "detail": "member updateViaCache references unavailable type ServiceWorkerUpdateViaCache",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RegistrationOptions.updateViaCache"
+    },
+    {
+      "detail": "member cache references unavailable type RequestCache",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RequestInit.cache"
+    },
+    {
+      "detail": "member credentials references unavailable type RequestCredentials",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RequestInit.credentials"
+    },
+    {
+      "detail": "member headers references unavailable type HeadersInit",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RequestInit.headers"
+    },
+    {
+      "detail": "member mode references unavailable type RequestMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RequestInit.mode"
+    },
+    {
+      "detail": "member priority references unavailable type RequestPriority",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RequestInit.priority"
+    },
+    {
+      "detail": "member redirect references unavailable type RequestRedirect",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RequestInit.redirect"
+    },
+    {
+      "detail": "member referrerPolicy references unavailable type ReferrerPolicy",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RequestInit.referrerPolicy"
+    },
+    {
+      "detail": "member box references unavailable type ResizeObserverBoxOptions",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ResizeObserverOptions.box"
+    },
+    {
+      "detail": "member headers references unavailable type HeadersInit",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ResponseInit.headers"
+    },
+    {
+      "detail": "member block references unavailable type ScrollLogicalPosition",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ScrollIntoViewOptions.block"
+    },
+    {
+      "detail": "member inline references unavailable type ScrollLogicalPosition",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ScrollIntoViewOptions.inline"
+    },
+    {
+      "detail": "member behavior references unavailable type ScrollBehavior",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ScrollOptions.behavior"
+    },
+    {
+      "detail": "member disposition references unavailable type SecurityPolicyViolationEventDisposition",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SecurityPolicyViolationEventInit.disposition"
+    },
+    {
+      "detail": "member mode references unavailable type ShadowRootMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ShadowRootInit.mode"
+    },
+    {
+      "detail": "member slotAssignment references unavailable type SlotAssignmentMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ShadowRootInit.slotAssignment"
+    },
+    {
+      "detail": "member error references unavailable type SpeechSynthesisErrorCode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SpeechSynthesisErrorEventInit.error"
+    },
+    {
+      "detail": "member touchType references unavailable type TouchType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "TouchInit.touchType"
+    },
+    {
+      "detail": "member type references unavailable type ReadableStreamType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "UnderlyingSource.type"
+    },
+    {
+      "detail": "member matrix references unavailable type VideoMatrixCoefficients",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoColorSpaceInit.matrix"
+    },
+    {
+      "detail": "member primaries references unavailable type VideoColorPrimaries",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoColorSpaceInit.primaries"
+    },
+    {
+      "detail": "member transfer references unavailable type VideoTransferCharacteristics",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoColorSpaceInit.transfer"
+    },
+    {
+      "detail": "member colorGamut references unavailable type ColorGamut",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoConfiguration.colorGamut"
+    },
+    {
+      "detail": "member hdrMetadataType references unavailable type HdrMetadataType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoConfiguration.hdrMetadataType"
+    },
+    {
+      "detail": "member transferFunction references unavailable type TransferFunction",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoConfiguration.transferFunction"
+    },
+    {
+      "detail": "member hardwareAcceleration references unavailable type HardwareAcceleration",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoDecoderConfig.hardwareAcceleration"
+    },
+    {
+      "detail": "member alpha references unavailable type AlphaOption",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoEncoderConfig.alpha"
+    },
+    {
+      "detail": "member bitrateMode references unavailable type VideoEncoderBitrateMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoEncoderConfig.bitrateMode"
+    },
+    {
+      "detail": "member hardwareAcceleration references unavailable type HardwareAcceleration",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoEncoderConfig.hardwareAcceleration"
+    },
+    {
+      "detail": "member latencyMode references unavailable type LatencyMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoEncoderConfig.latencyMode"
+    },
+    {
+      "detail": "member format references unavailable type VideoPixelFormat",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoFrameBufferInit.format"
+    },
+    {
+      "detail": "member colorSpace references unavailable type PredefinedColorSpace",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoFrameCopyToOptions.colorSpace"
+    },
+    {
+      "detail": "member format references unavailable type VideoPixelFormat",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoFrameCopyToOptions.format"
+    },
+    {
+      "detail": "member alpha references unavailable type AlphaOption",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoFrameInit.alpha"
+    },
+    {
+      "detail": "member oversample references unavailable type OverSampleType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WaveShaperOptions.oversample"
+    },
+    {
+      "detail": "member powerPreference references unavailable type WebGLPowerPreference",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGLContextAttributes.powerPreference"
+    },
+    {
+      "detail": "member source references unavailable type WebTransportErrorSource",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebTransportErrorOptions.source"
+    },
+    {
+      "detail": "member congestionControl references unavailable type WebTransportCongestionControl",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebTransportOptions.congestionControl"
+    },
+    {
+      "detail": "member credentials references unavailable type RequestCredentials",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WorkerOptions.credentials"
+    },
+    {
+      "detail": "member type references unavailable type WorkerType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WorkerOptions.type"
+    },
+    {
+      "detail": "member credentials references unavailable type RequestCredentials",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WorkletOptions.credentials"
+    },
+    {
+      "detail": "member type references unavailable type WriteCommandType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WriteParams.type"
+    },
+    {
+      "detail": "member playState references unavailable type AnimationPlayState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Animation.playState"
+    },
+    {
+      "detail": "member replaceState references unavailable type AnimationReplaceState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Animation.replaceState"
+    },
+    {
+      "detail": "member format references unavailable type AudioSampleFormat",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioData.format"
+    },
+    {
+      "detail": "member state references unavailable type CodecState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioDecoder.state"
+    },
+    {
+      "detail": "member state references unavailable type CodecState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioEncoder.state"
+    },
+    {
+      "detail": "member channelCountMode references unavailable type ChannelCountMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioNode.channelCountMode"
+    },
+    {
+      "detail": "member channelInterpretation references unavailable type ChannelInterpretation",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioNode.channelInterpretation"
+    },
+    {
+      "detail": "member automationRate references unavailable type AutomationRate",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "AudioParam.automationRate"
+    },
+    {
+      "detail": "member state references unavailable type AudioContextState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "BaseAudioContext.state"
+    },
+    {
+      "detail": "member type references unavailable type BiquadFilterType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "BiquadFilterNode.type"
+    },
+    {
+      "detail": "member disposition references unavailable type SecurityPolicyViolationEventDisposition",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CSPViolationReportBody.disposition"
+    },
+    {
+      "detail": "member operator references unavailable type CSSMathOperator",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CSSMathValue.operator"
+    },
+    {
+      "detail": "member globalCompositeOperation references unavailable type GlobalCompositeOperation",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasCompositing.globalCompositeOperation"
+    },
+    {
+      "detail": "member clip references unavailable type CanvasFillRule",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasDrawPath.clip"
+    },
+    {
+      "detail": "member clip references unavailable type CanvasFillRule",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasDrawPath.clip#2"
+    },
+    {
+      "detail": "member fill references unavailable type CanvasFillRule",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasDrawPath.fill"
+    },
+    {
+      "detail": "member fill references unavailable type CanvasFillRule",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasDrawPath.fill#2"
+    },
+    {
+      "detail": "member isPointInPath references unavailable type CanvasFillRule",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasDrawPath.isPointInPath"
+    },
+    {
+      "detail": "member isPointInPath references unavailable type CanvasFillRule",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasDrawPath.isPointInPath#2"
+    },
+    {
+      "detail": "member imageSmoothingQuality references unavailable type ImageSmoothingQuality",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasImageSmoothing.imageSmoothingQuality"
+    },
+    {
+      "detail": "member lineCap references unavailable type CanvasLineCap",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasPathDrawingStyles.lineCap"
+    },
+    {
+      "detail": "member lineJoin references unavailable type CanvasLineJoin",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasPathDrawingStyles.lineJoin"
+    },
+    {
+      "detail": "member direction references unavailable type CanvasDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasTextDrawingStyles.direction"
+    },
+    {
+      "detail": "member fontKerning references unavailable type CanvasFontKerning",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasTextDrawingStyles.fontKerning"
+    },
+    {
+      "detail": "member fontStretch references unavailable type CanvasFontStretch",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasTextDrawingStyles.fontStretch"
+    },
+    {
+      "detail": "member fontVariantCaps references unavailable type CanvasFontVariantCaps",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasTextDrawingStyles.fontVariantCaps"
+    },
+    {
+      "detail": "member textAlign references unavailable type CanvasTextAlign",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasTextDrawingStyles.textAlign"
+    },
+    {
+      "detail": "member textBaseline references unavailable type CanvasTextBaseline",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasTextDrawingStyles.textBaseline"
+    },
+    {
+      "detail": "member textRendering references unavailable type CanvasTextRendering",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CanvasTextDrawingStyles.textRendering"
+    },
+    {
+      "detail": "member presentationStyle references unavailable type PresentationStyle",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ClipboardItem.presentationStyle"
+    },
+    {
+      "detail": "member getRandomValues references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Crypto.getRandomValues"
+    },
+    {
+      "detail": "member type references unavailable type KeyType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CryptoKey.type"
+    },
+    {
+      "detail": "member usages references unavailable type KeyUsage",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "CryptoKey.usages"
+    },
+    {
+      "detail": "member parseFromString references unavailable type DOMParserSupportedType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "DOMParser.parseFromString"
+    },
+    {
+      "detail": "member readyState references unavailable type DocumentReadyState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Document.readyState"
+    },
+    {
+      "detail": "member visibilityState references unavailable type DocumentVisibilityState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Document.visibilityState"
+    },
+    {
+      "detail": "member adoptNode references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Document.adoptNode"
+    },
+    {
+      "detail": "member createNodeIterator references unavailable type NodeFilter",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Document.createNodeIterator"
+    },
+    {
+      "detail": "member createTreeWalker references unavailable type NodeFilter",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Document.createTreeWalker"
+    },
+    {
+      "detail": "member importNode references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Document.importNode"
+    },
+    {
+      "detail": "member closest references unavailable type E",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Element.closest#4"
+    },
+    {
+      "detail": "member insertAdjacentElement references unavailable type InsertPosition",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Element.insertAdjacentElement"
+    },
+    {
+      "detail": "member insertAdjacentHTML references unavailable type InsertPosition",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Element.insertAdjacentHTML"
+    },
+    {
+      "detail": "member insertAdjacentText references unavailable type InsertPosition",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Element.insertAdjacentText"
+    },
+    {
+      "detail": "member type references unavailable type EncodedAudioChunkType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "EncodedAudioChunk.type"
+    },
+    {
+      "detail": "member type references unavailable type EncodedVideoChunkType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "EncodedVideoChunk.type"
+    },
+    {
+      "detail": "member kind references unavailable type FileSystemHandleKind",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "FileSystemHandle.kind"
+    },
+    {
+      "detail": "member display references unavailable type FontDisplay",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "FontFace.display"
+    },
+    {
+      "detail": "member status references unavailable type FontFaceLoadStatus",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "FontFace.status"
+    },
+    {
+      "detail": "member status references unavailable type FontFaceSetLoadStatus",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "FontFaceSet.status"
+    },
+    {
+      "detail": "member mapping references unavailable type GamepadMappingType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Gamepad.mapping"
+    },
+    {
+      "detail": "member playEffect references unavailable type GamepadHapticEffectType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "GamepadHapticActuator.playEffect"
+    },
+    {
+      "detail": "member playEffect references unavailable type GamepadHapticsResult",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "GamepadHapticActuator.playEffect#2"
+    },
+    {
+      "detail": "member reset references unavailable type GamepadHapticsResult",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "GamepadHapticActuator.reset"
+    },
+    {
+      "detail": "member autocomplete references unavailable type AutoFillBase",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "HTMLFormElement.autocomplete"
+    },
+    {
+      "detail": "member referrerPolicy references unavailable type ReferrerPolicy",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "HTMLIFrameElement.referrerPolicy"
+    },
+    {
+      "detail": "member autocomplete references unavailable type AutoFill",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "HTMLInputElement.autocomplete"
+    },
+    {
+      "detail": "member setRangeText references unavailable type SelectionMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "HTMLInputElement.setRangeText"
+    },
+    {
+      "detail": "member addTextTrack references unavailable type TextTrackKind",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "HTMLMediaElement.addTextTrack"
+    },
+    {
+      "detail": "member canPlayType references unavailable type CanPlayTypeResult",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "HTMLMediaElement.canPlayType"
+    },
+    {
+      "detail": "member autocomplete references unavailable type AutoFill",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "HTMLSelectElement.autocomplete"
+    },
+    {
+      "detail": "member autocomplete references unavailable type AutoFill",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "HTMLTextAreaElement.autocomplete"
+    },
+    {
+      "detail": "member setRangeText references unavailable type SelectionMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "HTMLTextAreaElement.setRangeText"
+    },
+    {
+      "detail": "member type references unavailable type HighlightType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Highlight.type"
+    },
+    {
+      "detail": "member scrollRestoration references unavailable type ScrollRestoration",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "History.scrollRestoration"
+    },
+    {
+      "detail": "member direction references unavailable type IDBCursorDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "IDBCursor.direction"
+    },
+    {
+      "detail": "member transaction references unavailable type IDBTransactionMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "IDBDatabase.transaction"
+    },
+    {
+      "detail": "member openCursor references unavailable type IDBCursorDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "IDBIndex.openCursor"
+    },
+    {
+      "detail": "member openKeyCursor references unavailable type IDBCursorDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "IDBIndex.openKeyCursor"
+    },
+    {
+      "detail": "member openCursor references unavailable type IDBCursorDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "IDBObjectStore.openCursor"
+    },
+    {
+      "detail": "member openKeyCursor references unavailable type IDBCursorDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "IDBObjectStore.openKeyCursor"
+    },
+    {
+      "detail": "member readyState references unavailable type IDBRequestReadyState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "IDBRequest.readyState"
+    },
+    {
+      "detail": "member durability references unavailable type IDBTransactionDurability",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "IDBTransaction.durability"
+    },
+    {
+      "detail": "member mode references unavailable type IDBTransactionMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "IDBTransaction.mode"
+    },
+    {
+      "detail": "member colorSpace references unavailable type PredefinedColorSpace",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ImageData.colorSpace"
+    },
+    {
+      "detail": "member composite references unavailable type CompositeOperation",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "KeyframeEffect.composite"
+    },
+    {
+      "detail": "member iterationComposite references unavailable type IterationCompositeOperation",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "KeyframeEffect.iterationComposite"
+    },
+    {
+      "detail": "member mode references unavailable type LockMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Lock.mode"
+    },
+    {
+      "detail": "member request references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "LockManager.request"
+    },
+    {
+      "detail": "member request references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "LockManager.request#2"
+    },
+    {
+      "detail": "member connection references unavailable type MIDIPortConnectionState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MIDIPort.connection"
+    },
+    {
+      "detail": "member state references unavailable type MIDIPortDeviceState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MIDIPort.state"
+    },
+    {
+      "detail": "member type references unavailable type MIDIPortType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MIDIPort.type"
+    },
+    {
+      "detail": "member kind references unavailable type MediaDeviceKind",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaDeviceInfo.kind"
+    },
+    {
+      "detail": "member messageType references unavailable type MediaKeyMessageType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaKeyMessageEvent.messageType"
+    },
+    {
+      "detail": "member closed references unavailable type MediaKeySessionClosedReason",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaKeySession.closed"
+    },
+    {
+      "detail": "member get references unavailable type MediaKeyStatus",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaKeyStatusMap.get"
+    },
+    {
+      "detail": "member createSession references unavailable type MediaKeySessionType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaKeys.createSession"
+    },
+    {
+      "detail": "member getStatusForPolicy references unavailable type MediaKeyStatus",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaKeys.getStatusForPolicy"
+    },
+    {
+      "detail": "member state references unavailable type RecordingState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaRecorder.state"
+    },
+    {
+      "detail": "member playbackState references unavailable type MediaSessionPlaybackState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaSession.playbackState"
+    },
+    {
+      "detail": "member setActionHandler references unavailable type MediaSessionAction",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaSession.setActionHandler"
+    },
+    {
+      "detail": "member readyState references unavailable type ReadyState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaSource.readyState"
+    },
+    {
+      "detail": "member endOfStream references unavailable type EndOfStreamError",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaSource.endOfStream"
+    },
+    {
+      "detail": "member readyState references unavailable type MediaStreamTrackState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MediaStreamTrack.readyState"
+    },
+    {
+      "detail": "member type references unavailable type MutationRecordType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "MutationRecord.type"
+    },
+    {
+      "detail": "member navigationType references unavailable type NavigationType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NavigationActivation.navigationType"
+    },
+    {
+      "detail": "member setStatus references unavailable type LoginStatus",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NavigatorLogin.setStatus"
+    },
+    {
+      "detail": "member appendChild references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Node.appendChild"
+    },
+    {
+      "detail": "member insertBefore references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Node.insertBefore"
+    },
+    {
+      "detail": "member removeChild references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Node.removeChild"
+    },
+    {
+      "detail": "member replaceChild references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Node.replaceChild"
+    },
+    {
+      "detail": "member filter references unavailable type NodeFilter",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "NodeIterator.filter"
+    },
+    {
+      "detail": "member dir references unavailable type NotificationDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Notification.dir"
+    },
+    {
+      "detail": "member type references unavailable type OscillatorType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "OscillatorNode.type"
+    },
+    {
+      "detail": "member distanceModel references unavailable type DistanceModelType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PannerNode.distanceModel"
+    },
+    {
+      "detail": "member panningModel references unavailable type PanningModelType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PannerNode.panningModel"
+    },
+    {
+      "detail": "member querySelector references unavailable type E",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ParentNode.querySelector#5"
+    },
+    {
+      "detail": "member querySelectorAll references unavailable type E",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ParentNode.querySelectorAll#5"
+    },
+    {
+      "detail": "member shippingType references unavailable type PaymentShippingType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PaymentRequest.shippingType"
+    },
+    {
+      "detail": "member complete references unavailable type PaymentComplete",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PaymentResponse.complete"
+    },
+    {
+      "detail": "member type references unavailable type NavigationTimingType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PerformanceNavigationTiming.type"
+    },
+    {
+      "detail": "member state references unavailable type PermissionState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PermissionStatus.state"
+    },
+    {
+      "detail": "member toJSON references unavailable type PublicKeyCredentialJSON",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PublicKeyCredential.toJSON"
+    },
+    {
+      "detail": "member permissionState references unavailable type PermissionState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PushManager.permissionState"
+    },
+    {
+      "detail": "member getKey references unavailable type PushEncryptionKeyName",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "PushSubscription.getKey"
+    },
+    {
+      "detail": "member binaryType references unavailable type BinaryType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCDataChannel.binaryType"
+    },
+    {
+      "detail": "member readyState references unavailable type RTCDataChannelState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCDataChannel.readyState"
+    },
+    {
+      "detail": "member state references unavailable type RTCDtlsTransportState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCDtlsTransport.state"
+    },
+    {
+      "detail": "member type references unavailable type RTCEncodedVideoFrameType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCEncodedVideoFrame.type"
+    },
+    {
+      "detail": "member errorDetail references unavailable type RTCErrorDetailType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCError.errorDetail"
+    },
+    {
+      "detail": "member component references unavailable type RTCIceComponent",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCIceCandidate.component"
+    },
+    {
+      "detail": "member protocol references unavailable type RTCIceProtocol",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCIceCandidate.protocol"
+    },
+    {
+      "detail": "member tcpType references unavailable type RTCIceTcpCandidateType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCIceCandidate.tcpType"
+    },
+    {
+      "detail": "member type references unavailable type RTCIceCandidateType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCIceCandidate.type"
+    },
+    {
+      "detail": "member gatheringState references unavailable type RTCIceGathererState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCIceTransport.gatheringState"
+    },
+    {
+      "detail": "member state references unavailable type RTCIceTransportState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCIceTransport.state"
+    },
+    {
+      "detail": "member connectionState references unavailable type RTCPeerConnectionState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCPeerConnection.connectionState"
+    },
+    {
+      "detail": "member iceConnectionState references unavailable type RTCIceConnectionState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCPeerConnection.iceConnectionState"
+    },
+    {
+      "detail": "member iceGatheringState references unavailable type RTCIceGatheringState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCPeerConnection.iceGatheringState"
+    },
+    {
+      "detail": "member signalingState references unavailable type RTCSignalingState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCPeerConnection.signalingState"
+    },
+    {
+      "detail": "member currentDirection references unavailable type RTCRtpTransceiverDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCRtpTransceiver.currentDirection"
+    },
+    {
+      "detail": "member direction references unavailable type RTCRtpTransceiverDirection",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCRtpTransceiver.direction"
+    },
+    {
+      "detail": "member state references unavailable type RTCSctpTransportState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCSctpTransport.state"
+    },
+    {
+      "detail": "member type references unavailable type RTCSdpType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RTCSessionDescription.type"
+    },
+    {
+      "detail": "member pipeThrough references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ReadableStream.pipeThrough"
+    },
+    {
+      "detail": "member read references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ReadableStreamBYOBReader.read"
+    },
+    {
+      "detail": "member state references unavailable type RemotePlaybackState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "RemotePlayback.state"
+    },
+    {
+      "detail": "member cache references unavailable type RequestCache",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Request.cache"
+    },
+    {
+      "detail": "member credentials references unavailable type RequestCredentials",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Request.credentials"
+    },
+    {
+      "detail": "member destination references unavailable type RequestDestination",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Request.destination"
+    },
+    {
+      "detail": "member mode references unavailable type RequestMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Request.mode"
+    },
+    {
+      "detail": "member redirect references unavailable type RequestRedirect",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Request.redirect"
+    },
+    {
+      "detail": "member referrerPolicy references unavailable type ReferrerPolicy",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Request.referrerPolicy"
+    },
+    {
+      "detail": "member type references unavailable type ResponseType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "Response.type"
+    },
+    {
+      "detail": "member type references unavailable type OrientationType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ScreenOrientation.type"
+    },
+    {
+      "detail": "member disposition references unavailable type SecurityPolicyViolationEventDisposition",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SecurityPolicyViolationEvent.disposition"
+    },
+    {
+      "detail": "member state references unavailable type ServiceWorkerState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ServiceWorker.state"
+    },
+    {
+      "detail": "member updateViaCache references unavailable type ServiceWorkerUpdateViaCache",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ServiceWorkerRegistration.updateViaCache"
+    },
+    {
+      "detail": "member mode references unavailable type ShadowRootMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ShadowRoot.mode"
+    },
+    {
+      "detail": "member slotAssignment references unavailable type SlotAssignmentMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ShadowRoot.slotAssignment"
+    },
+    {
+      "detail": "member mode references unavailable type AppendMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SourceBuffer.mode"
+    },
+    {
+      "detail": "member error references unavailable type SpeechSynthesisErrorCode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SpeechSynthesisErrorEvent.error"
+    },
+    {
+      "detail": "member deriveKey references unavailable type KeyUsage",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SubtleCrypto.deriveKey"
+    },
+    {
+      "detail": "member exportKey references unavailable type KeyFormat",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SubtleCrypto.exportKey"
+    },
+    {
+      "detail": "member generateKey references unavailable type KeyUsage",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SubtleCrypto.generateKey"
+    },
+    {
+      "detail": "member generateKey references unavailable type KeyUsage",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SubtleCrypto.generateKey#2"
+    },
+    {
+      "detail": "member generateKey references unavailable type KeyUsage",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SubtleCrypto.generateKey#3"
+    },
+    {
+      "detail": "member unwrapKey references unavailable type KeyFormat",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SubtleCrypto.unwrapKey"
+    },
+    {
+      "detail": "member unwrapKey references unavailable type KeyUsage",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SubtleCrypto.unwrapKey#2"
+    },
+    {
+      "detail": "member wrapKey references unavailable type KeyFormat",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "SubtleCrypto.wrapKey"
+    },
+    {
+      "detail": "member encodeInto references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "TextEncoder.encodeInto"
+    },
+    {
+      "detail": "member kind references unavailable type TextTrackKind",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "TextTrack.kind"
+    },
+    {
+      "detail": "member mode references unavailable type TextTrackMode",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "TextTrack.mode"
+    },
+    {
+      "detail": "member filter references unavailable type NodeFilter",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "TreeWalker.filter"
+    },
+    {
+      "detail": "member align references unavailable type AlignSetting",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VTTCue.align"
+    },
+    {
+      "detail": "member lineAlign references unavailable type LineAlignSetting",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VTTCue.lineAlign"
+    },
+    {
+      "detail": "member positionAlign references unavailable type PositionAlignSetting",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VTTCue.positionAlign"
+    },
+    {
+      "detail": "member vertical references unavailable type DirectionSetting",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VTTCue.vertical"
+    },
+    {
+      "detail": "member scroll references unavailable type ScrollSetting",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VTTRegion.scroll"
+    },
+    {
+      "detail": "member matrix references unavailable type VideoMatrixCoefficients",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoColorSpace.matrix"
+    },
+    {
+      "detail": "member primaries references unavailable type VideoColorPrimaries",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoColorSpace.primaries"
+    },
+    {
+      "detail": "member transfer references unavailable type VideoTransferCharacteristics",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoColorSpace.transfer"
+    },
+    {
+      "detail": "member state references unavailable type CodecState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoDecoder.state"
+    },
+    {
+      "detail": "member state references unavailable type CodecState",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoEncoder.state"
+    },
+    {
+      "detail": "member format references unavailable type VideoPixelFormat",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "VideoFrame.format"
+    },
+    {
+      "detail": "member multiDrawArraysInstancedWEBGL references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WEBGL_multi_draw.multiDrawArraysInstancedWEBGL"
+    },
+    {
+      "detail": "member multiDrawArraysWEBGL references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WEBGL_multi_draw.multiDrawArraysWEBGL"
+    },
+    {
+      "detail": "member multiDrawElementsInstancedWEBGL references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WEBGL_multi_draw.multiDrawElementsInstancedWEBGL"
+    },
+    {
+      "detail": "member multiDrawElementsWEBGL references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WEBGL_multi_draw.multiDrawElementsWEBGL"
+    },
+    {
+      "detail": "member request references unavailable type WakeLockType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WakeLock.request"
+    },
+    {
+      "detail": "member type references unavailable type WakeLockType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WakeLockSentinel.type"
+    },
+    {
+      "detail": "member oversample references unavailable type OverSampleType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WaveShaperNode.oversample"
+    },
+    {
+      "detail": "member compressedTexImage3D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextBase.compressedTexImage3D"
+    },
+    {
+      "detail": "member compressedTexSubImage3D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextBase.compressedTexSubImage3D"
+    },
+    {
+      "detail": "member getBufferSubData references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextBase.getBufferSubData"
+    },
+    {
+      "detail": "member texImage3D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextBase.texImage3D"
+    },
+    {
+      "detail": "member texImage3D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextBase.texImage3D#2"
+    },
+    {
+      "detail": "member texSubImage3D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextBase.texSubImage3D"
+    },
+    {
+      "detail": "member bufferData references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextOverloads.bufferData"
+    },
+    {
+      "detail": "member bufferSubData references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextOverloads.bufferSubData"
+    },
+    {
+      "detail": "member compressedTexImage2D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextOverloads.compressedTexImage2D"
+    },
+    {
+      "detail": "member compressedTexSubImage2D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextOverloads.compressedTexSubImage2D"
+    },
+    {
+      "detail": "member readPixels references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextOverloads.readPixels"
+    },
+    {
+      "detail": "member readPixels references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextOverloads.readPixels#2"
+    },
+    {
+      "detail": "member texImage2D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextOverloads.texImage2D"
+    },
+    {
+      "detail": "member texImage2D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextOverloads.texImage2D#2"
+    },
+    {
+      "detail": "member texSubImage2D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextOverloads.texSubImage2D"
+    },
+    {
+      "detail": "member texSubImage2D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGL2RenderingContextOverloads.texSubImage2D#2"
+    },
+    {
+      "detail": "member drawingBufferColorSpace references unavailable type PredefinedColorSpace",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGLRenderingContextBase.drawingBufferColorSpace"
+    },
+    {
+      "detail": "member unpackColorSpace references unavailable type PredefinedColorSpace",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGLRenderingContextBase.unpackColorSpace"
+    },
+    {
+      "detail": "member compressedTexImage2D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGLRenderingContextOverloads.compressedTexImage2D"
+    },
+    {
+      "detail": "member compressedTexSubImage2D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGLRenderingContextOverloads.compressedTexSubImage2D"
+    },
+    {
+      "detail": "member readPixels references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGLRenderingContextOverloads.readPixels"
+    },
+    {
+      "detail": "member texImage2D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGLRenderingContextOverloads.texImage2D"
+    },
+    {
+      "detail": "member texSubImage2D references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebGLRenderingContextOverloads.texSubImage2D"
+    },
+    {
+      "detail": "member binaryType references unavailable type BinaryType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebSocket.binaryType"
+    },
+    {
+      "detail": "member send references unavailable type ArrayBufferLike",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebSocket.send"
+    },
+    {
+      "detail": "member source references unavailable type WebTransportErrorSource",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WebTransportError.source"
+    },
+    {
+      "detail": "member structuredClone references unavailable type T",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "WindowOrWorkerGlobalScope.structuredClone"
+    },
+    {
+      "detail": "member responseType references unavailable type XMLHttpRequestResponseType",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "XMLHttpRequest.responseType"
+    },
+    {
+      "detail": "member createExpression references unavailable type XPathNSResolver",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "XPathEvaluatorBase.createExpression"
+    },
+    {
+      "detail": "member evaluate references unavailable type XPathNSResolver",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "XPathEvaluatorBase.evaluate"
+    },
+    {
+      "detail": "member kind references unavailable type ImportExportKind",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ModuleExportDescriptor.kind"
+    },
+    {
+      "detail": "member kind references unavailable type ImportExportKind",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "ModuleImportDescriptor.kind"
+    },
+    {
+      "detail": "member element references unavailable type TableKind",
+      "reason": "ts_bindgen.unresolved_type_reference",
+      "source": "TableDescriptor.element"
     }
   ],
   "target_profile": "js.browser"

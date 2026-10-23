@@ -13,8 +13,3 @@
 module std.js.DataViewConstructorTest.
 
 import type std.js.DataViewConstructor.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: DataViewConstructor): DataView[ArrayBufferLike] ->
-    receiver.prototype().

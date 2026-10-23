@@ -13,5 +13,3 @@
 module std.js.Dom.WebAssembly.CompileErrorTest.
 
 import type std.js.Dom.WebAssembly.CompileError.
-
-pub generated_binding_surface_contract(): Bool -> true.

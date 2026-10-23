@@ -12,16 +12,15 @@
  */
 module std.js.Dom.PositionOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.PositionOptions.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub enable_high_accuracy_typechecks(receiver: PositionOptions): std.core.Bool ->
+pub enable_high_accuracy_typechecks(receiver: PositionOptions): Option[Bool] ->
     receiver.enable_high_accuracy().
 
-pub maximum_age_typechecks(receiver: PositionOptions): JsNumber ->
+pub maximum_age_typechecks(receiver: PositionOptions): Option[JsNumber] ->
     receiver.maximum_age().
 
-pub timeout_typechecks(receiver: PositionOptions): JsNumber ->
+pub timeout_typechecks(receiver: PositionOptions): Option[JsNumber] ->
     receiver.timeout().

@@ -13,5 +13,3 @@
 module std.js.Dom.WebGLSyncTest.
 
 import type std.js.Dom.WebGLSync.
-
-pub generated_binding_surface_contract(): Bool -> true.

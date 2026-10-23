@@ -25,18 +25,18 @@ pub opaque type ImageBitmap.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageBitmap/height)
  */
-pub (value: ImageBitmap) height(): std.js.Number.JsNumber.
+pub (receiver: ImageBitmap) height(): std.js.Number.JsNumber.
 
 /**
  * The **`ImageBitmap.width`** read-only property returns the ImageBitmap object's width in CSS pixels.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageBitmap/width)
  */
-pub (value: ImageBitmap) width(): std.js.Number.JsNumber.
+pub (receiver: ImageBitmap) width(): std.js.Number.JsNumber.
 
 /**
  * The **`ImageBitmap.close()`** method disposes of all graphical resources associated with an `ImageBitmap`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageBitmap/close)
  */
-pub (value: ImageBitmap) close(): std.core.Unit.
+pub (receiver: ImageBitmap) close(): std.core.Unit.Unit.

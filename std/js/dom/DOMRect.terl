@@ -26,7 +26,7 @@ pub opaque type DOMRect.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRect/height)
  */
-pub (value: DOMRect) height(): JsNumber ->
+pub (receiver: DOMRect) height(): JsNumber ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: DOMRect) height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRect/width)
  */
-pub (value: DOMRect) width(): JsNumber ->
+pub (receiver: DOMRect) width(): JsNumber ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: DOMRect) width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRect/x)
  */
-pub (value: DOMRect) x(): JsNumber ->
+pub (receiver: DOMRect) x(): JsNumber ->
     native.
 
 /**
@@ -50,5 +50,5 @@ pub (value: DOMRect) x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRect/y)
  */
-pub (value: DOMRect) y(): JsNumber ->
+pub (receiver: DOMRect) y(): JsNumber ->
     native.

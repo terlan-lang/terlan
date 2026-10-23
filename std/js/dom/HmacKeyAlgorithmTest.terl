@@ -14,9 +14,7 @@ module std.js.Dom.HmacKeyAlgorithmTest.
 
 import type std.js.Dom.HmacKeyAlgorithm.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub hash_typechecks(receiver: HmacKeyAlgorithm): KeyAlgorithm ->
+pub hash_typechecks(receiver: HmacKeyAlgorithm): std.js.Dom.KeyAlgorithm.KeyAlgorithm ->
     receiver.hash().
 
 pub length_typechecks(receiver: HmacKeyAlgorithm): std.js.Number.JsNumber ->

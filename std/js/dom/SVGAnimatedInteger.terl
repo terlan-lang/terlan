@@ -26,7 +26,7 @@ pub opaque type SVGAnimatedInteger.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedInteger/animVal)
  */
-pub (value: SVGAnimatedInteger) anim_val(): JsNumber ->
+pub (receiver: SVGAnimatedInteger) anim_val(): JsNumber ->
     native.
 
 /**
@@ -34,5 +34,5 @@ pub (value: SVGAnimatedInteger) anim_val(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedInteger/baseVal)
  */
-pub (value: SVGAnimatedInteger) base_val(): JsNumber ->
+pub (receiver: SVGAnimatedInteger) base_val(): JsNumber ->
     native.

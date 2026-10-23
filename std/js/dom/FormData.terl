@@ -12,7 +12,10 @@
  */
 module std.js.Dom.FormData.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Blob.{Blob}.
+import type std.js.Dom.FormDataEntryValue.{FormDataEntryValue}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,13 +30,13 @@ pub opaque type FormData.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/append)
  */
-pub (value: FormData) append(name: JsString, value: Blob | JsString): Unit ->
+pub (receiver: FormData) append(name: JsString, value: Blob | JsString): Unit ->
     native.
 
-pub (value: FormData) append(name: JsString, value: JsString): Unit ->
+pub (receiver: FormData) append_overload_2(name: JsString, value: JsString): Unit ->
     native.
 
-pub (value: FormData) append(name: JsString, blob_value: Blob, filename: JsString): Unit ->
+pub (receiver: FormData) append_overload_3(name: JsString, blob_value: Blob, filename: Option[JsString]): Unit ->
     native.
 
 /**
@@ -41,7 +44,7 @@ pub (value: FormData) append(name: JsString, blob_value: Blob, filename: JsStrin
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/delete)
  */
-pub (value: FormData) delete(name: JsString): Unit ->
+pub (receiver: FormData) delete(name: JsString): Unit ->
     native.
 
 /**
@@ -49,7 +52,7 @@ pub (value: FormData) delete(name: JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/get)
  */
-pub (value: FormData) get(name: JsString): Option[FormDataEntryValue] ->
+pub (receiver: FormData) get(name: JsString): Option[FormDataEntryValue] ->
     native.
 
 /**
@@ -57,7 +60,7 @@ pub (value: FormData) get(name: JsString): Option[FormDataEntryValue] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/getAll)
  */
-pub (value: FormData) get_all(name: JsString): std.js.Array[FormDataEntryValue] ->
+pub (receiver: FormData) get_all(name: JsString): std.js.Array.Array[FormDataEntryValue] ->
     native.
 
 /**
@@ -65,7 +68,7 @@ pub (value: FormData) get_all(name: JsString): std.js.Array[FormDataEntryValue] 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/has)
  */
-pub (value: FormData) has(name: JsString): std.core.Bool ->
+pub (receiver: FormData) has(name: JsString): Bool ->
     native.
 
 /**
@@ -73,11 +76,11 @@ pub (value: FormData) has(name: JsString): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/set)
  */
-pub (value: FormData) set(name: JsString, value: Blob | JsString): Unit ->
+pub (receiver: FormData) set(name: JsString, value: Blob | JsString): Unit ->
     native.
 
-pub (value: FormData) set(name: JsString, value: JsString): Unit ->
+pub (receiver: FormData) set_overload_2(name: JsString, value: JsString): Unit ->
     native.
 
-pub (value: FormData) set(name: JsString, blob_value: Blob, filename: JsString): Unit ->
+pub (receiver: FormData) set_overload_3(name: JsString, blob_value: Blob, filename: Option[JsString]): Unit ->
     native.

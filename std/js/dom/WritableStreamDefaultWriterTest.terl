@@ -12,11 +12,10 @@
  */
 module std.js.Dom.WritableStreamDefaultWriterTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.WritableStreamDefaultWriter.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Promise.{Promise}.
 
 pub closed_typechecks(receiver: WritableStreamDefaultWriter[W]): Promise[Unit] ->
     receiver.closed().
@@ -35,5 +34,5 @@ pub close_typechecks(receiver: WritableStreamDefaultWriter[W]): Promise[Unit] ->
 pub release_lock_typechecks(receiver: WritableStreamDefaultWriter[W]): Unit ->
     receiver.release_lock().
 
-pub write_typechecks(receiver: WritableStreamDefaultWriter[W], chunk: W): Promise[Unit] ->
+pub write_typechecks(receiver: WritableStreamDefaultWriter[W], chunk: Option[W]): Promise[Unit] ->
     receiver.write(chunk).

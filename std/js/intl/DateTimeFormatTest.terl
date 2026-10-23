@@ -14,13 +14,13 @@ module std.js.Intl.DateTimeFormatTest.
 
 import type std.js.Intl.DateTimeFormat.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub format_typechecks(
     receiver: DateTimeFormat,
-    date: Date | std.js.Number.JsNumber,
+    date: std.core.Option.Option[std.js.Date.Date | std.js.Number.JsNumber],
 ): std.js.String.JsString ->
     receiver.format(date).
 
-pub resolved_options_typechecks(receiver: DateTimeFormat): ResolvedDateTimeFormatOptions ->
+pub resolved_options_typechecks(
+    receiver: DateTimeFormat,
+): std.js.Intl.ResolvedDateTimeFormatOptions.ResolvedDateTimeFormatOptions ->
     receiver.resolved_options().

@@ -45,10 +45,31 @@ pub(crate) fn load_external_interfaces_for_module(
         if !visited.insert(module_name.clone()) {
             continue;
         }
-        let Some(entry) = EMBEDDED_STD_INTERFACES
+        let entry = EMBEDDED_STD_INTERFACES
             .iter()
-            .find(|entry| entry.module == module_name)
-        else {
+            .find(|entry| entry.module == module_name);
+        let Some(entry) = entry else {
+            if let Some(summary) = crate::support::library_paths::imported_std_summary_path(
+                &module_name,
+                Path::new(path),
+            ) {
+                if let Ok(source) = std::fs::read_to_string(&summary) {
+                    if let Some((name, interface)) = parse_interface_text(&source) {
+                        if name == module_name {
+                            if let Ok(manifest) =
+                                std::fs::read_to_string(summary.with_extension("typi.deps"))
+                            {
+                                if let Some(dependencies) =
+                                    parse_interface_dependency_entries(&manifest)
+                                {
+                                    required.extend(dependencies.into_iter().map(|(name, _)| name));
+                                }
+                            }
+                            interfaces.entry(name).or_insert(interface);
+                        }
+                    }
+                }
+            }
             continue;
         };
         let Some(manifest) = entry.dependencies else {

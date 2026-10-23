@@ -12,12 +12,11 @@
  */
 module std.js.Dom.RTCIceCandidateInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.RTCIceCandidateInit.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub candidate_typechecks(receiver: RTCIceCandidateInit): JsString ->
+pub candidate_typechecks(receiver: RTCIceCandidateInit): Option[JsString] ->
     receiver.candidate().
 
 pub sdp_m_line_index_typechecks(receiver: RTCIceCandidateInit): Option[std.js.Number.JsNumber] ->

@@ -17,4 +17,4 @@ pub opaque type Symbol.
 /**
  * Returns a string representation of an object.
  */
-pub (value: Symbol) to_string(): std.js.String.JsString.
+pub (receiver: Symbol) to_string(): std.js.String.JsString.

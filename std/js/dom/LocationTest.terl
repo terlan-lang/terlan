@@ -12,13 +12,12 @@
  */
 module std.js.Dom.LocationTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.Location.
+import type std.js.Dom.URL.{URL}.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub ancestor_origins_typechecks(receiver: Location): DOMStringList ->
+pub ancestor_origins_typechecks(receiver: Location): std.js.Dom.DOMStringList.DOMStringList ->
     receiver.ancestor_origins().
 
 pub hash_typechecks(receiver: Location): JsString ->

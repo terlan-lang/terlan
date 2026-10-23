@@ -12,7 +12,7 @@
  */
 module std.js.Dom.TextEvent.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -29,7 +29,7 @@ pub opaque type TextEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEvent/data)
  */
-pub (value: TextEvent) data(): JsString.
+pub (receiver: TextEvent) data(): JsString.
 
 /**
  * The **`initTextEventEvent()`** method of the TextEvent interface initializes the value of a `TextEvent` after it has been created.
@@ -37,10 +37,10 @@ pub (value: TextEvent) data(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEvent/initTextEvent)
  */
-pub (value: TextEvent) init_text_event(
+pub (receiver: TextEvent) init_text_event(
     type_: JsString,
-    bubbles: Bool,
-    cancelable: Bool,
-    view: Option[Window],
-    data: JsString,
-): std.core.Unit.
+    bubbles: Option[Bool],
+    cancelable: Option[Bool],
+    view: Option[Option[std.js.Dom.Window.Window]],
+    data: Option[JsString],
+): std.core.Unit.Unit.

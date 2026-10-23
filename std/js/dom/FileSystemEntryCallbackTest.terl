@@ -13,5 +13,3 @@
 module std.js.Dom.FileSystemEntryCallbackTest.
 
 import type std.js.Dom.FileSystemEntryCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

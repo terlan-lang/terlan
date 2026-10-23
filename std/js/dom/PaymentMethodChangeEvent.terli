@@ -25,4 +25,4 @@ pub opaque type PaymentMethodChangeEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentMethodChangeEvent/methodName)
  */
-pub (value: PaymentMethodChangeEvent) method_name(): std.js.String.JsString.
+pub (receiver: PaymentMethodChangeEvent) method_name(): std.js.String.JsString.

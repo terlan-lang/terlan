@@ -12,6 +12,9 @@
  */
 module std.js.Dom.AnimationPlaybackEvent.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.CSSNumberish.{CSSNumberish}.
+
 /**
  * The AnimationPlaybackEvent interface of the Web Animations API represents animation events.
  *
@@ -24,11 +27,11 @@ pub opaque type AnimationPlaybackEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationPlaybackEvent/currentTime)
  */
-pub (value: AnimationPlaybackEvent) current_time(): Option[CSSNumberish].
+pub (receiver: AnimationPlaybackEvent) current_time(): Option[CSSNumberish].
 
 /**
  * The **`timelineTime`** read-only property of the AnimationPlaybackEvent interface represents the time value of the animation's AnimationTimeline at the moment the event is queued.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationPlaybackEvent/timelineTime)
  */
-pub (value: AnimationPlaybackEvent) timeline_time(): Option[CSSNumberish].
+pub (receiver: AnimationPlaybackEvent) timeline_time(): Option[CSSNumberish].

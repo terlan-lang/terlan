@@ -14,5 +14,5 @@ module std.js.Dom.Algorithm.
 
 pub opaque type Algorithm.
 
-pub (value: Algorithm) name(): std.js.String.JsString ->
+pub (receiver: Algorithm) name(): std.js.String.JsString ->
     native.

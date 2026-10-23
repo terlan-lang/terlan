@@ -25,7 +25,7 @@ pub opaque type PushSubscriptionOptions.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscriptionOptions/applicationServerKey)
  */
-pub (value: PushSubscriptionOptions) application_server_key(): Option[ArrayBuffer] ->
+pub (receiver: PushSubscriptionOptions) application_server_key(): std.core.Option.Option[std.js.ArrayBuffer.ArrayBuffer] ->
     native.
 
 /**
@@ -33,5 +33,5 @@ pub (value: PushSubscriptionOptions) application_server_key(): Option[ArrayBuffe
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscriptionOptions/userVisibleOnly)
  */
-pub (value: PushSubscriptionOptions) user_visible_only(): std.core.Bool ->
+pub (receiver: PushSubscriptionOptions) user_visible_only(): Bool ->
     native.

@@ -24,7 +24,7 @@ pub opaque type MediaError.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaError/code)
  */
-pub (value: MediaError) code(): std.js.Number.JsNumber ->
+pub (receiver: MediaError) code(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -32,5 +32,5 @@ pub (value: MediaError) code(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaError/message)
  */
-pub (value: MediaError) message(): std.js.String.JsString ->
+pub (receiver: MediaError) message(): std.js.String.JsString ->
     native.

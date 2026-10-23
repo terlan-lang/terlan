@@ -14,7 +14,7 @@ module std.js.Dom.ClipboardEventInitTest.
 
 import type std.js.Dom.ClipboardEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub clipboard_data_typechecks(receiver: ClipboardEventInit): Option[DataTransfer] ->
+pub clipboard_data_typechecks(
+    receiver: ClipboardEventInit,
+): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer] ->
     receiver.clipboard_data().

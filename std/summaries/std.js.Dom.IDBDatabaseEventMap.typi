@@ -15,10 +15,10 @@ module std.js.Dom.IDBDatabaseEventMap.
 
 pub opaque type IDBDatabaseEventMap.
 
-pub (value: IDBDatabaseEventMap) abort(): Event.
+pub (receiver: IDBDatabaseEventMap) abort(): std.js.Dom.Event.Event.
 
-pub (value: IDBDatabaseEventMap) close(): Event.
+pub (receiver: IDBDatabaseEventMap) close(): std.js.Dom.Event.Event.
 
-pub (value: IDBDatabaseEventMap) error(): Event.
+pub (receiver: IDBDatabaseEventMap) error(): std.js.Dom.Event.Event.
 
-pub (value: IDBDatabaseEventMap) versionchange(): IDBVersionChangeEvent.
+pub (receiver: IDBDatabaseEventMap) versionchange(): std.js.Dom.IDBVersionChangeEvent.IDBVersionChangeEvent.

@@ -16,119 +16,119 @@ import type std.js.String.{JsString}.
 
 pub opaque type RegExpConstructor.
 
-pub (value: RegExpConstructor) prototype(): RegExp ->
+pub (receiver: RegExpConstructor) prototype(): std.js.RegExp.RegExp ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_1(): JsString ->
+pub (receiver: RegExpConstructor) value_1(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_2(): JsString ->
+pub (receiver: RegExpConstructor) value_2(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_3(): JsString ->
+pub (receiver: RegExpConstructor) value_3(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_4(): JsString ->
+pub (receiver: RegExpConstructor) value_4(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_5(): JsString ->
+pub (receiver: RegExpConstructor) value_5(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_6(): JsString ->
+pub (receiver: RegExpConstructor) value_6(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_7(): JsString ->
+pub (receiver: RegExpConstructor) value_7(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_8(): JsString ->
+pub (receiver: RegExpConstructor) value_8(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_9(): JsString ->
+pub (receiver: RegExpConstructor) value_9(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) input(): JsString ->
+pub (receiver: RegExpConstructor) input(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_(): JsString ->
+pub (receiver: RegExpConstructor) value_(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) last_match(): JsString ->
+pub (receiver: RegExpConstructor) last_match(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_(): JsString ->
+pub (receiver: RegExpConstructor) value__overload_2(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) last_paren(): JsString ->
+pub (receiver: RegExpConstructor) last_paren(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_(): JsString ->
+pub (receiver: RegExpConstructor) value__overload_3(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) left_context(): JsString ->
+pub (receiver: RegExpConstructor) left_context(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_(): JsString ->
+pub (receiver: RegExpConstructor) value__overload_4(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) right_context(): JsString ->
+pub (receiver: RegExpConstructor) right_context(): JsString ->
     native.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_(): JsString ->
+pub (receiver: RegExpConstructor) value__overload_5(): JsString ->
     native.

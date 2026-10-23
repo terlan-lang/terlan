@@ -15,10 +15,10 @@ module std.js.Dom.StaticRangeInit.
 
 pub opaque type StaticRangeInit.
 
-pub (value: StaticRangeInit) end_container(): Node.
+pub (receiver: StaticRangeInit) end_container(): std.js.Dom.Node.Node.
 
-pub (value: StaticRangeInit) end_offset(): std.js.Number.JsNumber.
+pub (receiver: StaticRangeInit) end_offset(): std.js.Number.JsNumber.
 
-pub (value: StaticRangeInit) start_container(): Node.
+pub (receiver: StaticRangeInit) start_container(): std.js.Dom.Node.Node.
 
-pub (value: StaticRangeInit) start_offset(): std.js.Number.JsNumber.
+pub (receiver: StaticRangeInit) start_offset(): std.js.Number.JsNumber.

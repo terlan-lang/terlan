@@ -12,11 +12,11 @@
  */
 module std.js.Dom.XSLTProcessorTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Document.{Document}.
+import type std.js.Dom.Node.{Node}.
 import type std.js.Dom.XSLTProcessor.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub clear_parameters_typechecks(receiver: XSLTProcessor): Unit ->
     receiver.clear_parameters().
@@ -26,7 +26,7 @@ pub import_stylesheet_typechecks(receiver: XSLTProcessor, style: Node): Unit ->
 
 pub remove_parameter_typechecks(
     receiver: XSLTProcessor,
-    namespace_uri: Option[JsString],
+    namespace_uri: std.core.Option.Option[JsString],
     local_name: JsString,
 ): Unit ->
     receiver.remove_parameter(namespace_uri, local_name).
@@ -41,5 +41,5 @@ pub transform_to_fragment_typechecks(
     receiver: XSLTProcessor,
     source: Node,
     output: Document,
-): DocumentFragment ->
+): std.js.Dom.DocumentFragment.DocumentFragment ->
     receiver.transform_to_fragment(source, output).

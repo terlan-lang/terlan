@@ -12,9 +12,8 @@
  */
 module std.js.Dom.SpeechSynthesisUtteranceEventMapTest.
 
+import type std.js.Dom.SpeechSynthesisEvent.{SpeechSynthesisEvent}.
 import type std.js.Dom.SpeechSynthesisUtteranceEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub boundary_typechecks(receiver: SpeechSynthesisUtteranceEventMap): SpeechSynthesisEvent ->
     receiver.boundary().
@@ -22,7 +21,9 @@ pub boundary_typechecks(receiver: SpeechSynthesisUtteranceEventMap): SpeechSynth
 pub end_typechecks(receiver: SpeechSynthesisUtteranceEventMap): SpeechSynthesisEvent ->
     receiver.end().
 
-pub error_typechecks(receiver: SpeechSynthesisUtteranceEventMap): SpeechSynthesisErrorEvent ->
+pub error_typechecks(
+    receiver: SpeechSynthesisUtteranceEventMap,
+): std.js.Dom.SpeechSynthesisErrorEvent.SpeechSynthesisErrorEvent ->
     receiver.error().
 
 pub mark_typechecks(receiver: SpeechSynthesisUtteranceEventMap): SpeechSynthesisEvent ->

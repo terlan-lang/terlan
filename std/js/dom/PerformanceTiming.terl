@@ -28,7 +28,7 @@ pub opaque type PerformanceTiming.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/connectEnd)
  */
-pub (value: PerformanceTiming) connect_end(): JsNumber ->
+pub (receiver: PerformanceTiming) connect_end(): JsNumber ->
     native.
 
 /**
@@ -37,7 +37,7 @@ pub (value: PerformanceTiming) connect_end(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/connectStart)
  */
-pub (value: PerformanceTiming) connect_start(): JsNumber ->
+pub (receiver: PerformanceTiming) connect_start(): JsNumber ->
     native.
 
 /**
@@ -46,7 +46,7 @@ pub (value: PerformanceTiming) connect_start(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domComplete)
  */
-pub (value: PerformanceTiming) dom_complete(): JsNumber ->
+pub (receiver: PerformanceTiming) dom_complete(): JsNumber ->
     native.
 
 /**
@@ -55,7 +55,7 @@ pub (value: PerformanceTiming) dom_complete(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domContentLoadedEventEnd)
  */
-pub (value: PerformanceTiming) dom_content_loaded_event_end(): JsNumber ->
+pub (receiver: PerformanceTiming) dom_content_loaded_event_end(): JsNumber ->
     native.
 
 /**
@@ -64,7 +64,7 @@ pub (value: PerformanceTiming) dom_content_loaded_event_end(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domContentLoadedEventStart)
  */
-pub (value: PerformanceTiming) dom_content_loaded_event_start(): JsNumber ->
+pub (receiver: PerformanceTiming) dom_content_loaded_event_start(): JsNumber ->
     native.
 
 /**
@@ -73,7 +73,7 @@ pub (value: PerformanceTiming) dom_content_loaded_event_start(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domInteractive)
  */
-pub (value: PerformanceTiming) dom_interactive(): JsNumber ->
+pub (receiver: PerformanceTiming) dom_interactive(): JsNumber ->
     native.
 
 /**
@@ -82,7 +82,7 @@ pub (value: PerformanceTiming) dom_interactive(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domLoading)
  */
-pub (value: PerformanceTiming) dom_loading(): JsNumber ->
+pub (receiver: PerformanceTiming) dom_loading(): JsNumber ->
     native.
 
 /**
@@ -91,7 +91,7 @@ pub (value: PerformanceTiming) dom_loading(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domainLookupEnd)
  */
-pub (value: PerformanceTiming) domain_lookup_end(): JsNumber ->
+pub (receiver: PerformanceTiming) domain_lookup_end(): JsNumber ->
     native.
 
 /**
@@ -100,7 +100,7 @@ pub (value: PerformanceTiming) domain_lookup_end(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domainLookupStart)
  */
-pub (value: PerformanceTiming) domain_lookup_start(): JsNumber ->
+pub (receiver: PerformanceTiming) domain_lookup_start(): JsNumber ->
     native.
 
 /**
@@ -109,7 +109,7 @@ pub (value: PerformanceTiming) domain_lookup_start(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/fetchStart)
  */
-pub (value: PerformanceTiming) fetch_start(): JsNumber ->
+pub (receiver: PerformanceTiming) fetch_start(): JsNumber ->
     native.
 
 /**
@@ -118,7 +118,7 @@ pub (value: PerformanceTiming) fetch_start(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/loadEventEnd)
  */
-pub (value: PerformanceTiming) load_event_end(): JsNumber ->
+pub (receiver: PerformanceTiming) load_event_end(): JsNumber ->
     native.
 
 /**
@@ -127,7 +127,7 @@ pub (value: PerformanceTiming) load_event_end(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/loadEventStart)
  */
-pub (value: PerformanceTiming) load_event_start(): JsNumber ->
+pub (receiver: PerformanceTiming) load_event_start(): JsNumber ->
     native.
 
 /**
@@ -136,7 +136,7 @@ pub (value: PerformanceTiming) load_event_start(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/navigationStart)
  */
-pub (value: PerformanceTiming) navigation_start(): JsNumber ->
+pub (receiver: PerformanceTiming) navigation_start(): JsNumber ->
     native.
 
 /**
@@ -145,7 +145,7 @@ pub (value: PerformanceTiming) navigation_start(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/redirectEnd)
  */
-pub (value: PerformanceTiming) redirect_end(): JsNumber ->
+pub (receiver: PerformanceTiming) redirect_end(): JsNumber ->
     native.
 
 /**
@@ -154,7 +154,7 @@ pub (value: PerformanceTiming) redirect_end(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/redirectStart)
  */
-pub (value: PerformanceTiming) redirect_start(): JsNumber ->
+pub (receiver: PerformanceTiming) redirect_start(): JsNumber ->
     native.
 
 /**
@@ -163,7 +163,7 @@ pub (value: PerformanceTiming) redirect_start(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/requestStart)
  */
-pub (value: PerformanceTiming) request_start(): JsNumber ->
+pub (receiver: PerformanceTiming) request_start(): JsNumber ->
     native.
 
 /**
@@ -172,7 +172,7 @@ pub (value: PerformanceTiming) request_start(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/responseEnd)
  */
-pub (value: PerformanceTiming) response_end(): JsNumber ->
+pub (receiver: PerformanceTiming) response_end(): JsNumber ->
     native.
 
 /**
@@ -181,7 +181,7 @@ pub (value: PerformanceTiming) response_end(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/responseStart)
  */
-pub (value: PerformanceTiming) response_start(): JsNumber ->
+pub (receiver: PerformanceTiming) response_start(): JsNumber ->
     native.
 
 /**
@@ -190,7 +190,7 @@ pub (value: PerformanceTiming) response_start(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/secureConnectionStart)
  */
-pub (value: PerformanceTiming) secure_connection_start(): JsNumber ->
+pub (receiver: PerformanceTiming) secure_connection_start(): JsNumber ->
     native.
 
 /**
@@ -199,7 +199,7 @@ pub (value: PerformanceTiming) secure_connection_start(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/unloadEventEnd)
  */
-pub (value: PerformanceTiming) unload_event_end(): JsNumber ->
+pub (receiver: PerformanceTiming) unload_event_end(): JsNumber ->
     native.
 
 /**
@@ -208,5 +208,5 @@ pub (value: PerformanceTiming) unload_event_end(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/unloadEventStart)
  */
-pub (value: PerformanceTiming) unload_event_start(): JsNumber ->
+pub (receiver: PerformanceTiming) unload_event_start(): JsNumber ->
     native.

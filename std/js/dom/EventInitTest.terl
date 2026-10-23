@@ -12,16 +12,14 @@
  */
 module std.js.Dom.EventInitTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.EventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub bubbles_typechecks(receiver: EventInit): Bool ->
+pub bubbles_typechecks(receiver: EventInit): Option[Bool] ->
     receiver.bubbles().
 
-pub cancelable_typechecks(receiver: EventInit): Bool ->
+pub cancelable_typechecks(receiver: EventInit): Option[Bool] ->
     receiver.cancelable().
 
-pub composed_typechecks(receiver: EventInit): Bool ->
+pub composed_typechecks(receiver: EventInit): Option[Bool] ->
     receiver.composed().

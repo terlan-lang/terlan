@@ -14,7 +14,7 @@ module std.js.Dom.MediaStreamTrackEventInitTest.
 
 import type std.js.Dom.MediaStreamTrackEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub track_typechecks(receiver: MediaStreamTrackEventInit): MediaStreamTrack ->
+pub track_typechecks(
+    receiver: MediaStreamTrackEventInit,
+): std.js.Dom.MediaStreamTrack.MediaStreamTrack ->
     receiver.track().

@@ -12,7 +12,11 @@
  */
 module std.js.Dom.SVGFEDisplacementMapElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedEnumeration.{SVGAnimatedEnumeration}.
+import type std.js.Dom.SVGAnimatedString.{SVGAnimatedString}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +31,7 @@ pub opaque type SVGFEDisplacementMapElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDisplacementMapElement/in1)
  */
-pub (value: SVGFEDisplacementMapElement) in1(): SVGAnimatedString ->
+pub (receiver: SVGFEDisplacementMapElement) in1(): SVGAnimatedString ->
     native.
 
 /**
@@ -35,7 +39,7 @@ pub (value: SVGFEDisplacementMapElement) in1(): SVGAnimatedString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDisplacementMapElement/in2)
  */
-pub (value: SVGFEDisplacementMapElement) in2(): SVGAnimatedString ->
+pub (receiver: SVGFEDisplacementMapElement) in2(): SVGAnimatedString ->
     native.
 
 /**
@@ -43,7 +47,7 @@ pub (value: SVGFEDisplacementMapElement) in2(): SVGAnimatedString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDisplacementMapElement/scale)
  */
-pub (value: SVGFEDisplacementMapElement) scale(): SVGAnimatedNumber ->
+pub (receiver: SVGFEDisplacementMapElement) scale(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber ->
     native.
 
 /**
@@ -51,7 +55,7 @@ pub (value: SVGFEDisplacementMapElement) scale(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDisplacementMapElement/xChannelSelector)
  */
-pub (value: SVGFEDisplacementMapElement) x_channel_selector(): SVGAnimatedEnumeration ->
+pub (receiver: SVGFEDisplacementMapElement) x_channel_selector(): SVGAnimatedEnumeration ->
     native.
 
 /**
@@ -59,19 +63,19 @@ pub (value: SVGFEDisplacementMapElement) x_channel_selector(): SVGAnimatedEnumer
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDisplacementMapElement/yChannelSelector)
  */
-pub (value: SVGFEDisplacementMapElement) y_channel_selector(): SVGAnimatedEnumeration ->
+pub (receiver: SVGFEDisplacementMapElement) y_channel_selector(): SVGAnimatedEnumeration ->
     native.
 
-pub (value: SVGFEDisplacementMapElement) add_event_listener(
+pub (receiver: SVGFEDisplacementMapElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SVGFEDisplacementMapElement) remove_event_listener(
+pub (receiver: SVGFEDisplacementMapElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

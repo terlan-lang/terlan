@@ -15,11 +15,11 @@ module std.js.DataView.
 
 pub opaque type DataView[TArrayBuffer].
 
-pub (value: DataView[TArrayBuffer]) buffer(): TArrayBuffer.
+pub (receiver: DataView[TArrayBuffer]) buffer(): TArrayBuffer.
 
-pub (value: DataView[TArrayBuffer]) byte_length(): std.js.Number.JsNumber.
+pub (receiver: DataView[TArrayBuffer]) byte_length(): std.js.Number.JsNumber.
 
-pub (value: DataView[TArrayBuffer]) byte_offset(): std.js.Number.JsNumber.
+pub (receiver: DataView[TArrayBuffer]) byte_offset(): std.js.Number.JsNumber.
 
 /**
  * Gets the Float32 value at the specified byte offset from the start of the view. There is
@@ -27,7 +27,7 @@ pub (value: DataView[TArrayBuffer]) byte_offset(): std.js.Number.JsNumber.
  * @param byteOffset The place in the buffer at which the value should be retrieved.
  * @param littleEndian If false or undefined, a big-endian value should be read.
  */
-pub (value: DataView[TArrayBuffer]) get_float32(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Bool): std.js.Number.JsNumber.
+pub (receiver: DataView[TArrayBuffer]) get_float32(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.js.Number.JsNumber.
 
 /**
  * Gets the Float64 value at the specified byte offset from the start of the view. There is
@@ -35,14 +35,14 @@ pub (value: DataView[TArrayBuffer]) get_float32(byte_offset: std.js.Number.JsNum
  * @param byteOffset The place in the buffer at which the value should be retrieved.
  * @param littleEndian If false or undefined, a big-endian value should be read.
  */
-pub (value: DataView[TArrayBuffer]) get_float64(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Bool): std.js.Number.JsNumber.
+pub (receiver: DataView[TArrayBuffer]) get_float64(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.js.Number.JsNumber.
 
 /**
  * Gets the Int8 value at the specified byte offset from the start of the view. There is
  * no alignment constraint; multi-byte values may be fetched from any offset.
  * @param byteOffset The place in the buffer at which the value should be retrieved.
  */
-pub (value: DataView[TArrayBuffer]) get_int8(byte_offset: std.js.Number.JsNumber): std.js.Number.JsNumber.
+pub (receiver: DataView[TArrayBuffer]) get_int8(byte_offset: std.js.Number.JsNumber): std.js.Number.JsNumber.
 
 /**
  * Gets the Int16 value at the specified byte offset from the start of the view. There is
@@ -50,7 +50,7 @@ pub (value: DataView[TArrayBuffer]) get_int8(byte_offset: std.js.Number.JsNumber
  * @param byteOffset The place in the buffer at which the value should be retrieved.
  * @param littleEndian If false or undefined, a big-endian value should be read.
  */
-pub (value: DataView[TArrayBuffer]) get_int16(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Bool): std.js.Number.JsNumber.
+pub (receiver: DataView[TArrayBuffer]) get_int16(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.js.Number.JsNumber.
 
 /**
  * Gets the Int32 value at the specified byte offset from the start of the view. There is
@@ -58,14 +58,14 @@ pub (value: DataView[TArrayBuffer]) get_int16(byte_offset: std.js.Number.JsNumbe
  * @param byteOffset The place in the buffer at which the value should be retrieved.
  * @param littleEndian If false or undefined, a big-endian value should be read.
  */
-pub (value: DataView[TArrayBuffer]) get_int32(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Bool): std.js.Number.JsNumber.
+pub (receiver: DataView[TArrayBuffer]) get_int32(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.js.Number.JsNumber.
 
 /**
  * Gets the Uint8 value at the specified byte offset from the start of the view. There is
  * no alignment constraint; multi-byte values may be fetched from any offset.
  * @param byteOffset The place in the buffer at which the value should be retrieved.
  */
-pub (value: DataView[TArrayBuffer]) get_uint8(byte_offset: std.js.Number.JsNumber): std.js.Number.JsNumber.
+pub (receiver: DataView[TArrayBuffer]) get_uint8(byte_offset: std.js.Number.JsNumber): std.js.Number.JsNumber.
 
 /**
  * Gets the Uint16 value at the specified byte offset from the start of the view. There is
@@ -73,7 +73,7 @@ pub (value: DataView[TArrayBuffer]) get_uint8(byte_offset: std.js.Number.JsNumbe
  * @param byteOffset The place in the buffer at which the value should be retrieved.
  * @param littleEndian If false or undefined, a big-endian value should be read.
  */
-pub (value: DataView[TArrayBuffer]) get_uint16(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Bool): std.js.Number.JsNumber.
+pub (receiver: DataView[TArrayBuffer]) get_uint16(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.js.Number.JsNumber.
 
 /**
  * Gets the Uint32 value at the specified byte offset from the start of the view. There is
@@ -81,7 +81,7 @@ pub (value: DataView[TArrayBuffer]) get_uint16(byte_offset: std.js.Number.JsNumb
  * @param byteOffset The place in the buffer at which the value should be retrieved.
  * @param littleEndian If false or undefined, a big-endian value should be read.
  */
-pub (value: DataView[TArrayBuffer]) get_uint32(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Bool): std.js.Number.JsNumber.
+pub (receiver: DataView[TArrayBuffer]) get_uint32(byte_offset: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.js.Number.JsNumber.
 
 /**
  * Stores an Float32 value at the specified byte offset from the start of the view.
@@ -89,7 +89,7 @@ pub (value: DataView[TArrayBuffer]) get_uint32(byte_offset: std.js.Number.JsNumb
  * @param value The value to set.
  * @param littleEndian If false or undefined, a big-endian value should be written.
  */
-pub (value: DataView[TArrayBuffer]) set_float32(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Bool): std.core.Unit.
+pub (receiver: DataView[TArrayBuffer]) set_float32(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.core.Unit.Unit.
 
 /**
  * Stores an Float64 value at the specified byte offset from the start of the view.
@@ -97,14 +97,14 @@ pub (value: DataView[TArrayBuffer]) set_float32(byte_offset: std.js.Number.JsNum
  * @param value The value to set.
  * @param littleEndian If false or undefined, a big-endian value should be written.
  */
-pub (value: DataView[TArrayBuffer]) set_float64(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Bool): std.core.Unit.
+pub (receiver: DataView[TArrayBuffer]) set_float64(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.core.Unit.Unit.
 
 /**
  * Stores an Int8 value at the specified byte offset from the start of the view.
  * @param byteOffset The place in the buffer at which the value should be set.
  * @param value The value to set.
  */
-pub (value: DataView[TArrayBuffer]) set_int8(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: DataView[TArrayBuffer]) set_int8(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber): std.core.Unit.Unit.
 
 /**
  * Stores an Int16 value at the specified byte offset from the start of the view.
@@ -112,7 +112,7 @@ pub (value: DataView[TArrayBuffer]) set_int8(byte_offset: std.js.Number.JsNumber
  * @param value The value to set.
  * @param littleEndian If false or undefined, a big-endian value should be written.
  */
-pub (value: DataView[TArrayBuffer]) set_int16(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Bool): std.core.Unit.
+pub (receiver: DataView[TArrayBuffer]) set_int16(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.core.Unit.Unit.
 
 /**
  * Stores an Int32 value at the specified byte offset from the start of the view.
@@ -120,14 +120,14 @@ pub (value: DataView[TArrayBuffer]) set_int16(byte_offset: std.js.Number.JsNumbe
  * @param value The value to set.
  * @param littleEndian If false or undefined, a big-endian value should be written.
  */
-pub (value: DataView[TArrayBuffer]) set_int32(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Bool): std.core.Unit.
+pub (receiver: DataView[TArrayBuffer]) set_int32(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.core.Unit.Unit.
 
 /**
  * Stores an Uint8 value at the specified byte offset from the start of the view.
  * @param byteOffset The place in the buffer at which the value should be set.
  * @param value The value to set.
  */
-pub (value: DataView[TArrayBuffer]) set_uint8(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: DataView[TArrayBuffer]) set_uint8(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber): std.core.Unit.Unit.
 
 /**
  * Stores an Uint16 value at the specified byte offset from the start of the view.
@@ -135,7 +135,7 @@ pub (value: DataView[TArrayBuffer]) set_uint8(byte_offset: std.js.Number.JsNumbe
  * @param value The value to set.
  * @param littleEndian If false or undefined, a big-endian value should be written.
  */
-pub (value: DataView[TArrayBuffer]) set_uint16(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Bool): std.core.Unit.
+pub (receiver: DataView[TArrayBuffer]) set_uint16(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.core.Unit.Unit.
 
 /**
  * Stores an Uint32 value at the specified byte offset from the start of the view.
@@ -143,4 +143,4 @@ pub (value: DataView[TArrayBuffer]) set_uint16(byte_offset: std.js.Number.JsNumb
  * @param value The value to set.
  * @param littleEndian If false or undefined, a big-endian value should be written.
  */
-pub (value: DataView[TArrayBuffer]) set_uint32(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Bool): std.core.Unit.
+pub (receiver: DataView[TArrayBuffer]) set_uint32(byte_offset: std.js.Number.JsNumber, value: std.js.Number.JsNumber, little_endian: std.core.Option.Option[Bool]): std.core.Unit.Unit.

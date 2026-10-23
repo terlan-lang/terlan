@@ -12,14 +12,13 @@
  */
 module std.js.Dom.AuthenticationExtensionsPRFOutputsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.AuthenticationExtensionsPRFOutputs.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub enabled_typechecks(receiver: AuthenticationExtensionsPRFOutputs): std.core.Bool ->
+pub enabled_typechecks(receiver: AuthenticationExtensionsPRFOutputs): Option[Bool] ->
     receiver.enabled().
 
 pub results_typechecks(
     receiver: AuthenticationExtensionsPRFOutputs,
-): AuthenticationExtensionsPRFValues ->
+): Option[std.js.Dom.AuthenticationExtensionsPRFValues.AuthenticationExtensionsPRFValues] ->
     receiver.results().

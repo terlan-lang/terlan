@@ -25,36 +25,36 @@ pub opaque type SVGTextPositioningElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/dx)
  */
-pub (value: SVGTextPositioningElement) dx(): SVGAnimatedLengthList.
+pub (receiver: SVGTextPositioningElement) dx(): std.js.Dom.SVGAnimatedLengthList.SVGAnimatedLengthList.
 
 /**
  * The **`dy`** read-only property of the SVGTextPositioningElement interface describes the y-axis coordinate of the SVGTextElement or SVGTSpanElement as an SVGAnimatedLengthList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/dy)
  */
-pub (value: SVGTextPositioningElement) dy(): SVGAnimatedLengthList.
+pub (receiver: SVGTextPositioningElement) dy(): std.js.Dom.SVGAnimatedLengthList.SVGAnimatedLengthList.
 
 /**
  * The **`rotate`** read-only property of the SVGTextPositioningElement interface reflects the rotation of individual text glyphs, as specified by the rotate attribute of the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/rotate)
  */
-pub (value: SVGTextPositioningElement) rotate(): SVGAnimatedNumberList.
+pub (receiver: SVGTextPositioningElement) rotate(): std.js.Dom.SVGAnimatedNumberList.SVGAnimatedNumberList.
 
 /**
  * The **`x`** read-only property of the SVGTextPositioningElement interface describes the x-axis coordinate of the SVGTextElement or SVGTSpanElement as an SVGAnimatedLengthList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/x)
  */
-pub (value: SVGTextPositioningElement) x(): SVGAnimatedLengthList.
+pub (receiver: SVGTextPositioningElement) x(): std.js.Dom.SVGAnimatedLengthList.SVGAnimatedLengthList.
 
 /**
  * The **`y`** read-only property of the SVGTextPositioningElement interface describes the y-axis coordinate of the SVGTextElement or SVGTSpanElement as an SVGAnimatedLengthList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/y)
  */
-pub (value: SVGTextPositioningElement) y(): SVGAnimatedLengthList.
+pub (receiver: SVGTextPositioningElement) y(): std.js.Dom.SVGAnimatedLengthList.SVGAnimatedLengthList.
 
-pub (value: SVGTextPositioningElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGTextPositioningElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: SVGTextPositioningElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGTextPositioningElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

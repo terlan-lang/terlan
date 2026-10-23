@@ -12,15 +12,12 @@
  */
 module std.js.WeakMapTest.
 
-import type std.core.{Bool}.
 import type std.js.WeakMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub delete_typechecks(receiver: WeakMap[K, V], key: K): Bool ->
     receiver.delete(key).
 
-pub get_typechecks(receiver: WeakMap[K, V], key: K): Option[V] ->
+pub get_typechecks(receiver: WeakMap[K, V], key: K): std.core.Option.Option[V] ->
     receiver.get(key).
 
 pub has_typechecks(receiver: WeakMap[K, V], key: K): Bool ->

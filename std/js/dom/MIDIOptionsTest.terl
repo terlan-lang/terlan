@@ -12,13 +12,11 @@
  */
 module std.js.Dom.MIDIOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.MIDIOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub software_typechecks(receiver: MIDIOptions): Bool ->
+pub software_typechecks(receiver: MIDIOptions): Option[Bool] ->
     receiver.software().
 
-pub sysex_typechecks(receiver: MIDIOptions): Bool ->
+pub sysex_typechecks(receiver: MIDIOptions): Option[Bool] ->
     receiver.sysex().

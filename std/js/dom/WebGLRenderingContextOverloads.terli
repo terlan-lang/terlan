@@ -12,78 +12,40 @@
  */
 module std.js.Dom.WebGLRenderingContextOverloads.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.AllowSharedBufferSource.{AllowSharedBufferSource}.
+import type std.js.Dom.Float32List.{Float32List}.
+import type std.js.Dom.GLboolean.{GLboolean}.
+import type std.js.Dom.GLenum.{GLenum}.
+import type std.js.Dom.GLint.{GLint}.
+import type std.js.Dom.Int32List.{Int32List}.
+import type std.js.Dom.TexImageSource.{TexImageSource}.
+import type std.js.Dom.WebGLUniformLocation.{WebGLUniformLocation}.
 
 pub opaque type WebGLRenderingContextOverloads.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/bufferData)
  */
-pub (value: WebGLRenderingContextOverloads) buffer_data(target_: GLenum, size: GLsizeiptr, usage: GLenum): Unit.
+pub (receiver: WebGLRenderingContextOverloads) buffer_data(target_: GLenum, size: std.js.Dom.GLsizeiptr.GLsizeiptr, usage: GLenum): Unit.
 
-pub (value: WebGLRenderingContextOverloads) buffer_data(target_: GLenum, data: Option[AllowSharedBufferSource], usage: GLenum): Unit.
+pub (receiver: WebGLRenderingContextOverloads) buffer_data_overload_2(
+    target_: GLenum,
+    data: Option[AllowSharedBufferSource],
+    usage: GLenum,
+): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/bufferSubData)
  */
-pub (value: WebGLRenderingContextOverloads) buffer_sub_data(target_: GLenum, offset: GLintptr, data: AllowSharedBufferSource): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/compressedTexImage2D)
- */
-pub (value: WebGLRenderingContextOverloads) compressed_tex_image2_d(
+pub (receiver: WebGLRenderingContextOverloads) buffer_sub_data(
     target_: GLenum,
-    level: GLint,
-    internalformat: GLenum,
-    width: GLsizei,
-    height: GLsizei,
-    border: GLint,
-    data: ArrayBufferView[ArrayBufferLike],
+    offset: std.js.Dom.GLintptr.GLintptr,
+    data: AllowSharedBufferSource,
 ): Unit.
 
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/compressedTexSubImage2D)
- */
-pub (value: WebGLRenderingContextOverloads) compressed_tex_sub_image2_d(
-    target_: GLenum,
-    level: GLint,
-    xoffset: GLint,
-    yoffset: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    format: GLenum,
-    data: ArrayBufferView[ArrayBufferLike],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/readPixels)
- */
-pub (value: WebGLRenderingContextOverloads) read_pixels(
-    x: GLint,
-    y: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    format: GLenum,
-    type_: GLenum,
-    pixels: Option[ArrayBufferView[ArrayBufferLike]],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/texImage2D)
- */
-pub (value: WebGLRenderingContextOverloads) tex_image2_d(
-    target_: GLenum,
-    level: GLint,
-    internalformat: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    border: GLint,
-    format: GLenum,
-    type_: GLenum,
-    pixels: Option[ArrayBufferView[ArrayBufferLike]],
-): Unit.
-
-pub (value: WebGLRenderingContextOverloads) tex_image2_d(
+pub (receiver: WebGLRenderingContextOverloads) tex_image2_d(
     target_: GLenum,
     level: GLint,
     internalformat: GLint,
@@ -92,22 +54,7 @@ pub (value: WebGLRenderingContextOverloads) tex_image2_d(
     source: TexImageSource,
 ): Unit.
 
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/texSubImage2D)
- */
-pub (value: WebGLRenderingContextOverloads) tex_sub_image2_d(
-    target_: GLenum,
-    level: GLint,
-    xoffset: GLint,
-    yoffset: GLint,
-    width: GLsizei,
-    height: GLsizei,
-    format: GLenum,
-    type_: GLenum,
-    pixels: Option[ArrayBufferView[ArrayBufferLike]],
-): Unit.
-
-pub (value: WebGLRenderingContextOverloads) tex_sub_image2_d(
+pub (receiver: WebGLRenderingContextOverloads) tex_sub_image2_d(
     target_: GLenum,
     level: GLint,
     xoffset: GLint,
@@ -120,47 +67,47 @@ pub (value: WebGLRenderingContextOverloads) tex_sub_image2_d(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (value: WebGLRenderingContextOverloads) uniform1fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
+pub (receiver: WebGLRenderingContextOverloads) uniform1fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (value: WebGLRenderingContextOverloads) uniform1iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
+pub (receiver: WebGLRenderingContextOverloads) uniform1iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (value: WebGLRenderingContextOverloads) uniform2fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
+pub (receiver: WebGLRenderingContextOverloads) uniform2fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (value: WebGLRenderingContextOverloads) uniform2iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
+pub (receiver: WebGLRenderingContextOverloads) uniform2iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (value: WebGLRenderingContextOverloads) uniform3fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
+pub (receiver: WebGLRenderingContextOverloads) uniform3fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (value: WebGLRenderingContextOverloads) uniform3iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
+pub (receiver: WebGLRenderingContextOverloads) uniform3iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (value: WebGLRenderingContextOverloads) uniform4fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
+pub (receiver: WebGLRenderingContextOverloads) uniform4fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (value: WebGLRenderingContextOverloads) uniform4iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
+pub (receiver: WebGLRenderingContextOverloads) uniform4iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix)
  */
-pub (value: WebGLRenderingContextOverloads) uniform_matrix2fv(
+pub (receiver: WebGLRenderingContextOverloads) uniform_matrix2fv(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     value: Float32List,
@@ -169,7 +116,7 @@ pub (value: WebGLRenderingContextOverloads) uniform_matrix2fv(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix)
  */
-pub (value: WebGLRenderingContextOverloads) uniform_matrix3fv(
+pub (receiver: WebGLRenderingContextOverloads) uniform_matrix3fv(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     value: Float32List,
@@ -178,7 +125,7 @@ pub (value: WebGLRenderingContextOverloads) uniform_matrix3fv(
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix)
  */
-pub (value: WebGLRenderingContextOverloads) uniform_matrix4fv(
+pub (receiver: WebGLRenderingContextOverloads) uniform_matrix4fv(
     location: Option[WebGLUniformLocation],
     transpose: GLboolean,
     value: Float32List,

@@ -13,8 +13,7 @@
 module std.js.Dom.SVGAnimatedPreserveAspectRatioTest.
 
 import type std.js.Dom.SVGAnimatedPreserveAspectRatio.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.SVGPreserveAspectRatio.{SVGPreserveAspectRatio}.
 
 pub anim_val_typechecks(receiver: SVGAnimatedPreserveAspectRatio): SVGPreserveAspectRatio ->
     receiver.anim_val().

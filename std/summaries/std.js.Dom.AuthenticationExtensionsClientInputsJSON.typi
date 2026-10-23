@@ -15,10 +15,10 @@ module std.js.Dom.AuthenticationExtensionsClientInputsJSON.
 
 pub opaque type AuthenticationExtensionsClientInputsJSON.
 
-pub (value: AuthenticationExtensionsClientInputsJSON) appid(): std.js.String.JsString.
+pub (receiver: AuthenticationExtensionsClientInputsJSON) appid(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AuthenticationExtensionsClientInputsJSON) cred_props(): std.core.Bool.
+pub (receiver: AuthenticationExtensionsClientInputsJSON) cred_props(): std.core.Option.Option[Bool].
 
-pub (value: AuthenticationExtensionsClientInputsJSON) large_blob(): AuthenticationExtensionsLargeBlobInputsJSON.
+pub (receiver: AuthenticationExtensionsClientInputsJSON) large_blob(): std.core.Option.Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputsJSON.AuthenticationExtensionsLargeBlobInputsJSON].
 
-pub (value: AuthenticationExtensionsClientInputsJSON) prf(): AuthenticationExtensionsPRFInputsJSON.
+pub (receiver: AuthenticationExtensionsClientInputsJSON) prf(): std.core.Option.Option[std.js.Dom.AuthenticationExtensionsPRFInputsJSON.AuthenticationExtensionsPRFInputsJSON].

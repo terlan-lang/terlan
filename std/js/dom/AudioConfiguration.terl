@@ -12,22 +12,23 @@
  */
 module std.js.Dom.AudioConfiguration.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
 pub opaque type AudioConfiguration.
 
-pub (value: AudioConfiguration) bitrate(): JsNumber ->
+pub (receiver: AudioConfiguration) bitrate(): Option[JsNumber] ->
     native.
 
-pub (value: AudioConfiguration) channels(): JsString ->
+pub (receiver: AudioConfiguration) channels(): Option[JsString] ->
     native.
 
-pub (value: AudioConfiguration) content_type(): JsString ->
+pub (receiver: AudioConfiguration) content_type(): JsString ->
     native.
 
-pub (value: AudioConfiguration) samplerate(): JsNumber ->
+pub (receiver: AudioConfiguration) samplerate(): Option[JsNumber] ->
     native.
 
-pub (value: AudioConfiguration) spatial_rendering(): std.core.Bool ->
+pub (receiver: AudioConfiguration) spatial_rendering(): Option[Bool] ->
     native.

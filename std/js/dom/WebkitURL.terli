@@ -12,4 +12,4 @@
  */
 module std.js.Dom.WebkitURL.
 
-pub type WebkitURL = URL.
+pub type WebkitURL = std.js.Dom.URL.URL.

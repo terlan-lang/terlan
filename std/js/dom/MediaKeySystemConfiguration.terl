@@ -12,28 +12,24 @@
  */
 module std.js.Dom.MediaKeySystemConfiguration.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.MediaKeySystemMediaCapability.{MediaKeySystemMediaCapability}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
 pub opaque type MediaKeySystemConfiguration.
 
-pub (value: MediaKeySystemConfiguration) audio_capabilities(): Array[MediaKeySystemMediaCapability] ->
+pub (receiver: MediaKeySystemConfiguration) audio_capabilities(): Option[Array[MediaKeySystemMediaCapability]] ->
     native.
 
-pub (value: MediaKeySystemConfiguration) distinctive_identifier(): MediaKeysRequirement ->
+pub (receiver: MediaKeySystemConfiguration) init_data_types(): Option[Array[JsString]] ->
     native.
 
-pub (value: MediaKeySystemConfiguration) init_data_types(): Array[JsString] ->
+pub (receiver: MediaKeySystemConfiguration) label(): Option[JsString] ->
     native.
 
-pub (value: MediaKeySystemConfiguration) label(): JsString ->
+pub (receiver: MediaKeySystemConfiguration) session_types(): Option[Array[JsString]] ->
     native.
 
-pub (value: MediaKeySystemConfiguration) persistent_state(): MediaKeysRequirement ->
-    native.
-
-pub (value: MediaKeySystemConfiguration) session_types(): Array[JsString] ->
-    native.
-
-pub (value: MediaKeySystemConfiguration) video_capabilities(): Array[MediaKeySystemMediaCapability] ->
+pub (receiver: MediaKeySystemConfiguration) video_capabilities(): Option[Array[MediaKeySystemMediaCapability]] ->
     native.

@@ -13,5 +13,3 @@
 module std.js.JSONTest.
 
 import type std.js.JSON.
-
-pub generated_binding_surface_contract(): Bool -> true.

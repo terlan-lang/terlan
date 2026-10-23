@@ -12,6 +12,7 @@
  */
 module std.js.Dom.StyleSheet.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -26,7 +27,7 @@ pub opaque type StyleSheet.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/disabled)
  */
-pub (value: StyleSheet) disabled(): std.core.Bool ->
+pub (receiver: StyleSheet) disabled(): Bool ->
     native.
 
 /**
@@ -34,7 +35,7 @@ pub (value: StyleSheet) disabled(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/href)
  */
-pub (value: StyleSheet) href(): Option[JsString] ->
+pub (receiver: StyleSheet) href(): Option[JsString] ->
     native.
 
 /**
@@ -42,7 +43,7 @@ pub (value: StyleSheet) href(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/media)
  */
-pub (value: StyleSheet) media(): MediaList ->
+pub (receiver: StyleSheet) media(): std.js.Dom.MediaList.MediaList ->
     native.
 
 /**
@@ -50,7 +51,7 @@ pub (value: StyleSheet) media(): MediaList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/ownerNode)
  */
-pub (value: StyleSheet) owner_node(): Option[Element | ProcessingInstruction] ->
+pub (receiver: StyleSheet) owner_node(): Option[std.js.Dom.Element.Element | std.js.Dom.ProcessingInstruction.ProcessingInstruction] ->
     native.
 
 /**
@@ -58,7 +59,7 @@ pub (value: StyleSheet) owner_node(): Option[Element | ProcessingInstruction] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/parentStyleSheet)
  */
-pub (value: StyleSheet) parent_style_sheet(): Option[CSSStyleSheet] ->
+pub (receiver: StyleSheet) parent_style_sheet(): Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
     native.
 
 /**
@@ -66,7 +67,7 @@ pub (value: StyleSheet) parent_style_sheet(): Option[CSSStyleSheet] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/title)
  */
-pub (value: StyleSheet) title(): Option[JsString] ->
+pub (receiver: StyleSheet) title(): Option[JsString] ->
     native.
 
 /**
@@ -74,5 +75,5 @@ pub (value: StyleSheet) title(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/type)
  */
-pub (value: StyleSheet) type_(): JsString ->
+pub (receiver: StyleSheet) type_(): JsString ->
     native.

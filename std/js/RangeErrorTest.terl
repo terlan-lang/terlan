@@ -13,5 +13,3 @@
 module std.js.RangeErrorTest.
 
 import type std.js.RangeError.
-
-pub generated_binding_surface_contract(): Bool -> true.

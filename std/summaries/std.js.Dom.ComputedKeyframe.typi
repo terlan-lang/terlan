@@ -15,10 +15,8 @@ module std.js.Dom.ComputedKeyframe.
 
 pub opaque type ComputedKeyframe.
 
-pub (value: ComputedKeyframe) composite(): CompositeOperationOrAuto.
+pub (receiver: ComputedKeyframe) computed_offset(): std.js.Number.JsNumber.
 
-pub (value: ComputedKeyframe) computed_offset(): std.js.Number.JsNumber.
+pub (receiver: ComputedKeyframe) easing(): std.js.String.JsString.
 
-pub (value: ComputedKeyframe) easing(): std.js.String.JsString.
-
-pub (value: ComputedKeyframe) offset(): Option[std.js.Number.JsNumber].
+pub (receiver: ComputedKeyframe) offset(): std.core.Option.Option[std.js.Number.JsNumber].

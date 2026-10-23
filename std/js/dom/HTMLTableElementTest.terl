@@ -12,12 +12,16 @@
  */
 module std.js.Dom.HTMLTableElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.HTMLCollectionOf.{HTMLCollectionOf}.
+import type std.js.Dom.HTMLTableCaptionElement.{HTMLTableCaptionElement}.
 import type std.js.Dom.HTMLTableElement.
+import type std.js.Dom.HTMLTableRowElement.{HTMLTableRowElement}.
+import type std.js.Dom.HTMLTableSectionElement.{HTMLTableSectionElement}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub align_typechecks(receiver: HTMLTableElement): JsString ->
     receiver.align().
@@ -85,14 +89,14 @@ pub delete_t_foot_typechecks(receiver: HTMLTableElement): Unit ->
 pub delete_t_head_typechecks(receiver: HTMLTableElement): Unit ->
     receiver.delete_t_head().
 
-pub insert_row_typechecks(receiver: HTMLTableElement, index: JsNumber): HTMLTableRowElement ->
+pub insert_row_typechecks(receiver: HTMLTableElement, index: Option[JsNumber]): HTMLTableRowElement ->
     receiver.insert_row(index).
 
 pub add_event_listener_typechecks(
     receiver: HTMLTableElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -100,6 +104,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLTableElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

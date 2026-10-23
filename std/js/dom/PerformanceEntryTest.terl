@@ -12,10 +12,9 @@
  */
 module std.js.Dom.PerformanceEntryTest.
 
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
 import type std.js.Dom.PerformanceEntry.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub duration_typechecks(receiver: PerformanceEntry): DOMHighResTimeStamp ->
     receiver.duration().

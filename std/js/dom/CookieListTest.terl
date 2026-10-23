@@ -13,5 +13,3 @@
 module std.js.Dom.CookieListTest.
 
 import type std.js.Dom.CookieList.
-
-pub generated_binding_surface_contract(): Bool -> true.

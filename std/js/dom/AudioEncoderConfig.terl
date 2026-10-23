@@ -12,24 +12,22 @@
  */
 module std.js.Dom.AudioEncoderConfig.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type AudioEncoderConfig.
 
-pub (value: AudioEncoderConfig) bitrate(): JsNumber ->
+pub (receiver: AudioEncoderConfig) bitrate(): Option[JsNumber] ->
     native.
 
-pub (value: AudioEncoderConfig) bitrate_mode(): BitrateMode ->
+pub (receiver: AudioEncoderConfig) codec(): std.js.String.JsString ->
     native.
 
-pub (value: AudioEncoderConfig) codec(): std.js.String.JsString ->
+pub (receiver: AudioEncoderConfig) number_of_channels(): JsNumber ->
     native.
 
-pub (value: AudioEncoderConfig) number_of_channels(): JsNumber ->
+pub (receiver: AudioEncoderConfig) opus(): Option[std.js.Dom.OpusEncoderConfig.OpusEncoderConfig] ->
     native.
 
-pub (value: AudioEncoderConfig) opus(): OpusEncoderConfig ->
-    native.
-
-pub (value: AudioEncoderConfig) sample_rate(): JsNumber ->
+pub (receiver: AudioEncoderConfig) sample_rate(): JsNumber ->
     native.

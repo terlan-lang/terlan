@@ -14,7 +14,5 @@ module std.js.FunctionConstructorTest.
 
 import type std.js.FunctionConstructor.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: FunctionConstructor): Function ->
+pub prototype_typechecks(receiver: FunctionConstructor): std.js.Function.Function ->
     receiver.prototype().

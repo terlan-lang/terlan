@@ -12,23 +12,21 @@
  */
 module std.js.Dom.DataTransferTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.DataTransfer.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub files_typechecks(receiver: DataTransfer): FileList ->
+pub files_typechecks(receiver: DataTransfer): std.js.Dom.FileList.FileList ->
     receiver.files().
 
-pub items_typechecks(receiver: DataTransfer): DataTransferItemList ->
+pub items_typechecks(receiver: DataTransfer): std.js.Dom.DataTransferItemList.DataTransferItemList ->
     receiver.items().
 
-pub types_typechecks(receiver: DataTransfer): std.js.Array[JsString] ->
+pub types_typechecks(receiver: DataTransfer): std.js.Array.Array[JsString] ->
     receiver.types().
 
-pub clear_data_typechecks(receiver: DataTransfer, format: JsString): Unit ->
+pub clear_data_typechecks(receiver: DataTransfer, format: std.core.Option.Option[JsString]): Unit ->
     receiver.clear_data(format).
 
 pub get_data_typechecks(receiver: DataTransfer, format: JsString): JsString ->
@@ -39,7 +37,7 @@ pub set_data_typechecks(receiver: DataTransfer, format: JsString, data: JsString
 
 pub set_drag_image_typechecks(
     receiver: DataTransfer,
-    image: Element,
+    image: std.js.Dom.Element.Element,
     x: JsNumber,
     y: JsNumber,
 ): Unit ->

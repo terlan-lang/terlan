@@ -14,8 +14,6 @@ module std.js.Dom.RTCStats.
 
 pub opaque type RTCStats.
 
-pub (value: RTCStats) id(): std.js.String.JsString.
+pub (receiver: RTCStats) id(): std.js.String.JsString.
 
-pub (value: RTCStats) timestamp(): DOMHighResTimeStamp.
-
-pub (value: RTCStats) type_(): RTCStatsType.
+pub (receiver: RTCStats) timestamp(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.

@@ -14,5 +14,5 @@ module std.js.Dom.TrackEventInit.
 
 pub opaque type TrackEventInit.
 
-pub (value: TrackEventInit) track(): Option[TextTrack] ->
+pub (receiver: TrackEventInit) track(): std.core.Option.Option[std.js.Dom.TextTrack.TextTrack] ->
     native.

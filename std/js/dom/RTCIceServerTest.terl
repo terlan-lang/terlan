@@ -12,16 +12,15 @@
  */
 module std.js.Dom.RTCIceServerTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.RTCIceServer.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub credential_typechecks(receiver: RTCIceServer): JsString ->
+pub credential_typechecks(receiver: RTCIceServer): Option[JsString] ->
     receiver.credential().
 
-pub urls_typechecks(receiver: RTCIceServer): std.js.Array[JsString] | JsString ->
+pub urls_typechecks(receiver: RTCIceServer): std.js.Array.Array[JsString] | JsString ->
     receiver.urls().
 
-pub username_typechecks(receiver: RTCIceServer): JsString ->
+pub username_typechecks(receiver: RTCIceServer): Option[JsString] ->
     receiver.username().

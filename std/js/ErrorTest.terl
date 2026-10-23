@@ -15,13 +15,11 @@ module std.js.ErrorTest.
 import type std.js.Error.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub name_typechecks(receiver: Error): JsString ->
     receiver.name().
 
 pub message_typechecks(receiver: Error): JsString ->
     receiver.message().
 
-pub stack_typechecks(receiver: Error): JsString ->
+pub stack_typechecks(receiver: Error): std.core.Option.Option[JsString] ->
     receiver.stack().

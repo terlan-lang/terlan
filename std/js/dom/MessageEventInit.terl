@@ -12,21 +12,22 @@
  */
 module std.js.Dom.MessageEventInit.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type MessageEventInit[T].
 
-pub (value: MessageEventInit[T]) data(): T ->
+pub (receiver: MessageEventInit[T]) data(): Option[T] ->
     native.
 
-pub (value: MessageEventInit[T]) last_event_id(): JsString ->
+pub (receiver: MessageEventInit[T]) last_event_id(): Option[JsString] ->
     native.
 
-pub (value: MessageEventInit[T]) origin(): JsString ->
+pub (receiver: MessageEventInit[T]) origin(): Option[JsString] ->
     native.
 
-pub (value: MessageEventInit[T]) ports(): std.js.Array[MessagePort] ->
+pub (receiver: MessageEventInit[T]) ports(): Option[std.js.Array.Array[std.js.Dom.MessagePort.MessagePort]] ->
     native.
 
-pub (value: MessageEventInit[T]) source(): Option[MessageEventSource] ->
+pub (receiver: MessageEventInit[T]) source(): Option[std.js.Dom.MessageEventSource.MessageEventSource] ->
     native.

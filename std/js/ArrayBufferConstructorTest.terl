@@ -14,7 +14,5 @@ module std.js.ArrayBufferConstructorTest.
 
 import type std.js.ArrayBufferConstructor.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: ArrayBufferConstructor): ArrayBuffer ->
+pub prototype_typechecks(receiver: ArrayBufferConstructor): std.js.ArrayBuffer.ArrayBuffer ->
     receiver.prototype().

@@ -12,7 +12,9 @@
  */
 module std.js.Dom.CSSStyleSheet.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.CSSRuleList.{CSSRuleList}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +30,7 @@ pub opaque type CSSStyleSheet.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/cssRules)
  */
-pub (value: CSSStyleSheet) css_rules(): CSSRuleList ->
+pub (receiver: CSSStyleSheet) css_rules(): CSSRuleList ->
     native.
 
 /**
@@ -36,7 +38,7 @@ pub (value: CSSStyleSheet) css_rules(): CSSRuleList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/ownerRule)
  */
-pub (value: CSSStyleSheet) owner_rule(): Option[CSSRule] ->
+pub (receiver: CSSStyleSheet) owner_rule(): Option[std.js.Dom.CSSRule.CSSRule] ->
     native.
 
 /**
@@ -45,7 +47,7 @@ pub (value: CSSStyleSheet) owner_rule(): Option[CSSRule] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/rules)
  */
-pub (value: CSSStyleSheet) rules(): CSSRuleList ->
+pub (receiver: CSSStyleSheet) rules(): CSSRuleList ->
     native.
 
 /**
@@ -54,7 +56,7 @@ pub (value: CSSStyleSheet) rules(): CSSRuleList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/addRule)
  */
-pub (value: CSSStyleSheet) add_rule(selector: JsString, style: JsString, index: JsNumber): JsNumber ->
+pub (receiver: CSSStyleSheet) add_rule(selector: Option[JsString], style: Option[JsString], index: Option[JsNumber]): JsNumber ->
     native.
 
 /**
@@ -62,7 +64,7 @@ pub (value: CSSStyleSheet) add_rule(selector: JsString, style: JsString, index: 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/deleteRule)
  */
-pub (value: CSSStyleSheet) delete_rule(index: JsNumber): Unit ->
+pub (receiver: CSSStyleSheet) delete_rule(index: JsNumber): Unit ->
     native.
 
 /**
@@ -70,7 +72,7 @@ pub (value: CSSStyleSheet) delete_rule(index: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/insertRule)
  */
-pub (value: CSSStyleSheet) insert_rule(rule: JsString, index: JsNumber): JsNumber ->
+pub (receiver: CSSStyleSheet) insert_rule(rule: JsString, index: Option[JsNumber]): JsNumber ->
     native.
 
 /**
@@ -79,7 +81,7 @@ pub (value: CSSStyleSheet) insert_rule(rule: JsString, index: JsNumber): JsNumbe
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/removeRule)
  */
-pub (value: CSSStyleSheet) remove_rule(index: JsNumber): Unit ->
+pub (receiver: CSSStyleSheet) remove_rule(index: Option[JsNumber]): Unit ->
     native.
 
 /**
@@ -87,7 +89,7 @@ pub (value: CSSStyleSheet) remove_rule(index: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/replace)
  */
-pub (value: CSSStyleSheet) replace(text: JsString): std.js.Promise[CSSStyleSheet] ->
+pub (receiver: CSSStyleSheet) replace(text: JsString): std.js.Promise.Promise[CSSStyleSheet] ->
     native.
 
 /**
@@ -95,5 +97,5 @@ pub (value: CSSStyleSheet) replace(text: JsString): std.js.Promise[CSSStyleSheet
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/replaceSync)
  */
-pub (value: CSSStyleSheet) replace_sync(text: JsString): Unit ->
+pub (receiver: CSSStyleSheet) replace_sync(text: JsString): Unit ->
     native.

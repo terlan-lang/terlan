@@ -12,7 +12,8 @@
  */
 module std.js.Dom.Location.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.URL.{URL}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +28,7 @@ pub opaque type Location.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/ancestorOrigins)
  */
-pub (value: Location) ancestor_origins(): DOMStringList ->
+pub (receiver: Location) ancestor_origins(): std.js.Dom.DOMStringList.DOMStringList ->
     native.
 
 /**
@@ -35,7 +36,7 @@ pub (value: Location) ancestor_origins(): DOMStringList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/hash)
  */
-pub (value: Location) hash(): JsString ->
+pub (receiver: Location) hash(): JsString ->
     native.
 
 /**
@@ -43,7 +44,7 @@ pub (value: Location) hash(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/host)
  */
-pub (value: Location) host(): JsString ->
+pub (receiver: Location) host(): JsString ->
     native.
 
 /**
@@ -51,7 +52,7 @@ pub (value: Location) host(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/hostname)
  */
-pub (value: Location) hostname(): JsString ->
+pub (receiver: Location) hostname(): JsString ->
     native.
 
 /**
@@ -59,10 +60,10 @@ pub (value: Location) hostname(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/href)
  */
-pub (value: Location) href(): JsString ->
+pub (receiver: Location) href(): JsString ->
     native.
 
-pub (value: Location) to_string(): JsString ->
+pub (receiver: Location) to_string(): JsString ->
     native.
 
 /**
@@ -70,7 +71,7 @@ pub (value: Location) to_string(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/origin)
  */
-pub (value: Location) origin(): JsString ->
+pub (receiver: Location) origin(): JsString ->
     native.
 
 /**
@@ -78,7 +79,7 @@ pub (value: Location) origin(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/pathname)
  */
-pub (value: Location) pathname(): JsString ->
+pub (receiver: Location) pathname(): JsString ->
     native.
 
 /**
@@ -86,7 +87,7 @@ pub (value: Location) pathname(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/port)
  */
-pub (value: Location) port(): JsString ->
+pub (receiver: Location) port(): JsString ->
     native.
 
 /**
@@ -94,7 +95,7 @@ pub (value: Location) port(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/protocol)
  */
-pub (value: Location) protocol(): JsString ->
+pub (receiver: Location) protocol(): JsString ->
     native.
 
 /**
@@ -102,7 +103,7 @@ pub (value: Location) protocol(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/search)
  */
-pub (value: Location) search(): JsString ->
+pub (receiver: Location) search(): JsString ->
     native.
 
 /**
@@ -110,7 +111,7 @@ pub (value: Location) search(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/assign)
  */
-pub (value: Location) assign(url: URL | JsString): Unit ->
+pub (receiver: Location) assign(url: URL | JsString): Unit ->
     native.
 
 /**
@@ -118,7 +119,7 @@ pub (value: Location) assign(url: URL | JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/reload)
  */
-pub (value: Location) reload(): Unit ->
+pub (receiver: Location) reload(): Unit ->
     native.
 
 /**
@@ -126,5 +127,5 @@ pub (value: Location) reload(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/replace)
  */
-pub (value: Location) replace(url: URL | JsString): Unit ->
+pub (receiver: Location) replace(url: URL | JsString): Unit ->
     native.

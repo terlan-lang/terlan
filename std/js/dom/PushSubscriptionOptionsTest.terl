@@ -14,10 +14,10 @@ module std.js.Dom.PushSubscriptionOptionsTest.
 
 import type std.js.Dom.PushSubscriptionOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub application_server_key_typechecks(receiver: PushSubscriptionOptions): Option[ArrayBuffer] ->
+pub application_server_key_typechecks(
+    receiver: PushSubscriptionOptions,
+): std.core.Option.Option[std.js.ArrayBuffer.ArrayBuffer] ->
     receiver.application_server_key().
 
-pub user_visible_only_typechecks(receiver: PushSubscriptionOptions): std.core.Bool ->
+pub user_visible_only_typechecks(receiver: PushSubscriptionOptions): Bool ->
     receiver.user_visible_only().

@@ -15,4 +15,4 @@ module std.js.Dom.ChannelMergerOptions.
 
 pub opaque type ChannelMergerOptions.
 
-pub (value: ChannelMergerOptions) number_of_inputs(): std.js.Number.JsNumber.
+pub (receiver: ChannelMergerOptions) number_of_inputs(): std.core.Option.Option[std.js.Number.JsNumber].

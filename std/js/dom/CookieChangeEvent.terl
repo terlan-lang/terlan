@@ -12,7 +12,8 @@
  */
 module std.js.Dom.CookieChangeEvent.
 
-import type std.js.{Array}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.CookieListItem.{CookieListItem}.
 
 /**
  * The **`CookieChangeEvent`** interface of the Cookie Store API is the event type of the CookieStore/change_event event fired at a CookieStore when any cookies are created or deleted.
@@ -27,7 +28,7 @@ pub opaque type CookieChangeEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieChangeEvent/changed)
  */
-pub (value: CookieChangeEvent) changed(): Array[CookieListItem] ->
+pub (receiver: CookieChangeEvent) changed(): Array[CookieListItem] ->
     native.
 
 /**
@@ -35,5 +36,5 @@ pub (value: CookieChangeEvent) changed(): Array[CookieListItem] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieChangeEvent/deleted)
  */
-pub (value: CookieChangeEvent) deleted(): Array[CookieListItem] ->
+pub (receiver: CookieChangeEvent) deleted(): Array[CookieListItem] ->
     native.

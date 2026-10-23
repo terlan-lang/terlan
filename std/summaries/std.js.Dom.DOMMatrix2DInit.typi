@@ -15,26 +15,26 @@ module std.js.Dom.DOMMatrix2DInit.
 
 pub opaque type DOMMatrix2DInit.
 
-pub (value: DOMMatrix2DInit) a(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) a(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMMatrix2DInit) b(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) b(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMMatrix2DInit) c(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) c(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMMatrix2DInit) d(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) d(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMMatrix2DInit) e(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) e(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMMatrix2DInit) f(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) f(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMMatrix2DInit) m11(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) m11(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMMatrix2DInit) m12(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) m12(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMMatrix2DInit) m21(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) m21(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMMatrix2DInit) m22(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) m22(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMMatrix2DInit) m41(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) m41(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMMatrix2DInit) m42(): std.js.Number.JsNumber.
+pub (receiver: DOMMatrix2DInit) m42(): std.core.Option.Option[std.js.Number.JsNumber].

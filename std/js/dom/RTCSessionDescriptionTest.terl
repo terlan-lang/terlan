@@ -14,13 +14,10 @@ module std.js.Dom.RTCSessionDescriptionTest.
 
 import type std.js.Dom.RTCSessionDescription.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub sdp_typechecks(receiver: RTCSessionDescription): std.js.String.JsString ->
     receiver.sdp().
 
-pub type__typechecks(receiver: RTCSessionDescription): RTCSdpType ->
-    receiver.type_().
-
-pub to_json_typechecks(receiver: RTCSessionDescription): RTCSessionDescriptionInit ->
+pub to_json_typechecks(
+    receiver: RTCSessionDescription,
+): std.js.Dom.RTCSessionDescriptionInit.RTCSessionDescriptionInit ->
     receiver.to_json().

@@ -12,4 +12,4 @@
  */
 module std.js.Dom.ReportList.
 
-pub type ReportList = std.js.Array[Report].
+pub type ReportList = std.js.Array.Array[std.js.Dom.Report.Report].

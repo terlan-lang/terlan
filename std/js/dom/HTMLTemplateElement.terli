@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLTemplateElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,44 +29,44 @@ pub opaque type HTMLTemplateElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTemplateElement/content)
  */
-pub (value: HTMLTemplateElement) content(): DocumentFragment.
+pub (receiver: HTMLTemplateElement) content(): std.js.Dom.DocumentFragment.DocumentFragment.
 
 /**
  * The **`shadowRootClonable`** property reflects the value of the `shadowrootclonable` attribute of the associated `<template>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTemplateElement/shadowRootClonable)
  */
-pub (value: HTMLTemplateElement) shadow_root_clonable(): Bool.
+pub (receiver: HTMLTemplateElement) shadow_root_clonable(): Bool.
 
 /**
  * The **`shadowRootDelegatesFocus`** property of the HTMLTemplateElement interface reflects the value of the `shadowrootdelegatesfocus` attribute of the associated `<template>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTemplateElement/shadowRootDelegatesFocus)
  */
-pub (value: HTMLTemplateElement) shadow_root_delegates_focus(): Bool.
+pub (receiver: HTMLTemplateElement) shadow_root_delegates_focus(): Bool.
 
 /**
  * The **`shadowRootMode`** property of the HTMLTemplateElement interface reflects the value of the `shadowrootmode` attribute of the associated `<template>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTemplateElement/shadowRootMode)
  */
-pub (value: HTMLTemplateElement) shadow_root_mode(): JsString.
+pub (receiver: HTMLTemplateElement) shadow_root_mode(): JsString.
 
 /**
  * The **`shadowRootSerializable`** property reflects the value of the `shadowrootserializable` attribute of the associated `<template>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTemplateElement/shadowRootSerializable)
  */
-pub (value: HTMLTemplateElement) shadow_root_serializable(): Bool.
+pub (receiver: HTMLTemplateElement) shadow_root_serializable(): Bool.
 
-pub (value: HTMLTemplateElement) add_event_listener(
+pub (receiver: HTMLTemplateElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: HTMLTemplateElement) remove_event_listener(
+pub (receiver: HTMLTemplateElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

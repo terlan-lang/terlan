@@ -26,25 +26,25 @@ pub opaque type ImageCapture.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/track)
  */
-pub (value: ImageCapture) track(): MediaStreamTrack.
+pub (receiver: ImageCapture) track(): std.js.Dom.MediaStreamTrack.MediaStreamTrack.
 
 /**
  * The **`getPhotoCapabilities()`** method of the ImageCapture interface returns a Promise that resolves with an object containing the ranges of available configuration options.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/getPhotoCapabilities)
  */
-pub (value: ImageCapture) get_photo_capabilities(): std.js.Promise[PhotoCapabilities].
+pub (receiver: ImageCapture) get_photo_capabilities(): std.js.Promise.Promise[std.js.Dom.PhotoCapabilities.PhotoCapabilities].
 
 /**
  * The **`getPhotoSettings()`** method of the ImageCapture interface returns a Promise that resolves with an object containing the current photo configuration settings.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/getPhotoSettings)
  */
-pub (value: ImageCapture) get_photo_settings(): std.js.Promise[PhotoSettings].
+pub (receiver: ImageCapture) get_photo_settings(): std.js.Promise.Promise[std.js.Dom.PhotoSettings.PhotoSettings].
 
 /**
  * The **`takePhoto()`** method of the device sourcing a MediaStreamTrack and returns a Promise that resolves with a Blob containing the data.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageCapture/takePhoto)
  */
-pub (value: ImageCapture) take_photo(photo_settings: PhotoSettings): std.js.Promise[Blob].
+pub (receiver: ImageCapture) take_photo(photo_settings: std.core.Option.Option[std.js.Dom.PhotoSettings.PhotoSettings]): std.js.Promise.Promise[std.js.Dom.Blob.Blob].

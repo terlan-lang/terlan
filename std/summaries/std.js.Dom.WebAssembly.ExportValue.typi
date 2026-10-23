@@ -14,4 +14,4 @@
 module std.js.Dom.WebAssembly.ExportValue.
 
 pub type ExportValue =
-    Function | Global | Memory | Table.
+    std.js.Function.Function | std.js.Dom.WebAssembly.Global.Global | std.js.Dom.WebAssembly.Memory.Memory | std.js.Dom.WebAssembly.Table.Table.

@@ -14,10 +14,10 @@ module std.js.Dom.ByteLengthQueuingStrategyTest.
 
 import type std.js.Dom.ByteLengthQueuingStrategy.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub high_water_mark_typechecks(receiver: ByteLengthQueuingStrategy): std.js.Number.JsNumber ->
     receiver.high_water_mark().
 
-pub size_typechecks(receiver: ByteLengthQueuingStrategy): QueuingStrategySize[ArrayBufferView] ->
+pub size_typechecks(
+    receiver: ByteLengthQueuingStrategy,
+): std.js.Dom.QueuingStrategySize.QueuingStrategySize[std.js.ArrayBufferView.ArrayBufferView] ->
     receiver.size().

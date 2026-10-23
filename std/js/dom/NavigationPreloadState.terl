@@ -12,10 +12,12 @@
  */
 module std.js.Dom.NavigationPreloadState.
 
+import type std.core.Option.{Option}.
+
 pub opaque type NavigationPreloadState.
 
-pub (value: NavigationPreloadState) enabled(): std.core.Bool ->
+pub (receiver: NavigationPreloadState) enabled(): Option[Bool] ->
     native.
 
-pub (value: NavigationPreloadState) header_value(): std.js.String.JsString ->
+pub (receiver: NavigationPreloadState) header_value(): Option[std.js.String.JsString] ->
     native.

@@ -12,6 +12,10 @@
  */
 module std.js.Dom.BiquadFilterNode.
 
+import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.js.Dom.AudioParam.{AudioParam}.
+import type std.js.Float32Array.{Float32Array}.
+
 /**
  * The `BiquadFilterNode` interface represents a simple low-order filter, and is created using the BaseAudioContext/createBiquadFilter method.
  *
@@ -24,43 +28,36 @@ pub opaque type BiquadFilterNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/Q)
  */
-pub (value: BiquadFilterNode) q(): AudioParam.
+pub (receiver: BiquadFilterNode) q(): AudioParam.
 
 /**
  * The `detune` property of the BiquadFilterNode interface is an a-rate AudioParam representing detuning of the frequency in cents.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/detune)
  */
-pub (value: BiquadFilterNode) detune(): AudioParam.
+pub (receiver: BiquadFilterNode) detune(): AudioParam.
 
 /**
  * The `frequency` property of the BiquadFilterNode interface is an a-rate AudioParam — a double representing a frequency in the current filtering algorithm measured in hertz (Hz).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/frequency)
  */
-pub (value: BiquadFilterNode) frequency(): AudioParam.
+pub (receiver: BiquadFilterNode) frequency(): AudioParam.
 
 /**
  * The `gain` property of the BiquadFilterNode interface is an a-rate AudioParam — a double representing the gain used in the current filtering algorithm.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/gain)
  */
-pub (value: BiquadFilterNode) gain(): AudioParam.
-
-/**
- * The `type` property of the BiquadFilterNode interface is a string (enum) value defining the kind of filtering algorithm the node is implementing.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/type)
- */
-pub (value: BiquadFilterNode) type_(): BiquadFilterType.
+pub (receiver: BiquadFilterNode) gain(): AudioParam.
 
 /**
  * The `getFrequencyResponse()` method of the BiquadFilterNode interface takes the current filtering algorithm's settings and calculates the frequency response for frequencies specified in a specified array of frequencies.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/getFrequencyResponse)
  */
-pub (value: BiquadFilterNode) get_frequency_response(
+pub (receiver: BiquadFilterNode) get_frequency_response(
     frequency_hz: Float32Array[ArrayBuffer],
     mag_response: Float32Array[ArrayBuffer],
     phase_response: Float32Array[ArrayBuffer],
-): std.core.Unit.
+): std.core.Unit.Unit.

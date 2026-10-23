@@ -12,4 +12,4 @@
  */
 module std.js.Dom.TimerHandler.
 
-pub type TimerHandler = Function | std.js.String.JsString.
+pub type TimerHandler = std.js.Function.Function | std.js.String.JsString.

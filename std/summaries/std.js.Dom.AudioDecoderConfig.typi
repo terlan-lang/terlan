@@ -15,10 +15,10 @@ module std.js.Dom.AudioDecoderConfig.
 
 pub opaque type AudioDecoderConfig.
 
-pub (value: AudioDecoderConfig) codec(): std.js.String.JsString.
+pub (receiver: AudioDecoderConfig) codec(): std.js.String.JsString.
 
-pub (value: AudioDecoderConfig) description(): AllowSharedBufferSource.
+pub (receiver: AudioDecoderConfig) description(): std.core.Option.Option[std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource].
 
-pub (value: AudioDecoderConfig) number_of_channels(): std.js.Number.JsNumber.
+pub (receiver: AudioDecoderConfig) number_of_channels(): std.js.Number.JsNumber.
 
-pub (value: AudioDecoderConfig) sample_rate(): std.js.Number.JsNumber.
+pub (receiver: AudioDecoderConfig) sample_rate(): std.js.Number.JsNumber.

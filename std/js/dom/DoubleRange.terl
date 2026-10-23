@@ -12,12 +12,13 @@
  */
 module std.js.Dom.DoubleRange.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type DoubleRange.
 
-pub (value: DoubleRange) max(): JsNumber ->
+pub (receiver: DoubleRange) max(): Option[JsNumber] ->
     native.
 
-pub (value: DoubleRange) min(): JsNumber ->
+pub (receiver: DoubleRange) min(): Option[JsNumber] ->
     native.

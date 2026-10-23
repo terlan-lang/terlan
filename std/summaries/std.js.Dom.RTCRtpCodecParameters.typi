@@ -15,4 +15,4 @@ module std.js.Dom.RTCRtpCodecParameters.
 
 pub opaque type RTCRtpCodecParameters.
 
-pub (value: RTCRtpCodecParameters) payload_type(): std.js.Number.JsNumber.
+pub (receiver: RTCRtpCodecParameters) payload_type(): std.js.Number.JsNumber.

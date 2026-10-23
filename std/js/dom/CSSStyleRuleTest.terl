@@ -14,13 +14,11 @@ module std.js.Dom.CSSStyleRuleTest.
 
 import type std.js.Dom.CSSStyleRule.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub selector_text_typechecks(receiver: CSSStyleRule): std.js.String.JsString ->
     receiver.selector_text().
 
-pub style_typechecks(receiver: CSSStyleRule): CSSStyleDeclaration ->
+pub style_typechecks(receiver: CSSStyleRule): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration ->
     receiver.style().
 
-pub style_map_typechecks(receiver: CSSStyleRule): StylePropertyMap ->
+pub style_map_typechecks(receiver: CSSStyleRule): std.js.Dom.StylePropertyMap.StylePropertyMap ->
     receiver.style_map().

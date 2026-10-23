@@ -12,4 +12,4 @@
  */
 module std.js.Dom.AlgorithmIdentifier.
 
-pub type AlgorithmIdentifier = Algorithm | std.js.String.JsString.
+pub type AlgorithmIdentifier = std.js.Dom.Algorithm.Algorithm | std.js.String.JsString.

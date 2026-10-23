@@ -36,7 +36,7 @@ fn nominal_declarations(core: &CoreModule, public_only: bool) -> HashSet<String>
 /// that nominal declaration. Ambiguous names remain unresolved and are rejected
 /// by the ordinary native type admission path instead of acquiring an arbitrary
 /// application-wide semantic identity.
-pub(super) fn qualify_application_nominal_types(cores: &mut [CoreModule]) {
+pub(crate) fn qualify_application_nominal_types(cores: &mut [CoreModule]) {
     let providers = cores
         .iter()
         .map(|core| (core.module.clone(), nominal_declarations(core, true)))

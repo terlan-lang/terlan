@@ -19,32 +19,32 @@ pub opaque type RegExp.
  * Executes a search on a string using a regular expression pattern, and returns an array containing the results of that search.
  * @param string The String object or string literal on which to perform the search.
  */
-pub (value: RegExp) exec(string: std.js.String.JsString): Option[RegExpExecArray].
+pub (receiver: RegExp) exec(string: std.js.String.JsString): std.core.Option.Option[std.js.RegExpExecArray.RegExpExecArray].
 
 /**
  * Returns a Boolean value that indicates whether or not a pattern exists in a searched string.
  * @param string String on which to perform the search.
  */
-pub (value: RegExp) test(string: std.js.String.JsString): std.core.Bool.
+pub (receiver: RegExp) test(string: std.js.String.JsString): Bool.
 
 /**
  * Returns a copy of the text of the regular expression pattern. Read-only. The regExp argument is a Regular expression object. It can be a variable name or a literal.
  */
-pub (value: RegExp) source(): std.js.String.JsString.
+pub (receiver: RegExp) source(): std.js.String.JsString.
 
 /**
  * Returns a Boolean value indicating the state of the global flag (g) used with a regular expression. Default is false. Read-only.
  */
-pub (value: RegExp) global(): std.core.Bool.
+pub (receiver: RegExp) global(): Bool.
 
 /**
  * Returns a Boolean value indicating the state of the ignoreCase flag (i) used with a regular expression. Default is false. Read-only.
  */
-pub (value: RegExp) ignore_case(): std.core.Bool.
+pub (receiver: RegExp) ignore_case(): Bool.
 
 /**
  * Returns a Boolean value indicating the state of the multiline flag (m) used with a regular expression. Default is false. Read-only.
  */
-pub (value: RegExp) multiline(): std.core.Bool.
+pub (receiver: RegExp) multiline(): Bool.
 
-pub (value: RegExp) last_index(): std.js.Number.JsNumber.
+pub (receiver: RegExp) last_index(): std.js.Number.JsNumber.

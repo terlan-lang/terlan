@@ -14,7 +14,7 @@ module std.js.Dom.MediaQueryListEventMapTest.
 
 import type std.js.Dom.MediaQueryListEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub change_typechecks(receiver: MediaQueryListEventMap): MediaQueryListEvent ->
+pub change_typechecks(
+    receiver: MediaQueryListEventMap,
+): std.js.Dom.MediaQueryListEvent.MediaQueryListEvent ->
     receiver.change().

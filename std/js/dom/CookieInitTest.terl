@@ -12,28 +12,26 @@
  */
 module std.js.Dom.CookieInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.CookieInit.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub domain_typechecks(receiver: CookieInit): Option[JsString] ->
     receiver.domain().
 
-pub expires_typechecks(receiver: CookieInit): Option[DOMHighResTimeStamp] ->
+pub expires_typechecks(
+    receiver: CookieInit,
+): Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp] ->
     receiver.expires().
 
 pub name_typechecks(receiver: CookieInit): JsString ->
     receiver.name().
 
-pub partitioned_typechecks(receiver: CookieInit): std.core.Bool ->
+pub partitioned_typechecks(receiver: CookieInit): Option[Bool] ->
     receiver.partitioned().
 
-pub path_typechecks(receiver: CookieInit): JsString ->
+pub path_typechecks(receiver: CookieInit): Option[JsString] ->
     receiver.path().
-
-pub same_site_typechecks(receiver: CookieInit): CookieSameSite ->
-    receiver.same_site().
 
 pub value_typechecks(receiver: CookieInit): JsString ->
     receiver.value().

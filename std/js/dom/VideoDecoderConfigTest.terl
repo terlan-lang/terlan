@@ -12,34 +12,34 @@
  */
 module std.js.Dom.VideoDecoderConfigTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.VideoDecoderConfig.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub codec_typechecks(receiver: VideoDecoderConfig): std.js.String.JsString ->
     receiver.codec().
 
-pub coded_height_typechecks(receiver: VideoDecoderConfig): JsNumber ->
+pub coded_height_typechecks(receiver: VideoDecoderConfig): Option[JsNumber] ->
     receiver.coded_height().
 
-pub coded_width_typechecks(receiver: VideoDecoderConfig): JsNumber ->
+pub coded_width_typechecks(receiver: VideoDecoderConfig): Option[JsNumber] ->
     receiver.coded_width().
 
-pub color_space_typechecks(receiver: VideoDecoderConfig): VideoColorSpaceInit ->
+pub color_space_typechecks(
+    receiver: VideoDecoderConfig,
+): Option[std.js.Dom.VideoColorSpaceInit.VideoColorSpaceInit] ->
     receiver.color_space().
 
-pub description_typechecks(receiver: VideoDecoderConfig): AllowSharedBufferSource ->
+pub description_typechecks(
+    receiver: VideoDecoderConfig,
+): Option[std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource] ->
     receiver.description().
 
-pub display_aspect_height_typechecks(receiver: VideoDecoderConfig): JsNumber ->
+pub display_aspect_height_typechecks(receiver: VideoDecoderConfig): Option[JsNumber] ->
     receiver.display_aspect_height().
 
-pub display_aspect_width_typechecks(receiver: VideoDecoderConfig): JsNumber ->
+pub display_aspect_width_typechecks(receiver: VideoDecoderConfig): Option[JsNumber] ->
     receiver.display_aspect_width().
 
-pub hardware_acceleration_typechecks(receiver: VideoDecoderConfig): HardwareAcceleration ->
-    receiver.hardware_acceleration().
-
-pub optimize_for_latency_typechecks(receiver: VideoDecoderConfig): std.core.Bool ->
+pub optimize_for_latency_typechecks(receiver: VideoDecoderConfig): Option[Bool] ->
     receiver.optimize_for_latency().

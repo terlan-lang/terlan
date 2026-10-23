@@ -14,7 +14,7 @@ module std.js.Dom.OfflineAudioCompletionEventTest.
 
 import type std.js.Dom.OfflineAudioCompletionEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub rendered_buffer_typechecks(receiver: OfflineAudioCompletionEvent): AudioBuffer ->
+pub rendered_buffer_typechecks(
+    receiver: OfflineAudioCompletionEvent,
+): std.js.Dom.AudioBuffer.AudioBuffer ->
     receiver.rendered_buffer().

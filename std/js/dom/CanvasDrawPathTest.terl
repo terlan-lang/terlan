@@ -12,57 +12,27 @@
  */
 module std.js.Dom.CanvasDrawPathTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.CanvasDrawPath.
+import type std.js.Dom.Path2D.{Path2D}.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub begin_path_typechecks(receiver: CanvasDrawPath): Unit ->
     receiver.begin_path().
 
-pub clip_typechecks(receiver: CanvasDrawPath, fill_rule: CanvasFillRule): Unit ->
-    receiver.clip(fill_rule).
-
-pub clip_typechecks(receiver: CanvasDrawPath, path: Path2D, fill_rule: CanvasFillRule): Unit ->
-    receiver.clip(path, fill_rule).
-
-pub fill_typechecks(receiver: CanvasDrawPath, fill_rule: CanvasFillRule): Unit ->
-    receiver.fill(fill_rule).
-
-pub fill_typechecks(receiver: CanvasDrawPath, path: Path2D, fill_rule: CanvasFillRule): Unit ->
-    receiver.fill(path, fill_rule).
-
-pub is_point_in_path_typechecks(
-    receiver: CanvasDrawPath,
-    x: JsNumber,
-    y: JsNumber,
-    fill_rule: CanvasFillRule,
-): Bool ->
-    receiver.is_point_in_path(x, y, fill_rule).
-
-pub is_point_in_path_typechecks(
-    receiver: CanvasDrawPath,
-    path: Path2D,
-    x: JsNumber,
-    y: JsNumber,
-    fill_rule: CanvasFillRule,
-): Bool ->
-    receiver.is_point_in_path(path, x, y, fill_rule).
-
 pub is_point_in_stroke_typechecks(receiver: CanvasDrawPath, x: JsNumber, y: JsNumber): Bool ->
     receiver.is_point_in_stroke(x, y).
 
-pub is_point_in_stroke_typechecks(
+pub is_point_in_stroke_overload_2_typechecks(
     receiver: CanvasDrawPath,
     path: Path2D,
     x: JsNumber,
     y: JsNumber,
 ): Bool ->
-    receiver.is_point_in_stroke(path, x, y).
+    receiver.is_point_in_stroke_overload_2(path, x, y).
 
 pub stroke_typechecks(receiver: CanvasDrawPath): Unit ->
     receiver.stroke().
 
-pub stroke_typechecks(receiver: CanvasDrawPath, path: Path2D): Unit ->
-    receiver.stroke(path).
+pub stroke_overload_2_typechecks(receiver: CanvasDrawPath, path: Path2D): Unit ->
+    receiver.stroke_overload_2(path).

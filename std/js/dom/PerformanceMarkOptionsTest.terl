@@ -14,7 +14,7 @@ module std.js.Dom.PerformanceMarkOptionsTest.
 
 import type std.js.Dom.PerformanceMarkOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub start_time_typechecks(receiver: PerformanceMarkOptions): DOMHighResTimeStamp ->
+pub start_time_typechecks(
+    receiver: PerformanceMarkOptions,
+): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp] ->
     receiver.start_time().

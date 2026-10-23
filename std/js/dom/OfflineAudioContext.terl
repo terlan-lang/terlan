@@ -12,10 +12,12 @@
  */
 module std.js.Dom.OfflineAudioContext.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
 
 /**
  * The `OfflineAudioContext` interface is an AudioContext interface representing an audio-processing graph built from linked together AudioNodes.
@@ -29,7 +31,7 @@ pub opaque type OfflineAudioContext.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OfflineAudioContext/length)
  */
-pub (value: OfflineAudioContext) length(): JsNumber ->
+pub (receiver: OfflineAudioContext) length(): JsNumber ->
     native.
 
 /**
@@ -37,7 +39,7 @@ pub (value: OfflineAudioContext) length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OfflineAudioContext/resume)
  */
-pub (value: OfflineAudioContext) resume(): Promise[Unit] ->
+pub (receiver: OfflineAudioContext) resume(): Promise[Unit] ->
     native.
 
 /**
@@ -45,7 +47,7 @@ pub (value: OfflineAudioContext) resume(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OfflineAudioContext/startRendering)
  */
-pub (value: OfflineAudioContext) start_rendering(): Promise[AudioBuffer] ->
+pub (receiver: OfflineAudioContext) start_rendering(): Promise[std.js.Dom.AudioBuffer.AudioBuffer] ->
     native.
 
 /**
@@ -53,19 +55,19 @@ pub (value: OfflineAudioContext) start_rendering(): Promise[AudioBuffer] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OfflineAudioContext/suspend)
  */
-pub (value: OfflineAudioContext) suspend(suspend_time: JsNumber): Promise[Unit] ->
+pub (receiver: OfflineAudioContext) suspend(suspend_time: JsNumber): Promise[Unit] ->
     native.
 
-pub (value: OfflineAudioContext) add_event_listener(
+pub (receiver: OfflineAudioContext) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: OfflineAudioContext) remove_event_listener(
+pub (receiver: OfflineAudioContext) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

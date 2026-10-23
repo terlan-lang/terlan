@@ -14,13 +14,5 @@ module std.js.Dom.RegistrationOptionsTest.
 
 import type std.js.Dom.RegistrationOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub scope_typechecks(receiver: RegistrationOptions): std.js.String.JsString ->
+pub scope_typechecks(receiver: RegistrationOptions): std.core.Option.Option[std.js.String.JsString] ->
     receiver.scope().
-
-pub type__typechecks(receiver: RegistrationOptions): WorkerType ->
-    receiver.type_().
-
-pub update_via_cache_typechecks(receiver: RegistrationOptions): ServiceWorkerUpdateViaCache ->
-    receiver.update_via_cache().

@@ -15,6 +15,6 @@ module std.js.Dom.ULongRange.
 
 pub opaque type ULongRange.
 
-pub (value: ULongRange) max(): std.js.Number.JsNumber.
+pub (receiver: ULongRange) max(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: ULongRange) min(): std.js.Number.JsNumber.
+pub (receiver: ULongRange) min(): std.core.Option.Option[std.js.Number.JsNumber].

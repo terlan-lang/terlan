@@ -14,7 +14,5 @@ module std.js.Dom.TextDecodeOptionsTest.
 
 import type std.js.Dom.TextDecodeOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub stream_typechecks(receiver: TextDecodeOptions): std.core.Bool ->
+pub stream_typechecks(receiver: TextDecodeOptions): std.core.Option.Option[Bool] ->
     receiver.stream().

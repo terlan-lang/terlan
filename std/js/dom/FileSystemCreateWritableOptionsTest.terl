@@ -14,7 +14,7 @@ module std.js.Dom.FileSystemCreateWritableOptionsTest.
 
 import type std.js.Dom.FileSystemCreateWritableOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub keep_existing_data_typechecks(receiver: FileSystemCreateWritableOptions): std.core.Bool ->
+pub keep_existing_data_typechecks(
+    receiver: FileSystemCreateWritableOptions,
+): std.core.Option.Option[Bool] ->
     receiver.keep_existing_data().

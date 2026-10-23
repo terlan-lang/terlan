@@ -12,14 +12,18 @@
  */
 module std.js.Dom.StylePropertyMapTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.CSSStyleValue.{CSSStyleValue}.
 import type std.js.Dom.StylePropertyMap.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub append_typechecks(receiver: StylePropertyMap, property: JsString): Unit ->
-    receiver.append(property).
+pub append_typechecks(
+    receiver: StylePropertyMap,
+    property: JsString,
+    values: Array[CSSStyleValue | JsString],
+): Unit ->
+    receiver.append(property, values).
 
 pub clear_typechecks(receiver: StylePropertyMap): Unit ->
     receiver.clear().
@@ -27,5 +31,9 @@ pub clear_typechecks(receiver: StylePropertyMap): Unit ->
 pub delete_typechecks(receiver: StylePropertyMap, property: JsString): Unit ->
     receiver.delete(property).
 
-pub set_typechecks(receiver: StylePropertyMap, property: JsString): Unit ->
-    receiver.set(property).
+pub set_typechecks(
+    receiver: StylePropertyMap,
+    property: JsString,
+    values: Array[CSSStyleValue | JsString],
+): Unit ->
+    receiver.set(property, values).

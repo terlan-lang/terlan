@@ -15,21 +15,19 @@ module std.js.Uint8ArrayConstructor.
 
 pub opaque type Uint8ArrayConstructor.
 
-pub (value: Uint8ArrayConstructor) prototype(): Uint8Array[ArrayBufferLike].
-
 /**
  * The size in bytes of each element in the array.
  */
-pub (value: Uint8ArrayConstructor) bytes_per_element(): std.js.Number.JsNumber.
+pub (receiver: Uint8ArrayConstructor) bytes_per_element(): std.js.Number.JsNumber.
 
 /**
  * Returns a new array from a set of elements.
  * @param items A set of elements to include in the new array object.
  */
-pub (value: Uint8ArrayConstructor) of(): Uint8Array[ArrayBuffer].
+pub (receiver: Uint8ArrayConstructor) of(items: std.js.Array.Array[std.js.Number.JsNumber]): std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer].
 
 /**
  * Creates an array from an array-like or iterable object.
  * @param arrayLike An array-like object to convert to an array.
  */
-pub (value: Uint8ArrayConstructor) from_(array_like: ArrayLike[std.js.Number.JsNumber]): Uint8Array[ArrayBuffer].
+pub (receiver: Uint8ArrayConstructor) from_(array_like: std.js.ArrayLike.ArrayLike[std.js.Number.JsNumber]): std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer].

@@ -14,7 +14,7 @@ module std.js.Dom.ChannelMergerOptionsTest.
 
 import type std.js.Dom.ChannelMergerOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub number_of_inputs_typechecks(receiver: ChannelMergerOptions): std.js.Number.JsNumber ->
+pub number_of_inputs_typechecks(
+    receiver: ChannelMergerOptions,
+): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.number_of_inputs().

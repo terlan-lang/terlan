@@ -15,4 +15,4 @@ module std.js.Dom.ShadowRootEventMap.
 
 pub opaque type ShadowRootEventMap.
 
-pub (value: ShadowRootEventMap) slotchange(): Event.
+pub (receiver: ShadowRootEventMap) slotchange(): std.js.Dom.Event.Event.

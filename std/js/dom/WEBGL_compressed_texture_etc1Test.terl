@@ -13,5 +13,3 @@
 module std.js.Dom.WEBGL_compressed_texture_etc1Test.
 
 import type std.js.Dom.WEBGL_compressed_texture_etc1.
-
-pub generated_binding_surface_contract(): Bool -> true.

@@ -12,16 +12,14 @@
  */
 module std.js.Dom.CacheQueryOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.CacheQueryOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub ignore_method_typechecks(receiver: CacheQueryOptions): Bool ->
+pub ignore_method_typechecks(receiver: CacheQueryOptions): Option[Bool] ->
     receiver.ignore_method().
 
-pub ignore_search_typechecks(receiver: CacheQueryOptions): Bool ->
+pub ignore_search_typechecks(receiver: CacheQueryOptions): Option[Bool] ->
     receiver.ignore_search().
 
-pub ignore_vary_typechecks(receiver: CacheQueryOptions): Bool ->
+pub ignore_vary_typechecks(receiver: CacheQueryOptions): Option[Bool] ->
     receiver.ignore_vary().

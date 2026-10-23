@@ -25,84 +25,84 @@ pub opaque type PointerEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/altitudeAngle)
  */
-pub (value: PointerEvent) altitude_angle(): std.js.Number.JsNumber.
+pub (receiver: PointerEvent) altitude_angle(): std.js.Number.JsNumber.
 
 /**
  * The **`azimuthAngle`** read-only property of the PointerEvent interface represents the angle between the Y-Z plane and the plane containing both the transducer (pointer or stylus) axis and the Y axis.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/azimuthAngle)
  */
-pub (value: PointerEvent) azimuth_angle(): std.js.Number.JsNumber.
+pub (receiver: PointerEvent) azimuth_angle(): std.js.Number.JsNumber.
 
 /**
  * The **`height`** read-only property of the geometry, along the y-axis (in CSS pixels).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/height)
  */
-pub (value: PointerEvent) height(): std.js.Number.JsNumber.
+pub (receiver: PointerEvent) height(): std.js.Number.JsNumber.
 
 /**
  * The **`isPrimary`** read-only property of the created the event is the _primary_ pointer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/isPrimary)
  */
-pub (value: PointerEvent) is_primary(): std.core.Bool.
+pub (receiver: PointerEvent) is_primary(): Bool.
 
 /**
  * The **`pointerId`** read-only property of the event.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/pointerId)
  */
-pub (value: PointerEvent) pointer_id(): std.js.Number.JsNumber.
+pub (receiver: PointerEvent) pointer_id(): std.js.Number.JsNumber.
 
 /**
  * The **`pointerType`** read-only property of the that caused a given pointer event.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/pointerType)
  */
-pub (value: PointerEvent) pointer_type(): std.js.String.JsString.
+pub (receiver: PointerEvent) pointer_type(): std.js.String.JsString.
 
 /**
  * The **`pressure`** read-only property of the input.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/pressure)
  */
-pub (value: PointerEvent) pressure(): std.js.Number.JsNumber.
+pub (receiver: PointerEvent) pressure(): std.js.Number.JsNumber.
 
 /**
  * The **`tangentialPressure`** read-only property of the the pointer input (also known as barrel pressure or cylinder stress).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/tangentialPressure)
  */
-pub (value: PointerEvent) tangential_pressure(): std.js.Number.JsNumber.
+pub (receiver: PointerEvent) tangential_pressure(): std.js.Number.JsNumber.
 
 /**
  * The **`tiltX`** read-only property of the PointerEvent interface is the angle (in degrees) between the _Y-Z plane_ of the pointer and the screen.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/tiltX)
  */
-pub (value: PointerEvent) tilt_x(): std.js.Number.JsNumber.
+pub (receiver: PointerEvent) tilt_x(): std.js.Number.JsNumber.
 
 /**
  * The **`tiltY`** read-only property of the PointerEvent interface is the angle (in degrees) between the _X-Z plane_ of the pointer and the screen.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/tiltY)
  */
-pub (value: PointerEvent) tilt_y(): std.js.Number.JsNumber.
+pub (receiver: PointerEvent) tilt_y(): std.js.Number.JsNumber.
 
 /**
  * The **`twist`** read-only property of the (e.g., pen stylus) around its major axis, in degrees.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/twist)
  */
-pub (value: PointerEvent) twist(): std.js.Number.JsNumber.
+pub (receiver: PointerEvent) twist(): std.js.Number.JsNumber.
 
 /**
  * The **`width`** read-only property of the geometry along the x-axis, measured in CSS pixels.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/width)
  */
-pub (value: PointerEvent) width(): std.js.Number.JsNumber.
+pub (receiver: PointerEvent) width(): std.js.Number.JsNumber.
 
 /**
  * The **`getCoalescedEvents()`** method of the PointerEvent interface returns a sequence of `PointerEvent` instances that were coalesced (merged) into a single Element/pointermove_event or Element/pointerrawupdate_event event.
@@ -110,11 +110,11 @@ pub (value: PointerEvent) width(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/getCoalescedEvents)
  */
-pub (value: PointerEvent) get_coalesced_events(): std.js.Array[PointerEvent].
+pub (receiver: PointerEvent) get_coalesced_events(): std.js.Array.Array[PointerEvent].
 
 /**
  * The **`getPredictedEvents()`** method of the PointerEvent interface returns a sequence of `PointerEvent` instances that are estimated future pointer positions.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/getPredictedEvents)
  */
-pub (value: PointerEvent) get_predicted_events(): std.js.Array[PointerEvent].
+pub (receiver: PointerEvent) get_predicted_events(): std.js.Array.Array[PointerEvent].

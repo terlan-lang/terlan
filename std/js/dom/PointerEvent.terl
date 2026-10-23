@@ -12,8 +12,8 @@
  */
 module std.js.Dom.PointerEvent.
 
+import type std.js.Array.{Array}.
 import type std.js.Number.{JsNumber}.
-import type std.js.{Array}.
 
 /**
  * The **`PointerEvent`** interface represents the state of a DOM event produced by a pointer such as the geometry of the contact point, the device type that generated the event, the amount of pressure that was applied on the contact surface, etc.
@@ -27,7 +27,7 @@ pub opaque type PointerEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/altitudeAngle)
  */
-pub (value: PointerEvent) altitude_angle(): JsNumber ->
+pub (receiver: PointerEvent) altitude_angle(): JsNumber ->
     native.
 
 /**
@@ -35,7 +35,7 @@ pub (value: PointerEvent) altitude_angle(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/azimuthAngle)
  */
-pub (value: PointerEvent) azimuth_angle(): JsNumber ->
+pub (receiver: PointerEvent) azimuth_angle(): JsNumber ->
     native.
 
 /**
@@ -43,7 +43,7 @@ pub (value: PointerEvent) azimuth_angle(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/height)
  */
-pub (value: PointerEvent) height(): JsNumber ->
+pub (receiver: PointerEvent) height(): JsNumber ->
     native.
 
 /**
@@ -51,7 +51,7 @@ pub (value: PointerEvent) height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/isPrimary)
  */
-pub (value: PointerEvent) is_primary(): std.core.Bool ->
+pub (receiver: PointerEvent) is_primary(): Bool ->
     native.
 
 /**
@@ -59,7 +59,7 @@ pub (value: PointerEvent) is_primary(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/pointerId)
  */
-pub (value: PointerEvent) pointer_id(): JsNumber ->
+pub (receiver: PointerEvent) pointer_id(): JsNumber ->
     native.
 
 /**
@@ -67,7 +67,7 @@ pub (value: PointerEvent) pointer_id(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/pointerType)
  */
-pub (value: PointerEvent) pointer_type(): std.js.String.JsString ->
+pub (receiver: PointerEvent) pointer_type(): std.js.String.JsString ->
     native.
 
 /**
@@ -75,7 +75,7 @@ pub (value: PointerEvent) pointer_type(): std.js.String.JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/pressure)
  */
-pub (value: PointerEvent) pressure(): JsNumber ->
+pub (receiver: PointerEvent) pressure(): JsNumber ->
     native.
 
 /**
@@ -83,7 +83,7 @@ pub (value: PointerEvent) pressure(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/tangentialPressure)
  */
-pub (value: PointerEvent) tangential_pressure(): JsNumber ->
+pub (receiver: PointerEvent) tangential_pressure(): JsNumber ->
     native.
 
 /**
@@ -91,7 +91,7 @@ pub (value: PointerEvent) tangential_pressure(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/tiltX)
  */
-pub (value: PointerEvent) tilt_x(): JsNumber ->
+pub (receiver: PointerEvent) tilt_x(): JsNumber ->
     native.
 
 /**
@@ -99,7 +99,7 @@ pub (value: PointerEvent) tilt_x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/tiltY)
  */
-pub (value: PointerEvent) tilt_y(): JsNumber ->
+pub (receiver: PointerEvent) tilt_y(): JsNumber ->
     native.
 
 /**
@@ -107,7 +107,7 @@ pub (value: PointerEvent) tilt_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/twist)
  */
-pub (value: PointerEvent) twist(): JsNumber ->
+pub (receiver: PointerEvent) twist(): JsNumber ->
     native.
 
 /**
@@ -115,7 +115,7 @@ pub (value: PointerEvent) twist(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/width)
  */
-pub (value: PointerEvent) width(): JsNumber ->
+pub (receiver: PointerEvent) width(): JsNumber ->
     native.
 
 /**
@@ -124,7 +124,7 @@ pub (value: PointerEvent) width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/getCoalescedEvents)
  */
-pub (value: PointerEvent) get_coalesced_events(): Array[PointerEvent] ->
+pub (receiver: PointerEvent) get_coalesced_events(): Array[PointerEvent] ->
     native.
 
 /**
@@ -132,5 +132,5 @@ pub (value: PointerEvent) get_coalesced_events(): Array[PointerEvent] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/getPredictedEvents)
  */
-pub (value: PointerEvent) get_predicted_events(): Array[PointerEvent] ->
+pub (receiver: PointerEvent) get_predicted_events(): Array[PointerEvent] ->
     native.

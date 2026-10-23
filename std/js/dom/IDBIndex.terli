@@ -12,10 +12,13 @@
  */
 module std.js.Dom.IDBIndex.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.IDBKeyRange.{IDBKeyRange}.
+import type std.js.Dom.IDBRequest.{IDBRequest}.
+import type std.js.Dom.IDBValidKey.{IDBValidKey}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
 /**
  * `IDBIndex` interface of the IndexedDB API provides asynchronous access to an index in a database.
@@ -29,51 +32,51 @@ pub opaque type IDBIndex.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/keyPath)
  */
-pub (value: IDBIndex) key_path(): Array[JsString] | JsString.
+pub (receiver: IDBIndex) key_path(): Array[JsString] | JsString.
 
 /**
  * The **`multiEntry`** read-only property of the behaves when the result of evaluating the index's key path yields an array.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/multiEntry)
  */
-pub (value: IDBIndex) multi_entry(): Bool.
+pub (receiver: IDBIndex) multi_entry(): Bool.
 
 /**
  * The **`name`** property of the IDBIndex interface contains a string which names the index.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/name)
  */
-pub (value: IDBIndex) name(): JsString.
+pub (receiver: IDBIndex) name(): JsString.
 
 /**
  * The **`objectStore`** property of the IDBIndex interface returns the object store referenced by the current index.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/objectStore)
  */
-pub (value: IDBIndex) object_store(): IDBObjectStore.
+pub (receiver: IDBIndex) object_store(): std.js.Dom.IDBObjectStore.IDBObjectStore.
 
 /**
  * The **`unique`** read-only property returns a boolean that states whether the index allows duplicate keys.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/unique)
  */
-pub (value: IDBIndex) unique(): Bool.
+pub (receiver: IDBIndex) unique(): Bool.
 
 /**
  * The **`count()`** method of the IDBIndex interface returns an IDBRequest object, and in a separate thread, returns the number of records within a key range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/count)
  */
-pub (value: IDBIndex) count(query: IDBKeyRange | IDBValidKey): IDBRequest[JsNumber].
+pub (receiver: IDBIndex) count(query: Option[IDBKeyRange | IDBValidKey]): IDBRequest[JsNumber].
 
 /**
  * The **`getAllKeys()`** method of the IDBIndex interface asynchronously retrieves the primary keys of all objects inside the index, setting them as the `result` of the request object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/getAllKeys)
  */
-pub (value: IDBIndex) get_all_keys(
-    query: Option[IDBKeyRange | IDBValidKey],
-    count: JsNumber,
+pub (receiver: IDBIndex) get_all_keys(
+    query: Option[Option[IDBKeyRange | IDBValidKey]],
+    count: Option[JsNumber],
 ): IDBRequest[Array[IDBValidKey]].
 
 /**
@@ -81,24 +84,4 @@ pub (value: IDBIndex) get_all_keys(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/getKey)
  */
-pub (value: IDBIndex) get_key(query: IDBKeyRange | IDBValidKey): IDBRequest[Option[IDBValidKey]].
-
-/**
- * The **`openCursor()`** method of the IDBIndex interface returns an IDBRequest object, and, in a separate thread, creates a cursor over the specified key range.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/openCursor)
- */
-pub (value: IDBIndex) open_cursor(
-    query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection,
-): IDBRequest[Option[IDBCursorWithValue]].
-
-/**
- * The **`openKeyCursor()`** method of the a separate thread, creates a cursor over the specified key range, as arranged by this index.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/openKeyCursor)
- */
-pub (value: IDBIndex) open_key_cursor(
-    query: Option[IDBKeyRange | IDBValidKey],
-    direction: IDBCursorDirection,
-): IDBRequest[Option[IDBCursor]].
+pub (receiver: IDBIndex) get_key(query: IDBKeyRange | IDBValidKey): IDBRequest[Option[IDBValidKey]].

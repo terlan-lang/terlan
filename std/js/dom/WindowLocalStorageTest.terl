@@ -14,7 +14,5 @@ module std.js.Dom.WindowLocalStorageTest.
 
 import type std.js.Dom.WindowLocalStorage.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub local_storage_typechecks(receiver: WindowLocalStorage): Storage ->
+pub local_storage_typechecks(receiver: WindowLocalStorage): std.js.Dom.Storage.Storage ->
     receiver.local_storage().

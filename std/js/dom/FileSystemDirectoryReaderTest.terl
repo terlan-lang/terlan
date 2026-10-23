@@ -14,11 +14,9 @@ module std.js.Dom.FileSystemDirectoryReaderTest.
 
 import type std.js.Dom.FileSystemDirectoryReader.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub read_entries_typechecks(
     receiver: FileSystemDirectoryReader,
-    success_callback: FileSystemEntriesCallback,
-    error_callback: ErrorCallback,
-): std.core.Unit ->
+    success_callback: std.js.Dom.FileSystemEntriesCallback.FileSystemEntriesCallback,
+    error_callback: std.core.Option.Option[std.js.Dom.ErrorCallback.ErrorCallback],
+): std.core.Unit.Unit ->
     receiver.read_entries(success_callback, error_callback).

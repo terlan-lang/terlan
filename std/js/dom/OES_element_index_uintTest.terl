@@ -13,5 +13,3 @@
 module std.js.Dom.OES_element_index_uintTest.
 
 import type std.js.Dom.OES_element_index_uint.
-
-pub generated_binding_surface_contract(): Bool -> true.

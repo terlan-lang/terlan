@@ -15,10 +15,10 @@ module std.js.Dom.PropertyDefinition.
 
 pub opaque type PropertyDefinition.
 
-pub (value: PropertyDefinition) inherits(): std.core.Bool.
+pub (receiver: PropertyDefinition) inherits(): Bool.
 
-pub (value: PropertyDefinition) initial_value(): std.js.String.JsString.
+pub (receiver: PropertyDefinition) initial_value(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: PropertyDefinition) name(): std.js.String.JsString.
+pub (receiver: PropertyDefinition) name(): std.js.String.JsString.
 
-pub (value: PropertyDefinition) syntax(): std.js.String.JsString.
+pub (receiver: PropertyDefinition) syntax(): std.core.Option.Option[std.js.String.JsString].

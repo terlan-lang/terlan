@@ -26,147 +26,140 @@ pub opaque type BaseAudioContext.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/audioWorklet)
  */
-pub (value: BaseAudioContext) audio_worklet(): AudioWorklet.
+pub (receiver: BaseAudioContext) audio_worklet(): std.js.Dom.AudioWorklet.AudioWorklet.
 
 /**
  * The `currentTime` read-only property of the BaseAudioContext interface returns a double representing an ever-increasing hardware timestamp in seconds that can be used for scheduling audio playback, visualizing timelines, etc.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/currentTime)
  */
-pub (value: BaseAudioContext) current_time(): std.js.Number.JsNumber.
+pub (receiver: BaseAudioContext) current_time(): std.js.Number.JsNumber.
 
 /**
  * The `destination` property of the BaseAudioContext interface returns an AudioDestinationNode representing the final destination of all audio in the context.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/destination)
  */
-pub (value: BaseAudioContext) destination(): AudioDestinationNode.
+pub (receiver: BaseAudioContext) destination(): std.js.Dom.AudioDestinationNode.AudioDestinationNode.
 
 /**
  * The `listener` property of the BaseAudioContext interface returns an AudioListener object that can then be used for implementing 3D audio spatialization.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/listener)
  */
-pub (value: BaseAudioContext) listener(): AudioListener.
+pub (receiver: BaseAudioContext) listener(): std.js.Dom.AudioListener.AudioListener.
 
 /**
  * The `sampleRate` property of the BaseAudioContext interface returns a floating point number representing the sample rate, in samples per second, used by all nodes in this audio context.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/sampleRate)
  */
-pub (value: BaseAudioContext) sample_rate(): std.js.Number.JsNumber.
-
-/**
- * The `state` read-only property of the BaseAudioContext interface returns the current state of the `AudioContext`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/state)
- */
-pub (value: BaseAudioContext) state(): AudioContextState.
+pub (receiver: BaseAudioContext) sample_rate(): std.js.Number.JsNumber.
 
 /**
  * The `createAnalyser()` method of the can be used to expose audio time and frequency data and create data visualizations.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createAnalyser)
  */
-pub (value: BaseAudioContext) create_analyser(): AnalyserNode.
+pub (receiver: BaseAudioContext) create_analyser(): std.js.Dom.AnalyserNode.AnalyserNode.
 
 /**
  * The `createBiquadFilter()` method of the BaseAudioContext interface creates a BiquadFilterNode, which represents a second order filter configurable as several different common filter types.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createBiquadFilter)
  */
-pub (value: BaseAudioContext) create_biquad_filter(): BiquadFilterNode.
+pub (receiver: BaseAudioContext) create_biquad_filter(): std.js.Dom.BiquadFilterNode.BiquadFilterNode.
 
 /**
  * The `createBuffer()` method of the BaseAudioContext Interface is used to create a new, empty AudioBuffer object, which can then be populated by data, and played via an AudioBufferSourceNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createBuffer)
  */
-pub (value: BaseAudioContext) create_buffer(number_of_channels: std.js.Number.JsNumber, length: std.js.Number.JsNumber, sample_rate: std.js.Number.JsNumber): AudioBuffer.
+pub (receiver: BaseAudioContext) create_buffer(number_of_channels: std.js.Number.JsNumber, length: std.js.Number.JsNumber, sample_rate: std.js.Number.JsNumber): std.js.Dom.AudioBuffer.AudioBuffer.
 
 /**
  * The `createBufferSource()` method of the BaseAudioContext Interface is used to create a new AudioBufferSourceNode, which can be used to play audio data contained within an AudioBuffer object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createBufferSource)
  */
-pub (value: BaseAudioContext) create_buffer_source(): AudioBufferSourceNode.
+pub (receiver: BaseAudioContext) create_buffer_source(): std.js.Dom.AudioBufferSourceNode.AudioBufferSourceNode.
 
 /**
  * The `createChannelMerger()` method of the BaseAudioContext interface creates a ChannelMergerNode, which combines channels from multiple audio streams into a single audio stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createChannelMerger)
  */
-pub (value: BaseAudioContext) create_channel_merger(number_of_inputs: std.js.Number.JsNumber): ChannelMergerNode.
+pub (receiver: BaseAudioContext) create_channel_merger(number_of_inputs: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Dom.ChannelMergerNode.ChannelMergerNode.
 
 /**
  * The `createChannelSplitter()` method of the BaseAudioContext Interface is used to create a ChannelSplitterNode, which is used to access the individual channels of an audio stream and process them separately.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createChannelSplitter)
  */
-pub (value: BaseAudioContext) create_channel_splitter(number_of_outputs: std.js.Number.JsNumber): ChannelSplitterNode.
+pub (receiver: BaseAudioContext) create_channel_splitter(number_of_outputs: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Dom.ChannelSplitterNode.ChannelSplitterNode.
 
 /**
  * The **`createConstantSource()`** property of the BaseAudioContext interface creates a outputs a monaural (one-channel) sound signal whose samples all have the same value.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createConstantSource)
  */
-pub (value: BaseAudioContext) create_constant_source(): ConstantSourceNode.
+pub (receiver: BaseAudioContext) create_constant_source(): std.js.Dom.ConstantSourceNode.ConstantSourceNode.
 
 /**
  * The `createConvolver()` method of the BaseAudioContext interface creates a ConvolverNode, which is commonly used to apply reverb effects to your audio.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createConvolver)
  */
-pub (value: BaseAudioContext) create_convolver(): ConvolverNode.
+pub (receiver: BaseAudioContext) create_convolver(): std.js.Dom.ConvolverNode.ConvolverNode.
 
 /**
  * The `createDelay()` method of the which is used to delay the incoming audio signal by a certain amount of time.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createDelay)
  */
-pub (value: BaseAudioContext) create_delay(max_delay_time: std.js.Number.JsNumber): DelayNode.
+pub (receiver: BaseAudioContext) create_delay(max_delay_time: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Dom.DelayNode.DelayNode.
 
 /**
  * The `createDynamicsCompressor()` method of the BaseAudioContext Interface is used to create a DynamicsCompressorNode, which can be used to apply compression to an audio signal.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createDynamicsCompressor)
  */
-pub (value: BaseAudioContext) create_dynamics_compressor(): DynamicsCompressorNode.
+pub (receiver: BaseAudioContext) create_dynamics_compressor(): std.js.Dom.DynamicsCompressorNode.DynamicsCompressorNode.
 
 /**
  * The `createGain()` method of the BaseAudioContext interface creates a GainNode, which can be used to control the overall gain (or volume) of the audio graph.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createGain)
  */
-pub (value: BaseAudioContext) create_gain(): GainNode.
+pub (receiver: BaseAudioContext) create_gain(): std.js.Dom.GainNode.GainNode.
 
 /**
  * The **`createIIRFilter()`** method of the BaseAudioContext interface creates an IIRFilterNode, which represents a general **infinite impulse response** (IIR) filter which can be configured to serve as various types of filter.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createIIRFilter)
  */
-pub (value: BaseAudioContext) create_iir_filter(feedforward: std.js.Array[std.js.Number.JsNumber], feedback: std.js.Array[std.js.Number.JsNumber]): IIRFilterNode.
+pub (receiver: BaseAudioContext) create_iir_filter(feedforward: std.js.Array.Array[std.js.Number.JsNumber], feedback: std.js.Array.Array[std.js.Number.JsNumber]): std.js.Dom.IIRFilterNode.IIRFilterNode.
 
 /**
  * The `createOscillator()` method of the BaseAudioContext interface creates an OscillatorNode, a source representing a periodic waveform.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createOscillator)
  */
-pub (value: BaseAudioContext) create_oscillator(): OscillatorNode.
+pub (receiver: BaseAudioContext) create_oscillator(): std.js.Dom.OscillatorNode.OscillatorNode.
 
 /**
  * The `createPanner()` method of the BaseAudioContext Interface is used to create a new PannerNode, which is used to spatialize an incoming audio stream in 3D space.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createPanner)
  */
-pub (value: BaseAudioContext) create_panner(): PannerNode.
+pub (receiver: BaseAudioContext) create_panner(): std.js.Dom.PannerNode.PannerNode.
 
 /**
  * The `createPeriodicWave()` method of the BaseAudioContext interface is used to create a PeriodicWave.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createPeriodicWave)
  */
-pub (value: BaseAudioContext) create_periodic_wave(real: Float32Array | std.js.Array[std.js.Number.JsNumber], imag: Float32Array | std.js.Array[std.js.Number.JsNumber], constraints: PeriodicWaveConstraints): PeriodicWave.
+pub (receiver: BaseAudioContext) create_periodic_wave(real: std.js.Float32Array.Float32Array | std.js.Array.Array[std.js.Number.JsNumber], imag: std.js.Float32Array.Float32Array | std.js.Array.Array[std.js.Number.JsNumber], constraints: std.core.Option.Option[std.js.Dom.PeriodicWaveConstraints.PeriodicWaveConstraints]): std.js.Dom.PeriodicWave.PeriodicWave.
 
 /**
  * The `createScriptProcessor()` method of the BaseAudioContext interface creates a ScriptProcessorNode used for direct audio processing.
@@ -174,29 +167,29 @@ pub (value: BaseAudioContext) create_periodic_wave(real: Float32Array | std.js.A
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createScriptProcessor)
  */
-pub (value: BaseAudioContext) create_script_processor(buffer_size: std.js.Number.JsNumber, number_of_input_channels: std.js.Number.JsNumber, number_of_output_channels: std.js.Number.JsNumber): ScriptProcessorNode.
+pub (receiver: BaseAudioContext) create_script_processor(buffer_size: std.core.Option.Option[std.js.Number.JsNumber], number_of_input_channels: std.core.Option.Option[std.js.Number.JsNumber], number_of_output_channels: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Dom.ScriptProcessorNode.ScriptProcessorNode.
 
 /**
  * The `createStereoPanner()` method of the BaseAudioContext interface creates a StereoPannerNode, which can be used to apply stereo panning to an audio source.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createStereoPanner)
  */
-pub (value: BaseAudioContext) create_stereo_panner(): StereoPannerNode.
+pub (receiver: BaseAudioContext) create_stereo_panner(): std.js.Dom.StereoPannerNode.StereoPannerNode.
 
 /**
  * The `createWaveShaper()` method of the BaseAudioContext interface creates a WaveShaperNode, which represents a non-linear distortion.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/createWaveShaper)
  */
-pub (value: BaseAudioContext) create_wave_shaper(): WaveShaperNode.
+pub (receiver: BaseAudioContext) create_wave_shaper(): std.js.Dom.WaveShaperNode.WaveShaperNode.
 
 /**
  * The `decodeAudioData()` method of the BaseAudioContext Interface is used to asynchronously decode audio file data contained in an rate, then passed to a callback or promise.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/decodeAudioData)
  */
-pub (value: BaseAudioContext) decode_audio_data(audio_data: ArrayBuffer, success_callback: Option[DecodeSuccessCallback], error_callback: Option[DecodeErrorCallback]): std.js.Promise[AudioBuffer].
+pub (receiver: BaseAudioContext) decode_audio_data(audio_data: std.js.ArrayBuffer.ArrayBuffer, success_callback: std.core.Option.Option[std.core.Option.Option[std.js.Dom.DecodeSuccessCallback.DecodeSuccessCallback]], error_callback: std.core.Option.Option[std.core.Option.Option[std.js.Dom.DecodeErrorCallback.DecodeErrorCallback]]): std.js.Promise.Promise[std.js.Dom.AudioBuffer.AudioBuffer].
 
-pub (value: BaseAudioContext) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: BaseAudioContext) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: BaseAudioContext) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: BaseAudioContext) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

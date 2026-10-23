@@ -12,7 +12,9 @@
  */
 module std.js.Dom.IDBRequest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,44 +29,37 @@ pub opaque type IDBRequest[T].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBRequest/error)
  */
-pub (value: IDBRequest[T]) error(): Option[DOMException].
-
-/**
- * The **`readyState`** read-only property of the Every request starts in the `pending` state.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBRequest/readyState)
- */
-pub (value: IDBRequest[T]) ready_state(): IDBRequestReadyState.
+pub (receiver: IDBRequest[T]) error(): Option[std.js.Dom.DOMException.DOMException].
 
 /**
  * The **`result`** read-only property of the any - `InvalidStateError` DOMException - : Thrown when attempting to access the property if the request is not completed, and therefore the result is not available.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBRequest/result)
  */
-pub (value: IDBRequest[T]) result(): T.
+pub (receiver: IDBRequest[T]) result(): T.
 
 /**
  * The **`source`** read-only property of the Index or an object store.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBRequest/source)
  */
-pub (value: IDBRequest[T]) source(): IDBCursor | IDBIndex | IDBObjectStore.
+pub (receiver: IDBRequest[T]) source(): std.js.Dom.IDBCursor.IDBCursor | std.js.Dom.IDBIndex.IDBIndex | std.js.Dom.IDBObjectStore.IDBObjectStore.
 
 /**
  * The **`transaction`** read-only property of the IDBRequest interface returns the transaction for the request, that is, the transaction the request is being made inside.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBRequest/transaction)
  */
-pub (value: IDBRequest[T]) transaction(): Option[IDBTransaction].
+pub (receiver: IDBRequest[T]) transaction(): Option[std.js.Dom.IDBTransaction.IDBTransaction].
 
-pub (value: IDBRequest[T]) add_event_listener(
+pub (receiver: IDBRequest[T]) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: IDBRequest[T]) remove_event_listener(
+pub (receiver: IDBRequest[T]) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

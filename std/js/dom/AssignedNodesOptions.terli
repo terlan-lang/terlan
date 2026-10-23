@@ -14,4 +14,4 @@ module std.js.Dom.AssignedNodesOptions.
 
 pub opaque type AssignedNodesOptions.
 
-pub (value: AssignedNodesOptions) flatten(): std.core.Bool.
+pub (receiver: AssignedNodesOptions) flatten(): std.core.Option.Option[Bool].

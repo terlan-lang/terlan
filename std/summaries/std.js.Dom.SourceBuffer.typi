@@ -25,71 +25,64 @@ pub opaque type SourceBuffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/appendWindowEnd)
  */
-pub (value: SourceBuffer) append_window_end(): std.js.Number.JsNumber.
+pub (receiver: SourceBuffer) append_window_end(): std.js.Number.JsNumber.
 
 /**
  * The **`appendWindowStart`** property of the timestamp range that can be used to filter what media data is appended to the `SourceBuffer`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/appendWindowStart)
  */
-pub (value: SourceBuffer) append_window_start(): std.js.Number.JsNumber.
+pub (receiver: SourceBuffer) append_window_start(): std.js.Number.JsNumber.
 
 /**
  * The **`buffered`** read-only property of the buffered in the `SourceBuffer` as a normalized TimeRanges object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/buffered)
  */
-pub (value: SourceBuffer) buffered(): TimeRanges.
-
-/**
- * The **`mode`** property of the SourceBuffer interface controls whether media segments can be appended to the `SourceBuffer` in any order, or in a strict sequence.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/mode)
- */
-pub (value: SourceBuffer) mode(): AppendMode.
+pub (receiver: SourceBuffer) buffered(): std.js.Dom.TimeRanges.TimeRanges.
 
 /**
  * The **`timestampOffset`** property of the media segments that are appended to the `SourceBuffer`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/timestampOffset)
  */
-pub (value: SourceBuffer) timestamp_offset(): std.js.Number.JsNumber.
+pub (receiver: SourceBuffer) timestamp_offset(): std.js.Number.JsNumber.
 
 /**
  * The **`updating`** read-only property of the currently being updated — i.e., whether an SourceBuffer.appendBuffer() or SourceBuffer.remove() operation is currently in progress.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/updating)
  */
-pub (value: SourceBuffer) updating(): std.core.Bool.
+pub (receiver: SourceBuffer) updating(): Bool.
 
 /**
  * The **`abort()`** method of the SourceBuffer interface aborts the current segment and resets the segment parser.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/abort)
  */
-pub (value: SourceBuffer) abort(): std.core.Unit.
+pub (receiver: SourceBuffer) abort(): std.core.Unit.Unit.
 
 /**
  * The **`appendBuffer()`** method of the to the `SourceBuffer`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/appendBuffer)
  */
-pub (value: SourceBuffer) append_buffer(data: BufferSource): std.core.Unit.
+pub (receiver: SourceBuffer) append_buffer(data: std.js.Dom.BufferSource.BufferSource): std.core.Unit.Unit.
 
 /**
  * The **`changeType()`** method of the data to conform to.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/changeType)
  */
-pub (value: SourceBuffer) change_type(type_: std.js.String.JsString): std.core.Unit.
+pub (receiver: SourceBuffer) change_type(type_: std.js.String.JsString): std.core.Unit.Unit.
 
 /**
  * The **`remove()`** method of the SourceBuffer interface removes media segments within a specific time range from the `SourceBuffer`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/remove)
  */
-pub (value: SourceBuffer) remove(start: std.js.Number.JsNumber, end: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: SourceBuffer) remove(start: std.js.Number.JsNumber, end: std.js.Number.JsNumber): std.core.Unit.Unit.
 
-pub (value: SourceBuffer) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SourceBuffer) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: SourceBuffer) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SourceBuffer) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

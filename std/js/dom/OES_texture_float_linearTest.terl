@@ -13,5 +13,3 @@
 module std.js.Dom.OES_texture_float_linearTest.
 
 import type std.js.Dom.OES_texture_float_linear.
-
-pub generated_binding_surface_contract(): Bool -> true.

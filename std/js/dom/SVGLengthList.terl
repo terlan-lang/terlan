@@ -12,6 +12,7 @@
  */
 module std.js.Dom.SVGLengthList.
 
+import type std.js.Dom.SVGLength.{SVGLength}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -26,7 +27,7 @@ pub opaque type SVGLengthList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/length)
  */
-pub (value: SVGLengthList) length(): JsNumber ->
+pub (receiver: SVGLengthList) length(): JsNumber ->
     native.
 
 /**
@@ -34,7 +35,7 @@ pub (value: SVGLengthList) length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/numberOfItems)
  */
-pub (value: SVGLengthList) number_of_items(): JsNumber ->
+pub (receiver: SVGLengthList) number_of_items(): JsNumber ->
     native.
 
 /**
@@ -42,7 +43,7 @@ pub (value: SVGLengthList) number_of_items(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/appendItem)
  */
-pub (value: SVGLengthList) append_item(new_item: SVGLength): SVGLength ->
+pub (receiver: SVGLengthList) append_item(new_item: SVGLength): SVGLength ->
     native.
 
 /**
@@ -50,7 +51,7 @@ pub (value: SVGLengthList) append_item(new_item: SVGLength): SVGLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/clear)
  */
-pub (value: SVGLengthList) clear(): std.core.Unit ->
+pub (receiver: SVGLengthList) clear(): std.core.Unit.Unit ->
     native.
 
 /**
@@ -58,7 +59,7 @@ pub (value: SVGLengthList) clear(): std.core.Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/getItem)
  */
-pub (value: SVGLengthList) get_item(index: JsNumber): SVGLength ->
+pub (receiver: SVGLengthList) get_item(index: JsNumber): SVGLength ->
     native.
 
 /**
@@ -66,7 +67,7 @@ pub (value: SVGLengthList) get_item(index: JsNumber): SVGLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/initialize)
  */
-pub (value: SVGLengthList) initialize(new_item: SVGLength): SVGLength ->
+pub (receiver: SVGLengthList) initialize(new_item: SVGLength): SVGLength ->
     native.
 
 /**
@@ -74,7 +75,7 @@ pub (value: SVGLengthList) initialize(new_item: SVGLength): SVGLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/insertItemBefore)
  */
-pub (value: SVGLengthList) insert_item_before(new_item: SVGLength, index: JsNumber): SVGLength ->
+pub (receiver: SVGLengthList) insert_item_before(new_item: SVGLength, index: JsNumber): SVGLength ->
     native.
 
 /**
@@ -82,7 +83,7 @@ pub (value: SVGLengthList) insert_item_before(new_item: SVGLength, index: JsNumb
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/removeItem)
  */
-pub (value: SVGLengthList) remove_item(index: JsNumber): SVGLength ->
+pub (receiver: SVGLengthList) remove_item(index: JsNumber): SVGLength ->
     native.
 
 /**
@@ -90,5 +91,5 @@ pub (value: SVGLengthList) remove_item(index: JsNumber): SVGLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/replaceItem)
  */
-pub (value: SVGLengthList) replace_item(new_item: SVGLength, index: JsNumber): SVGLength ->
+pub (receiver: SVGLengthList) replace_item(new_item: SVGLength, index: JsNumber): SVGLength ->
     native.

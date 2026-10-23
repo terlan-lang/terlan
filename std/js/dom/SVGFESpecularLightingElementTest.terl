@@ -12,13 +12,16 @@
  */
 module std.js.Dom.SVGFESpecularLightingElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedNumber.{SVGAnimatedNumber}.
 import type std.js.Dom.SVGFESpecularLightingElement.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub in1_typechecks(receiver: SVGFESpecularLightingElement): SVGAnimatedString ->
+pub in1_typechecks(
+    receiver: SVGFESpecularLightingElement,
+): std.js.Dom.SVGAnimatedString.SVGAnimatedString ->
     receiver.in1().
 
 pub kernel_unit_length_x_typechecks(receiver: SVGFESpecularLightingElement): SVGAnimatedNumber ->
@@ -40,7 +43,7 @@ pub add_event_listener_typechecks(
     receiver: SVGFESpecularLightingElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -48,6 +51,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGFESpecularLightingElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -24,18 +24,18 @@ pub opaque type CSSStyleRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleRule/selectorText)
  */
-pub (value: CSSStyleRule) selector_text(): std.js.String.JsString.
+pub (receiver: CSSStyleRule) selector_text(): std.js.String.JsString.
 
 /**
  * The read-only **`style`** property is the CSSStyleDeclaration interface for the declaration block of the CSSStyleRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleRule/style)
  */
-pub (value: CSSStyleRule) style(): CSSStyleDeclaration.
+pub (receiver: CSSStyleRule) style(): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration.
 
 /**
  * The **`styleMap`** read-only property of the which provides access to the rule's property-value pairs.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleRule/styleMap)
  */
-pub (value: CSSStyleRule) style_map(): StylePropertyMap.
+pub (receiver: CSSStyleRule) style_map(): std.js.Dom.StylePropertyMap.StylePropertyMap.

@@ -12,7 +12,9 @@
  */
 module std.js.Dom.SVGStopElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,16 +29,16 @@ pub opaque type SVGStopElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStopElement/offset)
  */
-pub (value: SVGStopElement) offset(): SVGAnimatedNumber.
+pub (receiver: SVGStopElement) offset(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
-pub (value: SVGStopElement) add_event_listener(
+pub (receiver: SVGStopElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: SVGStopElement) remove_event_listener(
+pub (receiver: SVGStopElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

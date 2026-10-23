@@ -20,8 +20,8 @@ pub opaque type Function.
 /**
  * Returns a string representation of a function.
  */
-pub (value: Function) to_string(): std.js.String.JsString.
+pub (receiver: Function) to_string(): std.js.String.JsString.
 
-pub (value: Function) length(): std.js.Number.JsNumber.
+pub (receiver: Function) length(): std.js.Number.JsNumber.
 
-pub (value: Function) caller(): Function.
+pub (receiver: Function) caller(): Function.

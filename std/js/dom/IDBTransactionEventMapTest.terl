@@ -12,9 +12,8 @@
  */
 module std.js.Dom.IDBTransactionEventMapTest.
 
+import type std.js.Dom.Event.{Event}.
 import type std.js.Dom.IDBTransactionEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub abort_typechecks(receiver: IDBTransactionEventMap): Event ->
     receiver.abort().

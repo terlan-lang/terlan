@@ -12,7 +12,10 @@
  */
 module std.js.Dom.SVGComponentTransferFunctionElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedNumber.{SVGAnimatedNumber}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +30,7 @@ pub opaque type SVGComponentTransferFunctionElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/amplitude)
  */
-pub (value: SVGComponentTransferFunctionElement) amplitude(): SVGAnimatedNumber ->
+pub (receiver: SVGComponentTransferFunctionElement) amplitude(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -35,7 +38,7 @@ pub (value: SVGComponentTransferFunctionElement) amplitude(): SVGAnimatedNumber 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/exponent)
  */
-pub (value: SVGComponentTransferFunctionElement) exponent(): SVGAnimatedNumber ->
+pub (receiver: SVGComponentTransferFunctionElement) exponent(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -43,7 +46,7 @@ pub (value: SVGComponentTransferFunctionElement) exponent(): SVGAnimatedNumber -
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/intercept)
  */
-pub (value: SVGComponentTransferFunctionElement) intercept(): SVGAnimatedNumber ->
+pub (receiver: SVGComponentTransferFunctionElement) intercept(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -51,7 +54,7 @@ pub (value: SVGComponentTransferFunctionElement) intercept(): SVGAnimatedNumber 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/offset)
  */
-pub (value: SVGComponentTransferFunctionElement) offset(): SVGAnimatedNumber ->
+pub (receiver: SVGComponentTransferFunctionElement) offset(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -59,7 +62,7 @@ pub (value: SVGComponentTransferFunctionElement) offset(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/slope)
  */
-pub (value: SVGComponentTransferFunctionElement) slope(): SVGAnimatedNumber ->
+pub (receiver: SVGComponentTransferFunctionElement) slope(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -67,7 +70,7 @@ pub (value: SVGComponentTransferFunctionElement) slope(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/tableValues)
  */
-pub (value: SVGComponentTransferFunctionElement) table_values(): SVGAnimatedNumberList ->
+pub (receiver: SVGComponentTransferFunctionElement) table_values(): std.js.Dom.SVGAnimatedNumberList.SVGAnimatedNumberList ->
     native.
 
 /**
@@ -75,19 +78,19 @@ pub (value: SVGComponentTransferFunctionElement) table_values(): SVGAnimatedNumb
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/type)
  */
-pub (value: SVGComponentTransferFunctionElement) type_(): SVGAnimatedEnumeration ->
+pub (receiver: SVGComponentTransferFunctionElement) type_(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration ->
     native.
 
-pub (value: SVGComponentTransferFunctionElement) add_event_listener(
+pub (receiver: SVGComponentTransferFunctionElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SVGComponentTransferFunctionElement) remove_event_listener(
+pub (receiver: SVGComponentTransferFunctionElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

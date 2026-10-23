@@ -18,14 +18,14 @@ pub opaque type CanvasRect.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/clearRect)
  */
-pub (value: CanvasRect) clear_rect(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, w: std.js.Number.JsNumber, h: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: CanvasRect) clear_rect(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, w: std.js.Number.JsNumber, h: std.js.Number.JsNumber): std.core.Unit.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillRect)
  */
-pub (value: CanvasRect) fill_rect(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, w: std.js.Number.JsNumber, h: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: CanvasRect) fill_rect(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, w: std.js.Number.JsNumber, h: std.js.Number.JsNumber): std.core.Unit.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeRect)
  */
-pub (value: CanvasRect) stroke_rect(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, w: std.js.Number.JsNumber, h: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: CanvasRect) stroke_rect(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, w: std.js.Number.JsNumber, h: std.js.Number.JsNumber): std.core.Unit.Unit.

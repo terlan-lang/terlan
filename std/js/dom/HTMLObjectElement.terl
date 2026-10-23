@@ -12,7 +12,10 @@
  */
 module std.js.Dom.HTMLObjectElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Document.{Document}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -26,37 +29,37 @@ pub opaque type HTMLObjectElement.
 /**
  * @deprecated
  */
-pub (value: HTMLObjectElement) align(): JsString ->
+pub (receiver: HTMLObjectElement) align(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLObjectElement) archive(): JsString ->
+pub (receiver: HTMLObjectElement) archive(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLObjectElement) border(): JsString ->
+pub (receiver: HTMLObjectElement) border(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLObjectElement) code(): JsString ->
+pub (receiver: HTMLObjectElement) code(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLObjectElement) code_base(): JsString ->
+pub (receiver: HTMLObjectElement) code_base(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLObjectElement) code_type(): JsString ->
+pub (receiver: HTMLObjectElement) code_type(): JsString ->
     native.
 
 /**
@@ -64,7 +67,7 @@ pub (value: HTMLObjectElement) code_type(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/contentDocument)
  */
-pub (value: HTMLObjectElement) content_document(): Option[Document] ->
+pub (receiver: HTMLObjectElement) content_document(): Option[Document] ->
     native.
 
 /**
@@ -72,7 +75,7 @@ pub (value: HTMLObjectElement) content_document(): Option[Document] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/contentWindow)
  */
-pub (value: HTMLObjectElement) content_window(): Option[WindowProxy] ->
+pub (receiver: HTMLObjectElement) content_window(): Option[std.js.Dom.WindowProxy.WindowProxy] ->
     native.
 
 /**
@@ -80,13 +83,13 @@ pub (value: HTMLObjectElement) content_window(): Option[WindowProxy] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/data)
  */
-pub (value: HTMLObjectElement) data(): JsString ->
+pub (receiver: HTMLObjectElement) data(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLObjectElement) declare(): Bool ->
+pub (receiver: HTMLObjectElement) declare(): Bool ->
     native.
 
 /**
@@ -94,7 +97,7 @@ pub (value: HTMLObjectElement) declare(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/form)
  */
-pub (value: HTMLObjectElement) form(): Option[HTMLFormElement] ->
+pub (receiver: HTMLObjectElement) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
     native.
 
 /**
@@ -102,13 +105,13 @@ pub (value: HTMLObjectElement) form(): Option[HTMLFormElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/height)
  */
-pub (value: HTMLObjectElement) height(): JsString ->
+pub (receiver: HTMLObjectElement) height(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLObjectElement) hspace(): JsNumber ->
+pub (receiver: HTMLObjectElement) hspace(): JsNumber ->
     native.
 
 /**
@@ -116,13 +119,13 @@ pub (value: HTMLObjectElement) hspace(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/name)
  */
-pub (value: HTMLObjectElement) name(): JsString ->
+pub (receiver: HTMLObjectElement) name(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLObjectElement) standby(): JsString ->
+pub (receiver: HTMLObjectElement) standby(): JsString ->
     native.
 
 /**
@@ -130,7 +133,7 @@ pub (value: HTMLObjectElement) standby(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/type)
  */
-pub (value: HTMLObjectElement) type_(): JsString ->
+pub (receiver: HTMLObjectElement) type_(): JsString ->
     native.
 
 /**
@@ -139,7 +142,7 @@ pub (value: HTMLObjectElement) type_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/useMap)
  */
-pub (value: HTMLObjectElement) use_map(): JsString ->
+pub (receiver: HTMLObjectElement) use_map(): JsString ->
     native.
 
 /**
@@ -147,7 +150,7 @@ pub (value: HTMLObjectElement) use_map(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/validationMessage)
  */
-pub (value: HTMLObjectElement) validation_message(): JsString ->
+pub (receiver: HTMLObjectElement) validation_message(): JsString ->
     native.
 
 /**
@@ -155,13 +158,13 @@ pub (value: HTMLObjectElement) validation_message(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/validity)
  */
-pub (value: HTMLObjectElement) validity(): ValidityState ->
+pub (receiver: HTMLObjectElement) validity(): std.js.Dom.ValidityState.ValidityState ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLObjectElement) vspace(): JsNumber ->
+pub (receiver: HTMLObjectElement) vspace(): JsNumber ->
     native.
 
 /**
@@ -169,7 +172,7 @@ pub (value: HTMLObjectElement) vspace(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/width)
  */
-pub (value: HTMLObjectElement) width(): JsString ->
+pub (receiver: HTMLObjectElement) width(): JsString ->
     native.
 
 /**
@@ -177,7 +180,7 @@ pub (value: HTMLObjectElement) width(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/willValidate)
  */
-pub (value: HTMLObjectElement) will_validate(): Bool ->
+pub (receiver: HTMLObjectElement) will_validate(): Bool ->
     native.
 
 /**
@@ -185,7 +188,7 @@ pub (value: HTMLObjectElement) will_validate(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/checkValidity)
  */
-pub (value: HTMLObjectElement) check_validity(): Bool ->
+pub (receiver: HTMLObjectElement) check_validity(): Bool ->
     native.
 
 /**
@@ -193,7 +196,7 @@ pub (value: HTMLObjectElement) check_validity(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/getSVGDocument)
  */
-pub (value: HTMLObjectElement) get_svg_document(): Option[Document] ->
+pub (receiver: HTMLObjectElement) get_svg_document(): Option[Document] ->
     native.
 
 /**
@@ -201,7 +204,7 @@ pub (value: HTMLObjectElement) get_svg_document(): Option[Document] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/reportValidity)
  */
-pub (value: HTMLObjectElement) report_validity(): Bool ->
+pub (receiver: HTMLObjectElement) report_validity(): Bool ->
     native.
 
 /**
@@ -209,19 +212,19 @@ pub (value: HTMLObjectElement) report_validity(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/setCustomValidity)
  */
-pub (value: HTMLObjectElement) set_custom_validity(error: JsString): Unit ->
+pub (receiver: HTMLObjectElement) set_custom_validity(error: JsString): Unit ->
     native.
 
-pub (value: HTMLObjectElement) add_event_listener(
+pub (receiver: HTMLObjectElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLObjectElement) remove_event_listener(
+pub (receiver: HTMLObjectElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

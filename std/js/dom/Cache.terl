@@ -12,8 +12,14 @@
  */
 module std.js.Dom.Cache.
 
-import type std.core.{Unit}.
-import type std.js.{Array, Promise}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.CacheQueryOptions.{CacheQueryOptions}.
+import type std.js.Dom.RequestInfo.{RequestInfo}.
+import type std.js.Dom.Response.{Response}.
+import type std.js.Dom.URL.{URL}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`Cache`** interface provides a persistent storage mechanism for Request / Response object pairs that are cached in long lived memory.
@@ -28,7 +34,7 @@ pub opaque type Cache.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/add)
  */
-pub (value: Cache) add(request: RequestInfo | URL): Promise[Unit] ->
+pub (receiver: Cache) add(request: RequestInfo | URL): Promise[Unit] ->
     native.
 
 /**
@@ -36,7 +42,7 @@ pub (value: Cache) add(request: RequestInfo | URL): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/addAll)
  */
-pub (value: Cache) add_all(requests: Array[RequestInfo]): Promise[Unit] ->
+pub (receiver: Cache) add_all(requests: Array[RequestInfo]): Promise[Unit] ->
     native.
 
 /**
@@ -44,7 +50,7 @@ pub (value: Cache) add_all(requests: Array[RequestInfo]): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/delete)
  */
-pub (value: Cache) delete(request: RequestInfo | URL, options: CacheQueryOptions): Promise[std.core.Bool] ->
+pub (receiver: Cache) delete(request: RequestInfo | URL, options: Option[CacheQueryOptions]): Promise[Bool] ->
     native.
 
 /**
@@ -52,7 +58,10 @@ pub (value: Cache) delete(request: RequestInfo | URL, options: CacheQueryOptions
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/keys)
  */
-pub (value: Cache) keys(request: RequestInfo | URL, options: CacheQueryOptions): Promise[Array[Request]] ->
+pub (receiver: Cache) keys(
+    request: Option[RequestInfo | URL],
+    options: Option[CacheQueryOptions],
+): Promise[Array[std.js.Dom.Request.Request]] ->
     native.
 
 /**
@@ -60,7 +69,7 @@ pub (value: Cache) keys(request: RequestInfo | URL, options: CacheQueryOptions):
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/match)
  */
-pub (value: Cache) match(request: RequestInfo | URL, options: CacheQueryOptions): Promise[Option[Response]] ->
+pub (receiver: Cache) match(request: RequestInfo | URL, options: Option[CacheQueryOptions]): Promise[Option[Response]] ->
     native.
 
 /**
@@ -68,7 +77,10 @@ pub (value: Cache) match(request: RequestInfo | URL, options: CacheQueryOptions)
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/matchAll)
  */
-pub (value: Cache) match_all(request: RequestInfo | URL, options: CacheQueryOptions): Promise[Array[Response]] ->
+pub (receiver: Cache) match_all(
+    request: Option[RequestInfo | URL],
+    options: Option[CacheQueryOptions],
+): Promise[Array[Response]] ->
     native.
 
 /**
@@ -76,5 +88,5 @@ pub (value: Cache) match_all(request: RequestInfo | URL, options: CacheQueryOpti
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Cache/put)
  */
-pub (value: Cache) put(request: RequestInfo | URL, response: Response): Promise[Unit] ->
+pub (receiver: Cache) put(request: RequestInfo | URL, response: Response): Promise[Unit] ->
     native.

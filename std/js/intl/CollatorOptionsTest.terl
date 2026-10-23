@@ -12,10 +12,8 @@
  */
 module std.js.Intl.CollatorOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Intl.CollatorOptions.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub numeric_typechecks(receiver: CollatorOptions): Option[Bool] ->
     receiver.numeric().

@@ -12,7 +12,8 @@
  */
 module std.js.Dom.PannerNode.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.AudioParam.{AudioParam}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,7 +28,7 @@ pub opaque type PannerNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/coneInnerAngle)
  */
-pub (value: PannerNode) cone_inner_angle(): JsNumber ->
+pub (receiver: PannerNode) cone_inner_angle(): JsNumber ->
     native.
 
 /**
@@ -35,7 +36,7 @@ pub (value: PannerNode) cone_inner_angle(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/coneOuterAngle)
  */
-pub (value: PannerNode) cone_outer_angle(): JsNumber ->
+pub (receiver: PannerNode) cone_outer_angle(): JsNumber ->
     native.
 
 /**
@@ -43,15 +44,7 @@ pub (value: PannerNode) cone_outer_angle(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/coneOuterGain)
  */
-pub (value: PannerNode) cone_outer_gain(): JsNumber ->
-    native.
-
-/**
- * The `distanceModel` property of the PannerNode interface is an enumerated value determining which algorithm to use to reduce the volume of the audio source as it moves away from the listener.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/distanceModel)
- */
-pub (value: PannerNode) distance_model(): DistanceModelType ->
+pub (receiver: PannerNode) cone_outer_gain(): JsNumber ->
     native.
 
 /**
@@ -59,7 +52,7 @@ pub (value: PannerNode) distance_model(): DistanceModelType ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/maxDistance)
  */
-pub (value: PannerNode) max_distance(): JsNumber ->
+pub (receiver: PannerNode) max_distance(): JsNumber ->
     native.
 
 /**
@@ -67,7 +60,7 @@ pub (value: PannerNode) max_distance(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/orientationX)
  */
-pub (value: PannerNode) orientation_x(): AudioParam ->
+pub (receiver: PannerNode) orientation_x(): AudioParam ->
     native.
 
 /**
@@ -75,7 +68,7 @@ pub (value: PannerNode) orientation_x(): AudioParam ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/orientationY)
  */
-pub (value: PannerNode) orientation_y(): AudioParam ->
+pub (receiver: PannerNode) orientation_y(): AudioParam ->
     native.
 
 /**
@@ -83,15 +76,7 @@ pub (value: PannerNode) orientation_y(): AudioParam ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/orientationZ)
  */
-pub (value: PannerNode) orientation_z(): AudioParam ->
-    native.
-
-/**
- * The `panningModel` property of the PannerNode interface is an enumerated value determining which spatialization algorithm to use to position the audio in 3D space.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/panningModel)
- */
-pub (value: PannerNode) panning_model(): PanningModelType ->
+pub (receiver: PannerNode) orientation_z(): AudioParam ->
     native.
 
 /**
@@ -99,7 +84,7 @@ pub (value: PannerNode) panning_model(): PanningModelType ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/positionX)
  */
-pub (value: PannerNode) position_x(): AudioParam ->
+pub (receiver: PannerNode) position_x(): AudioParam ->
     native.
 
 /**
@@ -107,7 +92,7 @@ pub (value: PannerNode) position_x(): AudioParam ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/positionY)
  */
-pub (value: PannerNode) position_y(): AudioParam ->
+pub (receiver: PannerNode) position_y(): AudioParam ->
     native.
 
 /**
@@ -115,7 +100,7 @@ pub (value: PannerNode) position_y(): AudioParam ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/positionZ)
  */
-pub (value: PannerNode) position_z(): AudioParam ->
+pub (receiver: PannerNode) position_z(): AudioParam ->
     native.
 
 /**
@@ -123,7 +108,7 @@ pub (value: PannerNode) position_z(): AudioParam ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/refDistance)
  */
-pub (value: PannerNode) ref_distance(): JsNumber ->
+pub (receiver: PannerNode) ref_distance(): JsNumber ->
     native.
 
 /**
@@ -131,7 +116,7 @@ pub (value: PannerNode) ref_distance(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/rolloffFactor)
  */
-pub (value: PannerNode) rolloff_factor(): JsNumber ->
+pub (receiver: PannerNode) rolloff_factor(): JsNumber ->
     native.
 
 /**
@@ -140,7 +125,7 @@ pub (value: PannerNode) rolloff_factor(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/setOrientation)
  */
-pub (value: PannerNode) set_orientation(x: JsNumber, y: JsNumber, z: JsNumber): Unit ->
+pub (receiver: PannerNode) set_orientation(x: JsNumber, y: JsNumber, z: JsNumber): Unit ->
     native.
 
 /**
@@ -149,5 +134,5 @@ pub (value: PannerNode) set_orientation(x: JsNumber, y: JsNumber, z: JsNumber): 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/setPosition)
  */
-pub (value: PannerNode) set_position(x: JsNumber, y: JsNumber, z: JsNumber): Unit ->
+pub (receiver: PannerNode) set_position(x: JsNumber, y: JsNumber, z: JsNumber): Unit ->
     native.

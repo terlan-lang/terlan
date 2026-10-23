@@ -15,6 +15,6 @@ module std.js.Dom.TextTrackCueEventMap.
 
 pub opaque type TextTrackCueEventMap.
 
-pub (value: TextTrackCueEventMap) enter(): Event.
+pub (receiver: TextTrackCueEventMap) enter(): std.js.Dom.Event.Event.
 
-pub (value: TextTrackCueEventMap) exit(): Event.
+pub (receiver: TextTrackCueEventMap) exit(): std.js.Dom.Event.Event.

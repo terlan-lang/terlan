@@ -13,18 +13,22 @@
 module std.js.Dom.ImageCaptureTest.
 
 import type std.js.Dom.ImageCapture.
-import type std.js.{Promise}.
+import type std.js.Dom.PhotoSettings.{PhotoSettings}.
+import type std.js.Promise.{Promise}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub track_typechecks(receiver: ImageCapture): MediaStreamTrack ->
+pub track_typechecks(receiver: ImageCapture): std.js.Dom.MediaStreamTrack.MediaStreamTrack ->
     receiver.track().
 
-pub get_photo_capabilities_typechecks(receiver: ImageCapture): Promise[PhotoCapabilities] ->
+pub get_photo_capabilities_typechecks(
+    receiver: ImageCapture,
+): Promise[std.js.Dom.PhotoCapabilities.PhotoCapabilities] ->
     receiver.get_photo_capabilities().
 
 pub get_photo_settings_typechecks(receiver: ImageCapture): Promise[PhotoSettings] ->
     receiver.get_photo_settings().
 
-pub take_photo_typechecks(receiver: ImageCapture, photo_settings: PhotoSettings): Promise[Blob] ->
+pub take_photo_typechecks(
+    receiver: ImageCapture,
+    photo_settings: std.core.Option.Option[PhotoSettings],
+): Promise[std.js.Dom.Blob.Blob] ->
     receiver.take_photo(photo_settings).

@@ -15,8 +15,8 @@ module std.js.Dom.RemotePlaybackEventMap.
 
 pub opaque type RemotePlaybackEventMap.
 
-pub (value: RemotePlaybackEventMap) connect(): Event.
+pub (receiver: RemotePlaybackEventMap) connect(): std.js.Dom.Event.Event.
 
-pub (value: RemotePlaybackEventMap) connecting(): Event.
+pub (receiver: RemotePlaybackEventMap) connecting(): std.js.Dom.Event.Event.
 
-pub (value: RemotePlaybackEventMap) disconnect(): Event.
+pub (receiver: RemotePlaybackEventMap) disconnect(): std.js.Dom.Event.Event.

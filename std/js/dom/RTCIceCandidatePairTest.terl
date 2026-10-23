@@ -12,9 +12,8 @@
  */
 module std.js.Dom.RTCIceCandidatePairTest.
 
+import type std.js.Dom.RTCIceCandidate.{RTCIceCandidate}.
 import type std.js.Dom.RTCIceCandidatePair.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub local_typechecks(receiver: RTCIceCandidatePair): RTCIceCandidate ->
     receiver.local().

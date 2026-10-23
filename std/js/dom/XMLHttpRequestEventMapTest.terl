@@ -14,7 +14,5 @@ module std.js.Dom.XMLHttpRequestEventMapTest.
 
 import type std.js.Dom.XMLHttpRequestEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub readystatechange_typechecks(receiver: XMLHttpRequestEventMap): Event ->
+pub readystatechange_typechecks(receiver: XMLHttpRequestEventMap): std.js.Dom.Event.Event ->
     receiver.readystatechange().

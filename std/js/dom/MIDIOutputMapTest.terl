@@ -13,5 +13,3 @@
 module std.js.Dom.MIDIOutputMapTest.
 
 import type std.js.Dom.MIDIOutputMap.
-
-pub generated_binding_surface_contract(): Bool -> true.

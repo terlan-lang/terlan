@@ -14,7 +14,5 @@ module std.js.Dom.GPUErrorTest.
 
 import type std.js.Dom.GPUError.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub message_typechecks(receiver: GPUError): std.js.String.JsString ->
     receiver.message().

@@ -15,6 +15,6 @@ module std.js.Dom.CookieListItem.
 
 pub opaque type CookieListItem.
 
-pub (value: CookieListItem) name(): std.js.String.JsString.
+pub (receiver: CookieListItem) name(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: CookieListItem) value(): std.js.String.JsString.
+pub (receiver: CookieListItem) value(): std.core.Option.Option[std.js.String.JsString].

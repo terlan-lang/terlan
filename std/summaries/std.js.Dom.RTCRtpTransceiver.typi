@@ -21,50 +21,36 @@ module std.js.Dom.RTCRtpTransceiver.
 pub opaque type RTCRtpTransceiver.
 
 /**
- * The read-only RTCRtpTransceiver property **`currentDirection`** is a string which indicates the current negotiated directionality of the transceiver.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/currentDirection)
- */
-pub (value: RTCRtpTransceiver) current_direction(): Option[RTCRtpTransceiverDirection].
-
-/**
- * The RTCRtpTransceiver property **`direction`** is a string that indicates the transceiver's _preferred_ directionality.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/direction)
- */
-pub (value: RTCRtpTransceiver) direction(): RTCRtpTransceiverDirection.
-
-/**
  * The read-only RTCRtpTransceiver interface's **`mid`** property specifies the negotiated media ID (`mid`) which the local and remote peers have agreed upon to uniquely identify the stream's pairing of sender and receiver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/mid)
  */
-pub (value: RTCRtpTransceiver) mid(): Option[std.js.String.JsString].
+pub (receiver: RTCRtpTransceiver) mid(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The read-only **`receiver`** property of WebRTC's RTCRtpTransceiver interface indicates the data for the transceiver's stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/receiver)
  */
-pub (value: RTCRtpTransceiver) receiver(): RTCRtpReceiver.
+pub (receiver: RTCRtpTransceiver) receiver(): std.js.Dom.RTCRtpReceiver.RTCRtpReceiver.
 
 /**
  * The read-only **`sender`** property of WebRTC's RTCRtpTransceiver interface indicates the for the transceiver's stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/sender)
  */
-pub (value: RTCRtpTransceiver) sender(): RTCRtpSender.
+pub (receiver: RTCRtpTransceiver) sender(): std.js.Dom.RTCRtpSender.RTCRtpSender.
 
 /**
  * The **`setCodecPreferences()`** method of the RTCRtpTransceiver interface is used to set the codecs that the transceiver allows for decoding _received_ data, in order of decreasing preference.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/setCodecPreferences)
  */
-pub (value: RTCRtpTransceiver) set_codec_preferences(codecs: std.js.Array[RTCRtpCodec]): std.core.Unit.
+pub (receiver: RTCRtpTransceiver) set_codec_preferences(codecs: std.js.Array.Array[std.js.Dom.RTCRtpCodec.RTCRtpCodec]): std.core.Unit.Unit.
 
 /**
  * The **`stop()`** method in the RTCRtpTransceiver interface permanently stops the transceiver by stopping both the associated RTCRtpSender and ```js-nolint stop() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/stop)
  */
-pub (value: RTCRtpTransceiver) stop(): std.core.Unit.
+pub (receiver: RTCRtpTransceiver) stop(): std.core.Unit.Unit.

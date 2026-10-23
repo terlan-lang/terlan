@@ -12,7 +12,9 @@
  */
 module std.js.Dom.TextTrackCue.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +30,7 @@ pub opaque type TextTrackCue.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/endTime)
  */
-pub (value: TextTrackCue) end_time(): JsNumber ->
+pub (receiver: TextTrackCue) end_time(): JsNumber ->
     native.
 
 /**
@@ -36,7 +38,7 @@ pub (value: TextTrackCue) end_time(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/id)
  */
-pub (value: TextTrackCue) id(): JsString ->
+pub (receiver: TextTrackCue) id(): JsString ->
     native.
 
 /**
@@ -44,7 +46,7 @@ pub (value: TextTrackCue) id(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/pauseOnExit)
  */
-pub (value: TextTrackCue) pause_on_exit(): Bool ->
+pub (receiver: TextTrackCue) pause_on_exit(): Bool ->
     native.
 
 /**
@@ -52,7 +54,7 @@ pub (value: TextTrackCue) pause_on_exit(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/startTime)
  */
-pub (value: TextTrackCue) start_time(): JsNumber ->
+pub (receiver: TextTrackCue) start_time(): JsNumber ->
     native.
 
 /**
@@ -60,19 +62,19 @@ pub (value: TextTrackCue) start_time(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCue/track)
  */
-pub (value: TextTrackCue) track(): Option[TextTrack] ->
+pub (receiver: TextTrackCue) track(): Option[std.js.Dom.TextTrack.TextTrack] ->
     native.
 
-pub (value: TextTrackCue) add_event_listener(
+pub (receiver: TextTrackCue) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: TextTrackCue) remove_event_listener(
+pub (receiver: TextTrackCue) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

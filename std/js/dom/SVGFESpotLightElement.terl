@@ -12,7 +12,10 @@
  */
 module std.js.Dom.SVGFESpotLightElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedNumber.{SVGAnimatedNumber}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +30,7 @@ pub opaque type SVGFESpotLightElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/limitingConeAngle)
  */
-pub (value: SVGFESpotLightElement) limiting_cone_angle(): SVGAnimatedNumber ->
+pub (receiver: SVGFESpotLightElement) limiting_cone_angle(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -35,7 +38,7 @@ pub (value: SVGFESpotLightElement) limiting_cone_angle(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/pointsAtX)
  */
-pub (value: SVGFESpotLightElement) points_at_x(): SVGAnimatedNumber ->
+pub (receiver: SVGFESpotLightElement) points_at_x(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -43,7 +46,7 @@ pub (value: SVGFESpotLightElement) points_at_x(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/pointsAtY)
  */
-pub (value: SVGFESpotLightElement) points_at_y(): SVGAnimatedNumber ->
+pub (receiver: SVGFESpotLightElement) points_at_y(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -51,7 +54,7 @@ pub (value: SVGFESpotLightElement) points_at_y(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/pointsAtZ)
  */
-pub (value: SVGFESpotLightElement) points_at_z(): SVGAnimatedNumber ->
+pub (receiver: SVGFESpotLightElement) points_at_z(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -59,7 +62,7 @@ pub (value: SVGFESpotLightElement) points_at_z(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/specularExponent)
  */
-pub (value: SVGFESpotLightElement) specular_exponent(): SVGAnimatedNumber ->
+pub (receiver: SVGFESpotLightElement) specular_exponent(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -67,7 +70,7 @@ pub (value: SVGFESpotLightElement) specular_exponent(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/x)
  */
-pub (value: SVGFESpotLightElement) x(): SVGAnimatedNumber ->
+pub (receiver: SVGFESpotLightElement) x(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -75,7 +78,7 @@ pub (value: SVGFESpotLightElement) x(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/y)
  */
-pub (value: SVGFESpotLightElement) y(): SVGAnimatedNumber ->
+pub (receiver: SVGFESpotLightElement) y(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -83,19 +86,19 @@ pub (value: SVGFESpotLightElement) y(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/z)
  */
-pub (value: SVGFESpotLightElement) z(): SVGAnimatedNumber ->
+pub (receiver: SVGFESpotLightElement) z(): SVGAnimatedNumber ->
     native.
 
-pub (value: SVGFESpotLightElement) add_event_listener(
+pub (receiver: SVGFESpotLightElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SVGFESpotLightElement) remove_event_listener(
+pub (receiver: SVGFESpotLightElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

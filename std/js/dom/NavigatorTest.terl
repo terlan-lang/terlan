@@ -12,73 +12,86 @@
  */
 module std.js.Dom.NavigatorTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
 import type std.js.Dom.Navigator.
+import type std.js.Dom.ShareData.{ShareData}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Array, Promise}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub clipboard_typechecks(receiver: Navigator): Clipboard ->
+pub clipboard_typechecks(receiver: Navigator): std.js.Dom.Clipboard.Clipboard ->
     receiver.clipboard().
 
-pub credentials_typechecks(receiver: Navigator): CredentialsContainer ->
+pub credentials_typechecks(
+    receiver: Navigator,
+): std.js.Dom.CredentialsContainer.CredentialsContainer ->
     receiver.credentials().
 
 pub do_not_track_typechecks(receiver: Navigator): Option[JsString] ->
     receiver.do_not_track().
 
-pub geolocation_typechecks(receiver: Navigator): Geolocation ->
+pub geolocation_typechecks(receiver: Navigator): std.js.Dom.Geolocation.Geolocation ->
     receiver.geolocation().
 
-pub login_typechecks(receiver: Navigator): NavigatorLogin ->
+pub login_typechecks(receiver: Navigator): std.js.Dom.NavigatorLogin.NavigatorLogin ->
     receiver.login().
 
 pub max_touch_points_typechecks(receiver: Navigator): std.js.Number.JsNumber ->
     receiver.max_touch_points().
 
-pub media_capabilities_typechecks(receiver: Navigator): MediaCapabilities ->
+pub media_capabilities_typechecks(
+    receiver: Navigator,
+): std.js.Dom.MediaCapabilities.MediaCapabilities ->
     receiver.media_capabilities().
 
-pub media_devices_typechecks(receiver: Navigator): MediaDevices ->
+pub media_devices_typechecks(receiver: Navigator): std.js.Dom.MediaDevices.MediaDevices ->
     receiver.media_devices().
 
-pub media_session_typechecks(receiver: Navigator): MediaSession ->
+pub media_session_typechecks(receiver: Navigator): std.js.Dom.MediaSession.MediaSession ->
     receiver.media_session().
 
-pub permissions_typechecks(receiver: Navigator): Permissions ->
+pub permissions_typechecks(receiver: Navigator): std.js.Dom.Permissions.Permissions ->
     receiver.permissions().
 
-pub service_worker_typechecks(receiver: Navigator): ServiceWorkerContainer ->
+pub service_worker_typechecks(
+    receiver: Navigator,
+): std.js.Dom.ServiceWorkerContainer.ServiceWorkerContainer ->
     receiver.service_worker().
 
-pub user_activation_typechecks(receiver: Navigator): UserActivation ->
+pub user_activation_typechecks(receiver: Navigator): std.js.Dom.UserActivation.UserActivation ->
     receiver.user_activation().
 
-pub wake_lock_typechecks(receiver: Navigator): WakeLock ->
+pub wake_lock_typechecks(receiver: Navigator): std.js.Dom.WakeLock.WakeLock ->
     receiver.wake_lock().
 
-pub can_share_typechecks(receiver: Navigator, data: ShareData): Bool ->
+pub can_share_typechecks(receiver: Navigator, data: Option[ShareData]): Bool ->
     receiver.can_share(data).
 
-pub get_gamepads_typechecks(receiver: Navigator): Array[Option[Gamepad]] ->
+pub get_gamepads_typechecks(receiver: Navigator): Array[Option[std.js.Dom.Gamepad.Gamepad]] ->
     receiver.get_gamepads().
 
-pub request_midi_access_typechecks(receiver: Navigator, options: MIDIOptions): Promise[MIDIAccess] ->
+pub request_midi_access_typechecks(
+    receiver: Navigator,
+    options: Option[std.js.Dom.MIDIOptions.MIDIOptions],
+): Promise[std.js.Dom.MIDIAccess.MIDIAccess] ->
     receiver.request_midi_access(options).
 
 pub request_media_key_system_access_typechecks(
     receiver: Navigator,
     key_system: JsString,
-    supported_configurations: Array[MediaKeySystemConfiguration],
-): Promise[MediaKeySystemAccess] ->
+    supported_configurations: Array[std.js.Dom.MediaKeySystemConfiguration.MediaKeySystemConfiguration],
+): Promise[std.js.Dom.MediaKeySystemAccess.MediaKeySystemAccess] ->
     receiver.request_media_key_system_access(key_system, supported_configurations).
 
-pub send_beacon_typechecks(receiver: Navigator, url: URL | JsString, data: Option[BodyInit]): Bool ->
+pub send_beacon_typechecks(
+    receiver: Navigator,
+    url: std.js.Dom.URL.URL | JsString,
+    data: Option[Option[std.js.Dom.BodyInit.BodyInit]],
+): Bool ->
     receiver.send_beacon(url, data).
 
-pub share_typechecks(receiver: Navigator, data: ShareData): Promise[std.core.Unit] ->
+pub share_typechecks(receiver: Navigator, data: Option[ShareData]): Promise[std.core.Unit.Unit] ->
     receiver.share(data).
 
-pub vibrate_typechecks(receiver: Navigator, pattern: VibratePattern): Bool ->
+pub vibrate_typechecks(receiver: Navigator, pattern: std.js.Dom.VibratePattern.VibratePattern): Bool ->
     receiver.vibrate(pattern).

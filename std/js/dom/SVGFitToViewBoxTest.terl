@@ -14,10 +14,10 @@ module std.js.Dom.SVGFitToViewBoxTest.
 
 import type std.js.Dom.SVGFitToViewBox.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub preserve_aspect_ratio_typechecks(receiver: SVGFitToViewBox): SVGAnimatedPreserveAspectRatio ->
+pub preserve_aspect_ratio_typechecks(
+    receiver: SVGFitToViewBox,
+): std.js.Dom.SVGAnimatedPreserveAspectRatio.SVGAnimatedPreserveAspectRatio ->
     receiver.preserve_aspect_ratio().
 
-pub view_box_typechecks(receiver: SVGFitToViewBox): SVGAnimatedRect ->
+pub view_box_typechecks(receiver: SVGFitToViewBox): std.js.Dom.SVGAnimatedRect.SVGAnimatedRect ->
     receiver.view_box().

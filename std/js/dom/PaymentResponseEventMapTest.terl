@@ -14,7 +14,7 @@ module std.js.Dom.PaymentResponseEventMapTest.
 
 import type std.js.Dom.PaymentResponseEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub payerdetailchange_typechecks(receiver: PaymentResponseEventMap): PaymentRequestUpdateEvent ->
+pub payerdetailchange_typechecks(
+    receiver: PaymentResponseEventMap,
+): std.js.Dom.PaymentRequestUpdateEvent.PaymentRequestUpdateEvent ->
     receiver.payerdetailchange().

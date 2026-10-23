@@ -14,10 +14,10 @@ module std.js.Dom.HmacKeyGenParamsTest.
 
 import type std.js.Dom.HmacKeyGenParams.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub hash_typechecks(receiver: HmacKeyGenParams): HashAlgorithmIdentifier ->
+pub hash_typechecks(
+    receiver: HmacKeyGenParams,
+): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier ->
     receiver.hash().
 
-pub length_typechecks(receiver: HmacKeyGenParams): std.js.Number.JsNumber ->
+pub length_typechecks(receiver: HmacKeyGenParams): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.length().

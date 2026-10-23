@@ -15,12 +15,10 @@ module std.js.Dom.PaymentOptions.
 
 pub opaque type PaymentOptions.
 
-pub (value: PaymentOptions) request_payer_email(): std.core.Bool.
+pub (receiver: PaymentOptions) request_payer_email(): std.core.Option.Option[Bool].
 
-pub (value: PaymentOptions) request_payer_name(): std.core.Bool.
+pub (receiver: PaymentOptions) request_payer_name(): std.core.Option.Option[Bool].
 
-pub (value: PaymentOptions) request_payer_phone(): std.core.Bool.
+pub (receiver: PaymentOptions) request_payer_phone(): std.core.Option.Option[Bool].
 
-pub (value: PaymentOptions) request_shipping(): std.core.Bool.
-
-pub (value: PaymentOptions) shipping_type(): PaymentShippingType.
+pub (receiver: PaymentOptions) request_shipping(): std.core.Option.Option[Bool].

@@ -14,7 +14,5 @@ module std.js.Dom.GetRootNodeOptionsTest.
 
 import type std.js.Dom.GetRootNodeOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub composed_typechecks(receiver: GetRootNodeOptions): std.core.Bool ->
+pub composed_typechecks(receiver: GetRootNodeOptions): std.core.Option.Option[Bool] ->
     receiver.composed().

@@ -15,99 +15,99 @@ module std.js.RegExpConstructor.
 
 pub opaque type RegExpConstructor.
 
-pub (value: RegExpConstructor) prototype(): RegExp.
+pub (receiver: RegExpConstructor) prototype(): std.js.RegExp.RegExp.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_1(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value_1(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_2(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value_2(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_3(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value_3(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_4(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value_4(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_5(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value_5(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_6(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value_6(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_7(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value_7(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_8(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value_8(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_9(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value_9(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) input(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) input(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value_(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) last_match(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) last_match(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value__overload_2(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) last_paren(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) last_paren(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value__overload_3(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) left_context(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) left_context(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value__overload_4(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) right_context(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) right_context(): std.js.String.JsString.
 
 /**
  * @deprecated A legacy feature for browser compatibility
  */
-pub (value: RegExpConstructor) value_(): std.js.String.JsString.
+pub (receiver: RegExpConstructor) value__overload_5(): std.js.String.JsString.

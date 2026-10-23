@@ -12,6 +12,9 @@
  */
 module std.js.Dom.MutationRecord.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.Node.{Node}.
+import type std.js.Dom.NodeList.{NodeList}.
 import type std.js.String.{JsString}.
 
 /**
@@ -26,7 +29,7 @@ pub opaque type MutationRecord.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/addedNodes)
  */
-pub (value: MutationRecord) added_nodes(): NodeList ->
+pub (receiver: MutationRecord) added_nodes(): NodeList ->
     native.
 
 /**
@@ -34,7 +37,7 @@ pub (value: MutationRecord) added_nodes(): NodeList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/attributeName)
  */
-pub (value: MutationRecord) attribute_name(): Option[JsString] ->
+pub (receiver: MutationRecord) attribute_name(): Option[JsString] ->
     native.
 
 /**
@@ -42,7 +45,7 @@ pub (value: MutationRecord) attribute_name(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/attributeNamespace)
  */
-pub (value: MutationRecord) attribute_namespace(): Option[JsString] ->
+pub (receiver: MutationRecord) attribute_namespace(): Option[JsString] ->
     native.
 
 /**
@@ -50,7 +53,7 @@ pub (value: MutationRecord) attribute_namespace(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/nextSibling)
  */
-pub (value: MutationRecord) next_sibling(): Option[Node] ->
+pub (receiver: MutationRecord) next_sibling(): Option[Node] ->
     native.
 
 /**
@@ -58,7 +61,7 @@ pub (value: MutationRecord) next_sibling(): Option[Node] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/oldValue)
  */
-pub (value: MutationRecord) old_value(): Option[JsString] ->
+pub (receiver: MutationRecord) old_value(): Option[JsString] ->
     native.
 
 /**
@@ -66,7 +69,7 @@ pub (value: MutationRecord) old_value(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/previousSibling)
  */
-pub (value: MutationRecord) previous_sibling(): Option[Node] ->
+pub (receiver: MutationRecord) previous_sibling(): Option[Node] ->
     native.
 
 /**
@@ -74,7 +77,7 @@ pub (value: MutationRecord) previous_sibling(): Option[Node] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/removedNodes)
  */
-pub (value: MutationRecord) removed_nodes(): NodeList ->
+pub (receiver: MutationRecord) removed_nodes(): NodeList ->
     native.
 
 /**
@@ -82,13 +85,5 @@ pub (value: MutationRecord) removed_nodes(): NodeList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/target)
  */
-pub (value: MutationRecord) target_(): Node ->
-    native.
-
-/**
- * The MutationRecord read-only property **`type`** is the type of the MutationRecord observed by a MutationObserver.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/type)
- */
-pub (value: MutationRecord) type_(): MutationRecordType ->
+pub (receiver: MutationRecord) target_(): Node ->
     native.

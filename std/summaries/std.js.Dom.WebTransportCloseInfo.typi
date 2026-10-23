@@ -15,6 +15,6 @@ module std.js.Dom.WebTransportCloseInfo.
 
 pub opaque type WebTransportCloseInfo.
 
-pub (value: WebTransportCloseInfo) close_code(): std.js.Number.JsNumber.
+pub (receiver: WebTransportCloseInfo) close_code(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: WebTransportCloseInfo) reason(): std.js.String.JsString.
+pub (receiver: WebTransportCloseInfo) reason(): std.core.Option.Option[std.js.String.JsString].

@@ -15,6 +15,6 @@ module std.js.Dom.ScrollToOptions.
 
 pub opaque type ScrollToOptions.
 
-pub (value: ScrollToOptions) left(): std.js.Number.JsNumber.
+pub (receiver: ScrollToOptions) left(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: ScrollToOptions) top(): std.js.Number.JsNumber.
+pub (receiver: ScrollToOptions) top(): std.core.Option.Option[std.js.Number.JsNumber].

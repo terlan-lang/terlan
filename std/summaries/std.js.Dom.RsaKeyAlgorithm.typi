@@ -15,6 +15,6 @@ module std.js.Dom.RsaKeyAlgorithm.
 
 pub opaque type RsaKeyAlgorithm.
 
-pub (value: RsaKeyAlgorithm) modulus_length(): std.js.Number.JsNumber.
+pub (receiver: RsaKeyAlgorithm) modulus_length(): std.js.Number.JsNumber.
 
-pub (value: RsaKeyAlgorithm) public_exponent(): BigInteger.
+pub (receiver: RsaKeyAlgorithm) public_exponent(): std.js.Dom.BigInteger.BigInteger.

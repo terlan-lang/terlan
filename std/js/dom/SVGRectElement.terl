@@ -12,7 +12,10 @@
  */
 module std.js.Dom.SVGRectElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedLength.{SVGAnimatedLength}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +30,7 @@ pub opaque type SVGRectElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/height)
  */
-pub (value: SVGRectElement) height(): SVGAnimatedLength ->
+pub (receiver: SVGRectElement) height(): SVGAnimatedLength ->
     native.
 
 /**
@@ -35,7 +38,7 @@ pub (value: SVGRectElement) height(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/rx)
  */
-pub (value: SVGRectElement) rx(): SVGAnimatedLength ->
+pub (receiver: SVGRectElement) rx(): SVGAnimatedLength ->
     native.
 
 /**
@@ -43,7 +46,7 @@ pub (value: SVGRectElement) rx(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/ry)
  */
-pub (value: SVGRectElement) ry(): SVGAnimatedLength ->
+pub (receiver: SVGRectElement) ry(): SVGAnimatedLength ->
     native.
 
 /**
@@ -51,7 +54,7 @@ pub (value: SVGRectElement) ry(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/width)
  */
-pub (value: SVGRectElement) width(): SVGAnimatedLength ->
+pub (receiver: SVGRectElement) width(): SVGAnimatedLength ->
     native.
 
 /**
@@ -59,7 +62,7 @@ pub (value: SVGRectElement) width(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/x)
  */
-pub (value: SVGRectElement) x(): SVGAnimatedLength ->
+pub (receiver: SVGRectElement) x(): SVGAnimatedLength ->
     native.
 
 /**
@@ -67,19 +70,19 @@ pub (value: SVGRectElement) x(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/y)
  */
-pub (value: SVGRectElement) y(): SVGAnimatedLength ->
+pub (receiver: SVGRectElement) y(): SVGAnimatedLength ->
     native.
 
-pub (value: SVGRectElement) add_event_listener(
+pub (receiver: SVGRectElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SVGRectElement) remove_event_listener(
+pub (receiver: SVGRectElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

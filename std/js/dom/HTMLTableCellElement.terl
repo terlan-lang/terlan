@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLTableCellElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +30,7 @@ pub opaque type HTMLTableCellElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/abbr)
  */
-pub (value: HTMLTableCellElement) abbr(): JsString ->
+pub (receiver: HTMLTableCellElement) abbr(): JsString ->
     native.
 
 /**
@@ -37,13 +39,13 @@ pub (value: HTMLTableCellElement) abbr(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/align)
  */
-pub (value: HTMLTableCellElement) align(): JsString ->
+pub (receiver: HTMLTableCellElement) align(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLTableCellElement) axis(): JsString ->
+pub (receiver: HTMLTableCellElement) axis(): JsString ->
     native.
 
 /**
@@ -52,7 +54,7 @@ pub (value: HTMLTableCellElement) axis(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/bgColor)
  */
-pub (value: HTMLTableCellElement) bg_color(): JsString ->
+pub (receiver: HTMLTableCellElement) bg_color(): JsString ->
     native.
 
 /**
@@ -60,7 +62,7 @@ pub (value: HTMLTableCellElement) bg_color(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/cellIndex)
  */
-pub (value: HTMLTableCellElement) cell_index(): JsNumber ->
+pub (receiver: HTMLTableCellElement) cell_index(): JsNumber ->
     native.
 
 /**
@@ -69,7 +71,7 @@ pub (value: HTMLTableCellElement) cell_index(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/ch)
  */
-pub (value: HTMLTableCellElement) ch(): JsString ->
+pub (receiver: HTMLTableCellElement) ch(): JsString ->
     native.
 
 /**
@@ -78,7 +80,7 @@ pub (value: HTMLTableCellElement) ch(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/chOff)
  */
-pub (value: HTMLTableCellElement) ch_off(): JsString ->
+pub (receiver: HTMLTableCellElement) ch_off(): JsString ->
     native.
 
 /**
@@ -86,7 +88,7 @@ pub (value: HTMLTableCellElement) ch_off(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/colSpan)
  */
-pub (value: HTMLTableCellElement) col_span(): JsNumber ->
+pub (receiver: HTMLTableCellElement) col_span(): JsNumber ->
     native.
 
 /**
@@ -94,13 +96,13 @@ pub (value: HTMLTableCellElement) col_span(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/headers)
  */
-pub (value: HTMLTableCellElement) headers(): JsString ->
+pub (receiver: HTMLTableCellElement) headers(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLTableCellElement) height(): JsString ->
+pub (receiver: HTMLTableCellElement) height(): JsString ->
     native.
 
 /**
@@ -109,7 +111,7 @@ pub (value: HTMLTableCellElement) height(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/noWrap)
  */
-pub (value: HTMLTableCellElement) no_wrap(): Bool ->
+pub (receiver: HTMLTableCellElement) no_wrap(): Bool ->
     native.
 
 /**
@@ -117,7 +119,7 @@ pub (value: HTMLTableCellElement) no_wrap(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/rowSpan)
  */
-pub (value: HTMLTableCellElement) row_span(): JsNumber ->
+pub (receiver: HTMLTableCellElement) row_span(): JsNumber ->
     native.
 
 /**
@@ -125,7 +127,7 @@ pub (value: HTMLTableCellElement) row_span(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/scope)
  */
-pub (value: HTMLTableCellElement) scope(): JsString ->
+pub (receiver: HTMLTableCellElement) scope(): JsString ->
     native.
 
 /**
@@ -134,25 +136,25 @@ pub (value: HTMLTableCellElement) scope(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/vAlign)
  */
-pub (value: HTMLTableCellElement) v_align(): JsString ->
+pub (receiver: HTMLTableCellElement) v_align(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLTableCellElement) width(): JsString ->
+pub (receiver: HTMLTableCellElement) width(): JsString ->
     native.
 
-pub (value: HTMLTableCellElement) add_event_listener(
+pub (receiver: HTMLTableCellElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLTableCellElement) remove_event_listener(
+pub (receiver: HTMLTableCellElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

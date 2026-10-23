@@ -12,17 +12,34 @@
  */
 module std.js.Dom.SVGSVGElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.DOMRectReadOnly.{DOMRectReadOnly}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.NodeListOf.{NodeListOf}.
+import type std.js.Dom.SVGAnimatedLength.{SVGAnimatedLength}.
+import type std.js.Dom.SVGCircleElement.{SVGCircleElement}.
+import type std.js.Dom.SVGElement.{SVGElement}.
+import type std.js.Dom.SVGEllipseElement.{SVGEllipseElement}.
+import type std.js.Dom.SVGImageElement.{SVGImageElement}.
+import type std.js.Dom.SVGLineElement.{SVGLineElement}.
+import type std.js.Dom.SVGPathElement.{SVGPathElement}.
+import type std.js.Dom.SVGPolygonElement.{SVGPolygonElement}.
+import type std.js.Dom.SVGPolylineElement.{SVGPolylineElement}.
+import type std.js.Dom.SVGRectElement.{SVGRectElement}.
 import type std.js.Dom.SVGSVGElement.
+import type std.js.Dom.SVGTextElement.{SVGTextElement}.
+import type std.js.Dom.SVGTransform.{SVGTransform}.
+import type std.js.Dom.SVGUseElement.{SVGUseElement}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub current_scale_typechecks(receiver: SVGSVGElement): JsNumber ->
     receiver.current_scale().
 
-pub current_translate_typechecks(receiver: SVGSVGElement): DOMPointReadOnly ->
+pub current_translate_typechecks(
+    receiver: SVGSVGElement,
+): std.js.Dom.DOMPointReadOnly.DOMPointReadOnly ->
     receiver.current_translate().
 
 pub height_typechecks(receiver: SVGSVGElement): SVGAnimatedLength ->
@@ -54,22 +71,22 @@ pub check_intersection_typechecks(
 ): Bool ->
     receiver.check_intersection(element, rect).
 
-pub create_svg_angle_typechecks(receiver: SVGSVGElement): SVGAngle ->
+pub create_svg_angle_typechecks(receiver: SVGSVGElement): std.js.Dom.SVGAngle.SVGAngle ->
     receiver.create_svg_angle().
 
-pub create_svg_length_typechecks(receiver: SVGSVGElement): SVGLength ->
+pub create_svg_length_typechecks(receiver: SVGSVGElement): std.js.Dom.SVGLength.SVGLength ->
     receiver.create_svg_length().
 
-pub create_svg_matrix_typechecks(receiver: SVGSVGElement): DOMMatrix ->
+pub create_svg_matrix_typechecks(receiver: SVGSVGElement): std.js.Dom.DOMMatrix.DOMMatrix ->
     receiver.create_svg_matrix().
 
-pub create_svg_number_typechecks(receiver: SVGSVGElement): SVGNumber ->
+pub create_svg_number_typechecks(receiver: SVGSVGElement): std.js.Dom.SVGNumber.SVGNumber ->
     receiver.create_svg_number().
 
-pub create_svg_point_typechecks(receiver: SVGSVGElement): DOMPoint ->
+pub create_svg_point_typechecks(receiver: SVGSVGElement): std.js.Dom.DOMPoint.DOMPoint ->
     receiver.create_svg_point().
 
-pub create_svg_rect_typechecks(receiver: SVGSVGElement): DOMRect ->
+pub create_svg_rect_typechecks(receiver: SVGSVGElement): std.js.Dom.DOMRect.DOMRect ->
     receiver.create_svg_rect().
 
 pub create_svg_transform_typechecks(receiver: SVGSVGElement): SVGTransform ->
@@ -77,7 +94,7 @@ pub create_svg_transform_typechecks(receiver: SVGSVGElement): SVGTransform ->
 
 pub create_svg_transform_from_matrix_typechecks(
     receiver: SVGSVGElement,
-    matrix: DOMMatrix2DInit,
+    matrix: Option[std.js.Dom.DOMMatrix2DInit.DOMMatrix2DInit],
 ): SVGTransform ->
     receiver.create_svg_transform_from_matrix(matrix).
 
@@ -90,7 +107,10 @@ pub force_redraw_typechecks(receiver: SVGSVGElement): Unit ->
 pub get_current_time_typechecks(receiver: SVGSVGElement): JsNumber ->
     receiver.get_current_time().
 
-pub get_element_by_id_typechecks(receiver: SVGSVGElement, element_id: JsString): Element ->
+pub get_element_by_id_typechecks(
+    receiver: SVGSVGElement,
+    element_id: JsString,
+): std.js.Dom.Element.Element ->
     receiver.get_element_by_id(element_id).
 
 pub get_enclosure_list_typechecks(
@@ -129,7 +149,7 @@ pub add_event_listener_typechecks(
     receiver: SVGSVGElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -137,6 +157,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGSVGElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

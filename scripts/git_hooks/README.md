@@ -26,11 +26,27 @@ Missing tools, database download failures, and audit findings stop the commit
 before compiler builds begin.
 
 Every nonempty commit checks Rust formatting, builds the staged compiler, VM,
-and service runtime, and tests the hook policy and snapshot isolation. The paired
+and service runtime, and tests the hook policy and snapshot isolation. It also
+builds all JavaScript binding consumers with Terlan and executes the complete
+Playwright suite in Chromium, Firefox, and WebKit. Module filters are cleared;
+missing browsers, skipped cases, expected failures, retries, and incomplete
+reports reject the commit. The paired
 service runtime is required by executable service-package tests. This requires Git, Bash, the
 pinned Rust toolchain with rustfmt and Clippy, Make, and the compiler's native build dependencies.
 The first run compiles a fresh cache and can take several minutes. Later runs
 reuse it. The Terlan planner selects additional checks:
+
+Install the pinned browser test dependencies and browser binaries once:
+
+```sh
+npm --prefix tests/js ci --ignore-scripts
+(cd tests/js && npx playwright install --with-deps chromium firefox webkit)
+```
+
+The browser matrix runs for every nonempty commit, including documentation-only
+commits. Its compiler, sources, and generated artifacts come from the staged
+snapshot. Reports and failure traces are under the snapshot's
+`target/js-browser/` directory.
 
 | Staged changes | Local checks |
 | --- | --- |

@@ -12,13 +12,16 @@
  */
 module std.js.Dom.AesGcmParams.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.BufferSource.{BufferSource}.
+
 pub opaque type AesGcmParams.
 
-pub (value: AesGcmParams) additional_data(): BufferSource ->
+pub (receiver: AesGcmParams) additional_data(): Option[BufferSource] ->
     native.
 
-pub (value: AesGcmParams) iv(): BufferSource ->
+pub (receiver: AesGcmParams) iv(): BufferSource ->
     native.
 
-pub (value: AesGcmParams) tag_length(): std.js.Number.JsNumber ->
+pub (receiver: AesGcmParams) tag_length(): Option[std.js.Number.JsNumber] ->
     native.

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.HTMLCollectionOfTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.HTMLCollectionOf.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub item_typechecks(receiver: HTMLCollectionOf[T], index: std.js.Number.JsNumber): Option[T] ->
     receiver.item(index).

@@ -12,7 +12,13 @@
  */
 module std.js.Dom.HTMLTableElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.HTMLCollectionOf.{HTMLCollectionOf}.
+import type std.js.Dom.HTMLTableCaptionElement.{HTMLTableCaptionElement}.
+import type std.js.Dom.HTMLTableRowElement.{HTMLTableRowElement}.
+import type std.js.Dom.HTMLTableSectionElement.{HTMLTableSectionElement}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -29,7 +35,7 @@ pub opaque type HTMLTableElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/align)
  */
-pub (value: HTMLTableElement) align(): JsString ->
+pub (receiver: HTMLTableElement) align(): JsString ->
     native.
 
 /**
@@ -38,7 +44,7 @@ pub (value: HTMLTableElement) align(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/bgColor)
  */
-pub (value: HTMLTableElement) bg_color(): JsString ->
+pub (receiver: HTMLTableElement) bg_color(): JsString ->
     native.
 
 /**
@@ -47,7 +53,7 @@ pub (value: HTMLTableElement) bg_color(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/border)
  */
-pub (value: HTMLTableElement) border(): JsString ->
+pub (receiver: HTMLTableElement) border(): JsString ->
     native.
 
 /**
@@ -55,7 +61,7 @@ pub (value: HTMLTableElement) border(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/caption)
  */
-pub (value: HTMLTableElement) caption(): Option[HTMLTableCaptionElement] ->
+pub (receiver: HTMLTableElement) caption(): Option[HTMLTableCaptionElement] ->
     native.
 
 /**
@@ -64,7 +70,7 @@ pub (value: HTMLTableElement) caption(): Option[HTMLTableCaptionElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/cellPadding)
  */
-pub (value: HTMLTableElement) cell_padding(): JsString ->
+pub (receiver: HTMLTableElement) cell_padding(): JsString ->
     native.
 
 /**
@@ -73,7 +79,7 @@ pub (value: HTMLTableElement) cell_padding(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/cellSpacing)
  */
-pub (value: HTMLTableElement) cell_spacing(): JsString ->
+pub (receiver: HTMLTableElement) cell_spacing(): JsString ->
     native.
 
 /**
@@ -82,7 +88,7 @@ pub (value: HTMLTableElement) cell_spacing(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/frame)
  */
-pub (value: HTMLTableElement) frame(): JsString ->
+pub (receiver: HTMLTableElement) frame(): JsString ->
     native.
 
 /**
@@ -90,7 +96,7 @@ pub (value: HTMLTableElement) frame(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/rows)
  */
-pub (value: HTMLTableElement) rows(): HTMLCollectionOf[HTMLTableRowElement] ->
+pub (receiver: HTMLTableElement) rows(): HTMLCollectionOf[HTMLTableRowElement] ->
     native.
 
 /**
@@ -99,7 +105,7 @@ pub (value: HTMLTableElement) rows(): HTMLCollectionOf[HTMLTableRowElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/rules)
  */
-pub (value: HTMLTableElement) rules(): JsString ->
+pub (receiver: HTMLTableElement) rules(): JsString ->
     native.
 
 /**
@@ -108,7 +114,7 @@ pub (value: HTMLTableElement) rules(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/summary)
  */
-pub (value: HTMLTableElement) summary(): JsString ->
+pub (receiver: HTMLTableElement) summary(): JsString ->
     native.
 
 /**
@@ -116,7 +122,7 @@ pub (value: HTMLTableElement) summary(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/tBodies)
  */
-pub (value: HTMLTableElement) t_bodies(): HTMLCollectionOf[HTMLTableSectionElement] ->
+pub (receiver: HTMLTableElement) t_bodies(): HTMLCollectionOf[HTMLTableSectionElement] ->
     native.
 
 /**
@@ -124,7 +130,7 @@ pub (value: HTMLTableElement) t_bodies(): HTMLCollectionOf[HTMLTableSectionEleme
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/tFoot)
  */
-pub (value: HTMLTableElement) t_foot(): Option[HTMLTableSectionElement] ->
+pub (receiver: HTMLTableElement) t_foot(): Option[HTMLTableSectionElement] ->
     native.
 
 /**
@@ -132,7 +138,7 @@ pub (value: HTMLTableElement) t_foot(): Option[HTMLTableSectionElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/tHead)
  */
-pub (value: HTMLTableElement) t_head(): Option[HTMLTableSectionElement] ->
+pub (receiver: HTMLTableElement) t_head(): Option[HTMLTableSectionElement] ->
     native.
 
 /**
@@ -141,7 +147,7 @@ pub (value: HTMLTableElement) t_head(): Option[HTMLTableSectionElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/width)
  */
-pub (value: HTMLTableElement) width(): JsString ->
+pub (receiver: HTMLTableElement) width(): JsString ->
     native.
 
 /**
@@ -149,7 +155,7 @@ pub (value: HTMLTableElement) width(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createCaption)
  */
-pub (value: HTMLTableElement) create_caption(): HTMLTableCaptionElement ->
+pub (receiver: HTMLTableElement) create_caption(): HTMLTableCaptionElement ->
     native.
 
 /**
@@ -157,7 +163,7 @@ pub (value: HTMLTableElement) create_caption(): HTMLTableCaptionElement ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createTBody)
  */
-pub (value: HTMLTableElement) create_t_body(): HTMLTableSectionElement ->
+pub (receiver: HTMLTableElement) create_t_body(): HTMLTableSectionElement ->
     native.
 
 /**
@@ -165,7 +171,7 @@ pub (value: HTMLTableElement) create_t_body(): HTMLTableSectionElement ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createTFoot)
  */
-pub (value: HTMLTableElement) create_t_foot(): HTMLTableSectionElement ->
+pub (receiver: HTMLTableElement) create_t_foot(): HTMLTableSectionElement ->
     native.
 
 /**
@@ -173,7 +179,7 @@ pub (value: HTMLTableElement) create_t_foot(): HTMLTableSectionElement ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createTHead)
  */
-pub (value: HTMLTableElement) create_t_head(): HTMLTableSectionElement ->
+pub (receiver: HTMLTableElement) create_t_head(): HTMLTableSectionElement ->
     native.
 
 /**
@@ -181,7 +187,7 @@ pub (value: HTMLTableElement) create_t_head(): HTMLTableSectionElement ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteCaption)
  */
-pub (value: HTMLTableElement) delete_caption(): Unit ->
+pub (receiver: HTMLTableElement) delete_caption(): Unit ->
     native.
 
 /**
@@ -189,7 +195,7 @@ pub (value: HTMLTableElement) delete_caption(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteRow)
  */
-pub (value: HTMLTableElement) delete_row(index: JsNumber): Unit ->
+pub (receiver: HTMLTableElement) delete_row(index: JsNumber): Unit ->
     native.
 
 /**
@@ -197,7 +203,7 @@ pub (value: HTMLTableElement) delete_row(index: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteTFoot)
  */
-pub (value: HTMLTableElement) delete_t_foot(): Unit ->
+pub (receiver: HTMLTableElement) delete_t_foot(): Unit ->
     native.
 
 /**
@@ -205,7 +211,7 @@ pub (value: HTMLTableElement) delete_t_foot(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteTHead)
  */
-pub (value: HTMLTableElement) delete_t_head(): Unit ->
+pub (receiver: HTMLTableElement) delete_t_head(): Unit ->
     native.
 
 /**
@@ -213,19 +219,19 @@ pub (value: HTMLTableElement) delete_t_head(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/insertRow)
  */
-pub (value: HTMLTableElement) insert_row(index: JsNumber): HTMLTableRowElement ->
+pub (receiver: HTMLTableElement) insert_row(index: Option[JsNumber]): HTMLTableRowElement ->
     native.
 
-pub (value: HTMLTableElement) add_event_listener(
+pub (receiver: HTMLTableElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLTableElement) remove_event_listener(
+pub (receiver: HTMLTableElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

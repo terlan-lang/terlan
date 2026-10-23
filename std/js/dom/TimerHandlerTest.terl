@@ -13,5 +13,3 @@
 module std.js.Dom.TimerHandlerTest.
 
 import type std.js.Dom.TimerHandler.
-
-pub generated_binding_surface_contract(): Bool -> true.

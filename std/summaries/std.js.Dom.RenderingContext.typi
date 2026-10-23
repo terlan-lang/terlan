@@ -14,4 +14,4 @@
 module std.js.Dom.RenderingContext.
 
 pub type RenderingContext =
-    CanvasRenderingContext2D | ImageBitmapRenderingContext | WebGL2RenderingContext | WebGLRenderingContext.
+    std.js.Dom.CanvasRenderingContext2D.CanvasRenderingContext2D | std.js.Dom.ImageBitmapRenderingContext.ImageBitmapRenderingContext | std.js.Dom.WebGL2RenderingContext.WebGL2RenderingContext | std.js.Dom.WebGLRenderingContext.WebGLRenderingContext.

@@ -15,11 +15,11 @@ module std.js.Dom.UIEventInit.
 
 pub opaque type UIEventInit.
 
-pub (value: UIEventInit) detail(): std.js.Number.JsNumber.
+pub (receiver: UIEventInit) detail(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: UIEventInit) view(): Option[Window].
+pub (receiver: UIEventInit) view(): std.core.Option.Option[std.js.Dom.Window.Window].
 
 /**
  * @deprecated
  */
-pub (value: UIEventInit) which(): std.js.Number.JsNumber.
+pub (receiver: UIEventInit) which(): std.core.Option.Option[std.js.Number.JsNumber].

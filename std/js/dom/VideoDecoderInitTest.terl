@@ -14,10 +14,12 @@ module std.js.Dom.VideoDecoderInitTest.
 
 import type std.js.Dom.VideoDecoderInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub error_typechecks(receiver: VideoDecoderInit): WebCodecsErrorCallback ->
+pub error_typechecks(
+    receiver: VideoDecoderInit,
+): std.js.Dom.WebCodecsErrorCallback.WebCodecsErrorCallback ->
     receiver.error().
 
-pub output_typechecks(receiver: VideoDecoderInit): VideoFrameOutputCallback ->
+pub output_typechecks(
+    receiver: VideoDecoderInit,
+): std.js.Dom.VideoFrameOutputCallback.VideoFrameOutputCallback ->
     receiver.output().

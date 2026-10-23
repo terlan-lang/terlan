@@ -12,6 +12,8 @@
  */
 module std.js.Dom.PageSwapEvent.
 
+import type std.core.Option.{Option}.
+
 /**
  * The **`PageSwapEvent`** event object is made available inside handler functions for the Window.pageswap_event event.
  *
@@ -24,7 +26,7 @@ pub opaque type PageSwapEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PageSwapEvent/activation)
  */
-pub (value: PageSwapEvent) activation(): Option[NavigationActivation] ->
+pub (receiver: PageSwapEvent) activation(): Option[std.js.Dom.NavigationActivation.NavigationActivation] ->
     native.
 
 /**
@@ -32,5 +34,5 @@ pub (value: PageSwapEvent) activation(): Option[NavigationActivation] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PageSwapEvent/viewTransition)
  */
-pub (value: PageSwapEvent) view_transition(): Option[ViewTransition] ->
+pub (receiver: PageSwapEvent) view_transition(): Option[std.js.Dom.ViewTransition.ViewTransition] ->
     native.

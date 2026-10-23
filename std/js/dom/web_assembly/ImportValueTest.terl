@@ -13,5 +13,3 @@
 module std.js.Dom.WebAssembly.ImportValueTest.
 
 import type std.js.Dom.WebAssembly.ImportValue.
-
-pub generated_binding_surface_contract(): Bool -> true.

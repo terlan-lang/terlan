@@ -12,22 +12,25 @@
  */
 module std.js.Dom.FileReaderEventMap.
 
+import type std.js.Dom.FileReader.{FileReader}.
+import type std.js.Dom.ProgressEvent.{ProgressEvent}.
+
 pub opaque type FileReaderEventMap.
 
-pub (value: FileReaderEventMap) abort(): ProgressEvent[FileReader] ->
+pub (receiver: FileReaderEventMap) abort(): ProgressEvent[FileReader] ->
     native.
 
-pub (value: FileReaderEventMap) error(): ProgressEvent[FileReader] ->
+pub (receiver: FileReaderEventMap) error(): ProgressEvent[FileReader] ->
     native.
 
-pub (value: FileReaderEventMap) load(): ProgressEvent[FileReader] ->
+pub (receiver: FileReaderEventMap) load(): ProgressEvent[FileReader] ->
     native.
 
-pub (value: FileReaderEventMap) loadend(): ProgressEvent[FileReader] ->
+pub (receiver: FileReaderEventMap) loadend(): ProgressEvent[FileReader] ->
     native.
 
-pub (value: FileReaderEventMap) loadstart(): ProgressEvent[FileReader] ->
+pub (receiver: FileReaderEventMap) loadstart(): ProgressEvent[FileReader] ->
     native.
 
-pub (value: FileReaderEventMap) progress(): ProgressEvent[FileReader] ->
+pub (receiver: FileReaderEventMap) progress(): ProgressEvent[FileReader] ->
     native.

@@ -25,11 +25,11 @@ pub opaque type HashChangeEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HashChangeEvent/newURL)
  */
-pub (value: HashChangeEvent) new_url(): std.js.String.JsString.
+pub (receiver: HashChangeEvent) new_url(): std.js.String.JsString.
 
 /**
  * The **`oldURL`** read-only property of the was navigated.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HashChangeEvent/oldURL)
  */
-pub (value: HashChangeEvent) old_url(): std.js.String.JsString.
+pub (receiver: HashChangeEvent) old_url(): std.js.String.JsString.

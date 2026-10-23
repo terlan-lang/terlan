@@ -15,4 +15,4 @@ module std.js.Dom.FormDataEventInit.
 
 pub opaque type FormDataEventInit.
 
-pub (value: FormDataEventInit) form_data(): FormData.
+pub (receiver: FormDataEventInit) form_data(): std.js.Dom.FormData.FormData.

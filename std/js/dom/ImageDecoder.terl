@@ -12,8 +12,8 @@
  */
 module std.js.Dom.ImageDecoder.
 
-import type std.core.{Unit}.
-import type std.js.{Promise}.
+import type std.core.Unit.{Unit}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`ImageDecoder`** interface of the WebCodecs API provides a way to unpack and decode encoded image data.
@@ -28,7 +28,7 @@ pub opaque type ImageDecoder.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/complete)
  */
-pub (value: ImageDecoder) complete(): std.core.Bool ->
+pub (receiver: ImageDecoder) complete(): Bool ->
     native.
 
 /**
@@ -36,7 +36,7 @@ pub (value: ImageDecoder) complete(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/completed)
  */
-pub (value: ImageDecoder) completed(): Promise[Unit] ->
+pub (receiver: ImageDecoder) completed(): Promise[Unit] ->
     native.
 
 /**
@@ -44,7 +44,7 @@ pub (value: ImageDecoder) completed(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/tracks)
  */
-pub (value: ImageDecoder) tracks(): ImageTrackList ->
+pub (receiver: ImageDecoder) tracks(): std.js.Dom.ImageTrackList.ImageTrackList ->
     native.
 
 /**
@@ -52,7 +52,7 @@ pub (value: ImageDecoder) tracks(): ImageTrackList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/type)
  */
-pub (value: ImageDecoder) type_(): std.js.String.JsString ->
+pub (receiver: ImageDecoder) type_(): std.js.String.JsString ->
     native.
 
 /**
@@ -60,7 +60,7 @@ pub (value: ImageDecoder) type_(): std.js.String.JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/close)
  */
-pub (value: ImageDecoder) close(): Unit ->
+pub (receiver: ImageDecoder) close(): Unit ->
     native.
 
 /**
@@ -68,7 +68,9 @@ pub (value: ImageDecoder) close(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/decode)
  */
-pub (value: ImageDecoder) decode(options: ImageDecodeOptions): Promise[ImageDecodeResult] ->
+pub (receiver: ImageDecoder) decode(
+    options: std.core.Option.Option[std.js.Dom.ImageDecodeOptions.ImageDecodeOptions],
+): Promise[std.js.Dom.ImageDecodeResult.ImageDecodeResult] ->
     native.
 
 /**
@@ -76,5 +78,5 @@ pub (value: ImageDecoder) decode(options: ImageDecodeOptions): Promise[ImageDeco
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/reset)
  */
-pub (value: ImageDecoder) reset(): Unit ->
+pub (receiver: ImageDecoder) reset(): Unit ->
     native.

@@ -26,11 +26,11 @@ pub opaque type GeolocationPosition.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationPosition/coords)
  */
-pub (value: GeolocationPosition) coords(): GeolocationCoordinates.
+pub (receiver: GeolocationPosition) coords(): std.js.Dom.GeolocationCoordinates.GeolocationCoordinates.
 
 /**
  * The **`timestamp`** read-only property of the GeolocationPosition interface represents the date and time that the position was acquired by the device.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationPosition/timestamp)
  */
-pub (value: GeolocationPosition) timestamp(): EpochTimeStamp.
+pub (receiver: GeolocationPosition) timestamp(): std.js.Dom.EpochTimeStamp.EpochTimeStamp.

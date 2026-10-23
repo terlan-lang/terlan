@@ -13,5 +13,3 @@
 module std.js.Dom.RTCRtpScriptTransformTest.
 
 import type std.js.Dom.RTCRtpScriptTransform.
-
-pub generated_binding_surface_contract(): Bool -> true.

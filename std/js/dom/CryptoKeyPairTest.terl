@@ -12,9 +12,8 @@
  */
 module std.js.Dom.CryptoKeyPairTest.
 
+import type std.js.Dom.CryptoKey.{CryptoKey}.
 import type std.js.Dom.CryptoKeyPair.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub private_key_typechecks(receiver: CryptoKeyPair): CryptoKey ->
     receiver.private_key().

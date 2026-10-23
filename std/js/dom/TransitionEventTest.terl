@@ -15,8 +15,6 @@ module std.js.Dom.TransitionEventTest.
 import type std.js.Dom.TransitionEvent.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub elapsed_time_typechecks(receiver: TransitionEvent): std.js.Number.JsNumber ->
     receiver.elapsed_time().
 

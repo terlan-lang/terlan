@@ -12,19 +12,14 @@
  */
 module std.js.Dom.CanvasRenderingContext2DSettingsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.CanvasRenderingContext2DSettings.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub alpha_typechecks(receiver: CanvasRenderingContext2DSettings): Bool ->
+pub alpha_typechecks(receiver: CanvasRenderingContext2DSettings): Option[Bool] ->
     receiver.alpha().
 
-pub color_space_typechecks(receiver: CanvasRenderingContext2DSettings): PredefinedColorSpace ->
-    receiver.color_space().
-
-pub desynchronized_typechecks(receiver: CanvasRenderingContext2DSettings): Bool ->
+pub desynchronized_typechecks(receiver: CanvasRenderingContext2DSettings): Option[Bool] ->
     receiver.desynchronized().
 
-pub will_read_frequently_typechecks(receiver: CanvasRenderingContext2DSettings): Bool ->
+pub will_read_frequently_typechecks(receiver: CanvasRenderingContext2DSettings): Option[Bool] ->
     receiver.will_read_frequently().

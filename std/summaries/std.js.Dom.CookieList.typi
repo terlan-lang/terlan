@@ -14,4 +14,4 @@
 module std.js.Dom.CookieList.
 
 pub type CookieList =
-    std.js.Array[CookieListItem].
+    std.js.Array.Array[std.js.Dom.CookieListItem.CookieListItem].

@@ -26,7 +26,7 @@ pub opaque type CSSNamespaceRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNamespaceRule/namespaceURI)
  */
-pub (value: CSSNamespaceRule) namespace_uri(): JsString ->
+pub (receiver: CSSNamespaceRule) namespace_uri(): JsString ->
     native.
 
 /**
@@ -34,5 +34,5 @@ pub (value: CSSNamespaceRule) namespace_uri(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNamespaceRule/prefix)
  */
-pub (value: CSSNamespaceRule) prefix(): JsString ->
+pub (receiver: CSSNamespaceRule) prefix(): JsString ->
     native.

@@ -12,7 +12,8 @@
  */
 module std.js.Dom.Storage.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,39 +29,39 @@ pub opaque type Storage.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/length)
  */
-pub (value: Storage) length(): JsNumber.
+pub (receiver: Storage) length(): JsNumber.
 
 /**
  * The **`clear()`** method of the Storage interface clears all keys stored in a given `Storage` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/clear)
  */
-pub (value: Storage) clear(): Unit.
+pub (receiver: Storage) clear(): Unit.
 
 /**
  * The **`getItem()`** method of the Storage interface, when passed a key name, will return that key's value, or `null` if the key does not exist, in the given `Storage` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/getItem)
  */
-pub (value: Storage) get_item(key: JsString): Option[JsString].
+pub (receiver: Storage) get_item(key: JsString): Option[JsString].
 
 /**
  * The **`key()`** method of the Storage interface, when passed a number n, returns the name of the nth key in a given `Storage` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/key)
  */
-pub (value: Storage) key(index: JsNumber): Option[JsString].
+pub (receiver: Storage) key(index: JsNumber): Option[JsString].
 
 /**
  * The **`removeItem()`** method of the Storage interface, when passed a key name, will remove that key from the given `Storage` object if it exists.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/removeItem)
  */
-pub (value: Storage) remove_item(key: JsString): Unit.
+pub (receiver: Storage) remove_item(key: JsString): Unit.
 
 /**
  * The **`setItem()`** method of the Storage interface, when passed a key name and value, will add that key to the given `Storage` object, or update that key's value if it already exists.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/setItem)
  */
-pub (value: Storage) set_item(key: JsString, value: JsString): Unit.
+pub (receiver: Storage) set_item(key: JsString, value: JsString): Unit.

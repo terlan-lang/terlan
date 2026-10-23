@@ -12,16 +12,17 @@
  */
 module std.js.Dom.StorageManagerTest.
 
-import type std.core.{Bool}.
 import type std.js.Dom.StorageManager.
-import type std.js.{Promise}.
+import type std.js.Promise.{Promise}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub estimate_typechecks(receiver: StorageManager): Promise[StorageEstimate] ->
+pub estimate_typechecks(
+    receiver: StorageManager,
+): Promise[std.js.Dom.StorageEstimate.StorageEstimate] ->
     receiver.estimate().
 
-pub get_directory_typechecks(receiver: StorageManager): Promise[FileSystemDirectoryHandle] ->
+pub get_directory_typechecks(
+    receiver: StorageManager,
+): Promise[std.js.Dom.FileSystemDirectoryHandle.FileSystemDirectoryHandle] ->
     receiver.get_directory().
 
 pub persist_typechecks(receiver: StorageManager): Promise[Bool] ->

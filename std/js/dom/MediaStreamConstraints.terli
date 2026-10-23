@@ -12,14 +12,15 @@
  */
 module std.js.Dom.MediaStreamConstraints.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.Dom.MediaTrackConstraints.{MediaTrackConstraints}.
 
 pub opaque type MediaStreamConstraints.
 
-pub (value: MediaStreamConstraints) audio(): MediaTrackConstraints | Bool.
+pub (receiver: MediaStreamConstraints) audio(): Option[Bool | MediaTrackConstraints].
 
-pub (value: MediaStreamConstraints) peer_identity(): std.js.String.JsString.
+pub (receiver: MediaStreamConstraints) peer_identity(): Option[std.js.String.JsString].
 
-pub (value: MediaStreamConstraints) prefer_current_tab(): Bool.
+pub (receiver: MediaStreamConstraints) prefer_current_tab(): Option[Bool].
 
-pub (value: MediaStreamConstraints) video(): MediaTrackConstraints | Bool.
+pub (receiver: MediaStreamConstraints) video(): Option[Bool | MediaTrackConstraints].

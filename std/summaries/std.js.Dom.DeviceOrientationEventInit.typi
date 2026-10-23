@@ -15,10 +15,10 @@ module std.js.Dom.DeviceOrientationEventInit.
 
 pub opaque type DeviceOrientationEventInit.
 
-pub (value: DeviceOrientationEventInit) absolute(): std.core.Bool.
+pub (receiver: DeviceOrientationEventInit) absolute(): std.core.Option.Option[Bool].
 
-pub (value: DeviceOrientationEventInit) alpha(): Option[std.js.Number.JsNumber].
+pub (receiver: DeviceOrientationEventInit) alpha(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DeviceOrientationEventInit) beta(): Option[std.js.Number.JsNumber].
+pub (receiver: DeviceOrientationEventInit) beta(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DeviceOrientationEventInit) gamma(): Option[std.js.Number.JsNumber].
+pub (receiver: DeviceOrientationEventInit) gamma(): std.core.Option.Option[std.js.Number.JsNumber].

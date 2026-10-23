@@ -14,7 +14,5 @@ module std.js.SymbolTest.
 
 import type std.js.Symbol.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub to_string_typechecks(receiver: Symbol): std.js.String.JsString ->
     receiver.to_string().

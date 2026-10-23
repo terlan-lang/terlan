@@ -26,64 +26,57 @@ pub opaque type PaymentResponse.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/methodName)
  */
-pub (value: PaymentResponse) method_name(): std.js.String.JsString.
+pub (receiver: PaymentResponse) method_name(): std.js.String.JsString.
 
 /**
  * The `payerEmail` read-only property of the PaymentResponse interface returns the email address supplied by the user.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/payerEmail)
  */
-pub (value: PaymentResponse) payer_email(): Option[std.js.String.JsString].
+pub (receiver: PaymentResponse) payer_email(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The **`payerName`** read-only property of the option is only present when the `requestPayerName` option is set to `true` in the options parameter of the A string containing the payer name.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/payerName)
  */
-pub (value: PaymentResponse) payer_name(): Option[std.js.String.JsString].
+pub (receiver: PaymentResponse) payer_name(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The `payerPhone` read-only property of the PaymentResponse interface returns the phone number supplied by the user.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/payerPhone)
  */
-pub (value: PaymentResponse) payer_phone(): Option[std.js.String.JsString].
+pub (receiver: PaymentResponse) payer_phone(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The **`requestId`** read-only property of the the `PaymentResponse()` constructor by details.id.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/requestId)
  */
-pub (value: PaymentResponse) request_id(): std.js.String.JsString.
+pub (receiver: PaymentResponse) request_id(): std.js.String.JsString.
 
 /**
  * The **`shippingAddress`** read-only property of the `PaymentRequest` interface returns a PaymentAddress object containing the shipping address provided by the user.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/shippingAddress)
  */
-pub (value: PaymentResponse) shipping_address(): Option[PaymentAddress].
+pub (receiver: PaymentResponse) shipping_address(): std.core.Option.Option[std.js.Dom.PaymentAddress.PaymentAddress].
 
 /**
  * The **`shippingOption`** read-only property of the `PaymentRequest` interface returns the ID attribute of the shipping option selected by the user.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/shippingOption)
  */
-pub (value: PaymentResponse) shipping_option(): Option[std.js.String.JsString].
-
-/**
- * The PaymentRequest method **`complete()`** of the Payment Request API notifies the user interface to be closed.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/complete)
- */
-pub (value: PaymentResponse) complete(result: PaymentComplete): std.js.Promise[std.core.Unit].
+pub (receiver: PaymentResponse) shipping_option(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The PaymentResponse interface's **`retry()`** method makes it possible to ask the user to retry a payment after an error occurs during processing.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/retry)
  */
-pub (value: PaymentResponse) retry(error_fields: PaymentValidationErrors): std.js.Promise[std.core.Unit].
+pub (receiver: PaymentResponse) retry(error_fields: std.core.Option.Option[std.js.Dom.PaymentValidationErrors.PaymentValidationErrors]): std.js.Promise.Promise[std.core.Unit.Unit].
 
-pub (value: PaymentResponse) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: PaymentResponse) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: PaymentResponse) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: PaymentResponse) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

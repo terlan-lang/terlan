@@ -24,7 +24,7 @@ pub opaque type MediaQueryListEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaQueryListEvent/matches)
  */
-pub (value: MediaQueryListEvent) matches(): std.core.Bool ->
+pub (receiver: MediaQueryListEvent) matches(): Bool ->
     native.
 
 /**
@@ -32,5 +32,5 @@ pub (value: MediaQueryListEvent) matches(): std.core.Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaQueryListEvent/media)
  */
-pub (value: MediaQueryListEvent) media(): std.js.String.JsString ->
+pub (receiver: MediaQueryListEvent) media(): std.js.String.JsString ->
     native.

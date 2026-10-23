@@ -15,12 +15,12 @@ module std.js.Dom.DynamicsCompressorOptions.
 
 pub opaque type DynamicsCompressorOptions.
 
-pub (value: DynamicsCompressorOptions) attack(): std.js.Number.JsNumber.
+pub (receiver: DynamicsCompressorOptions) attack(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DynamicsCompressorOptions) knee(): std.js.Number.JsNumber.
+pub (receiver: DynamicsCompressorOptions) knee(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DynamicsCompressorOptions) ratio(): std.js.Number.JsNumber.
+pub (receiver: DynamicsCompressorOptions) ratio(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DynamicsCompressorOptions) release(): std.js.Number.JsNumber.
+pub (receiver: DynamicsCompressorOptions) release(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DynamicsCompressorOptions) threshold(): std.js.Number.JsNumber.
+pub (receiver: DynamicsCompressorOptions) threshold(): std.core.Option.Option[std.js.Number.JsNumber].

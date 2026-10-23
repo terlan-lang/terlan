@@ -1,0 +1,47 @@
+module tests.js.Interop.
+
+import std.core.Option.{Some}.
+import std.js.{Array, Number, String}.
+
+import type std.core.{Option, Unit}.
+import type std.js.Array.
+import type std.js.Dom.{DOMTokenList, Document, Element, Event, EventTarget}.
+import type std.js.String.JsString.
+
+pub string_round_trip(value: String): String ->
+    String.from_core(value).to_core().
+
+pub array_length(values: Array[Int]): Int ->
+    values.length().
+
+pub element_id(element: Element): String ->
+    element.id().to_core().
+
+pub document_url(document: Document): String ->
+    document.url().to_core().
+
+pub set_attribute(element: Element, name: String, value: String): Unit ->
+    element.set_attribute(String.from_core(name), String.from_core(value)).
+
+pub get_attribute(element: Element, name: String): Option[JsString] ->
+    element.get_attribute(String.from_core(name)).
+
+pub add_classes(element: Element): Unit ->
+    element
+        .class_list()
+        .add(Array.from_list([String.from_core("active"), String.from_core("selected")])).
+
+pub has_class(element: Element, token: String): Bool ->
+    element.class_list().contains(String.from_core(token)).
+
+pub toggle_class(element: Element, token: String, force: Option[Bool]): Bool ->
+    element.class_list().toggle(String.from_core(token), force).
+
+pub event_target(event: Event): Option[EventTarget] ->
+    event.target_().
+
+pub event_has_target(event: Event): Bool ->
+    case event.target_() {
+        Some(_target) -> true;
+        _ -> false
+    }.

@@ -14,4 +14,4 @@ module std.js.Dom.ScriptProcessorNodeEventMap.
 
 pub opaque type ScriptProcessorNodeEventMap.
 
-pub (value: ScriptProcessorNodeEventMap) audioprocess(): AudioProcessingEvent.
+pub (receiver: ScriptProcessorNodeEventMap) audioprocess(): std.js.Dom.AudioProcessingEvent.AudioProcessingEvent.

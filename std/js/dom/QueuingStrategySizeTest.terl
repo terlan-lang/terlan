@@ -13,5 +13,3 @@
 module std.js.Dom.QueuingStrategySizeTest.
 
 import type std.js.Dom.QueuingStrategySize.
-
-pub generated_binding_surface_contract(): Bool -> true.

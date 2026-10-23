@@ -15,4 +15,4 @@ module std.js.Dom.AesCbcParams.
 
 pub opaque type AesCbcParams.
 
-pub (value: AesCbcParams) iv(): BufferSource.
+pub (receiver: AesCbcParams) iv(): std.js.Dom.BufferSource.BufferSource.

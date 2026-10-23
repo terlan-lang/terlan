@@ -12,10 +12,21 @@
  */
 module std.js.Dom.Document.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.Attr.{Attr}.
+import type std.js.Dom.Element.{Element}.
+import type std.js.Dom.ElementCreationOptions.{ElementCreationOptions}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.HTMLAnchorElement.{HTMLAnchorElement}.
+import type std.js.Dom.HTMLCollectionOf.{HTMLCollectionOf}.
+import type std.js.Dom.HTMLElement.{HTMLElement}.
+import type std.js.Dom.HTMLEmbedElement.{HTMLEmbedElement}.
+import type std.js.Dom.Range.{Range}.
 import type std.js.Number.{JsNumber}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
 
 /**
  * The **`Document`** interface represents any web page loaded in the browser and serves as an entry point into the web page's content, which is the DOM tree.
@@ -29,7 +40,7 @@ pub opaque type Document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/URL)
  */
-pub (value: Document) url(): JsString ->
+pub (receiver: Document) url(): JsString ->
     native.
 
 /**
@@ -38,7 +49,7 @@ pub (value: Document) url(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/alinkColor)
  */
-pub (value: Document) alink_color(): JsString ->
+pub (receiver: Document) alink_color(): JsString ->
     native.
 
 /**
@@ -47,7 +58,7 @@ pub (value: Document) alink_color(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/all)
  */
-pub (value: Document) all(): HTMLAllCollection ->
+pub (receiver: Document) all(): std.js.Dom.HTMLAllCollection.HTMLAllCollection ->
     native.
 
 /**
@@ -56,7 +67,7 @@ pub (value: Document) all(): HTMLAllCollection ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/anchors)
  */
-pub (value: Document) anchors(): HTMLCollectionOf[HTMLAnchorElement] ->
+pub (receiver: Document) anchors(): HTMLCollectionOf[HTMLAnchorElement] ->
     native.
 
 /**
@@ -65,7 +76,7 @@ pub (value: Document) anchors(): HTMLCollectionOf[HTMLAnchorElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/applets)
  */
-pub (value: Document) applets(): HTMLCollection ->
+pub (receiver: Document) applets(): std.js.Dom.HTMLCollection.HTMLCollection ->
     native.
 
 /**
@@ -74,7 +85,7 @@ pub (value: Document) applets(): HTMLCollection ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/bgColor)
  */
-pub (value: Document) bg_color(): JsString ->
+pub (receiver: Document) bg_color(): JsString ->
     native.
 
 /**
@@ -82,7 +93,7 @@ pub (value: Document) bg_color(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/body)
  */
-pub (value: Document) body(): HTMLElement ->
+pub (receiver: Document) body(): HTMLElement ->
     native.
 
 /**
@@ -90,7 +101,7 @@ pub (value: Document) body(): HTMLElement ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/characterSet)
  */
-pub (value: Document) character_set(): JsString ->
+pub (receiver: Document) character_set(): JsString ->
     native.
 
 /**
@@ -98,7 +109,7 @@ pub (value: Document) character_set(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/characterSet)
  */
-pub (value: Document) charset(): JsString ->
+pub (receiver: Document) charset(): JsString ->
     native.
 
 /**
@@ -106,7 +117,7 @@ pub (value: Document) charset(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/compatMode)
  */
-pub (value: Document) compat_mode(): JsString ->
+pub (receiver: Document) compat_mode(): JsString ->
     native.
 
 /**
@@ -114,7 +125,7 @@ pub (value: Document) compat_mode(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/contentType)
  */
-pub (value: Document) content_type(): JsString ->
+pub (receiver: Document) content_type(): JsString ->
     native.
 
 /**
@@ -122,7 +133,7 @@ pub (value: Document) content_type(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/cookie)
  */
-pub (value: Document) cookie(): JsString ->
+pub (receiver: Document) cookie(): JsString ->
     native.
 
 /**
@@ -130,7 +141,7 @@ pub (value: Document) cookie(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/currentScript)
  */
-pub (value: Document) current_script(): Option[HTMLOrSVGScriptElement] ->
+pub (receiver: Document) current_script(): Option[std.js.Dom.HTMLOrSVGScriptElement.HTMLOrSVGScriptElement] ->
     native.
 
 /**
@@ -138,7 +149,7 @@ pub (value: Document) current_script(): Option[HTMLOrSVGScriptElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/designMode)
  */
-pub (value: Document) design_mode(): JsString ->
+pub (receiver: Document) design_mode(): JsString ->
     native.
 
 /**
@@ -146,7 +157,7 @@ pub (value: Document) design_mode(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/dir)
  */
-pub (value: Document) dir(): JsString ->
+pub (receiver: Document) dir(): JsString ->
     native.
 
 /**
@@ -154,7 +165,7 @@ pub (value: Document) dir(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/doctype)
  */
-pub (value: Document) doctype(): Option[DocumentType] ->
+pub (receiver: Document) doctype(): Option[std.js.Dom.DocumentType.DocumentType] ->
     native.
 
 /**
@@ -162,7 +173,7 @@ pub (value: Document) doctype(): Option[DocumentType] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/documentElement)
  */
-pub (value: Document) document_element(): HTMLElement ->
+pub (receiver: Document) document_element(): HTMLElement ->
     native.
 
 /**
@@ -170,7 +181,7 @@ pub (value: Document) document_element(): HTMLElement ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/documentURI)
  */
-pub (value: Document) document_uri(): JsString ->
+pub (receiver: Document) document_uri(): JsString ->
     native.
 
 /**
@@ -179,7 +190,7 @@ pub (value: Document) document_uri(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/domain)
  */
-pub (value: Document) domain(): JsString ->
+pub (receiver: Document) domain(): JsString ->
     native.
 
 /**
@@ -187,7 +198,7 @@ pub (value: Document) domain(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/embeds)
  */
-pub (value: Document) embeds(): HTMLCollectionOf[HTMLEmbedElement] ->
+pub (receiver: Document) embeds(): HTMLCollectionOf[HTMLEmbedElement] ->
     native.
 
 /**
@@ -196,7 +207,7 @@ pub (value: Document) embeds(): HTMLCollectionOf[HTMLEmbedElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fgColor)
  */
-pub (value: Document) fg_color(): JsString ->
+pub (receiver: Document) fg_color(): JsString ->
     native.
 
 /**
@@ -204,7 +215,7 @@ pub (value: Document) fg_color(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/forms)
  */
-pub (value: Document) forms(): HTMLCollectionOf[HTMLFormElement] ->
+pub (receiver: Document) forms(): HTMLCollectionOf[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
     native.
 
 /**
@@ -212,7 +223,7 @@ pub (value: Document) forms(): HTMLCollectionOf[HTMLFormElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fragmentDirective)
  */
-pub (value: Document) fragment_directive(): FragmentDirective ->
+pub (receiver: Document) fragment_directive(): std.js.Dom.FragmentDirective.FragmentDirective ->
     native.
 
 /**
@@ -221,7 +232,7 @@ pub (value: Document) fragment_directive(): FragmentDirective ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fullscreen)
  */
-pub (value: Document) fullscreen(): Bool ->
+pub (receiver: Document) fullscreen(): Bool ->
     native.
 
 /**
@@ -229,7 +240,7 @@ pub (value: Document) fullscreen(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fullscreenEnabled)
  */
-pub (value: Document) fullscreen_enabled(): Bool ->
+pub (receiver: Document) fullscreen_enabled(): Bool ->
     native.
 
 /**
@@ -237,7 +248,7 @@ pub (value: Document) fullscreen_enabled(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/head)
  */
-pub (value: Document) head(): HTMLHeadElement ->
+pub (receiver: Document) head(): std.js.Dom.HTMLHeadElement.HTMLHeadElement ->
     native.
 
 /**
@@ -245,7 +256,7 @@ pub (value: Document) head(): HTMLHeadElement ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/hidden)
  */
-pub (value: Document) hidden(): Bool ->
+pub (receiver: Document) hidden(): Bool ->
     native.
 
 /**
@@ -253,7 +264,7 @@ pub (value: Document) hidden(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/images)
  */
-pub (value: Document) images(): HTMLCollectionOf[HTMLImageElement] ->
+pub (receiver: Document) images(): HTMLCollectionOf[std.js.Dom.HTMLImageElement.HTMLImageElement] ->
     native.
 
 /**
@@ -261,7 +272,7 @@ pub (value: Document) images(): HTMLCollectionOf[HTMLImageElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/implementation)
  */
-pub (value: Document) implementation(): DOMImplementation ->
+pub (receiver: Document) implementation(): std.js.Dom.DOMImplementation.DOMImplementation ->
     native.
 
 /**
@@ -269,7 +280,7 @@ pub (value: Document) implementation(): DOMImplementation ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/characterSet)
  */
-pub (value: Document) input_encoding(): JsString ->
+pub (receiver: Document) input_encoding(): JsString ->
     native.
 
 /**
@@ -277,7 +288,7 @@ pub (value: Document) input_encoding(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/lastModified)
  */
-pub (value: Document) last_modified(): JsString ->
+pub (receiver: Document) last_modified(): JsString ->
     native.
 
 /**
@@ -286,7 +297,7 @@ pub (value: Document) last_modified(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/linkColor)
  */
-pub (value: Document) link_color(): JsString ->
+pub (receiver: Document) link_color(): JsString ->
     native.
 
 /**
@@ -294,7 +305,7 @@ pub (value: Document) link_color(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/links)
  */
-pub (value: Document) links(): HTMLCollectionOf[HTMLAnchorElement | HTMLAreaElement] ->
+pub (receiver: Document) links(): HTMLCollectionOf[HTMLAnchorElement | std.js.Dom.HTMLAreaElement.HTMLAreaElement] ->
     native.
 
 /**
@@ -302,7 +313,7 @@ pub (value: Document) links(): HTMLCollectionOf[HTMLAnchorElement | HTMLAreaElem
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/location)
  */
-pub (value: Document) location(): Location ->
+pub (receiver: Document) location(): std.js.Dom.Location.Location ->
     native.
 
 /**
@@ -310,7 +321,7 @@ pub (value: Document) location(): Location ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/pictureInPictureEnabled)
  */
-pub (value: Document) picture_in_picture_enabled(): Bool ->
+pub (receiver: Document) picture_in_picture_enabled(): Bool ->
     native.
 
 /**
@@ -318,15 +329,7 @@ pub (value: Document) picture_in_picture_enabled(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/plugins)
  */
-pub (value: Document) plugins(): HTMLCollectionOf[HTMLEmbedElement] ->
-    native.
-
-/**
- * The **`Document.readyState`** property describes the loading state of the document.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/readyState)
- */
-pub (value: Document) ready_state(): DocumentReadyState ->
+pub (receiver: Document) plugins(): HTMLCollectionOf[HTMLEmbedElement] ->
     native.
 
 /**
@@ -334,7 +337,7 @@ pub (value: Document) ready_state(): DocumentReadyState ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/referrer)
  */
-pub (value: Document) referrer(): JsString ->
+pub (receiver: Document) referrer(): JsString ->
     native.
 
 /**
@@ -343,7 +346,7 @@ pub (value: Document) referrer(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/rootElement)
  */
-pub (value: Document) root_element(): Option[SVGSVGElement] ->
+pub (receiver: Document) root_element(): Option[std.js.Dom.SVGSVGElement.SVGSVGElement] ->
     native.
 
 /**
@@ -351,7 +354,7 @@ pub (value: Document) root_element(): Option[SVGSVGElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/scripts)
  */
-pub (value: Document) scripts(): HTMLCollectionOf[HTMLScriptElement] ->
+pub (receiver: Document) scripts(): HTMLCollectionOf[std.js.Dom.HTMLScriptElement.HTMLScriptElement] ->
     native.
 
 /**
@@ -359,7 +362,7 @@ pub (value: Document) scripts(): HTMLCollectionOf[HTMLScriptElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/scrollingElement)
  */
-pub (value: Document) scrolling_element(): Option[Element] ->
+pub (receiver: Document) scrolling_element(): Option[Element] ->
     native.
 
 /**
@@ -367,7 +370,7 @@ pub (value: Document) scrolling_element(): Option[Element] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/timeline)
  */
-pub (value: Document) timeline(): DocumentTimeline ->
+pub (receiver: Document) timeline(): std.js.Dom.DocumentTimeline.DocumentTimeline ->
     native.
 
 /**
@@ -375,15 +378,7 @@ pub (value: Document) timeline(): DocumentTimeline ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/title)
  */
-pub (value: Document) title(): JsString ->
-    native.
-
-/**
- * The **`Document.visibilityState`** read-only property returns the visibility of the document.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/visibilityState)
- */
-pub (value: Document) visibility_state(): DocumentVisibilityState ->
+pub (receiver: Document) title(): JsString ->
     native.
 
 /**
@@ -392,21 +387,13 @@ pub (value: Document) visibility_state(): DocumentVisibilityState ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/vlinkColor)
  */
-pub (value: Document) vlink_color(): JsString ->
-    native.
-
-/**
- * **`Document.adoptNode()`** transfers a node/dom from another Document into the method's document.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/adoptNode)
- */
-pub (value: Document) adopt_node(node: T): T ->
+pub (receiver: Document) vlink_color(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: Document) capture_events(): Unit ->
+pub (receiver: Document) capture_events(): Unit ->
     native.
 
 /**
@@ -414,17 +401,17 @@ pub (value: Document) capture_events(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/caretPositionFromPoint)
  */
-pub (value: Document) caret_position_from_point(
+pub (receiver: Document) caret_position_from_point(
     x: JsNumber,
     y: JsNumber,
-    options: CaretPositionFromPointOptions,
-): Option[CaretPosition] ->
+    options: Option[std.js.Dom.CaretPositionFromPointOptions.CaretPositionFromPointOptions],
+): Option[std.js.Dom.CaretPosition.CaretPosition] ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: Document) caret_range_from_point(x: JsNumber, y: JsNumber): Option[Range] ->
+pub (receiver: Document) caret_range_from_point(x: JsNumber, y: JsNumber): Option[Range] ->
     native.
 
 /**
@@ -433,7 +420,7 @@ pub (value: Document) caret_range_from_point(x: JsNumber, y: JsNumber): Option[R
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/clear)
  */
-pub (value: Document) clear(): Unit ->
+pub (receiver: Document) clear(): Unit ->
     native.
 
 /**
@@ -441,7 +428,7 @@ pub (value: Document) clear(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/close)
  */
-pub (value: Document) close(): Unit ->
+pub (receiver: Document) close(): Unit ->
     native.
 
 /**
@@ -449,7 +436,7 @@ pub (value: Document) close(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createAttribute)
  */
-pub (value: Document) create_attribute(local_name: JsString): Attr ->
+pub (receiver: Document) create_attribute(local_name: JsString): Attr ->
     native.
 
 /**
@@ -457,7 +444,7 @@ pub (value: Document) create_attribute(local_name: JsString): Attr ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createAttributeNS)
  */
-pub (value: Document) create_attribute_ns(namespace: Option[JsString], qualified_name: JsString): Attr ->
+pub (receiver: Document) create_attribute_ns(namespace: Option[JsString], qualified_name: JsString): Attr ->
     native.
 
 /**
@@ -465,7 +452,7 @@ pub (value: Document) create_attribute_ns(namespace: Option[JsString], qualified
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createCDATASection)
  */
-pub (value: Document) create_cdata_section(data: JsString): CDATASection ->
+pub (receiver: Document) create_cdata_section(data: JsString): std.js.Dom.CDATASection.CDATASection ->
     native.
 
 /**
@@ -473,7 +460,7 @@ pub (value: Document) create_cdata_section(data: JsString): CDATASection ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createComment)
  */
-pub (value: Document) create_comment(data: JsString): Comment ->
+pub (receiver: Document) create_comment(data: JsString): std.js.Dom.Comment.Comment ->
     native.
 
 /**
@@ -481,39 +468,27 @@ pub (value: Document) create_comment(data: JsString): Comment ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createDocumentFragment)
  */
-pub (value: Document) create_document_fragment(): DocumentFragment ->
+pub (receiver: Document) create_document_fragment(): std.js.Dom.DocumentFragment.DocumentFragment ->
     native.
 
-pub (value: Document) create_element(tag_name: JsString, options: ElementCreationOptions): HTMLElement ->
+pub (receiver: Document) create_element(tag_name: JsString, options: Option[ElementCreationOptions]): HTMLElement ->
     native.
 
-pub (value: Document) create_element_ns(
+pub (receiver: Document) create_element_ns(
     namespace_uri: Option[JsString],
     qualified_name: JsString,
-    options: ElementCreationOptions,
+    options: Option[ElementCreationOptions],
 ): Element ->
     native.
 
-pub (value: Document) create_element_ns(
+pub (receiver: Document) create_element_ns_overload_2(
     namespace: Option[JsString],
     qualified_name: JsString,
-    options: ElementCreationOptions | JsString,
+    options: Option[ElementCreationOptions | JsString],
 ): Element ->
     native.
 
-pub (value: Document) create_event(event_interface: JsString): Event ->
-    native.
-
-/**
- * The **`Document.createNodeIterator()`** method returns a new `NodeIterator` object.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createNodeIterator)
- */
-pub (value: Document) create_node_iterator(
-    root: Node,
-    what_to_show: JsNumber,
-    filter: Option[NodeFilter],
-): NodeIterator ->
+pub (receiver: Document) create_event(event_interface: JsString): std.js.Dom.Event.Event ->
     native.
 
 /**
@@ -521,7 +496,10 @@ pub (value: Document) create_node_iterator(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createProcessingInstruction)
  */
-pub (value: Document) create_processing_instruction(target_: JsString, data: JsString): ProcessingInstruction ->
+pub (receiver: Document) create_processing_instruction(
+    target_: JsString,
+    data: JsString,
+): std.js.Dom.ProcessingInstruction.ProcessingInstruction ->
     native.
 
 /**
@@ -529,7 +507,7 @@ pub (value: Document) create_processing_instruction(target_: JsString, data: JsS
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createRange)
  */
-pub (value: Document) create_range(): Range ->
+pub (receiver: Document) create_range(): Range ->
     native.
 
 /**
@@ -537,15 +515,7 @@ pub (value: Document) create_range(): Range ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createTextNode)
  */
-pub (value: Document) create_text_node(data: JsString): Text ->
-    native.
-
-/**
- * The **`Document.createTreeWalker()`** creator method returns a newly created TreeWalker object.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createTreeWalker)
- */
-pub (value: Document) create_tree_walker(root: Node, what_to_show: JsNumber, filter: Option[NodeFilter]): TreeWalker ->
+pub (receiver: Document) create_text_node(data: JsString): std.js.Dom.Text.Text ->
     native.
 
 /**
@@ -554,7 +524,7 @@ pub (value: Document) create_tree_walker(root: Node, what_to_show: JsNumber, fil
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/execCommand)
  */
-pub (value: Document) exec_command(command_id: JsString, show_ui: Bool, value: JsString): Bool ->
+pub (receiver: Document) exec_command(command_id: JsString, show_ui: Option[Bool], value: Option[JsString]): Bool ->
     native.
 
 /**
@@ -562,7 +532,7 @@ pub (value: Document) exec_command(command_id: JsString, show_ui: Bool, value: J
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/exitFullscreen)
  */
-pub (value: Document) exit_fullscreen(): Promise[Unit] ->
+pub (receiver: Document) exit_fullscreen(): Promise[Unit] ->
     native.
 
 /**
@@ -570,7 +540,7 @@ pub (value: Document) exit_fullscreen(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/exitPictureInPicture)
  */
-pub (value: Document) exit_picture_in_picture(): Promise[Unit] ->
+pub (receiver: Document) exit_picture_in_picture(): Promise[Unit] ->
     native.
 
 /**
@@ -578,10 +548,10 @@ pub (value: Document) exit_picture_in_picture(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/exitPointerLock)
  */
-pub (value: Document) exit_pointer_lock(): Unit ->
+pub (receiver: Document) exit_pointer_lock(): Unit ->
     native.
 
-pub (value: Document) get_element_by_id(element_id: JsString): Option[HTMLElement] ->
+pub (receiver: Document) get_element_by_id(element_id: JsString): Option[HTMLElement] ->
     native.
 
 /**
@@ -589,7 +559,7 @@ pub (value: Document) get_element_by_id(element_id: JsString): Option[HTMLElemen
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getElementsByClassName)
  */
-pub (value: Document) get_elements_by_class_name(class_names: JsString): HTMLCollectionOf[Element] ->
+pub (receiver: Document) get_elements_by_class_name(class_names: JsString): HTMLCollectionOf[Element] ->
     native.
 
 /**
@@ -597,13 +567,13 @@ pub (value: Document) get_elements_by_class_name(class_names: JsString): HTMLCol
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getElementsByName)
  */
-pub (value: Document) get_elements_by_name(element_name: JsString): NodeListOf[HTMLElement] ->
+pub (receiver: Document) get_elements_by_name(element_name: JsString): std.js.Dom.NodeListOf.NodeListOf[HTMLElement] ->
     native.
 
-pub (value: Document) get_elements_by_tag_name(qualified_name: JsString): HTMLCollectionOf[Element] ->
+pub (receiver: Document) get_elements_by_tag_name(qualified_name: JsString): HTMLCollectionOf[Element] ->
     native.
 
-pub (value: Document) get_elements_by_tag_name_ns(
+pub (receiver: Document) get_elements_by_tag_name_ns(
     namespace: Option[JsString],
     local_name: JsString,
 ): HTMLCollectionOf[Element] ->
@@ -614,7 +584,7 @@ pub (value: Document) get_elements_by_tag_name_ns(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getSelection)
  */
-pub (value: Document) get_selection(): Option[Selection] ->
+pub (receiver: Document) get_selection(): Option[std.js.Dom.Selection.Selection] ->
     native.
 
 /**
@@ -622,7 +592,7 @@ pub (value: Document) get_selection(): Option[Selection] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/hasFocus)
  */
-pub (value: Document) has_focus(): Bool ->
+pub (receiver: Document) has_focus(): Bool ->
     native.
 
 /**
@@ -630,15 +600,7 @@ pub (value: Document) has_focus(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/hasStorageAccess)
  */
-pub (value: Document) has_storage_access(): Promise[Bool] ->
-    native.
-
-/**
- * The Document object's **`importNode()`** method creates a copy of a inserted into the current document later.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/importNode)
- */
-pub (value: Document) import_node(node: T, options: ImportNodeOptions | Bool): T ->
+pub (receiver: Document) has_storage_access(): Promise[Bool] ->
     native.
 
 /**
@@ -646,10 +608,14 @@ pub (value: Document) import_node(node: T, options: ImportNodeOptions | Bool): T
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/open)
  */
-pub (value: Document) open(unused1: JsString, unused2: JsString): Document ->
+pub (receiver: Document) open(unused1: Option[JsString], unused2: Option[JsString]): Document ->
     native.
 
-pub (value: Document) open(url: URL | JsString, name: JsString, features: JsString): Option[WindowProxy] ->
+pub (receiver: Document) open_overload_2(
+    url: std.js.Dom.URL.URL | JsString,
+    name: JsString,
+    features: JsString,
+): Option[std.js.Dom.WindowProxy.WindowProxy] ->
     native.
 
 /**
@@ -658,13 +624,13 @@ pub (value: Document) open(url: URL | JsString, name: JsString, features: JsStri
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/queryCommandEnabled)
  */
-pub (value: Document) query_command_enabled(command_id: JsString): Bool ->
+pub (receiver: Document) query_command_enabled(command_id: JsString): Bool ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: Document) query_command_indeterm(command_id: JsString): Bool ->
+pub (receiver: Document) query_command_indeterm(command_id: JsString): Bool ->
     native.
 
 /**
@@ -673,7 +639,7 @@ pub (value: Document) query_command_indeterm(command_id: JsString): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/queryCommandState)
  */
-pub (value: Document) query_command_state(command_id: JsString): Bool ->
+pub (receiver: Document) query_command_state(command_id: JsString): Bool ->
     native.
 
 /**
@@ -682,19 +648,19 @@ pub (value: Document) query_command_state(command_id: JsString): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/queryCommandSupported)
  */
-pub (value: Document) query_command_supported(command_id: JsString): Bool ->
+pub (receiver: Document) query_command_supported(command_id: JsString): Bool ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: Document) query_command_value(command_id: JsString): JsString ->
+pub (receiver: Document) query_command_value(command_id: JsString): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: Document) release_events(): Unit ->
+pub (receiver: Document) release_events(): Unit ->
     native.
 
 /**
@@ -702,7 +668,7 @@ pub (value: Document) release_events(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/requestStorageAccess)
  */
-pub (value: Document) request_storage_access(): Promise[Unit] ->
+pub (receiver: Document) request_storage_access(): Promise[Unit] ->
     native.
 
 /**
@@ -710,9 +676,9 @@ pub (value: Document) request_storage_access(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/startViewTransition)
  */
-pub (value: Document) start_view_transition(
-    callback_options: StartViewTransitionOptions | ViewTransitionUpdateCallback,
-): ViewTransition ->
+pub (receiver: Document) start_view_transition(
+    callback_options: Option[std.js.Dom.StartViewTransitionOptions.StartViewTransitionOptions | std.js.Dom.ViewTransitionUpdateCallback.ViewTransitionUpdateCallback],
+): std.js.Dom.ViewTransition.ViewTransition ->
     native.
 
 /**
@@ -721,7 +687,7 @@ pub (value: Document) start_view_transition(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/write)
  */
-pub (value: Document) write(): Unit ->
+pub (receiver: Document) write(text: Array[JsString]): Unit ->
     native.
 
 /**
@@ -729,19 +695,19 @@ pub (value: Document) write(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/writeln)
  */
-pub (value: Document) writeln(): Unit ->
+pub (receiver: Document) writeln(text: Array[JsString]): Unit ->
     native.
 
-pub (value: Document) add_event_listener(
+pub (receiver: Document) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: Document) remove_event_listener(
+pub (receiver: Document) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

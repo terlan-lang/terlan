@@ -15,10 +15,8 @@ module std.js.Dom.AudioWorkletNodeOptions.
 
 pub opaque type AudioWorkletNodeOptions.
 
-pub (value: AudioWorkletNodeOptions) number_of_inputs(): std.js.Number.JsNumber.
+pub (receiver: AudioWorkletNodeOptions) number_of_inputs(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: AudioWorkletNodeOptions) number_of_outputs(): std.js.Number.JsNumber.
+pub (receiver: AudioWorkletNodeOptions) number_of_outputs(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: AudioWorkletNodeOptions) output_channel_count(): std.js.Array[std.js.Number.JsNumber].
-
-pub (value: AudioWorkletNodeOptions) parameter_data(): Record[std.js.String.JsString, std.js.Number.JsNumber].
+pub (receiver: AudioWorkletNodeOptions) output_channel_count(): std.core.Option.Option[std.js.Array.Array[std.js.Number.JsNumber]].

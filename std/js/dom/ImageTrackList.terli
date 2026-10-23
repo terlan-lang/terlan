@@ -26,25 +26,25 @@ pub opaque type ImageTrackList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrackList/length)
  */
-pub (value: ImageTrackList) length(): JsNumber.
+pub (receiver: ImageTrackList) length(): JsNumber.
 
 /**
  * The **`ready`** property of the ImageTrackList interface returns a Promise that resolves when the `ImageTrackList` is populated with ImageTrack.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrackList/ready)
  */
-pub (value: ImageTrackList) ready(): std.js.Promise[std.core.Unit].
+pub (receiver: ImageTrackList) ready(): std.js.Promise.Promise[std.core.Unit.Unit].
 
 /**
  * The **`selectedIndex`** property of the ImageTrackList interface returns the `index` of the selected track.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrackList/selectedIndex)
  */
-pub (value: ImageTrackList) selected_index(): JsNumber.
+pub (receiver: ImageTrackList) selected_index(): JsNumber.
 
 /**
  * The **`selectedTrack`** property of the ImageTrackList interface returns an ImageTrack object representing the currently selected track.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrackList/selectedTrack)
  */
-pub (value: ImageTrackList) selected_track(): Option[ImageTrack].
+pub (receiver: ImageTrackList) selected_track(): std.core.Option.Option[std.js.Dom.ImageTrack.ImageTrack].

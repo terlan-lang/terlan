@@ -28,7 +28,7 @@ pub opaque type PerformanceTiming.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/connectEnd)
  */
-pub (value: PerformanceTiming) connect_end(): JsNumber.
+pub (receiver: PerformanceTiming) connect_end(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.connectStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, where the request to open a connection is sent to the network.
@@ -36,7 +36,7 @@ pub (value: PerformanceTiming) connect_end(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/connectStart)
  */
-pub (value: PerformanceTiming) connect_start(): JsNumber.
+pub (receiver: PerformanceTiming) connect_start(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.domComplete`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the parser finished its work on the main document, that is when its Document.readyState changes to `'complete'` and the corresponding Document/readystatechange_event event is thrown.
@@ -44,7 +44,7 @@ pub (value: PerformanceTiming) connect_start(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domComplete)
  */
-pub (value: PerformanceTiming) dom_complete(): JsNumber.
+pub (receiver: PerformanceTiming) dom_complete(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.domContentLoadedEventEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, right after all the scripts that need to be executed as soon as possible, in order or not, has been executed.
@@ -52,7 +52,7 @@ pub (value: PerformanceTiming) dom_complete(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domContentLoadedEventEnd)
  */
-pub (value: PerformanceTiming) dom_content_loaded_event_end(): JsNumber.
+pub (receiver: PerformanceTiming) dom_content_loaded_event_end(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.domContentLoadedEventStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, right before the parser sent the executed right after parsing has been executed.
@@ -60,7 +60,7 @@ pub (value: PerformanceTiming) dom_content_loaded_event_end(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domContentLoadedEventStart)
  */
-pub (value: PerformanceTiming) dom_content_loaded_event_start(): JsNumber.
+pub (receiver: PerformanceTiming) dom_content_loaded_event_start(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.domInteractive`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the parser finished its work on the main document, that is when its Document.readyState changes to `'interactive'` and the corresponding Document/readystatechange_event event is thrown.
@@ -68,7 +68,7 @@ pub (value: PerformanceTiming) dom_content_loaded_event_start(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domInteractive)
  */
-pub (value: PerformanceTiming) dom_interactive(): JsNumber.
+pub (receiver: PerformanceTiming) dom_interactive(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.domLoading`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the parser started its work, that is when its corresponding Document/readystatechange_event event is thrown.
@@ -76,7 +76,7 @@ pub (value: PerformanceTiming) dom_interactive(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domLoading)
  */
-pub (value: PerformanceTiming) dom_loading(): JsNumber.
+pub (receiver: PerformanceTiming) dom_loading(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.domainLookupEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, where the domain lookup is finished.
@@ -84,7 +84,7 @@ pub (value: PerformanceTiming) dom_loading(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domainLookupEnd)
  */
-pub (value: PerformanceTiming) domain_lookup_end(): JsNumber.
+pub (receiver: PerformanceTiming) domain_lookup_end(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.domainLookupStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, where the domain lookup starts.
@@ -92,7 +92,7 @@ pub (value: PerformanceTiming) domain_lookup_end(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/domainLookupStart)
  */
-pub (value: PerformanceTiming) domain_lookup_start(): JsNumber.
+pub (receiver: PerformanceTiming) domain_lookup_start(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.fetchStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, the browser is ready to fetch the document using an HTTP request.
@@ -100,7 +100,7 @@ pub (value: PerformanceTiming) domain_lookup_start(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/fetchStart)
  */
-pub (value: PerformanceTiming) fetch_start(): JsNumber.
+pub (receiver: PerformanceTiming) fetch_start(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.loadEventEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the Window/load_event event handler terminated, that is when the load event is completed.
@@ -108,7 +108,7 @@ pub (value: PerformanceTiming) fetch_start(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/loadEventEnd)
  */
-pub (value: PerformanceTiming) load_event_end(): JsNumber.
+pub (receiver: PerformanceTiming) load_event_end(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.loadEventStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the Window/load_event event was sent for the current document.
@@ -116,7 +116,7 @@ pub (value: PerformanceTiming) load_event_end(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/loadEventStart)
  */
-pub (value: PerformanceTiming) load_event_start(): JsNumber.
+pub (receiver: PerformanceTiming) load_event_start(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.navigationStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, right after the prompt for unload terminates on the previous document in the same browsing context.
@@ -124,7 +124,7 @@ pub (value: PerformanceTiming) load_event_start(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/navigationStart)
  */
-pub (value: PerformanceTiming) navigation_start(): JsNumber.
+pub (receiver: PerformanceTiming) navigation_start(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.redirectEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, the last HTTP redirect is completed, that is when the last byte of the HTTP response has been received.
@@ -132,7 +132,7 @@ pub (value: PerformanceTiming) navigation_start(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/redirectEnd)
  */
-pub (value: PerformanceTiming) redirect_end(): JsNumber.
+pub (receiver: PerformanceTiming) redirect_end(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.redirectStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, the first HTTP redirect starts.
@@ -140,7 +140,7 @@ pub (value: PerformanceTiming) redirect_end(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/redirectStart)
  */
-pub (value: PerformanceTiming) redirect_start(): JsNumber.
+pub (receiver: PerformanceTiming) redirect_start(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.requestStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the browser sent the request to obtain the actual document, from the server or from a cache.
@@ -148,7 +148,7 @@ pub (value: PerformanceTiming) redirect_start(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/requestStart)
  */
-pub (value: PerformanceTiming) request_start(): JsNumber.
+pub (receiver: PerformanceTiming) request_start(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.responseEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, when the browser received the last byte of the response, or when the connection is closed if this happened first, from the server from a cache or from a local resource.
@@ -156,7 +156,7 @@ pub (value: PerformanceTiming) request_start(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/responseEnd)
  */
-pub (value: PerformanceTiming) response_end(): JsNumber.
+pub (receiver: PerformanceTiming) response_end(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.responseStart`** read-only property returns an `unsigned long long` representing the moment in time (in milliseconds since the UNIX epoch) when the browser received the first byte of the response from the server, cache, or local resource.
@@ -164,7 +164,7 @@ pub (value: PerformanceTiming) response_end(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/responseStart)
  */
-pub (value: PerformanceTiming) response_start(): JsNumber.
+pub (receiver: PerformanceTiming) response_start(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.secureConnectionStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, where the secure connection handshake starts.
@@ -172,7 +172,7 @@ pub (value: PerformanceTiming) response_start(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/secureConnectionStart)
  */
-pub (value: PerformanceTiming) secure_connection_start(): JsNumber.
+pub (receiver: PerformanceTiming) secure_connection_start(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.unloadEventEnd`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, the Window/unload_event event handler finishes.
@@ -180,7 +180,7 @@ pub (value: PerformanceTiming) secure_connection_start(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/unloadEventEnd)
  */
-pub (value: PerformanceTiming) unload_event_end(): JsNumber.
+pub (receiver: PerformanceTiming) unload_event_end(): JsNumber.
 
 /**
  * The legacy **`PerformanceTiming.unloadEventStart`** read-only property returns an `unsigned long long` representing the moment, in milliseconds since the UNIX epoch, the Window/unload_event event has been thrown.
@@ -188,4 +188,4 @@ pub (value: PerformanceTiming) unload_event_end(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceTiming/unloadEventStart)
  */
-pub (value: PerformanceTiming) unload_event_start(): JsNumber.
+pub (receiver: PerformanceTiming) unload_event_start(): JsNumber.

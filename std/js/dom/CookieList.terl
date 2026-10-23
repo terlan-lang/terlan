@@ -12,4 +12,4 @@
  */
 module std.js.Dom.CookieList.
 
-pub type CookieList = std.js.Array[CookieListItem].
+pub type CookieList = std.js.Array.Array[std.js.Dom.CookieListItem.CookieListItem].

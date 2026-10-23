@@ -12,10 +12,12 @@
  */
 module std.js.Dom.AnimationEventMap.
 
+import type std.js.Dom.AnimationPlaybackEvent.{AnimationPlaybackEvent}.
+
 pub opaque type AnimationEventMap.
 
-pub (value: AnimationEventMap) cancel(): AnimationPlaybackEvent.
+pub (receiver: AnimationEventMap) cancel(): AnimationPlaybackEvent.
 
-pub (value: AnimationEventMap) finish(): AnimationPlaybackEvent.
+pub (receiver: AnimationEventMap) finish(): AnimationPlaybackEvent.
 
-pub (value: AnimationEventMap) remove(): AnimationPlaybackEvent.
+pub (receiver: AnimationEventMap) remove(): AnimationPlaybackEvent.

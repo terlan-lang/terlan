@@ -15,10 +15,10 @@ module std.js.Dom.SVGBoundingBoxOptions.
 
 pub opaque type SVGBoundingBoxOptions.
 
-pub (value: SVGBoundingBoxOptions) clipped(): std.core.Bool.
+pub (receiver: SVGBoundingBoxOptions) clipped(): std.core.Option.Option[Bool].
 
-pub (value: SVGBoundingBoxOptions) fill(): std.core.Bool.
+pub (receiver: SVGBoundingBoxOptions) fill(): std.core.Option.Option[Bool].
 
-pub (value: SVGBoundingBoxOptions) markers(): std.core.Bool.
+pub (receiver: SVGBoundingBoxOptions) markers(): std.core.Option.Option[Bool].
 
-pub (value: SVGBoundingBoxOptions) stroke(): std.core.Bool.
+pub (receiver: SVGBoundingBoxOptions) stroke(): std.core.Option.Option[Bool].

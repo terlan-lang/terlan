@@ -12,15 +12,13 @@
  */
 module std.js.Intl.CollatorConstructorTest.
 
+import type std.js.Array.{Array}.
 import type std.js.Intl.CollatorConstructor.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub supported_locales_of_typechecks(
     receiver: CollatorConstructor,
     locales: Array[JsString] | JsString,
-    options: CollatorOptions,
+    options: std.core.Option.Option[std.js.Intl.CollatorOptions.CollatorOptions],
 ): Array[JsString] ->
     receiver.supported_locales_of(locales, options).

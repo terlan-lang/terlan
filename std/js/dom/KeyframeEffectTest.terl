@@ -12,28 +12,23 @@
  */
 module std.js.Dom.KeyframeEffectTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
 import type std.js.Dom.KeyframeEffect.
-import type std.js.{Array}.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub composite_typechecks(receiver: KeyframeEffect): CompositeOperation ->
-    receiver.composite().
-
-pub iteration_composite_typechecks(receiver: KeyframeEffect): IterationCompositeOperation ->
-    receiver.iteration_composite().
 
 pub pseudo_element_typechecks(receiver: KeyframeEffect): Option[std.js.String.JsString] ->
     receiver.pseudo_element().
 
-pub target__typechecks(receiver: KeyframeEffect): Option[Element] ->
+pub target__typechecks(receiver: KeyframeEffect): Option[std.js.Dom.Element.Element] ->
     receiver.target_().
 
-pub get_keyframes_typechecks(receiver: KeyframeEffect): Array[ComputedKeyframe] ->
+pub get_keyframes_typechecks(
+    receiver: KeyframeEffect,
+): Array[std.js.Dom.ComputedKeyframe.ComputedKeyframe] ->
     receiver.get_keyframes().
 
 pub set_keyframes_typechecks(
     receiver: KeyframeEffect,
-    keyframes: Option[PropertyIndexedKeyframes | Array[Keyframe]],
-): std.core.Unit ->
+    keyframes: Option[std.js.Dom.PropertyIndexedKeyframes.PropertyIndexedKeyframes | Array[std.js.Dom.Keyframe.Keyframe]],
+): std.core.Unit.Unit ->
     receiver.set_keyframes(keyframes).

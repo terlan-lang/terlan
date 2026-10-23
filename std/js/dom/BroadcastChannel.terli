@@ -12,7 +12,9 @@
  */
 module std.js.Dom.BroadcastChannel.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,23 +29,23 @@ pub opaque type BroadcastChannel.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BroadcastChannel/name)
  */
-pub (value: BroadcastChannel) name(): JsString.
+pub (receiver: BroadcastChannel) name(): JsString.
 
 /**
  * The **`close()`** method of the BroadcastChannel interface terminates the connection to the underlying channel, allowing the object to be garbage collected.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BroadcastChannel/close)
  */
-pub (value: BroadcastChannel) close(): Unit.
+pub (receiver: BroadcastChannel) close(): Unit.
 
-pub (value: BroadcastChannel) add_event_listener(
+pub (receiver: BroadcastChannel) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: BroadcastChannel) remove_event_listener(
+pub (receiver: BroadcastChannel) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

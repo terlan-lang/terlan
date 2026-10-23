@@ -14,7 +14,5 @@ module std.js.Dom.PerformanceEventMapTest.
 
 import type std.js.Dom.PerformanceEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub resourcetimingbufferfull_typechecks(receiver: PerformanceEventMap): Event ->
+pub resourcetimingbufferfull_typechecks(receiver: PerformanceEventMap): std.js.Dom.Event.Event ->
     receiver.resourcetimingbufferfull().

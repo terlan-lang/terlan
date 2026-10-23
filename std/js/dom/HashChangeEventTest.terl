@@ -15,8 +15,6 @@ module std.js.Dom.HashChangeEventTest.
 import type std.js.Dom.HashChangeEvent.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub new_url_typechecks(receiver: HashChangeEvent): JsString ->
     receiver.new_url().
 

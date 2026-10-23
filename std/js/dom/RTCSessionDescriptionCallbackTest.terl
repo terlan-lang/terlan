@@ -13,5 +13,3 @@
 module std.js.Dom.RTCSessionDescriptionCallbackTest.
 
 import type std.js.Dom.RTCSessionDescriptionCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

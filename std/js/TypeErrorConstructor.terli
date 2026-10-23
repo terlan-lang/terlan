@@ -14,4 +14,4 @@ module std.js.TypeErrorConstructor.
 
 pub opaque type TypeErrorConstructor.
 
-pub (value: TypeErrorConstructor) prototype(): TypeError.
+pub (receiver: TypeErrorConstructor) prototype(): std.js.TypeError.TypeError.

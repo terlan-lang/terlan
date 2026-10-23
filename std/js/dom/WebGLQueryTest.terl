@@ -13,5 +13,3 @@
 module std.js.Dom.WebGLQueryTest.
 
 import type std.js.Dom.WebGLQuery.
-
-pub generated_binding_surface_contract(): Bool -> true.

@@ -12,14 +12,16 @@
  */
 module std.js.Dom.SVGTests.
 
+import type std.js.Dom.SVGStringList.{SVGStringList}.
+
 pub opaque type SVGTests.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/requiredExtensions)
  */
-pub (value: SVGTests) required_extensions(): SVGStringList.
+pub (receiver: SVGTests) required_extensions(): SVGStringList.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/systemLanguage)
  */
-pub (value: SVGTests) system_language(): SVGStringList.
+pub (receiver: SVGTests) system_language(): SVGStringList.

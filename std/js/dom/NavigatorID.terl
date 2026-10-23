@@ -21,7 +21,7 @@ pub opaque type NavigatorID.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/appCodeName)
  */
-pub (value: NavigatorID) app_code_name(): JsString ->
+pub (receiver: NavigatorID) app_code_name(): JsString ->
     native.
 
 /**
@@ -29,7 +29,7 @@ pub (value: NavigatorID) app_code_name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/appName)
  */
-pub (value: NavigatorID) app_name(): JsString ->
+pub (receiver: NavigatorID) app_name(): JsString ->
     native.
 
 /**
@@ -37,7 +37,7 @@ pub (value: NavigatorID) app_name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/appVersion)
  */
-pub (value: NavigatorID) app_version(): JsString ->
+pub (receiver: NavigatorID) app_version(): JsString ->
     native.
 
 /**
@@ -45,7 +45,7 @@ pub (value: NavigatorID) app_version(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/platform)
  */
-pub (value: NavigatorID) platform(): JsString ->
+pub (receiver: NavigatorID) platform(): JsString ->
     native.
 
 /**
@@ -53,7 +53,7 @@ pub (value: NavigatorID) platform(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/product)
  */
-pub (value: NavigatorID) product(): JsString ->
+pub (receiver: NavigatorID) product(): JsString ->
     native.
 
 /**
@@ -61,13 +61,13 @@ pub (value: NavigatorID) product(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/productSub)
  */
-pub (value: NavigatorID) product_sub(): JsString ->
+pub (receiver: NavigatorID) product_sub(): JsString ->
     native.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/userAgent)
  */
-pub (value: NavigatorID) user_agent(): JsString ->
+pub (receiver: NavigatorID) user_agent(): JsString ->
     native.
 
 /**
@@ -75,7 +75,7 @@ pub (value: NavigatorID) user_agent(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/vendor)
  */
-pub (value: NavigatorID) vendor(): JsString ->
+pub (receiver: NavigatorID) vendor(): JsString ->
     native.
 
 /**
@@ -83,5 +83,5 @@ pub (value: NavigatorID) vendor(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/vendorSub)
  */
-pub (value: NavigatorID) vendor_sub(): JsString ->
+pub (receiver: NavigatorID) vendor_sub(): JsString ->
     native.

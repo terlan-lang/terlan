@@ -25,71 +25,57 @@ pub opaque type TextTrack.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/activeCues)
  */
-pub (value: TextTrack) active_cues(): Option[TextTrackCueList].
+pub (receiver: TextTrack) active_cues(): std.core.Option.Option[std.js.Dom.TextTrackCueList.TextTrackCueList].
 
 /**
  * The **`cues`** read-only property of the TextTrack interface returns a TextTrackCueList object containing all of the track's cues.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/cues)
  */
-pub (value: TextTrack) cues(): Option[TextTrackCueList].
+pub (receiver: TextTrack) cues(): std.core.Option.Option[std.js.Dom.TextTrackCueList.TextTrackCueList].
 
 /**
  * The **`id`** read-only property of the TextTrack interface returns the ID of the track if it has one.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/id)
  */
-pub (value: TextTrack) id(): std.js.String.JsString.
+pub (receiver: TextTrack) id(): std.js.String.JsString.
 
 /**
  * The **`inBandMetadataTrackDispatchType`** read-only property of the TextTrack interface returns the text track's in-band metadata dispatch type of the text track represented by the TextTrack object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/inBandMetadataTrackDispatchType)
  */
-pub (value: TextTrack) in_band_metadata_track_dispatch_type(): std.js.String.JsString.
-
-/**
- * The **`kind`** read-only property of the TextTrack interface returns the kind of text track this object represents.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/kind)
- */
-pub (value: TextTrack) kind(): TextTrackKind.
+pub (receiver: TextTrack) in_band_metadata_track_dispatch_type(): std.js.String.JsString.
 
 /**
  * The **`label`** read-only property of the TextTrack interface returns a human-readable label for the text track, if it is available.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/label)
  */
-pub (value: TextTrack) label(): std.js.String.JsString.
+pub (receiver: TextTrack) label(): std.js.String.JsString.
 
 /**
  * The **`language`** read-only property of the TextTrack interface returns the language of the text track.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/language)
  */
-pub (value: TextTrack) language(): std.js.String.JsString.
-
-/**
- * The TextTrack interface's **`mode`** property is a string specifying and controlling the text track's mode: `disabled`, `hidden`, or `showing`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/mode)
- */
-pub (value: TextTrack) mode(): TextTrackMode.
+pub (receiver: TextTrack) language(): std.js.String.JsString.
 
 /**
  * The **`addCue()`** method of the TextTrack interface adds a new cue to the list of cues.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/addCue)
  */
-pub (value: TextTrack) add_cue(cue: TextTrackCue): std.core.Unit.
+pub (receiver: TextTrack) add_cue(cue: std.js.Dom.TextTrackCue.TextTrackCue): std.core.Unit.Unit.
 
 /**
  * The **`removeCue()`** method of the TextTrack interface removes a cue from the list of cues.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrack/removeCue)
  */
-pub (value: TextTrack) remove_cue(cue: TextTrackCue): std.core.Unit.
+pub (receiver: TextTrack) remove_cue(cue: std.js.Dom.TextTrackCue.TextTrackCue): std.core.Unit.Unit.
 
-pub (value: TextTrack) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: TextTrack) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: TextTrack) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: TextTrack) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

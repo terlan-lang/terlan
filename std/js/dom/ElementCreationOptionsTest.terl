@@ -12,12 +12,13 @@
  */
 module std.js.Dom.ElementCreationOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.ElementCreationOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub custom_element_registry_typechecks(receiver: ElementCreationOptions): CustomElementRegistry ->
+pub custom_element_registry_typechecks(
+    receiver: ElementCreationOptions,
+): Option[std.js.Dom.CustomElementRegistry.CustomElementRegistry] ->
     receiver.custom_element_registry().
 
-pub is_typechecks(receiver: ElementCreationOptions): std.js.String.JsString ->
+pub is_typechecks(receiver: ElementCreationOptions): Option[std.js.String.JsString] ->
     receiver.is().

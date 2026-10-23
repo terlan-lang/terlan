@@ -24,14 +24,14 @@ pub opaque type MimeTypeArray.
 /**
  * @deprecated
  */
-pub (value: MimeTypeArray) length(): std.js.Number.JsNumber.
+pub (receiver: MimeTypeArray) length(): std.js.Number.JsNumber.
 
 /**
  * @deprecated
  */
-pub (value: MimeTypeArray) item(index: std.js.Number.JsNumber): Option[MimeType].
+pub (receiver: MimeTypeArray) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.MimeType.MimeType].
 
 /**
  * @deprecated
  */
-pub (value: MimeTypeArray) named_item(name: std.js.String.JsString): Option[MimeType].
+pub (receiver: MimeTypeArray) named_item(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.MimeType.MimeType].

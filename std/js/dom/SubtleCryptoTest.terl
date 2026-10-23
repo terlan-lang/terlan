@@ -12,11 +12,19 @@
  */
 module std.js.Dom.SubtleCryptoTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.js.Dom.AesCbcParams.{AesCbcParams}.
+import type std.js.Dom.AesCtrParams.{AesCtrParams}.
+import type std.js.Dom.AesGcmParams.{AesGcmParams}.
+import type std.js.Dom.AlgorithmIdentifier.{AlgorithmIdentifier}.
+import type std.js.Dom.BufferSource.{BufferSource}.
+import type std.js.Dom.CryptoKey.{CryptoKey}.
+import type std.js.Dom.EcdsaParams.{EcdsaParams}.
+import type std.js.Dom.RsaOaepParams.{RsaOaepParams}.
+import type std.js.Dom.RsaPssParams.{RsaPssParams}.
 import type std.js.Dom.SubtleCrypto.
-import type std.js.{Array, Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Promise.{Promise}.
 
 pub decrypt_typechecks(
     receiver: SubtleCrypto,
@@ -28,21 +36,11 @@ pub decrypt_typechecks(
 
 pub derive_bits_typechecks(
     receiver: SubtleCrypto,
-    algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params,
+    algorithm: AlgorithmIdentifier | std.js.Dom.EcdhKeyDeriveParams.EcdhKeyDeriveParams | std.js.Dom.HkdfParams.HkdfParams | std.js.Dom.Pbkdf2Params.Pbkdf2Params,
     base_key: CryptoKey,
-    length: Option[std.js.Number.JsNumber],
+    length: Option[Option[std.js.Number.JsNumber]],
 ): Promise[ArrayBuffer] ->
     receiver.derive_bits(algorithm, base_key, length).
-
-pub derive_key_typechecks(
-    receiver: SubtleCrypto,
-    algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params,
-    base_key: CryptoKey,
-    derived_key_type: AesDerivedKeyParams | AlgorithmIdentifier | HkdfParams | HmacImportParams | Pbkdf2Params,
-    extractable: Bool,
-    key_usages: Array[KeyUsage],
-): Promise[CryptoKey] ->
-    receiver.derive_key(algorithm, base_key, derived_key_type, extractable, key_usages).
 
 pub digest_typechecks(
     receiver: SubtleCrypto,
@@ -59,37 +57,6 @@ pub encrypt_typechecks(
 ): Promise[ArrayBuffer] ->
     receiver.encrypt(algorithm, key, data).
 
-pub export_key_typechecks(
-    receiver: SubtleCrypto,
-    format: KeyFormat,
-    key: CryptoKey,
-): Promise[ArrayBuffer | JsonWebKey] ->
-    receiver.export_key(format, key).
-
-pub generate_key_typechecks(
-    receiver: SubtleCrypto,
-    algorithm: EcKeyGenParams | RsaHashedKeyGenParams,
-    extractable: Bool,
-    key_usages: Array[KeyUsage],
-): Promise[CryptoKeyPair] ->
-    receiver.generate_key(algorithm, extractable, key_usages).
-
-pub generate_key_typechecks(
-    receiver: SubtleCrypto,
-    algorithm: AesKeyGenParams | HmacKeyGenParams | Pbkdf2Params,
-    extractable: Bool,
-    key_usages: Array[KeyUsage],
-): Promise[CryptoKey] ->
-    receiver.generate_key(algorithm, extractable, key_usages).
-
-pub generate_key_typechecks(
-    receiver: SubtleCrypto,
-    algorithm: AlgorithmIdentifier,
-    extractable: Bool,
-    key_usages: Array[KeyUsage],
-): Promise[CryptoKey | CryptoKeyPair] ->
-    receiver.generate_key(algorithm, extractable, key_usages).
-
 pub sign_typechecks(
     receiver: SubtleCrypto,
     algorithm: AlgorithmIdentifier | EcdsaParams | RsaPssParams,
@@ -97,27 +64,6 @@ pub sign_typechecks(
     data: BufferSource,
 ): Promise[ArrayBuffer] ->
     receiver.sign(algorithm, key, data).
-
-pub unwrap_key_typechecks(
-    receiver: SubtleCrypto,
-    format: KeyFormat,
-    wrapped_key: BufferSource,
-    unwrapping_key: CryptoKey,
-    unwrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
-    unwrapped_key_algorithm: AesKeyAlgorithm | AlgorithmIdentifier | EcKeyImportParams | HmacImportParams | RsaHashedImportParams,
-    extractable: Bool,
-    key_usages: Array[KeyUsage],
-): Promise[CryptoKey] ->
-    receiver
-        .unwrap_key(
-            format,
-            wrapped_key,
-            unwrapping_key,
-            unwrap_algorithm,
-            unwrapped_key_algorithm,
-            extractable,
-            key_usages,
-        ).
 
 pub verify_typechecks(
     receiver: SubtleCrypto,
@@ -127,12 +73,3 @@ pub verify_typechecks(
     data: BufferSource,
 ): Promise[Bool] ->
     receiver.verify(algorithm, key, signature, data).
-
-pub wrap_key_typechecks(
-    receiver: SubtleCrypto,
-    format: KeyFormat,
-    key: CryptoKey,
-    wrapping_key: CryptoKey,
-    wrap_algorithm: AesCbcParams | AesCtrParams | AesGcmParams | AlgorithmIdentifier | RsaOaepParams,
-): Promise[ArrayBuffer] ->
-    receiver.wrap_key(format, key, wrapping_key, wrap_algorithm).

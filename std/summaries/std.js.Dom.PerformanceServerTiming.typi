@@ -25,18 +25,18 @@ pub opaque type PerformanceServerTiming.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceServerTiming/description)
  */
-pub (value: PerformanceServerTiming) description(): std.js.String.JsString.
+pub (receiver: PerformanceServerTiming) description(): std.js.String.JsString.
 
 /**
  * The **`duration`** read-only property returns a double that contains the server-specified metric duration, or the value `0.0`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceServerTiming/duration)
  */
-pub (value: PerformanceServerTiming) duration(): DOMHighResTimeStamp.
+pub (receiver: PerformanceServerTiming) duration(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
 
 /**
  * The **`name`** read-only property returns a string value of the server-specified metric name.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceServerTiming/name)
  */
-pub (value: PerformanceServerTiming) name(): std.js.String.JsString.
+pub (receiver: PerformanceServerTiming) name(): std.js.String.JsString.

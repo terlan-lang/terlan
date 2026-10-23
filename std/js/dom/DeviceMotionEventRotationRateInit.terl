@@ -12,15 +12,16 @@
  */
 module std.js.Dom.DeviceMotionEventRotationRateInit.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type DeviceMotionEventRotationRateInit.
 
-pub (value: DeviceMotionEventRotationRateInit) alpha(): Option[JsNumber] ->
+pub (receiver: DeviceMotionEventRotationRateInit) alpha(): Option[JsNumber] ->
     native.
 
-pub (value: DeviceMotionEventRotationRateInit) beta(): Option[JsNumber] ->
+pub (receiver: DeviceMotionEventRotationRateInit) beta(): Option[JsNumber] ->
     native.
 
-pub (value: DeviceMotionEventRotationRateInit) gamma(): Option[JsNumber] ->
+pub (receiver: DeviceMotionEventRotationRateInit) gamma(): Option[JsNumber] ->
     native.

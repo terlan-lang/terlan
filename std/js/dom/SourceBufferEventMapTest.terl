@@ -12,9 +12,8 @@
  */
 module std.js.Dom.SourceBufferEventMapTest.
 
+import type std.js.Dom.Event.{Event}.
 import type std.js.Dom.SourceBufferEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub abort_typechecks(receiver: SourceBufferEventMap): Event ->
     receiver.abort().

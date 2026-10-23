@@ -15,8 +15,6 @@ module std.js.Dom.PaymentCurrencyAmountTest.
 import type std.js.Dom.PaymentCurrencyAmount.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub currency_typechecks(receiver: PaymentCurrencyAmount): JsString ->
     receiver.currency().
 

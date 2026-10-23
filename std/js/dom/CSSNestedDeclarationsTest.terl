@@ -14,7 +14,7 @@ module std.js.Dom.CSSNestedDeclarationsTest.
 
 import type std.js.Dom.CSSNestedDeclarations.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub style_typechecks(receiver: CSSNestedDeclarations): CSSStyleDeclaration ->
+pub style_typechecks(
+    receiver: CSSNestedDeclarations,
+): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration ->
     receiver.style().

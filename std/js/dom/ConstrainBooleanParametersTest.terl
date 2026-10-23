@@ -12,13 +12,11 @@
  */
 module std.js.Dom.ConstrainBooleanParametersTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.ConstrainBooleanParameters.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub exact_typechecks(receiver: ConstrainBooleanParameters): Bool ->
+pub exact_typechecks(receiver: ConstrainBooleanParameters): Option[Bool] ->
     receiver.exact().
 
-pub ideal_typechecks(receiver: ConstrainBooleanParameters): Bool ->
+pub ideal_typechecks(receiver: ConstrainBooleanParameters): Option[Bool] ->
     receiver.ideal().

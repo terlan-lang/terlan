@@ -13,5 +13,3 @@
 module std.js.Dom.IdleRequestCallbackTest.
 
 import type std.js.Dom.IdleRequestCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

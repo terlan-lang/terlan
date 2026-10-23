@@ -12,16 +12,19 @@
  */
 module std.js.Dom.PerformanceObserverTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.PerformanceObserver.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub disconnect_typechecks(receiver: PerformanceObserver): Unit ->
     receiver.disconnect().
 
-pub observe_typechecks(receiver: PerformanceObserver, options: PerformanceObserverInit): Unit ->
+pub observe_typechecks(
+    receiver: PerformanceObserver,
+    options: std.core.Option.Option[std.js.Dom.PerformanceObserverInit.PerformanceObserverInit],
+): Unit ->
     receiver.observe(options).
 
-pub take_records_typechecks(receiver: PerformanceObserver): PerformanceEntryList ->
+pub take_records_typechecks(
+    receiver: PerformanceObserver,
+): std.js.Dom.PerformanceEntryList.PerformanceEntryList ->
     receiver.take_records().

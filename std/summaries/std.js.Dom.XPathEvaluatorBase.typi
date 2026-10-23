@@ -16,18 +16,8 @@ module std.js.Dom.XPathEvaluatorBase.
 pub opaque type XPathEvaluatorBase.
 
 /**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createExpression)
- */
-pub (value: XPathEvaluatorBase) create_expression(expression: std.js.String.JsString, resolver: Option[XPathNSResolver]): XPathExpression.
-
-/**
  * @deprecated
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createNSResolver)
  */
-pub (value: XPathEvaluatorBase) create_ns_resolver(node_resolver: Node): Node.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/evaluate)
- */
-pub (value: XPathEvaluatorBase) evaluate(expression: std.js.String.JsString, context_node: Node, resolver: Option[XPathNSResolver], type_: std.js.Number.JsNumber, result: Option[XPathResult]): XPathResult.
+pub (receiver: XPathEvaluatorBase) create_ns_resolver(node_resolver: std.js.Dom.Node.Node): std.js.Dom.Node.Node.

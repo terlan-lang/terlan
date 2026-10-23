@@ -13,5 +13,3 @@
 module std.js.Dom.UnderlyingSourcePullCallbackTest.
 
 import type std.js.Dom.UnderlyingSourcePullCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

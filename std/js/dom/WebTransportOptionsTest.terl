@@ -12,21 +12,16 @@
  */
 module std.js.Dom.WebTransportOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.WebTransportOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub allow_pooling_typechecks(receiver: WebTransportOptions): Bool ->
+pub allow_pooling_typechecks(receiver: WebTransportOptions): Option[Bool] ->
     receiver.allow_pooling().
 
-pub congestion_control_typechecks(receiver: WebTransportOptions): WebTransportCongestionControl ->
-    receiver.congestion_control().
-
-pub require_unreliable_typechecks(receiver: WebTransportOptions): Bool ->
+pub require_unreliable_typechecks(receiver: WebTransportOptions): Option[Bool] ->
     receiver.require_unreliable().
 
 pub server_certificate_hashes_typechecks(
     receiver: WebTransportOptions,
-): std.js.Array[WebTransportHash] ->
+): Option[std.js.Array.Array[std.js.Dom.WebTransportHash.WebTransportHash]] ->
     receiver.server_certificate_hashes().

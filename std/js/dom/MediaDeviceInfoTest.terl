@@ -15,16 +15,11 @@ module std.js.Dom.MediaDeviceInfoTest.
 import type std.js.Dom.MediaDeviceInfo.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub device_id_typechecks(receiver: MediaDeviceInfo): JsString ->
     receiver.device_id().
 
 pub group_id_typechecks(receiver: MediaDeviceInfo): JsString ->
     receiver.group_id().
-
-pub kind_typechecks(receiver: MediaDeviceInfo): MediaDeviceKind ->
-    receiver.kind().
 
 pub label_typechecks(receiver: MediaDeviceInfo): JsString ->
     receiver.label().

@@ -14,4 +14,4 @@
 module std.js.Dom.ConstrainBoolean.
 
 pub type ConstrainBoolean =
-    ConstrainBooleanParameters | std.core.Bool.
+    Bool | std.js.Dom.ConstrainBooleanParameters.ConstrainBooleanParameters.

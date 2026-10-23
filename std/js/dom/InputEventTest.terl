@@ -12,22 +12,23 @@
  */
 module std.js.Dom.InputEventTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.InputEvent.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub data_typechecks(receiver: InputEvent): Option[JsString] ->
     receiver.data().
 
-pub data_transfer_typechecks(receiver: InputEvent): Option[DataTransfer] ->
+pub data_transfer_typechecks(receiver: InputEvent): Option[std.js.Dom.DataTransfer.DataTransfer] ->
     receiver.data_transfer().
 
 pub input_type_typechecks(receiver: InputEvent): JsString ->
     receiver.input_type().
 
-pub is_composing_typechecks(receiver: InputEvent): std.core.Bool ->
+pub is_composing_typechecks(receiver: InputEvent): Bool ->
     receiver.is_composing().
 
-pub get_target_ranges_typechecks(receiver: InputEvent): std.js.Array[StaticRange] ->
+pub get_target_ranges_typechecks(
+    receiver: InputEvent,
+): std.js.Array.Array[std.js.Dom.StaticRange.StaticRange] ->
     receiver.get_target_ranges().

@@ -14,5 +14,5 @@ module std.js.Dom.AesKeyGenParams.
 
 pub opaque type AesKeyGenParams.
 
-pub (value: AesKeyGenParams) length(): std.js.Number.JsNumber ->
+pub (receiver: AesKeyGenParams) length(): std.js.Number.JsNumber ->
     native.

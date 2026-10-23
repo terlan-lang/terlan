@@ -6,4 +6,5 @@ import type std.js.Promise.
 pub accepts_promise(value: Promise[Int]): Promise[Int] ->
     value.
 
-pub generated_surface_contract(): Bool -> true.
+pub promise_round_trip(value: Promise[Int]): Promise[Int] ->
+    std.js.Promise.from_task(value.to_task()).

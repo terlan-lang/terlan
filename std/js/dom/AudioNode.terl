@@ -12,7 +12,9 @@
  */
 module std.js.Dom.AudioNode.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.AudioParam.{AudioParam}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,23 +29,7 @@ pub opaque type AudioNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/channelCount)
  */
-pub (value: AudioNode) channel_count(): JsNumber ->
-    native.
-
-/**
- * The `channelCountMode` property of the AudioNode interface represents an enumerated value describing the way channels must be matched between the node's inputs and outputs.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/channelCountMode)
- */
-pub (value: AudioNode) channel_count_mode(): ChannelCountMode ->
-    native.
-
-/**
- * The **`channelInterpretation`** property of the AudioNode interface represents an enumerated value describing how input channels are mapped to output channels when the number of inputs/outputs is different.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/channelInterpretation)
- */
-pub (value: AudioNode) channel_interpretation(): ChannelInterpretation ->
+pub (receiver: AudioNode) channel_count(): JsNumber ->
     native.
 
 /**
@@ -51,7 +37,7 @@ pub (value: AudioNode) channel_interpretation(): ChannelInterpretation ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/context)
  */
-pub (value: AudioNode) context(): BaseAudioContext ->
+pub (receiver: AudioNode) context(): std.js.Dom.BaseAudioContext.BaseAudioContext ->
     native.
 
 /**
@@ -59,7 +45,7 @@ pub (value: AudioNode) context(): BaseAudioContext ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/numberOfInputs)
  */
-pub (value: AudioNode) number_of_inputs(): JsNumber ->
+pub (receiver: AudioNode) number_of_inputs(): JsNumber ->
     native.
 
 /**
@@ -67,7 +53,7 @@ pub (value: AudioNode) number_of_inputs(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/numberOfOutputs)
  */
-pub (value: AudioNode) number_of_outputs(): JsNumber ->
+pub (receiver: AudioNode) number_of_outputs(): JsNumber ->
     native.
 
 /**
@@ -75,10 +61,14 @@ pub (value: AudioNode) number_of_outputs(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/connect)
  */
-pub (value: AudioNode) connect(destination_node: AudioNode, output: JsNumber, input: JsNumber): AudioNode ->
+pub (receiver: AudioNode) connect(
+    destination_node: AudioNode,
+    output: Option[JsNumber],
+    input: Option[JsNumber],
+): AudioNode ->
     native.
 
-pub (value: AudioNode) connect(destination_param: AudioParam, output: JsNumber): Unit ->
+pub (receiver: AudioNode) connect_overload_2(destination_param: AudioParam, output: Option[JsNumber]): Unit ->
     native.
 
 /**
@@ -86,23 +76,23 @@ pub (value: AudioNode) connect(destination_param: AudioParam, output: JsNumber):
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioNode/disconnect)
  */
-pub (value: AudioNode) disconnect(): Unit ->
+pub (receiver: AudioNode) disconnect(): Unit ->
     native.
 
-pub (value: AudioNode) disconnect(output: JsNumber): Unit ->
+pub (receiver: AudioNode) disconnect_overload_2(output: JsNumber): Unit ->
     native.
 
-pub (value: AudioNode) disconnect(destination_node: AudioNode): Unit ->
+pub (receiver: AudioNode) disconnect_overload_3(destination_node: AudioNode): Unit ->
     native.
 
-pub (value: AudioNode) disconnect(destination_node: AudioNode, output: JsNumber): Unit ->
+pub (receiver: AudioNode) disconnect_overload_4(destination_node: AudioNode, output: JsNumber): Unit ->
     native.
 
-pub (value: AudioNode) disconnect(destination_node: AudioNode, output: JsNumber, input: JsNumber): Unit ->
+pub (receiver: AudioNode) disconnect_overload_5(destination_node: AudioNode, output: JsNumber, input: JsNumber): Unit ->
     native.
 
-pub (value: AudioNode) disconnect(destination_param: AudioParam): Unit ->
+pub (receiver: AudioNode) disconnect_overload_6(destination_param: AudioParam): Unit ->
     native.
 
-pub (value: AudioNode) disconnect(destination_param: AudioParam, output: JsNumber): Unit ->
+pub (receiver: AudioNode) disconnect_overload_7(destination_param: AudioParam, output: JsNumber): Unit ->
     native.

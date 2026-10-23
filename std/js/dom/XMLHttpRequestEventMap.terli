@@ -14,4 +14,4 @@ module std.js.Dom.XMLHttpRequestEventMap.
 
 pub opaque type XMLHttpRequestEventMap.
 
-pub (value: XMLHttpRequestEventMap) readystatechange(): Event.
+pub (receiver: XMLHttpRequestEventMap) readystatechange(): std.js.Dom.Event.Event.

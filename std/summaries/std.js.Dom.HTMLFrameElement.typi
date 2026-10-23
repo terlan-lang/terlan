@@ -21,53 +21,53 @@ pub opaque type HTMLFrameElement.
 /**
  * @deprecated
  */
-pub (value: HTMLFrameElement) content_document(): Option[Document].
+pub (receiver: HTMLFrameElement) content_document(): std.core.Option.Option[std.js.Dom.Document.Document].
 
 /**
  * @deprecated
  */
-pub (value: HTMLFrameElement) content_window(): Option[WindowProxy].
+pub (receiver: HTMLFrameElement) content_window(): std.core.Option.Option[std.js.Dom.WindowProxy.WindowProxy].
 
 /**
  * @deprecated
  */
-pub (value: HTMLFrameElement) frame_border(): std.js.String.JsString.
+pub (receiver: HTMLFrameElement) frame_border(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLFrameElement) long_desc(): std.js.String.JsString.
+pub (receiver: HTMLFrameElement) long_desc(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLFrameElement) margin_height(): std.js.String.JsString.
+pub (receiver: HTMLFrameElement) margin_height(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLFrameElement) margin_width(): std.js.String.JsString.
+pub (receiver: HTMLFrameElement) margin_width(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLFrameElement) name(): std.js.String.JsString.
+pub (receiver: HTMLFrameElement) name(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLFrameElement) no_resize(): std.core.Bool.
+pub (receiver: HTMLFrameElement) no_resize(): Bool.
 
 /**
  * @deprecated
  */
-pub (value: HTMLFrameElement) scrolling(): std.js.String.JsString.
+pub (receiver: HTMLFrameElement) scrolling(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLFrameElement) src(): std.js.String.JsString.
+pub (receiver: HTMLFrameElement) src(): std.js.String.JsString.
 
-pub (value: HTMLFrameElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLFrameElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLFrameElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLFrameElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

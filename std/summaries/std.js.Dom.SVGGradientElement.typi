@@ -25,22 +25,22 @@ pub opaque type SVGGradientElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGradientElement/gradientTransform)
  */
-pub (value: SVGGradientElement) gradient_transform(): SVGAnimatedTransformList.
+pub (receiver: SVGGradientElement) gradient_transform(): std.js.Dom.SVGAnimatedTransformList.SVGAnimatedTransformList.
 
 /**
  * The **`gradientUnits`** read-only property of the SVGGradientElement interface reflects the gradientUnits attribute of the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGradientElement/gradientUnits)
  */
-pub (value: SVGGradientElement) gradient_units(): SVGAnimatedEnumeration.
+pub (receiver: SVGGradientElement) gradient_units(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration.
 
 /**
  * The **`spreadMethod`** read-only property of the SVGGradientElement interface reflects the spreadMethod attribute of the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGradientElement/spreadMethod)
  */
-pub (value: SVGGradientElement) spread_method(): SVGAnimatedEnumeration.
+pub (receiver: SVGGradientElement) spread_method(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration.
 
-pub (value: SVGGradientElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGGradientElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: SVGGradientElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGGradientElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

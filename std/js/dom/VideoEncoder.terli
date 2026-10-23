@@ -12,7 +12,9 @@
  */
 module std.js.Dom.VideoEncoder.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -28,58 +30,54 @@ pub opaque type VideoEncoder.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/encodeQueueSize)
  */
-pub (value: VideoEncoder) encode_queue_size(): std.js.Number.JsNumber.
-
-/**
- * The **`state`** read-only property of the VideoEncoder interface returns the current state of the underlying codec.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/state)
- */
-pub (value: VideoEncoder) state(): CodecState.
+pub (receiver: VideoEncoder) encode_queue_size(): std.js.Number.JsNumber.
 
 /**
  * The **`close()`** method of the VideoEncoder interface ends all pending work and releases system resources.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/close)
  */
-pub (value: VideoEncoder) close(): Unit.
+pub (receiver: VideoEncoder) close(): Unit.
 
 /**
  * The **`configure()`** method of the VideoEncoder interface changes the VideoEncoder.state of the encoder to 'configured' and asynchronously prepares the encoder to accept VideoEncoders for encoding with the specified parameters.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/configure)
  */
-pub (value: VideoEncoder) configure(config: VideoEncoderConfig): Unit.
+pub (receiver: VideoEncoder) configure(config: std.js.Dom.VideoEncoderConfig.VideoEncoderConfig): Unit.
 
 /**
  * The **`encode()`** method of the VideoEncoder interface asynchronously encodes a VideoFrame.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/encode)
  */
-pub (value: VideoEncoder) encode(frame: VideoFrame, options: VideoEncoderEncodeOptions): Unit.
+pub (receiver: VideoEncoder) encode(
+    frame: std.js.Dom.VideoFrame.VideoFrame,
+    options: Option[std.js.Dom.VideoEncoderEncodeOptions.VideoEncoderEncodeOptions],
+): Unit.
 
 /**
  * The **`flush()`** method of the VideoEncoder interface forces all pending encodes to complete.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/flush)
  */
-pub (value: VideoEncoder) flush(): std.js.Promise[Unit].
+pub (receiver: VideoEncoder) flush(): std.js.Promise.Promise[Unit].
 
 /**
  * The **`reset()`** method of the VideoEncoder interface synchronously cancels all pending encodes and callbacks, frees all underlying resources and sets the VideoEncoder.state to 'unconfigured'.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/reset)
  */
-pub (value: VideoEncoder) reset(): Unit.
+pub (receiver: VideoEncoder) reset(): Unit.
 
-pub (value: VideoEncoder) add_event_listener(
+pub (receiver: VideoEncoder) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: VideoEncoder) remove_event_listener(
+pub (receiver: VideoEncoder) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

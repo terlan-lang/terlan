@@ -15,30 +15,26 @@ module std.js.Dom.PannerOptions.
 
 pub opaque type PannerOptions.
 
-pub (value: PannerOptions) cone_inner_angle(): std.js.Number.JsNumber.
+pub (receiver: PannerOptions) cone_inner_angle(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: PannerOptions) cone_outer_angle(): std.js.Number.JsNumber.
+pub (receiver: PannerOptions) cone_outer_angle(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: PannerOptions) cone_outer_gain(): std.js.Number.JsNumber.
+pub (receiver: PannerOptions) cone_outer_gain(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: PannerOptions) distance_model(): DistanceModelType.
+pub (receiver: PannerOptions) max_distance(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: PannerOptions) max_distance(): std.js.Number.JsNumber.
+pub (receiver: PannerOptions) orientation_x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: PannerOptions) orientation_x(): std.js.Number.JsNumber.
+pub (receiver: PannerOptions) orientation_y(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: PannerOptions) orientation_y(): std.js.Number.JsNumber.
+pub (receiver: PannerOptions) orientation_z(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: PannerOptions) orientation_z(): std.js.Number.JsNumber.
+pub (receiver: PannerOptions) position_x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: PannerOptions) panning_model(): PanningModelType.
+pub (receiver: PannerOptions) position_y(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: PannerOptions) position_x(): std.js.Number.JsNumber.
+pub (receiver: PannerOptions) position_z(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: PannerOptions) position_y(): std.js.Number.JsNumber.
+pub (receiver: PannerOptions) ref_distance(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: PannerOptions) position_z(): std.js.Number.JsNumber.
-
-pub (value: PannerOptions) ref_distance(): std.js.Number.JsNumber.
-
-pub (value: PannerOptions) rolloff_factor(): std.js.Number.JsNumber.
+pub (receiver: PannerOptions) rolloff_factor(): std.core.Option.Option[std.js.Number.JsNumber].

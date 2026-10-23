@@ -14,7 +14,5 @@ module std.js.BooleanConstructorTest.
 
 import type std.js.BooleanConstructor.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: BooleanConstructor): Boolean ->
+pub prototype_typechecks(receiver: BooleanConstructor): std.js.Boolean.Boolean ->
     receiver.prototype().

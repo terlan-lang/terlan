@@ -25,39 +25,39 @@ pub opaque type WritableStreamDefaultWriter[W].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/closed)
  */
-pub (value: WritableStreamDefaultWriter[W]) closed(): std.js.Promise[std.core.Unit].
+pub (receiver: WritableStreamDefaultWriter[W]) closed(): std.js.Promise.Promise[std.core.Unit.Unit].
 
 /**
  * The **`desiredSize`** read-only property of the to fill the stream's internal queue.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/desiredSize)
  */
-pub (value: WritableStreamDefaultWriter[W]) desired_size(): Option[std.js.Number.JsNumber].
+pub (receiver: WritableStreamDefaultWriter[W]) desired_size(): std.core.Option.Option[std.js.Number.JsNumber].
 
 /**
  * The **`ready`** read-only property of the that resolves when the desired size of the stream's internal queue transitions from non-positive to positive, signaling that it is no longer applying backpressure.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/ready)
  */
-pub (value: WritableStreamDefaultWriter[W]) ready(): std.js.Promise[std.core.Unit].
+pub (receiver: WritableStreamDefaultWriter[W]) ready(): std.js.Promise.Promise[std.core.Unit.Unit].
 
 /**
  * The **`close()`** method of the stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/close)
  */
-pub (value: WritableStreamDefaultWriter[W]) close(): std.js.Promise[std.core.Unit].
+pub (receiver: WritableStreamDefaultWriter[W]) close(): std.js.Promise.Promise[std.core.Unit.Unit].
 
 /**
  * The **`releaseLock()`** method of the corresponding stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/releaseLock)
  */
-pub (value: WritableStreamDefaultWriter[W]) release_lock(): std.core.Unit.
+pub (receiver: WritableStreamDefaultWriter[W]) release_lock(): std.core.Unit.Unit.
 
 /**
  * The **`write()`** method of the operation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/write)
  */
-pub (value: WritableStreamDefaultWriter[W]) write(chunk: W): std.js.Promise[std.core.Unit].
+pub (receiver: WritableStreamDefaultWriter[W]) write(chunk: std.core.Option.Option[W]): std.js.Promise.Promise[std.core.Unit.Unit].

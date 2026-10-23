@@ -26,11 +26,11 @@ pub opaque type CSSContainerRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSContainerRule/containerName)
  */
-pub (value: CSSContainerRule) container_name(): JsString.
+pub (receiver: CSSContainerRule) container_name(): JsString.
 
 /**
  * The read-only **`containerQuery`** property of the CSSContainerRule interface returns a string representing the container conditions that are evaluated when the container changes size in order to determine if the styles in the associated @container are applied.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSContainerRule/containerQuery)
  */
-pub (value: CSSContainerRule) container_query(): JsString.
+pub (receiver: CSSContainerRule) container_query(): JsString.

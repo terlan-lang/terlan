@@ -14,7 +14,5 @@ module std.js.Dom.FileSystemGetFileOptionsTest.
 
 import type std.js.Dom.FileSystemGetFileOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub create_typechecks(receiver: FileSystemGetFileOptions): std.core.Bool ->
+pub create_typechecks(receiver: FileSystemGetFileOptions): std.core.Option.Option[Bool] ->
     receiver.create().

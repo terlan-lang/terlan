@@ -13,5 +13,3 @@
 module std.js.PropertyDescriptorMapTest.
 
 import type std.js.PropertyDescriptorMap.
-
-pub generated_binding_surface_contract(): Bool -> true.

@@ -15,6 +15,6 @@ module std.js.Dom.KeyframeAnimationOptions.
 
 pub opaque type KeyframeAnimationOptions.
 
-pub (value: KeyframeAnimationOptions) id(): std.js.String.JsString.
+pub (receiver: KeyframeAnimationOptions) id(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: KeyframeAnimationOptions) timeline(): Option[AnimationTimeline].
+pub (receiver: KeyframeAnimationOptions) timeline(): std.core.Option.Option[std.js.Dom.AnimationTimeline.AnimationTimeline].

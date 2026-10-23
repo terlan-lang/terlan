@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLInputElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,13 +30,13 @@ pub opaque type HTMLInputElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/accept)
  */
-pub (value: HTMLInputElement) accept(): JsString ->
+pub (receiver: HTMLInputElement) accept(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLInputElement) align(): JsString ->
+pub (receiver: HTMLInputElement) align(): JsString ->
     native.
 
 /**
@@ -42,15 +44,7 @@ pub (value: HTMLInputElement) align(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/alt)
  */
-pub (value: HTMLInputElement) alt(): JsString ->
-    native.
-
-/**
- * The **`autocomplete`** property of the HTMLInputElement interface indicates whether the value of the control can be automatically completed by the browser.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/autocomplete)
- */
-pub (value: HTMLInputElement) autocomplete(): AutoFill ->
+pub (receiver: HTMLInputElement) alt(): JsString ->
     native.
 
 /**
@@ -58,7 +52,7 @@ pub (value: HTMLInputElement) autocomplete(): AutoFill ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/capture)
  */
-pub (value: HTMLInputElement) capture(): JsString ->
+pub (receiver: HTMLInputElement) capture(): JsString ->
     native.
 
 /**
@@ -66,7 +60,7 @@ pub (value: HTMLInputElement) capture(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/checked)
  */
-pub (value: HTMLInputElement) checked(): Bool ->
+pub (receiver: HTMLInputElement) checked(): Bool ->
     native.
 
 /**
@@ -74,7 +68,7 @@ pub (value: HTMLInputElement) checked(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/defaultChecked)
  */
-pub (value: HTMLInputElement) default_checked(): Bool ->
+pub (receiver: HTMLInputElement) default_checked(): Bool ->
     native.
 
 /**
@@ -82,7 +76,7 @@ pub (value: HTMLInputElement) default_checked(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/defaultValue)
  */
-pub (value: HTMLInputElement) default_value(): JsString ->
+pub (receiver: HTMLInputElement) default_value(): JsString ->
     native.
 
 /**
@@ -90,7 +84,7 @@ pub (value: HTMLInputElement) default_value(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/dirName)
  */
-pub (value: HTMLInputElement) dir_name(): JsString ->
+pub (receiver: HTMLInputElement) dir_name(): JsString ->
     native.
 
 /**
@@ -98,7 +92,7 @@ pub (value: HTMLInputElement) dir_name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/disabled)
  */
-pub (value: HTMLInputElement) disabled(): Bool ->
+pub (receiver: HTMLInputElement) disabled(): Bool ->
     native.
 
 /**
@@ -106,7 +100,7 @@ pub (value: HTMLInputElement) disabled(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/files)
  */
-pub (value: HTMLInputElement) files(): Option[FileList] ->
+pub (receiver: HTMLInputElement) files(): Option[std.js.Dom.FileList.FileList] ->
     native.
 
 /**
@@ -114,7 +108,7 @@ pub (value: HTMLInputElement) files(): Option[FileList] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/form)
  */
-pub (value: HTMLInputElement) form(): Option[HTMLFormElement] ->
+pub (receiver: HTMLInputElement) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
     native.
 
 /**
@@ -122,7 +116,7 @@ pub (value: HTMLInputElement) form(): Option[HTMLFormElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/formAction)
  */
-pub (value: HTMLInputElement) form_action(): JsString ->
+pub (receiver: HTMLInputElement) form_action(): JsString ->
     native.
 
 /**
@@ -130,7 +124,7 @@ pub (value: HTMLInputElement) form_action(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/formEnctype)
  */
-pub (value: HTMLInputElement) form_enctype(): JsString ->
+pub (receiver: HTMLInputElement) form_enctype(): JsString ->
     native.
 
 /**
@@ -138,7 +132,7 @@ pub (value: HTMLInputElement) form_enctype(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/formMethod)
  */
-pub (value: HTMLInputElement) form_method(): JsString ->
+pub (receiver: HTMLInputElement) form_method(): JsString ->
     native.
 
 /**
@@ -146,7 +140,7 @@ pub (value: HTMLInputElement) form_method(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/formNoValidate)
  */
-pub (value: HTMLInputElement) form_no_validate(): Bool ->
+pub (receiver: HTMLInputElement) form_no_validate(): Bool ->
     native.
 
 /**
@@ -154,7 +148,7 @@ pub (value: HTMLInputElement) form_no_validate(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/formTarget)
  */
-pub (value: HTMLInputElement) form_target(): JsString ->
+pub (receiver: HTMLInputElement) form_target(): JsString ->
     native.
 
 /**
@@ -162,7 +156,7 @@ pub (value: HTMLInputElement) form_target(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/height)
  */
-pub (value: HTMLInputElement) height(): JsNumber ->
+pub (receiver: HTMLInputElement) height(): JsNumber ->
     native.
 
 /**
@@ -170,7 +164,7 @@ pub (value: HTMLInputElement) height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/indeterminate)
  */
-pub (value: HTMLInputElement) indeterminate(): Bool ->
+pub (receiver: HTMLInputElement) indeterminate(): Bool ->
     native.
 
 /**
@@ -178,7 +172,7 @@ pub (value: HTMLInputElement) indeterminate(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/labels)
  */
-pub (value: HTMLInputElement) labels(): Option[NodeListOf[HTMLLabelElement]] ->
+pub (receiver: HTMLInputElement) labels(): Option[std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement]] ->
     native.
 
 /**
@@ -186,7 +180,7 @@ pub (value: HTMLInputElement) labels(): Option[NodeListOf[HTMLLabelElement]] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/list)
  */
-pub (value: HTMLInputElement) list(): Option[HTMLDataListElement] ->
+pub (receiver: HTMLInputElement) list(): Option[std.js.Dom.HTMLDataListElement.HTMLDataListElement] ->
     native.
 
 /**
@@ -194,7 +188,7 @@ pub (value: HTMLInputElement) list(): Option[HTMLDataListElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/max)
  */
-pub (value: HTMLInputElement) max(): JsString ->
+pub (receiver: HTMLInputElement) max(): JsString ->
     native.
 
 /**
@@ -202,7 +196,7 @@ pub (value: HTMLInputElement) max(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/maxLength)
  */
-pub (value: HTMLInputElement) max_length(): JsNumber ->
+pub (receiver: HTMLInputElement) max_length(): JsNumber ->
     native.
 
 /**
@@ -210,7 +204,7 @@ pub (value: HTMLInputElement) max_length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/min)
  */
-pub (value: HTMLInputElement) min(): JsString ->
+pub (receiver: HTMLInputElement) min(): JsString ->
     native.
 
 /**
@@ -218,7 +212,7 @@ pub (value: HTMLInputElement) min(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/minLength)
  */
-pub (value: HTMLInputElement) min_length(): JsNumber ->
+pub (receiver: HTMLInputElement) min_length(): JsNumber ->
     native.
 
 /**
@@ -226,7 +220,7 @@ pub (value: HTMLInputElement) min_length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/multiple)
  */
-pub (value: HTMLInputElement) multiple(): Bool ->
+pub (receiver: HTMLInputElement) multiple(): Bool ->
     native.
 
 /**
@@ -234,7 +228,7 @@ pub (value: HTMLInputElement) multiple(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/name)
  */
-pub (value: HTMLInputElement) name(): JsString ->
+pub (receiver: HTMLInputElement) name(): JsString ->
     native.
 
 /**
@@ -242,7 +236,7 @@ pub (value: HTMLInputElement) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/pattern)
  */
-pub (value: HTMLInputElement) pattern(): JsString ->
+pub (receiver: HTMLInputElement) pattern(): JsString ->
     native.
 
 /**
@@ -250,7 +244,7 @@ pub (value: HTMLInputElement) pattern(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/placeholder)
  */
-pub (value: HTMLInputElement) placeholder(): JsString ->
+pub (receiver: HTMLInputElement) placeholder(): JsString ->
     native.
 
 /**
@@ -258,7 +252,7 @@ pub (value: HTMLInputElement) placeholder(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/readOnly)
  */
-pub (value: HTMLInputElement) read_only(): Bool ->
+pub (receiver: HTMLInputElement) read_only(): Bool ->
     native.
 
 /**
@@ -266,7 +260,7 @@ pub (value: HTMLInputElement) read_only(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/required)
  */
-pub (value: HTMLInputElement) required(): Bool ->
+pub (receiver: HTMLInputElement) required(): Bool ->
     native.
 
 /**
@@ -274,7 +268,7 @@ pub (value: HTMLInputElement) required(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/selectionEnd)
  */
-pub (value: HTMLInputElement) selection_end(): Option[JsNumber] ->
+pub (receiver: HTMLInputElement) selection_end(): Option[JsNumber] ->
     native.
 
 /**
@@ -282,7 +276,7 @@ pub (value: HTMLInputElement) selection_end(): Option[JsNumber] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/selectionStart)
  */
-pub (value: HTMLInputElement) selection_start(): Option[JsNumber] ->
+pub (receiver: HTMLInputElement) selection_start(): Option[JsNumber] ->
     native.
 
 /**
@@ -290,7 +284,7 @@ pub (value: HTMLInputElement) selection_start(): Option[JsNumber] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/size)
  */
-pub (value: HTMLInputElement) size(): JsNumber ->
+pub (receiver: HTMLInputElement) size(): JsNumber ->
     native.
 
 /**
@@ -298,7 +292,7 @@ pub (value: HTMLInputElement) size(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/src)
  */
-pub (value: HTMLInputElement) src(): JsString ->
+pub (receiver: HTMLInputElement) src(): JsString ->
     native.
 
 /**
@@ -306,7 +300,7 @@ pub (value: HTMLInputElement) src(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/step)
  */
-pub (value: HTMLInputElement) step(): JsString ->
+pub (receiver: HTMLInputElement) step(): JsString ->
     native.
 
 /**
@@ -314,13 +308,13 @@ pub (value: HTMLInputElement) step(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/type)
  */
-pub (value: HTMLInputElement) type_(): JsString ->
+pub (receiver: HTMLInputElement) type_(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLInputElement) use_map(): JsString ->
+pub (receiver: HTMLInputElement) use_map(): JsString ->
     native.
 
 /**
@@ -328,7 +322,7 @@ pub (value: HTMLInputElement) use_map(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/validationMessage)
  */
-pub (value: HTMLInputElement) validation_message(): JsString ->
+pub (receiver: HTMLInputElement) validation_message(): JsString ->
     native.
 
 /**
@@ -336,7 +330,7 @@ pub (value: HTMLInputElement) validation_message(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/validity)
  */
-pub (value: HTMLInputElement) validity(): ValidityState ->
+pub (receiver: HTMLInputElement) validity(): std.js.Dom.ValidityState.ValidityState ->
     native.
 
 /**
@@ -344,7 +338,7 @@ pub (value: HTMLInputElement) validity(): ValidityState ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/value)
  */
-pub (value: HTMLInputElement) value(): JsString ->
+pub (receiver: HTMLInputElement) value(): JsString ->
     native.
 
 /**
@@ -352,7 +346,7 @@ pub (value: HTMLInputElement) value(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/valueAsDate)
  */
-pub (value: HTMLInputElement) value_as_date(): Option[Date] ->
+pub (receiver: HTMLInputElement) value_as_date(): Option[std.js.Date.Date] ->
     native.
 
 /**
@@ -360,7 +354,7 @@ pub (value: HTMLInputElement) value_as_date(): Option[Date] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/valueAsNumber)
  */
-pub (value: HTMLInputElement) value_as_number(): JsNumber ->
+pub (receiver: HTMLInputElement) value_as_number(): JsNumber ->
     native.
 
 /**
@@ -368,7 +362,7 @@ pub (value: HTMLInputElement) value_as_number(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/webkitEntries)
  */
-pub (value: HTMLInputElement) webkit_entries(): std.js.Array[FileSystemEntry] ->
+pub (receiver: HTMLInputElement) webkit_entries(): std.js.Array.Array[std.js.Dom.FileSystemEntry.FileSystemEntry] ->
     native.
 
 /**
@@ -376,7 +370,7 @@ pub (value: HTMLInputElement) webkit_entries(): std.js.Array[FileSystemEntry] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/webkitdirectory)
  */
-pub (value: HTMLInputElement) webkitdirectory(): Bool ->
+pub (receiver: HTMLInputElement) webkitdirectory(): Bool ->
     native.
 
 /**
@@ -384,7 +378,7 @@ pub (value: HTMLInputElement) webkitdirectory(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/width)
  */
-pub (value: HTMLInputElement) width(): JsNumber ->
+pub (receiver: HTMLInputElement) width(): JsNumber ->
     native.
 
 /**
@@ -392,7 +386,7 @@ pub (value: HTMLInputElement) width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/willValidate)
  */
-pub (value: HTMLInputElement) will_validate(): Bool ->
+pub (receiver: HTMLInputElement) will_validate(): Bool ->
     native.
 
 /**
@@ -400,7 +394,7 @@ pub (value: HTMLInputElement) will_validate(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/checkValidity)
  */
-pub (value: HTMLInputElement) check_validity(): Bool ->
+pub (receiver: HTMLInputElement) check_validity(): Bool ->
     native.
 
 /**
@@ -408,7 +402,7 @@ pub (value: HTMLInputElement) check_validity(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/reportValidity)
  */
-pub (value: HTMLInputElement) report_validity(): Bool ->
+pub (receiver: HTMLInputElement) report_validity(): Bool ->
     native.
 
 /**
@@ -416,7 +410,7 @@ pub (value: HTMLInputElement) report_validity(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/select)
  */
-pub (value: HTMLInputElement) select(): Unit ->
+pub (receiver: HTMLInputElement) select(): Unit ->
     native.
 
 /**
@@ -424,7 +418,7 @@ pub (value: HTMLInputElement) select(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/setCustomValidity)
  */
-pub (value: HTMLInputElement) set_custom_validity(error: JsString): Unit ->
+pub (receiver: HTMLInputElement) set_custom_validity(error: JsString): Unit ->
     native.
 
 /**
@@ -432,15 +426,7 @@ pub (value: HTMLInputElement) set_custom_validity(error: JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/setRangeText)
  */
-pub (value: HTMLInputElement) set_range_text(replacement: JsString): Unit ->
-    native.
-
-pub (value: HTMLInputElement) set_range_text(
-    replacement: JsString,
-    start: JsNumber,
-    end: JsNumber,
-    selection_mode: SelectionMode,
-): Unit ->
+pub (receiver: HTMLInputElement) set_range_text(replacement: JsString): Unit ->
     native.
 
 /**
@@ -448,7 +434,7 @@ pub (value: HTMLInputElement) set_range_text(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/showPicker)
  */
-pub (value: HTMLInputElement) show_picker(): Unit ->
+pub (receiver: HTMLInputElement) show_picker(): Unit ->
     native.
 
 /**
@@ -456,7 +442,7 @@ pub (value: HTMLInputElement) show_picker(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/stepDown)
  */
-pub (value: HTMLInputElement) step_down(n: JsNumber): Unit ->
+pub (receiver: HTMLInputElement) step_down(n: Option[JsNumber]): Unit ->
     native.
 
 /**
@@ -464,19 +450,19 @@ pub (value: HTMLInputElement) step_down(n: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/stepUp)
  */
-pub (value: HTMLInputElement) step_up(n: JsNumber): Unit ->
+pub (receiver: HTMLInputElement) step_up(n: Option[JsNumber]): Unit ->
     native.
 
-pub (value: HTMLInputElement) add_event_listener(
+pub (receiver: HTMLInputElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLInputElement) remove_event_listener(
+pub (receiver: HTMLInputElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

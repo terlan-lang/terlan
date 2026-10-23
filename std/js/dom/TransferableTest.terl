@@ -13,5 +13,3 @@
 module std.js.Dom.TransferableTest.
 
 import type std.js.Dom.Transferable.
-
-pub generated_binding_surface_contract(): Bool -> true.

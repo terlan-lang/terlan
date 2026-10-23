@@ -12,54 +12,54 @@
  */
 module std.js.Dom.MediaTrackCapabilitiesTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.DoubleRange.{DoubleRange}.
 import type std.js.Dom.MediaTrackCapabilities.
+import type std.js.Dom.ULongRange.{ULongRange}.
 import type std.js.String.{JsString}.
-import type std.js.{Array}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub aspect_ratio_typechecks(receiver: MediaTrackCapabilities): DoubleRange ->
+pub aspect_ratio_typechecks(receiver: MediaTrackCapabilities): Option[DoubleRange] ->
     receiver.aspect_ratio().
 
-pub auto_gain_control_typechecks(receiver: MediaTrackCapabilities): Array[Bool] ->
+pub auto_gain_control_typechecks(receiver: MediaTrackCapabilities): Option[Array[Bool]] ->
     receiver.auto_gain_control().
 
-pub background_blur_typechecks(receiver: MediaTrackCapabilities): Array[Bool] ->
+pub background_blur_typechecks(receiver: MediaTrackCapabilities): Option[Array[Bool]] ->
     receiver.background_blur().
 
-pub channel_count_typechecks(receiver: MediaTrackCapabilities): ULongRange ->
+pub channel_count_typechecks(receiver: MediaTrackCapabilities): Option[ULongRange] ->
     receiver.channel_count().
 
-pub device_id_typechecks(receiver: MediaTrackCapabilities): JsString ->
+pub device_id_typechecks(receiver: MediaTrackCapabilities): Option[JsString] ->
     receiver.device_id().
 
-pub display_surface_typechecks(receiver: MediaTrackCapabilities): JsString ->
+pub display_surface_typechecks(receiver: MediaTrackCapabilities): Option[JsString] ->
     receiver.display_surface().
 
-pub echo_cancellation_typechecks(receiver: MediaTrackCapabilities): Array[Bool] ->
+pub echo_cancellation_typechecks(receiver: MediaTrackCapabilities): Option[Array[Bool]] ->
     receiver.echo_cancellation().
 
-pub facing_mode_typechecks(receiver: MediaTrackCapabilities): Array[JsString] ->
+pub facing_mode_typechecks(receiver: MediaTrackCapabilities): Option[Array[JsString]] ->
     receiver.facing_mode().
 
-pub frame_rate_typechecks(receiver: MediaTrackCapabilities): DoubleRange ->
+pub frame_rate_typechecks(receiver: MediaTrackCapabilities): Option[DoubleRange] ->
     receiver.frame_rate().
 
-pub group_id_typechecks(receiver: MediaTrackCapabilities): JsString ->
+pub group_id_typechecks(receiver: MediaTrackCapabilities): Option[JsString] ->
     receiver.group_id().
 
-pub height_typechecks(receiver: MediaTrackCapabilities): ULongRange ->
+pub height_typechecks(receiver: MediaTrackCapabilities): Option[ULongRange] ->
     receiver.height().
 
-pub noise_suppression_typechecks(receiver: MediaTrackCapabilities): Array[Bool] ->
+pub noise_suppression_typechecks(receiver: MediaTrackCapabilities): Option[Array[Bool]] ->
     receiver.noise_suppression().
 
-pub sample_rate_typechecks(receiver: MediaTrackCapabilities): ULongRange ->
+pub sample_rate_typechecks(receiver: MediaTrackCapabilities): Option[ULongRange] ->
     receiver.sample_rate().
 
-pub sample_size_typechecks(receiver: MediaTrackCapabilities): ULongRange ->
+pub sample_size_typechecks(receiver: MediaTrackCapabilities): Option[ULongRange] ->
     receiver.sample_size().
 
-pub width_typechecks(receiver: MediaTrackCapabilities): ULongRange ->
+pub width_typechecks(receiver: MediaTrackCapabilities): Option[ULongRange] ->
     receiver.width().

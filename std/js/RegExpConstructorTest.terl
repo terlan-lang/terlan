@@ -15,9 +15,7 @@ module std.js.RegExpConstructorTest.
 import type std.js.RegExpConstructor.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: RegExpConstructor): RegExp ->
+pub prototype_typechecks(receiver: RegExpConstructor): std.js.RegExp.RegExp ->
     receiver.prototype().
 
 pub value_1_typechecks(receiver: RegExpConstructor): JsString ->
@@ -56,23 +54,23 @@ pub value__typechecks(receiver: RegExpConstructor): JsString ->
 pub last_match_typechecks(receiver: RegExpConstructor): JsString ->
     receiver.last_match().
 
-pub value__typechecks(receiver: RegExpConstructor): JsString ->
-    receiver.value_().
+pub value__overload_2_typechecks(receiver: RegExpConstructor): JsString ->
+    receiver.value__overload_2().
 
 pub last_paren_typechecks(receiver: RegExpConstructor): JsString ->
     receiver.last_paren().
 
-pub value__typechecks(receiver: RegExpConstructor): JsString ->
-    receiver.value_().
+pub value__overload_3_typechecks(receiver: RegExpConstructor): JsString ->
+    receiver.value__overload_3().
 
 pub left_context_typechecks(receiver: RegExpConstructor): JsString ->
     receiver.left_context().
 
-pub value__typechecks(receiver: RegExpConstructor): JsString ->
-    receiver.value_().
+pub value__overload_4_typechecks(receiver: RegExpConstructor): JsString ->
+    receiver.value__overload_4().
 
 pub right_context_typechecks(receiver: RegExpConstructor): JsString ->
     receiver.right_context().
 
-pub value__typechecks(receiver: RegExpConstructor): JsString ->
-    receiver.value_().
+pub value__overload_5_typechecks(receiver: RegExpConstructor): JsString ->
+    receiver.value__overload_5().

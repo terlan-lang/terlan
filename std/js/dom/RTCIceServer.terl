@@ -12,15 +12,16 @@
  */
 module std.js.Dom.RTCIceServer.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type RTCIceServer.
 
-pub (value: RTCIceServer) credential(): JsString ->
+pub (receiver: RTCIceServer) credential(): Option[JsString] ->
     native.
 
-pub (value: RTCIceServer) urls(): std.js.Array[JsString] | JsString ->
+pub (receiver: RTCIceServer) urls(): std.js.Array.Array[JsString] | JsString ->
     native.
 
-pub (value: RTCIceServer) username(): JsString ->
+pub (receiver: RTCIceServer) username(): Option[JsString] ->
     native.

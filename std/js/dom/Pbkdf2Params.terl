@@ -14,11 +14,11 @@ module std.js.Dom.Pbkdf2Params.
 
 pub opaque type Pbkdf2Params.
 
-pub (value: Pbkdf2Params) hash(): HashAlgorithmIdentifier ->
+pub (receiver: Pbkdf2Params) hash(): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier ->
     native.
 
-pub (value: Pbkdf2Params) iterations(): std.js.Number.JsNumber ->
+pub (receiver: Pbkdf2Params) iterations(): std.js.Number.JsNumber ->
     native.
 
-pub (value: Pbkdf2Params) salt(): BufferSource ->
+pub (receiver: Pbkdf2Params) salt(): std.js.Dom.BufferSource.BufferSource ->
     native.

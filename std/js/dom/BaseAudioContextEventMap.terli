@@ -14,4 +14,4 @@ module std.js.Dom.BaseAudioContextEventMap.
 
 pub opaque type BaseAudioContextEventMap.
 
-pub (value: BaseAudioContextEventMap) statechange(): Event.
+pub (receiver: BaseAudioContextEventMap) statechange(): std.js.Dom.Event.Event.

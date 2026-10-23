@@ -12,8 +12,10 @@
  */
 module std.js.Dom.IDBDatabaseInfo.
 
+import type std.core.Option.{Option}.
+
 pub opaque type IDBDatabaseInfo.
 
-pub (value: IDBDatabaseInfo) name(): std.js.String.JsString.
+pub (receiver: IDBDatabaseInfo) name(): Option[std.js.String.JsString].
 
-pub (value: IDBDatabaseInfo) version(): std.js.Number.JsNumber.
+pub (receiver: IDBDatabaseInfo) version(): Option[std.js.Number.JsNumber].

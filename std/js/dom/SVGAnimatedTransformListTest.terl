@@ -13,8 +13,7 @@
 module std.js.Dom.SVGAnimatedTransformListTest.
 
 import type std.js.Dom.SVGAnimatedTransformList.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.SVGTransformList.{SVGTransformList}.
 
 pub anim_val_typechecks(receiver: SVGAnimatedTransformList): SVGTransformList ->
     receiver.anim_val().

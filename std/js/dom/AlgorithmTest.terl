@@ -14,7 +14,5 @@ module std.js.Dom.AlgorithmTest.
 
 import type std.js.Dom.Algorithm.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub name_typechecks(receiver: Algorithm): std.js.String.JsString ->
     receiver.name().

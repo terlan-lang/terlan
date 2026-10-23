@@ -12,15 +12,16 @@
  */
 module std.js.Dom.RsaOtherPrimesInfo.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type RsaOtherPrimesInfo.
 
-pub (value: RsaOtherPrimesInfo) d(): JsString ->
+pub (receiver: RsaOtherPrimesInfo) d(): Option[JsString] ->
     native.
 
-pub (value: RsaOtherPrimesInfo) r(): JsString ->
+pub (receiver: RsaOtherPrimesInfo) r(): Option[JsString] ->
     native.
 
-pub (value: RsaOtherPrimesInfo) t(): JsString ->
+pub (receiver: RsaOtherPrimesInfo) t(): Option[JsString] ->
     native.

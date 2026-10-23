@@ -12,7 +12,8 @@
  */
 module std.js.Dom.ResizeObserver.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Element.{Element}.
 
 /**
  * The **`ResizeObserver`** interface reports changes to the dimensions of an Element's content or border box, or the bounding box of an SVGElement.
@@ -26,7 +27,7 @@ pub opaque type ResizeObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserver/disconnect)
  */
-pub (value: ResizeObserver) disconnect(): Unit ->
+pub (receiver: ResizeObserver) disconnect(): Unit ->
     native.
 
 /**
@@ -34,7 +35,10 @@ pub (value: ResizeObserver) disconnect(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserver/observe)
  */
-pub (value: ResizeObserver) observe(target_: Element, options: ResizeObserverOptions): Unit ->
+pub (receiver: ResizeObserver) observe(
+    target_: Element,
+    options: std.core.Option.Option[std.js.Dom.ResizeObserverOptions.ResizeObserverOptions],
+): Unit ->
     native.
 
 /**
@@ -42,5 +46,5 @@ pub (value: ResizeObserver) observe(target_: Element, options: ResizeObserverOpt
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserver/unobserve)
  */
-pub (value: ResizeObserver) unobserve(target_: Element): Unit ->
+pub (receiver: ResizeObserver) unobserve(target_: Element): Unit ->
     native.

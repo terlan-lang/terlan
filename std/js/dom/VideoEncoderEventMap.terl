@@ -14,5 +14,5 @@ module std.js.Dom.VideoEncoderEventMap.
 
 pub opaque type VideoEncoderEventMap.
 
-pub (value: VideoEncoderEventMap) dequeue(): Event ->
+pub (receiver: VideoEncoderEventMap) dequeue(): std.js.Dom.Event.Event ->
     native.

@@ -12,18 +12,19 @@
  */
 module std.js.Dom.GamepadEffectParameters.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type GamepadEffectParameters.
 
-pub (value: GamepadEffectParameters) duration(): JsNumber.
+pub (receiver: GamepadEffectParameters) duration(): Option[JsNumber].
 
-pub (value: GamepadEffectParameters) left_trigger(): JsNumber.
+pub (receiver: GamepadEffectParameters) left_trigger(): Option[JsNumber].
 
-pub (value: GamepadEffectParameters) right_trigger(): JsNumber.
+pub (receiver: GamepadEffectParameters) right_trigger(): Option[JsNumber].
 
-pub (value: GamepadEffectParameters) start_delay(): JsNumber.
+pub (receiver: GamepadEffectParameters) start_delay(): Option[JsNumber].
 
-pub (value: GamepadEffectParameters) strong_magnitude(): JsNumber.
+pub (receiver: GamepadEffectParameters) strong_magnitude(): Option[JsNumber].
 
-pub (value: GamepadEffectParameters) weak_magnitude(): JsNumber.
+pub (receiver: GamepadEffectParameters) weak_magnitude(): Option[JsNumber].

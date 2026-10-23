@@ -14,4 +14,4 @@
 module std.js.Dom.WebAssembly.Imports.
 
 pub type Imports =
-    Record[std.js.String.JsString, ModuleImports].
+    Record[std.js.String.JsString, std.js.Dom.WebAssembly.ModuleImports.ModuleImports].

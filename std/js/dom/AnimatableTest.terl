@@ -12,17 +12,20 @@
  */
 module std.js.Dom.AnimatableTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
 import type std.js.Dom.Animatable.
-import type std.js.{Array}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.Animation.{Animation}.
 
 pub animate_typechecks(
     receiver: Animatable,
-    keyframes: Option[PropertyIndexedKeyframes | Array[Keyframe]],
-    options: KeyframeAnimationOptions | std.js.Number.JsNumber,
+    keyframes: Option[std.js.Dom.PropertyIndexedKeyframes.PropertyIndexedKeyframes | Array[std.js.Dom.Keyframe.Keyframe]],
+    options: Option[std.js.Dom.KeyframeAnimationOptions.KeyframeAnimationOptions | std.js.Number.JsNumber],
 ): Animation ->
     receiver.animate(keyframes, options).
 
-pub get_animations_typechecks(receiver: Animatable, options: GetAnimationsOptions): Array[Animation] ->
+pub get_animations_typechecks(
+    receiver: Animatable,
+    options: Option[std.js.Dom.GetAnimationsOptions.GetAnimationsOptions],
+): Array[Animation] ->
     receiver.get_animations(options).

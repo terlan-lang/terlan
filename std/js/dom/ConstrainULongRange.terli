@@ -12,10 +12,11 @@
  */
 module std.js.Dom.ConstrainULongRange.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type ConstrainULongRange.
 
-pub (value: ConstrainULongRange) exact(): JsNumber.
+pub (receiver: ConstrainULongRange) exact(): Option[JsNumber].
 
-pub (value: ConstrainULongRange) ideal(): JsNumber.
+pub (receiver: ConstrainULongRange) ideal(): Option[JsNumber].

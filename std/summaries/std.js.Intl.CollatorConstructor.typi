@@ -15,4 +15,4 @@ module std.js.Intl.CollatorConstructor.
 
 pub opaque type CollatorConstructor.
 
-pub (value: CollatorConstructor) supported_locales_of(locales: std.js.Array[std.js.String.JsString] | std.js.String.JsString, options: CollatorOptions): std.js.Array[std.js.String.JsString].
+pub (receiver: CollatorConstructor) supported_locales_of(locales: std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString, options: std.core.Option.Option[std.js.Intl.CollatorOptions.CollatorOptions]): std.js.Array.Array[std.js.String.JsString].

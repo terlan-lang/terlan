@@ -12,6 +12,9 @@
  */
 module std.js.Dom.NonDocumentTypeChildNode.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.Element.{Element}.
+
 pub opaque type NonDocumentTypeChildNode.
 
 /**
@@ -19,11 +22,11 @@ pub opaque type NonDocumentTypeChildNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/nextElementSibling)
  */
-pub (value: NonDocumentTypeChildNode) next_element_sibling(): Option[Element].
+pub (receiver: NonDocumentTypeChildNode) next_element_sibling(): Option[Element].
 
 /**
  * Returns the first preceding sibling that is an element, and null otherwise.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/previousElementSibling)
  */
-pub (value: NonDocumentTypeChildNode) previous_element_sibling(): Option[Element].
+pub (receiver: NonDocumentTypeChildNode) previous_element_sibling(): Option[Element].

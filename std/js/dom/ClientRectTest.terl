@@ -13,5 +13,3 @@
 module std.js.Dom.ClientRectTest.
 
 import type std.js.Dom.ClientRect.
-
-pub generated_binding_surface_contract(): Bool -> true.

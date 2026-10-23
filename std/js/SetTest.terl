@@ -12,12 +12,9 @@
  */
 module std.js.SetTest.
 
-import type std.core.{Bool}.
 import type std.js.Set.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub clear_typechecks(receiver: Set[T]): std.core.Unit ->
+pub clear_typechecks(receiver: Set[T]): std.core.Unit.Unit ->
     receiver.clear().
 
 pub delete_typechecks(receiver: Set[T], value: T): Bool ->

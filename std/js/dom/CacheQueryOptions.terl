@@ -12,15 +12,15 @@
  */
 module std.js.Dom.CacheQueryOptions.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type CacheQueryOptions.
 
-pub (value: CacheQueryOptions) ignore_method(): Bool ->
+pub (receiver: CacheQueryOptions) ignore_method(): Option[Bool] ->
     native.
 
-pub (value: CacheQueryOptions) ignore_search(): Bool ->
+pub (receiver: CacheQueryOptions) ignore_search(): Option[Bool] ->
     native.
 
-pub (value: CacheQueryOptions) ignore_vary(): Bool ->
+pub (receiver: CacheQueryOptions) ignore_vary(): Option[Bool] ->
     native.

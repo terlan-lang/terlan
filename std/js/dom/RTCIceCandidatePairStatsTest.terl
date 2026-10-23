@@ -12,75 +12,74 @@
  */
 module std.js.Dom.RTCIceCandidatePairStatsTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
 import type std.js.Dom.RTCIceCandidatePairStats.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub available_incoming_bitrate_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub available_incoming_bitrate_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.available_incoming_bitrate().
 
-pub available_outgoing_bitrate_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub available_outgoing_bitrate_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.available_outgoing_bitrate().
 
-pub bytes_discarded_on_send_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub bytes_discarded_on_send_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.bytes_discarded_on_send().
 
-pub bytes_received_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub bytes_received_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.bytes_received().
 
-pub bytes_sent_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub bytes_sent_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.bytes_sent().
 
-pub consent_requests_sent_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub consent_requests_sent_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.consent_requests_sent().
 
-pub current_round_trip_time_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub current_round_trip_time_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.current_round_trip_time().
 
 pub last_packet_received_timestamp_typechecks(
     receiver: RTCIceCandidatePairStats,
-): DOMHighResTimeStamp ->
+): Option[DOMHighResTimeStamp] ->
     receiver.last_packet_received_timestamp().
 
-pub last_packet_sent_timestamp_typechecks(receiver: RTCIceCandidatePairStats): DOMHighResTimeStamp ->
+pub last_packet_sent_timestamp_typechecks(
+    receiver: RTCIceCandidatePairStats,
+): Option[DOMHighResTimeStamp] ->
     receiver.last_packet_sent_timestamp().
 
 pub local_candidate_id_typechecks(receiver: RTCIceCandidatePairStats): JsString ->
     receiver.local_candidate_id().
 
-pub nominated_typechecks(receiver: RTCIceCandidatePairStats): std.core.Bool ->
+pub nominated_typechecks(receiver: RTCIceCandidatePairStats): Option[Bool] ->
     receiver.nominated().
 
-pub packets_discarded_on_send_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub packets_discarded_on_send_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.packets_discarded_on_send().
 
-pub packets_received_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub packets_received_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.packets_received().
 
-pub packets_sent_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub packets_sent_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.packets_sent().
 
 pub remote_candidate_id_typechecks(receiver: RTCIceCandidatePairStats): JsString ->
     receiver.remote_candidate_id().
 
-pub requests_received_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub requests_received_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.requests_received().
 
-pub requests_sent_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub requests_sent_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.requests_sent().
 
-pub responses_received_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub responses_received_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.responses_received().
 
-pub responses_sent_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub responses_sent_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.responses_sent().
 
-pub state_typechecks(receiver: RTCIceCandidatePairStats): RTCStatsIceCandidatePairState ->
-    receiver.state().
-
-pub total_round_trip_time_typechecks(receiver: RTCIceCandidatePairStats): JsNumber ->
+pub total_round_trip_time_typechecks(receiver: RTCIceCandidatePairStats): Option[JsNumber] ->
     receiver.total_round_trip_time().
 
 pub transport_id_typechecks(receiver: RTCIceCandidatePairStats): JsString ->

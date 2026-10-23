@@ -15,8 +15,6 @@ module std.js.Dom.URLTest.
 import type std.js.Dom.URL.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub hash_typechecks(receiver: URL): JsString ->
     receiver.hash().
 
@@ -50,7 +48,7 @@ pub protocol_typechecks(receiver: URL): JsString ->
 pub search_typechecks(receiver: URL): JsString ->
     receiver.search().
 
-pub search_params_typechecks(receiver: URL): URLSearchParams ->
+pub search_params_typechecks(receiver: URL): std.js.Dom.URLSearchParams.URLSearchParams ->
     receiver.search_params().
 
 pub username_typechecks(receiver: URL): JsString ->

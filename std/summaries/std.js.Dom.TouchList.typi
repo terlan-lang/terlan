@@ -25,11 +25,11 @@ pub opaque type TouchList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/length)
  */
-pub (value: TouchList) length(): std.js.Number.JsNumber.
+pub (receiver: TouchList) length(): std.js.Number.JsNumber.
 
 /**
  * The **`item()`** method returns the Touch object at the specified index in the TouchList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/item)
  */
-pub (value: TouchList) item(index: std.js.Number.JsNumber): Option[Touch].
+pub (receiver: TouchList) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.Touch.Touch].

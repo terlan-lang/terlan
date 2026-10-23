@@ -15,6 +15,6 @@ module std.js.Dom.RTCDtlsFingerprint.
 
 pub opaque type RTCDtlsFingerprint.
 
-pub (value: RTCDtlsFingerprint) algorithm(): std.js.String.JsString.
+pub (receiver: RTCDtlsFingerprint) algorithm(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: RTCDtlsFingerprint) value(): std.js.String.JsString.
+pub (receiver: RTCDtlsFingerprint) value(): std.core.Option.Option[std.js.String.JsString].

@@ -15,12 +15,12 @@ module std.js.Dom.AuthenticationExtensionsClientOutputs.
 
 pub opaque type AuthenticationExtensionsClientOutputs.
 
-pub (value: AuthenticationExtensionsClientOutputs) appid(): std.core.Bool.
+pub (receiver: AuthenticationExtensionsClientOutputs) appid(): std.core.Option.Option[Bool].
 
-pub (value: AuthenticationExtensionsClientOutputs) cred_props(): CredentialPropertiesOutput.
+pub (receiver: AuthenticationExtensionsClientOutputs) cred_props(): std.core.Option.Option[std.js.Dom.CredentialPropertiesOutput.CredentialPropertiesOutput].
 
-pub (value: AuthenticationExtensionsClientOutputs) hmac_create_secret(): std.core.Bool.
+pub (receiver: AuthenticationExtensionsClientOutputs) hmac_create_secret(): std.core.Option.Option[Bool].
 
-pub (value: AuthenticationExtensionsClientOutputs) large_blob(): AuthenticationExtensionsLargeBlobOutputs.
+pub (receiver: AuthenticationExtensionsClientOutputs) large_blob(): std.core.Option.Option[std.js.Dom.AuthenticationExtensionsLargeBlobOutputs.AuthenticationExtensionsLargeBlobOutputs].
 
-pub (value: AuthenticationExtensionsClientOutputs) prf(): AuthenticationExtensionsPRFOutputs.
+pub (receiver: AuthenticationExtensionsClientOutputs) prf(): std.core.Option.Option[std.js.Dom.AuthenticationExtensionsPRFOutputs.AuthenticationExtensionsPRFOutputs].

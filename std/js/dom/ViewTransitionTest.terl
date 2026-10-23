@@ -12,11 +12,9 @@
  */
 module std.js.Dom.ViewTransitionTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.ViewTransition.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Promise.{Promise}.
 
 pub finished_typechecks(receiver: ViewTransition): Promise[Unit] ->
     receiver.finished().
@@ -24,7 +22,9 @@ pub finished_typechecks(receiver: ViewTransition): Promise[Unit] ->
 pub ready_typechecks(receiver: ViewTransition): Promise[Unit] ->
     receiver.ready().
 
-pub types_typechecks(receiver: ViewTransition): ViewTransitionTypeSet ->
+pub types_typechecks(
+    receiver: ViewTransition,
+): std.js.Dom.ViewTransitionTypeSet.ViewTransitionTypeSet ->
     receiver.types().
 
 pub update_callback_done_typechecks(receiver: ViewTransition): Promise[Unit] ->

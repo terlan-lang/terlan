@@ -12,10 +12,10 @@
  */
 module std.js.Dom.MIDIOptions.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type MIDIOptions.
 
-pub (value: MIDIOptions) software(): Bool.
+pub (receiver: MIDIOptions) software(): Option[Bool].
 
-pub (value: MIDIOptions) sysex(): Bool.
+pub (receiver: MIDIOptions) sysex(): Option[Bool].

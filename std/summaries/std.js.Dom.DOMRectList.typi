@@ -25,11 +25,11 @@ pub opaque type DOMRectList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectList/length)
  */
-pub (value: DOMRectList) length(): std.js.Number.JsNumber.
+pub (receiver: DOMRectList) length(): std.js.Number.JsNumber.
 
 /**
  * The DOMRectList method `item()` returns the DOMRect at the specified index within the list, or `null` if the index is out of range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectList/item)
  */
-pub (value: DOMRectList) item(index: std.js.Number.JsNumber): Option[DOMRect].
+pub (receiver: DOMRectList) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.DOMRect.DOMRect].

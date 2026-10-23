@@ -25,121 +25,121 @@ pub opaque type HTMLLinkElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/as)
  */
-pub (value: HTMLLinkElement) as_(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) as_(): std.js.String.JsString.
 
 /**
  * The **`blocking`** property of the HTMLLinkElement interface is a string indicating that certain operations should be blocked on the fetching of an external resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/blocking)
  */
-pub (value: HTMLLinkElement) blocking(): DOMTokenList.
+pub (receiver: HTMLLinkElement) blocking(): std.js.Dom.DOMTokenList.DOMTokenList.
 
 /**
  * @deprecated
  */
-pub (value: HTMLLinkElement) charset(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) charset(): std.js.String.JsString.
 
 /**
  * The **`crossOrigin`** property of the HTMLLinkElement interface specifies the Cross-Origin Resource Sharing (CORS) setting to use when retrieving the resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/crossOrigin)
  */
-pub (value: HTMLLinkElement) cross_origin(): Option[std.js.String.JsString].
+pub (receiver: HTMLLinkElement) cross_origin(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The **`disabled`** property of the HTMLLinkElement interface is a boolean value that represents whether the link is disabled.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/disabled)
  */
-pub (value: HTMLLinkElement) disabled(): std.core.Bool.
+pub (receiver: HTMLLinkElement) disabled(): Bool.
 
 /**
  * The **`href`** property of the HTMLLinkElement interface contains a string that is the URL associated with the link.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/href)
  */
-pub (value: HTMLLinkElement) href(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) href(): std.js.String.JsString.
 
 /**
  * The **`hreflang`** property of the HTMLLinkElement interface is used to indicate the language and the geographical targeting of a page.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/hreflang)
  */
-pub (value: HTMLLinkElement) hreflang(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) hreflang(): std.js.String.JsString.
 
 /**
  * The **`imageSizes`** property of the HTMLLinkElement interface indicates the size and conditions for the preloaded images defined by the HTMLLinkElement.imageSrcset property.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/imageSizes)
  */
-pub (value: HTMLLinkElement) image_sizes(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) image_sizes(): std.js.String.JsString.
 
 /**
  * The **`imageSrcset`** property of the HTMLLinkElement interface is a string which identifies one or more comma-separated **image candidate strings**.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/imageSrcset)
  */
-pub (value: HTMLLinkElement) image_srcset(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) image_srcset(): std.js.String.JsString.
 
 /**
  * The **`integrity`** property of the HTMLLinkElement interface is a string containing inline metadata that a browser can use to verify that a fetched resource has been delivered without unexpected manipulation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/integrity)
  */
-pub (value: HTMLLinkElement) integrity(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) integrity(): std.js.String.JsString.
 
 /**
  * The **`media`** property of the HTMLLinkElement interface is a string representing a list of one or more media formats to which the resource applies.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/media)
  */
-pub (value: HTMLLinkElement) media(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) media(): std.js.String.JsString.
 
 /**
  * The **`referrerPolicy`** property of the HTMLLinkElement interface reflects the HTML `referrerpolicy` attribute of the resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/referrerPolicy)
  */
-pub (value: HTMLLinkElement) referrer_policy(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) referrer_policy(): std.js.String.JsString.
 
 /**
  * The **`rel`** property of the HTMLLinkElement interface reflects the `rel` attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/rel)
  */
-pub (value: HTMLLinkElement) rel(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) rel(): std.js.String.JsString.
 
 /**
  * The **`relList`** read-only property of the HTMLLinkElement interface reflects the `rel` attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/relList)
  */
-pub (value: HTMLLinkElement) rel_list(): DOMTokenList.
+pub (receiver: HTMLLinkElement) rel_list(): std.js.Dom.DOMTokenList.DOMTokenList.
 
 /**
  * @deprecated
  */
-pub (value: HTMLLinkElement) rev(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) rev(): std.js.String.JsString.
 
 /**
  * The **`sizes`** read-only property of the HTMLLinkElement interfaces defines the sizes of the icons for visual media contained in the resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/sizes)
  */
-pub (value: HTMLLinkElement) sizes(): DOMTokenList.
+pub (receiver: HTMLLinkElement) sizes(): std.js.Dom.DOMTokenList.DOMTokenList.
 
 /**
  * @deprecated
  */
-pub (value: HTMLLinkElement) target_(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) target_(): std.js.String.JsString.
 
 /**
  * The **`type`** property of the HTMLLinkElement interface is a string that reflects the MIME type of the linked resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/type)
  */
-pub (value: HTMLLinkElement) type_(): std.js.String.JsString.
+pub (receiver: HTMLLinkElement) type_(): std.js.String.JsString.
 
-pub (value: HTMLLinkElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLLinkElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLLinkElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLLinkElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

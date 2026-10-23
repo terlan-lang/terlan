@@ -15,6 +15,6 @@ module std.js.Dom.PlaneLayout.
 
 pub opaque type PlaneLayout.
 
-pub (value: PlaneLayout) offset(): std.js.Number.JsNumber.
+pub (receiver: PlaneLayout) offset(): std.js.Number.JsNumber.
 
-pub (value: PlaneLayout) stride(): std.js.Number.JsNumber.
+pub (receiver: PlaneLayout) stride(): std.js.Number.JsNumber.

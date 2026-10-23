@@ -14,7 +14,7 @@ module std.js.Dom.OfflineAudioContextEventMapTest.
 
 import type std.js.Dom.OfflineAudioContextEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub complete_typechecks(receiver: OfflineAudioContextEventMap): OfflineAudioCompletionEvent ->
+pub complete_typechecks(
+    receiver: OfflineAudioContextEventMap,
+): std.js.Dom.OfflineAudioCompletionEvent.OfflineAudioCompletionEvent ->
     receiver.complete().

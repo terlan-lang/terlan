@@ -12,4 +12,4 @@
  */
 module std.js.Dom.OnErrorEventHandler.
 
-pub type OnErrorEventHandler = Option[OnErrorEventHandlerNonNull].
+pub type OnErrorEventHandler = std.core.Option.Option[std.js.Dom.OnErrorEventHandlerNonNull.OnErrorEventHandlerNonNull].

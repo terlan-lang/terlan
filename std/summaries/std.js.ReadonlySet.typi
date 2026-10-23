@@ -15,6 +15,6 @@ module std.js.ReadonlySet.
 
 pub opaque type ReadonlySet[T].
 
-pub (value: ReadonlySet[T]) has(value: T): std.core.Bool.
+pub (receiver: ReadonlySet[T]) has(value: T): Bool.
 
-pub (value: ReadonlySet[T]) size(): std.js.Number.JsNumber.
+pub (receiver: ReadonlySet[T]) size(): std.js.Number.JsNumber.

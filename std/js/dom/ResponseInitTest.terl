@@ -12,15 +12,11 @@
  */
 module std.js.Dom.ResponseInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.ResponseInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub headers_typechecks(receiver: ResponseInit): HeadersInit ->
-    receiver.headers().
-
-pub status_typechecks(receiver: ResponseInit): std.js.Number.JsNumber ->
+pub status_typechecks(receiver: ResponseInit): Option[std.js.Number.JsNumber] ->
     receiver.status().
 
-pub status_text_typechecks(receiver: ResponseInit): std.js.String.JsString ->
+pub status_text_typechecks(receiver: ResponseInit): Option[std.js.String.JsString] ->
     receiver.status_text().

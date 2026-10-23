@@ -13,11 +13,26 @@ use crate::terlan_typeck::{visit_core_expr_mut, CoreExpr, CoreModule};
 mod error;
 use error::SourceLinkError;
 
+#[cfg(test)]
 pub(super) fn link_libraries(
     root: &CoreModule,
     source_path: &Path,
 ) -> Result<CoreModule, SourceLinkError> {
+    link_libraries_with_profile(
+        root,
+        source_path,
+        crate::validation::target_profile::TargetProfile::JsShared,
+    )
+}
+
+/// Links source providers using the application's selected platform profile.
+pub(super) fn link_libraries_with_profile(
+    root: &CoreModule,
+    source_path: &Path,
+    profile: crate::validation::target_profile::TargetProfile,
+) -> Result<CoreModule, SourceLinkError> {
     let mut cores = vec![root.clone()];
+    super::js_bindings::materialize(&mut cores[0]);
     let mut seen = BTreeSet::from([root.module.clone()]);
     let mut pending = root
         .imports
@@ -26,6 +41,37 @@ pub(super) fn link_libraries(
         .collect::<VecDeque<_>>();
     while let Some(module) = pending.pop_front() {
         if !seen.insert(module.clone()) {
+            continue;
+        }
+        if super::js_bindings::is_binding_module(&module) {
+            let path =
+                crate::commands::source_libraries::imported_std_summary_path(&module, source_path)
+                    .ok_or_else(|| SourceLinkError::Compile {
+                        module: module.clone(),
+                    })?;
+            let source =
+                std::fs::read_to_string(&path).map_err(|source| SourceLinkError::Read {
+                    path: path.clone(),
+                    source,
+                })?;
+            let syntax = crate::terlan_syntax::parse_interface_module_as_syntax_output(&source)
+                .map_err(|_| SourceLinkError::Compile {
+                    module: module.clone(),
+                })?;
+            if syntax.module_name != module {
+                return Err(SourceLinkError::ModuleMismatch {
+                    expected: module,
+                    actual: syntax.module_name,
+                });
+            }
+            let resolved = crate::terlan_hir::resolve_syntax_module_output_with_interfaces(
+                &syntax,
+                &std::collections::HashMap::new(),
+            )
+            .module;
+            let mut native = crate::terlan_typeck::lower_resolved_module_to_core(&resolved);
+            super::js_bindings::materialize(&mut native);
+            cores.push(native);
             continue;
         }
         let Some(path) =
@@ -37,23 +83,25 @@ pub(super) fn link_libraries(
             path: path.clone(),
             source,
         })?;
-        let compiled = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
-            &path.to_string_lossy(),
-            &source,
-            crate::DiagnosticFormat::default(),
-            None,
-            crate::validation::native_policy::NativePolicy::default(),
-            crate::validation::target_profile::TargetProfile::JsShared,
-        )
-        .map_err(|_| SourceLinkError::Compile {
-            module: module.clone(),
-        })?;
+        let mut compiled =
+            crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
+                &path.to_string_lossy(),
+                &source,
+                crate::DiagnosticFormat::default(),
+                None,
+                crate::validation::native_policy::NativePolicy::default(),
+                profile,
+            )
+            .map_err(|_| SourceLinkError::Compile {
+                module: module.clone(),
+            })?;
         if compiled.core.module != module {
             return Err(SourceLinkError::ModuleMismatch {
                 expected: module,
                 actual: compiled.core.module,
             });
         }
+        super::js_bindings::materialize(&mut compiled.core);
         pending.extend(
             compiled
                 .core
@@ -67,6 +115,33 @@ pub(super) fn link_libraries(
 }
 
 fn link_cores(mut cores: Vec<CoreModule>) -> Result<CoreModule, SourceLinkError> {
+    for core in &mut cores {
+        for function in &mut core.functions {
+            for clause in &mut function.clauses {
+                for summary in clause
+                    .guard
+                    .iter_mut()
+                    .chain(std::iter::once(&mut clause.body))
+                {
+                    if let Some(expression) = &mut summary.core_expr {
+                        visit_core_expr_mut(expression, &mut |expression| {
+                            let (CoreExpr::Call { function, .. }
+                            | CoreExpr::RemoteCall { function, .. }) = expression
+                            else {
+                                return;
+                            };
+                            if function.ends_with(']') {
+                                if let Some(index) = function.find('[') {
+                                    function.truncate(index);
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        }
+    }
+    crate::compiler::native_ir::qualify_application_nominal_types(&mut cores);
     let roots = cores[0]
         .functions
         .iter()

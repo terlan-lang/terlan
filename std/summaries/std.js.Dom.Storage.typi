@@ -25,39 +25,39 @@ pub opaque type Storage.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/length)
  */
-pub (value: Storage) length(): std.js.Number.JsNumber.
+pub (receiver: Storage) length(): std.js.Number.JsNumber.
 
 /**
  * The **`clear()`** method of the Storage interface clears all keys stored in a given `Storage` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/clear)
  */
-pub (value: Storage) clear(): std.core.Unit.
+pub (receiver: Storage) clear(): std.core.Unit.Unit.
 
 /**
  * The **`getItem()`** method of the Storage interface, when passed a key name, will return that key's value, or `null` if the key does not exist, in the given `Storage` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/getItem)
  */
-pub (value: Storage) get_item(key: std.js.String.JsString): Option[std.js.String.JsString].
+pub (receiver: Storage) get_item(key: std.js.String.JsString): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The **`key()`** method of the Storage interface, when passed a number n, returns the name of the nth key in a given `Storage` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/key)
  */
-pub (value: Storage) key(index: std.js.Number.JsNumber): Option[std.js.String.JsString].
+pub (receiver: Storage) key(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The **`removeItem()`** method of the Storage interface, when passed a key name, will remove that key from the given `Storage` object if it exists.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/removeItem)
  */
-pub (value: Storage) remove_item(key: std.js.String.JsString): std.core.Unit.
+pub (receiver: Storage) remove_item(key: std.js.String.JsString): std.core.Unit.Unit.
 
 /**
  * The **`setItem()`** method of the Storage interface, when passed a key name and value, will add that key to the given `Storage` object, or update that key's value if it already exists.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Storage/setItem)
  */
-pub (value: Storage) set_item(key: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
+pub (receiver: Storage) set_item(key: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.Unit.

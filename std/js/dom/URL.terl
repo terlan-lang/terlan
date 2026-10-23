@@ -26,7 +26,7 @@ pub opaque type URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/hash)
  */
-pub (value: URL) hash(): JsString ->
+pub (receiver: URL) hash(): JsString ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: URL) hash(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/host)
  */
-pub (value: URL) host(): JsString ->
+pub (receiver: URL) host(): JsString ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: URL) host(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/hostname)
  */
-pub (value: URL) hostname(): JsString ->
+pub (receiver: URL) hostname(): JsString ->
     native.
 
 /**
@@ -50,10 +50,10 @@ pub (value: URL) hostname(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/href)
  */
-pub (value: URL) href(): JsString ->
+pub (receiver: URL) href(): JsString ->
     native.
 
-pub (value: URL) to_string(): JsString ->
+pub (receiver: URL) to_string(): JsString ->
     native.
 
 /**
@@ -61,7 +61,7 @@ pub (value: URL) to_string(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/origin)
  */
-pub (value: URL) origin(): JsString ->
+pub (receiver: URL) origin(): JsString ->
     native.
 
 /**
@@ -69,7 +69,7 @@ pub (value: URL) origin(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/password)
  */
-pub (value: URL) password(): JsString ->
+pub (receiver: URL) password(): JsString ->
     native.
 
 /**
@@ -77,7 +77,7 @@ pub (value: URL) password(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/pathname)
  */
-pub (value: URL) pathname(): JsString ->
+pub (receiver: URL) pathname(): JsString ->
     native.
 
 /**
@@ -85,7 +85,7 @@ pub (value: URL) pathname(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/port)
  */
-pub (value: URL) port(): JsString ->
+pub (receiver: URL) port(): JsString ->
     native.
 
 /**
@@ -93,7 +93,7 @@ pub (value: URL) port(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/protocol)
  */
-pub (value: URL) protocol(): JsString ->
+pub (receiver: URL) protocol(): JsString ->
     native.
 
 /**
@@ -101,7 +101,7 @@ pub (value: URL) protocol(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/search)
  */
-pub (value: URL) search(): JsString ->
+pub (receiver: URL) search(): JsString ->
     native.
 
 /**
@@ -109,7 +109,7 @@ pub (value: URL) search(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/searchParams)
  */
-pub (value: URL) search_params(): URLSearchParams ->
+pub (receiver: URL) search_params(): std.js.Dom.URLSearchParams.URLSearchParams ->
     native.
 
 /**
@@ -117,7 +117,7 @@ pub (value: URL) search_params(): URLSearchParams ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/username)
  */
-pub (value: URL) username(): JsString ->
+pub (receiver: URL) username(): JsString ->
     native.
 
 /**
@@ -125,5 +125,5 @@ pub (value: URL) username(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/toJSON)
  */
-pub (value: URL) to_json(): JsString ->
+pub (receiver: URL) to_json(): JsString ->
     native.

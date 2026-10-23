@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLFontElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -29,7 +31,7 @@ pub opaque type HTMLFontElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFontElement/color)
  */
-pub (value: HTMLFontElement) color(): JsString ->
+pub (receiver: HTMLFontElement) color(): JsString ->
     native.
 
 /**
@@ -38,7 +40,7 @@ pub (value: HTMLFontElement) color(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFontElement/face)
  */
-pub (value: HTMLFontElement) face(): JsString ->
+pub (receiver: HTMLFontElement) face(): JsString ->
     native.
 
 /**
@@ -47,19 +49,19 @@ pub (value: HTMLFontElement) face(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFontElement/size)
  */
-pub (value: HTMLFontElement) size(): JsString ->
+pub (receiver: HTMLFontElement) size(): JsString ->
     native.
 
-pub (value: HTMLFontElement) add_event_listener(
+pub (receiver: HTMLFontElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLFontElement) remove_event_listener(
+pub (receiver: HTMLFontElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

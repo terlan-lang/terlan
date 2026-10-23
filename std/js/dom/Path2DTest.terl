@@ -14,7 +14,9 @@ module std.js.Dom.Path2DTest.
 
 import type std.js.Dom.Path2D.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub add_path_typechecks(receiver: Path2D, path: Path2D, transform: DOMMatrix2DInit): std.core.Unit ->
+pub add_path_typechecks(
+    receiver: Path2D,
+    path: Path2D,
+    transform: std.core.Option.Option[std.js.Dom.DOMMatrix2DInit.DOMMatrix2DInit],
+): std.core.Unit.Unit ->
     receiver.add_path(path, transform).

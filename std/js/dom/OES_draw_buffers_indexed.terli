@@ -12,7 +12,10 @@
  */
 module std.js.Dom.OES_draw_buffers_indexed.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.GLboolean.{GLboolean}.
+import type std.js.Dom.GLenum.{GLenum}.
+import type std.js.Dom.GLuint.{GLuint}.
 
 /**
  * The **`OES_draw_buffers_indexed`** extension is part of the WebGL API and enables the use of different blend options when writing to multiple color buffers simultaneously.
@@ -26,21 +29,21 @@ pub opaque type OES_draw_buffers_indexed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/blendEquationSeparateiOES)
  */
-pub (value: OES_draw_buffers_indexed) blend_equation_separatei_oes(buf: GLuint, mode_rgb: GLenum, mode_alpha: GLenum): Unit.
+pub (receiver: OES_draw_buffers_indexed) blend_equation_separatei_oes(buf: GLuint, mode_rgb: GLenum, mode_alpha: GLenum): Unit.
 
 /**
  * The `blendEquationiOES()` method of the `OES_draw_buffers_indexed` WebGL extension sets both the RGB blend and alpha blend equations for a particular draw buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/blendEquationiOES)
  */
-pub (value: OES_draw_buffers_indexed) blend_equationi_oes(buf: GLuint, mode: GLenum): Unit.
+pub (receiver: OES_draw_buffers_indexed) blend_equationi_oes(buf: GLuint, mode: GLenum): Unit.
 
 /**
  * The `blendFuncSeparateiOES()` method of the OES_draw_buffers_indexed WebGL extension defines which function is used when blending pixels for RGB and alpha components separately for a particular draw buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/blendFuncSeparateiOES)
  */
-pub (value: OES_draw_buffers_indexed) blend_func_separatei_oes(
+pub (receiver: OES_draw_buffers_indexed) blend_func_separatei_oes(
     buf: GLuint,
     src_rgb: GLenum,
     dst_rgb: GLenum,
@@ -53,25 +56,25 @@ pub (value: OES_draw_buffers_indexed) blend_func_separatei_oes(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/blendFunciOES)
  */
-pub (value: OES_draw_buffers_indexed) blend_funci_oes(buf: GLuint, src: GLenum, dst: GLenum): Unit.
+pub (receiver: OES_draw_buffers_indexed) blend_funci_oes(buf: GLuint, src: GLenum, dst: GLenum): Unit.
 
 /**
  * The `colorMaskiOES()` method of the OES_draw_buffers_indexed WebGL extension sets which color components to enable or to disable when drawing or rendering for a particular draw buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/colorMaskiOES)
  */
-pub (value: OES_draw_buffers_indexed) color_maski_oes(buf: GLuint, r: GLboolean, g: GLboolean, b: GLboolean, a: GLboolean): Unit.
+pub (receiver: OES_draw_buffers_indexed) color_maski_oes(buf: GLuint, r: GLboolean, g: GLboolean, b: GLboolean, a: GLboolean): Unit.
 
 /**
  * The `disableiOES()` method of the OES_draw_buffers_indexed WebGL extension enables blending for a particular draw buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/disableiOES)
  */
-pub (value: OES_draw_buffers_indexed) disablei_oes(target_: GLenum, index: GLuint): Unit.
+pub (receiver: OES_draw_buffers_indexed) disablei_oes(target_: GLenum, index: GLuint): Unit.
 
 /**
  * The `enableiOES()` method of the OES_draw_buffers_indexed WebGL extension enables blending for a particular draw buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/enableiOES)
  */
-pub (value: OES_draw_buffers_indexed) enablei_oes(target_: GLenum, index: GLuint): Unit.
+pub (receiver: OES_draw_buffers_indexed) enablei_oes(target_: GLenum, index: GLuint): Unit.

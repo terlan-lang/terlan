@@ -25,88 +25,74 @@ pub opaque type FontFace.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/ascentOverride)
  */
-pub (value: FontFace) ascent_override(): std.js.String.JsString.
+pub (receiver: FontFace) ascent_override(): std.js.String.JsString.
 
 /**
  * The **`descentOverride`** property of the FontFace interface returns and sets the value of the @font-face/descent-override descriptor.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/descentOverride)
  */
-pub (value: FontFace) descent_override(): std.js.String.JsString.
-
-/**
- * The **`display`** property of the FontFace interface determines how a font face is displayed based on whether and when it is downloaded and ready to use.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/display)
- */
-pub (value: FontFace) display(): FontDisplay.
+pub (receiver: FontFace) descent_override(): std.js.String.JsString.
 
 /**
  * The **`FontFace.family`** property allows the author to get or set the font family of a FontFace object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/family)
  */
-pub (value: FontFace) family(): std.js.String.JsString.
+pub (receiver: FontFace) family(): std.js.String.JsString.
 
 /**
  * The **`featureSettings`** property of the FontFace interface retrieves or sets infrequently used font features that are not available from a font's variant properties.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/featureSettings)
  */
-pub (value: FontFace) feature_settings(): std.js.String.JsString.
+pub (receiver: FontFace) feature_settings(): std.js.String.JsString.
 
 /**
  * The **`lineGapOverride`** property of the FontFace interface returns and sets the value of the @font-face/line-gap-override descriptor.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/lineGapOverride)
  */
-pub (value: FontFace) line_gap_override(): std.js.String.JsString.
+pub (receiver: FontFace) line_gap_override(): std.js.String.JsString.
 
 /**
  * The **`loaded`** read-only property of the FontFace interface returns a Promise that resolves with the current `FontFace` object when the font specified in the object's constructor is done loading or rejects with a `SyntaxError`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/loaded)
  */
-pub (value: FontFace) loaded(): std.js.Promise[FontFace].
-
-/**
- * The **`status`** read-only property of the FontFace interface returns an enumerated value indicating the status of the font, one of `'unloaded'`, `'loading'`, `'loaded'`, or `'error'`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/status)
- */
-pub (value: FontFace) status(): FontFaceLoadStatus.
+pub (receiver: FontFace) loaded(): std.js.Promise.Promise[FontFace].
 
 /**
  * The **`stretch`** property of the FontFace interface retrieves or sets how the font stretches.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/stretch)
  */
-pub (value: FontFace) stretch(): std.js.String.JsString.
+pub (receiver: FontFace) stretch(): std.js.String.JsString.
 
 /**
  * The **`style`** property of the FontFace interface retrieves or sets the font's style.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/style)
  */
-pub (value: FontFace) style(): std.js.String.JsString.
+pub (receiver: FontFace) style(): std.js.String.JsString.
 
 /**
  * The **`unicodeRange`** property of the FontFace interface retrieves or sets the range of unicode code points encompassing the font.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/unicodeRange)
  */
-pub (value: FontFace) unicode_range(): std.js.String.JsString.
+pub (receiver: FontFace) unicode_range(): std.js.String.JsString.
 
 /**
  * The **`weight`** property of the FontFace interface retrieves or sets the weight of the font.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/weight)
  */
-pub (value: FontFace) weight(): std.js.String.JsString.
+pub (receiver: FontFace) weight(): std.js.String.JsString.
 
 /**
  * The **`load()`** method of the FontFace interface requests and loads a font whose `source` was specified as a URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFace/load)
  */
-pub (value: FontFace) load(): std.js.Promise[FontFace].
+pub (receiver: FontFace) load(): std.js.Promise.Promise[FontFace].

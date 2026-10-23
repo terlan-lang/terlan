@@ -12,23 +12,23 @@
  */
 module std.js.Dom.HTMLSelectElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.HTMLOptionElement.{HTMLOptionElement}.
 import type std.js.Dom.HTMLSelectElement.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub autocomplete_typechecks(receiver: HTMLSelectElement): AutoFill ->
-    receiver.autocomplete().
-
 pub disabled_typechecks(receiver: HTMLSelectElement): Bool ->
     receiver.disabled().
 
-pub form_typechecks(receiver: HTMLSelectElement): Option[HTMLFormElement] ->
+pub form_typechecks(receiver: HTMLSelectElement): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
     receiver.form().
 
-pub labels_typechecks(receiver: HTMLSelectElement): NodeListOf[HTMLLabelElement] ->
+pub labels_typechecks(
+    receiver: HTMLSelectElement,
+): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement] ->
     receiver.labels().
 
 pub length_typechecks(receiver: HTMLSelectElement): JsNumber ->
@@ -40,7 +40,9 @@ pub multiple_typechecks(receiver: HTMLSelectElement): Bool ->
 pub name_typechecks(receiver: HTMLSelectElement): JsString ->
     receiver.name().
 
-pub options_typechecks(receiver: HTMLSelectElement): HTMLOptionsCollection ->
+pub options_typechecks(
+    receiver: HTMLSelectElement,
+): std.js.Dom.HTMLOptionsCollection.HTMLOptionsCollection ->
     receiver.options().
 
 pub required_typechecks(receiver: HTMLSelectElement): Bool ->
@@ -49,7 +51,9 @@ pub required_typechecks(receiver: HTMLSelectElement): Bool ->
 pub selected_index_typechecks(receiver: HTMLSelectElement): JsNumber ->
     receiver.selected_index().
 
-pub selected_options_typechecks(receiver: HTMLSelectElement): HTMLCollectionOf[HTMLOptionElement] ->
+pub selected_options_typechecks(
+    receiver: HTMLSelectElement,
+): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[HTMLOptionElement] ->
     receiver.selected_options().
 
 pub size_typechecks(receiver: HTMLSelectElement): JsNumber ->
@@ -58,7 +62,7 @@ pub size_typechecks(receiver: HTMLSelectElement): JsNumber ->
 pub validation_message_typechecks(receiver: HTMLSelectElement): JsString ->
     receiver.validation_message().
 
-pub validity_typechecks(receiver: HTMLSelectElement): ValidityState ->
+pub validity_typechecks(receiver: HTMLSelectElement): std.js.Dom.ValidityState.ValidityState ->
     receiver.validity().
 
 pub value_typechecks(receiver: HTMLSelectElement): JsString ->
@@ -69,8 +73,8 @@ pub will_validate_typechecks(receiver: HTMLSelectElement): Bool ->
 
 pub add_typechecks(
     receiver: HTMLSelectElement,
-    element: HTMLOptGroupElement | HTMLOptionElement,
-    before: Option[HTMLElement | JsNumber],
+    element: std.js.Dom.HTMLOptGroupElement.HTMLOptGroupElement | HTMLOptionElement,
+    before: Option[Option[std.js.Dom.HTMLElement.HTMLElement | JsNumber]],
 ): Unit ->
     receiver.add(element, before).
 
@@ -86,8 +90,8 @@ pub named_item_typechecks(receiver: HTMLSelectElement, name: JsString): Option[H
 pub remove_typechecks(receiver: HTMLSelectElement): Unit ->
     receiver.remove().
 
-pub remove_typechecks(receiver: HTMLSelectElement, index: JsNumber): Unit ->
-    receiver.remove(index).
+pub remove_overload_2_typechecks(receiver: HTMLSelectElement, index: JsNumber): Unit ->
+    receiver.remove_overload_2(index).
 
 pub report_validity_typechecks(receiver: HTMLSelectElement): Bool ->
     receiver.report_validity().
@@ -102,7 +106,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLSelectElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -110,6 +114,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLSelectElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

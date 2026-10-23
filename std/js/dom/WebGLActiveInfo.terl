@@ -24,7 +24,7 @@ pub opaque type WebGLActiveInfo.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLActiveInfo/name)
  */
-pub (value: WebGLActiveInfo) name(): std.js.String.JsString ->
+pub (receiver: WebGLActiveInfo) name(): std.js.String.JsString ->
     native.
 
 /**
@@ -32,7 +32,7 @@ pub (value: WebGLActiveInfo) name(): std.js.String.JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLActiveInfo/size)
  */
-pub (value: WebGLActiveInfo) size(): GLint ->
+pub (receiver: WebGLActiveInfo) size(): std.js.Dom.GLint.GLint ->
     native.
 
 /**
@@ -40,5 +40,5 @@ pub (value: WebGLActiveInfo) size(): GLint ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLActiveInfo/type)
  */
-pub (value: WebGLActiveInfo) type_(): GLenum ->
+pub (receiver: WebGLActiveInfo) type_(): std.js.Dom.GLenum.GLenum ->
     native.

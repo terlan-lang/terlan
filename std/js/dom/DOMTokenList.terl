@@ -12,7 +12,9 @@
  */
 module std.js.Dom.DOMTokenList.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +30,7 @@ pub opaque type DOMTokenList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/length)
  */
-pub (value: DOMTokenList) length(): JsNumber ->
+pub (receiver: DOMTokenList) length(): JsNumber ->
     native.
 
 /**
@@ -36,10 +38,10 @@ pub (value: DOMTokenList) length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/value)
  */
-pub (value: DOMTokenList) value(): JsString ->
+pub (receiver: DOMTokenList) value(): JsString ->
     native.
 
-pub (value: DOMTokenList) to_string(): JsString ->
+pub (receiver: DOMTokenList) to_string(): JsString ->
     native.
 
 /**
@@ -47,7 +49,7 @@ pub (value: DOMTokenList) to_string(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/add)
  */
-pub (value: DOMTokenList) add(): Unit ->
+pub (receiver: DOMTokenList) add(tokens: Array[JsString]): Unit ->
     native.
 
 /**
@@ -55,7 +57,7 @@ pub (value: DOMTokenList) add(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/contains)
  */
-pub (value: DOMTokenList) contains(token: JsString): Bool ->
+pub (receiver: DOMTokenList) contains(token: JsString): Bool ->
     native.
 
 /**
@@ -63,7 +65,7 @@ pub (value: DOMTokenList) contains(token: JsString): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/item)
  */
-pub (value: DOMTokenList) item(index: JsNumber): Option[JsString] ->
+pub (receiver: DOMTokenList) item(index: JsNumber): Option[JsString] ->
     native.
 
 /**
@@ -71,7 +73,7 @@ pub (value: DOMTokenList) item(index: JsNumber): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/remove)
  */
-pub (value: DOMTokenList) remove(): Unit ->
+pub (receiver: DOMTokenList) remove(tokens: Array[JsString]): Unit ->
     native.
 
 /**
@@ -79,7 +81,7 @@ pub (value: DOMTokenList) remove(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/replace)
  */
-pub (value: DOMTokenList) replace(token: JsString, new_token: JsString): Bool ->
+pub (receiver: DOMTokenList) replace(token: JsString, new_token: JsString): Bool ->
     native.
 
 /**
@@ -87,7 +89,7 @@ pub (value: DOMTokenList) replace(token: JsString, new_token: JsString): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/supports)
  */
-pub (value: DOMTokenList) supports(token: JsString): Bool ->
+pub (receiver: DOMTokenList) supports(token: JsString): Bool ->
     native.
 
 /**
@@ -95,5 +97,5 @@ pub (value: DOMTokenList) supports(token: JsString): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/toggle)
  */
-pub (value: DOMTokenList) toggle(token: JsString, force: Bool): Bool ->
+pub (receiver: DOMTokenList) toggle(token: JsString, force: Option[Bool]): Bool ->
     native.

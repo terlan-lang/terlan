@@ -26,18 +26,18 @@ pub opaque type AuthenticatorAssertionResponse.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AuthenticatorAssertionResponse/authenticatorData)
  */
-pub (value: AuthenticatorAssertionResponse) authenticator_data(): ArrayBuffer.
+pub (receiver: AuthenticatorAssertionResponse) authenticator_data(): std.js.ArrayBuffer.ArrayBuffer.
 
 /**
  * The **`signature`** read-only property of the object which is the signature of the authenticator for both the client data (AuthenticatorResponse.clientDataJSON).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AuthenticatorAssertionResponse/signature)
  */
-pub (value: AuthenticatorAssertionResponse) signature(): ArrayBuffer.
+pub (receiver: AuthenticatorAssertionResponse) signature(): std.js.ArrayBuffer.ArrayBuffer.
 
 /**
  * The **`userHandle`** read-only property of the AuthenticatorAssertionResponse interface is an ArrayBuffer object providing an opaque identifier for the given user.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AuthenticatorAssertionResponse/userHandle)
  */
-pub (value: AuthenticatorAssertionResponse) user_handle(): Option[ArrayBuffer].
+pub (receiver: AuthenticatorAssertionResponse) user_handle(): std.core.Option.Option[std.js.ArrayBuffer.ArrayBuffer].

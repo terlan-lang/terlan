@@ -12,42 +12,43 @@
  */
 module std.js.Dom.DOMMatrix2DInit.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type DOMMatrix2DInit.
 
-pub (value: DOMMatrix2DInit) a(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) a(): Option[JsNumber] ->
     native.
 
-pub (value: DOMMatrix2DInit) b(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) b(): Option[JsNumber] ->
     native.
 
-pub (value: DOMMatrix2DInit) c(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) c(): Option[JsNumber] ->
     native.
 
-pub (value: DOMMatrix2DInit) d(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) d(): Option[JsNumber] ->
     native.
 
-pub (value: DOMMatrix2DInit) e(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) e(): Option[JsNumber] ->
     native.
 
-pub (value: DOMMatrix2DInit) f(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) f(): Option[JsNumber] ->
     native.
 
-pub (value: DOMMatrix2DInit) m11(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) m11(): Option[JsNumber] ->
     native.
 
-pub (value: DOMMatrix2DInit) m12(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) m12(): Option[JsNumber] ->
     native.
 
-pub (value: DOMMatrix2DInit) m21(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) m21(): Option[JsNumber] ->
     native.
 
-pub (value: DOMMatrix2DInit) m22(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) m22(): Option[JsNumber] ->
     native.
 
-pub (value: DOMMatrix2DInit) m41(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) m41(): Option[JsNumber] ->
     native.
 
-pub (value: DOMMatrix2DInit) m42(): JsNumber ->
+pub (receiver: DOMMatrix2DInit) m42(): Option[JsNumber] ->
     native.

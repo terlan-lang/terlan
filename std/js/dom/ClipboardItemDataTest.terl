@@ -13,5 +13,3 @@
 module std.js.Dom.ClipboardItemDataTest.
 
 import type std.js.Dom.ClipboardItemData.
-
-pub generated_binding_surface_contract(): Bool -> true.

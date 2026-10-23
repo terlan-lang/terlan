@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLDetailsElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type HTMLDetailsElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDetailsElement/name)
  */
-pub (value: HTMLDetailsElement) name(): JsString ->
+pub (receiver: HTMLDetailsElement) name(): JsString ->
     native.
 
 /**
@@ -35,19 +37,19 @@ pub (value: HTMLDetailsElement) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDetailsElement/open)
  */
-pub (value: HTMLDetailsElement) open(): Bool ->
+pub (receiver: HTMLDetailsElement) open(): Bool ->
     native.
 
-pub (value: HTMLDetailsElement) add_event_listener(
+pub (receiver: HTMLDetailsElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLDetailsElement) remove_event_listener(
+pub (receiver: HTMLDetailsElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

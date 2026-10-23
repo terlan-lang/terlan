@@ -15,10 +15,8 @@ module std.js.Dom.StyleMediaTest.
 import type std.js.Dom.StyleMedia.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub type__typechecks(receiver: StyleMedia): JsString ->
     receiver.type_().
 
-pub match_medium_typechecks(receiver: StyleMedia, mediaquery: JsString): std.core.Bool ->
+pub match_medium_typechecks(receiver: StyleMedia, mediaquery: JsString): Bool ->
     receiver.match_medium(mediaquery).

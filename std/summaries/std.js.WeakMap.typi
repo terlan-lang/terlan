@@ -19,14 +19,14 @@ pub opaque type WeakMap[K, V].
  * Removes the specified element from the WeakMap.
  * @returns true if the element was successfully removed, or false if it was not present.
  */
-pub (value: WeakMap[K, V]) delete(key: K): std.core.Bool.
+pub (receiver: WeakMap[K, V]) delete(key: K): Bool.
 
 /**
  * @returns a specified element.
  */
-pub (value: WeakMap[K, V]) get(key: K): Option[V].
+pub (receiver: WeakMap[K, V]) get(key: K): std.core.Option.Option[V].
 
 /**
  * @returns a boolean indicating whether an element with the specified key exists or not.
  */
-pub (value: WeakMap[K, V]) has(key: K): std.core.Bool.
+pub (receiver: WeakMap[K, V]) has(key: K): Bool.

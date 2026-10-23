@@ -14,7 +14,7 @@ module std.js.Dom.MediaStreamAudioSourceNodeTest.
 
 import type std.js.Dom.MediaStreamAudioSourceNode.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub media_stream_typechecks(receiver: MediaStreamAudioSourceNode): MediaStream ->
+pub media_stream_typechecks(
+    receiver: MediaStreamAudioSourceNode,
+): std.js.Dom.MediaStream.MediaStream ->
     receiver.media_stream().

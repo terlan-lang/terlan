@@ -14,7 +14,5 @@ module std.js.Dom.EcKeyAlgorithmTest.
 
 import type std.js.Dom.EcKeyAlgorithm.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub named_curve_typechecks(receiver: EcKeyAlgorithm): NamedCurve ->
+pub named_curve_typechecks(receiver: EcKeyAlgorithm): std.js.Dom.NamedCurve.NamedCurve ->
     receiver.named_curve().

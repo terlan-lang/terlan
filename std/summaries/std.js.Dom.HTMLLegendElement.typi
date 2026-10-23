@@ -23,15 +23,15 @@ pub opaque type HTMLLegendElement.
 /**
  * @deprecated
  */
-pub (value: HTMLLegendElement) align(): std.js.String.JsString.
+pub (receiver: HTMLLegendElement) align(): std.js.String.JsString.
 
 /**
  * The **`form`** read-only property of the HTMLLegendElement interface returns an HTMLFormElement object that owns the HTMLFieldSetElement associated with this legend, or `null` if this legend is not associated with a fieldset owned by a form.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLegendElement/form)
  */
-pub (value: HTMLLegendElement) form(): Option[HTMLFormElement].
+pub (receiver: HTMLLegendElement) form(): std.core.Option.Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
 
-pub (value: HTMLLegendElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLLegendElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLLegendElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLLegendElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

@@ -14,5 +14,3 @@
 module std.js.Dom.PermissionDescriptor.
 
 pub opaque type PermissionDescriptor.
-
-pub (value: PermissionDescriptor) name(): PermissionName.

@@ -14,7 +14,7 @@ module std.js.Dom.WindowPostMessageOptionsTest.
 
 import type std.js.Dom.WindowPostMessageOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub target_origin_typechecks(receiver: WindowPostMessageOptions): std.js.String.JsString ->
+pub target_origin_typechecks(
+    receiver: WindowPostMessageOptions,
+): std.core.Option.Option[std.js.String.JsString] ->
     receiver.target_origin().

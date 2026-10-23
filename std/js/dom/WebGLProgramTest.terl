@@ -13,5 +13,3 @@
 module std.js.Dom.WebGLProgramTest.
 
 import type std.js.Dom.WebGLProgram.
-
-pub generated_binding_surface_contract(): Bool -> true.

@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLButtonElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type HTMLButtonElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/disabled)
  */
-pub (value: HTMLButtonElement) disabled(): Bool ->
+pub (receiver: HTMLButtonElement) disabled(): Bool ->
     native.
 
 /**
@@ -35,7 +37,7 @@ pub (value: HTMLButtonElement) disabled(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/form)
  */
-pub (value: HTMLButtonElement) form(): Option[HTMLFormElement] ->
+pub (receiver: HTMLButtonElement) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
     native.
 
 /**
@@ -43,7 +45,7 @@ pub (value: HTMLButtonElement) form(): Option[HTMLFormElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/formAction)
  */
-pub (value: HTMLButtonElement) form_action(): JsString ->
+pub (receiver: HTMLButtonElement) form_action(): JsString ->
     native.
 
 /**
@@ -51,7 +53,7 @@ pub (value: HTMLButtonElement) form_action(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/formEnctype)
  */
-pub (value: HTMLButtonElement) form_enctype(): JsString ->
+pub (receiver: HTMLButtonElement) form_enctype(): JsString ->
     native.
 
 /**
@@ -59,7 +61,7 @@ pub (value: HTMLButtonElement) form_enctype(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/formMethod)
  */
-pub (value: HTMLButtonElement) form_method(): JsString ->
+pub (receiver: HTMLButtonElement) form_method(): JsString ->
     native.
 
 /**
@@ -67,7 +69,7 @@ pub (value: HTMLButtonElement) form_method(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/formNoValidate)
  */
-pub (value: HTMLButtonElement) form_no_validate(): Bool ->
+pub (receiver: HTMLButtonElement) form_no_validate(): Bool ->
     native.
 
 /**
@@ -75,7 +77,7 @@ pub (value: HTMLButtonElement) form_no_validate(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/formTarget)
  */
-pub (value: HTMLButtonElement) form_target(): JsString ->
+pub (receiver: HTMLButtonElement) form_target(): JsString ->
     native.
 
 /**
@@ -83,7 +85,7 @@ pub (value: HTMLButtonElement) form_target(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/labels)
  */
-pub (value: HTMLButtonElement) labels(): NodeListOf[HTMLLabelElement] ->
+pub (receiver: HTMLButtonElement) labels(): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement] ->
     native.
 
 /**
@@ -91,7 +93,7 @@ pub (value: HTMLButtonElement) labels(): NodeListOf[HTMLLabelElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/name)
  */
-pub (value: HTMLButtonElement) name(): JsString ->
+pub (receiver: HTMLButtonElement) name(): JsString ->
     native.
 
 /**
@@ -99,7 +101,7 @@ pub (value: HTMLButtonElement) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/validationMessage)
  */
-pub (value: HTMLButtonElement) validation_message(): JsString ->
+pub (receiver: HTMLButtonElement) validation_message(): JsString ->
     native.
 
 /**
@@ -107,7 +109,7 @@ pub (value: HTMLButtonElement) validation_message(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/validity)
  */
-pub (value: HTMLButtonElement) validity(): ValidityState ->
+pub (receiver: HTMLButtonElement) validity(): std.js.Dom.ValidityState.ValidityState ->
     native.
 
 /**
@@ -115,7 +117,7 @@ pub (value: HTMLButtonElement) validity(): ValidityState ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/value)
  */
-pub (value: HTMLButtonElement) value(): JsString ->
+pub (receiver: HTMLButtonElement) value(): JsString ->
     native.
 
 /**
@@ -123,7 +125,7 @@ pub (value: HTMLButtonElement) value(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/willValidate)
  */
-pub (value: HTMLButtonElement) will_validate(): Bool ->
+pub (receiver: HTMLButtonElement) will_validate(): Bool ->
     native.
 
 /**
@@ -131,7 +133,7 @@ pub (value: HTMLButtonElement) will_validate(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/checkValidity)
  */
-pub (value: HTMLButtonElement) check_validity(): Bool ->
+pub (receiver: HTMLButtonElement) check_validity(): Bool ->
     native.
 
 /**
@@ -139,7 +141,7 @@ pub (value: HTMLButtonElement) check_validity(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/reportValidity)
  */
-pub (value: HTMLButtonElement) report_validity(): Bool ->
+pub (receiver: HTMLButtonElement) report_validity(): Bool ->
     native.
 
 /**
@@ -147,19 +149,19 @@ pub (value: HTMLButtonElement) report_validity(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/setCustomValidity)
  */
-pub (value: HTMLButtonElement) set_custom_validity(error: JsString): Unit ->
+pub (receiver: HTMLButtonElement) set_custom_validity(error: JsString): Unit ->
     native.
 
-pub (value: HTMLButtonElement) add_event_listener(
+pub (receiver: HTMLButtonElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLButtonElement) remove_event_listener(
+pub (receiver: HTMLButtonElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

@@ -15,4 +15,4 @@ module std.js.ErrorConstructor.
 
 pub opaque type ErrorConstructor.
 
-pub (value: ErrorConstructor) prototype(): Error.
+pub (receiver: ErrorConstructor) prototype(): std.js.Error.Error.

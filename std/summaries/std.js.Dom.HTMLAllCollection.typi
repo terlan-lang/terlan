@@ -25,18 +25,18 @@ pub opaque type HTMLAllCollection.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAllCollection/length)
  */
-pub (value: HTMLAllCollection) length(): std.js.Number.JsNumber.
+pub (receiver: HTMLAllCollection) length(): std.js.Number.JsNumber.
 
 /**
  * The **`item()`** method of the HTMLAllCollection interface returns the element located at the specified offset into the collection, or the element with the specified value for its `id` or `name` attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAllCollection/item)
  */
-pub (value: HTMLAllCollection) item(name_or_index: std.js.String.JsString): Option[Element | HTMLCollection].
+pub (receiver: HTMLAllCollection) item(name_or_index: std.core.Option.Option[std.js.String.JsString]): std.core.Option.Option[std.js.Dom.Element.Element | std.js.Dom.HTMLCollection.HTMLCollection].
 
 /**
  * The **`namedItem()`** method of the HTMLAllCollection interface returns the first Element in the collection whose `id` or `name` attribute matches the specified name, or `null` if no element matches.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAllCollection/namedItem)
  */
-pub (value: HTMLAllCollection) named_item(name: std.js.String.JsString): Option[Element | HTMLCollection].
+pub (receiver: HTMLAllCollection) named_item(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.Element.Element | std.js.Dom.HTMLCollection.HTMLCollection].

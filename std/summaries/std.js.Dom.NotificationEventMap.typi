@@ -15,10 +15,10 @@ module std.js.Dom.NotificationEventMap.
 
 pub opaque type NotificationEventMap.
 
-pub (value: NotificationEventMap) click(): Event.
+pub (receiver: NotificationEventMap) click(): std.js.Dom.Event.Event.
 
-pub (value: NotificationEventMap) close(): Event.
+pub (receiver: NotificationEventMap) close(): std.js.Dom.Event.Event.
 
-pub (value: NotificationEventMap) error(): Event.
+pub (receiver: NotificationEventMap) error(): std.js.Dom.Event.Event.
 
-pub (value: NotificationEventMap) show(): Event.
+pub (receiver: NotificationEventMap) show(): std.js.Dom.Event.Event.

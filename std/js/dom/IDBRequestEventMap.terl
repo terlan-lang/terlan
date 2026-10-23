@@ -12,10 +12,12 @@
  */
 module std.js.Dom.IDBRequestEventMap.
 
+import type std.js.Dom.Event.{Event}.
+
 pub opaque type IDBRequestEventMap.
 
-pub (value: IDBRequestEventMap) error(): Event ->
+pub (receiver: IDBRequestEventMap) error(): Event ->
     native.
 
-pub (value: IDBRequestEventMap) success(): Event ->
+pub (receiver: IDBRequestEventMap) success(): Event ->
     native.

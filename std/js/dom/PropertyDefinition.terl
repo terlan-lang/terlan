@@ -12,18 +12,19 @@
  */
 module std.js.Dom.PropertyDefinition.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type PropertyDefinition.
 
-pub (value: PropertyDefinition) inherits(): std.core.Bool ->
+pub (receiver: PropertyDefinition) inherits(): Bool ->
     native.
 
-pub (value: PropertyDefinition) initial_value(): JsString ->
+pub (receiver: PropertyDefinition) initial_value(): Option[JsString] ->
     native.
 
-pub (value: PropertyDefinition) name(): JsString ->
+pub (receiver: PropertyDefinition) name(): JsString ->
     native.
 
-pub (value: PropertyDefinition) syntax(): JsString ->
+pub (receiver: PropertyDefinition) syntax(): Option[JsString] ->
     native.

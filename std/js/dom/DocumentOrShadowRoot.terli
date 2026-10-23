@@ -12,8 +12,10 @@
  */
 module std.js.Dom.DocumentOrShadowRoot.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.Element.{Element}.
 import type std.js.Number.{JsNumber}.
-import type std.js.{Array}.
 
 pub opaque type DocumentOrShadowRoot.
 
@@ -26,40 +28,40 @@ pub opaque type DocumentOrShadowRoot.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/activeElement)
  */
-pub (value: DocumentOrShadowRoot) active_element(): Option[Element].
+pub (receiver: DocumentOrShadowRoot) active_element(): Option[Element].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/adoptedStyleSheets)
  */
-pub (value: DocumentOrShadowRoot) adopted_style_sheets(): Array[CSSStyleSheet].
+pub (receiver: DocumentOrShadowRoot) adopted_style_sheets(): Array[std.js.Dom.CSSStyleSheet.CSSStyleSheet].
 
 /**
  * Returns document's fullscreen element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fullscreenElement)
  */
-pub (value: DocumentOrShadowRoot) fullscreen_element(): Option[Element].
+pub (receiver: DocumentOrShadowRoot) fullscreen_element(): Option[Element].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/pictureInPictureElement)
  */
-pub (value: DocumentOrShadowRoot) picture_in_picture_element(): Option[Element].
+pub (receiver: DocumentOrShadowRoot) picture_in_picture_element(): Option[Element].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/pointerLockElement)
  */
-pub (value: DocumentOrShadowRoot) pointer_lock_element(): Option[Element].
+pub (receiver: DocumentOrShadowRoot) pointer_lock_element(): Option[Element].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/styleSheets)
  */
-pub (value: DocumentOrShadowRoot) style_sheets(): StyleSheetList.
+pub (receiver: DocumentOrShadowRoot) style_sheets(): std.js.Dom.StyleSheetList.StyleSheetList.
 
-pub (value: DocumentOrShadowRoot) element_from_point(x: JsNumber, y: JsNumber): Option[Element].
+pub (receiver: DocumentOrShadowRoot) element_from_point(x: JsNumber, y: JsNumber): Option[Element].
 
-pub (value: DocumentOrShadowRoot) elements_from_point(x: JsNumber, y: JsNumber): Array[Element].
+pub (receiver: DocumentOrShadowRoot) elements_from_point(x: JsNumber, y: JsNumber): Array[Element].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getAnimations)
  */
-pub (value: DocumentOrShadowRoot) get_animations(): Array[Animation].
+pub (receiver: DocumentOrShadowRoot) get_animations(): Array[std.js.Dom.Animation.Animation].

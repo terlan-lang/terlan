@@ -15,4 +15,4 @@ module std.js.Dom.ElementDefinitionOptions.
 
 pub opaque type ElementDefinitionOptions.
 
-pub (value: ElementDefinitionOptions) extends_(): std.js.String.JsString.
+pub (receiver: ElementDefinitionOptions) extends_(): std.core.Option.Option[std.js.String.JsString].

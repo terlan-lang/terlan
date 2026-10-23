@@ -14,7 +14,5 @@ module std.js.Dom.AesKeyGenParamsTest.
 
 import type std.js.Dom.AesKeyGenParams.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub length_typechecks(receiver: AesKeyGenParams): std.js.Number.JsNumber ->
     receiver.length().

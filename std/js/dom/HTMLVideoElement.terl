@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLVideoElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +30,7 @@ pub opaque type HTMLVideoElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/disablePictureInPicture)
  */
-pub (value: HTMLVideoElement) disable_picture_in_picture(): Bool ->
+pub (receiver: HTMLVideoElement) disable_picture_in_picture(): Bool ->
     native.
 
 /**
@@ -36,10 +38,10 @@ pub (value: HTMLVideoElement) disable_picture_in_picture(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/height)
  */
-pub (value: HTMLVideoElement) height(): JsNumber ->
+pub (receiver: HTMLVideoElement) height(): JsNumber ->
     native.
 
-pub (value: HTMLVideoElement) plays_inline(): Bool ->
+pub (receiver: HTMLVideoElement) plays_inline(): Bool ->
     native.
 
 /**
@@ -47,7 +49,7 @@ pub (value: HTMLVideoElement) plays_inline(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/poster)
  */
-pub (value: HTMLVideoElement) poster(): JsString ->
+pub (receiver: HTMLVideoElement) poster(): JsString ->
     native.
 
 /**
@@ -55,7 +57,7 @@ pub (value: HTMLVideoElement) poster(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/videoHeight)
  */
-pub (value: HTMLVideoElement) video_height(): JsNumber ->
+pub (receiver: HTMLVideoElement) video_height(): JsNumber ->
     native.
 
 /**
@@ -63,7 +65,7 @@ pub (value: HTMLVideoElement) video_height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/videoWidth)
  */
-pub (value: HTMLVideoElement) video_width(): JsNumber ->
+pub (receiver: HTMLVideoElement) video_width(): JsNumber ->
     native.
 
 /**
@@ -71,7 +73,7 @@ pub (value: HTMLVideoElement) video_width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/width)
  */
-pub (value: HTMLVideoElement) width(): JsNumber ->
+pub (receiver: HTMLVideoElement) width(): JsNumber ->
     native.
 
 /**
@@ -79,7 +81,7 @@ pub (value: HTMLVideoElement) width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/cancelVideoFrameCallback)
  */
-pub (value: HTMLVideoElement) cancel_video_frame_callback(handle: JsNumber): Unit ->
+pub (receiver: HTMLVideoElement) cancel_video_frame_callback(handle: JsNumber): Unit ->
     native.
 
 /**
@@ -87,7 +89,7 @@ pub (value: HTMLVideoElement) cancel_video_frame_callback(handle: JsNumber): Uni
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/getVideoPlaybackQuality)
  */
-pub (value: HTMLVideoElement) get_video_playback_quality(): VideoPlaybackQuality ->
+pub (receiver: HTMLVideoElement) get_video_playback_quality(): std.js.Dom.VideoPlaybackQuality.VideoPlaybackQuality ->
     native.
 
 /**
@@ -95,7 +97,7 @@ pub (value: HTMLVideoElement) get_video_playback_quality(): VideoPlaybackQuality
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/requestPictureInPicture)
  */
-pub (value: HTMLVideoElement) request_picture_in_picture(): std.js.Promise[PictureInPictureWindow] ->
+pub (receiver: HTMLVideoElement) request_picture_in_picture(): std.js.Promise.Promise[std.js.Dom.PictureInPictureWindow.PictureInPictureWindow] ->
     native.
 
 /**
@@ -103,19 +105,21 @@ pub (value: HTMLVideoElement) request_picture_in_picture(): std.js.Promise[Pictu
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/requestVideoFrameCallback)
  */
-pub (value: HTMLVideoElement) request_video_frame_callback(callback: VideoFrameRequestCallback): JsNumber ->
+pub (receiver: HTMLVideoElement) request_video_frame_callback(
+    callback: std.js.Dom.VideoFrameRequestCallback.VideoFrameRequestCallback,
+): JsNumber ->
     native.
 
-pub (value: HTMLVideoElement) add_event_listener(
+pub (receiver: HTMLVideoElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLVideoElement) remove_event_listener(
+pub (receiver: HTMLVideoElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

@@ -12,14 +12,15 @@
  */
 module std.js.Dom.StaticRangeInit.
 
+import type std.js.Dom.Node.{Node}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type StaticRangeInit.
 
-pub (value: StaticRangeInit) end_container(): Node.
+pub (receiver: StaticRangeInit) end_container(): Node.
 
-pub (value: StaticRangeInit) end_offset(): JsNumber.
+pub (receiver: StaticRangeInit) end_offset(): JsNumber.
 
-pub (value: StaticRangeInit) start_container(): Node.
+pub (receiver: StaticRangeInit) start_container(): Node.
 
-pub (value: StaticRangeInit) start_offset(): JsNumber.
+pub (receiver: StaticRangeInit) start_offset(): JsNumber.

@@ -12,21 +12,22 @@
  */
 module std.js.Dom.StorageEventInit.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type StorageEventInit.
 
-pub (value: StorageEventInit) key(): Option[JsString] ->
+pub (receiver: StorageEventInit) key(): Option[JsString] ->
     native.
 
-pub (value: StorageEventInit) new_value(): Option[JsString] ->
+pub (receiver: StorageEventInit) new_value(): Option[JsString] ->
     native.
 
-pub (value: StorageEventInit) old_value(): Option[JsString] ->
+pub (receiver: StorageEventInit) old_value(): Option[JsString] ->
     native.
 
-pub (value: StorageEventInit) storage_area(): Option[Storage] ->
+pub (receiver: StorageEventInit) storage_area(): Option[std.js.Dom.Storage.Storage] ->
     native.
 
-pub (value: StorageEventInit) url(): JsString ->
+pub (receiver: StorageEventInit) url(): Option[JsString] ->
     native.

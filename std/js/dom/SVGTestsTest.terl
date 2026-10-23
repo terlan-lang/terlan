@@ -12,9 +12,8 @@
  */
 module std.js.Dom.SVGTestsTest.
 
+import type std.js.Dom.SVGStringList.{SVGStringList}.
 import type std.js.Dom.SVGTests.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub required_extensions_typechecks(receiver: SVGTests): SVGStringList ->
     receiver.required_extensions().

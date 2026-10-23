@@ -12,21 +12,19 @@
  */
 module std.js.Dom.BiquadFilterOptions.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type BiquadFilterOptions.
 
-pub (value: BiquadFilterOptions) q(): JsNumber ->
+pub (receiver: BiquadFilterOptions) q(): Option[JsNumber] ->
     native.
 
-pub (value: BiquadFilterOptions) detune(): JsNumber ->
+pub (receiver: BiquadFilterOptions) detune(): Option[JsNumber] ->
     native.
 
-pub (value: BiquadFilterOptions) frequency(): JsNumber ->
+pub (receiver: BiquadFilterOptions) frequency(): Option[JsNumber] ->
     native.
 
-pub (value: BiquadFilterOptions) gain(): JsNumber ->
-    native.
-
-pub (value: BiquadFilterOptions) type_(): BiquadFilterType ->
+pub (receiver: BiquadFilterOptions) gain(): Option[JsNumber] ->
     native.

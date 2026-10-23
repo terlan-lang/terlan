@@ -25,4 +25,4 @@ pub opaque type CSSNumericArray.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericArray/length)
  */
-pub (value: CSSNumericArray) length(): std.js.Number.JsNumber.
+pub (receiver: CSSNumericArray) length(): std.js.Number.JsNumber.

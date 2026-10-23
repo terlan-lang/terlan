@@ -14,4 +14,4 @@
 module std.js.Dom.OffscreenRenderingContext.
 
 pub type OffscreenRenderingContext =
-    ImageBitmapRenderingContext | OffscreenCanvasRenderingContext2D | WebGL2RenderingContext | WebGLRenderingContext.
+    std.js.Dom.ImageBitmapRenderingContext.ImageBitmapRenderingContext | std.js.Dom.OffscreenCanvasRenderingContext2D.OffscreenCanvasRenderingContext2D | std.js.Dom.WebGL2RenderingContext.WebGL2RenderingContext | std.js.Dom.WebGLRenderingContext.WebGLRenderingContext.

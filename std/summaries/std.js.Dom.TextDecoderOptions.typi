@@ -15,6 +15,6 @@ module std.js.Dom.TextDecoderOptions.
 
 pub opaque type TextDecoderOptions.
 
-pub (value: TextDecoderOptions) fatal(): std.core.Bool.
+pub (receiver: TextDecoderOptions) fatal(): std.core.Option.Option[Bool].
 
-pub (value: TextDecoderOptions) ignore_bom(): std.core.Bool.
+pub (receiver: TextDecoderOptions) ignore_bom(): std.core.Option.Option[Bool].

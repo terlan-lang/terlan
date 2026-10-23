@@ -18,14 +18,14 @@ pub opaque type ArrayBufferView[TArrayBuffer].
 /**
  * The ArrayBuffer instance referenced by the array.
  */
-pub (value: ArrayBufferView[TArrayBuffer]) buffer(): TArrayBuffer.
+pub (receiver: ArrayBufferView[TArrayBuffer]) buffer(): TArrayBuffer.
 
 /**
  * The length in bytes of the array.
  */
-pub (value: ArrayBufferView[TArrayBuffer]) byte_length(): std.js.Number.JsNumber.
+pub (receiver: ArrayBufferView[TArrayBuffer]) byte_length(): std.js.Number.JsNumber.
 
 /**
  * The offset in bytes of the array.
  */
-pub (value: ArrayBufferView[TArrayBuffer]) byte_offset(): std.js.Number.JsNumber.
+pub (receiver: ArrayBufferView[TArrayBuffer]) byte_offset(): std.js.Number.JsNumber.

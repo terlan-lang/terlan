@@ -14,7 +14,5 @@ module std.js.Dom.ImageBitmapRenderingContextSettingsTest.
 
 import type std.js.Dom.ImageBitmapRenderingContextSettings.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub alpha_typechecks(receiver: ImageBitmapRenderingContextSettings): std.core.Bool ->
+pub alpha_typechecks(receiver: ImageBitmapRenderingContextSettings): std.core.Option.Option[Bool] ->
     receiver.alpha().

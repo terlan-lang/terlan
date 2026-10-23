@@ -12,12 +12,12 @@
  */
 module std.js.Dom.DataTransferItemListTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.DataTransferItem.{DataTransferItem}.
 import type std.js.Dom.DataTransferItemList.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub length_typechecks(receiver: DataTransferItemList): JsNumber ->
     receiver.length().
@@ -29,8 +29,11 @@ pub add_typechecks(
 ): Option[DataTransferItem] ->
     receiver.add(data, type_).
 
-pub add_typechecks(receiver: DataTransferItemList, data: File): Option[DataTransferItem] ->
-    receiver.add(data).
+pub add_overload_2_typechecks(
+    receiver: DataTransferItemList,
+    data: std.js.Dom.File.File,
+): Option[DataTransferItem] ->
+    receiver.add_overload_2(data).
 
 pub clear_typechecks(receiver: DataTransferItemList): Unit ->
     receiver.clear().

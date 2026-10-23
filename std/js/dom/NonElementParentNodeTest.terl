@@ -14,10 +14,8 @@ module std.js.Dom.NonElementParentNodeTest.
 
 import type std.js.Dom.NonElementParentNode.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub get_element_by_id_typechecks(
     receiver: NonElementParentNode,
     element_id: std.js.String.JsString,
-): Option[Element] ->
+): std.core.Option.Option[std.js.Dom.Element.Element] ->
     receiver.get_element_by_id(element_id).

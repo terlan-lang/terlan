@@ -12,28 +12,28 @@
  */
 module std.js.Dom.AudioEncoderTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.AudioEncoder.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub encode_queue_size_typechecks(receiver: AudioEncoder): std.js.Number.JsNumber ->
     receiver.encode_queue_size().
 
-pub state_typechecks(receiver: AudioEncoder): CodecState ->
-    receiver.state().
-
 pub close_typechecks(receiver: AudioEncoder): Unit ->
     receiver.close().
 
-pub configure_typechecks(receiver: AudioEncoder, config: AudioEncoderConfig): Unit ->
+pub configure_typechecks(
+    receiver: AudioEncoder,
+    config: std.js.Dom.AudioEncoderConfig.AudioEncoderConfig,
+): Unit ->
     receiver.configure(config).
 
-pub encode_typechecks(receiver: AudioEncoder, data: AudioData): Unit ->
+pub encode_typechecks(receiver: AudioEncoder, data: std.js.Dom.AudioData.AudioData): Unit ->
     receiver.encode(data).
 
-pub flush_typechecks(receiver: AudioEncoder): std.js.Promise[Unit] ->
+pub flush_typechecks(receiver: AudioEncoder): std.js.Promise.Promise[Unit] ->
     receiver.flush().
 
 pub reset_typechecks(receiver: AudioEncoder): Unit ->
@@ -43,7 +43,7 @@ pub add_event_listener_typechecks(
     receiver: AudioEncoder,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -51,6 +51,6 @@ pub remove_event_listener_typechecks(
     receiver: AudioEncoder,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

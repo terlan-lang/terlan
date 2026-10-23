@@ -25,4 +25,4 @@ pub opaque type ContentVisibilityAutoStateChangeEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContentVisibilityAutoStateChangeEvent/skipped)
  */
-pub (value: ContentVisibilityAutoStateChangeEvent) skipped(): std.core.Bool.
+pub (receiver: ContentVisibilityAutoStateChangeEvent) skipped(): Bool.

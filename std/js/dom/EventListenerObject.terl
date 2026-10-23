@@ -14,5 +14,5 @@ module std.js.Dom.EventListenerObject.
 
 pub opaque type EventListenerObject.
 
-pub (value: EventListenerObject) handle_event(object: Event): std.core.Unit ->
+pub (receiver: EventListenerObject) handle_event(object: std.js.Dom.Event.Event): std.core.Unit.Unit ->
     native.

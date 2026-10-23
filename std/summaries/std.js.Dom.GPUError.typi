@@ -26,4 +26,4 @@ pub opaque type GPUError.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GPUError/message)
  */
-pub (value: GPUError) message(): std.js.String.JsString.
+pub (receiver: GPUError) message(): std.js.String.JsString.

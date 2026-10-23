@@ -15,4 +15,4 @@ module std.js.Dom.MIDIAccessEventMap.
 
 pub opaque type MIDIAccessEventMap.
 
-pub (value: MIDIAccessEventMap) statechange(): MIDIConnectionEvent.
+pub (receiver: MIDIAccessEventMap) statechange(): std.js.Dom.MIDIConnectionEvent.MIDIConnectionEvent.

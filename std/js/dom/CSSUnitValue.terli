@@ -24,11 +24,11 @@ pub opaque type CSSUnitValue.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSUnitValue/unit)
  */
-pub (value: CSSUnitValue) unit(): std.js.String.JsString.
+pub (receiver: CSSUnitValue) unit(): std.js.String.JsString.
 
 /**
  * The **`CSSUnitValue.value`** property of the A double.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSUnitValue/value)
  */
-pub (value: CSSUnitValue) value(): std.js.Number.JsNumber.
+pub (receiver: CSSUnitValue) value(): std.js.Number.JsNumber.

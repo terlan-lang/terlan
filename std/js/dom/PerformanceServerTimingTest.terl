@@ -15,12 +15,12 @@ module std.js.Dom.PerformanceServerTimingTest.
 import type std.js.Dom.PerformanceServerTiming.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub description_typechecks(receiver: PerformanceServerTiming): JsString ->
     receiver.description().
 
-pub duration_typechecks(receiver: PerformanceServerTiming): DOMHighResTimeStamp ->
+pub duration_typechecks(
+    receiver: PerformanceServerTiming,
+): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
     receiver.duration().
 
 pub name_typechecks(receiver: PerformanceServerTiming): JsString ->

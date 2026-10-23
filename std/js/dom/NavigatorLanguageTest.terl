@@ -15,10 +15,8 @@ module std.js.Dom.NavigatorLanguageTest.
 import type std.js.Dom.NavigatorLanguage.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub language_typechecks(receiver: NavigatorLanguage): JsString ->
     receiver.language().
 
-pub languages_typechecks(receiver: NavigatorLanguage): std.js.Array[JsString] ->
+pub languages_typechecks(receiver: NavigatorLanguage): std.js.Array.Array[JsString] ->
     receiver.languages().

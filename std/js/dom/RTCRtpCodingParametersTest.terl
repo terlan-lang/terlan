@@ -14,7 +14,5 @@ module std.js.Dom.RTCRtpCodingParametersTest.
 
 import type std.js.Dom.RTCRtpCodingParameters.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub rid_typechecks(receiver: RTCRtpCodingParameters): std.js.String.JsString ->
+pub rid_typechecks(receiver: RTCRtpCodingParameters): std.core.Option.Option[std.js.String.JsString] ->
     receiver.rid().

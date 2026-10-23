@@ -14,7 +14,7 @@ module std.js.Dom.KeySystemTrackConfigurationTest.
 
 import type std.js.Dom.KeySystemTrackConfiguration.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub robustness_typechecks(receiver: KeySystemTrackConfiguration): std.js.String.JsString ->
+pub robustness_typechecks(
+    receiver: KeySystemTrackConfiguration,
+): std.core.Option.Option[std.js.String.JsString] ->
     receiver.robustness().

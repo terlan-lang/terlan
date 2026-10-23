@@ -15,4 +15,4 @@ module std.js.Dom.EcKeyAlgorithm.
 
 pub opaque type EcKeyAlgorithm.
 
-pub (value: EcKeyAlgorithm) named_curve(): NamedCurve.
+pub (receiver: EcKeyAlgorithm) named_curve(): std.js.Dom.NamedCurve.NamedCurve.

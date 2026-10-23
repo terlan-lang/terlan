@@ -14,7 +14,5 @@ module std.js.Dom.TrackEventTest.
 
 import type std.js.Dom.TrackEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub track_typechecks(receiver: TrackEvent): Option[TextTrack] ->
+pub track_typechecks(receiver: TrackEvent): std.core.Option.Option[std.js.Dom.TextTrack.TextTrack] ->
     receiver.track().

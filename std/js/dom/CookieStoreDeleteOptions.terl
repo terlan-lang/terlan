@@ -12,18 +12,19 @@
  */
 module std.js.Dom.CookieStoreDeleteOptions.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type CookieStoreDeleteOptions.
 
-pub (value: CookieStoreDeleteOptions) domain(): Option[JsString] ->
+pub (receiver: CookieStoreDeleteOptions) domain(): Option[JsString] ->
     native.
 
-pub (value: CookieStoreDeleteOptions) name(): JsString ->
+pub (receiver: CookieStoreDeleteOptions) name(): JsString ->
     native.
 
-pub (value: CookieStoreDeleteOptions) partitioned(): std.core.Bool ->
+pub (receiver: CookieStoreDeleteOptions) partitioned(): Option[Bool] ->
     native.
 
-pub (value: CookieStoreDeleteOptions) path(): JsString ->
+pub (receiver: CookieStoreDeleteOptions) path(): Option[JsString] ->
     native.

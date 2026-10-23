@@ -12,13 +12,10 @@
  */
 module std.js.ObjectTest.
 
-import type std.core.{Bool}.
 import type std.js.Object.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub constructor__typechecks(receiver: Object): Function ->
+pub constructor__typechecks(receiver: Object): std.js.Function.Function ->
     receiver.constructor_().
 
 pub to_string_typechecks(receiver: Object): JsString ->
@@ -30,11 +27,5 @@ pub to_locale_string_typechecks(receiver: Object): JsString ->
 pub value_of_typechecks(receiver: Object): Object ->
     receiver.value_of().
 
-pub has_own_property_typechecks(receiver: Object, v: PropertyKey): Bool ->
-    receiver.has_own_property(v).
-
 pub is_prototype_of_typechecks(receiver: Object, v: Object): Bool ->
     receiver.is_prototype_of(v).
-
-pub property_is_enumerable_typechecks(receiver: Object, v: PropertyKey): Bool ->
-    receiver.property_is_enumerable(v).

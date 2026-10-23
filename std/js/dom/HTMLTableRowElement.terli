@@ -12,7 +12,10 @@
  */
 module std.js.Dom.HTMLTableRowElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.HTMLTableCellElement.{HTMLTableCellElement}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -29,7 +32,7 @@ pub opaque type HTMLTableRowElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/align)
  */
-pub (value: HTMLTableRowElement) align(): JsString.
+pub (receiver: HTMLTableRowElement) align(): JsString.
 
 /**
  * The **`HTMLTableRowElement.bgColor`** property is used to set the background color of a row or retrieve the value of the obsolete `bgColor` attribute, if present.
@@ -37,14 +40,14 @@ pub (value: HTMLTableRowElement) align(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/bgColor)
  */
-pub (value: HTMLTableRowElement) bg_color(): JsString.
+pub (receiver: HTMLTableRowElement) bg_color(): JsString.
 
 /**
  * The **`cells`** read-only property of the HTMLTableRowElement interface returns a live HTMLCollection containing the cells in the row.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/cells)
  */
-pub (value: HTMLTableRowElement) cells(): HTMLCollectionOf[HTMLTableCellElement].
+pub (receiver: HTMLTableRowElement) cells(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[HTMLTableCellElement].
 
 /**
  * The **`ch`** property of the HTMLTableRowElement interface does nothing.
@@ -52,7 +55,7 @@ pub (value: HTMLTableRowElement) cells(): HTMLCollectionOf[HTMLTableCellElement]
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/ch)
  */
-pub (value: HTMLTableRowElement) ch(): JsString.
+pub (receiver: HTMLTableRowElement) ch(): JsString.
 
 /**
  * The **`chOff`** property of the HTMLTableRowElement interface does nothing.
@@ -60,21 +63,21 @@ pub (value: HTMLTableRowElement) ch(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/chOff)
  */
-pub (value: HTMLTableRowElement) ch_off(): JsString.
+pub (receiver: HTMLTableRowElement) ch_off(): JsString.
 
 /**
  * The **`rowIndex`** read-only property of the HTMLTableRowElement interface represents the position of a row within the whole table.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/rowIndex)
  */
-pub (value: HTMLTableRowElement) row_index(): JsNumber.
+pub (receiver: HTMLTableRowElement) row_index(): JsNumber.
 
 /**
  * The **`sectionRowIndex`** read-only property of the HTMLTableRowElement interface represents the position of a row within the current section (thead, tbody, or tfoot).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/sectionRowIndex)
  */
-pub (value: HTMLTableRowElement) section_row_index(): JsNumber.
+pub (receiver: HTMLTableRowElement) section_row_index(): JsNumber.
 
 /**
  * The **`vAlign`** property of the HTMLTableRowElement interface is a string indicating how to vertically align text in a tr table row.
@@ -82,30 +85,30 @@ pub (value: HTMLTableRowElement) section_row_index(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/vAlign)
  */
-pub (value: HTMLTableRowElement) v_align(): JsString.
+pub (receiver: HTMLTableRowElement) v_align(): JsString.
 
 /**
  * The **`deleteCell()`** method of the HTMLTableRowElement interface removes a specific row cell from a given tr.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/deleteCell)
  */
-pub (value: HTMLTableRowElement) delete_cell(index: JsNumber): Unit.
+pub (receiver: HTMLTableRowElement) delete_cell(index: JsNumber): Unit.
 
 /**
  * The **`insertCell()`** method of the HTMLTableRowElement interface inserts a new cell (td) into a table row (tr) and returns a reference to the cell.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/insertCell)
  */
-pub (value: HTMLTableRowElement) insert_cell(index: JsNumber): HTMLTableCellElement.
+pub (receiver: HTMLTableRowElement) insert_cell(index: Option[JsNumber]): HTMLTableCellElement.
 
-pub (value: HTMLTableRowElement) add_event_listener(
+pub (receiver: HTMLTableRowElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: HTMLTableRowElement) remove_event_listener(
+pub (receiver: HTMLTableRowElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

@@ -14,10 +14,5 @@ module std.js.Dom.CanvasCompositingTest.
 
 import type std.js.Dom.CanvasCompositing.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub global_alpha_typechecks(receiver: CanvasCompositing): std.js.Number.JsNumber ->
     receiver.global_alpha().
-
-pub global_composite_operation_typechecks(receiver: CanvasCompositing): GlobalCompositeOperation ->
-    receiver.global_composite_operation().

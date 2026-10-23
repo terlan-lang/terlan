@@ -12,6 +12,9 @@
  */
 module std.js.Dom.TreeWalker.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.Node.{Node}.
+
 /**
  * The **`TreeWalker`** object represents the nodes of a document subtree and a position within them.
  *
@@ -24,15 +27,7 @@ pub opaque type TreeWalker.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/currentNode)
  */
-pub (value: TreeWalker) current_node(): Node ->
-    native.
-
-/**
- * The **`TreeWalker.filter`** read-only property returns the `NodeFilter` associated with the TreeWalker.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/filter)
- */
-pub (value: TreeWalker) filter(): Option[NodeFilter] ->
+pub (receiver: TreeWalker) current_node(): Node ->
     native.
 
 /**
@@ -40,7 +35,7 @@ pub (value: TreeWalker) filter(): Option[NodeFilter] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/root)
  */
-pub (value: TreeWalker) root(): Node ->
+pub (receiver: TreeWalker) root(): Node ->
     native.
 
 /**
@@ -48,7 +43,7 @@ pub (value: TreeWalker) root(): Node ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/whatToShow)
  */
-pub (value: TreeWalker) what_to_show(): std.js.Number.JsNumber ->
+pub (receiver: TreeWalker) what_to_show(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -56,7 +51,7 @@ pub (value: TreeWalker) what_to_show(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/firstChild)
  */
-pub (value: TreeWalker) first_child(): Option[Node] ->
+pub (receiver: TreeWalker) first_child(): Option[Node] ->
     native.
 
 /**
@@ -64,7 +59,7 @@ pub (value: TreeWalker) first_child(): Option[Node] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/lastChild)
  */
-pub (value: TreeWalker) last_child(): Option[Node] ->
+pub (receiver: TreeWalker) last_child(): Option[Node] ->
     native.
 
 /**
@@ -72,7 +67,7 @@ pub (value: TreeWalker) last_child(): Option[Node] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/nextNode)
  */
-pub (value: TreeWalker) next_node(): Option[Node] ->
+pub (receiver: TreeWalker) next_node(): Option[Node] ->
     native.
 
 /**
@@ -80,7 +75,7 @@ pub (value: TreeWalker) next_node(): Option[Node] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/nextSibling)
  */
-pub (value: TreeWalker) next_sibling(): Option[Node] ->
+pub (receiver: TreeWalker) next_sibling(): Option[Node] ->
     native.
 
 /**
@@ -88,7 +83,7 @@ pub (value: TreeWalker) next_sibling(): Option[Node] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/parentNode)
  */
-pub (value: TreeWalker) parent_node(): Option[Node] ->
+pub (receiver: TreeWalker) parent_node(): Option[Node] ->
     native.
 
 /**
@@ -96,7 +91,7 @@ pub (value: TreeWalker) parent_node(): Option[Node] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/previousNode)
  */
-pub (value: TreeWalker) previous_node(): Option[Node] ->
+pub (receiver: TreeWalker) previous_node(): Option[Node] ->
     native.
 
 /**
@@ -104,5 +99,5 @@ pub (value: TreeWalker) previous_node(): Option[Node] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TreeWalker/previousSibling)
  */
-pub (value: TreeWalker) previous_sibling(): Option[Node] ->
+pub (receiver: TreeWalker) previous_sibling(): Option[Node] ->
     native.

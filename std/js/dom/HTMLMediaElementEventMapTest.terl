@@ -14,10 +14,10 @@ module std.js.Dom.HTMLMediaElementEventMapTest.
 
 import type std.js.Dom.HTMLMediaElementEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub encrypted_typechecks(receiver: HTMLMediaElementEventMap): MediaEncryptedEvent ->
+pub encrypted_typechecks(
+    receiver: HTMLMediaElementEventMap,
+): std.js.Dom.MediaEncryptedEvent.MediaEncryptedEvent ->
     receiver.encrypted().
 
-pub waitingforkey_typechecks(receiver: HTMLMediaElementEventMap): Event ->
+pub waitingforkey_typechecks(receiver: HTMLMediaElementEventMap): std.js.Dom.Event.Event ->
     receiver.waitingforkey().

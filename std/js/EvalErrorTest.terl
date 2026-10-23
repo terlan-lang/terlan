@@ -13,5 +13,3 @@
 module std.js.EvalErrorTest.
 
 import type std.js.EvalError.
-
-pub generated_binding_surface_contract(): Bool -> true.

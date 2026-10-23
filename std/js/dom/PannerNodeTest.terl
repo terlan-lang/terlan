@@ -12,11 +12,10 @@
  */
 module std.js.Dom.PannerNodeTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.AudioParam.{AudioParam}.
 import type std.js.Dom.PannerNode.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub cone_inner_angle_typechecks(receiver: PannerNode): JsNumber ->
     receiver.cone_inner_angle().
@@ -26,9 +25,6 @@ pub cone_outer_angle_typechecks(receiver: PannerNode): JsNumber ->
 
 pub cone_outer_gain_typechecks(receiver: PannerNode): JsNumber ->
     receiver.cone_outer_gain().
-
-pub distance_model_typechecks(receiver: PannerNode): DistanceModelType ->
-    receiver.distance_model().
 
 pub max_distance_typechecks(receiver: PannerNode): JsNumber ->
     receiver.max_distance().
@@ -41,9 +37,6 @@ pub orientation_y_typechecks(receiver: PannerNode): AudioParam ->
 
 pub orientation_z_typechecks(receiver: PannerNode): AudioParam ->
     receiver.orientation_z().
-
-pub panning_model_typechecks(receiver: PannerNode): PanningModelType ->
-    receiver.panning_model().
 
 pub position_x_typechecks(receiver: PannerNode): AudioParam ->
     receiver.position_x().

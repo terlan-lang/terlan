@@ -12,11 +12,10 @@
  */
 module std.js.Dom.PerformanceEventTimingTest.
 
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
 import type std.js.Dom.PerformanceEventTiming.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub cancelable_typechecks(receiver: PerformanceEventTiming): std.core.Bool ->
+pub cancelable_typechecks(receiver: PerformanceEventTiming): Bool ->
     receiver.cancelable().
 
 pub processing_end_typechecks(receiver: PerformanceEventTiming): DOMHighResTimeStamp ->
@@ -25,5 +24,7 @@ pub processing_end_typechecks(receiver: PerformanceEventTiming): DOMHighResTimeS
 pub processing_start_typechecks(receiver: PerformanceEventTiming): DOMHighResTimeStamp ->
     receiver.processing_start().
 
-pub target__typechecks(receiver: PerformanceEventTiming): Option[Node] ->
+pub target__typechecks(
+    receiver: PerformanceEventTiming,
+): std.core.Option.Option[std.js.Dom.Node.Node] ->
     receiver.target_().

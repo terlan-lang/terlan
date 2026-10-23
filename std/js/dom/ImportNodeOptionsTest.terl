@@ -12,12 +12,13 @@
  */
 module std.js.Dom.ImportNodeOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.ImportNodeOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub custom_element_registry_typechecks(receiver: ImportNodeOptions): CustomElementRegistry ->
+pub custom_element_registry_typechecks(
+    receiver: ImportNodeOptions,
+): Option[std.js.Dom.CustomElementRegistry.CustomElementRegistry] ->
     receiver.custom_element_registry().
 
-pub self_only_typechecks(receiver: ImportNodeOptions): std.core.Bool ->
+pub self_only_typechecks(receiver: ImportNodeOptions): Option[Bool] ->
     receiver.self_only().

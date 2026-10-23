@@ -14,10 +14,10 @@ module std.js.Dom.HmacImportParamsTest.
 
 import type std.js.Dom.HmacImportParams.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub hash_typechecks(receiver: HmacImportParams): HashAlgorithmIdentifier ->
+pub hash_typechecks(
+    receiver: HmacImportParams,
+): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier ->
     receiver.hash().
 
-pub length_typechecks(receiver: HmacImportParams): std.js.Number.JsNumber ->
+pub length_typechecks(receiver: HmacImportParams): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.length().

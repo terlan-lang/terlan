@@ -12,12 +12,15 @@
  */
 module std.js.Dom.MediaConfigurationTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.MediaConfiguration.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub audio_typechecks(receiver: MediaConfiguration): AudioConfiguration ->
+pub audio_typechecks(
+    receiver: MediaConfiguration,
+): Option[std.js.Dom.AudioConfiguration.AudioConfiguration] ->
     receiver.audio().
 
-pub video_typechecks(receiver: MediaConfiguration): VideoConfiguration ->
+pub video_typechecks(
+    receiver: MediaConfiguration,
+): Option[std.js.Dom.VideoConfiguration.VideoConfiguration] ->
     receiver.video().

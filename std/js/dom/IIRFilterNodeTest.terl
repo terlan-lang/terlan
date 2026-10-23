@@ -12,14 +12,14 @@
  */
 module std.js.Dom.IIRFilterNodeTest.
 
+import type std.js.ArrayBuffer.{ArrayBuffer}.
 import type std.js.Dom.IIRFilterNode.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Float32Array.{Float32Array}.
 
 pub get_frequency_response_typechecks(
     receiver: IIRFilterNode,
     frequency_hz: Float32Array[ArrayBuffer],
     mag_response: Float32Array[ArrayBuffer],
     phase_response: Float32Array[ArrayBuffer],
-): std.core.Unit ->
+): std.core.Unit.Unit ->
     receiver.get_frequency_response(frequency_hz, mag_response, phase_response).

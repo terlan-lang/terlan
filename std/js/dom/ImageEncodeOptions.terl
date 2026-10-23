@@ -12,10 +12,12 @@
  */
 module std.js.Dom.ImageEncodeOptions.
 
+import type std.core.Option.{Option}.
+
 pub opaque type ImageEncodeOptions.
 
-pub (value: ImageEncodeOptions) quality(): std.js.Number.JsNumber ->
+pub (receiver: ImageEncodeOptions) quality(): Option[std.js.Number.JsNumber] ->
     native.
 
-pub (value: ImageEncodeOptions) type_(): std.js.String.JsString ->
+pub (receiver: ImageEncodeOptions) type_(): Option[std.js.String.JsString] ->
     native.

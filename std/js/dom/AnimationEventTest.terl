@@ -15,8 +15,6 @@ module std.js.Dom.AnimationEventTest.
 import type std.js.Dom.AnimationEvent.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub animation_name_typechecks(receiver: AnimationEvent): JsString ->
     receiver.animation_name().
 

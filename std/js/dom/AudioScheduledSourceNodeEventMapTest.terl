@@ -14,7 +14,5 @@ module std.js.Dom.AudioScheduledSourceNodeEventMapTest.
 
 import type std.js.Dom.AudioScheduledSourceNodeEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub ended_typechecks(receiver: AudioScheduledSourceNodeEventMap): Event ->
+pub ended_typechecks(receiver: AudioScheduledSourceNodeEventMap): std.js.Dom.Event.Event ->
     receiver.ended().

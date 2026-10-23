@@ -12,7 +12,6 @@
  */
 module std.js.Dom.ImageTrack.
 
-import type std.core.{Bool}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,7 +26,7 @@ pub opaque type ImageTrack.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/animated)
  */
-pub (value: ImageTrack) animated(): Bool ->
+pub (receiver: ImageTrack) animated(): Bool ->
     native.
 
 /**
@@ -35,7 +34,7 @@ pub (value: ImageTrack) animated(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/frameCount)
  */
-pub (value: ImageTrack) frame_count(): JsNumber ->
+pub (receiver: ImageTrack) frame_count(): JsNumber ->
     native.
 
 /**
@@ -43,7 +42,7 @@ pub (value: ImageTrack) frame_count(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/repetitionCount)
  */
-pub (value: ImageTrack) repetition_count(): JsNumber ->
+pub (receiver: ImageTrack) repetition_count(): JsNumber ->
     native.
 
 /**
@@ -51,5 +50,5 @@ pub (value: ImageTrack) repetition_count(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageTrack/selected)
  */
-pub (value: ImageTrack) selected(): Bool ->
+pub (receiver: ImageTrack) selected(): Bool ->
     native.

@@ -25,50 +25,50 @@ pub opaque type VisualViewport.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/height)
  */
-pub (value: VisualViewport) height(): std.js.Number.JsNumber.
+pub (receiver: VisualViewport) height(): std.js.Number.JsNumber.
 
 /**
  * The **`offsetLeft`** read-only property of the VisualViewport interface returns the offset of the left edge of the visual viewport from the left edge of the layout viewport in CSS pixels, or `0` if current document is not fully active.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/offsetLeft)
  */
-pub (value: VisualViewport) offset_left(): std.js.Number.JsNumber.
+pub (receiver: VisualViewport) offset_left(): std.js.Number.JsNumber.
 
 /**
  * The **`offsetTop`** read-only property of the VisualViewport interface returns the offset of the top edge of the visual viewport from the top edge of the layout viewport in CSS pixels, or `0` if current document is not fully active.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/offsetTop)
  */
-pub (value: VisualViewport) offset_top(): std.js.Number.JsNumber.
+pub (receiver: VisualViewport) offset_top(): std.js.Number.JsNumber.
 
 /**
  * The **`pageLeft`** read-only property of the VisualViewport interface returns the x coordinate of the left edge of the visual viewport relative to the initial containing block origin, in CSS pixels, or `0` if current document is not fully active.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/pageLeft)
  */
-pub (value: VisualViewport) page_left(): std.js.Number.JsNumber.
+pub (receiver: VisualViewport) page_left(): std.js.Number.JsNumber.
 
 /**
  * The **`pageTop`** read-only property of the VisualViewport interface returns the y coordinate of the top edge of the visual viewport relative to the initial containing block origin, in CSS pixels, or `0` if current document is not fully active.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/pageTop)
  */
-pub (value: VisualViewport) page_top(): std.js.Number.JsNumber.
+pub (receiver: VisualViewport) page_top(): std.js.Number.JsNumber.
 
 /**
  * The **`scale`** read-only property of the VisualViewport interface returns the pinch-zoom scaling factor applied to the visual viewport, or `0` if current document is not fully active, or `1` if there is no output device.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/scale)
  */
-pub (value: VisualViewport) scale(): std.js.Number.JsNumber.
+pub (receiver: VisualViewport) scale(): std.js.Number.JsNumber.
 
 /**
  * The **`width`** read-only property of the VisualViewport interface returns the width of the visual viewport, in CSS pixels, or `0` if current document is not fully active.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/width)
  */
-pub (value: VisualViewport) width(): std.js.Number.JsNumber.
+pub (receiver: VisualViewport) width(): std.js.Number.JsNumber.
 
-pub (value: VisualViewport) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: VisualViewport) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: VisualViewport) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: VisualViewport) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

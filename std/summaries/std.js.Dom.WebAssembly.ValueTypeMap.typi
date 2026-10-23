@@ -15,10 +15,10 @@ module std.js.Dom.WebAssembly.ValueTypeMap.
 
 pub opaque type ValueTypeMap.
 
-pub (value: ValueTypeMap) anyfunc(): Function.
+pub (receiver: ValueTypeMap) anyfunc(): std.js.Function.Function.
 
-pub (value: ValueTypeMap) f32(): std.js.Number.JsNumber.
+pub (receiver: ValueTypeMap) f32(): std.js.Number.JsNumber.
 
-pub (value: ValueTypeMap) f64(): std.js.Number.JsNumber.
+pub (receiver: ValueTypeMap) f64(): std.js.Number.JsNumber.
 
-pub (value: ValueTypeMap) i32(): std.js.Number.JsNumber.
+pub (receiver: ValueTypeMap) i32(): std.js.Number.JsNumber.

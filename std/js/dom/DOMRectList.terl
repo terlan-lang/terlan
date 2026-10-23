@@ -26,7 +26,7 @@ pub opaque type DOMRectList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectList/length)
  */
-pub (value: DOMRectList) length(): JsNumber ->
+pub (receiver: DOMRectList) length(): JsNumber ->
     native.
 
 /**
@@ -34,5 +34,5 @@ pub (value: DOMRectList) length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectList/item)
  */
-pub (value: DOMRectList) item(index: JsNumber): Option[DOMRect] ->
+pub (receiver: DOMRectList) item(index: JsNumber): std.core.Option.Option[std.js.Dom.DOMRect.DOMRect] ->
     native.

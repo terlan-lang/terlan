@@ -15,6 +15,6 @@ module std.js.Dom.CryptoKeyPair.
 
 pub opaque type CryptoKeyPair.
 
-pub (value: CryptoKeyPair) private_key(): CryptoKey.
+pub (receiver: CryptoKeyPair) private_key(): std.js.Dom.CryptoKey.CryptoKey.
 
-pub (value: CryptoKeyPair) public_key(): CryptoKey.
+pub (receiver: CryptoKeyPair) public_key(): std.js.Dom.CryptoKey.CryptoKey.

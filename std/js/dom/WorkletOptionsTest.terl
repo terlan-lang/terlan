@@ -13,8 +13,3 @@
 module std.js.Dom.WorkletOptionsTest.
 
 import type std.js.Dom.WorkletOptions.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub credentials_typechecks(receiver: WorkletOptions): RequestCredentials ->
-    receiver.credentials().

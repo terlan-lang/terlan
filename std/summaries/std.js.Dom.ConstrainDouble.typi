@@ -14,4 +14,4 @@
 module std.js.Dom.ConstrainDouble.
 
 pub type ConstrainDouble =
-    ConstrainDoubleRange | std.js.Number.JsNumber.
+    std.js.Dom.ConstrainDoubleRange.ConstrainDoubleRange | std.js.Number.JsNumber.

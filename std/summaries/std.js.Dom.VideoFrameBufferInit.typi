@@ -15,22 +15,20 @@ module std.js.Dom.VideoFrameBufferInit.
 
 pub opaque type VideoFrameBufferInit.
 
-pub (value: VideoFrameBufferInit) coded_height(): std.js.Number.JsNumber.
+pub (receiver: VideoFrameBufferInit) coded_height(): std.js.Number.JsNumber.
 
-pub (value: VideoFrameBufferInit) coded_width(): std.js.Number.JsNumber.
+pub (receiver: VideoFrameBufferInit) coded_width(): std.js.Number.JsNumber.
 
-pub (value: VideoFrameBufferInit) color_space(): VideoColorSpaceInit.
+pub (receiver: VideoFrameBufferInit) color_space(): std.core.Option.Option[std.js.Dom.VideoColorSpaceInit.VideoColorSpaceInit].
 
-pub (value: VideoFrameBufferInit) display_height(): std.js.Number.JsNumber.
+pub (receiver: VideoFrameBufferInit) display_height(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: VideoFrameBufferInit) display_width(): std.js.Number.JsNumber.
+pub (receiver: VideoFrameBufferInit) display_width(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: VideoFrameBufferInit) duration(): std.js.Number.JsNumber.
+pub (receiver: VideoFrameBufferInit) duration(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: VideoFrameBufferInit) format(): VideoPixelFormat.
+pub (receiver: VideoFrameBufferInit) layout(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]].
 
-pub (value: VideoFrameBufferInit) layout(): std.js.Array[PlaneLayout].
+pub (receiver: VideoFrameBufferInit) timestamp(): std.js.Number.JsNumber.
 
-pub (value: VideoFrameBufferInit) timestamp(): std.js.Number.JsNumber.
-
-pub (value: VideoFrameBufferInit) visible_rect(): DOMRectInit.
+pub (receiver: VideoFrameBufferInit) visible_rect(): std.core.Option.Option[std.js.Dom.DOMRectInit.DOMRectInit].

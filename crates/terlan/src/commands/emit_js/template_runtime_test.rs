@@ -59,6 +59,7 @@ pub view(title: String, href: String, classes: List[String], disabled: Bool, cou
         &compiled.core,
         &compiled.syntax_output,
         &source_path,
+        TargetProfile::JsBrowser,
     )
     .expect("generate template runtime")
     .expect("direct JS template lowering");
@@ -166,6 +167,7 @@ pub render(title: String, href: String, disabled: Bool, classes: List[String], t
             &compiled.core,
             &compiled.syntax_output,
             &source_path,
+            profile,
         )
         .expect("generate shared fixture runtime")
         .expect("direct shared fixture lowering");

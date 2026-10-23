@@ -12,12 +12,13 @@
  */
 module std.js.Dom.MediaPositionState.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type MediaPositionState.
 
-pub (value: MediaPositionState) duration(): JsNumber.
+pub (receiver: MediaPositionState) duration(): Option[JsNumber].
 
-pub (value: MediaPositionState) playback_rate(): JsNumber.
+pub (receiver: MediaPositionState) playback_rate(): Option[JsNumber].
 
-pub (value: MediaPositionState) position(): JsNumber.
+pub (receiver: MediaPositionState) position(): Option[JsNumber].

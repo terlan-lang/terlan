@@ -14,12 +14,7 @@ module std.js.Dom.AuthenticationExtensionsPRFInputsTest.
 
 import type std.js.Dom.AuthenticationExtensionsPRFInputs.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub eval_typechecks(receiver: AuthenticationExtensionsPRFInputs): AuthenticationExtensionsPRFValues ->
-    receiver.eval().
-
-pub eval_by_credential_typechecks(
+pub eval_typechecks(
     receiver: AuthenticationExtensionsPRFInputs,
-): Record[std.js.String.JsString, AuthenticationExtensionsPRFValues] ->
-    receiver.eval_by_credential().
+): std.core.Option.Option[std.js.Dom.AuthenticationExtensionsPRFValues.AuthenticationExtensionsPRFValues] ->
+    receiver.eval().

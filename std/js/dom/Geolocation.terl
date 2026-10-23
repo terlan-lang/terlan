@@ -12,7 +12,11 @@
  */
 module std.js.Dom.Geolocation.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.PositionCallback.{PositionCallback}.
+import type std.js.Dom.PositionErrorCallback.{PositionErrorCallback}.
+import type std.js.Dom.PositionOptions.{PositionOptions}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,7 +31,7 @@ pub opaque type Geolocation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Geolocation/clearWatch)
  */
-pub (value: Geolocation) clear_watch(watch_id: JsNumber): Unit ->
+pub (receiver: Geolocation) clear_watch(watch_id: JsNumber): Unit ->
     native.
 
 /**
@@ -35,10 +39,10 @@ pub (value: Geolocation) clear_watch(watch_id: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Geolocation/getCurrentPosition)
  */
-pub (value: Geolocation) get_current_position(
+pub (receiver: Geolocation) get_current_position(
     success_callback: PositionCallback,
-    error_callback: Option[PositionErrorCallback],
-    options: PositionOptions,
+    error_callback: Option[Option[PositionErrorCallback]],
+    options: Option[PositionOptions],
 ): Unit ->
     native.
 
@@ -47,9 +51,9 @@ pub (value: Geolocation) get_current_position(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Geolocation/watchPosition)
  */
-pub (value: Geolocation) watch_position(
+pub (receiver: Geolocation) watch_position(
     success_callback: PositionCallback,
-    error_callback: Option[PositionErrorCallback],
-    options: PositionOptions,
+    error_callback: Option[Option[PositionErrorCallback]],
+    options: Option[PositionOptions],
 ): JsNumber ->
     native.

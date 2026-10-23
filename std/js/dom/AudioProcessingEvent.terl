@@ -12,6 +12,8 @@
  */
 module std.js.Dom.AudioProcessingEvent.
 
+import type std.js.Dom.AudioBuffer.{AudioBuffer}.
+
 /**
  * The `AudioProcessingEvent` interface of the Web Audio API represents events that occur when a ScriptProcessorNode input buffer is ready to be processed.
  * @deprecated As of the August 29 2014 Web Audio API spec publication, this feature has been marked as deprecated, and is soon to be replaced by AudioWorklet.
@@ -26,7 +28,7 @@ pub opaque type AudioProcessingEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioProcessingEvent/inputBuffer)
  */
-pub (value: AudioProcessingEvent) input_buffer(): AudioBuffer ->
+pub (receiver: AudioProcessingEvent) input_buffer(): AudioBuffer ->
     native.
 
 /**
@@ -35,7 +37,7 @@ pub (value: AudioProcessingEvent) input_buffer(): AudioBuffer ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioProcessingEvent/outputBuffer)
  */
-pub (value: AudioProcessingEvent) output_buffer(): AudioBuffer ->
+pub (receiver: AudioProcessingEvent) output_buffer(): AudioBuffer ->
     native.
 
 /**
@@ -44,5 +46,5 @@ pub (value: AudioProcessingEvent) output_buffer(): AudioBuffer ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioProcessingEvent/playbackTime)
  */
-pub (value: AudioProcessingEvent) playback_time(): std.js.Number.JsNumber ->
+pub (receiver: AudioProcessingEvent) playback_time(): std.js.Number.JsNumber ->
     native.

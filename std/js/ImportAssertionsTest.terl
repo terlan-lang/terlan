@@ -13,5 +13,3 @@
 module std.js.ImportAssertionsTest.
 
 import type std.js.ImportAssertions.
-
-pub generated_binding_surface_contract(): Bool -> true.

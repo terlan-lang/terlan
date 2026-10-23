@@ -25,4 +25,4 @@ pub opaque type FileSystemDirectoryReader.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryReader/readEntries)
  */
-pub (value: FileSystemDirectoryReader) read_entries(success_callback: FileSystemEntriesCallback, error_callback: ErrorCallback): std.core.Unit.
+pub (receiver: FileSystemDirectoryReader) read_entries(success_callback: std.js.Dom.FileSystemEntriesCallback.FileSystemEntriesCallback, error_callback: std.core.Option.Option[std.js.Dom.ErrorCallback.ErrorCallback]): std.core.Unit.Unit.

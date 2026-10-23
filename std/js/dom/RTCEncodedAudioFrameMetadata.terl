@@ -14,5 +14,5 @@ module std.js.Dom.RTCEncodedAudioFrameMetadata.
 
 pub opaque type RTCEncodedAudioFrameMetadata.
 
-pub (value: RTCEncodedAudioFrameMetadata) sequence_number(): std.js.Number.JsNumber ->
+pub (receiver: RTCEncodedAudioFrameMetadata) sequence_number(): std.core.Option.Option[std.js.Number.JsNumber] ->
     native.

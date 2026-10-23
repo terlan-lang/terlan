@@ -14,7 +14,5 @@ module std.js.Dom.FontFaceSourceTest.
 
 import type std.js.Dom.FontFaceSource.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub fonts_typechecks(receiver: FontFaceSource): FontFaceSet ->
+pub fonts_typechecks(receiver: FontFaceSource): std.js.Dom.FontFaceSet.FontFaceSet ->
     receiver.fonts().

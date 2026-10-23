@@ -12,6 +12,8 @@
  */
 module std.js.Dom.SVGAnimatedAngle.
 
+import type std.js.Dom.SVGAngle.{SVGAngle}.
+
 /**
  * The **`SVGAnimatedAngle`** interface is used for attributes of basic type \<angle> which can be animated.
  *
@@ -24,7 +26,7 @@ pub opaque type SVGAnimatedAngle.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedAngle/animVal)
  */
-pub (value: SVGAnimatedAngle) anim_val(): SVGAngle ->
+pub (receiver: SVGAnimatedAngle) anim_val(): SVGAngle ->
     native.
 
 /**
@@ -32,5 +34,5 @@ pub (value: SVGAnimatedAngle) anim_val(): SVGAngle ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedAngle/baseVal)
  */
-pub (value: SVGAnimatedAngle) base_val(): SVGAngle ->
+pub (receiver: SVGAnimatedAngle) base_val(): SVGAngle ->
     native.

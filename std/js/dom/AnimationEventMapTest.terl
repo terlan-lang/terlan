@@ -13,8 +13,7 @@
 module std.js.Dom.AnimationEventMapTest.
 
 import type std.js.Dom.AnimationEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.AnimationPlaybackEvent.{AnimationPlaybackEvent}.
 
 pub cancel_typechecks(receiver: AnimationEventMap): AnimationPlaybackEvent ->
     receiver.cancel().

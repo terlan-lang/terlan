@@ -15,8 +15,6 @@ module std.js.Dom.ToggleEventTest.
 import type std.js.Dom.ToggleEvent.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub new_state_typechecks(receiver: ToggleEvent): JsString ->
     receiver.new_state().
 

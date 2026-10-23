@@ -1,5 +1,7 @@
 module tests.js.std.NumberTest.
 
+import std.js.Number.{from_float}.
+
 import type std.js.Number.{JsNumber}.
 
 pub accepts_js_number(value: JsNumber): JsNumber ->
@@ -9,6 +11,10 @@ pub converts_to_float(value: JsNumber): Float ->
     value.to_float().
 
 pub converts_from_float(value: Float): JsNumber ->
-    std.js.Number.from_float(value).
+    from_float(value).
 
-pub generated_surface_contract(): Bool -> true.
+@test
+pub number_conversions_preserve_fractional_and_negative_values(): Bool ->
+    from_float(3.5).to_float() == 3.5
+        and from_float(-12.25).to_float() == -12.25
+        and from_float(0.0).to_float() == 0.0.

@@ -12,7 +12,10 @@
  */
 module std.js.Dom.Selection.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.Node.{Node}.
+import type std.js.Dom.Range.{Range}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +31,7 @@ pub opaque type Selection.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/anchorNode)
  */
-pub (value: Selection) anchor_node(): Option[Node] ->
+pub (receiver: Selection) anchor_node(): Option[Node] ->
     native.
 
 /**
@@ -36,7 +39,7 @@ pub (value: Selection) anchor_node(): Option[Node] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/anchorOffset)
  */
-pub (value: Selection) anchor_offset(): JsNumber ->
+pub (receiver: Selection) anchor_offset(): JsNumber ->
     native.
 
 /**
@@ -44,7 +47,7 @@ pub (value: Selection) anchor_offset(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/direction)
  */
-pub (value: Selection) direction(): JsString ->
+pub (receiver: Selection) direction(): JsString ->
     native.
 
 /**
@@ -52,7 +55,7 @@ pub (value: Selection) direction(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/focusNode)
  */
-pub (value: Selection) focus_node(): Option[Node] ->
+pub (receiver: Selection) focus_node(): Option[Node] ->
     native.
 
 /**
@@ -60,7 +63,7 @@ pub (value: Selection) focus_node(): Option[Node] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/focusOffset)
  */
-pub (value: Selection) focus_offset(): JsNumber ->
+pub (receiver: Selection) focus_offset(): JsNumber ->
     native.
 
 /**
@@ -68,7 +71,7 @@ pub (value: Selection) focus_offset(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/isCollapsed)
  */
-pub (value: Selection) is_collapsed(): Bool ->
+pub (receiver: Selection) is_collapsed(): Bool ->
     native.
 
 /**
@@ -76,7 +79,7 @@ pub (value: Selection) is_collapsed(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/rangeCount)
  */
-pub (value: Selection) range_count(): JsNumber ->
+pub (receiver: Selection) range_count(): JsNumber ->
     native.
 
 /**
@@ -84,7 +87,7 @@ pub (value: Selection) range_count(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/type)
  */
-pub (value: Selection) type_(): JsString ->
+pub (receiver: Selection) type_(): JsString ->
     native.
 
 /**
@@ -92,7 +95,7 @@ pub (value: Selection) type_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/addRange)
  */
-pub (value: Selection) add_range(range: Range): Unit ->
+pub (receiver: Selection) add_range(range: Range): Unit ->
     native.
 
 /**
@@ -100,7 +103,7 @@ pub (value: Selection) add_range(range: Range): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/collapse)
  */
-pub (value: Selection) collapse(node: Option[Node], offset: JsNumber): Unit ->
+pub (receiver: Selection) collapse(node: Option[Node], offset: Option[JsNumber]): Unit ->
     native.
 
 /**
@@ -108,7 +111,7 @@ pub (value: Selection) collapse(node: Option[Node], offset: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/collapseToEnd)
  */
-pub (value: Selection) collapse_to_end(): Unit ->
+pub (receiver: Selection) collapse_to_end(): Unit ->
     native.
 
 /**
@@ -116,7 +119,7 @@ pub (value: Selection) collapse_to_end(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/collapseToStart)
  */
-pub (value: Selection) collapse_to_start(): Unit ->
+pub (receiver: Selection) collapse_to_start(): Unit ->
     native.
 
 /**
@@ -124,7 +127,7 @@ pub (value: Selection) collapse_to_start(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/containsNode)
  */
-pub (value: Selection) contains_node(node: Node, allow_partial_containment: Bool): Bool ->
+pub (receiver: Selection) contains_node(node: Node, allow_partial_containment: Option[Bool]): Bool ->
     native.
 
 /**
@@ -132,7 +135,7 @@ pub (value: Selection) contains_node(node: Node, allow_partial_containment: Bool
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/deleteFromDocument)
  */
-pub (value: Selection) delete_from_document(): Unit ->
+pub (receiver: Selection) delete_from_document(): Unit ->
     native.
 
 /**
@@ -140,7 +143,7 @@ pub (value: Selection) delete_from_document(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/empty)
  */
-pub (value: Selection) empty(): Unit ->
+pub (receiver: Selection) empty(): Unit ->
     native.
 
 /**
@@ -148,7 +151,7 @@ pub (value: Selection) empty(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/extend)
  */
-pub (value: Selection) extend(node: Node, offset: JsNumber): Unit ->
+pub (receiver: Selection) extend(node: Node, offset: Option[JsNumber]): Unit ->
     native.
 
 /**
@@ -156,7 +159,9 @@ pub (value: Selection) extend(node: Node, offset: JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/getComposedRanges)
  */
-pub (value: Selection) get_composed_ranges(options: GetComposedRangesOptions): std.js.Array[StaticRange] ->
+pub (receiver: Selection) get_composed_ranges(
+    options: Option[std.js.Dom.GetComposedRangesOptions.GetComposedRangesOptions],
+): std.js.Array.Array[std.js.Dom.StaticRange.StaticRange] ->
     native.
 
 /**
@@ -164,7 +169,7 @@ pub (value: Selection) get_composed_ranges(options: GetComposedRangesOptions): s
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/getRangeAt)
  */
-pub (value: Selection) get_range_at(index: JsNumber): Range ->
+pub (receiver: Selection) get_range_at(index: JsNumber): Range ->
     native.
 
 /**
@@ -172,7 +177,11 @@ pub (value: Selection) get_range_at(index: JsNumber): Range ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/modify)
  */
-pub (value: Selection) modify(alter: JsString, direction: JsString, granularity: JsString): Unit ->
+pub (receiver: Selection) modify(
+    alter: Option[JsString],
+    direction: Option[JsString],
+    granularity: Option[JsString],
+): Unit ->
     native.
 
 /**
@@ -180,7 +189,7 @@ pub (value: Selection) modify(alter: JsString, direction: JsString, granularity:
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/removeAllRanges)
  */
-pub (value: Selection) remove_all_ranges(): Unit ->
+pub (receiver: Selection) remove_all_ranges(): Unit ->
     native.
 
 /**
@@ -188,7 +197,7 @@ pub (value: Selection) remove_all_ranges(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/removeRange)
  */
-pub (value: Selection) remove_range(range: Range): Unit ->
+pub (receiver: Selection) remove_range(range: Range): Unit ->
     native.
 
 /**
@@ -196,7 +205,7 @@ pub (value: Selection) remove_range(range: Range): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/selectAllChildren)
  */
-pub (value: Selection) select_all_children(node: Node): Unit ->
+pub (receiver: Selection) select_all_children(node: Node): Unit ->
     native.
 
 /**
@@ -204,7 +213,7 @@ pub (value: Selection) select_all_children(node: Node): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/setBaseAndExtent)
  */
-pub (value: Selection) set_base_and_extent(
+pub (receiver: Selection) set_base_and_extent(
     anchor_node: Node,
     anchor_offset: JsNumber,
     focus_node: Node,
@@ -217,8 +226,8 @@ pub (value: Selection) set_base_and_extent(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Selection/setPosition)
  */
-pub (value: Selection) set_position(node: Option[Node], offset: JsNumber): Unit ->
+pub (receiver: Selection) set_position(node: Option[Node], offset: Option[JsNumber]): Unit ->
     native.
 
-pub (value: Selection) to_string(): JsString ->
+pub (receiver: Selection) to_string(): JsString ->
     native.

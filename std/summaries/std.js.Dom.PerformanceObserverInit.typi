@@ -15,8 +15,8 @@ module std.js.Dom.PerformanceObserverInit.
 
 pub opaque type PerformanceObserverInit.
 
-pub (value: PerformanceObserverInit) buffered(): std.core.Bool.
+pub (receiver: PerformanceObserverInit) buffered(): std.core.Option.Option[Bool].
 
-pub (value: PerformanceObserverInit) entry_types(): std.js.Array[std.js.String.JsString].
+pub (receiver: PerformanceObserverInit) entry_types(): std.core.Option.Option[std.js.Array.Array[std.js.String.JsString]].
 
-pub (value: PerformanceObserverInit) type_(): std.js.String.JsString.
+pub (receiver: PerformanceObserverInit) type_(): std.core.Option.Option[std.js.String.JsString].

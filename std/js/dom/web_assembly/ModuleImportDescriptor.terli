@@ -16,8 +16,6 @@ import type std.js.String.{JsString}.
 
 pub opaque type ModuleImportDescriptor.
 
-pub (value: ModuleImportDescriptor) kind(): ImportExportKind.
+pub (receiver: ModuleImportDescriptor) module_(): JsString.
 
-pub (value: ModuleImportDescriptor) module_(): JsString.
-
-pub (value: ModuleImportDescriptor) name(): JsString.
+pub (receiver: ModuleImportDescriptor) name(): JsString.

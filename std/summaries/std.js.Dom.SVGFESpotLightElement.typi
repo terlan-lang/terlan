@@ -25,57 +25,57 @@ pub opaque type SVGFESpotLightElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/limitingConeAngle)
  */
-pub (value: SVGFESpotLightElement) limiting_cone_angle(): SVGAnimatedNumber.
+pub (receiver: SVGFESpotLightElement) limiting_cone_angle(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`pointsAtX`** read-only property of the SVGFESpotLightElement interface reflects the pointsAtX attribute of the given feSpotLight element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/pointsAtX)
  */
-pub (value: SVGFESpotLightElement) points_at_x(): SVGAnimatedNumber.
+pub (receiver: SVGFESpotLightElement) points_at_x(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`pointsAtY`** read-only property of the SVGFESpotLightElement interface reflects the pointsAtY attribute of the given feSpotLight element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/pointsAtY)
  */
-pub (value: SVGFESpotLightElement) points_at_y(): SVGAnimatedNumber.
+pub (receiver: SVGFESpotLightElement) points_at_y(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`pointsAtZ`** read-only property of the SVGFESpotLightElement interface reflects the pointsAtZ attribute of the given feSpotLight element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/pointsAtZ)
  */
-pub (value: SVGFESpotLightElement) points_at_z(): SVGAnimatedNumber.
+pub (receiver: SVGFESpotLightElement) points_at_z(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`specularExponent`** read-only property of the SVGFESpotLightElement interface reflects the specularExponent attribute of the given feSpotLight element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/specularExponent)
  */
-pub (value: SVGFESpotLightElement) specular_exponent(): SVGAnimatedNumber.
+pub (receiver: SVGFESpotLightElement) specular_exponent(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`x`** read-only property of the SVGFESpotLightElement interface describes the horizontal coordinate of the position of an SVG filter primitive as a SVGAnimatedNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/x)
  */
-pub (value: SVGFESpotLightElement) x(): SVGAnimatedNumber.
+pub (receiver: SVGFESpotLightElement) x(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`y`** read-only property of the SVGFESpotLightElement interface describes the vertical coordinate of the position of an SVG filter primitive as a SVGAnimatedNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/y)
  */
-pub (value: SVGFESpotLightElement) y(): SVGAnimatedNumber.
+pub (receiver: SVGFESpotLightElement) y(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`z`** read-only property of the SVGFESpotLightElement interface describes the z-axis value of the position of an SVG filter primitive as a SVGAnimatedNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpotLightElement/z)
  */
-pub (value: SVGFESpotLightElement) z(): SVGAnimatedNumber.
+pub (receiver: SVGFESpotLightElement) z(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
-pub (value: SVGFESpotLightElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGFESpotLightElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: SVGFESpotLightElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGFESpotLightElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

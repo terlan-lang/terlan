@@ -15,8 +15,8 @@ module std.js.Dom.AddEventListenerOptions.
 
 pub opaque type AddEventListenerOptions.
 
-pub (value: AddEventListenerOptions) once(): std.core.Bool.
+pub (receiver: AddEventListenerOptions) once(): std.core.Option.Option[Bool].
 
-pub (value: AddEventListenerOptions) passive(): std.core.Bool.
+pub (receiver: AddEventListenerOptions) passive(): std.core.Option.Option[Bool].
 
-pub (value: AddEventListenerOptions) signal(): AbortSignal.
+pub (receiver: AddEventListenerOptions) signal(): std.core.Option.Option[std.js.Dom.AbortSignal.AbortSignal].

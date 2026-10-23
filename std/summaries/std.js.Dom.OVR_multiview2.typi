@@ -25,4 +25,4 @@ pub opaque type OVR_multiview2.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OVR_multiview2/framebufferTextureMultiviewOVR)
  */
-pub (value: OVR_multiview2) framebuffer_texture_multiview_ovr(target_: GLenum, attachment: GLenum, texture: Option[WebGLTexture], level: GLint, base_view_index: GLint, num_views: GLsizei): std.core.Unit.
+pub (receiver: OVR_multiview2) framebuffer_texture_multiview_ovr(target_: std.js.Dom.GLenum.GLenum, attachment: std.js.Dom.GLenum.GLenum, texture: std.core.Option.Option[std.js.Dom.WebGLTexture.WebGLTexture], level: std.js.Dom.GLint.GLint, base_view_index: std.js.Dom.GLint.GLint, num_views: std.js.Dom.GLsizei.GLsizei): std.core.Unit.Unit.

@@ -12,19 +12,21 @@
  */
 module std.js.Dom.HTMLFieldSetElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.HTMLFieldSetElement.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub disabled_typechecks(receiver: HTMLFieldSetElement): Bool ->
     receiver.disabled().
 
-pub elements_typechecks(receiver: HTMLFieldSetElement): HTMLCollection ->
+pub elements_typechecks(receiver: HTMLFieldSetElement): std.js.Dom.HTMLCollection.HTMLCollection ->
     receiver.elements().
 
-pub form_typechecks(receiver: HTMLFieldSetElement): Option[HTMLFormElement] ->
+pub form_typechecks(
+    receiver: HTMLFieldSetElement,
+): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
     receiver.form().
 
 pub name_typechecks(receiver: HTMLFieldSetElement): JsString ->
@@ -36,7 +38,7 @@ pub type__typechecks(receiver: HTMLFieldSetElement): JsString ->
 pub validation_message_typechecks(receiver: HTMLFieldSetElement): JsString ->
     receiver.validation_message().
 
-pub validity_typechecks(receiver: HTMLFieldSetElement): ValidityState ->
+pub validity_typechecks(receiver: HTMLFieldSetElement): std.js.Dom.ValidityState.ValidityState ->
     receiver.validity().
 
 pub will_validate_typechecks(receiver: HTMLFieldSetElement): Bool ->
@@ -55,7 +57,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLFieldSetElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -63,6 +65,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLFieldSetElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

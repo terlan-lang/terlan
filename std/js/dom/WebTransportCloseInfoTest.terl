@@ -12,12 +12,11 @@
  */
 module std.js.Dom.WebTransportCloseInfoTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.WebTransportCloseInfo.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub close_code_typechecks(receiver: WebTransportCloseInfo): std.js.Number.JsNumber ->
+pub close_code_typechecks(receiver: WebTransportCloseInfo): Option[std.js.Number.JsNumber] ->
     receiver.close_code().
 
-pub reason_typechecks(receiver: WebTransportCloseInfo): std.js.String.JsString ->
+pub reason_typechecks(receiver: WebTransportCloseInfo): Option[std.js.String.JsString] ->
     receiver.reason().

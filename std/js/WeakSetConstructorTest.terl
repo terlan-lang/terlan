@@ -13,8 +13,3 @@
 module std.js.WeakSetConstructorTest.
 
 import type std.js.WeakSetConstructor.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: WeakSetConstructor): WeakSet[WeakKey] ->
-    receiver.prototype().

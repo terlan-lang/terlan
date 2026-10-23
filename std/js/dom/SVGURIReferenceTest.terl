@@ -14,7 +14,5 @@ module std.js.Dom.SVGURIReferenceTest.
 
 import type std.js.Dom.SVGURIReference.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub href_typechecks(receiver: SVGURIReference): SVGAnimatedString ->
+pub href_typechecks(receiver: SVGURIReference): std.js.Dom.SVGAnimatedString.SVGAnimatedString ->
     receiver.href().

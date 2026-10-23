@@ -15,8 +15,6 @@ module std.js.Dom.VTTRegionTest.
 import type std.js.Dom.VTTRegion.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub id_typechecks(receiver: VTTRegion): std.js.String.JsString ->
     receiver.id().
 
@@ -28,9 +26,6 @@ pub region_anchor_x_typechecks(receiver: VTTRegion): JsNumber ->
 
 pub region_anchor_y_typechecks(receiver: VTTRegion): JsNumber ->
     receiver.region_anchor_y().
-
-pub scroll_typechecks(receiver: VTTRegion): ScrollSetting ->
-    receiver.scroll().
 
 pub viewport_anchor_x_typechecks(receiver: VTTRegion): JsNumber ->
     receiver.viewport_anchor_x().

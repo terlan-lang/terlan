@@ -12,10 +12,12 @@
  */
 module std.js.Dom.VideoEncoderEncodeOptions.
 
+import type std.core.Option.{Option}.
+
 pub opaque type VideoEncoderEncodeOptions.
 
-pub (value: VideoEncoderEncodeOptions) avc(): VideoEncoderEncodeOptionsForAvc ->
+pub (receiver: VideoEncoderEncodeOptions) avc(): Option[std.js.Dom.VideoEncoderEncodeOptionsForAvc.VideoEncoderEncodeOptionsForAvc] ->
     native.
 
-pub (value: VideoEncoderEncodeOptions) key_frame(): std.core.Bool ->
+pub (receiver: VideoEncoderEncodeOptions) key_frame(): Option[Bool] ->
     native.

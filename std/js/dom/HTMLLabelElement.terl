@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLLabelElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type HTMLLabelElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLabelElement/control)
  */
-pub (value: HTMLLabelElement) control(): Option[HTMLElement] ->
+pub (receiver: HTMLLabelElement) control(): Option[std.js.Dom.HTMLElement.HTMLElement] ->
     native.
 
 /**
@@ -35,7 +37,7 @@ pub (value: HTMLLabelElement) control(): Option[HTMLElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLabelElement/form)
  */
-pub (value: HTMLLabelElement) form(): Option[HTMLFormElement] ->
+pub (receiver: HTMLLabelElement) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
     native.
 
 /**
@@ -43,19 +45,19 @@ pub (value: HTMLLabelElement) form(): Option[HTMLFormElement] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLabelElement/htmlFor)
  */
-pub (value: HTMLLabelElement) html_for(): JsString ->
+pub (receiver: HTMLLabelElement) html_for(): JsString ->
     native.
 
-pub (value: HTMLLabelElement) add_event_listener(
+pub (receiver: HTMLLabelElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLLabelElement) remove_event_listener(
+pub (receiver: HTMLLabelElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

@@ -12,12 +12,10 @@
  */
 module std.js.Dom.CanvasStateTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.CanvasState.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub is_context_lost_typechecks(receiver: CanvasState): std.core.Bool ->
+pub is_context_lost_typechecks(receiver: CanvasState): Bool ->
     receiver.is_context_lost().
 
 pub reset_typechecks(receiver: CanvasState): Unit ->

@@ -25,15 +25,15 @@ pub opaque type MediaQueryList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaQueryList/matches)
  */
-pub (value: MediaQueryList) matches(): std.core.Bool.
+pub (receiver: MediaQueryList) matches(): Bool.
 
 /**
  * The **`media`** read-only property of the serialized media query.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaQueryList/media)
  */
-pub (value: MediaQueryList) media(): std.js.String.JsString.
+pub (receiver: MediaQueryList) media(): std.js.String.JsString.
 
-pub (value: MediaQueryList) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: MediaQueryList) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: MediaQueryList) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: MediaQueryList) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

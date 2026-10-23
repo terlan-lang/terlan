@@ -14,7 +14,5 @@ module std.js.Dom.ScreenOrientationEventMapTest.
 
 import type std.js.Dom.ScreenOrientationEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub change_typechecks(receiver: ScreenOrientationEventMap): Event ->
+pub change_typechecks(receiver: ScreenOrientationEventMap): std.js.Dom.Event.Event ->
     receiver.change().

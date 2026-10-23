@@ -12,13 +12,11 @@
  */
 module std.js.Dom.FileSystemFlagsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.FileSystemFlags.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub create_typechecks(receiver: FileSystemFlags): Bool ->
+pub create_typechecks(receiver: FileSystemFlags): Option[Bool] ->
     receiver.create().
 
-pub exclusive_typechecks(receiver: FileSystemFlags): Bool ->
+pub exclusive_typechecks(receiver: FileSystemFlags): Option[Bool] ->
     receiver.exclusive().

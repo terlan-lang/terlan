@@ -14,7 +14,5 @@ module std.js.TypeErrorConstructorTest.
 
 import type std.js.TypeErrorConstructor.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: TypeErrorConstructor): TypeError ->
+pub prototype_typechecks(receiver: TypeErrorConstructor): std.js.TypeError.TypeError ->
     receiver.prototype().

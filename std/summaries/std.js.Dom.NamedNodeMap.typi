@@ -25,53 +25,53 @@ pub opaque type NamedNodeMap.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NamedNodeMap/length)
  */
-pub (value: NamedNodeMap) length(): std.js.Number.JsNumber.
+pub (receiver: NamedNodeMap) length(): std.js.Number.JsNumber.
 
 /**
  * The **`getNamedItem()`** method of the NamedNodeMap interface returns the Attr corresponding to the given name, or `null` if there is no corresponding attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NamedNodeMap/getNamedItem)
  */
-pub (value: NamedNodeMap) get_named_item(qualified_name: std.js.String.JsString): Option[Attr].
+pub (receiver: NamedNodeMap) get_named_item(qualified_name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.Attr.Attr].
 
 /**
  * The **`getNamedItemNS()`** method of the NamedNodeMap interface returns the Attr corresponding to the given local name in the given namespace, or `null` if there is no corresponding attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NamedNodeMap/getNamedItemNS)
  */
-pub (value: NamedNodeMap) get_named_item_ns(namespace: Option[std.js.String.JsString], local_name: std.js.String.JsString): Option[Attr].
+pub (receiver: NamedNodeMap) get_named_item_ns(namespace: std.core.Option.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.Attr.Attr].
 
 /**
  * The **`item()`** method of the NamedNodeMap interface returns the item in the map matching the index.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NamedNodeMap/item)
  */
-pub (value: NamedNodeMap) item(index: std.js.Number.JsNumber): Option[Attr].
+pub (receiver: NamedNodeMap) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.Attr.Attr].
 
 /**
  * The **`removeNamedItem()`** method of the NamedNodeMap interface removes the Attr corresponding to the given name from the map.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NamedNodeMap/removeNamedItem)
  */
-pub (value: NamedNodeMap) remove_named_item(qualified_name: std.js.String.JsString): Attr.
+pub (receiver: NamedNodeMap) remove_named_item(qualified_name: std.js.String.JsString): std.js.Dom.Attr.Attr.
 
 /**
  * The **`removeNamedItemNS()`** method of the NamedNodeMap interface removes the Attr corresponding to the given namespace and local name from the map.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NamedNodeMap/removeNamedItemNS)
  */
-pub (value: NamedNodeMap) remove_named_item_ns(namespace: Option[std.js.String.JsString], local_name: std.js.String.JsString): Attr.
+pub (receiver: NamedNodeMap) remove_named_item_ns(namespace: std.core.Option.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.js.Dom.Attr.Attr.
 
 /**
  * The **`setNamedItem()`** method of the NamedNodeMap interface puts the Attr identified by its name in the map.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NamedNodeMap/setNamedItem)
  */
-pub (value: NamedNodeMap) set_named_item(attr: Attr): Option[Attr].
+pub (receiver: NamedNodeMap) set_named_item(attr: std.js.Dom.Attr.Attr): std.core.Option.Option[std.js.Dom.Attr.Attr].
 
 /**
  * The **`setNamedItemNS()`** method of the NamedNodeMap interface puts the Attr identified by its name in the map.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NamedNodeMap/setNamedItemNS)
  */
-pub (value: NamedNodeMap) set_named_item_ns(attr: Attr): Option[Attr].
+pub (receiver: NamedNodeMap) set_named_item_ns(attr: std.js.Dom.Attr.Attr): std.core.Option.Option[std.js.Dom.Attr.Attr].

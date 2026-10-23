@@ -12,9 +12,8 @@
  */
 module std.js.Dom.OffscreenCanvasEventMapTest.
 
+import type std.js.Dom.Event.{Event}.
 import type std.js.Dom.OffscreenCanvasEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub contextlost_typechecks(receiver: OffscreenCanvasEventMap): Event ->
     receiver.contextlost().

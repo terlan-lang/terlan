@@ -12,16 +12,18 @@
  */
 module std.js.Dom.ParentNodeTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.Element.{Element}.
+import type std.js.Dom.Node.{Node}.
 import type std.js.Dom.ParentNode.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub child_element_count_typechecks(receiver: ParentNode): std.js.Number.JsNumber ->
     receiver.child_element_count().
 
-pub children_typechecks(receiver: ParentNode): HTMLCollection ->
+pub children_typechecks(receiver: ParentNode): std.js.Dom.HTMLCollection.HTMLCollection ->
     receiver.children().
 
 pub first_element_child_typechecks(receiver: ParentNode): Option[Element] ->
@@ -30,17 +32,11 @@ pub first_element_child_typechecks(receiver: ParentNode): Option[Element] ->
 pub last_element_child_typechecks(receiver: ParentNode): Option[Element] ->
     receiver.last_element_child().
 
-pub append_typechecks(receiver: ParentNode): Unit ->
-    receiver.append().
+pub append_typechecks(receiver: ParentNode, nodes: Array[Node | JsString]): Unit ->
+    receiver.append(nodes).
 
-pub prepend_typechecks(receiver: ParentNode): Unit ->
-    receiver.prepend().
+pub prepend_typechecks(receiver: ParentNode, nodes: Array[Node | JsString]): Unit ->
+    receiver.prepend(nodes).
 
-pub query_selector_typechecks(receiver: ParentNode, selectors: JsString): Option[E] ->
-    receiver.query_selector(selectors).
-
-pub query_selector_all_typechecks(receiver: ParentNode, selectors: JsString): NodeListOf[E] ->
-    receiver.query_selector_all(selectors).
-
-pub replace_children_typechecks(receiver: ParentNode): Unit ->
-    receiver.replace_children().
+pub replace_children_typechecks(receiver: ParentNode, nodes: Array[Node | JsString]): Unit ->
+    receiver.replace_children(nodes).

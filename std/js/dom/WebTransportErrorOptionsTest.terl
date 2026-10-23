@@ -14,10 +14,7 @@ module std.js.Dom.WebTransportErrorOptionsTest.
 
 import type std.js.Dom.WebTransportErrorOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub source_typechecks(receiver: WebTransportErrorOptions): WebTransportErrorSource ->
-    receiver.source().
-
-pub stream_error_code_typechecks(receiver: WebTransportErrorOptions): Option[std.js.Number.JsNumber] ->
+pub stream_error_code_typechecks(
+    receiver: WebTransportErrorOptions,
+): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.stream_error_code().

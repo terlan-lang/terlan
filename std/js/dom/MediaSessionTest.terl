@@ -12,24 +12,13 @@
  */
 module std.js.Dom.MediaSessionTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.MediaSession.
-import type std.js.{Promise}.
+import type std.js.Promise.{Promise}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub metadata_typechecks(receiver: MediaSession): Option[MediaMetadata] ->
+pub metadata_typechecks(receiver: MediaSession): Option[std.js.Dom.MediaMetadata.MediaMetadata] ->
     receiver.metadata().
-
-pub playback_state_typechecks(receiver: MediaSession): MediaSessionPlaybackState ->
-    receiver.playback_state().
-
-pub set_action_handler_typechecks(
-    receiver: MediaSession,
-    action: MediaSessionAction,
-    handler: Option[MediaSessionActionHandler],
-): Unit ->
-    receiver.set_action_handler(action, handler).
 
 pub set_camera_active_typechecks(receiver: MediaSession, active: Bool): Promise[Unit] ->
     receiver.set_camera_active(active).
@@ -37,5 +26,8 @@ pub set_camera_active_typechecks(receiver: MediaSession, active: Bool): Promise[
 pub set_microphone_active_typechecks(receiver: MediaSession, active: Bool): Promise[Unit] ->
     receiver.set_microphone_active(active).
 
-pub set_position_state_typechecks(receiver: MediaSession, state: MediaPositionState): Unit ->
+pub set_position_state_typechecks(
+    receiver: MediaSession,
+    state: Option[std.js.Dom.MediaPositionState.MediaPositionState],
+): Unit ->
     receiver.set_position_state(state).

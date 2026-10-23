@@ -12,6 +12,8 @@
  */
 module std.js.Dom.DOMImplementation.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DocumentType.{DocumentType}.
 import type std.js.String.{JsString}.
 
 /**
@@ -26,11 +28,11 @@ pub opaque type DOMImplementation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMImplementation/createDocument)
  */
-pub (value: DOMImplementation) create_document(
+pub (receiver: DOMImplementation) create_document(
     namespace: Option[JsString],
     qualified_name: Option[JsString],
-    doctype: Option[DocumentType],
-): XMLDocument ->
+    doctype: Option[Option[DocumentType]],
+): std.js.Dom.XMLDocument.XMLDocument ->
     native.
 
 /**
@@ -38,7 +40,7 @@ pub (value: DOMImplementation) create_document(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMImplementation/createDocumentType)
  */
-pub (value: DOMImplementation) create_document_type(name: JsString, public_id: JsString, system_id: JsString): DocumentType ->
+pub (receiver: DOMImplementation) create_document_type(name: JsString, public_id: JsString, system_id: JsString): DocumentType ->
     native.
 
 /**
@@ -46,5 +48,5 @@ pub (value: DOMImplementation) create_document_type(name: JsString, public_id: J
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMImplementation/createHTMLDocument)
  */
-pub (value: DOMImplementation) create_html_document(title: JsString): Document ->
+pub (receiver: DOMImplementation) create_html_document(title: Option[JsString]): std.js.Dom.Document.Document ->
     native.

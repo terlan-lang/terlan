@@ -18,9 +18,4 @@ pub opaque type CanvasImageSmoothing.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled)
  */
-pub (value: CanvasImageSmoothing) image_smoothing_enabled(): std.core.Bool.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/imageSmoothingQuality)
- */
-pub (value: CanvasImageSmoothing) image_smoothing_quality(): ImageSmoothingQuality.
+pub (receiver: CanvasImageSmoothing) image_smoothing_enabled(): Bool.

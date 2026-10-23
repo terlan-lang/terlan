@@ -26,11 +26,11 @@ pub opaque type SVGAnimatedString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedString/animVal)
  */
-pub (value: SVGAnimatedString) anim_val(): JsString.
+pub (receiver: SVGAnimatedString) anim_val(): JsString.
 
 /**
  * BaseVal gets or sets the base value of the given attribute before any animations are applied.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedString/baseVal)
  */
-pub (value: SVGAnimatedString) base_val(): JsString.
+pub (receiver: SVGAnimatedString) base_val(): JsString.

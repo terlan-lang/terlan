@@ -15,8 +15,6 @@ module std.js.Dom.WebAssembly.TableDescriptor.
 
 pub opaque type TableDescriptor.
 
-pub (value: TableDescriptor) element(): TableKind.
+pub (receiver: TableDescriptor) initial(): std.js.Number.JsNumber.
 
-pub (value: TableDescriptor) initial(): std.js.Number.JsNumber.
-
-pub (value: TableDescriptor) maximum(): std.js.Number.JsNumber.
+pub (receiver: TableDescriptor) maximum(): std.core.Option.Option[std.js.Number.JsNumber].

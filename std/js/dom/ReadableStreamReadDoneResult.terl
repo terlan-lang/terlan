@@ -14,5 +14,5 @@ module std.js.Dom.ReadableStreamReadDoneResult.
 
 pub opaque type ReadableStreamReadDoneResult[T].
 
-pub (value: ReadableStreamReadDoneResult[T]) value(): Option[T] ->
+pub (receiver: ReadableStreamReadDoneResult[T]) value(): std.core.Option.Option[T] ->
     native.

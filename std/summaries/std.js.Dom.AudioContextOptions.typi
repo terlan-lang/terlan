@@ -15,6 +15,4 @@ module std.js.Dom.AudioContextOptions.
 
 pub opaque type AudioContextOptions.
 
-pub (value: AudioContextOptions) latency_hint(): AudioContextLatencyCategory | std.js.Number.JsNumber.
-
-pub (value: AudioContextOptions) sample_rate(): std.js.Number.JsNumber.
+pub (receiver: AudioContextOptions) sample_rate(): std.core.Option.Option[std.js.Number.JsNumber].

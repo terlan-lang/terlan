@@ -15,12 +15,12 @@ module std.js.Dom.SourceBufferEventMap.
 
 pub opaque type SourceBufferEventMap.
 
-pub (value: SourceBufferEventMap) abort(): Event.
+pub (receiver: SourceBufferEventMap) abort(): std.js.Dom.Event.Event.
 
-pub (value: SourceBufferEventMap) error(): Event.
+pub (receiver: SourceBufferEventMap) error(): std.js.Dom.Event.Event.
 
-pub (value: SourceBufferEventMap) update(): Event.
+pub (receiver: SourceBufferEventMap) update(): std.js.Dom.Event.Event.
 
-pub (value: SourceBufferEventMap) updateend(): Event.
+pub (receiver: SourceBufferEventMap) updateend(): std.js.Dom.Event.Event.
 
-pub (value: SourceBufferEventMap) updatestart(): Event.
+pub (receiver: SourceBufferEventMap) updatestart(): std.js.Dom.Event.Event.

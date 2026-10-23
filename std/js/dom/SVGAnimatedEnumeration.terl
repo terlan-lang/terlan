@@ -26,7 +26,7 @@ pub opaque type SVGAnimatedEnumeration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedEnumeration/animVal)
  */
-pub (value: SVGAnimatedEnumeration) anim_val(): JsNumber ->
+pub (receiver: SVGAnimatedEnumeration) anim_val(): JsNumber ->
     native.
 
 /**
@@ -34,5 +34,5 @@ pub (value: SVGAnimatedEnumeration) anim_val(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedEnumeration/baseVal)
  */
-pub (value: SVGAnimatedEnumeration) base_val(): JsNumber ->
+pub (receiver: SVGAnimatedEnumeration) base_val(): JsNumber ->
     native.

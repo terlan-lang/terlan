@@ -12,12 +12,12 @@
  */
 module std.js.Intl.CollatorOptions.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type CollatorOptions.
 
-pub (value: CollatorOptions) numeric(): Option[Bool] ->
+pub (receiver: CollatorOptions) numeric(): Option[Bool] ->
     native.
 
-pub (value: CollatorOptions) ignore_punctuation(): Option[Bool] ->
+pub (receiver: CollatorOptions) ignore_punctuation(): Option[Bool] ->
     native.

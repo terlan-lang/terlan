@@ -26,7 +26,7 @@ pub opaque type MediaMetadata.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaMetadata/album)
  */
-pub (value: MediaMetadata) album(): JsString ->
+pub (receiver: MediaMetadata) album(): JsString ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: MediaMetadata) album(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaMetadata/artist)
  */
-pub (value: MediaMetadata) artist(): JsString ->
+pub (receiver: MediaMetadata) artist(): JsString ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: MediaMetadata) artist(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaMetadata/artwork)
  */
-pub (value: MediaMetadata) artwork(): std.js.Array[MediaImage] ->
+pub (receiver: MediaMetadata) artwork(): std.js.Array.Array[std.js.Dom.MediaImage.MediaImage] ->
     native.
 
 /**
@@ -50,5 +50,5 @@ pub (value: MediaMetadata) artwork(): std.js.Array[MediaImage] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaMetadata/title)
  */
-pub (value: MediaMetadata) title(): JsString ->
+pub (receiver: MediaMetadata) title(): JsString ->
     native.

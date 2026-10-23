@@ -12,12 +12,13 @@
  */
 module std.js.Dom.LargestContentfulPaintTest.
 
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
 import type std.js.Dom.LargestContentfulPaint.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub element_typechecks(receiver: LargestContentfulPaint): Option[Element] ->
+pub element_typechecks(
+    receiver: LargestContentfulPaint,
+): std.core.Option.Option[std.js.Dom.Element.Element] ->
     receiver.element().
 
 pub id_typechecks(receiver: LargestContentfulPaint): JsString ->

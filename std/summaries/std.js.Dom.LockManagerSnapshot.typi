@@ -15,6 +15,6 @@ module std.js.Dom.LockManagerSnapshot.
 
 pub opaque type LockManagerSnapshot.
 
-pub (value: LockManagerSnapshot) held(): std.js.Array[LockInfo].
+pub (receiver: LockManagerSnapshot) held(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.LockInfo.LockInfo]].
 
-pub (value: LockManagerSnapshot) pending(): std.js.Array[LockInfo].
+pub (receiver: LockManagerSnapshot) pending(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.LockInfo.LockInfo]].

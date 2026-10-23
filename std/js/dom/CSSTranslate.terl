@@ -12,6 +12,8 @@
  */
 module std.js.Dom.CSSTranslate.
 
+import type std.js.Dom.CSSNumericValue.{CSSNumericValue}.
+
 /**
  * The **`CSSTranslate`** interface of the CSS Typed Object Model API represents the translate() value of the individual transform property in CSS.
  *
@@ -24,7 +26,7 @@ pub opaque type CSSTranslate.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTranslate/x)
  */
-pub (value: CSSTranslate) x(): CSSNumericValue ->
+pub (receiver: CSSTranslate) x(): CSSNumericValue ->
     native.
 
 /**
@@ -32,7 +34,7 @@ pub (value: CSSTranslate) x(): CSSNumericValue ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTranslate/y)
  */
-pub (value: CSSTranslate) y(): CSSNumericValue ->
+pub (receiver: CSSTranslate) y(): CSSNumericValue ->
     native.
 
 /**
@@ -40,5 +42,5 @@ pub (value: CSSTranslate) y(): CSSNumericValue ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSTranslate/z)
  */
-pub (value: CSSTranslate) z(): CSSNumericValue ->
+pub (receiver: CSSTranslate) z(): CSSNumericValue ->
     native.

@@ -14,16 +14,8 @@ module std.js.Dom.CryptoKeyTest.
 
 import type std.js.Dom.CryptoKey.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub algorithm_typechecks(receiver: CryptoKey): KeyAlgorithm ->
+pub algorithm_typechecks(receiver: CryptoKey): std.js.Dom.KeyAlgorithm.KeyAlgorithm ->
     receiver.algorithm().
 
-pub extractable_typechecks(receiver: CryptoKey): std.core.Bool ->
+pub extractable_typechecks(receiver: CryptoKey): Bool ->
     receiver.extractable().
-
-pub type__typechecks(receiver: CryptoKey): KeyType ->
-    receiver.type_().
-
-pub usages_typechecks(receiver: CryptoKey): std.js.Array[KeyUsage] ->
-    receiver.usages().

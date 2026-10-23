@@ -15,8 +15,8 @@ module std.js.Dom.IDBTransactionEventMap.
 
 pub opaque type IDBTransactionEventMap.
 
-pub (value: IDBTransactionEventMap) abort(): Event.
+pub (receiver: IDBTransactionEventMap) abort(): std.js.Dom.Event.Event.
 
-pub (value: IDBTransactionEventMap) complete(): Event.
+pub (receiver: IDBTransactionEventMap) complete(): std.js.Dom.Event.Event.
 
-pub (value: IDBTransactionEventMap) error(): Event.
+pub (receiver: IDBTransactionEventMap) error(): std.js.Dom.Event.Event.

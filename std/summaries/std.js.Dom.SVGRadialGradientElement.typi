@@ -25,43 +25,43 @@ pub opaque type SVGRadialGradientElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRadialGradientElement/cx)
  */
-pub (value: SVGRadialGradientElement) cx(): SVGAnimatedLength.
+pub (receiver: SVGRadialGradientElement) cx(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
 
 /**
  * The **`cy`** read-only property of the SVGRadialGradientElement interface describes the y-axis coordinate of the center of the radial gradient as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRadialGradientElement/cy)
  */
-pub (value: SVGRadialGradientElement) cy(): SVGAnimatedLength.
+pub (receiver: SVGRadialGradientElement) cy(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
 
 /**
  * The **`fr`** read-only property of the SVGRadialGradientElement interface describes the radius of the focal circle of the radial gradient as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRadialGradientElement/fr)
  */
-pub (value: SVGRadialGradientElement) fr(): SVGAnimatedLength.
+pub (receiver: SVGRadialGradientElement) fr(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
 
 /**
  * The **`fx`** read-only property of the SVGRadialGradientElement interface describes the x-axis coordinate of the focal point of the radial gradient as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRadialGradientElement/fx)
  */
-pub (value: SVGRadialGradientElement) fx(): SVGAnimatedLength.
+pub (receiver: SVGRadialGradientElement) fx(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
 
 /**
  * The **`fy`** read-only property of the SVGRadialGradientElement interface describes the y-axis coordinate of the focal point of the radial gradient as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRadialGradientElement/fy)
  */
-pub (value: SVGRadialGradientElement) fy(): SVGAnimatedLength.
+pub (receiver: SVGRadialGradientElement) fy(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
 
 /**
  * The **`r`** read-only property of the SVGRadialGradientElement interface describes the radius of the radial gradient as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRadialGradientElement/r)
  */
-pub (value: SVGRadialGradientElement) r(): SVGAnimatedLength.
+pub (receiver: SVGRadialGradientElement) r(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
 
-pub (value: SVGRadialGradientElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGRadialGradientElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: SVGRadialGradientElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGRadialGradientElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

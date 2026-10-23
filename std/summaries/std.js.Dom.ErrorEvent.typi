@@ -25,25 +25,25 @@ pub opaque type ErrorEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/colno)
  */
-pub (value: ErrorEvent) colno(): std.js.Number.JsNumber.
+pub (receiver: ErrorEvent) colno(): std.js.Number.JsNumber.
 
 /**
  * The **`filename`** read-only property of the ErrorEvent interface returns a string containing the name of the script file in which the error occurred.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/filename)
  */
-pub (value: ErrorEvent) filename(): std.js.String.JsString.
+pub (receiver: ErrorEvent) filename(): std.js.String.JsString.
 
 /**
  * The **`lineno`** read-only property of the ErrorEvent interface returns an integer containing the line number of the script file on which the error occurred.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/lineno)
  */
-pub (value: ErrorEvent) lineno(): std.js.Number.JsNumber.
+pub (receiver: ErrorEvent) lineno(): std.js.Number.JsNumber.
 
 /**
  * The **`message`** read-only property of the ErrorEvent interface returns a string containing a human-readable error message describing the problem.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/message)
  */
-pub (value: ErrorEvent) message(): std.js.String.JsString.
+pub (receiver: ErrorEvent) message(): std.js.String.JsString.

@@ -12,18 +12,15 @@
  */
 module std.js.MapTest.
 
-import type std.core.{Bool}.
 import type std.js.Map.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub clear_typechecks(receiver: Map[K, V]): std.core.Unit ->
+pub clear_typechecks(receiver: Map[K, V]): std.core.Unit.Unit ->
     receiver.clear().
 
 pub delete_typechecks(receiver: Map[K, V], key: K): Bool ->
     receiver.delete(key).
 
-pub get_typechecks(receiver: Map[K, V], key: K): Option[V] ->
+pub get_typechecks(receiver: Map[K, V], key: K): std.core.Option.Option[V] ->
     receiver.get(key).
 
 pub has_typechecks(receiver: Map[K, V], key: K): Bool ->

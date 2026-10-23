@@ -12,7 +12,10 @@
  */
 module std.js.Dom.SVGFEGaussianBlurElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedNumber.{SVGAnimatedNumber}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +31,7 @@ pub opaque type SVGFEGaussianBlurElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEGaussianBlurElement/in1)
  */
-pub (value: SVGFEGaussianBlurElement) in1(): SVGAnimatedString ->
+pub (receiver: SVGFEGaussianBlurElement) in1(): std.js.Dom.SVGAnimatedString.SVGAnimatedString ->
     native.
 
 /**
@@ -36,7 +39,7 @@ pub (value: SVGFEGaussianBlurElement) in1(): SVGAnimatedString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEGaussianBlurElement/stdDeviationX)
  */
-pub (value: SVGFEGaussianBlurElement) std_deviation_x(): SVGAnimatedNumber ->
+pub (receiver: SVGFEGaussianBlurElement) std_deviation_x(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -44,7 +47,7 @@ pub (value: SVGFEGaussianBlurElement) std_deviation_x(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEGaussianBlurElement/stdDeviationY)
  */
-pub (value: SVGFEGaussianBlurElement) std_deviation_y(): SVGAnimatedNumber ->
+pub (receiver: SVGFEGaussianBlurElement) std_deviation_y(): SVGAnimatedNumber ->
     native.
 
 /**
@@ -52,19 +55,19 @@ pub (value: SVGFEGaussianBlurElement) std_deviation_y(): SVGAnimatedNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEGaussianBlurElement/setStdDeviation)
  */
-pub (value: SVGFEGaussianBlurElement) set_std_deviation(std_deviation_x: JsNumber, std_deviation_y: JsNumber): Unit ->
+pub (receiver: SVGFEGaussianBlurElement) set_std_deviation(std_deviation_x: JsNumber, std_deviation_y: JsNumber): Unit ->
     native.
 
-pub (value: SVGFEGaussianBlurElement) add_event_listener(
+pub (receiver: SVGFEGaussianBlurElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SVGFEGaussianBlurElement) remove_event_listener(
+pub (receiver: SVGFEGaussianBlurElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

@@ -14,7 +14,5 @@ module std.js.Dom.AudioWorkletNodeEventMapTest.
 
 import type std.js.Dom.AudioWorkletNodeEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub processorerror_typechecks(receiver: AudioWorkletNodeEventMap): ErrorEvent ->
+pub processorerror_typechecks(receiver: AudioWorkletNodeEventMap): std.js.Dom.ErrorEvent.ErrorEvent ->
     receiver.processorerror().

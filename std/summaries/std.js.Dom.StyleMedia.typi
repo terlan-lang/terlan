@@ -18,6 +18,6 @@ module std.js.Dom.StyleMedia.
  */
 pub opaque type StyleMedia.
 
-pub (value: StyleMedia) type_(): std.js.String.JsString.
+pub (receiver: StyleMedia) type_(): std.js.String.JsString.
 
-pub (value: StyleMedia) match_medium(mediaquery: std.js.String.JsString): std.core.Bool.
+pub (receiver: StyleMedia) match_medium(mediaquery: std.js.String.JsString): Bool.

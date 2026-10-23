@@ -12,22 +12,25 @@
  */
 module std.js.Dom.MessageEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.MessageEventInit.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub data_typechecks(receiver: MessageEventInit[T]): T ->
+pub data_typechecks(receiver: MessageEventInit[T]): Option[T] ->
     receiver.data().
 
-pub last_event_id_typechecks(receiver: MessageEventInit[T]): JsString ->
+pub last_event_id_typechecks(receiver: MessageEventInit[T]): Option[JsString] ->
     receiver.last_event_id().
 
-pub origin_typechecks(receiver: MessageEventInit[T]): JsString ->
+pub origin_typechecks(receiver: MessageEventInit[T]): Option[JsString] ->
     receiver.origin().
 
-pub ports_typechecks(receiver: MessageEventInit[T]): std.js.Array[MessagePort] ->
+pub ports_typechecks(
+    receiver: MessageEventInit[T],
+): Option[std.js.Array.Array[std.js.Dom.MessagePort.MessagePort]] ->
     receiver.ports().
 
-pub source_typechecks(receiver: MessageEventInit[T]): Option[MessageEventSource] ->
+pub source_typechecks(
+    receiver: MessageEventInit[T],
+): Option[std.js.Dom.MessageEventSource.MessageEventSource] ->
     receiver.source().

@@ -25,8 +25,8 @@ pub opaque type CSSAnimation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSAnimation/animationName)
  */
-pub (value: CSSAnimation) animation_name(): std.js.String.JsString.
+pub (receiver: CSSAnimation) animation_name(): std.js.String.JsString.
 
-pub (value: CSSAnimation) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: CSSAnimation) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: CSSAnimation) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: CSSAnimation) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

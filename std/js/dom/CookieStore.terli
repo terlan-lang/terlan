@@ -12,9 +12,14 @@
  */
 module std.js.Dom.CookieStore.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.CookieList.{CookieList}.
+import type std.js.Dom.CookieListItem.{CookieListItem}.
+import type std.js.Dom.CookieStoreGetOptions.{CookieStoreGetOptions}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
 
 /**
  * The **`CookieStore`** interface of the Cookie Store API provides methods for getting and setting cookies asynchronously from either a page or a service worker.
@@ -29,45 +34,47 @@ pub opaque type CookieStore.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStore/delete)
  */
-pub (value: CookieStore) delete(name: JsString): Promise[Unit].
+pub (receiver: CookieStore) delete(name: JsString): Promise[Unit].
 
-pub (value: CookieStore) delete(options: CookieStoreDeleteOptions): Promise[Unit].
+pub (receiver: CookieStore) delete_overload_2(
+    options: std.js.Dom.CookieStoreDeleteOptions.CookieStoreDeleteOptions,
+): Promise[Unit].
 
 /**
  * The **`get()`** method of the CookieStore interface returns a Promise that resolves to a single cookie matching the given `name` or `options` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStore/get)
  */
-pub (value: CookieStore) get(name: JsString): Promise[Option[CookieListItem]].
+pub (receiver: CookieStore) get(name: JsString): Promise[Option[CookieListItem]].
 
-pub (value: CookieStore) get(options: CookieStoreGetOptions): Promise[Option[CookieListItem]].
+pub (receiver: CookieStore) get_overload_2(options: Option[CookieStoreGetOptions]): Promise[Option[CookieListItem]].
 
 /**
  * The **`getAll()`** method of the CookieStore interface returns a Promise that resolves as an array of cookies that match the `name` or `options` passed to it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStore/getAll)
  */
-pub (value: CookieStore) get_all(name: JsString): Promise[CookieList].
+pub (receiver: CookieStore) get_all(name: JsString): Promise[CookieList].
 
-pub (value: CookieStore) get_all(options: CookieStoreGetOptions): Promise[CookieList].
+pub (receiver: CookieStore) get_all_overload_2(options: Option[CookieStoreGetOptions]): Promise[CookieList].
 
 /**
  * The **`set()`** method of the CookieStore interface sets a cookie with the given `name` and `value` or `options` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStore/set)
  */
-pub (value: CookieStore) set(name: JsString, value: JsString): Promise[Unit].
+pub (receiver: CookieStore) set(name: JsString, value: JsString): Promise[Unit].
 
-pub (value: CookieStore) set(options: CookieInit): Promise[Unit].
+pub (receiver: CookieStore) set_overload_2(options: std.js.Dom.CookieInit.CookieInit): Promise[Unit].
 
-pub (value: CookieStore) add_event_listener(
+pub (receiver: CookieStore) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: CookieStore) remove_event_listener(
+pub (receiver: CookieStore) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

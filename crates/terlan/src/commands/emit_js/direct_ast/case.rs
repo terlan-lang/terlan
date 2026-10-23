@@ -1,7 +1,7 @@
 use super::{core_expr_to_oxc_expression, core_lam_expr_to_oxc_expression};
 use crate::commands::emit_js::direct_helpers::{
     core_float_literal_to_oxc_number, is_direct_oxc_js_identifier, is_js_safe_integer,
-    oxc_ident_name, oxc_string_value,
+    oxc_binding_name, oxc_ident_name, oxc_string_value,
 };
 
 #[derive(Clone)]
@@ -25,7 +25,7 @@ struct CaseObjectField<'a> {
 /// - `clauses`: CoreIR case clauses in source order.
 ///
 /// Output:
-/// - `Some(Expression)` when the scrutinee is a direct variable, every
+/// - `Some(Expression)` when every
 ///   non-final clause is an unguarded supported literal or exact tuple/list
 ///   destructuring pattern, the final clause is an unguarded wildcard
 ///   fallback, and all branch bodies are directly lowerable.
@@ -36,8 +36,8 @@ struct CaseObjectField<'a> {
 ///   preceding clauses from right to left into nested Oxc conditional
 ///   expressions. Tuple/list branches first prove array shape and exact length,
 ///   then invoke a destructuring arrow closure for branch-local bindings. The
-///   scrutinee is restricted to a variable so this direct AST path does not
-///   introduce repeated evaluation semantics.
+///   scrutinee is captured in a fresh closure parameter when needed so it is
+///   evaluated once.
 pub(super) fn core_case_clauses_to_oxc_expression<'a>(
     ast: oxc_ast::AstBuilder<'a>,
     scrutinee: &crate::terlan_typeck::CoreExpr,
@@ -46,7 +46,36 @@ pub(super) fn core_case_clauses_to_oxc_expression<'a>(
     use oxc_span::SPAN;
 
     let crate::terlan_typeck::CoreExpr::Var(scrutinee_name) = scrutinee else {
-        return None;
+        use crate::terlan_typeck::{visit_core_expr_mut, CoreExpr, CorePattern};
+        let mut used = std::collections::HashSet::new();
+        for mut expression in
+            std::iter::once(scrutinee.clone()).chain(clauses.iter().flat_map(|clause| {
+                std::iter::once(clause.body.clone()).chain(clause.guard.clone())
+            }))
+        {
+            visit_core_expr_mut(&mut expression, &mut |expression| {
+                if let CoreExpr::Var(name) = expression {
+                    used.insert(name.clone());
+                }
+            });
+        }
+        let name = (0..)
+            .map(|index| format!("$case$value${index}"))
+            .find(|name| !used.contains(name))?;
+        let body = CoreExpr::Case {
+            scrutinee: Box::new(CoreExpr::Var(name.clone())),
+            clauses: clauses.to_vec(),
+        };
+        let callee = core_lam_expr_to_oxc_expression(ast, &[CorePattern::Var(name)], &body)?;
+        return Some(ast.expression_call(
+            SPAN,
+            callee,
+            oxc_ast::NONE,
+            ast.vec1(oxc_ast::ast::Argument::from(core_expr_to_oxc_expression(
+                ast, scrutinee,
+            )?)),
+            false,
+        ));
     };
     if !is_direct_oxc_js_identifier(scrutinee_name) {
         return None;
@@ -475,7 +504,7 @@ fn core_case_scrutinee_path_to_oxc_expression<'a>(
     use oxc_span::SPAN;
     use oxc_syntax::number::NumberBase;
 
-    let mut expression = ast.expression_identifier(SPAN, oxc_ident_name(ast, scrutinee_name));
+    let mut expression = ast.expression_identifier(SPAN, oxc_binding_name(ast, scrutinee_name));
     for segment in path {
         let property = match segment {
             CasePathSegment::Index(index) => {
@@ -511,7 +540,7 @@ fn core_case_destructuring_branch_to_oxc_expression<'a>(
         oxc_ast::NONE,
         ast.vec1(Argument::from(ast.expression_identifier(
             SPAN,
-            oxc_ident_name(ast, scrutinee_name),
+            oxc_binding_name(ast, scrutinee_name),
         ))),
         false,
     ))

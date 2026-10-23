@@ -14,7 +14,5 @@ module std.js.Dom.RsaPssParamsTest.
 
 import type std.js.Dom.RsaPssParams.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub salt_length_typechecks(receiver: RsaPssParams): std.js.Number.JsNumber ->
     receiver.salt_length().

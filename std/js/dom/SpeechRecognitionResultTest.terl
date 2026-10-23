@@ -15,9 +15,7 @@ module std.js.Dom.SpeechRecognitionResultTest.
 import type std.js.Dom.SpeechRecognitionResult.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub is_final_typechecks(receiver: SpeechRecognitionResult): std.core.Bool ->
+pub is_final_typechecks(receiver: SpeechRecognitionResult): Bool ->
     receiver.is_final().
 
 pub length_typechecks(receiver: SpeechRecognitionResult): JsNumber ->
@@ -26,5 +24,5 @@ pub length_typechecks(receiver: SpeechRecognitionResult): JsNumber ->
 pub item_typechecks(
     receiver: SpeechRecognitionResult,
     index: JsNumber,
-): SpeechRecognitionAlternative ->
+): std.js.Dom.SpeechRecognitionAlternative.SpeechRecognitionAlternative ->
     receiver.item(index).

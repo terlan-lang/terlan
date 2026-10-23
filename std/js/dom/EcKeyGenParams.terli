@@ -14,4 +14,4 @@ module std.js.Dom.EcKeyGenParams.
 
 pub opaque type EcKeyGenParams.
 
-pub (value: EcKeyGenParams) named_curve(): NamedCurve.
+pub (receiver: EcKeyGenParams) named_curve(): std.js.Dom.NamedCurve.NamedCurve.

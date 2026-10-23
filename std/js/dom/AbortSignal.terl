@@ -12,7 +12,9 @@
  */
 module std.js.Dom.AbortSignal.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type AbortSignal.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal/aborted)
  */
-pub (value: AbortSignal) aborted(): Bool ->
+pub (receiver: AbortSignal) aborted(): Bool ->
     native.
 
 /**
@@ -35,19 +37,19 @@ pub (value: AbortSignal) aborted(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal/throwIfAborted)
  */
-pub (value: AbortSignal) throw_if_aborted(): Unit ->
+pub (receiver: AbortSignal) throw_if_aborted(): Unit ->
     native.
 
-pub (value: AbortSignal) add_event_listener(
+pub (receiver: AbortSignal) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: AbortSignal) remove_event_listener(
+pub (receiver: AbortSignal) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

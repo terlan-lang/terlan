@@ -25,11 +25,11 @@ pub opaque type MediaCapabilities.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaCapabilities/decodingInfo)
  */
-pub (value: MediaCapabilities) decoding_info(configuration: MediaDecodingConfiguration): std.js.Promise[MediaCapabilitiesDecodingInfo].
+pub (receiver: MediaCapabilities) decoding_info(configuration: std.js.Dom.MediaDecodingConfiguration.MediaDecodingConfiguration): std.js.Promise.Promise[std.js.Dom.MediaCapabilitiesDecodingInfo.MediaCapabilitiesDecodingInfo].
 
 /**
  * The **`encodingInfo()`** method of the MediaCapabilities interface returns a promise that fulfills with the tested media configuration's capabilities for encoding media.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaCapabilities/encodingInfo)
  */
-pub (value: MediaCapabilities) encoding_info(configuration: MediaEncodingConfiguration): std.js.Promise[MediaCapabilitiesEncodingInfo].
+pub (receiver: MediaCapabilities) encoding_info(configuration: std.js.Dom.MediaEncodingConfiguration.MediaEncodingConfiguration): std.js.Promise.Promise[std.js.Dom.MediaCapabilitiesEncodingInfo.MediaCapabilitiesEncodingInfo].

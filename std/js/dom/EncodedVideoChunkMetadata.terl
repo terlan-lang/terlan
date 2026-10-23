@@ -14,5 +14,5 @@ module std.js.Dom.EncodedVideoChunkMetadata.
 
 pub opaque type EncodedVideoChunkMetadata.
 
-pub (value: EncodedVideoChunkMetadata) decoder_config(): VideoDecoderConfig ->
+pub (receiver: EncodedVideoChunkMetadata) decoder_config(): std.core.Option.Option[std.js.Dom.VideoDecoderConfig.VideoDecoderConfig] ->
     native.

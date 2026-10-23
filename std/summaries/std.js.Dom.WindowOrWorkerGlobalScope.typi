@@ -20,86 +20,71 @@ pub opaque type WindowOrWorkerGlobalScope.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/caches)
  */
-pub (value: WindowOrWorkerGlobalScope) caches(): CacheStorage.
+pub (receiver: WindowOrWorkerGlobalScope) caches(): std.js.Dom.CacheStorage.CacheStorage.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/crossOriginIsolated)
  */
-pub (value: WindowOrWorkerGlobalScope) cross_origin_isolated(): std.core.Bool.
+pub (receiver: WindowOrWorkerGlobalScope) cross_origin_isolated(): Bool.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/crypto)
  */
-pub (value: WindowOrWorkerGlobalScope) crypto(): Crypto.
+pub (receiver: WindowOrWorkerGlobalScope) crypto(): std.js.Dom.Crypto.Crypto.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/indexedDB)
  */
-pub (value: WindowOrWorkerGlobalScope) indexed_db(): IDBFactory.
+pub (receiver: WindowOrWorkerGlobalScope) indexed_db(): std.js.Dom.IDBFactory.IDBFactory.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/isSecureContext)
  */
-pub (value: WindowOrWorkerGlobalScope) is_secure_context(): std.core.Bool.
+pub (receiver: WindowOrWorkerGlobalScope) is_secure_context(): Bool.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/origin)
  */
-pub (value: WindowOrWorkerGlobalScope) origin(): std.js.String.JsString.
+pub (receiver: WindowOrWorkerGlobalScope) origin(): std.js.String.JsString.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/performance)
  */
-pub (value: WindowOrWorkerGlobalScope) performance(): Performance.
+pub (receiver: WindowOrWorkerGlobalScope) performance(): std.js.Dom.Performance.Performance.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/atob)
  */
-pub (value: WindowOrWorkerGlobalScope) atob(data: std.js.String.JsString): std.js.String.JsString.
+pub (receiver: WindowOrWorkerGlobalScope) atob(data: std.js.String.JsString): std.js.String.JsString.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/btoa)
  */
-pub (value: WindowOrWorkerGlobalScope) btoa(data: std.js.String.JsString): std.js.String.JsString.
+pub (receiver: WindowOrWorkerGlobalScope) btoa(data: std.js.String.JsString): std.js.String.JsString.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/clearInterval)
  */
-pub (value: WindowOrWorkerGlobalScope) clear_interval(id: Option[std.js.Number.JsNumber]): std.core.Unit.
+pub (receiver: WindowOrWorkerGlobalScope) clear_interval(id: std.core.Option.Option[std.js.Number.JsNumber]): std.core.Unit.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/clearTimeout)
  */
-pub (value: WindowOrWorkerGlobalScope) clear_timeout(id: Option[std.js.Number.JsNumber]): std.core.Unit.
+pub (receiver: WindowOrWorkerGlobalScope) clear_timeout(id: std.core.Option.Option[std.js.Number.JsNumber]): std.core.Unit.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/createImageBitmap)
  */
-pub (value: WindowOrWorkerGlobalScope) create_image_bitmap(image: ImageBitmapSource, options: ImageBitmapOptions): std.js.Promise[ImageBitmap].
+pub (receiver: WindowOrWorkerGlobalScope) create_image_bitmap(image: std.js.Dom.ImageBitmapSource.ImageBitmapSource, options: std.core.Option.Option[std.js.Dom.ImageBitmapOptions.ImageBitmapOptions]): std.js.Promise.Promise[std.js.Dom.ImageBitmap.ImageBitmap].
 
-pub (value: WindowOrWorkerGlobalScope) create_image_bitmap(image: ImageBitmapSource, sx: std.js.Number.JsNumber, sy: std.js.Number.JsNumber, sw: std.js.Number.JsNumber, sh: std.js.Number.JsNumber, options: ImageBitmapOptions): std.js.Promise[ImageBitmap].
+pub (receiver: WindowOrWorkerGlobalScope) create_image_bitmap_overload_2(image: std.js.Dom.ImageBitmapSource.ImageBitmapSource, sx: std.js.Number.JsNumber, sy: std.js.Number.JsNumber, sw: std.js.Number.JsNumber, sh: std.js.Number.JsNumber, options: std.core.Option.Option[std.js.Dom.ImageBitmapOptions.ImageBitmapOptions]): std.js.Promise.Promise[std.js.Dom.ImageBitmap.ImageBitmap].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/fetch)
  */
-pub (value: WindowOrWorkerGlobalScope) fetch(input: RequestInfo | URL, init: RequestInit): std.js.Promise[Response].
+pub (receiver: WindowOrWorkerGlobalScope) fetch(input: std.js.Dom.RequestInfo.RequestInfo | std.js.Dom.URL.URL, init: std.core.Option.Option[std.js.Dom.RequestInit.RequestInit]): std.js.Promise.Promise[std.js.Dom.Response.Response].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/queueMicrotask)
  */
-pub (value: WindowOrWorkerGlobalScope) queue_microtask(callback: VoidFunction): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/setInterval)
- */
-pub (value: WindowOrWorkerGlobalScope) set_interval(handler: TimerHandler, timeout: std.js.Number.JsNumber): std.js.Number.JsNumber.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/setTimeout)
- */
-pub (value: WindowOrWorkerGlobalScope) set_timeout(handler: TimerHandler, timeout: std.js.Number.JsNumber): std.js.Number.JsNumber.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/structuredClone)
- */
-pub (value: WindowOrWorkerGlobalScope) structured_clone(value: T, options: StructuredSerializeOptions): T.
+pub (receiver: WindowOrWorkerGlobalScope) queue_microtask(callback: std.js.Dom.VoidFunction.VoidFunction): std.core.Unit.Unit.

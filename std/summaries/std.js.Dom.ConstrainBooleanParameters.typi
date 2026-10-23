@@ -15,6 +15,6 @@ module std.js.Dom.ConstrainBooleanParameters.
 
 pub opaque type ConstrainBooleanParameters.
 
-pub (value: ConstrainBooleanParameters) exact(): std.core.Bool.
+pub (receiver: ConstrainBooleanParameters) exact(): std.core.Option.Option[Bool].
 
-pub (value: ConstrainBooleanParameters) ideal(): std.core.Bool.
+pub (receiver: ConstrainBooleanParameters) ideal(): std.core.Option.Option[Bool].

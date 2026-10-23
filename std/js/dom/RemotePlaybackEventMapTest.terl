@@ -12,9 +12,8 @@
  */
 module std.js.Dom.RemotePlaybackEventMapTest.
 
+import type std.js.Dom.Event.{Event}.
 import type std.js.Dom.RemotePlaybackEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub connect_typechecks(receiver: RemotePlaybackEventMap): Event ->
     receiver.connect().

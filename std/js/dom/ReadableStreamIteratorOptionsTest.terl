@@ -14,7 +14,5 @@ module std.js.Dom.ReadableStreamIteratorOptionsTest.
 
 import type std.js.Dom.ReadableStreamIteratorOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prevent_cancel_typechecks(receiver: ReadableStreamIteratorOptions): std.core.Bool ->
+pub prevent_cancel_typechecks(receiver: ReadableStreamIteratorOptions): std.core.Option.Option[Bool] ->
     receiver.prevent_cancel().

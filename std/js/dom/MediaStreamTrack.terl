@@ -12,7 +12,10 @@
  */
 module std.js.Dom.MediaStreamTrack.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.MediaTrackConstraints.{MediaTrackConstraints}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +30,7 @@ pub opaque type MediaStreamTrack.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/contentHint)
  */
-pub (value: MediaStreamTrack) content_hint(): JsString ->
+pub (receiver: MediaStreamTrack) content_hint(): JsString ->
     native.
 
 /**
@@ -35,7 +38,7 @@ pub (value: MediaStreamTrack) content_hint(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/enabled)
  */
-pub (value: MediaStreamTrack) enabled(): Bool ->
+pub (receiver: MediaStreamTrack) enabled(): Bool ->
     native.
 
 /**
@@ -43,7 +46,7 @@ pub (value: MediaStreamTrack) enabled(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/id)
  */
-pub (value: MediaStreamTrack) id(): JsString ->
+pub (receiver: MediaStreamTrack) id(): JsString ->
     native.
 
 /**
@@ -51,7 +54,7 @@ pub (value: MediaStreamTrack) id(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/kind)
  */
-pub (value: MediaStreamTrack) kind(): JsString ->
+pub (receiver: MediaStreamTrack) kind(): JsString ->
     native.
 
 /**
@@ -59,7 +62,7 @@ pub (value: MediaStreamTrack) kind(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/label)
  */
-pub (value: MediaStreamTrack) label(): JsString ->
+pub (receiver: MediaStreamTrack) label(): JsString ->
     native.
 
 /**
@@ -67,15 +70,7 @@ pub (value: MediaStreamTrack) label(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/muted)
  */
-pub (value: MediaStreamTrack) muted(): Bool ->
-    native.
-
-/**
- * The **`readyState`** read-only property of the MediaStreamTrack interface returns an enumerated value giving the status of the track.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/readyState)
- */
-pub (value: MediaStreamTrack) ready_state(): MediaStreamTrackState ->
+pub (receiver: MediaStreamTrack) muted(): Bool ->
     native.
 
 /**
@@ -83,7 +78,7 @@ pub (value: MediaStreamTrack) ready_state(): MediaStreamTrackState ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/applyConstraints)
  */
-pub (value: MediaStreamTrack) apply_constraints(constraints: MediaTrackConstraints): std.js.Promise[Unit] ->
+pub (receiver: MediaStreamTrack) apply_constraints(constraints: Option[MediaTrackConstraints]): std.js.Promise.Promise[Unit] ->
     native.
 
 /**
@@ -91,7 +86,7 @@ pub (value: MediaStreamTrack) apply_constraints(constraints: MediaTrackConstrain
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/clone)
  */
-pub (value: MediaStreamTrack) clone(): MediaStreamTrack ->
+pub (receiver: MediaStreamTrack) clone(): MediaStreamTrack ->
     native.
 
 /**
@@ -99,7 +94,7 @@ pub (value: MediaStreamTrack) clone(): MediaStreamTrack ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/getCapabilities)
  */
-pub (value: MediaStreamTrack) get_capabilities(): MediaTrackCapabilities ->
+pub (receiver: MediaStreamTrack) get_capabilities(): std.js.Dom.MediaTrackCapabilities.MediaTrackCapabilities ->
     native.
 
 /**
@@ -107,7 +102,7 @@ pub (value: MediaStreamTrack) get_capabilities(): MediaTrackCapabilities ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/getConstraints)
  */
-pub (value: MediaStreamTrack) get_constraints(): MediaTrackConstraints ->
+pub (receiver: MediaStreamTrack) get_constraints(): MediaTrackConstraints ->
     native.
 
 /**
@@ -115,7 +110,7 @@ pub (value: MediaStreamTrack) get_constraints(): MediaTrackConstraints ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/getSettings)
  */
-pub (value: MediaStreamTrack) get_settings(): MediaTrackSettings ->
+pub (receiver: MediaStreamTrack) get_settings(): std.js.Dom.MediaTrackSettings.MediaTrackSettings ->
     native.
 
 /**
@@ -123,19 +118,19 @@ pub (value: MediaStreamTrack) get_settings(): MediaTrackSettings ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/stop)
  */
-pub (value: MediaStreamTrack) stop(): Unit ->
+pub (receiver: MediaStreamTrack) stop(): Unit ->
     native.
 
-pub (value: MediaStreamTrack) add_event_listener(
+pub (receiver: MediaStreamTrack) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: MediaStreamTrack) remove_event_listener(
+pub (receiver: MediaStreamTrack) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

@@ -14,4 +14,4 @@
 module std.js.Dom.ImageBufferSource.
 
 pub type ImageBufferSource =
-    AllowSharedBufferSource | ReadableStream.
+    std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource | std.js.Dom.ReadableStream.ReadableStream.

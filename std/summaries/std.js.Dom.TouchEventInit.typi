@@ -15,8 +15,8 @@ module std.js.Dom.TouchEventInit.
 
 pub opaque type TouchEventInit.
 
-pub (value: TouchEventInit) changed_touches(): std.js.Array[Touch].
+pub (receiver: TouchEventInit) changed_touches(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.Touch.Touch]].
 
-pub (value: TouchEventInit) target_touches(): std.js.Array[Touch].
+pub (receiver: TouchEventInit) target_touches(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.Touch.Touch]].
 
-pub (value: TouchEventInit) touches(): std.js.Array[Touch].
+pub (receiver: TouchEventInit) touches(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.Touch.Touch]].

@@ -15,8 +15,8 @@ module std.js.Dom.MediaPositionState.
 
 pub opaque type MediaPositionState.
 
-pub (value: MediaPositionState) duration(): std.js.Number.JsNumber.
+pub (receiver: MediaPositionState) duration(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: MediaPositionState) playback_rate(): std.js.Number.JsNumber.
+pub (receiver: MediaPositionState) playback_rate(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: MediaPositionState) position(): std.js.Number.JsNumber.
+pub (receiver: MediaPositionState) position(): std.core.Option.Option[std.js.Number.JsNumber].

@@ -12,6 +12,7 @@
  */
 module std.js.Dom.DataTransferItem.
 
+import type std.core.Option.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -26,7 +27,7 @@ pub opaque type DataTransferItem.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/kind)
  */
-pub (value: DataTransferItem) kind(): JsString ->
+pub (receiver: DataTransferItem) kind(): JsString ->
     native.
 
 /**
@@ -34,7 +35,7 @@ pub (value: DataTransferItem) kind(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/type)
  */
-pub (value: DataTransferItem) type_(): JsString ->
+pub (receiver: DataTransferItem) type_(): JsString ->
     native.
 
 /**
@@ -42,7 +43,7 @@ pub (value: DataTransferItem) type_(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/getAsFile)
  */
-pub (value: DataTransferItem) get_as_file(): Option[File] ->
+pub (receiver: DataTransferItem) get_as_file(): Option[std.js.Dom.File.File] ->
     native.
 
 /**
@@ -50,7 +51,9 @@ pub (value: DataTransferItem) get_as_file(): Option[File] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/getAsString)
  */
-pub (value: DataTransferItem) get_as_string(callback: Option[FunctionStringCallback]): std.core.Unit ->
+pub (receiver: DataTransferItem) get_as_string(
+    callback: Option[std.js.Dom.FunctionStringCallback.FunctionStringCallback],
+): std.core.Unit.Unit ->
     native.
 
 /**
@@ -58,5 +61,5 @@ pub (value: DataTransferItem) get_as_string(callback: Option[FunctionStringCallb
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/webkitGetAsEntry)
  */
-pub (value: DataTransferItem) webkit_get_as_entry(): Option[FileSystemEntry] ->
+pub (receiver: DataTransferItem) webkit_get_as_entry(): Option[std.js.Dom.FileSystemEntry.FileSystemEntry] ->
     native.

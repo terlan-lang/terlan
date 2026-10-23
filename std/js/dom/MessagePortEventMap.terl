@@ -12,10 +12,12 @@
  */
 module std.js.Dom.MessagePortEventMap.
 
+import type std.js.Dom.MessageEvent.{MessageEvent}.
+
 pub opaque type MessagePortEventMap.
 
-pub (value: MessagePortEventMap) message(): MessageEvent ->
+pub (receiver: MessagePortEventMap) message(): MessageEvent ->
     native.
 
-pub (value: MessagePortEventMap) messageerror(): MessageEvent ->
+pub (receiver: MessagePortEventMap) messageerror(): MessageEvent ->
     native.

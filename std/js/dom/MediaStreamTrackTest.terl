@@ -12,11 +12,12 @@
  */
 module std.js.Dom.MediaStreamTrackTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.MediaStreamTrack.
+import type std.js.Dom.MediaTrackConstraints.{MediaTrackConstraints}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub content_hint_typechecks(receiver: MediaStreamTrack): JsString ->
     receiver.content_hint().
@@ -36,25 +37,26 @@ pub label_typechecks(receiver: MediaStreamTrack): JsString ->
 pub muted_typechecks(receiver: MediaStreamTrack): Bool ->
     receiver.muted().
 
-pub ready_state_typechecks(receiver: MediaStreamTrack): MediaStreamTrackState ->
-    receiver.ready_state().
-
 pub apply_constraints_typechecks(
     receiver: MediaStreamTrack,
-    constraints: MediaTrackConstraints,
-): std.js.Promise[Unit] ->
+    constraints: Option[MediaTrackConstraints],
+): std.js.Promise.Promise[Unit] ->
     receiver.apply_constraints(constraints).
 
 pub clone_typechecks(receiver: MediaStreamTrack): MediaStreamTrack ->
     receiver.clone().
 
-pub get_capabilities_typechecks(receiver: MediaStreamTrack): MediaTrackCapabilities ->
+pub get_capabilities_typechecks(
+    receiver: MediaStreamTrack,
+): std.js.Dom.MediaTrackCapabilities.MediaTrackCapabilities ->
     receiver.get_capabilities().
 
 pub get_constraints_typechecks(receiver: MediaStreamTrack): MediaTrackConstraints ->
     receiver.get_constraints().
 
-pub get_settings_typechecks(receiver: MediaStreamTrack): MediaTrackSettings ->
+pub get_settings_typechecks(
+    receiver: MediaStreamTrack,
+): std.js.Dom.MediaTrackSettings.MediaTrackSettings ->
     receiver.get_settings().
 
 pub stop_typechecks(receiver: MediaStreamTrack): Unit ->
@@ -64,7 +66,7 @@ pub add_event_listener_typechecks(
     receiver: MediaStreamTrack,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -72,6 +74,6 @@ pub remove_event_listener_typechecks(
     receiver: MediaStreamTrack,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -13,8 +13,3 @@
 module std.js.Dom.WakeLockTest.
 
 import type std.js.Dom.WakeLock.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub request_typechecks(receiver: WakeLock, type_: WakeLockType): std.js.Promise[WakeLockSentinel] ->
-    receiver.request(type_).

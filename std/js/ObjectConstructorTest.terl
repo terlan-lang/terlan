@@ -14,22 +14,5 @@ module std.js.ObjectConstructorTest.
 
 import type std.js.ObjectConstructor.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub prototype_typechecks(receiver: ObjectConstructor): Object ->
+pub prototype_typechecks(receiver: ObjectConstructor): std.js.Object.Object ->
     receiver.prototype().
-
-pub seal_typechecks(receiver: ObjectConstructor, o: T): T ->
-    receiver.seal(o).
-
-pub freeze_typechecks(receiver: ObjectConstructor, f: T): T ->
-    receiver.freeze(f).
-
-pub freeze_typechecks(receiver: ObjectConstructor, o: T): Readonly[T] ->
-    receiver.freeze(o).
-
-pub freeze_typechecks(receiver: ObjectConstructor, o: T): Readonly[T] ->
-    receiver.freeze(o).
-
-pub prevent_extensions_typechecks(receiver: ObjectConstructor, o: T): T ->
-    receiver.prevent_extensions(o).

@@ -14,11 +14,9 @@ module std.js.Dom.FileSystemFileEntryTest.
 
 import type std.js.Dom.FileSystemFileEntry.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub file__typechecks(
     receiver: FileSystemFileEntry,
-    success_callback: FileCallback,
-    error_callback: ErrorCallback,
-): std.core.Unit ->
+    success_callback: std.js.Dom.FileCallback.FileCallback,
+    error_callback: std.core.Option.Option[std.js.Dom.ErrorCallback.ErrorCallback],
+): std.core.Unit.Unit ->
     receiver.file_(success_callback, error_callback).

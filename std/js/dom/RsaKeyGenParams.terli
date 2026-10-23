@@ -14,6 +14,6 @@ module std.js.Dom.RsaKeyGenParams.
 
 pub opaque type RsaKeyGenParams.
 
-pub (value: RsaKeyGenParams) modulus_length(): std.js.Number.JsNumber.
+pub (receiver: RsaKeyGenParams) modulus_length(): std.js.Number.JsNumber.
 
-pub (value: RsaKeyGenParams) public_exponent(): BigInteger.
+pub (receiver: RsaKeyGenParams) public_exponent(): std.js.Dom.BigInteger.BigInteger.

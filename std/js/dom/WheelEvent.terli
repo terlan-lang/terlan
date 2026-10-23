@@ -26,25 +26,25 @@ pub opaque type WheelEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaMode)
  */
-pub (value: WheelEvent) delta_mode(): JsNumber.
+pub (receiver: WheelEvent) delta_mode(): JsNumber.
 
 /**
  * The **`WheelEvent.deltaX`** read-only property is a `double` representing the horizontal scroll amount in the You must check the `deltaMode` property to determine the unit of the `deltaX` value.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaX)
  */
-pub (value: WheelEvent) delta_x(): JsNumber.
+pub (receiver: WheelEvent) delta_x(): JsNumber.
 
 /**
  * The **`WheelEvent.deltaY`** read-only property is a `double` representing the vertical scroll amount in the You must check the `deltaMode` property to determine the unit of the `deltaY` value.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaY)
  */
-pub (value: WheelEvent) delta_y(): JsNumber.
+pub (receiver: WheelEvent) delta_y(): JsNumber.
 
 /**
  * The **`WheelEvent.deltaZ`** read-only property is a `double` representing the scroll amount along the z-axis, in the You must check the `deltaMode` property to determine the unit of the `deltaZ` value.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaZ)
  */
-pub (value: WheelEvent) delta_z(): JsNumber.
+pub (receiver: WheelEvent) delta_z(): JsNumber.

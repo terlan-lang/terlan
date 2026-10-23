@@ -1,17 +1,14 @@
+use super::members::parse_interface_member;
 use oxc_ast::{
     ast::{
-        BindingPattern, Declaration, Statement, TSModuleDeclarationBody, TSSignature,
-        TSTypeParameterDeclaration,
+        BindingPattern, Declaration, Statement, TSModuleDeclarationBody, TSTypeParameterDeclaration,
     },
     Comment,
 };
 use oxc_span::Span;
 
 use super::super::ts_type_mapping::TsTypeRef;
-use super::types::{
-    interface_member_source, normalize_jsdoc, parse_optional_type_annotation, parse_parameter,
-    parse_type, property_key_name, unsupported,
-};
+use super::types::{normalize_jsdoc, parse_type};
 
 /// Neutral TypeScript declaration file model owned by the binding generator.
 ///
@@ -200,6 +197,7 @@ pub(in crate::commands::bind) struct TsMethodDeclaration {
 pub(in crate::commands::bind) struct TsParameterDeclaration {
     pub(in crate::commands::bind) name: String,
     pub(in crate::commands::bind) optional: bool,
+    pub(in crate::commands::bind) rest: bool,
     pub(in crate::commands::bind) ty: TsTypeRef,
 }
 
@@ -763,66 +761,6 @@ fn parse_type_parameter_names(
         .unwrap_or_default()
 }
 
-/// Converts one Oxc interface signature into a neutral member.
-///
-/// Inputs:
-/// - `member`: Oxc TypeScript interface signature.
-///
-/// Output:
-/// - Property or method members for supported signatures.
-/// - Unsupported members carrying stable skip metadata for unsupported shapes.
-///
-/// Transformation:
-/// - Locks the first DOM binding slice to named members before broader
-///   TypeScript declarations are admitted while allowing large standard libs to
-///   keep generating around unsupported members.
-fn parse_interface_member(
-    source: &str,
-    comments: &[Comment],
-    member: &TSSignature<'_>,
-) -> TsInterfaceMember {
-    let parsed = (|| match member {
-        TSSignature::TSPropertySignature(property) => {
-            Ok(TsInterfaceMember::Property(TsPropertyDeclaration {
-                name: property_key_name(&property.key)?,
-                doc: leading_jsdoc(source, comments, property.span),
-                readonly: property.readonly,
-                optional: property.optional,
-                ty: parse_optional_type_annotation(property.type_annotation.as_deref())?,
-            }))
-        }
-        TSSignature::TSMethodSignature(method) => {
-            let params = method
-                .params
-                .items
-                .iter()
-                .map(parse_parameter)
-                .collect::<Result<Vec<_>, _>>()?;
-            Ok(TsInterfaceMember::Method(TsMethodDeclaration {
-                name: property_key_name(&method.key)?,
-                doc: leading_jsdoc(source, comments, method.span),
-                optional: method.optional,
-                params,
-                return_type: parse_optional_type_annotation(method.return_type.as_deref())?,
-            }))
-        }
-        TSSignature::TSIndexSignature(_)
-        | TSSignature::TSCallSignatureDeclaration(_)
-        | TSSignature::TSConstructSignatureDeclaration(_) => Err(unsupported(
-            "ts_bindgen.unsupported_interface_signature",
-            "only named properties and methods are supported",
-        )),
-    })();
-
-    parsed.unwrap_or_else(|error| {
-        TsInterfaceMember::Unsupported(TsUnsupportedMember {
-            source: interface_member_source(member),
-            reason: error.reason,
-            detail: error.message,
-        })
-    })
-}
-
 /// Extracts the leading JSDoc block attached to one TypeScript AST node.
 ///
 /// Inputs:
@@ -837,7 +775,7 @@ fn parse_interface_member(
 /// Transformation:
 /// - Uses Oxc's comment attachment metadata instead of scanning arbitrary
 ///   source text, then normalizes the comment body for Terlan block docs.
-fn leading_jsdoc(source: &str, comments: &[Comment], span: Span) -> Option<String> {
+pub(super) fn leading_jsdoc(source: &str, comments: &[Comment], span: Span) -> Option<String> {
     comments
         .iter()
         .rev()

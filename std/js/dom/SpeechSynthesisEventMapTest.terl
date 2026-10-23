@@ -14,7 +14,5 @@ module std.js.Dom.SpeechSynthesisEventMapTest.
 
 import type std.js.Dom.SpeechSynthesisEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub voiceschanged_typechecks(receiver: SpeechSynthesisEventMap): Event ->
+pub voiceschanged_typechecks(receiver: SpeechSynthesisEventMap): std.js.Dom.Event.Event ->
     receiver.voiceschanged().

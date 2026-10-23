@@ -12,8 +12,9 @@
  */
 module std.js.Dom.WritableStreamDefaultWriter.
 
-import type std.core.{Unit}.
-import type std.js.{Promise}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`WritableStreamDefaultWriter`** interface of the Streams API is the object returned by WritableStream.getWriter() and once created locks the writer to the `WritableStream` ensuring that no other streams can write to the underlying sink.
@@ -27,7 +28,7 @@ pub opaque type WritableStreamDefaultWriter[W].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/closed)
  */
-pub (value: WritableStreamDefaultWriter[W]) closed(): Promise[Unit] ->
+pub (receiver: WritableStreamDefaultWriter[W]) closed(): Promise[Unit] ->
     native.
 
 /**
@@ -35,7 +36,7 @@ pub (value: WritableStreamDefaultWriter[W]) closed(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/desiredSize)
  */
-pub (value: WritableStreamDefaultWriter[W]) desired_size(): Option[std.js.Number.JsNumber] ->
+pub (receiver: WritableStreamDefaultWriter[W]) desired_size(): Option[std.js.Number.JsNumber] ->
     native.
 
 /**
@@ -43,7 +44,7 @@ pub (value: WritableStreamDefaultWriter[W]) desired_size(): Option[std.js.Number
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/ready)
  */
-pub (value: WritableStreamDefaultWriter[W]) ready(): Promise[Unit] ->
+pub (receiver: WritableStreamDefaultWriter[W]) ready(): Promise[Unit] ->
     native.
 
 /**
@@ -51,7 +52,7 @@ pub (value: WritableStreamDefaultWriter[W]) ready(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/close)
  */
-pub (value: WritableStreamDefaultWriter[W]) close(): Promise[Unit] ->
+pub (receiver: WritableStreamDefaultWriter[W]) close(): Promise[Unit] ->
     native.
 
 /**
@@ -59,7 +60,7 @@ pub (value: WritableStreamDefaultWriter[W]) close(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/releaseLock)
  */
-pub (value: WritableStreamDefaultWriter[W]) release_lock(): Unit ->
+pub (receiver: WritableStreamDefaultWriter[W]) release_lock(): Unit ->
     native.
 
 /**
@@ -67,5 +68,5 @@ pub (value: WritableStreamDefaultWriter[W]) release_lock(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/write)
  */
-pub (value: WritableStreamDefaultWriter[W]) write(chunk: W): Promise[Unit] ->
+pub (receiver: WritableStreamDefaultWriter[W]) write(chunk: Option[W]): Promise[Unit] ->
     native.

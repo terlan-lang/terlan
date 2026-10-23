@@ -15,20 +15,20 @@ module std.js.Dom.MouseEventInit.
 
 pub opaque type MouseEventInit.
 
-pub (value: MouseEventInit) button(): std.js.Number.JsNumber.
+pub (receiver: MouseEventInit) button(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: MouseEventInit) buttons(): std.js.Number.JsNumber.
+pub (receiver: MouseEventInit) buttons(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: MouseEventInit) client_x(): std.js.Number.JsNumber.
+pub (receiver: MouseEventInit) client_x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: MouseEventInit) client_y(): std.js.Number.JsNumber.
+pub (receiver: MouseEventInit) client_y(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: MouseEventInit) movement_x(): std.js.Number.JsNumber.
+pub (receiver: MouseEventInit) movement_x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: MouseEventInit) movement_y(): std.js.Number.JsNumber.
+pub (receiver: MouseEventInit) movement_y(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: MouseEventInit) related_target(): Option[EventTarget].
+pub (receiver: MouseEventInit) related_target(): std.core.Option.Option[std.js.Dom.EventTarget.EventTarget].
 
-pub (value: MouseEventInit) screen_x(): std.js.Number.JsNumber.
+pub (receiver: MouseEventInit) screen_x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: MouseEventInit) screen_y(): std.js.Number.JsNumber.
+pub (receiver: MouseEventInit) screen_y(): std.core.Option.Option[std.js.Number.JsNumber].

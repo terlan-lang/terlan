@@ -15,9 +15,9 @@ module std.js.Dom.StreamPipeOptions.
 
 pub opaque type StreamPipeOptions.
 
-pub (value: StreamPipeOptions) prevent_abort(): std.core.Bool.
+pub (receiver: StreamPipeOptions) prevent_abort(): std.core.Option.Option[Bool].
 
-pub (value: StreamPipeOptions) prevent_cancel(): std.core.Bool.
+pub (receiver: StreamPipeOptions) prevent_cancel(): std.core.Option.Option[Bool].
 
 /**
  * Pipes this readable stream to a given writable stream destination. The way in which the piping process behaves under various error conditions can be customized with a number of passed options. It returns a promise that fulfills when the piping process completes successfully, or rejects if any errors were encountered.
@@ -36,6 +36,6 @@ pub (value: StreamPipeOptions) prevent_cancel(): std.core.Bool.
  *
  * The signal option can be set to an AbortSignal to allow aborting an ongoing pipe operation via the corresponding AbortController. In this case, this source readable stream will be canceled, and destination aborted, unless the respective options preventCancel or preventAbort are set.
  */
-pub (value: StreamPipeOptions) prevent_close(): std.core.Bool.
+pub (receiver: StreamPipeOptions) prevent_close(): std.core.Option.Option[Bool].
 
-pub (value: StreamPipeOptions) signal(): AbortSignal.
+pub (receiver: StreamPipeOptions) signal(): std.core.Option.Option[std.js.Dom.AbortSignal.AbortSignal].

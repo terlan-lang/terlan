@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLMapElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,23 +29,23 @@ pub opaque type HTMLMapElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMapElement/areas)
  */
-pub (value: HTMLMapElement) areas(): HTMLCollection.
+pub (receiver: HTMLMapElement) areas(): std.js.Dom.HTMLCollection.HTMLCollection.
 
 /**
  * The **`name`** property of the HTMLMapElement represents the unique name `<map>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMapElement/name)
  */
-pub (value: HTMLMapElement) name(): JsString.
+pub (receiver: HTMLMapElement) name(): JsString.
 
-pub (value: HTMLMapElement) add_event_listener(
+pub (receiver: HTMLMapElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: HTMLMapElement) remove_event_listener(
+pub (receiver: HTMLMapElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

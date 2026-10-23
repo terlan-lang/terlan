@@ -13,5 +13,3 @@
 module std.js.Dom.RTCAnswerOptionsTest.
 
 import type std.js.Dom.RTCAnswerOptions.
-
-pub generated_binding_surface_contract(): Bool -> true.

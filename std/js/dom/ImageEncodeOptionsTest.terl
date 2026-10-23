@@ -12,12 +12,11 @@
  */
 module std.js.Dom.ImageEncodeOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.ImageEncodeOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub quality_typechecks(receiver: ImageEncodeOptions): std.js.Number.JsNumber ->
+pub quality_typechecks(receiver: ImageEncodeOptions): Option[std.js.Number.JsNumber] ->
     receiver.quality().
 
-pub type__typechecks(receiver: ImageEncodeOptions): std.js.String.JsString ->
+pub type__typechecks(receiver: ImageEncodeOptions): Option[std.js.String.JsString] ->
     receiver.type_().

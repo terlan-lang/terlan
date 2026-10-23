@@ -12,16 +12,16 @@
  */
 module std.js.Dom.PerformanceMeasureOptionsTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
 import type std.js.Dom.PerformanceMeasureOptions.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub duration_typechecks(receiver: PerformanceMeasureOptions): DOMHighResTimeStamp ->
+pub duration_typechecks(receiver: PerformanceMeasureOptions): Option[DOMHighResTimeStamp] ->
     receiver.duration().
 
-pub end_typechecks(receiver: PerformanceMeasureOptions): DOMHighResTimeStamp | JsString ->
+pub end_typechecks(receiver: PerformanceMeasureOptions): Option[DOMHighResTimeStamp | JsString] ->
     receiver.end().
 
-pub start_typechecks(receiver: PerformanceMeasureOptions): DOMHighResTimeStamp | JsString ->
+pub start_typechecks(receiver: PerformanceMeasureOptions): Option[DOMHighResTimeStamp | JsString] ->
     receiver.start().

@@ -13,8 +13,3 @@
 module std.js.Dom.SpeechSynthesisErrorEventTest.
 
 import type std.js.Dom.SpeechSynthesisErrorEvent.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub error_typechecks(receiver: SpeechSynthesisErrorEvent): SpeechSynthesisErrorCode ->
-    receiver.error().

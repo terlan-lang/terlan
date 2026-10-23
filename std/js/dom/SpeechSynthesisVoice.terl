@@ -12,7 +12,6 @@
  */
 module std.js.Dom.SpeechSynthesisVoice.
 
-import type std.core.{Bool}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +26,7 @@ pub opaque type SpeechSynthesisVoice.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisVoice/default)
  */
-pub (value: SpeechSynthesisVoice) default(): Bool ->
+pub (receiver: SpeechSynthesisVoice) default(): Bool ->
     native.
 
 /**
@@ -35,7 +34,7 @@ pub (value: SpeechSynthesisVoice) default(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisVoice/lang)
  */
-pub (value: SpeechSynthesisVoice) lang(): JsString ->
+pub (receiver: SpeechSynthesisVoice) lang(): JsString ->
     native.
 
 /**
@@ -43,7 +42,7 @@ pub (value: SpeechSynthesisVoice) lang(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisVoice/localService)
  */
-pub (value: SpeechSynthesisVoice) local_service(): Bool ->
+pub (receiver: SpeechSynthesisVoice) local_service(): Bool ->
     native.
 
 /**
@@ -51,7 +50,7 @@ pub (value: SpeechSynthesisVoice) local_service(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisVoice/name)
  */
-pub (value: SpeechSynthesisVoice) name(): JsString ->
+pub (receiver: SpeechSynthesisVoice) name(): JsString ->
     native.
 
 /**
@@ -59,5 +58,5 @@ pub (value: SpeechSynthesisVoice) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisVoice/voiceURI)
  */
-pub (value: SpeechSynthesisVoice) voice_uri(): JsString ->
+pub (receiver: SpeechSynthesisVoice) voice_uri(): JsString ->
     native.

@@ -14,5 +14,5 @@ module std.js.Dom.MediaDevicesEventMap.
 
 pub opaque type MediaDevicesEventMap.
 
-pub (value: MediaDevicesEventMap) devicechange(): Event ->
+pub (receiver: MediaDevicesEventMap) devicechange(): std.js.Dom.Event.Event ->
     native.

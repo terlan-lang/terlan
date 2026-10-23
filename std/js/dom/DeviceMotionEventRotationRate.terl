@@ -12,6 +12,7 @@
  */
 module std.js.Dom.DeviceMotionEventRotationRate.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -27,7 +28,7 @@ pub opaque type DeviceMotionEventRotationRate.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventRotationRate/alpha)
  */
-pub (value: DeviceMotionEventRotationRate) alpha(): Option[JsNumber] ->
+pub (receiver: DeviceMotionEventRotationRate) alpha(): Option[JsNumber] ->
     native.
 
 /**
@@ -35,7 +36,7 @@ pub (value: DeviceMotionEventRotationRate) alpha(): Option[JsNumber] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventRotationRate/beta)
  */
-pub (value: DeviceMotionEventRotationRate) beta(): Option[JsNumber] ->
+pub (receiver: DeviceMotionEventRotationRate) beta(): Option[JsNumber] ->
     native.
 
 /**
@@ -43,5 +44,5 @@ pub (value: DeviceMotionEventRotationRate) beta(): Option[JsNumber] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventRotationRate/gamma)
  */
-pub (value: DeviceMotionEventRotationRate) gamma(): Option[JsNumber] ->
+pub (receiver: DeviceMotionEventRotationRate) gamma(): Option[JsNumber] ->
     native.

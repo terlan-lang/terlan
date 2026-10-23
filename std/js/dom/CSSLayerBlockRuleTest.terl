@@ -14,7 +14,5 @@ module std.js.Dom.CSSLayerBlockRuleTest.
 
 import type std.js.Dom.CSSLayerBlockRule.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub name_typechecks(receiver: CSSLayerBlockRule): std.js.String.JsString ->
     receiver.name().

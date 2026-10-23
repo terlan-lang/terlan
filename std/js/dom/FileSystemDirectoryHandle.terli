@@ -12,8 +12,9 @@
  */
 module std.js.Dom.FileSystemDirectoryHandle.
 
+import type std.core.Option.{Option}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
 
 /**
  * The **`FileSystemDirectoryHandle`** interface of the File System API provides a handle to a file system directory.
@@ -28,9 +29,9 @@ pub opaque type FileSystemDirectoryHandle.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryHandle/getDirectoryHandle)
  */
-pub (value: FileSystemDirectoryHandle) get_directory_handle(
+pub (receiver: FileSystemDirectoryHandle) get_directory_handle(
     name: JsString,
-    options: FileSystemGetDirectoryOptions,
+    options: Option[std.js.Dom.FileSystemGetDirectoryOptions.FileSystemGetDirectoryOptions],
 ): Promise[FileSystemDirectoryHandle].
 
 /**
@@ -38,21 +39,26 @@ pub (value: FileSystemDirectoryHandle) get_directory_handle(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryHandle/getFileHandle)
  */
-pub (value: FileSystemDirectoryHandle) get_file_handle(
+pub (receiver: FileSystemDirectoryHandle) get_file_handle(
     name: JsString,
-    options: FileSystemGetFileOptions,
-): Promise[FileSystemFileHandle].
+    options: Option[std.js.Dom.FileSystemGetFileOptions.FileSystemGetFileOptions],
+): Promise[std.js.Dom.FileSystemFileHandle.FileSystemFileHandle].
 
 /**
  * The **`removeEntry()`** method of the directory handle contains a file or directory called the name specified.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryHandle/removeEntry)
  */
-pub (value: FileSystemDirectoryHandle) remove_entry(name: JsString, options: FileSystemRemoveOptions): Promise[std.core.Unit].
+pub (receiver: FileSystemDirectoryHandle) remove_entry(
+    name: JsString,
+    options: Option[std.js.Dom.FileSystemRemoveOptions.FileSystemRemoveOptions],
+): Promise[std.core.Unit.Unit].
 
 /**
  * The **`resolve()`** method of the directory names from the parent handle to the specified child entry, with the name of the child entry as the last array item.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryHandle/resolve)
  */
-pub (value: FileSystemDirectoryHandle) resolve(possible_descendant: FileSystemHandle): Promise[Option[std.js.Array[JsString]]].
+pub (receiver: FileSystemDirectoryHandle) resolve(
+    possible_descendant: std.js.Dom.FileSystemHandle.FileSystemHandle,
+): Promise[Option[std.js.Array.Array[JsString]]].

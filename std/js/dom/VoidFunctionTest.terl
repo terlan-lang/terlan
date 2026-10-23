@@ -13,5 +13,3 @@
 module std.js.Dom.VoidFunctionTest.
 
 import type std.js.Dom.VoidFunction.
-
-pub generated_binding_surface_contract(): Bool -> true.

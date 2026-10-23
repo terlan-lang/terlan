@@ -15,6 +15,6 @@ module std.js.Dom.ToggleEventInit.
 
 pub opaque type ToggleEventInit.
 
-pub (value: ToggleEventInit) new_state(): std.js.String.JsString.
+pub (receiver: ToggleEventInit) new_state(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: ToggleEventInit) old_state(): std.js.String.JsString.
+pub (receiver: ToggleEventInit) old_state(): std.core.Option.Option[std.js.String.JsString].

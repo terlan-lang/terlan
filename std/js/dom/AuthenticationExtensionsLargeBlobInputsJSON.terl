@@ -12,13 +12,15 @@
  */
 module std.js.Dom.AuthenticationExtensionsLargeBlobInputsJSON.
 
+import type std.core.Option.{Option}.
+
 pub opaque type AuthenticationExtensionsLargeBlobInputsJSON.
 
-pub (value: AuthenticationExtensionsLargeBlobInputsJSON) read(): std.core.Bool ->
+pub (receiver: AuthenticationExtensionsLargeBlobInputsJSON) read(): Option[Bool] ->
     native.
 
-pub (value: AuthenticationExtensionsLargeBlobInputsJSON) support(): std.js.String.JsString ->
+pub (receiver: AuthenticationExtensionsLargeBlobInputsJSON) support(): Option[std.js.String.JsString] ->
     native.
 
-pub (value: AuthenticationExtensionsLargeBlobInputsJSON) write(): Base64URLString ->
+pub (receiver: AuthenticationExtensionsLargeBlobInputsJSON) write(): Option[std.js.Dom.Base64URLString.Base64URLString] ->
     native.

@@ -26,26 +26,26 @@ pub opaque type MimeType.
  * Returns the MIME type's description.
  * @deprecated
  */
-pub (value: MimeType) description(): JsString ->
+pub (receiver: MimeType) description(): JsString ->
     native.
 
 /**
  * Returns the Plugin object that implements this MIME type.
  * @deprecated
  */
-pub (value: MimeType) enabled_plugin(): Plugin ->
+pub (receiver: MimeType) enabled_plugin(): std.js.Dom.Plugin.Plugin ->
     native.
 
 /**
  * Returns the MIME type's typical file extensions, in a comma-separated list.
  * @deprecated
  */
-pub (value: MimeType) suffixes(): JsString ->
+pub (receiver: MimeType) suffixes(): JsString ->
     native.
 
 /**
  * Returns the MIME type.
  * @deprecated
  */
-pub (value: MimeType) type_(): JsString ->
+pub (receiver: MimeType) type_(): JsString ->
     native.

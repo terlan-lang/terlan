@@ -12,10 +12,10 @@
  */
 module std.js.Dom.DOMMatrixTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.DOMMatrix.
+import type std.js.Dom.DOMMatrixInit.{DOMMatrixInit}.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub a_typechecks(receiver: DOMMatrix): JsNumber ->
     receiver.a().
@@ -86,49 +86,53 @@ pub m44_typechecks(receiver: DOMMatrix): JsNumber ->
 pub invert_self_typechecks(receiver: DOMMatrix): DOMMatrix ->
     receiver.invert_self().
 
-pub multiply_self_typechecks(receiver: DOMMatrix, other: DOMMatrixInit): DOMMatrix ->
+pub multiply_self_typechecks(receiver: DOMMatrix, other: Option[DOMMatrixInit]): DOMMatrix ->
     receiver.multiply_self(other).
 
-pub pre_multiply_self_typechecks(receiver: DOMMatrix, other: DOMMatrixInit): DOMMatrix ->
+pub pre_multiply_self_typechecks(receiver: DOMMatrix, other: Option[DOMMatrixInit]): DOMMatrix ->
     receiver.pre_multiply_self(other).
 
 pub rotate_axis_angle_self_typechecks(
     receiver: DOMMatrix,
-    x: JsNumber,
-    y: JsNumber,
-    z: JsNumber,
-    angle: JsNumber,
+    x: Option[JsNumber],
+    y: Option[JsNumber],
+    z: Option[JsNumber],
+    angle: Option[JsNumber],
 ): DOMMatrix ->
     receiver.rotate_axis_angle_self(x, y, z, angle).
 
-pub rotate_from_vector_self_typechecks(receiver: DOMMatrix, x: JsNumber, y: JsNumber): DOMMatrix ->
+pub rotate_from_vector_self_typechecks(
+    receiver: DOMMatrix,
+    x: Option[JsNumber],
+    y: Option[JsNumber],
+): DOMMatrix ->
     receiver.rotate_from_vector_self(x, y).
 
 pub rotate_self_typechecks(
     receiver: DOMMatrix,
-    rot_x: JsNumber,
-    rot_y: JsNumber,
-    rot_z: JsNumber,
+    rot_x: Option[JsNumber],
+    rot_y: Option[JsNumber],
+    rot_z: Option[JsNumber],
 ): DOMMatrix ->
     receiver.rotate_self(rot_x, rot_y, rot_z).
 
 pub scale3d_self_typechecks(
     receiver: DOMMatrix,
-    scale: JsNumber,
-    origin_x: JsNumber,
-    origin_y: JsNumber,
-    origin_z: JsNumber,
+    scale: Option[JsNumber],
+    origin_x: Option[JsNumber],
+    origin_y: Option[JsNumber],
+    origin_z: Option[JsNumber],
 ): DOMMatrix ->
     receiver.scale3d_self(scale, origin_x, origin_y, origin_z).
 
 pub scale_self_typechecks(
     receiver: DOMMatrix,
-    scale_x: JsNumber,
-    scale_y: JsNumber,
-    scale_z: JsNumber,
-    origin_x: JsNumber,
-    origin_y: JsNumber,
-    origin_z: JsNumber,
+    scale_x: Option[JsNumber],
+    scale_y: Option[JsNumber],
+    scale_z: Option[JsNumber],
+    origin_x: Option[JsNumber],
+    origin_y: Option[JsNumber],
+    origin_z: Option[JsNumber],
 ): DOMMatrix ->
     receiver.scale_self(scale_x, scale_y, scale_z, origin_x, origin_y, origin_z).
 
@@ -138,16 +142,16 @@ pub set_matrix_value_typechecks(
 ): DOMMatrix ->
     receiver.set_matrix_value(transform_list).
 
-pub skew_x_self_typechecks(receiver: DOMMatrix, sx: JsNumber): DOMMatrix ->
+pub skew_x_self_typechecks(receiver: DOMMatrix, sx: Option[JsNumber]): DOMMatrix ->
     receiver.skew_x_self(sx).
 
-pub skew_y_self_typechecks(receiver: DOMMatrix, sy: JsNumber): DOMMatrix ->
+pub skew_y_self_typechecks(receiver: DOMMatrix, sy: Option[JsNumber]): DOMMatrix ->
     receiver.skew_y_self(sy).
 
 pub translate_self_typechecks(
     receiver: DOMMatrix,
-    tx: JsNumber,
-    ty: JsNumber,
-    tz: JsNumber,
+    tx: Option[JsNumber],
+    ty: Option[JsNumber],
+    tz: Option[JsNumber],
 ): DOMMatrix ->
     receiver.translate_self(tx, ty, tz).

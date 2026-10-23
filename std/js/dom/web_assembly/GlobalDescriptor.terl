@@ -14,8 +14,8 @@ module std.js.Dom.WebAssembly.GlobalDescriptor.
 
 pub opaque type GlobalDescriptor[T].
 
-pub (value: GlobalDescriptor[T]) mutable(): std.core.Bool ->
+pub (receiver: GlobalDescriptor[T]) mutable(): std.core.Option.Option[Bool] ->
     native.
 
-pub (value: GlobalDescriptor[T]) value(): T ->
+pub (receiver: GlobalDescriptor[T]) value(): T ->
     native.

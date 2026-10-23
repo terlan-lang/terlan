@@ -25,53 +25,53 @@ pub opaque type CharacterData.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/data)
  */
-pub (value: CharacterData) data(): std.js.String.JsString.
+pub (receiver: CharacterData) data(): std.js.String.JsString.
 
 /**
  * The read-only **`CharacterData.length`** property returns the number of characters in the contained data, as a positive integer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/length)
  */
-pub (value: CharacterData) length(): std.js.Number.JsNumber.
+pub (receiver: CharacterData) length(): std.js.Number.JsNumber.
 
-pub (value: CharacterData) owner_document(): Document.
+pub (receiver: CharacterData) owner_document(): std.js.Dom.Document.Document.
 
 /**
  * The **`appendData()`** method of the CharacterData interface adds the provided data to the end of the node's current data.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/appendData)
  */
-pub (value: CharacterData) append_data(data: std.js.String.JsString): std.core.Unit.
+pub (receiver: CharacterData) append_data(data: std.js.String.JsString): std.core.Unit.Unit.
 
 /**
  * The **`deleteData()`** method of the CharacterData interface removes all or part of the data from this `CharacterData` node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/deleteData)
  */
-pub (value: CharacterData) delete_data(offset: std.js.Number.JsNumber, count: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: CharacterData) delete_data(offset: std.js.Number.JsNumber, count: std.js.Number.JsNumber): std.core.Unit.Unit.
 
 /**
  * The **`insertData()`** method of the CharacterData interface inserts the provided data into this `CharacterData` node's current data, at the provided offset from the start of the existing data.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/insertData)
  */
-pub (value: CharacterData) insert_data(offset: std.js.Number.JsNumber, data: std.js.String.JsString): std.core.Unit.
+pub (receiver: CharacterData) insert_data(offset: std.js.Number.JsNumber, data: std.js.String.JsString): std.core.Unit.Unit.
 
 /**
  * The **`replaceData()`** method of the CharacterData interface removes a certain number of characters of the existing text in a given `CharacterData` node and replaces those characters with the text provided.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/replaceData)
  */
-pub (value: CharacterData) replace_data(offset: std.js.Number.JsNumber, count: std.js.Number.JsNumber, data: std.js.String.JsString): std.core.Unit.
+pub (receiver: CharacterData) replace_data(offset: std.js.Number.JsNumber, count: std.js.Number.JsNumber, data: std.js.String.JsString): std.core.Unit.Unit.
 
 /**
  * The **`substringData()`** method of the CharacterData interface returns a portion of the existing data, starting at the specified index and extending for a given number of characters afterwards.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/substringData)
  */
-pub (value: CharacterData) substring_data(offset: std.js.Number.JsNumber, count: std.js.Number.JsNumber): std.js.String.JsString.
+pub (receiver: CharacterData) substring_data(offset: std.js.Number.JsNumber, count: std.js.Number.JsNumber): std.js.String.JsString.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent)
  */
-pub (value: CharacterData) text_content(): std.js.String.JsString.
+pub (receiver: CharacterData) text_content(): std.js.String.JsString.

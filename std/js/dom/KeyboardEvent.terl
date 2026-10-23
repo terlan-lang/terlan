@@ -12,7 +12,7 @@
  */
 module std.js.Dom.KeyboardEvent.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +28,7 @@ pub opaque type KeyboardEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/altKey)
  */
-pub (value: KeyboardEvent) alt_key(): Bool ->
+pub (receiver: KeyboardEvent) alt_key(): Bool ->
     native.
 
 /**
@@ -37,7 +37,7 @@ pub (value: KeyboardEvent) alt_key(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/charCode)
  */
-pub (value: KeyboardEvent) char_code(): JsNumber ->
+pub (receiver: KeyboardEvent) char_code(): JsNumber ->
     native.
 
 /**
@@ -45,7 +45,7 @@ pub (value: KeyboardEvent) char_code(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/code)
  */
-pub (value: KeyboardEvent) code(): JsString ->
+pub (receiver: KeyboardEvent) code(): JsString ->
     native.
 
 /**
@@ -53,7 +53,7 @@ pub (value: KeyboardEvent) code(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/ctrlKey)
  */
-pub (value: KeyboardEvent) ctrl_key(): Bool ->
+pub (receiver: KeyboardEvent) ctrl_key(): Bool ->
     native.
 
 /**
@@ -61,7 +61,7 @@ pub (value: KeyboardEvent) ctrl_key(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/isComposing)
  */
-pub (value: KeyboardEvent) is_composing(): Bool ->
+pub (receiver: KeyboardEvent) is_composing(): Bool ->
     native.
 
 /**
@@ -69,7 +69,7 @@ pub (value: KeyboardEvent) is_composing(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/key)
  */
-pub (value: KeyboardEvent) key(): JsString ->
+pub (receiver: KeyboardEvent) key(): JsString ->
     native.
 
 /**
@@ -78,7 +78,7 @@ pub (value: KeyboardEvent) key(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/keyCode)
  */
-pub (value: KeyboardEvent) key_code(): JsNumber ->
+pub (receiver: KeyboardEvent) key_code(): JsNumber ->
     native.
 
 /**
@@ -86,7 +86,7 @@ pub (value: KeyboardEvent) key_code(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/location)
  */
-pub (value: KeyboardEvent) location(): JsNumber ->
+pub (receiver: KeyboardEvent) location(): JsNumber ->
     native.
 
 /**
@@ -94,7 +94,7 @@ pub (value: KeyboardEvent) location(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/metaKey)
  */
-pub (value: KeyboardEvent) meta_key(): Bool ->
+pub (receiver: KeyboardEvent) meta_key(): Bool ->
     native.
 
 /**
@@ -102,7 +102,7 @@ pub (value: KeyboardEvent) meta_key(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/repeat)
  */
-pub (value: KeyboardEvent) repeat(): Bool ->
+pub (receiver: KeyboardEvent) repeat(): Bool ->
     native.
 
 /**
@@ -110,7 +110,7 @@ pub (value: KeyboardEvent) repeat(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/shiftKey)
  */
-pub (value: KeyboardEvent) shift_key(): Bool ->
+pub (receiver: KeyboardEvent) shift_key(): Bool ->
     native.
 
 /**
@@ -118,7 +118,7 @@ pub (value: KeyboardEvent) shift_key(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/getModifierState)
  */
-pub (value: KeyboardEvent) get_modifier_state(key_arg: JsString): Bool ->
+pub (receiver: KeyboardEvent) get_modifier_state(key_arg: JsString): Bool ->
     native.
 
 /**
@@ -127,16 +127,16 @@ pub (value: KeyboardEvent) get_modifier_state(key_arg: JsString): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/initKeyboardEvent)
  */
-pub (value: KeyboardEvent) init_keyboard_event(
+pub (receiver: KeyboardEvent) init_keyboard_event(
     type_arg: JsString,
-    bubbles_arg: Bool,
-    cancelable_arg: Bool,
-    view_arg: Option[Window],
-    key_arg: JsString,
-    location_arg: JsNumber,
-    ctrl_key: Bool,
-    alt_key: Bool,
-    shift_key: Bool,
-    meta_key: Bool,
-): std.core.Unit ->
+    bubbles_arg: Option[Bool],
+    cancelable_arg: Option[Bool],
+    view_arg: Option[Option[std.js.Dom.Window.Window]],
+    key_arg: Option[JsString],
+    location_arg: Option[JsNumber],
+    ctrl_key: Option[Bool],
+    alt_key: Option[Bool],
+    shift_key: Option[Bool],
+    meta_key: Option[Bool],
+): std.core.Unit.Unit ->
     native.

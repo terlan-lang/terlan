@@ -14,5 +14,3 @@
 module std.js.Dom.SpeechSynthesisErrorEventInit.
 
 pub opaque type SpeechSynthesisErrorEventInit.
-
-pub (value: SpeechSynthesisErrorEventInit) error(): SpeechSynthesisErrorCode.

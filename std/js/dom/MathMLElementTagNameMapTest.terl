@@ -12,9 +12,8 @@
  */
 module std.js.Dom.MathMLElementTagNameMapTest.
 
+import type std.js.Dom.MathMLElement.{MathMLElement}.
 import type std.js.Dom.MathMLElementTagNameMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub annotation__typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
     receiver.annotation_().

@@ -38,8 +38,7 @@ pub(crate) fn map_fields_is_subtype(lhs: &[MapFieldType], rhs: &[MapFieldType]) 
 /// Inputs:
 /// - `lhs`: candidate map fields.
 /// - `rhs`: expected map fields.
-/// - `aliases`: visible alias metadata.
-/// - `depth`: current subtype recursion depth.
+/// - `value_is_subtype`: relation supplied by the caller, sharing its memo.
 ///
 /// Output:
 /// - `true` when all required expected fields are present and compatible.
@@ -50,8 +49,7 @@ pub(crate) fn map_fields_is_subtype(lhs: &[MapFieldType], rhs: &[MapFieldType]) 
 pub(crate) fn map_fields_is_subtype_with_aliases(
     lhs: &[MapFieldType],
     rhs: &[MapFieldType],
-    aliases: &HashMap<String, TypeAlias>,
-    depth: usize,
+    mut value_is_subtype: impl FnMut(&Type, &Type) -> bool,
 ) -> bool {
     for rhs_field in rhs {
         let Some(lhs_field) = lhs.iter().find(|field| field.key == rhs_field.key) else {
@@ -65,7 +63,7 @@ pub(crate) fn map_fields_is_subtype_with_aliases(
             return false;
         }
 
-        if !is_subtype_with_aliases_inner(&lhs_field.value, &rhs_field.value, aliases, depth) {
+        if !value_is_subtype(&lhs_field.value, &rhs_field.value) {
             return false;
         }
     }

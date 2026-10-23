@@ -19,4 +19,4 @@ pub opaque type QueuingStrategyInit.
  *
  * Note that the provided high water mark will not be validated ahead of time. Instead, if it is negative, NaN, or not a number, the resulting ByteLengthQueuingStrategy will cause the corresponding stream constructor to throw.
  */
-pub (value: QueuingStrategyInit) high_water_mark(): std.js.Number.JsNumber.
+pub (receiver: QueuingStrategyInit) high_water_mark(): std.js.Number.JsNumber.

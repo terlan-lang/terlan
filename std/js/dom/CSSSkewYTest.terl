@@ -14,7 +14,5 @@ module std.js.Dom.CSSSkewYTest.
 
 import type std.js.Dom.CSSSkewY.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub ay_typechecks(receiver: CSSSkewY): CSSNumericValue ->
+pub ay_typechecks(receiver: CSSSkewY): std.js.Dom.CSSNumericValue.CSSNumericValue ->
     receiver.ay().

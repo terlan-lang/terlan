@@ -14,11 +14,9 @@ module std.js.Dom.WorkletTest.
 
 import type std.js.Dom.Worklet.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub add_module_typechecks(
     receiver: Worklet,
-    module_url: URL | std.js.String.JsString,
-    options: WorkletOptions,
-): std.js.Promise[std.core.Unit] ->
+    module_url: std.js.Dom.URL.URL | std.js.String.JsString,
+    options: std.core.Option.Option[std.js.Dom.WorkletOptions.WorkletOptions],
+): std.js.Promise.Promise[std.core.Unit.Unit] ->
     receiver.add_module(module_url, options).

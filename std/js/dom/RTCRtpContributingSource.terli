@@ -16,10 +16,10 @@ import type std.js.Number.{JsNumber}.
 
 pub opaque type RTCRtpContributingSource.
 
-pub (value: RTCRtpContributingSource) audio_level(): JsNumber.
+pub (receiver: RTCRtpContributingSource) audio_level(): std.core.Option.Option[JsNumber].
 
-pub (value: RTCRtpContributingSource) rtp_timestamp(): JsNumber.
+pub (receiver: RTCRtpContributingSource) rtp_timestamp(): JsNumber.
 
-pub (value: RTCRtpContributingSource) source(): JsNumber.
+pub (receiver: RTCRtpContributingSource) source(): JsNumber.
 
-pub (value: RTCRtpContributingSource) timestamp(): DOMHighResTimeStamp.
+pub (receiver: RTCRtpContributingSource) timestamp(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.

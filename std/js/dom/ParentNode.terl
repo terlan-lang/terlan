@@ -12,7 +12,11 @@
  */
 module std.js.Dom.ParentNode.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
+import type std.js.Dom.Element.{Element}.
+import type std.js.Dom.Node.{Node}.
 import type std.js.String.{JsString}.
 
 pub opaque type ParentNode.
@@ -20,7 +24,7 @@ pub opaque type ParentNode.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/childElementCount)
  */
-pub (value: ParentNode) child_element_count(): std.js.Number.JsNumber ->
+pub (receiver: ParentNode) child_element_count(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -28,7 +32,7 @@ pub (value: ParentNode) child_element_count(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/children)
  */
-pub (value: ParentNode) children(): HTMLCollection ->
+pub (receiver: ParentNode) children(): std.js.Dom.HTMLCollection.HTMLCollection ->
     native.
 
 /**
@@ -36,7 +40,7 @@ pub (value: ParentNode) children(): HTMLCollection ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/firstElementChild)
  */
-pub (value: ParentNode) first_element_child(): Option[Element] ->
+pub (receiver: ParentNode) first_element_child(): Option[Element] ->
     native.
 
 /**
@@ -44,7 +48,7 @@ pub (value: ParentNode) first_element_child(): Option[Element] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/lastElementChild)
  */
-pub (value: ParentNode) last_element_child(): Option[Element] ->
+pub (receiver: ParentNode) last_element_child(): Option[Element] ->
     native.
 
 /**
@@ -54,7 +58,7 @@ pub (value: ParentNode) last_element_child(): Option[Element] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/append)
  */
-pub (value: ParentNode) append(): Unit ->
+pub (receiver: ParentNode) append(nodes: Array[Node | JsString]): Unit ->
     native.
 
 /**
@@ -64,13 +68,7 @@ pub (value: ParentNode) append(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/prepend)
  */
-pub (value: ParentNode) prepend(): Unit ->
-    native.
-
-pub (value: ParentNode) query_selector(selectors: JsString): Option[E] ->
-    native.
-
-pub (value: ParentNode) query_selector_all(selectors: JsString): NodeListOf[E] ->
+pub (receiver: ParentNode) prepend(nodes: Array[Node | JsString]): Unit ->
     native.
 
 /**
@@ -80,5 +78,5 @@ pub (value: ParentNode) query_selector_all(selectors: JsString): NodeListOf[E] -
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/replaceChildren)
  */
-pub (value: ParentNode) replace_children(): Unit ->
+pub (receiver: ParentNode) replace_children(nodes: Array[Node | JsString]): Unit ->
     native.

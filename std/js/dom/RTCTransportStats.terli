@@ -12,39 +12,32 @@
  */
 module std.js.Dom.RTCTransportStats.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
 pub opaque type RTCTransportStats.
 
-pub (value: RTCTransportStats) bytes_received(): JsNumber.
+pub (receiver: RTCTransportStats) bytes_received(): Option[JsNumber].
 
-pub (value: RTCTransportStats) bytes_sent(): JsNumber.
+pub (receiver: RTCTransportStats) bytes_sent(): Option[JsNumber].
 
-pub (value: RTCTransportStats) dtls_cipher(): JsString.
+pub (receiver: RTCTransportStats) dtls_cipher(): Option[JsString].
 
-pub (value: RTCTransportStats) dtls_role(): RTCDtlsRole.
+pub (receiver: RTCTransportStats) ice_local_username_fragment(): Option[JsString].
 
-pub (value: RTCTransportStats) dtls_state(): RTCDtlsTransportState.
+pub (receiver: RTCTransportStats) local_certificate_id(): Option[JsString].
 
-pub (value: RTCTransportStats) ice_local_username_fragment(): JsString.
+pub (receiver: RTCTransportStats) packets_received(): Option[JsNumber].
 
-pub (value: RTCTransportStats) ice_role(): RTCIceRole.
+pub (receiver: RTCTransportStats) packets_sent(): Option[JsNumber].
 
-pub (value: RTCTransportStats) ice_state(): RTCIceTransportState.
+pub (receiver: RTCTransportStats) remote_certificate_id(): Option[JsString].
 
-pub (value: RTCTransportStats) local_certificate_id(): JsString.
+pub (receiver: RTCTransportStats) selected_candidate_pair_changes(): Option[JsNumber].
 
-pub (value: RTCTransportStats) packets_received(): JsNumber.
+pub (receiver: RTCTransportStats) selected_candidate_pair_id(): Option[JsString].
 
-pub (value: RTCTransportStats) packets_sent(): JsNumber.
+pub (receiver: RTCTransportStats) srtp_cipher(): Option[JsString].
 
-pub (value: RTCTransportStats) remote_certificate_id(): JsString.
-
-pub (value: RTCTransportStats) selected_candidate_pair_changes(): JsNumber.
-
-pub (value: RTCTransportStats) selected_candidate_pair_id(): JsString.
-
-pub (value: RTCTransportStats) srtp_cipher(): JsString.
-
-pub (value: RTCTransportStats) tls_version(): JsString.
+pub (receiver: RTCTransportStats) tls_version(): Option[JsString].

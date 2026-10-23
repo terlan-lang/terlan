@@ -13,16 +13,9 @@
 module std.js.Dom.TextEncoderTest.
 
 import type std.js.Dom.TextEncoder.
-import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub encode_typechecks(receiver: TextEncoder, input: JsString): Uint8Array[ArrayBuffer] ->
-    receiver.encode(input).
-
-pub encode_into_typechecks(
+pub encode_typechecks(
     receiver: TextEncoder,
-    source: JsString,
-    destination: Uint8Array[ArrayBufferLike],
-): TextEncoderEncodeIntoResult ->
-    receiver.encode_into(source, destination).
+    input: std.core.Option.Option[std.js.String.JsString],
+): std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer] ->
+    receiver.encode(input).

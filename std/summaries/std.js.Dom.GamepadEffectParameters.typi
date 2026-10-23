@@ -15,14 +15,14 @@ module std.js.Dom.GamepadEffectParameters.
 
 pub opaque type GamepadEffectParameters.
 
-pub (value: GamepadEffectParameters) duration(): std.js.Number.JsNumber.
+pub (receiver: GamepadEffectParameters) duration(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: GamepadEffectParameters) left_trigger(): std.js.Number.JsNumber.
+pub (receiver: GamepadEffectParameters) left_trigger(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: GamepadEffectParameters) right_trigger(): std.js.Number.JsNumber.
+pub (receiver: GamepadEffectParameters) right_trigger(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: GamepadEffectParameters) start_delay(): std.js.Number.JsNumber.
+pub (receiver: GamepadEffectParameters) start_delay(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: GamepadEffectParameters) strong_magnitude(): std.js.Number.JsNumber.
+pub (receiver: GamepadEffectParameters) strong_magnitude(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: GamepadEffectParameters) weak_magnitude(): std.js.Number.JsNumber.
+pub (receiver: GamepadEffectParameters) weak_magnitude(): std.core.Option.Option[std.js.Number.JsNumber].

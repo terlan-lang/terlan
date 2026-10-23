@@ -13,5 +13,3 @@
 module std.js.Dom.XPathEvaluatorTest.
 
 import type std.js.Dom.XPathEvaluator.
-
-pub generated_binding_surface_contract(): Bool -> true.

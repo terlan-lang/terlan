@@ -15,8 +15,8 @@ module std.js.Dom.DeviceMotionEventAccelerationInit.
 
 pub opaque type DeviceMotionEventAccelerationInit.
 
-pub (value: DeviceMotionEventAccelerationInit) x(): Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventAccelerationInit) x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DeviceMotionEventAccelerationInit) y(): Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventAccelerationInit) y(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DeviceMotionEventAccelerationInit) z(): Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventAccelerationInit) z(): std.core.Option.Option[std.js.Number.JsNumber].

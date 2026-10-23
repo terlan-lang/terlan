@@ -13,5 +13,3 @@
 module std.js.Intl.NumberFormatOptionsUseGroupingRegistryTest.
 
 import type std.js.Intl.NumberFormatOptionsUseGroupingRegistry.
-
-pub generated_binding_surface_contract(): Bool -> true.

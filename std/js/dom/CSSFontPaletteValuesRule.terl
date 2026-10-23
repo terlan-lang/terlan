@@ -26,7 +26,7 @@ pub opaque type CSSFontPaletteValuesRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/basePalette)
  */
-pub (value: CSSFontPaletteValuesRule) base_palette(): JsString ->
+pub (receiver: CSSFontPaletteValuesRule) base_palette(): JsString ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: CSSFontPaletteValuesRule) base_palette(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/fontFamily)
  */
-pub (value: CSSFontPaletteValuesRule) font_family(): JsString ->
+pub (receiver: CSSFontPaletteValuesRule) font_family(): JsString ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (value: CSSFontPaletteValuesRule) font_family(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/name)
  */
-pub (value: CSSFontPaletteValuesRule) name(): JsString ->
+pub (receiver: CSSFontPaletteValuesRule) name(): JsString ->
     native.
 
 /**
@@ -50,5 +50,5 @@ pub (value: CSSFontPaletteValuesRule) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSFontPaletteValuesRule/overrideColors)
  */
-pub (value: CSSFontPaletteValuesRule) override_colors(): JsString ->
+pub (receiver: CSSFontPaletteValuesRule) override_colors(): JsString ->
     native.

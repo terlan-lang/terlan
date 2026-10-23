@@ -14,13 +14,8 @@ module std.js.Dom.MediaKeyStatusMapTest.
 
 import type std.js.Dom.MediaKeyStatusMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub size_typechecks(receiver: MediaKeyStatusMap): std.js.Number.JsNumber ->
     receiver.size().
 
-pub get_typechecks(receiver: MediaKeyStatusMap, key_id: BufferSource): Option[MediaKeyStatus] ->
-    receiver.get(key_id).
-
-pub has_typechecks(receiver: MediaKeyStatusMap, key_id: BufferSource): std.core.Bool ->
+pub has_typechecks(receiver: MediaKeyStatusMap, key_id: std.js.Dom.BufferSource.BufferSource): Bool ->
     receiver.has(key_id).

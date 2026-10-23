@@ -12,8 +12,7 @@
  */
 module std.js.Dom.StorageManager.
 
-import type std.core.{Bool}.
-import type std.js.{Promise}.
+import type std.js.Promise.{Promise}.
 
 /**
  * The **`StorageManager`** interface of the Storage API provides an interface for managing persistence permissions and estimating available storage.
@@ -28,7 +27,7 @@ pub opaque type StorageManager.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/estimate)
  */
-pub (value: StorageManager) estimate(): Promise[StorageEstimate] ->
+pub (receiver: StorageManager) estimate(): Promise[std.js.Dom.StorageEstimate.StorageEstimate] ->
     native.
 
 /**
@@ -36,7 +35,7 @@ pub (value: StorageManager) estimate(): Promise[StorageEstimate] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/getDirectory)
  */
-pub (value: StorageManager) get_directory(): Promise[FileSystemDirectoryHandle] ->
+pub (receiver: StorageManager) get_directory(): Promise[std.js.Dom.FileSystemDirectoryHandle.FileSystemDirectoryHandle] ->
     native.
 
 /**
@@ -44,7 +43,7 @@ pub (value: StorageManager) get_directory(): Promise[FileSystemDirectoryHandle] 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/persist)
  */
-pub (value: StorageManager) persist(): Promise[Bool] ->
+pub (receiver: StorageManager) persist(): Promise[Bool] ->
     native.
 
 /**
@@ -52,5 +51,5 @@ pub (value: StorageManager) persist(): Promise[Bool] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/persisted)
  */
-pub (value: StorageManager) persisted(): Promise[Bool] ->
+pub (receiver: StorageManager) persisted(): Promise[Bool] ->
     native.

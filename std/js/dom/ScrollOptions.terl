@@ -13,6 +13,3 @@
 module std.js.Dom.ScrollOptions.
 
 pub opaque type ScrollOptions.
-
-pub (value: ScrollOptions) behavior(): ScrollBehavior ->
-    native.

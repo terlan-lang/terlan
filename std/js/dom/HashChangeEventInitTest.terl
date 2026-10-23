@@ -12,13 +12,12 @@
  */
 module std.js.Dom.HashChangeEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.HashChangeEventInit.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub new_url_typechecks(receiver: HashChangeEventInit): JsString ->
+pub new_url_typechecks(receiver: HashChangeEventInit): Option[JsString] ->
     receiver.new_url().
 
-pub old_url_typechecks(receiver: HashChangeEventInit): JsString ->
+pub old_url_typechecks(receiver: HashChangeEventInit): Option[JsString] ->
     receiver.old_url().

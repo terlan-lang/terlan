@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLImageElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -29,7 +31,7 @@ pub opaque type HTMLImageElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/align)
  */
-pub (value: HTMLImageElement) align(): JsString ->
+pub (receiver: HTMLImageElement) align(): JsString ->
     native.
 
 /**
@@ -37,7 +39,7 @@ pub (value: HTMLImageElement) align(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/alt)
  */
-pub (value: HTMLImageElement) alt(): JsString ->
+pub (receiver: HTMLImageElement) alt(): JsString ->
     native.
 
 /**
@@ -46,7 +48,7 @@ pub (value: HTMLImageElement) alt(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/border)
  */
-pub (value: HTMLImageElement) border(): JsString ->
+pub (receiver: HTMLImageElement) border(): JsString ->
     native.
 
 /**
@@ -54,7 +56,7 @@ pub (value: HTMLImageElement) border(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/complete)
  */
-pub (value: HTMLImageElement) complete(): Bool ->
+pub (receiver: HTMLImageElement) complete(): Bool ->
     native.
 
 /**
@@ -62,7 +64,7 @@ pub (value: HTMLImageElement) complete(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/crossOrigin)
  */
-pub (value: HTMLImageElement) cross_origin(): Option[JsString] ->
+pub (receiver: HTMLImageElement) cross_origin(): Option[JsString] ->
     native.
 
 /**
@@ -70,7 +72,7 @@ pub (value: HTMLImageElement) cross_origin(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/currentSrc)
  */
-pub (value: HTMLImageElement) current_src(): JsString ->
+pub (receiver: HTMLImageElement) current_src(): JsString ->
     native.
 
 /**
@@ -78,7 +80,7 @@ pub (value: HTMLImageElement) current_src(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/height)
  */
-pub (value: HTMLImageElement) height(): JsNumber ->
+pub (receiver: HTMLImageElement) height(): JsNumber ->
     native.
 
 /**
@@ -87,7 +89,7 @@ pub (value: HTMLImageElement) height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/hspace)
  */
-pub (value: HTMLImageElement) hspace(): JsNumber ->
+pub (receiver: HTMLImageElement) hspace(): JsNumber ->
     native.
 
 /**
@@ -95,7 +97,7 @@ pub (value: HTMLImageElement) hspace(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/isMap)
  */
-pub (value: HTMLImageElement) is_map(): Bool ->
+pub (receiver: HTMLImageElement) is_map(): Bool ->
     native.
 
 /**
@@ -104,13 +106,13 @@ pub (value: HTMLImageElement) is_map(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/longDesc)
  */
-pub (value: HTMLImageElement) long_desc(): JsString ->
+pub (receiver: HTMLImageElement) long_desc(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLImageElement) lowsrc(): JsString ->
+pub (receiver: HTMLImageElement) lowsrc(): JsString ->
     native.
 
 /**
@@ -119,7 +121,7 @@ pub (value: HTMLImageElement) lowsrc(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/name)
  */
-pub (value: HTMLImageElement) name(): JsString ->
+pub (receiver: HTMLImageElement) name(): JsString ->
     native.
 
 /**
@@ -127,7 +129,7 @@ pub (value: HTMLImageElement) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/naturalHeight)
  */
-pub (value: HTMLImageElement) natural_height(): JsNumber ->
+pub (receiver: HTMLImageElement) natural_height(): JsNumber ->
     native.
 
 /**
@@ -135,7 +137,7 @@ pub (value: HTMLImageElement) natural_height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/naturalWidth)
  */
-pub (value: HTMLImageElement) natural_width(): JsNumber ->
+pub (receiver: HTMLImageElement) natural_width(): JsNumber ->
     native.
 
 /**
@@ -143,7 +145,7 @@ pub (value: HTMLImageElement) natural_width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/referrerPolicy)
  */
-pub (value: HTMLImageElement) referrer_policy(): JsString ->
+pub (receiver: HTMLImageElement) referrer_policy(): JsString ->
     native.
 
 /**
@@ -151,7 +153,7 @@ pub (value: HTMLImageElement) referrer_policy(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/sizes)
  */
-pub (value: HTMLImageElement) sizes(): JsString ->
+pub (receiver: HTMLImageElement) sizes(): JsString ->
     native.
 
 /**
@@ -159,7 +161,7 @@ pub (value: HTMLImageElement) sizes(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/src)
  */
-pub (value: HTMLImageElement) src(): JsString ->
+pub (receiver: HTMLImageElement) src(): JsString ->
     native.
 
 /**
@@ -167,7 +169,7 @@ pub (value: HTMLImageElement) src(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/srcset)
  */
-pub (value: HTMLImageElement) srcset(): JsString ->
+pub (receiver: HTMLImageElement) srcset(): JsString ->
     native.
 
 /**
@@ -175,7 +177,7 @@ pub (value: HTMLImageElement) srcset(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/useMap)
  */
-pub (value: HTMLImageElement) use_map(): JsString ->
+pub (receiver: HTMLImageElement) use_map(): JsString ->
     native.
 
 /**
@@ -184,7 +186,7 @@ pub (value: HTMLImageElement) use_map(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/vspace)
  */
-pub (value: HTMLImageElement) vspace(): JsNumber ->
+pub (receiver: HTMLImageElement) vspace(): JsNumber ->
     native.
 
 /**
@@ -192,7 +194,7 @@ pub (value: HTMLImageElement) vspace(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/width)
  */
-pub (value: HTMLImageElement) width(): JsNumber ->
+pub (receiver: HTMLImageElement) width(): JsNumber ->
     native.
 
 /**
@@ -200,7 +202,7 @@ pub (value: HTMLImageElement) width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/x)
  */
-pub (value: HTMLImageElement) x(): JsNumber ->
+pub (receiver: HTMLImageElement) x(): JsNumber ->
     native.
 
 /**
@@ -208,7 +210,7 @@ pub (value: HTMLImageElement) x(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/y)
  */
-pub (value: HTMLImageElement) y(): JsNumber ->
+pub (receiver: HTMLImageElement) y(): JsNumber ->
     native.
 
 /**
@@ -216,19 +218,19 @@ pub (value: HTMLImageElement) y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLImageElement/decode)
  */
-pub (value: HTMLImageElement) decode(): std.js.Promise[Unit] ->
+pub (receiver: HTMLImageElement) decode(): std.js.Promise.Promise[Unit] ->
     native.
 
-pub (value: HTMLImageElement) add_event_listener(
+pub (receiver: HTMLImageElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLImageElement) remove_event_listener(
+pub (receiver: HTMLImageElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

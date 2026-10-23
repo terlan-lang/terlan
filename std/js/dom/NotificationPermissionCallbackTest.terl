@@ -13,5 +13,3 @@
 module std.js.Dom.NotificationPermissionCallbackTest.
 
 import type std.js.Dom.NotificationPermissionCallback.
-
-pub generated_binding_surface_contract(): Bool -> true.

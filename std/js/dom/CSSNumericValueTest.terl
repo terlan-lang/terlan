@@ -12,36 +12,40 @@
  */
 module std.js.Dom.CSSNumericValueTest.
 
+import type std.js.Array.{Array}.
+import type std.js.Dom.CSSNumberish.{CSSNumberish}.
 import type std.js.Dom.CSSNumericValue.
+import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
+pub add_typechecks(receiver: CSSNumericValue, values: Array[CSSNumberish]): CSSNumericValue ->
+    receiver.add(values).
 
-pub add_typechecks(receiver: CSSNumericValue): CSSNumericValue ->
-    receiver.add().
+pub div__typechecks(receiver: CSSNumericValue, values: Array[CSSNumberish]): CSSNumericValue ->
+    receiver.div_(values).
 
-pub div__typechecks(receiver: CSSNumericValue): CSSNumericValue ->
-    receiver.div_().
+pub equals_typechecks(receiver: CSSNumericValue, value: Array[CSSNumberish]): Bool ->
+    receiver.equals(value).
 
-pub equals_typechecks(receiver: CSSNumericValue): std.core.Bool ->
-    receiver.equals().
+pub max_typechecks(receiver: CSSNumericValue, values: Array[CSSNumberish]): CSSNumericValue ->
+    receiver.max(values).
 
-pub max_typechecks(receiver: CSSNumericValue): CSSNumericValue ->
-    receiver.max().
+pub min_typechecks(receiver: CSSNumericValue, values: Array[CSSNumberish]): CSSNumericValue ->
+    receiver.min(values).
 
-pub min_typechecks(receiver: CSSNumericValue): CSSNumericValue ->
-    receiver.min().
+pub mul_typechecks(receiver: CSSNumericValue, values: Array[CSSNumberish]): CSSNumericValue ->
+    receiver.mul(values).
 
-pub mul_typechecks(receiver: CSSNumericValue): CSSNumericValue ->
-    receiver.mul().
+pub sub_typechecks(receiver: CSSNumericValue, values: Array[CSSNumberish]): CSSNumericValue ->
+    receiver.sub(values).
 
-pub sub_typechecks(receiver: CSSNumericValue): CSSNumericValue ->
-    receiver.sub().
-
-pub to_typechecks(receiver: CSSNumericValue, unit: std.js.String.JsString): CSSUnitValue ->
+pub to_typechecks(receiver: CSSNumericValue, unit: JsString): std.js.Dom.CSSUnitValue.CSSUnitValue ->
     receiver.to(unit).
 
-pub to_sum_typechecks(receiver: CSSNumericValue): CSSMathSum ->
-    receiver.to_sum().
+pub to_sum_typechecks(
+    receiver: CSSNumericValue,
+    units: Array[JsString],
+): std.js.Dom.CSSMathSum.CSSMathSum ->
+    receiver.to_sum(units).
 
-pub type__typechecks(receiver: CSSNumericValue): CSSNumericType ->
+pub type__typechecks(receiver: CSSNumericValue): std.js.Dom.CSSNumericType.CSSNumericType ->
     receiver.type_().

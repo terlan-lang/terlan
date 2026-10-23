@@ -12,6 +12,8 @@
  */
 module std.js.Dom.ReadableStream.
 
+import type std.core.Option.{Option}.
+
 /**
  * The `ReadableStream` interface of the Streams API represents a readable stream of byte data.
  *
@@ -24,24 +26,15 @@ pub opaque type ReadableStream[R].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/locked)
  */
-pub (value: ReadableStream[R]) locked(): std.core.Bool ->
+pub (receiver: ReadableStream[R]) locked(): Bool ->
     native.
 
-pub (value: ReadableStream[R]) get_reader(): ReadableStreamDefaultReader[R] ->
+pub (receiver: ReadableStream[R]) get_reader(): std.js.Dom.ReadableStreamDefaultReader.ReadableStreamDefaultReader[R] ->
     native.
 
-pub (value: ReadableStream[R]) get_reader(options: ReadableStreamGetReaderOptions): ReadableStreamReader[R] ->
-    native.
-
-/**
- * The **`pipeThrough()`** method of the ReadableStream interface provides a chainable way of piping the current stream through a transform stream or any other writable/readable pair.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/pipeThrough)
- */
-pub (value: ReadableStream[R]) pipe_through(
-    transform: ReadableWritablePair[T, R],
-    options: StreamPipeOptions,
-): ReadableStream[T] ->
+pub (receiver: ReadableStream[R]) get_reader_overload_2(
+    options: Option[std.js.Dom.ReadableStreamGetReaderOptions.ReadableStreamGetReaderOptions],
+): std.js.Dom.ReadableStreamReader.ReadableStreamReader[R] ->
     native.
 
 /**
@@ -49,8 +42,8 @@ pub (value: ReadableStream[R]) pipe_through(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/pipeTo)
  */
-pub (value: ReadableStream[R]) pipe_to(
-    destination: WritableStream[R],
-    options: StreamPipeOptions,
-): std.js.Promise[std.core.Unit] ->
+pub (receiver: ReadableStream[R]) pipe_to(
+    destination: std.js.Dom.WritableStream.WritableStream[R],
+    options: Option[std.js.Dom.StreamPipeOptions.StreamPipeOptions],
+): std.js.Promise.Promise[std.core.Unit.Unit] ->
     native.

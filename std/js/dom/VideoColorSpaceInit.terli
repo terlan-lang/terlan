@@ -14,10 +14,4 @@ module std.js.Dom.VideoColorSpaceInit.
 
 pub opaque type VideoColorSpaceInit.
 
-pub (value: VideoColorSpaceInit) full_range(): Option[std.core.Bool].
-
-pub (value: VideoColorSpaceInit) matrix(): Option[VideoMatrixCoefficients].
-
-pub (value: VideoColorSpaceInit) primaries(): Option[VideoColorPrimaries].
-
-pub (value: VideoColorSpaceInit) transfer(): Option[VideoTransferCharacteristics].
+pub (receiver: VideoColorSpaceInit) full_range(): std.core.Option.Option[Bool].

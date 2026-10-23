@@ -14,13 +14,7 @@ module std.js.Dom.KeyframeEffectOptionsTest.
 
 import type std.js.Dom.KeyframeEffectOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub composite_typechecks(receiver: KeyframeEffectOptions): CompositeOperation ->
-    receiver.composite().
-
-pub iteration_composite_typechecks(receiver: KeyframeEffectOptions): IterationCompositeOperation ->
-    receiver.iteration_composite().
-
-pub pseudo_element_typechecks(receiver: KeyframeEffectOptions): Option[std.js.String.JsString] ->
+pub pseudo_element_typechecks(
+    receiver: KeyframeEffectOptions,
+): std.core.Option.Option[std.js.String.JsString] ->
     receiver.pseudo_element().

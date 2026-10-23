@@ -26,18 +26,18 @@ pub opaque type FileSystemWritableFileStream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemWritableFileStream/seek)
  */
-pub (value: FileSystemWritableFileStream) seek(position: std.js.Number.JsNumber): std.js.Promise[std.core.Unit].
+pub (receiver: FileSystemWritableFileStream) seek(position: std.js.Number.JsNumber): std.js.Promise.Promise[std.core.Unit.Unit].
 
 /**
  * The **`truncate()`** method of the FileSystemWritableFileStream interface resizes the file associated with the stream to the specified size in bytes.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemWritableFileStream/truncate)
  */
-pub (value: FileSystemWritableFileStream) truncate(size: std.js.Number.JsNumber): std.js.Promise[std.core.Unit].
+pub (receiver: FileSystemWritableFileStream) truncate(size: std.js.Number.JsNumber): std.js.Promise.Promise[std.core.Unit.Unit].
 
 /**
  * The **`write()`** method of the FileSystemWritableFileStream interface writes content into the file the method is called on, at the current file cursor offset.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemWritableFileStream/write)
  */
-pub (value: FileSystemWritableFileStream) write(data: FileSystemWriteChunkType): std.js.Promise[std.core.Unit].
+pub (receiver: FileSystemWritableFileStream) write(data: std.js.Dom.FileSystemWriteChunkType.FileSystemWriteChunkType): std.js.Promise.Promise[std.core.Unit.Unit].

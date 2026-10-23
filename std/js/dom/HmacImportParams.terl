@@ -14,8 +14,8 @@ module std.js.Dom.HmacImportParams.
 
 pub opaque type HmacImportParams.
 
-pub (value: HmacImportParams) hash(): HashAlgorithmIdentifier ->
+pub (receiver: HmacImportParams) hash(): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier ->
     native.
 
-pub (value: HmacImportParams) length(): std.js.Number.JsNumber ->
+pub (receiver: HmacImportParams) length(): std.core.Option.Option[std.js.Number.JsNumber] ->
     native.

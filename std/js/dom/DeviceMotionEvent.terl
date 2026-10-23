@@ -12,6 +12,9 @@
  */
 module std.js.Dom.DeviceMotionEvent.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DeviceMotionEventAcceleration.{DeviceMotionEventAcceleration}.
+
 /**
  * The **`DeviceMotionEvent`** interface of the Device Orientation Events provides web developers with information about the speed of changes for the device's position and orientation.
  * Available only in secure contexts.
@@ -25,7 +28,7 @@ pub opaque type DeviceMotionEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEvent/acceleration)
  */
-pub (value: DeviceMotionEvent) acceleration(): Option[DeviceMotionEventAcceleration] ->
+pub (receiver: DeviceMotionEvent) acceleration(): Option[DeviceMotionEventAcceleration] ->
     native.
 
 /**
@@ -33,7 +36,7 @@ pub (value: DeviceMotionEvent) acceleration(): Option[DeviceMotionEventAccelerat
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEvent/accelerationIncludingGravity)
  */
-pub (value: DeviceMotionEvent) acceleration_including_gravity(): Option[DeviceMotionEventAcceleration] ->
+pub (receiver: DeviceMotionEvent) acceleration_including_gravity(): Option[DeviceMotionEventAcceleration] ->
     native.
 
 /**
@@ -41,7 +44,7 @@ pub (value: DeviceMotionEvent) acceleration_including_gravity(): Option[DeviceMo
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEvent/interval)
  */
-pub (value: DeviceMotionEvent) interval(): std.js.Number.JsNumber ->
+pub (receiver: DeviceMotionEvent) interval(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -49,5 +52,5 @@ pub (value: DeviceMotionEvent) interval(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEvent/rotationRate)
  */
-pub (value: DeviceMotionEvent) rotation_rate(): Option[DeviceMotionEventRotationRate] ->
+pub (receiver: DeviceMotionEvent) rotation_rate(): Option[std.js.Dom.DeviceMotionEventRotationRate.DeviceMotionEventRotationRate] ->
     native.

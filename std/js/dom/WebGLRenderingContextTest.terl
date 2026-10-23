@@ -13,5 +13,3 @@
 module std.js.Dom.WebGLRenderingContextTest.
 
 import type std.js.Dom.WebGLRenderingContext.
-
-pub generated_binding_surface_contract(): Bool -> true.

@@ -25,32 +25,25 @@ pub opaque type History.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History/length)
  */
-pub (value: History) length(): std.js.Number.JsNumber.
-
-/**
- * The **`scrollRestoration`** property of the History interface allows web applications to explicitly set default scroll restoration behavior on history navigation.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History/scrollRestoration)
- */
-pub (value: History) scroll_restoration(): ScrollRestoration.
+pub (receiver: History) length(): std.js.Number.JsNumber.
 
 /**
  * The **`back()`** method of the History interface causes the browser to move back one page in the session history.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History/back)
  */
-pub (value: History) back(): std.core.Unit.
+pub (receiver: History) back(): std.core.Unit.Unit.
 
 /**
  * The **`forward()`** method of the History interface causes the browser to move forward one page in the session history.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History/forward)
  */
-pub (value: History) forward(): std.core.Unit.
+pub (receiver: History) forward(): std.core.Unit.Unit.
 
 /**
  * The **`go()`** method of the History interface loads a specific page from the session history.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History/go)
  */
-pub (value: History) go(delta: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: History) go(delta: std.core.Option.Option[std.js.Number.JsNumber]): std.core.Unit.Unit.

@@ -24,7 +24,7 @@ pub opaque type RTCTrackEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCTrackEvent/receiver)
  */
-pub (value: RTCTrackEvent) receiver(): RTCRtpReceiver ->
+pub (receiver: RTCTrackEvent) receiver(): std.js.Dom.RTCRtpReceiver.RTCRtpReceiver ->
     native.
 
 /**
@@ -32,7 +32,7 @@ pub (value: RTCTrackEvent) receiver(): RTCRtpReceiver ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCTrackEvent/streams)
  */
-pub (value: RTCTrackEvent) streams(): std.js.Array[MediaStream] ->
+pub (receiver: RTCTrackEvent) streams(): std.js.Array.Array[std.js.Dom.MediaStream.MediaStream] ->
     native.
 
 /**
@@ -40,7 +40,7 @@ pub (value: RTCTrackEvent) streams(): std.js.Array[MediaStream] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCTrackEvent/track)
  */
-pub (value: RTCTrackEvent) track(): MediaStreamTrack ->
+pub (receiver: RTCTrackEvent) track(): std.js.Dom.MediaStreamTrack.MediaStreamTrack ->
     native.
 
 /**
@@ -48,5 +48,5 @@ pub (value: RTCTrackEvent) track(): MediaStreamTrack ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCTrackEvent/transceiver)
  */
-pub (value: RTCTrackEvent) transceiver(): RTCRtpTransceiver ->
+pub (receiver: RTCTrackEvent) transceiver(): std.js.Dom.RTCRtpTransceiver.RTCRtpTransceiver ->
     native.

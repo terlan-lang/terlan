@@ -12,7 +12,10 @@
  */
 module std.js.Dom.SVGImageElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedLength.{SVGAnimatedLength}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,51 +30,51 @@ pub opaque type SVGImageElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/crossOrigin)
  */
-pub (value: SVGImageElement) cross_origin(): Option[JsString].
+pub (receiver: SVGImageElement) cross_origin(): Option[JsString].
 
 /**
  * The **`height`** read-only property of the corresponding to the height attribute of the given An SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/height)
  */
-pub (value: SVGImageElement) height(): SVGAnimatedLength.
+pub (receiver: SVGImageElement) height(): SVGAnimatedLength.
 
 /**
  * The **`preserveAspectRatio`** read-only property of the SVGImageElement interface returns an element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/preserveAspectRatio)
  */
-pub (value: SVGImageElement) preserve_aspect_ratio(): SVGAnimatedPreserveAspectRatio.
+pub (receiver: SVGImageElement) preserve_aspect_ratio(): std.js.Dom.SVGAnimatedPreserveAspectRatio.SVGAnimatedPreserveAspectRatio.
 
 /**
  * The **`width`** read-only property of the corresponding to the width attribute of the given image element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/width)
  */
-pub (value: SVGImageElement) width(): SVGAnimatedLength.
+pub (receiver: SVGImageElement) width(): SVGAnimatedLength.
 
 /**
  * The **`x`** read-only property of the corresponding to the x attribute of the given image element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/x)
  */
-pub (value: SVGImageElement) x(): SVGAnimatedLength.
+pub (receiver: SVGImageElement) x(): SVGAnimatedLength.
 
 /**
  * The **`y`** read-only property of the corresponding to the y attribute of the given image element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/y)
  */
-pub (value: SVGImageElement) y(): SVGAnimatedLength.
+pub (receiver: SVGImageElement) y(): SVGAnimatedLength.
 
-pub (value: SVGImageElement) add_event_listener(
+pub (receiver: SVGImageElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: SVGImageElement) remove_event_listener(
+pub (receiver: SVGImageElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

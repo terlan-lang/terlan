@@ -24,4 +24,4 @@ pub opaque type DragEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DragEvent/dataTransfer)
  */
-pub (value: DragEvent) data_transfer(): Option[DataTransfer].
+pub (receiver: DragEvent) data_transfer(): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer].

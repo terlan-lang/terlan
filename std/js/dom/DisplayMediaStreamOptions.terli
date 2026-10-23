@@ -12,10 +12,11 @@
  */
 module std.js.Dom.DisplayMediaStreamOptions.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
+import type std.js.Dom.MediaTrackConstraints.{MediaTrackConstraints}.
 
 pub opaque type DisplayMediaStreamOptions.
 
-pub (value: DisplayMediaStreamOptions) audio(): MediaTrackConstraints | Bool.
+pub (receiver: DisplayMediaStreamOptions) audio(): Option[Bool | MediaTrackConstraints].
 
-pub (value: DisplayMediaStreamOptions) video(): MediaTrackConstraints | Bool.
+pub (receiver: DisplayMediaStreamOptions) video(): Option[Bool | MediaTrackConstraints].

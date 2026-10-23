@@ -12,12 +12,13 @@
  */
 module std.js.Dom.WebAssembly.MemoryDescriptor.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type MemoryDescriptor.
 
-pub (value: MemoryDescriptor) initial(): JsNumber.
+pub (receiver: MemoryDescriptor) initial(): JsNumber.
 
-pub (value: MemoryDescriptor) maximum(): JsNumber.
+pub (receiver: MemoryDescriptor) maximum(): Option[JsNumber].
 
-pub (value: MemoryDescriptor) shared(): std.core.Bool.
+pub (receiver: MemoryDescriptor) shared(): Option[Bool].

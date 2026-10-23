@@ -12,16 +12,14 @@
  */
 module std.js.Dom.AddEventListenerOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.AddEventListenerOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub once_typechecks(receiver: AddEventListenerOptions): Bool ->
+pub once_typechecks(receiver: AddEventListenerOptions): Option[Bool] ->
     receiver.once().
 
-pub passive_typechecks(receiver: AddEventListenerOptions): Bool ->
+pub passive_typechecks(receiver: AddEventListenerOptions): Option[Bool] ->
     receiver.passive().
 
-pub signal_typechecks(receiver: AddEventListenerOptions): AbortSignal ->
+pub signal_typechecks(receiver: AddEventListenerOptions): Option[std.js.Dom.AbortSignal.AbortSignal] ->
     receiver.signal().

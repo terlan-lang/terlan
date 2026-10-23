@@ -288,7 +288,7 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(document_source.contains("module std.js.Dom.Document."));
     assert!(document_source.contains("pub opaque type Document."));
     assert!(document_source.contains(
-        "pub (value: Document) get_element_by_id(element_id: JsString): Option[HTMLElement] ->"
+        "pub (receiver: Document) get_element_by_id(element_id: JsString): Option[HTMLElement] ->"
     ));
     assert!(document_source.contains("    native."));
     assert_eq!(
@@ -301,7 +301,7 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
         fs::read_to_string(out_dir.join("std/js/dom/WebkitURL.terl")).expect("read source");
     assert!(webkit_url_source.contains("@source-interface webkitURL"));
     assert!(webkit_url_source.contains("module std.js.Dom.WebkitURL."));
-    assert!(webkit_url_source.contains("pub type WebkitURL = URL."));
+    assert!(webkit_url_source.contains("pub type WebkitURL = std.js.Dom.URL.URL."));
 
     let document_test = fs::read_to_string(out_dir.join("std/js/dom/DocumentTest.terl"))
         .expect("read generated DOM test");
@@ -317,8 +317,8 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(document_test.contains("@source-interface Document"));
     assert!(document_test.contains("module std.js.Dom.DocumentTest."));
     assert!(document_test.contains("import type std.js.Dom.Document."));
-    assert!(document_test.contains("pub generated_binding_surface_contract(): Bool ->"));
-    assert!(!document_test.contains("@test\npub generated_binding_surface_contract(): Bool ->"));
+    assert!(!document_test.contains("generated_binding_surface_contract"));
+    assert!(document_test.contains("_typechecks("));
     assert!(document_test.contains(
         "pub get_element_by_id_typechecks(receiver: Document, element_id: JsString): Option[HTMLElement] ->"
     ));
@@ -331,9 +331,11 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(
         map_source.contains("@returns true if an element in the Map existed and has been removed")
     );
-    assert!(map_source.contains("pub (value: Map[K, V]) get(key: K): Option[V] ->"));
+    assert!(
+        map_source.contains("pub (receiver: Map[K, V]) get(key: K): std.core.Option.Option[V] ->")
+    );
     assert!(map_source.contains("Returns a specified element from the Map object."));
-    assert!(map_source.contains("pub (value: Map[K, V]) size(): std.js.Number.JsNumber ->"));
+    assert!(map_source.contains("pub (receiver: Map[K, V]) size(): std.js.Number.JsNumber ->"));
     assert!(map_source.contains("@returns the number of elements in the Map."));
 
     let binding_manifest =

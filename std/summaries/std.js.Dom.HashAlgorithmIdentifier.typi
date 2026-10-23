@@ -14,4 +14,4 @@
 module std.js.Dom.HashAlgorithmIdentifier.
 
 pub type HashAlgorithmIdentifier =
-    AlgorithmIdentifier.
+    std.js.Dom.AlgorithmIdentifier.AlgorithmIdentifier.

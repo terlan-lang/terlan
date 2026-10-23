@@ -12,15 +12,15 @@
  */
 module std.js.Dom.RTCRtpParameters.
 
-import type std.js.{Array}.
+import type std.js.Array.{Array}.
 
 pub opaque type RTCRtpParameters.
 
-pub (value: RTCRtpParameters) codecs(): Array[RTCRtpCodecParameters] ->
+pub (receiver: RTCRtpParameters) codecs(): Array[std.js.Dom.RTCRtpCodecParameters.RTCRtpCodecParameters] ->
     native.
 
-pub (value: RTCRtpParameters) header_extensions(): Array[RTCRtpHeaderExtensionParameters] ->
+pub (receiver: RTCRtpParameters) header_extensions(): Array[std.js.Dom.RTCRtpHeaderExtensionParameters.RTCRtpHeaderExtensionParameters] ->
     native.
 
-pub (value: RTCRtpParameters) rtcp(): RTCRtcpParameters ->
+pub (receiver: RTCRtpParameters) rtcp(): std.js.Dom.RTCRtcpParameters.RTCRtcpParameters ->
     native.

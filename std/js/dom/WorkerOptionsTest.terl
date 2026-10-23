@@ -14,13 +14,5 @@ module std.js.Dom.WorkerOptionsTest.
 
 import type std.js.Dom.WorkerOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub credentials_typechecks(receiver: WorkerOptions): RequestCredentials ->
-    receiver.credentials().
-
-pub name_typechecks(receiver: WorkerOptions): std.js.String.JsString ->
+pub name_typechecks(receiver: WorkerOptions): std.core.Option.Option[std.js.String.JsString] ->
     receiver.name().
-
-pub type__typechecks(receiver: WorkerOptions): WorkerType ->
-    receiver.type_().

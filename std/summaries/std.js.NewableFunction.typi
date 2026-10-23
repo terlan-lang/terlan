@@ -14,23 +14,3 @@
 module std.js.NewableFunction.
 
 pub opaque type NewableFunction.
-
-/**
- * Calls the function with the specified object as the this value and the elements of specified array as the arguments.
- * @param thisArg The object to be used as the this object.
- */
-pub (value: NewableFunction) apply(this_arg: T): std.core.Unit.
-
-/**
- * Calls the function with the specified object as the this value and the elements of specified array as the arguments.
- * @param thisArg The object to be used as the this object.
- * @param args An array of argument values to be passed to the function.
- */
-pub (value: NewableFunction) apply(this_arg: T, args: A): std.core.Unit.
-
-/**
- * Calls the function with the specified object as the this value and the specified rest arguments as the arguments.
- * @param thisArg The object to be used as the this object.
- * @param args Argument values to be passed to the function.
- */
-pub (value: NewableFunction) call(this_arg: T): std.core.Unit.

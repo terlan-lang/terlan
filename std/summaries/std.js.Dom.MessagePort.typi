@@ -25,15 +25,15 @@ pub opaque type MessagePort.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessagePort/close)
  */
-pub (value: MessagePort) close(): std.core.Unit.
+pub (receiver: MessagePort) close(): std.core.Unit.Unit.
 
 /**
  * The **`start()`** method of the MessagePort interface starts the sending of messages queued on the port.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessagePort/start)
  */
-pub (value: MessagePort) start(): std.core.Unit.
+pub (receiver: MessagePort) start(): std.core.Unit.Unit.
 
-pub (value: MessagePort) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: MessagePort) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: MessagePort) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: MessagePort) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

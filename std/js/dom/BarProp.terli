@@ -24,4 +24,4 @@ pub opaque type BarProp.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BarProp/visible)
  */
-pub (value: BarProp) visible(): std.core.Bool.
+pub (receiver: BarProp) visible(): Bool.

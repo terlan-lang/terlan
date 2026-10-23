@@ -14,9 +14,7 @@ module std.js.Dom.MediaQueryListEventTest.
 
 import type std.js.Dom.MediaQueryListEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub matches_typechecks(receiver: MediaQueryListEvent): std.core.Bool ->
+pub matches_typechecks(receiver: MediaQueryListEvent): Bool ->
     receiver.matches().
 
 pub media_typechecks(receiver: MediaQueryListEvent): std.js.String.JsString ->

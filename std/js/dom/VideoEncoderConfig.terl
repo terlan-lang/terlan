@@ -12,49 +12,38 @@
  */
 module std.js.Dom.VideoEncoderConfig.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
 pub opaque type VideoEncoderConfig.
 
-pub (value: VideoEncoderConfig) alpha(): AlphaOption ->
+pub (receiver: VideoEncoderConfig) avc(): Option[std.js.Dom.AvcEncoderConfig.AvcEncoderConfig] ->
     native.
 
-pub (value: VideoEncoderConfig) avc(): AvcEncoderConfig ->
+pub (receiver: VideoEncoderConfig) bitrate(): Option[JsNumber] ->
     native.
 
-pub (value: VideoEncoderConfig) bitrate(): JsNumber ->
+pub (receiver: VideoEncoderConfig) codec(): JsString ->
     native.
 
-pub (value: VideoEncoderConfig) bitrate_mode(): VideoEncoderBitrateMode ->
+pub (receiver: VideoEncoderConfig) content_hint(): Option[JsString] ->
     native.
 
-pub (value: VideoEncoderConfig) codec(): JsString ->
+pub (receiver: VideoEncoderConfig) display_height(): Option[JsNumber] ->
     native.
 
-pub (value: VideoEncoderConfig) content_hint(): JsString ->
+pub (receiver: VideoEncoderConfig) display_width(): Option[JsNumber] ->
     native.
 
-pub (value: VideoEncoderConfig) display_height(): JsNumber ->
+pub (receiver: VideoEncoderConfig) framerate(): Option[JsNumber] ->
     native.
 
-pub (value: VideoEncoderConfig) display_width(): JsNumber ->
+pub (receiver: VideoEncoderConfig) height(): JsNumber ->
     native.
 
-pub (value: VideoEncoderConfig) framerate(): JsNumber ->
+pub (receiver: VideoEncoderConfig) scalability_mode(): Option[JsString] ->
     native.
 
-pub (value: VideoEncoderConfig) hardware_acceleration(): HardwareAcceleration ->
-    native.
-
-pub (value: VideoEncoderConfig) height(): JsNumber ->
-    native.
-
-pub (value: VideoEncoderConfig) latency_mode(): LatencyMode ->
-    native.
-
-pub (value: VideoEncoderConfig) scalability_mode(): JsString ->
-    native.
-
-pub (value: VideoEncoderConfig) width(): JsNumber ->
+pub (receiver: VideoEncoderConfig) width(): JsNumber ->
     native.

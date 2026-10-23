@@ -12,10 +12,12 @@
  */
 module std.js.Dom.PaymentValidationErrors.
 
+import type std.core.Option.{Option}.
+
 pub opaque type PaymentValidationErrors.
 
-pub (value: PaymentValidationErrors) error(): std.js.String.JsString.
+pub (receiver: PaymentValidationErrors) error(): Option[std.js.String.JsString].
 
-pub (value: PaymentValidationErrors) payer(): PayerErrors.
+pub (receiver: PaymentValidationErrors) payer(): Option[std.js.Dom.PayerErrors.PayerErrors].
 
-pub (value: PaymentValidationErrors) shipping_address(): AddressErrors.
+pub (receiver: PaymentValidationErrors) shipping_address(): Option[std.js.Dom.AddressErrors.AddressErrors].

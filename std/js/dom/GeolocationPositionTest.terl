@@ -14,10 +14,10 @@ module std.js.Dom.GeolocationPositionTest.
 
 import type std.js.Dom.GeolocationPosition.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub coords_typechecks(receiver: GeolocationPosition): GeolocationCoordinates ->
+pub coords_typechecks(
+    receiver: GeolocationPosition,
+): std.js.Dom.GeolocationCoordinates.GeolocationCoordinates ->
     receiver.coords().
 
-pub timestamp_typechecks(receiver: GeolocationPosition): EpochTimeStamp ->
+pub timestamp_typechecks(receiver: GeolocationPosition): std.js.Dom.EpochTimeStamp.EpochTimeStamp ->
     receiver.timestamp().

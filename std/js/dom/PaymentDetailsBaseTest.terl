@@ -12,16 +12,21 @@
  */
 module std.js.Dom.PaymentDetailsBaseTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Array.{Array}.
 import type std.js.Dom.PaymentDetailsBase.
-import type std.js.{Array}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub display_items_typechecks(receiver: PaymentDetailsBase): Array[PaymentItem] ->
+pub display_items_typechecks(
+    receiver: PaymentDetailsBase,
+): Option[Array[std.js.Dom.PaymentItem.PaymentItem]] ->
     receiver.display_items().
 
-pub modifiers_typechecks(receiver: PaymentDetailsBase): Array[PaymentDetailsModifier] ->
+pub modifiers_typechecks(
+    receiver: PaymentDetailsBase,
+): Option[Array[std.js.Dom.PaymentDetailsModifier.PaymentDetailsModifier]] ->
     receiver.modifiers().
 
-pub shipping_options_typechecks(receiver: PaymentDetailsBase): Array[PaymentShippingOption] ->
+pub shipping_options_typechecks(
+    receiver: PaymentDetailsBase,
+): Option[Array[std.js.Dom.PaymentShippingOption.PaymentShippingOption]] ->
     receiver.shipping_options().

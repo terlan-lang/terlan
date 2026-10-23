@@ -12,9 +12,8 @@
  */
 module std.js.Dom.CSSRuleTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.CSSRule.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub css_text_typechecks(receiver: CSSRule): std.js.String.JsString ->
     receiver.css_text().
@@ -22,7 +21,7 @@ pub css_text_typechecks(receiver: CSSRule): std.js.String.JsString ->
 pub parent_rule_typechecks(receiver: CSSRule): Option[CSSRule] ->
     receiver.parent_rule().
 
-pub parent_style_sheet_typechecks(receiver: CSSRule): Option[CSSStyleSheet] ->
+pub parent_style_sheet_typechecks(receiver: CSSRule): Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
     receiver.parent_style_sheet().
 
 pub type__typechecks(receiver: CSSRule): std.js.Number.JsNumber ->

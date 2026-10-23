@@ -25,32 +25,32 @@ pub opaque type InputEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/data)
  */
-pub (value: InputEvent) data(): Option[std.js.String.JsString].
+pub (receiver: InputEvent) data(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The **`dataTransfer`** read-only property of the containing information about richtext or plaintext data being added to or removed from editable content.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/dataTransfer)
  */
-pub (value: InputEvent) data_transfer(): Option[DataTransfer].
+pub (receiver: InputEvent) data_transfer(): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer].
 
 /**
  * The **`inputType`** read-only property of the Possible changes include for example inserting, deleting, and formatting text.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/inputType)
  */
-pub (value: InputEvent) input_type(): std.js.String.JsString.
+pub (receiver: InputEvent) input_type(): std.js.String.JsString.
 
 /**
  * The **`InputEvent.isComposing`** read-only property returns a boolean value indicating if the event is fired after A boolean.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/isComposing)
  */
-pub (value: InputEvent) is_composing(): std.core.Bool.
+pub (receiver: InputEvent) is_composing(): Bool.
 
 /**
  * The **`getTargetRanges()`** method of the InputEvent interface returns an array of StaticRange objects that will be affected by a change to the DOM if the input event is not canceled.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/getTargetRanges)
  */
-pub (value: InputEvent) get_target_ranges(): std.js.Array[StaticRange].
+pub (receiver: InputEvent) get_target_ranges(): std.js.Array.Array[std.js.Dom.StaticRange.StaticRange].

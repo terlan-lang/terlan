@@ -12,6 +12,8 @@
  */
 module std.js.Dom.SVGAnimatedTransformList.
 
+import type std.js.Dom.SVGTransformList.{SVGTransformList}.
+
 /**
  * The **`SVGAnimatedTransformList`** interface represents attributes which take a list of numbers and which can be animated.
  *
@@ -24,7 +26,7 @@ pub opaque type SVGAnimatedTransformList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedTransformList/animVal)
  */
-pub (value: SVGAnimatedTransformList) anim_val(): SVGTransformList ->
+pub (receiver: SVGAnimatedTransformList) anim_val(): SVGTransformList ->
     native.
 
 /**
@@ -32,5 +34,5 @@ pub (value: SVGAnimatedTransformList) anim_val(): SVGTransformList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedTransformList/baseVal)
  */
-pub (value: SVGAnimatedTransformList) base_val(): SVGTransformList ->
+pub (receiver: SVGAnimatedTransformList) base_val(): SVGTransformList ->
     native.

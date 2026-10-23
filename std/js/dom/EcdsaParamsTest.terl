@@ -14,7 +14,7 @@ module std.js.Dom.EcdsaParamsTest.
 
 import type std.js.Dom.EcdsaParams.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub hash_typechecks(receiver: EcdsaParams): HashAlgorithmIdentifier ->
+pub hash_typechecks(
+    receiver: EcdsaParams,
+): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier ->
     receiver.hash().

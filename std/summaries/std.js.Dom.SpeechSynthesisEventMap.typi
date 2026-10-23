@@ -15,4 +15,4 @@ module std.js.Dom.SpeechSynthesisEventMap.
 
 pub opaque type SpeechSynthesisEventMap.
 
-pub (value: SpeechSynthesisEventMap) voiceschanged(): Event.
+pub (receiver: SpeechSynthesisEventMap) voiceschanged(): std.js.Dom.Event.Event.

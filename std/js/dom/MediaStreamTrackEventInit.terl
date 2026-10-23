@@ -14,5 +14,5 @@ module std.js.Dom.MediaStreamTrackEventInit.
 
 pub opaque type MediaStreamTrackEventInit.
 
-pub (value: MediaStreamTrackEventInit) track(): MediaStreamTrack ->
+pub (receiver: MediaStreamTrackEventInit) track(): std.js.Dom.MediaStreamTrack.MediaStreamTrack ->
     native.

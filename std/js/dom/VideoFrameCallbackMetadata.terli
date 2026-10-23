@@ -12,26 +12,28 @@
  */
 module std.js.Dom.VideoFrameCallbackMetadata.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type VideoFrameCallbackMetadata.
 
-pub (value: VideoFrameCallbackMetadata) capture_time(): DOMHighResTimeStamp.
+pub (receiver: VideoFrameCallbackMetadata) capture_time(): Option[DOMHighResTimeStamp].
 
-pub (value: VideoFrameCallbackMetadata) expected_display_time(): DOMHighResTimeStamp.
+pub (receiver: VideoFrameCallbackMetadata) expected_display_time(): DOMHighResTimeStamp.
 
-pub (value: VideoFrameCallbackMetadata) height(): JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) height(): JsNumber.
 
-pub (value: VideoFrameCallbackMetadata) media_time(): JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) media_time(): JsNumber.
 
-pub (value: VideoFrameCallbackMetadata) presentation_time(): DOMHighResTimeStamp.
+pub (receiver: VideoFrameCallbackMetadata) presentation_time(): DOMHighResTimeStamp.
 
-pub (value: VideoFrameCallbackMetadata) presented_frames(): JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) presented_frames(): JsNumber.
 
-pub (value: VideoFrameCallbackMetadata) processing_duration(): JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) processing_duration(): Option[JsNumber].
 
-pub (value: VideoFrameCallbackMetadata) receive_time(): DOMHighResTimeStamp.
+pub (receiver: VideoFrameCallbackMetadata) receive_time(): Option[DOMHighResTimeStamp].
 
-pub (value: VideoFrameCallbackMetadata) rtp_timestamp(): JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) rtp_timestamp(): Option[JsNumber].
 
-pub (value: VideoFrameCallbackMetadata) width(): JsNumber.
+pub (receiver: VideoFrameCallbackMetadata) width(): JsNumber.

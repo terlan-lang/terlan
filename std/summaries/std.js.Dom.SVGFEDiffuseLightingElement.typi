@@ -25,36 +25,36 @@ pub opaque type SVGFEDiffuseLightingElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDiffuseLightingElement/diffuseConstant)
  */
-pub (value: SVGFEDiffuseLightingElement) diffuse_constant(): SVGAnimatedNumber.
+pub (receiver: SVGFEDiffuseLightingElement) diffuse_constant(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`in1`** read-only property of the SVGFEDiffuseLightingElement interface reflects the in attribute of the given feDiffuseLighting element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDiffuseLightingElement/in1)
  */
-pub (value: SVGFEDiffuseLightingElement) in1(): SVGAnimatedString.
+pub (receiver: SVGFEDiffuseLightingElement) in1(): std.js.Dom.SVGAnimatedString.SVGAnimatedString.
 
 /**
  * The **`kernelUnitLengthX`** read-only property of the SVGFEDiffuseLightingElement interface reflects the X component of the kernelUnitLength attribute of the given feDiffuseLighting element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDiffuseLightingElement/kernelUnitLengthX)
  */
-pub (value: SVGFEDiffuseLightingElement) kernel_unit_length_x(): SVGAnimatedNumber.
+pub (receiver: SVGFEDiffuseLightingElement) kernel_unit_length_x(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`kernelUnitLengthY`** read-only property of the SVGFEDiffuseLightingElement interface reflects the Y component of the kernelUnitLength attribute of the given feDiffuseLighting element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDiffuseLightingElement/kernelUnitLengthY)
  */
-pub (value: SVGFEDiffuseLightingElement) kernel_unit_length_y(): SVGAnimatedNumber.
+pub (receiver: SVGFEDiffuseLightingElement) kernel_unit_length_y(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`surfaceScale`** read-only property of the SVGFEDiffuseLightingElement interface reflects the surfaceScale attribute of the given feDiffuseLighting element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEDiffuseLightingElement/surfaceScale)
  */
-pub (value: SVGFEDiffuseLightingElement) surface_scale(): SVGAnimatedNumber.
+pub (receiver: SVGFEDiffuseLightingElement) surface_scale(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
-pub (value: SVGFEDiffuseLightingElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGFEDiffuseLightingElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: SVGFEDiffuseLightingElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SVGFEDiffuseLightingElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

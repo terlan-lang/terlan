@@ -15,8 +15,8 @@ module std.js.Dom.RTCIceTransportEventMap.
 
 pub opaque type RTCIceTransportEventMap.
 
-pub (value: RTCIceTransportEventMap) gatheringstatechange(): Event.
+pub (receiver: RTCIceTransportEventMap) gatheringstatechange(): std.js.Dom.Event.Event.
 
-pub (value: RTCIceTransportEventMap) selectedcandidatepairchange(): Event.
+pub (receiver: RTCIceTransportEventMap) selectedcandidatepairchange(): std.js.Dom.Event.Event.
 
-pub (value: RTCIceTransportEventMap) statechange(): Event.
+pub (receiver: RTCIceTransportEventMap) statechange(): std.js.Dom.Event.Event.

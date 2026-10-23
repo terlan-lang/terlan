@@ -10,6 +10,8 @@ use serde::de::DeserializeOwned;
 use boundary_error::{BoundaryError, ErrorDomain};
 
 pub mod boundary_error;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) mod library_paths;
 
 #[path = "sha256_file.rs"]
 mod sha256_file;

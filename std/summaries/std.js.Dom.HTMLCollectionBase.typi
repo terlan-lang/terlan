@@ -25,11 +25,11 @@ pub opaque type HTMLCollectionBase.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCollection/length)
  */
-pub (value: HTMLCollectionBase) length(): std.js.Number.JsNumber.
+pub (receiver: HTMLCollectionBase) length(): std.js.Number.JsNumber.
 
 /**
  * The HTMLCollection method `item()` returns the element located at the specified offset into the collection.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCollection/item)
  */
-pub (value: HTMLCollectionBase) item(index: std.js.Number.JsNumber): Option[Element].
+pub (receiver: HTMLCollectionBase) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.Element.Element].

@@ -12,4 +12,6 @@
  */
 module std.js.Dom.EventListenerOrEventListenerObject.
 
-pub type EventListenerOrEventListenerObject = EventListener | EventListenerObject.
+pub type EventListenerOrEventListenerObject =
+      std.js.Dom.EventListener.EventListener
+    | std.js.Dom.EventListenerObject.EventListenerObject.

@@ -12,10 +12,8 @@
  */
 module std.js.Dom.CustomEventTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.CustomEvent.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub detail_typechecks(receiver: CustomEvent[T]): T ->
     receiver.detail().
@@ -23,8 +21,8 @@ pub detail_typechecks(receiver: CustomEvent[T]): T ->
 pub init_custom_event_typechecks(
     receiver: CustomEvent[T],
     type_: std.js.String.JsString,
-    bubbles: Bool,
-    cancelable: Bool,
-    detail: T,
-): std.core.Unit ->
+    bubbles: Option[Bool],
+    cancelable: Option[Bool],
+    detail: Option[T],
+): std.core.Unit.Unit ->
     receiver.init_custom_event(type_, bubbles, cancelable, detail).

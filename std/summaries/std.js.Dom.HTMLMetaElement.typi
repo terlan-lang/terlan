@@ -25,28 +25,28 @@ pub opaque type HTMLMetaElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMetaElement/content)
  */
-pub (value: HTMLMetaElement) content(): std.js.String.JsString.
+pub (receiver: HTMLMetaElement) content(): std.js.String.JsString.
 
 /**
  * The **`HTMLMetaElement.httpEquiv`** property gets or sets the pragma directive or an HTTP response header name for the HTMLMetaElement.content attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMetaElement/httpEquiv)
  */
-pub (value: HTMLMetaElement) http_equiv(): std.js.String.JsString.
+pub (receiver: HTMLMetaElement) http_equiv(): std.js.String.JsString.
 
 /**
  * The **`HTMLMetaElement.media`** property enables specifying the media for `theme-color` metadata.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMetaElement/media)
  */
-pub (value: HTMLMetaElement) media(): std.js.String.JsString.
+pub (receiver: HTMLMetaElement) media(): std.js.String.JsString.
 
 /**
  * The **`HTMLMetaElement.name`** property is used in combination with HTMLMetaElement.content to define the name-value pairs for the metadata of a document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMetaElement/name)
  */
-pub (value: HTMLMetaElement) name(): std.js.String.JsString.
+pub (receiver: HTMLMetaElement) name(): std.js.String.JsString.
 
 /**
  * The **`HTMLMetaElement.scheme`** property defines the scheme of the value in the HTMLMetaElement.content attribute.
@@ -54,8 +54,8 @@ pub (value: HTMLMetaElement) name(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMetaElement/scheme)
  */
-pub (value: HTMLMetaElement) scheme(): std.js.String.JsString.
+pub (receiver: HTMLMetaElement) scheme(): std.js.String.JsString.
 
-pub (value: HTMLMetaElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLMetaElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLMetaElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLMetaElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

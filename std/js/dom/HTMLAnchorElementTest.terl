@@ -12,11 +12,11 @@
  */
 module std.js.Dom.HTMLAnchorElementTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.HTMLAnchorElement.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub charset_typechecks(receiver: HTMLAnchorElement): JsString ->
     receiver.charset().
@@ -42,7 +42,7 @@ pub referrer_policy_typechecks(receiver: HTMLAnchorElement): JsString ->
 pub rel_typechecks(receiver: HTMLAnchorElement): JsString ->
     receiver.rel().
 
-pub rel_list_typechecks(receiver: HTMLAnchorElement): DOMTokenList ->
+pub rel_list_typechecks(receiver: HTMLAnchorElement): std.js.Dom.DOMTokenList.DOMTokenList ->
     receiver.rel_list().
 
 pub rev_typechecks(receiver: HTMLAnchorElement): JsString ->
@@ -64,7 +64,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLAnchorElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -72,6 +72,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLAnchorElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

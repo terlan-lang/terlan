@@ -14,7 +14,7 @@ module std.js.Dom.RsaOaepParamsTest.
 
 import type std.js.Dom.RsaOaepParams.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub label_typechecks(receiver: RsaOaepParams): BufferSource ->
+pub label_typechecks(
+    receiver: RsaOaepParams,
+): std.core.Option.Option[std.js.Dom.BufferSource.BufferSource] ->
     receiver.label().

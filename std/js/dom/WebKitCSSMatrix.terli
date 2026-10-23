@@ -12,4 +12,4 @@
  */
 module std.js.Dom.WebKitCSSMatrix.
 
-pub type WebKitCSSMatrix = DOMMatrix.
+pub type WebKitCSSMatrix = std.js.Dom.DOMMatrix.DOMMatrix.

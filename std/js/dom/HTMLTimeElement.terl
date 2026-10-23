@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLTimeElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,19 +29,19 @@ pub opaque type HTMLTimeElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTimeElement/dateTime)
  */
-pub (value: HTMLTimeElement) date_time(): JsString ->
+pub (receiver: HTMLTimeElement) date_time(): JsString ->
     native.
 
-pub (value: HTMLTimeElement) add_event_listener(
+pub (receiver: HTMLTimeElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLTimeElement) remove_event_listener(
+pub (receiver: HTMLTimeElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

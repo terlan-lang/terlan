@@ -14,10 +14,5 @@ module std.js.Dom.LockTest.
 
 import type std.js.Dom.Lock.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub mode_typechecks(receiver: Lock): LockMode ->
-    receiver.mode().
-
 pub name_typechecks(receiver: Lock): std.js.String.JsString ->
     receiver.name().

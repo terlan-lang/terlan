@@ -12,7 +12,10 @@
  */
 module std.js.Dom.SVGTextPositioningElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Dom.SVGAnimatedLengthList.{SVGAnimatedLengthList}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +30,7 @@ pub opaque type SVGTextPositioningElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/dx)
  */
-pub (value: SVGTextPositioningElement) dx(): SVGAnimatedLengthList ->
+pub (receiver: SVGTextPositioningElement) dx(): SVGAnimatedLengthList ->
     native.
 
 /**
@@ -35,7 +38,7 @@ pub (value: SVGTextPositioningElement) dx(): SVGAnimatedLengthList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/dy)
  */
-pub (value: SVGTextPositioningElement) dy(): SVGAnimatedLengthList ->
+pub (receiver: SVGTextPositioningElement) dy(): SVGAnimatedLengthList ->
     native.
 
 /**
@@ -43,7 +46,7 @@ pub (value: SVGTextPositioningElement) dy(): SVGAnimatedLengthList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/rotate)
  */
-pub (value: SVGTextPositioningElement) rotate(): SVGAnimatedNumberList ->
+pub (receiver: SVGTextPositioningElement) rotate(): std.js.Dom.SVGAnimatedNumberList.SVGAnimatedNumberList ->
     native.
 
 /**
@@ -51,7 +54,7 @@ pub (value: SVGTextPositioningElement) rotate(): SVGAnimatedNumberList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/x)
  */
-pub (value: SVGTextPositioningElement) x(): SVGAnimatedLengthList ->
+pub (receiver: SVGTextPositioningElement) x(): SVGAnimatedLengthList ->
     native.
 
 /**
@@ -59,19 +62,19 @@ pub (value: SVGTextPositioningElement) x(): SVGAnimatedLengthList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPositioningElement/y)
  */
-pub (value: SVGTextPositioningElement) y(): SVGAnimatedLengthList ->
+pub (receiver: SVGTextPositioningElement) y(): SVGAnimatedLengthList ->
     native.
 
-pub (value: SVGTextPositioningElement) add_event_listener(
+pub (receiver: SVGTextPositioningElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SVGTextPositioningElement) remove_event_listener(
+pub (receiver: SVGTextPositioningElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

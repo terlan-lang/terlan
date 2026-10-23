@@ -12,18 +12,18 @@
  */
 module std.js.Dom.DOMQuadInitTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.DOMPointInit.{DOMPointInit}.
 import type std.js.Dom.DOMQuadInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub p1_typechecks(receiver: DOMQuadInit): DOMPointInit ->
+pub p1_typechecks(receiver: DOMQuadInit): Option[DOMPointInit] ->
     receiver.p1().
 
-pub p2_typechecks(receiver: DOMQuadInit): DOMPointInit ->
+pub p2_typechecks(receiver: DOMQuadInit): Option[DOMPointInit] ->
     receiver.p2().
 
-pub p3_typechecks(receiver: DOMQuadInit): DOMPointInit ->
+pub p3_typechecks(receiver: DOMQuadInit): Option[DOMPointInit] ->
     receiver.p3().
 
-pub p4_typechecks(receiver: DOMQuadInit): DOMPointInit ->
+pub p4_typechecks(receiver: DOMQuadInit): Option[DOMPointInit] ->
     receiver.p4().

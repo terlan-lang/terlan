@@ -14,13 +14,8 @@ module std.js.Dom.RTCStatsTest.
 
 import type std.js.Dom.RTCStats.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub id_typechecks(receiver: RTCStats): std.js.String.JsString ->
     receiver.id().
 
-pub timestamp_typechecks(receiver: RTCStats): DOMHighResTimeStamp ->
+pub timestamp_typechecks(receiver: RTCStats): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
     receiver.timestamp().
-
-pub type__typechecks(receiver: RTCStats): RTCStatsType ->
-    receiver.type_().

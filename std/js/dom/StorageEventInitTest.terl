@@ -12,10 +12,9 @@
  */
 module std.js.Dom.StorageEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.StorageEventInit.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub key_typechecks(receiver: StorageEventInit): Option[JsString] ->
     receiver.key().
@@ -26,8 +25,8 @@ pub new_value_typechecks(receiver: StorageEventInit): Option[JsString] ->
 pub old_value_typechecks(receiver: StorageEventInit): Option[JsString] ->
     receiver.old_value().
 
-pub storage_area_typechecks(receiver: StorageEventInit): Option[Storage] ->
+pub storage_area_typechecks(receiver: StorageEventInit): Option[std.js.Dom.Storage.Storage] ->
     receiver.storage_area().
 
-pub url_typechecks(receiver: StorageEventInit): JsString ->
+pub url_typechecks(receiver: StorageEventInit): Option[JsString] ->
     receiver.url().

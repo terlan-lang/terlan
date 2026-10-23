@@ -14,7 +14,7 @@ module std.js.Dom.RTCDTMFSenderEventMapTest.
 
 import type std.js.Dom.RTCDTMFSenderEventMap.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub tonechange_typechecks(receiver: RTCDTMFSenderEventMap): RTCDTMFToneChangeEvent ->
+pub tonechange_typechecks(
+    receiver: RTCDTMFSenderEventMap,
+): std.js.Dom.RTCDTMFToneChangeEvent.RTCDTMFToneChangeEvent ->
     receiver.tonechange().

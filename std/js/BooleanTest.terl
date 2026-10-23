@@ -14,7 +14,5 @@ module std.js.BooleanTest.
 
 import type std.js.Boolean.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub value_of_typechecks(receiver: Boolean): std.core.Bool ->
+pub value_of_typechecks(receiver: Boolean): Bool ->
     receiver.value_of().

@@ -12,12 +12,12 @@
  */
 module std.js.Dom.DOMTokenListTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
 import type std.js.Dom.DOMTokenList.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub length_typechecks(receiver: DOMTokenList): JsNumber ->
     receiver.length().
@@ -28,8 +28,8 @@ pub value_typechecks(receiver: DOMTokenList): JsString ->
 pub to_string_typechecks(receiver: DOMTokenList): JsString ->
     receiver.to_string().
 
-pub add_typechecks(receiver: DOMTokenList): Unit ->
-    receiver.add().
+pub add_typechecks(receiver: DOMTokenList, tokens: Array[JsString]): Unit ->
+    receiver.add(tokens).
 
 pub contains_typechecks(receiver: DOMTokenList, token: JsString): Bool ->
     receiver.contains(token).
@@ -37,8 +37,8 @@ pub contains_typechecks(receiver: DOMTokenList, token: JsString): Bool ->
 pub item_typechecks(receiver: DOMTokenList, index: JsNumber): Option[JsString] ->
     receiver.item(index).
 
-pub remove_typechecks(receiver: DOMTokenList): Unit ->
-    receiver.remove().
+pub remove_typechecks(receiver: DOMTokenList, tokens: Array[JsString]): Unit ->
+    receiver.remove(tokens).
 
 pub replace_typechecks(receiver: DOMTokenList, token: JsString, new_token: JsString): Bool ->
     receiver.replace(token, new_token).
@@ -46,5 +46,5 @@ pub replace_typechecks(receiver: DOMTokenList, token: JsString, new_token: JsStr
 pub supports_typechecks(receiver: DOMTokenList, token: JsString): Bool ->
     receiver.supports(token).
 
-pub toggle_typechecks(receiver: DOMTokenList, token: JsString, force: Bool): Bool ->
+pub toggle_typechecks(receiver: DOMTokenList, token: JsString, force: Option[Bool]): Bool ->
     receiver.toggle(token, force).

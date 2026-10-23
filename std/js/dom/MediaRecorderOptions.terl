@@ -12,18 +12,19 @@
  */
 module std.js.Dom.MediaRecorderOptions.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type MediaRecorderOptions.
 
-pub (value: MediaRecorderOptions) audio_bits_per_second(): JsNumber ->
+pub (receiver: MediaRecorderOptions) audio_bits_per_second(): Option[JsNumber] ->
     native.
 
-pub (value: MediaRecorderOptions) bits_per_second(): JsNumber ->
+pub (receiver: MediaRecorderOptions) bits_per_second(): Option[JsNumber] ->
     native.
 
-pub (value: MediaRecorderOptions) mime_type(): std.js.String.JsString ->
+pub (receiver: MediaRecorderOptions) mime_type(): Option[std.js.String.JsString] ->
     native.
 
-pub (value: MediaRecorderOptions) video_bits_per_second(): JsNumber ->
+pub (receiver: MediaRecorderOptions) video_bits_per_second(): Option[JsNumber] ->
     native.

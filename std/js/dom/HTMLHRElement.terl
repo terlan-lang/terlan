@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLHRElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -25,43 +27,43 @@ pub opaque type HTMLHRElement.
 /**
  * @deprecated
  */
-pub (value: HTMLHRElement) align(): JsString ->
+pub (receiver: HTMLHRElement) align(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLHRElement) color(): JsString ->
+pub (receiver: HTMLHRElement) color(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLHRElement) no_shade(): Bool ->
+pub (receiver: HTMLHRElement) no_shade(): Bool ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLHRElement) size(): JsString ->
+pub (receiver: HTMLHRElement) size(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLHRElement) width(): JsString ->
+pub (receiver: HTMLHRElement) width(): JsString ->
     native.
 
-pub (value: HTMLHRElement) add_event_listener(
+pub (receiver: HTMLHRElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLHRElement) remove_event_listener(
+pub (receiver: HTMLHRElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

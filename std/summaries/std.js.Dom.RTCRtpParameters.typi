@@ -15,8 +15,8 @@ module std.js.Dom.RTCRtpParameters.
 
 pub opaque type RTCRtpParameters.
 
-pub (value: RTCRtpParameters) codecs(): std.js.Array[RTCRtpCodecParameters].
+pub (receiver: RTCRtpParameters) codecs(): std.js.Array.Array[std.js.Dom.RTCRtpCodecParameters.RTCRtpCodecParameters].
 
-pub (value: RTCRtpParameters) header_extensions(): std.js.Array[RTCRtpHeaderExtensionParameters].
+pub (receiver: RTCRtpParameters) header_extensions(): std.js.Array.Array[std.js.Dom.RTCRtpHeaderExtensionParameters.RTCRtpHeaderExtensionParameters].
 
-pub (value: RTCRtpParameters) rtcp(): RTCRtcpParameters.
+pub (receiver: RTCRtpParameters) rtcp(): std.js.Dom.RTCRtcpParameters.RTCRtcpParameters.

@@ -25,32 +25,32 @@ pub opaque type CustomElementRegistry.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomElementRegistry/define)
  */
-pub (value: CustomElementRegistry) define(name: std.js.String.JsString, constructor_: CustomElementConstructor, options: ElementDefinitionOptions): std.core.Unit.
+pub (receiver: CustomElementRegistry) define(name: std.js.String.JsString, constructor_: std.js.Dom.CustomElementConstructor.CustomElementConstructor, options: std.core.Option.Option[std.js.Dom.ElementDefinitionOptions.ElementDefinitionOptions]): std.core.Unit.Unit.
 
 /**
  * The **`get()`** method of the previously-defined custom element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomElementRegistry/get)
  */
-pub (value: CustomElementRegistry) get(name: std.js.String.JsString): Option[CustomElementConstructor].
+pub (receiver: CustomElementRegistry) get(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.CustomElementConstructor.CustomElementConstructor].
 
 /**
  * The **`getName()`** method of the previously-defined custom element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomElementRegistry/getName)
  */
-pub (value: CustomElementRegistry) get_name(constructor_: CustomElementConstructor): Option[std.js.String.JsString].
+pub (receiver: CustomElementRegistry) get_name(constructor_: std.js.Dom.CustomElementConstructor.CustomElementConstructor): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The **`upgrade()`** method of the elements in a Node subtree, even before they are connected to the main document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomElementRegistry/upgrade)
  */
-pub (value: CustomElementRegistry) upgrade(root: Node): std.core.Unit.
+pub (receiver: CustomElementRegistry) upgrade(root: std.js.Dom.Node.Node): std.core.Unit.Unit.
 
 /**
  * The **`whenDefined()`** method of the resolves when the named element is defined.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomElementRegistry/whenDefined)
  */
-pub (value: CustomElementRegistry) when_defined(name: std.js.String.JsString): std.js.Promise[CustomElementConstructor].
+pub (receiver: CustomElementRegistry) when_defined(name: std.js.String.JsString): std.js.Promise.Promise[std.js.Dom.CustomElementConstructor.CustomElementConstructor].

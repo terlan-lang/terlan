@@ -12,4 +12,6 @@
  */
 module std.js.Dom.CSSPerspectiveValue.
 
-pub type CSSPerspectiveValue = CSSKeywordish | CSSNumericValue.
+pub type CSSPerspectiveValue =
+      std.js.Dom.CSSKeywordish.CSSKeywordish
+    | std.js.Dom.CSSNumericValue.CSSNumericValue.

@@ -25,7 +25,7 @@ pub opaque type HTMLTableCellElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/abbr)
  */
-pub (value: HTMLTableCellElement) abbr(): std.js.String.JsString.
+pub (receiver: HTMLTableCellElement) abbr(): std.js.String.JsString.
 
 /**
  * The **`align`** property of the HTMLTableCellElement interface is a string indicating how to horizontally align text in the th or td table cell.
@@ -33,12 +33,12 @@ pub (value: HTMLTableCellElement) abbr(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/align)
  */
-pub (value: HTMLTableCellElement) align(): std.js.String.JsString.
+pub (receiver: HTMLTableCellElement) align(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLTableCellElement) axis(): std.js.String.JsString.
+pub (receiver: HTMLTableCellElement) axis(): std.js.String.JsString.
 
 /**
  * The **`HTMLTableCellElement.bgColor`** property is used to set the background color of a cell or get the value of the obsolete `bgColor` attribute, if present.
@@ -46,14 +46,14 @@ pub (value: HTMLTableCellElement) axis(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/bgColor)
  */
-pub (value: HTMLTableCellElement) bg_color(): std.js.String.JsString.
+pub (receiver: HTMLTableCellElement) bg_color(): std.js.String.JsString.
 
 /**
  * The **`cellIndex`** read-only property of the HTMLTableCellElement interface represents the position of a cell within its row (tr).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/cellIndex)
  */
-pub (value: HTMLTableCellElement) cell_index(): std.js.Number.JsNumber.
+pub (receiver: HTMLTableCellElement) cell_index(): std.js.Number.JsNumber.
 
 /**
  * The **`ch`** property of the HTMLTableCellElement interface does nothing.
@@ -61,7 +61,7 @@ pub (value: HTMLTableCellElement) cell_index(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/ch)
  */
-pub (value: HTMLTableCellElement) ch(): std.js.String.JsString.
+pub (receiver: HTMLTableCellElement) ch(): std.js.String.JsString.
 
 /**
  * The **`chOff`** property of the HTMLTableCellElement interface does nothing.
@@ -69,26 +69,26 @@ pub (value: HTMLTableCellElement) ch(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/chOff)
  */
-pub (value: HTMLTableCellElement) ch_off(): std.js.String.JsString.
+pub (receiver: HTMLTableCellElement) ch_off(): std.js.String.JsString.
 
 /**
  * The **`colSpan`** read-only property of the HTMLTableCellElement interface represents the number of columns this cell must span; this lets the cell occupy space across multiple columns of the table.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/colSpan)
  */
-pub (value: HTMLTableCellElement) col_span(): std.js.Number.JsNumber.
+pub (receiver: HTMLTableCellElement) col_span(): std.js.Number.JsNumber.
 
 /**
  * The **`headers`** property of the HTMLTableCellElement interface contains a list of IDs of th elements that are _headers_ for this specific cell.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/headers)
  */
-pub (value: HTMLTableCellElement) headers(): std.js.String.JsString.
+pub (receiver: HTMLTableCellElement) headers(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLTableCellElement) height(): std.js.String.JsString.
+pub (receiver: HTMLTableCellElement) height(): std.js.String.JsString.
 
 /**
  * The **`noWrap`** property of the HTMLTableCellElement interface returns a Boolean value indicating if the text of the cell may be wrapped on several lines or not.
@@ -96,21 +96,21 @@ pub (value: HTMLTableCellElement) height(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/noWrap)
  */
-pub (value: HTMLTableCellElement) no_wrap(): std.core.Bool.
+pub (receiver: HTMLTableCellElement) no_wrap(): Bool.
 
 /**
  * The **`rowSpan`** read-only property of the HTMLTableCellElement interface represents the number of rows this cell must span; this lets the cell occupy space across multiple rows of the table.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/rowSpan)
  */
-pub (value: HTMLTableCellElement) row_span(): std.js.Number.JsNumber.
+pub (receiver: HTMLTableCellElement) row_span(): std.js.Number.JsNumber.
 
 /**
  * The **`scope`** property of the HTMLTableCellElement interface indicates the scope of a th cell.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/scope)
  */
-pub (value: HTMLTableCellElement) scope(): std.js.String.JsString.
+pub (receiver: HTMLTableCellElement) scope(): std.js.String.JsString.
 
 /**
  * The **`vAlign`** property of the HTMLTableCellElement interface is a string indicating how to vertically align text in a th or td table cell.
@@ -118,13 +118,13 @@ pub (value: HTMLTableCellElement) scope(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableCellElement/vAlign)
  */
-pub (value: HTMLTableCellElement) v_align(): std.js.String.JsString.
+pub (receiver: HTMLTableCellElement) v_align(): std.js.String.JsString.
 
 /**
  * @deprecated
  */
-pub (value: HTMLTableCellElement) width(): std.js.String.JsString.
+pub (receiver: HTMLTableCellElement) width(): std.js.String.JsString.
 
-pub (value: HTMLTableCellElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLTableCellElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLTableCellElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLTableCellElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

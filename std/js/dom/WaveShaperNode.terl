@@ -24,13 +24,5 @@ pub opaque type WaveShaperNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WaveShaperNode/curve)
  */
-pub (value: WaveShaperNode) curve(): Option[Float32Array[ArrayBuffer]] ->
-    native.
-
-/**
- * The `oversample` property of the WaveShaperNode interface is an enumerated value indicating if oversampling must be used.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WaveShaperNode/oversample)
- */
-pub (value: WaveShaperNode) oversample(): OverSampleType ->
+pub (receiver: WaveShaperNode) curve(): std.core.Option.Option[std.js.Float32Array.Float32Array[std.js.ArrayBuffer.ArrayBuffer]] ->
     native.

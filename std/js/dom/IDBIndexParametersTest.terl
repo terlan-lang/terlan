@@ -12,13 +12,11 @@
  */
 module std.js.Dom.IDBIndexParametersTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.IDBIndexParameters.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub multi_entry_typechecks(receiver: IDBIndexParameters): Bool ->
+pub multi_entry_typechecks(receiver: IDBIndexParameters): Option[Bool] ->
     receiver.multi_entry().
 
-pub unique_typechecks(receiver: IDBIndexParameters): Bool ->
+pub unique_typechecks(receiver: IDBIndexParameters): Option[Bool] ->
     receiver.unique().

@@ -12,15 +12,13 @@
  */
 module std.js.Dom.RTCDataChannelTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Dom.RTCDataChannel.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub binary_type_typechecks(receiver: RTCDataChannel): BinaryType ->
-    receiver.binary_type().
 
 pub buffered_amount_typechecks(receiver: RTCDataChannel): JsNumber ->
     receiver.buffered_amount().
@@ -49,29 +47,29 @@ pub ordered_typechecks(receiver: RTCDataChannel): Bool ->
 pub protocol_typechecks(receiver: RTCDataChannel): JsString ->
     receiver.protocol().
 
-pub ready_state_typechecks(receiver: RTCDataChannel): RTCDataChannelState ->
-    receiver.ready_state().
-
 pub close_typechecks(receiver: RTCDataChannel): Unit ->
     receiver.close().
 
 pub send_typechecks(receiver: RTCDataChannel, data: JsString): Unit ->
     receiver.send(data).
 
-pub send_typechecks(receiver: RTCDataChannel, data: Blob): Unit ->
-    receiver.send(data).
+pub send_overload_2_typechecks(receiver: RTCDataChannel, data: std.js.Dom.Blob.Blob): Unit ->
+    receiver.send_overload_2(data).
 
-pub send_typechecks(receiver: RTCDataChannel, data: ArrayBuffer): Unit ->
-    receiver.send(data).
+pub send_overload_3_typechecks(receiver: RTCDataChannel, data: ArrayBuffer): Unit ->
+    receiver.send_overload_3(data).
 
-pub send_typechecks(receiver: RTCDataChannel, data: ArrayBufferView[ArrayBuffer]): Unit ->
-    receiver.send(data).
+pub send_overload_4_typechecks(
+    receiver: RTCDataChannel,
+    data: std.js.ArrayBufferView.ArrayBufferView[ArrayBuffer],
+): Unit ->
+    receiver.send_overload_4(data).
 
 pub add_event_listener_typechecks(
     receiver: RTCDataChannel,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -79,6 +77,6 @@ pub remove_event_listener_typechecks(
     receiver: RTCDataChannel,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

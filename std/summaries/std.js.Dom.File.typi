@@ -25,18 +25,18 @@ pub opaque type File.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/lastModified)
  */
-pub (value: File) last_modified(): std.js.Number.JsNumber.
+pub (receiver: File) last_modified(): std.js.Number.JsNumber.
 
 /**
  * The **`name`** read-only property of the File interface returns the name of the file represented by a File object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/name)
  */
-pub (value: File) name(): std.js.String.JsString.
+pub (receiver: File) name(): std.js.String.JsString.
 
 /**
  * The **`webkitRelativePath`** read-only property of the File interface contains a string which specifies the file's path relative to the directory selected by the user in an input element with its `webkitdirectory` attribute set.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/webkitRelativePath)
  */
-pub (value: File) webkit_relative_path(): std.js.String.JsString.
+pub (receiver: File) webkit_relative_path(): std.js.String.JsString.

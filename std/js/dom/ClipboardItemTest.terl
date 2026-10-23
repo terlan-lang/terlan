@@ -15,13 +15,11 @@ module std.js.Dom.ClipboardItemTest.
 import type std.js.Dom.ClipboardItem.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub presentation_style_typechecks(receiver: ClipboardItem): PresentationStyle ->
-    receiver.presentation_style().
-
-pub types_typechecks(receiver: ClipboardItem): std.js.Array[JsString] ->
+pub types_typechecks(receiver: ClipboardItem): std.js.Array.Array[JsString] ->
     receiver.types().
 
-pub get_type_typechecks(receiver: ClipboardItem, type_: JsString): std.js.Promise[Blob] ->
+pub get_type_typechecks(
+    receiver: ClipboardItem,
+    type_: JsString,
+): std.js.Promise.Promise[std.js.Dom.Blob.Blob] ->
     receiver.get_type(type_).

@@ -26,11 +26,11 @@ pub opaque type NodeList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeList/length)
  */
-pub (value: NodeList) length(): JsNumber.
+pub (receiver: NodeList) length(): JsNumber.
 
 /**
  * Returns a node from a `NodeList` by index.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeList/item)
  */
-pub (value: NodeList) item(index: JsNumber): Option[Node].
+pub (receiver: NodeList) item(index: JsNumber): std.core.Option.Option[std.js.Dom.Node.Node].

@@ -12,19 +12,17 @@
  */
 module std.js.Dom.SVGBoundingBoxOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.SVGBoundingBoxOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub clipped_typechecks(receiver: SVGBoundingBoxOptions): Bool ->
+pub clipped_typechecks(receiver: SVGBoundingBoxOptions): Option[Bool] ->
     receiver.clipped().
 
-pub fill_typechecks(receiver: SVGBoundingBoxOptions): Bool ->
+pub fill_typechecks(receiver: SVGBoundingBoxOptions): Option[Bool] ->
     receiver.fill().
 
-pub markers_typechecks(receiver: SVGBoundingBoxOptions): Bool ->
+pub markers_typechecks(receiver: SVGBoundingBoxOptions): Option[Bool] ->
     receiver.markers().
 
-pub stroke_typechecks(receiver: SVGBoundingBoxOptions): Bool ->
+pub stroke_typechecks(receiver: SVGBoundingBoxOptions): Option[Bool] ->
     receiver.stroke().

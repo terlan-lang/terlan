@@ -25,11 +25,11 @@ pub opaque type StyleSheetList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheetList/length)
  */
-pub (value: StyleSheetList) length(): std.js.Number.JsNumber.
+pub (receiver: StyleSheetList) length(): std.js.Number.JsNumber.
 
 /**
  * The **`item()`** method of the StyleSheetList interface returns a single CSSStyleSheet object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheetList/item)
  */
-pub (value: StyleSheetList) item(index: std.js.Number.JsNumber): Option[CSSStyleSheet].
+pub (receiver: StyleSheetList) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet].

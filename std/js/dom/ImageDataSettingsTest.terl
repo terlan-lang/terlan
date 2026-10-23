@@ -13,8 +13,3 @@
 module std.js.Dom.ImageDataSettingsTest.
 
 import type std.js.Dom.ImageDataSettings.
-
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub color_space_typechecks(receiver: ImageDataSettings): PredefinedColorSpace ->
-    receiver.color_space().

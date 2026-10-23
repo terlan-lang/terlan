@@ -14,9 +14,9 @@ module std.js.Dom.CSSVariableReferenceValueTest.
 
 import type std.js.Dom.CSSVariableReferenceValue.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub fallback_typechecks(receiver: CSSVariableReferenceValue): Option[CSSUnparsedValue] ->
+pub fallback_typechecks(
+    receiver: CSSVariableReferenceValue,
+): std.core.Option.Option[std.js.Dom.CSSUnparsedValue.CSSUnparsedValue] ->
     receiver.fallback().
 
 pub variable_typechecks(receiver: CSSVariableReferenceValue): std.js.String.JsString ->

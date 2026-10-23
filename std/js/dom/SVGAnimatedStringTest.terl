@@ -15,8 +15,6 @@ module std.js.Dom.SVGAnimatedStringTest.
 import type std.js.Dom.SVGAnimatedString.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub anim_val_typechecks(receiver: SVGAnimatedString): JsString ->
     receiver.anim_val().
 

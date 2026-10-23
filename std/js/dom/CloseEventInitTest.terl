@@ -12,15 +12,14 @@
  */
 module std.js.Dom.CloseEventInitTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.CloseEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub code_typechecks(receiver: CloseEventInit): std.js.Number.JsNumber ->
+pub code_typechecks(receiver: CloseEventInit): Option[std.js.Number.JsNumber] ->
     receiver.code().
 
-pub reason_typechecks(receiver: CloseEventInit): std.js.String.JsString ->
+pub reason_typechecks(receiver: CloseEventInit): Option[std.js.String.JsString] ->
     receiver.reason().
 
-pub was_clean_typechecks(receiver: CloseEventInit): std.core.Bool ->
+pub was_clean_typechecks(receiver: CloseEventInit): Option[Bool] ->
     receiver.was_clean().

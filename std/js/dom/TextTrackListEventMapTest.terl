@@ -13,13 +13,12 @@
 module std.js.Dom.TextTrackListEventMapTest.
 
 import type std.js.Dom.TextTrackListEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.TrackEvent.{TrackEvent}.
 
 pub addtrack_typechecks(receiver: TextTrackListEventMap): TrackEvent ->
     receiver.addtrack().
 
-pub change_typechecks(receiver: TextTrackListEventMap): Event ->
+pub change_typechecks(receiver: TextTrackListEventMap): std.js.Dom.Event.Event ->
     receiver.change().
 
 pub removetrack_typechecks(receiver: TextTrackListEventMap): TrackEvent ->

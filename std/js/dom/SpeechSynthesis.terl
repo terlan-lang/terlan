@@ -12,7 +12,9 @@
  */
 module std.js.Dom.SpeechSynthesis.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +29,7 @@ pub opaque type SpeechSynthesis.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/paused)
  */
-pub (value: SpeechSynthesis) paused(): Bool ->
+pub (receiver: SpeechSynthesis) paused(): Bool ->
     native.
 
 /**
@@ -35,7 +37,7 @@ pub (value: SpeechSynthesis) paused(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/pending)
  */
-pub (value: SpeechSynthesis) pending(): Bool ->
+pub (receiver: SpeechSynthesis) pending(): Bool ->
     native.
 
 /**
@@ -43,7 +45,7 @@ pub (value: SpeechSynthesis) pending(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/speaking)
  */
-pub (value: SpeechSynthesis) speaking(): Bool ->
+pub (receiver: SpeechSynthesis) speaking(): Bool ->
     native.
 
 /**
@@ -51,7 +53,7 @@ pub (value: SpeechSynthesis) speaking(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/cancel)
  */
-pub (value: SpeechSynthesis) cancel(): Unit ->
+pub (receiver: SpeechSynthesis) cancel(): Unit ->
     native.
 
 /**
@@ -59,7 +61,7 @@ pub (value: SpeechSynthesis) cancel(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/getVoices)
  */
-pub (value: SpeechSynthesis) get_voices(): std.js.Array[SpeechSynthesisVoice] ->
+pub (receiver: SpeechSynthesis) get_voices(): std.js.Array.Array[std.js.Dom.SpeechSynthesisVoice.SpeechSynthesisVoice] ->
     native.
 
 /**
@@ -67,7 +69,7 @@ pub (value: SpeechSynthesis) get_voices(): std.js.Array[SpeechSynthesisVoice] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/pause)
  */
-pub (value: SpeechSynthesis) pause(): Unit ->
+pub (receiver: SpeechSynthesis) pause(): Unit ->
     native.
 
 /**
@@ -75,7 +77,7 @@ pub (value: SpeechSynthesis) pause(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/resume)
  */
-pub (value: SpeechSynthesis) resume(): Unit ->
+pub (receiver: SpeechSynthesis) resume(): Unit ->
     native.
 
 /**
@@ -83,19 +85,19 @@ pub (value: SpeechSynthesis) resume(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/speak)
  */
-pub (value: SpeechSynthesis) speak(utterance: SpeechSynthesisUtterance): Unit ->
+pub (receiver: SpeechSynthesis) speak(utterance: std.js.Dom.SpeechSynthesisUtterance.SpeechSynthesisUtterance): Unit ->
     native.
 
-pub (value: SpeechSynthesis) add_event_listener(
+pub (receiver: SpeechSynthesis) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: SpeechSynthesis) remove_event_listener(
+pub (receiver: SpeechSynthesis) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

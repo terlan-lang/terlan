@@ -12,26 +12,26 @@
  */
 module std.js.Dom.CanvasState.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 
 pub opaque type CanvasState.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isContextLost)
  */
-pub (value: CanvasState) is_context_lost(): std.core.Bool.
+pub (receiver: CanvasState) is_context_lost(): Bool.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/reset)
  */
-pub (value: CanvasState) reset(): Unit.
+pub (receiver: CanvasState) reset(): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/restore)
  */
-pub (value: CanvasState) restore(): Unit.
+pub (receiver: CanvasState) restore(): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/save)
  */
-pub (value: CanvasState) save(): Unit.
+pub (receiver: CanvasState) save(): Unit.

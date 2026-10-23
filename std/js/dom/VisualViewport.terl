@@ -12,7 +12,9 @@
  */
 module std.js.Dom.VisualViewport.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,7 +30,7 @@ pub opaque type VisualViewport.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/height)
  */
-pub (value: VisualViewport) height(): JsNumber ->
+pub (receiver: VisualViewport) height(): JsNumber ->
     native.
 
 /**
@@ -36,7 +38,7 @@ pub (value: VisualViewport) height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/offsetLeft)
  */
-pub (value: VisualViewport) offset_left(): JsNumber ->
+pub (receiver: VisualViewport) offset_left(): JsNumber ->
     native.
 
 /**
@@ -44,7 +46,7 @@ pub (value: VisualViewport) offset_left(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/offsetTop)
  */
-pub (value: VisualViewport) offset_top(): JsNumber ->
+pub (receiver: VisualViewport) offset_top(): JsNumber ->
     native.
 
 /**
@@ -52,7 +54,7 @@ pub (value: VisualViewport) offset_top(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/pageLeft)
  */
-pub (value: VisualViewport) page_left(): JsNumber ->
+pub (receiver: VisualViewport) page_left(): JsNumber ->
     native.
 
 /**
@@ -60,7 +62,7 @@ pub (value: VisualViewport) page_left(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/pageTop)
  */
-pub (value: VisualViewport) page_top(): JsNumber ->
+pub (receiver: VisualViewport) page_top(): JsNumber ->
     native.
 
 /**
@@ -68,7 +70,7 @@ pub (value: VisualViewport) page_top(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/scale)
  */
-pub (value: VisualViewport) scale(): JsNumber ->
+pub (receiver: VisualViewport) scale(): JsNumber ->
     native.
 
 /**
@@ -76,19 +78,19 @@ pub (value: VisualViewport) scale(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VisualViewport/width)
  */
-pub (value: VisualViewport) width(): JsNumber ->
+pub (receiver: VisualViewport) width(): JsNumber ->
     native.
 
-pub (value: VisualViewport) add_event_listener(
+pub (receiver: VisualViewport) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: VisualViewport) remove_event_listener(
+pub (receiver: VisualViewport) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

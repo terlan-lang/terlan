@@ -14,4 +14,4 @@ module std.js.Dom.MediaKeysPolicy.
 
 pub opaque type MediaKeysPolicy.
 
-pub (value: MediaKeysPolicy) min_hdcp_version(): std.js.String.JsString.
+pub (receiver: MediaKeysPolicy) min_hdcp_version(): std.core.Option.Option[std.js.String.JsString].

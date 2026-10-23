@@ -14,10 +14,8 @@ module std.js.Dom.ImageDecodeResultTest.
 
 import type std.js.Dom.ImageDecodeResult.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub complete_typechecks(receiver: ImageDecodeResult): std.core.Bool ->
+pub complete_typechecks(receiver: ImageDecodeResult): Bool ->
     receiver.complete().
 
-pub image_typechecks(receiver: ImageDecodeResult): VideoFrame ->
+pub image_typechecks(receiver: ImageDecodeResult): std.js.Dom.VideoFrame.VideoFrame ->
     receiver.image().

@@ -15,6 +15,6 @@ module std.js.Intl.DateTimeFormat.
 
 pub opaque type DateTimeFormat.
 
-pub (value: DateTimeFormat) format(date: Date | std.js.Number.JsNumber): std.js.String.JsString.
+pub (receiver: DateTimeFormat) format(date: std.core.Option.Option[std.js.Date.Date | std.js.Number.JsNumber]): std.js.String.JsString.
 
-pub (value: DateTimeFormat) resolved_options(): ResolvedDateTimeFormatOptions.
+pub (receiver: DateTimeFormat) resolved_options(): std.js.Intl.ResolvedDateTimeFormatOptions.ResolvedDateTimeFormatOptions.

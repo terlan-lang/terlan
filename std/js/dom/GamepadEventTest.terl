@@ -14,7 +14,5 @@ module std.js.Dom.GamepadEventTest.
 
 import type std.js.Dom.GamepadEvent.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub gamepad_typechecks(receiver: GamepadEvent): Gamepad ->
+pub gamepad_typechecks(receiver: GamepadEvent): std.js.Dom.Gamepad.Gamepad ->
     receiver.gamepad().

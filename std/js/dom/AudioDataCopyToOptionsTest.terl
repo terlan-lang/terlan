@@ -12,18 +12,14 @@
  */
 module std.js.Dom.AudioDataCopyToOptionsTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.AudioDataCopyToOptions.
 import type std.js.Number.{JsNumber}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub format_typechecks(receiver: AudioDataCopyToOptions): AudioSampleFormat ->
-    receiver.format().
-
-pub frame_count_typechecks(receiver: AudioDataCopyToOptions): JsNumber ->
+pub frame_count_typechecks(receiver: AudioDataCopyToOptions): Option[JsNumber] ->
     receiver.frame_count().
 
-pub frame_offset_typechecks(receiver: AudioDataCopyToOptions): JsNumber ->
+pub frame_offset_typechecks(receiver: AudioDataCopyToOptions): Option[JsNumber] ->
     receiver.frame_offset().
 
 pub plane_index_typechecks(receiver: AudioDataCopyToOptions): JsNumber ->

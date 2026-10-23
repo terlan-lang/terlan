@@ -15,42 +15,42 @@ module std.js.Dom.WindowEventHandlersEventMap.
 
 pub opaque type WindowEventHandlersEventMap.
 
-pub (value: WindowEventHandlersEventMap) afterprint(): Event.
+pub (receiver: WindowEventHandlersEventMap) afterprint(): std.js.Dom.Event.Event.
 
-pub (value: WindowEventHandlersEventMap) beforeprint(): Event.
+pub (receiver: WindowEventHandlersEventMap) beforeprint(): std.js.Dom.Event.Event.
 
-pub (value: WindowEventHandlersEventMap) beforeunload(): BeforeUnloadEvent.
+pub (receiver: WindowEventHandlersEventMap) beforeunload(): std.js.Dom.BeforeUnloadEvent.BeforeUnloadEvent.
 
-pub (value: WindowEventHandlersEventMap) gamepadconnected(): GamepadEvent.
+pub (receiver: WindowEventHandlersEventMap) gamepadconnected(): std.js.Dom.GamepadEvent.GamepadEvent.
 
-pub (value: WindowEventHandlersEventMap) gamepaddisconnected(): GamepadEvent.
+pub (receiver: WindowEventHandlersEventMap) gamepaddisconnected(): std.js.Dom.GamepadEvent.GamepadEvent.
 
-pub (value: WindowEventHandlersEventMap) hashchange(): HashChangeEvent.
+pub (receiver: WindowEventHandlersEventMap) hashchange(): std.js.Dom.HashChangeEvent.HashChangeEvent.
 
-pub (value: WindowEventHandlersEventMap) languagechange(): Event.
+pub (receiver: WindowEventHandlersEventMap) languagechange(): std.js.Dom.Event.Event.
 
-pub (value: WindowEventHandlersEventMap) message(): MessageEvent.
+pub (receiver: WindowEventHandlersEventMap) message(): std.js.Dom.MessageEvent.MessageEvent.
 
-pub (value: WindowEventHandlersEventMap) messageerror(): MessageEvent.
+pub (receiver: WindowEventHandlersEventMap) messageerror(): std.js.Dom.MessageEvent.MessageEvent.
 
-pub (value: WindowEventHandlersEventMap) offline(): Event.
+pub (receiver: WindowEventHandlersEventMap) offline(): std.js.Dom.Event.Event.
 
-pub (value: WindowEventHandlersEventMap) online(): Event.
+pub (receiver: WindowEventHandlersEventMap) online(): std.js.Dom.Event.Event.
 
-pub (value: WindowEventHandlersEventMap) pagehide(): PageTransitionEvent.
+pub (receiver: WindowEventHandlersEventMap) pagehide(): std.js.Dom.PageTransitionEvent.PageTransitionEvent.
 
-pub (value: WindowEventHandlersEventMap) pagereveal(): PageRevealEvent.
+pub (receiver: WindowEventHandlersEventMap) pagereveal(): std.js.Dom.PageRevealEvent.PageRevealEvent.
 
-pub (value: WindowEventHandlersEventMap) pageshow(): PageTransitionEvent.
+pub (receiver: WindowEventHandlersEventMap) pageshow(): std.js.Dom.PageTransitionEvent.PageTransitionEvent.
 
-pub (value: WindowEventHandlersEventMap) pageswap(): PageSwapEvent.
+pub (receiver: WindowEventHandlersEventMap) pageswap(): std.js.Dom.PageSwapEvent.PageSwapEvent.
 
-pub (value: WindowEventHandlersEventMap) popstate(): PopStateEvent.
+pub (receiver: WindowEventHandlersEventMap) popstate(): std.js.Dom.PopStateEvent.PopStateEvent.
 
-pub (value: WindowEventHandlersEventMap) rejectionhandled(): PromiseRejectionEvent.
+pub (receiver: WindowEventHandlersEventMap) rejectionhandled(): std.js.Dom.PromiseRejectionEvent.PromiseRejectionEvent.
 
-pub (value: WindowEventHandlersEventMap) storage(): StorageEvent.
+pub (receiver: WindowEventHandlersEventMap) storage(): std.js.Dom.StorageEvent.StorageEvent.
 
-pub (value: WindowEventHandlersEventMap) unhandledrejection(): PromiseRejectionEvent.
+pub (receiver: WindowEventHandlersEventMap) unhandledrejection(): std.js.Dom.PromiseRejectionEvent.PromiseRejectionEvent.
 
-pub (value: WindowEventHandlersEventMap) unload(): Event.
+pub (receiver: WindowEventHandlersEventMap) unload(): std.js.Dom.Event.Event.

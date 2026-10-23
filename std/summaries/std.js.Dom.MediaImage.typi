@@ -15,8 +15,8 @@ module std.js.Dom.MediaImage.
 
 pub opaque type MediaImage.
 
-pub (value: MediaImage) sizes(): std.js.String.JsString.
+pub (receiver: MediaImage) sizes(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: MediaImage) src(): std.js.String.JsString.
+pub (receiver: MediaImage) src(): std.js.String.JsString.
 
-pub (value: MediaImage) type_(): std.js.String.JsString.
+pub (receiver: MediaImage) type_(): std.core.Option.Option[std.js.String.JsString].

@@ -12,11 +12,9 @@
  */
 module std.js.Dom.NavigationPreloadManagerTest.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.NavigationPreloadManager.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Promise.{Promise}.
 
 pub disable_typechecks(receiver: NavigationPreloadManager): Promise[Unit] ->
     receiver.disable().
@@ -24,7 +22,9 @@ pub disable_typechecks(receiver: NavigationPreloadManager): Promise[Unit] ->
 pub enable_typechecks(receiver: NavigationPreloadManager): Promise[Unit] ->
     receiver.enable().
 
-pub get_state_typechecks(receiver: NavigationPreloadManager): Promise[NavigationPreloadState] ->
+pub get_state_typechecks(
+    receiver: NavigationPreloadManager,
+): Promise[std.js.Dom.NavigationPreloadState.NavigationPreloadState] ->
     receiver.get_state().
 
 pub set_header_value_typechecks(

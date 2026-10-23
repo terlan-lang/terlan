@@ -14,5 +14,3 @@
 module std.js.Dom.MediaEncodingConfiguration.
 
 pub opaque type MediaEncodingConfiguration.
-
-pub (value: MediaEncodingConfiguration) type_(): MediaEncodingType.

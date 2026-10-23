@@ -12,16 +12,14 @@
  */
 module std.js.Dom.RTCOfferOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.RTCOfferOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub ice_restart_typechecks(receiver: RTCOfferOptions): Bool ->
+pub ice_restart_typechecks(receiver: RTCOfferOptions): Option[Bool] ->
     receiver.ice_restart().
 
-pub offer_to_receive_audio_typechecks(receiver: RTCOfferOptions): Bool ->
+pub offer_to_receive_audio_typechecks(receiver: RTCOfferOptions): Option[Bool] ->
     receiver.offer_to_receive_audio().
 
-pub offer_to_receive_video_typechecks(receiver: RTCOfferOptions): Bool ->
+pub offer_to_receive_video_typechecks(receiver: RTCOfferOptions): Option[Bool] ->
     receiver.offer_to_receive_video().

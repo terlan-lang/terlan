@@ -15,16 +15,16 @@ module std.js.Intl.ResolvedCollatorOptions.
 
 pub opaque type ResolvedCollatorOptions.
 
-pub (value: ResolvedCollatorOptions) locale(): std.js.String.JsString.
+pub (receiver: ResolvedCollatorOptions) locale(): std.js.String.JsString.
 
-pub (value: ResolvedCollatorOptions) usage(): std.js.String.JsString.
+pub (receiver: ResolvedCollatorOptions) usage(): std.js.String.JsString.
 
-pub (value: ResolvedCollatorOptions) sensitivity(): std.js.String.JsString.
+pub (receiver: ResolvedCollatorOptions) sensitivity(): std.js.String.JsString.
 
-pub (value: ResolvedCollatorOptions) ignore_punctuation(): std.core.Bool.
+pub (receiver: ResolvedCollatorOptions) ignore_punctuation(): Bool.
 
-pub (value: ResolvedCollatorOptions) collation(): std.js.String.JsString.
+pub (receiver: ResolvedCollatorOptions) collation(): std.js.String.JsString.
 
-pub (value: ResolvedCollatorOptions) case_first(): std.js.String.JsString.
+pub (receiver: ResolvedCollatorOptions) case_first(): std.js.String.JsString.
 
-pub (value: ResolvedCollatorOptions) numeric(): std.core.Bool.
+pub (receiver: ResolvedCollatorOptions) numeric(): Bool.

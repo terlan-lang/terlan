@@ -12,22 +12,16 @@
  */
 module std.js.Dom.AudioNodeTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.AudioNode.
+import type std.js.Dom.AudioParam.{AudioParam}.
 import type std.js.Number.{JsNumber}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub channel_count_typechecks(receiver: AudioNode): JsNumber ->
     receiver.channel_count().
 
-pub channel_count_mode_typechecks(receiver: AudioNode): ChannelCountMode ->
-    receiver.channel_count_mode().
-
-pub channel_interpretation_typechecks(receiver: AudioNode): ChannelInterpretation ->
-    receiver.channel_interpretation().
-
-pub context_typechecks(receiver: AudioNode): BaseAudioContext ->
+pub context_typechecks(receiver: AudioNode): std.js.Dom.BaseAudioContext.BaseAudioContext ->
     receiver.context().
 
 pub number_of_inputs_typechecks(receiver: AudioNode): JsNumber ->
@@ -39,40 +33,48 @@ pub number_of_outputs_typechecks(receiver: AudioNode): JsNumber ->
 pub connect_typechecks(
     receiver: AudioNode,
     destination_node: AudioNode,
-    output: JsNumber,
-    input: JsNumber,
+    output: Option[JsNumber],
+    input: Option[JsNumber],
 ): AudioNode ->
     receiver.connect(destination_node, output, input).
 
-pub connect_typechecks(receiver: AudioNode, destination_param: AudioParam, output: JsNumber): Unit ->
-    receiver.connect(destination_param, output).
+pub connect_overload_2_typechecks(
+    receiver: AudioNode,
+    destination_param: AudioParam,
+    output: Option[JsNumber],
+): Unit ->
+    receiver.connect_overload_2(destination_param, output).
 
 pub disconnect_typechecks(receiver: AudioNode): Unit ->
     receiver.disconnect().
 
-pub disconnect_typechecks(receiver: AudioNode, output: JsNumber): Unit ->
-    receiver.disconnect(output).
+pub disconnect_overload_2_typechecks(receiver: AudioNode, output: JsNumber): Unit ->
+    receiver.disconnect_overload_2(output).
 
-pub disconnect_typechecks(receiver: AudioNode, destination_node: AudioNode): Unit ->
-    receiver.disconnect(destination_node).
+pub disconnect_overload_3_typechecks(receiver: AudioNode, destination_node: AudioNode): Unit ->
+    receiver.disconnect_overload_3(destination_node).
 
-pub disconnect_typechecks(receiver: AudioNode, destination_node: AudioNode, output: JsNumber): Unit ->
-    receiver.disconnect(destination_node, output).
+pub disconnect_overload_4_typechecks(
+    receiver: AudioNode,
+    destination_node: AudioNode,
+    output: JsNumber,
+): Unit ->
+    receiver.disconnect_overload_4(destination_node, output).
 
-pub disconnect_typechecks(
+pub disconnect_overload_5_typechecks(
     receiver: AudioNode,
     destination_node: AudioNode,
     output: JsNumber,
     input: JsNumber,
 ): Unit ->
-    receiver.disconnect(destination_node, output, input).
+    receiver.disconnect_overload_5(destination_node, output, input).
 
-pub disconnect_typechecks(receiver: AudioNode, destination_param: AudioParam): Unit ->
-    receiver.disconnect(destination_param).
+pub disconnect_overload_6_typechecks(receiver: AudioNode, destination_param: AudioParam): Unit ->
+    receiver.disconnect_overload_6(destination_param).
 
-pub disconnect_typechecks(
+pub disconnect_overload_7_typechecks(
     receiver: AudioNode,
     destination_param: AudioParam,
     output: JsNumber,
 ): Unit ->
-    receiver.disconnect(destination_param, output).
+    receiver.disconnect_overload_7(destination_param, output).

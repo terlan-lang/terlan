@@ -12,15 +12,12 @@
  */
 module std.js.Dom.TreeWalkerTest.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.Node.{Node}.
 import type std.js.Dom.TreeWalker.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub current_node_typechecks(receiver: TreeWalker): Node ->
     receiver.current_node().
-
-pub filter_typechecks(receiver: TreeWalker): Option[NodeFilter] ->
-    receiver.filter().
 
 pub root_typechecks(receiver: TreeWalker): Node ->
     receiver.root().

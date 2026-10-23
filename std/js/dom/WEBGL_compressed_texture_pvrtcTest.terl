@@ -13,5 +13,3 @@
 module std.js.Dom.WEBGL_compressed_texture_pvrtcTest.
 
 import type std.js.Dom.WEBGL_compressed_texture_pvrtc.
-
-pub generated_binding_surface_contract(): Bool -> true.

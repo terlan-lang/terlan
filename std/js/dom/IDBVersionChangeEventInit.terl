@@ -12,12 +12,13 @@
  */
 module std.js.Dom.IDBVersionChangeEventInit.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type IDBVersionChangeEventInit.
 
-pub (value: IDBVersionChangeEventInit) new_version(): Option[JsNumber] ->
+pub (receiver: IDBVersionChangeEventInit) new_version(): Option[JsNumber] ->
     native.
 
-pub (value: IDBVersionChangeEventInit) old_version(): JsNumber ->
+pub (receiver: IDBVersionChangeEventInit) old_version(): Option[JsNumber] ->
     native.

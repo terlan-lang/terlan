@@ -12,18 +12,19 @@
  */
 module std.js.Dom.DOMPointInit.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type DOMPointInit.
 
-pub (value: DOMPointInit) w(): JsNumber ->
+pub (receiver: DOMPointInit) w(): Option[JsNumber] ->
     native.
 
-pub (value: DOMPointInit) x(): JsNumber ->
+pub (receiver: DOMPointInit) x(): Option[JsNumber] ->
     native.
 
-pub (value: DOMPointInit) y(): JsNumber ->
+pub (receiver: DOMPointInit) y(): Option[JsNumber] ->
     native.
 
-pub (value: DOMPointInit) z(): JsNumber ->
+pub (receiver: DOMPointInit) z(): Option[JsNumber] ->
     native.

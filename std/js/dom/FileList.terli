@@ -26,11 +26,11 @@ pub opaque type FileList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileList/length)
  */
-pub (value: FileList) length(): JsNumber.
+pub (receiver: FileList) length(): JsNumber.
 
 /**
  * The **`item()`** method of the FileList interface returns a File object representing the file at the specified index in the file list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileList/item)
  */
-pub (value: FileList) item(index: JsNumber): Option[File].
+pub (receiver: FileList) item(index: JsNumber): std.core.Option.Option[std.js.Dom.File.File].

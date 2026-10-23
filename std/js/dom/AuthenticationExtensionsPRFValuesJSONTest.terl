@@ -13,11 +13,12 @@
 module std.js.Dom.AuthenticationExtensionsPRFValuesJSONTest.
 
 import type std.js.Dom.AuthenticationExtensionsPRFValuesJSON.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.Base64URLString.{Base64URLString}.
 
 pub first_typechecks(receiver: AuthenticationExtensionsPRFValuesJSON): Base64URLString ->
     receiver.first().
 
-pub second_typechecks(receiver: AuthenticationExtensionsPRFValuesJSON): Base64URLString ->
+pub second_typechecks(
+    receiver: AuthenticationExtensionsPRFValuesJSON,
+): std.core.Option.Option[Base64URLString] ->
     receiver.second().

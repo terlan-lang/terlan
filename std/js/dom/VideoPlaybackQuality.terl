@@ -27,7 +27,7 @@ pub opaque type VideoPlaybackQuality.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoPlaybackQuality/corruptedVideoFrames)
  */
-pub (value: VideoPlaybackQuality) corrupted_video_frames(): JsNumber ->
+pub (receiver: VideoPlaybackQuality) corrupted_video_frames(): JsNumber ->
     native.
 
 /**
@@ -35,7 +35,7 @@ pub (value: VideoPlaybackQuality) corrupted_video_frames(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoPlaybackQuality/creationTime)
  */
-pub (value: VideoPlaybackQuality) creation_time(): DOMHighResTimeStamp ->
+pub (receiver: VideoPlaybackQuality) creation_time(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
     native.
 
 /**
@@ -43,7 +43,7 @@ pub (value: VideoPlaybackQuality) creation_time(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoPlaybackQuality/droppedVideoFrames)
  */
-pub (value: VideoPlaybackQuality) dropped_video_frames(): JsNumber ->
+pub (receiver: VideoPlaybackQuality) dropped_video_frames(): JsNumber ->
     native.
 
 /**
@@ -51,5 +51,5 @@ pub (value: VideoPlaybackQuality) dropped_video_frames(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoPlaybackQuality/totalVideoFrames)
  */
-pub (value: VideoPlaybackQuality) total_video_frames(): JsNumber ->
+pub (receiver: VideoPlaybackQuality) total_video_frames(): JsNumber ->
     native.

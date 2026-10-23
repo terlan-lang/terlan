@@ -12,11 +12,15 @@
  */
 module std.js.Dom.CacheTest.
 
-import type std.core.{Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Array.{Array}.
 import type std.js.Dom.Cache.
-import type std.js.{Array, Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.CacheQueryOptions.{CacheQueryOptions}.
+import type std.js.Dom.RequestInfo.{RequestInfo}.
+import type std.js.Dom.Response.{Response}.
+import type std.js.Dom.URL.{URL}.
+import type std.js.Promise.{Promise}.
 
 pub add_typechecks(receiver: Cache, request: RequestInfo | URL): Promise[Unit] ->
     receiver.add(request).
@@ -27,28 +31,28 @@ pub add_all_typechecks(receiver: Cache, requests: Array[RequestInfo]): Promise[U
 pub delete_typechecks(
     receiver: Cache,
     request: RequestInfo | URL,
-    options: CacheQueryOptions,
-): Promise[std.core.Bool] ->
+    options: Option[CacheQueryOptions],
+): Promise[Bool] ->
     receiver.delete(request, options).
 
 pub keys_typechecks(
     receiver: Cache,
-    request: RequestInfo | URL,
-    options: CacheQueryOptions,
-): Promise[Array[Request]] ->
+    request: Option[RequestInfo | URL],
+    options: Option[CacheQueryOptions],
+): Promise[Array[std.js.Dom.Request.Request]] ->
     receiver.keys(request, options).
 
 pub match_typechecks(
     receiver: Cache,
     request: RequestInfo | URL,
-    options: CacheQueryOptions,
+    options: Option[CacheQueryOptions],
 ): Promise[Option[Response]] ->
     receiver.match(request, options).
 
 pub match_all_typechecks(
     receiver: Cache,
-    request: RequestInfo | URL,
-    options: CacheQueryOptions,
+    request: Option[RequestInfo | URL],
+    options: Option[CacheQueryOptions],
 ): Promise[Array[Response]] ->
     receiver.match_all(request, options).
 

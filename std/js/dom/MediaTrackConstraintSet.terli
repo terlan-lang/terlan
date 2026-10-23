@@ -12,34 +12,40 @@
  */
 module std.js.Dom.MediaTrackConstraintSet.
 
+import type std.core.Option.{Option}.
+import type std.js.Dom.ConstrainBoolean.{ConstrainBoolean}.
+import type std.js.Dom.ConstrainDOMString.{ConstrainDOMString}.
+import type std.js.Dom.ConstrainDouble.{ConstrainDouble}.
+import type std.js.Dom.ConstrainULong.{ConstrainULong}.
+
 pub opaque type MediaTrackConstraintSet.
 
-pub (value: MediaTrackConstraintSet) aspect_ratio(): ConstrainDouble.
+pub (receiver: MediaTrackConstraintSet) aspect_ratio(): Option[ConstrainDouble].
 
-pub (value: MediaTrackConstraintSet) auto_gain_control(): ConstrainBoolean.
+pub (receiver: MediaTrackConstraintSet) auto_gain_control(): Option[ConstrainBoolean].
 
-pub (value: MediaTrackConstraintSet) background_blur(): ConstrainBoolean.
+pub (receiver: MediaTrackConstraintSet) background_blur(): Option[ConstrainBoolean].
 
-pub (value: MediaTrackConstraintSet) channel_count(): ConstrainULong.
+pub (receiver: MediaTrackConstraintSet) channel_count(): Option[ConstrainULong].
 
-pub (value: MediaTrackConstraintSet) device_id(): ConstrainDOMString.
+pub (receiver: MediaTrackConstraintSet) device_id(): Option[ConstrainDOMString].
 
-pub (value: MediaTrackConstraintSet) display_surface(): ConstrainDOMString.
+pub (receiver: MediaTrackConstraintSet) display_surface(): Option[ConstrainDOMString].
 
-pub (value: MediaTrackConstraintSet) echo_cancellation(): ConstrainBoolean.
+pub (receiver: MediaTrackConstraintSet) echo_cancellation(): Option[ConstrainBoolean].
 
-pub (value: MediaTrackConstraintSet) facing_mode(): ConstrainDOMString.
+pub (receiver: MediaTrackConstraintSet) facing_mode(): Option[ConstrainDOMString].
 
-pub (value: MediaTrackConstraintSet) frame_rate(): ConstrainDouble.
+pub (receiver: MediaTrackConstraintSet) frame_rate(): Option[ConstrainDouble].
 
-pub (value: MediaTrackConstraintSet) group_id(): ConstrainDOMString.
+pub (receiver: MediaTrackConstraintSet) group_id(): Option[ConstrainDOMString].
 
-pub (value: MediaTrackConstraintSet) height(): ConstrainULong.
+pub (receiver: MediaTrackConstraintSet) height(): Option[ConstrainULong].
 
-pub (value: MediaTrackConstraintSet) noise_suppression(): ConstrainBoolean.
+pub (receiver: MediaTrackConstraintSet) noise_suppression(): Option[ConstrainBoolean].
 
-pub (value: MediaTrackConstraintSet) sample_rate(): ConstrainULong.
+pub (receiver: MediaTrackConstraintSet) sample_rate(): Option[ConstrainULong].
 
-pub (value: MediaTrackConstraintSet) sample_size(): ConstrainULong.
+pub (receiver: MediaTrackConstraintSet) sample_size(): Option[ConstrainULong].
 
-pub (value: MediaTrackConstraintSet) width(): ConstrainULong.
+pub (receiver: MediaTrackConstraintSet) width(): Option[ConstrainULong].

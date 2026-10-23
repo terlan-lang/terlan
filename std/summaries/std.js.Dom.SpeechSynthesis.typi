@@ -25,57 +25,57 @@ pub opaque type SpeechSynthesis.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/paused)
  */
-pub (value: SpeechSynthesis) paused(): std.core.Bool.
+pub (receiver: SpeechSynthesis) paused(): Bool.
 
 /**
  * The **`pending`** read-only property of the `true` if the utterance queue contains as-yet-unspoken utterances.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/pending)
  */
-pub (value: SpeechSynthesis) pending(): std.core.Bool.
+pub (receiver: SpeechSynthesis) pending(): Bool.
 
 /**
  * The **`speaking`** read-only property of the `true` if an utterance is currently in the process of being spoken — even if `SpeechSynthesis` is in a A boolean value.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/speaking)
  */
-pub (value: SpeechSynthesis) speaking(): std.core.Bool.
+pub (receiver: SpeechSynthesis) speaking(): Bool.
 
 /**
  * The **`cancel()`** method of the SpeechSynthesis interface removes all utterances from the utterance queue.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/cancel)
  */
-pub (value: SpeechSynthesis) cancel(): std.core.Unit.
+pub (receiver: SpeechSynthesis) cancel(): std.core.Unit.Unit.
 
 /**
  * The **`getVoices()`** method of the current device.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/getVoices)
  */
-pub (value: SpeechSynthesis) get_voices(): std.js.Array[SpeechSynthesisVoice].
+pub (receiver: SpeechSynthesis) get_voices(): std.js.Array.Array[std.js.Dom.SpeechSynthesisVoice.SpeechSynthesisVoice].
 
 /**
  * The **`pause()`** method of the SpeechSynthesis interface puts the `SpeechSynthesis` object into a paused state.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/pause)
  */
-pub (value: SpeechSynthesis) pause(): std.core.Unit.
+pub (receiver: SpeechSynthesis) pause(): std.core.Unit.Unit.
 
 /**
  * The **`resume()`** method of the SpeechSynthesis interface puts the `SpeechSynthesis` object into a non-paused state: resumes it if it was already paused.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/resume)
  */
-pub (value: SpeechSynthesis) resume(): std.core.Unit.
+pub (receiver: SpeechSynthesis) resume(): std.core.Unit.Unit.
 
 /**
  * The **`speak()`** method of the SpeechSynthesis interface adds an SpeechSynthesisUtterance to the utterance queue; it will be spoken when any other utterances queued before it have been spoken.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/speak)
  */
-pub (value: SpeechSynthesis) speak(utterance: SpeechSynthesisUtterance): std.core.Unit.
+pub (receiver: SpeechSynthesis) speak(utterance: std.js.Dom.SpeechSynthesisUtterance.SpeechSynthesisUtterance): std.core.Unit.Unit.
 
-pub (value: SpeechSynthesis) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SpeechSynthesis) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: SpeechSynthesis) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: SpeechSynthesis) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

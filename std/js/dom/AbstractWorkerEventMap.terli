@@ -14,4 +14,4 @@ module std.js.Dom.AbstractWorkerEventMap.
 
 pub opaque type AbstractWorkerEventMap.
 
-pub (value: AbstractWorkerEventMap) error(): ErrorEvent.
+pub (receiver: AbstractWorkerEventMap) error(): std.js.Dom.ErrorEvent.ErrorEvent.

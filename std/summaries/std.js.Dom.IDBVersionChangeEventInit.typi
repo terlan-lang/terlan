@@ -15,6 +15,6 @@ module std.js.Dom.IDBVersionChangeEventInit.
 
 pub opaque type IDBVersionChangeEventInit.
 
-pub (value: IDBVersionChangeEventInit) new_version(): Option[std.js.Number.JsNumber].
+pub (receiver: IDBVersionChangeEventInit) new_version(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: IDBVersionChangeEventInit) old_version(): std.js.Number.JsNumber.
+pub (receiver: IDBVersionChangeEventInit) old_version(): std.core.Option.Option[std.js.Number.JsNumber].

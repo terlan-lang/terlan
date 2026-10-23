@@ -12,7 +12,7 @@
  */
 module std.js.Dom.ReportingObserver.
 
-import type std.core.{Unit}.
+import type std.core.Unit.{Unit}.
 
 /**
  * The `ReportingObserver` interface of the Reporting API allows you to collect and access reports.
@@ -26,7 +26,7 @@ pub opaque type ReportingObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReportingObserver/disconnect)
  */
-pub (value: ReportingObserver) disconnect(): Unit ->
+pub (receiver: ReportingObserver) disconnect(): Unit ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (value: ReportingObserver) disconnect(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReportingObserver/observe)
  */
-pub (value: ReportingObserver) observe(): Unit ->
+pub (receiver: ReportingObserver) observe(): Unit ->
     native.
 
 /**
@@ -42,5 +42,5 @@ pub (value: ReportingObserver) observe(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReportingObserver/takeRecords)
  */
-pub (value: ReportingObserver) take_records(): ReportList ->
+pub (receiver: ReportingObserver) take_records(): std.js.Dom.ReportList.ReportList ->
     native.

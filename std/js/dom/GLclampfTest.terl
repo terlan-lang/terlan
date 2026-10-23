@@ -13,5 +13,3 @@
 module std.js.Dom.GLclampfTest.
 
 import type std.js.Dom.GLclampf.
-
-pub generated_binding_surface_contract(): Bool -> true.

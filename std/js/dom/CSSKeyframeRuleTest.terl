@@ -14,10 +14,8 @@ module std.js.Dom.CSSKeyframeRuleTest.
 
 import type std.js.Dom.CSSKeyframeRule.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub key_text_typechecks(receiver: CSSKeyframeRule): std.js.String.JsString ->
     receiver.key_text().
 
-pub style_typechecks(receiver: CSSKeyframeRule): CSSStyleDeclaration ->
+pub style_typechecks(receiver: CSSKeyframeRule): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration ->
     receiver.style().

@@ -14,7 +14,7 @@ module std.js.Dom.ReadableStreamGenericReaderTest.
 
 import type std.js.Dom.ReadableStreamGenericReader.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub closed_typechecks(receiver: ReadableStreamGenericReader): std.js.Promise[std.core.Unit] ->
+pub closed_typechecks(
+    receiver: ReadableStreamGenericReader,
+): std.js.Promise.Promise[std.core.Unit.Unit] ->
     receiver.closed().

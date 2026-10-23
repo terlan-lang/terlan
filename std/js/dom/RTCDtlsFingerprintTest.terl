@@ -12,13 +12,12 @@
  */
 module std.js.Dom.RTCDtlsFingerprintTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.RTCDtlsFingerprint.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub algorithm_typechecks(receiver: RTCDtlsFingerprint): JsString ->
+pub algorithm_typechecks(receiver: RTCDtlsFingerprint): Option[JsString] ->
     receiver.algorithm().
 
-pub value_typechecks(receiver: RTCDtlsFingerprint): JsString ->
+pub value_typechecks(receiver: RTCDtlsFingerprint): Option[JsString] ->
     receiver.value().

@@ -14,10 +14,5 @@ module std.js.Dom.CanvasImageSmoothingTest.
 
 import type std.js.Dom.CanvasImageSmoothing.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub image_smoothing_enabled_typechecks(receiver: CanvasImageSmoothing): std.core.Bool ->
+pub image_smoothing_enabled_typechecks(receiver: CanvasImageSmoothing): Bool ->
     receiver.image_smoothing_enabled().
-
-pub image_smoothing_quality_typechecks(receiver: CanvasImageSmoothing): ImageSmoothingQuality ->
-    receiver.image_smoothing_quality().

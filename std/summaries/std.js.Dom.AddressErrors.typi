@@ -15,22 +15,22 @@ module std.js.Dom.AddressErrors.
 
 pub opaque type AddressErrors.
 
-pub (value: AddressErrors) address_line(): std.js.String.JsString.
+pub (receiver: AddressErrors) address_line(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AddressErrors) city(): std.js.String.JsString.
+pub (receiver: AddressErrors) city(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AddressErrors) country(): std.js.String.JsString.
+pub (receiver: AddressErrors) country(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AddressErrors) dependent_locality(): std.js.String.JsString.
+pub (receiver: AddressErrors) dependent_locality(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AddressErrors) organization(): std.js.String.JsString.
+pub (receiver: AddressErrors) organization(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AddressErrors) phone(): std.js.String.JsString.
+pub (receiver: AddressErrors) phone(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AddressErrors) postal_code(): std.js.String.JsString.
+pub (receiver: AddressErrors) postal_code(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AddressErrors) recipient(): std.js.String.JsString.
+pub (receiver: AddressErrors) recipient(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AddressErrors) region(): std.js.String.JsString.
+pub (receiver: AddressErrors) region(): std.core.Option.Option[std.js.String.JsString].
 
-pub (value: AddressErrors) sorting_code(): std.js.String.JsString.
+pub (receiver: AddressErrors) sorting_code(): std.core.Option.Option[std.js.String.JsString].

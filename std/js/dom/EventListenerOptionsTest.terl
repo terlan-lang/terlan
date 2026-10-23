@@ -14,7 +14,5 @@ module std.js.Dom.EventListenerOptionsTest.
 
 import type std.js.Dom.EventListenerOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub capture_typechecks(receiver: EventListenerOptions): std.core.Bool ->
+pub capture_typechecks(receiver: EventListenerOptions): std.core.Option.Option[Bool] ->
     receiver.capture().

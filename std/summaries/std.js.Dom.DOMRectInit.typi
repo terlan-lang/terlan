@@ -15,10 +15,10 @@ module std.js.Dom.DOMRectInit.
 
 pub opaque type DOMRectInit.
 
-pub (value: DOMRectInit) height(): std.js.Number.JsNumber.
+pub (receiver: DOMRectInit) height(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMRectInit) width(): std.js.Number.JsNumber.
+pub (receiver: DOMRectInit) width(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMRectInit) x(): std.js.Number.JsNumber.
+pub (receiver: DOMRectInit) x(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: DOMRectInit) y(): std.js.Number.JsNumber.
+pub (receiver: DOMRectInit) y(): std.core.Option.Option[std.js.Number.JsNumber].

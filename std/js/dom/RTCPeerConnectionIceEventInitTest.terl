@@ -14,7 +14,7 @@ module std.js.Dom.RTCPeerConnectionIceEventInitTest.
 
 import type std.js.Dom.RTCPeerConnectionIceEventInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub candidate_typechecks(receiver: RTCPeerConnectionIceEventInit): Option[RTCIceCandidate] ->
+pub candidate_typechecks(
+    receiver: RTCPeerConnectionIceEventInit,
+): std.core.Option.Option[std.js.Dom.RTCIceCandidate.RTCIceCandidate] ->
     receiver.candidate().

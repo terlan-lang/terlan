@@ -12,16 +12,15 @@
  */
 module std.js.Dom.MediaImageTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.MediaImage.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub sizes_typechecks(receiver: MediaImage): JsString ->
+pub sizes_typechecks(receiver: MediaImage): Option[JsString] ->
     receiver.sizes().
 
 pub src_typechecks(receiver: MediaImage): JsString ->
     receiver.src().
 
-pub type__typechecks(receiver: MediaImage): JsString ->
+pub type__typechecks(receiver: MediaImage): Option[JsString] ->
     receiver.type_().

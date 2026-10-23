@@ -12,9 +12,9 @@
  */
 module std.js.Dom.DeviceMotionEventTest.
 
+import type std.core.Option.{Option}.
 import type std.js.Dom.DeviceMotionEvent.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.DeviceMotionEventAcceleration.{DeviceMotionEventAcceleration}.
 
 pub acceleration_typechecks(receiver: DeviceMotionEvent): Option[DeviceMotionEventAcceleration] ->
     receiver.acceleration().
@@ -27,5 +27,7 @@ pub acceleration_including_gravity_typechecks(
 pub interval_typechecks(receiver: DeviceMotionEvent): std.js.Number.JsNumber ->
     receiver.interval().
 
-pub rotation_rate_typechecks(receiver: DeviceMotionEvent): Option[DeviceMotionEventRotationRate] ->
+pub rotation_rate_typechecks(
+    receiver: DeviceMotionEvent,
+): Option[std.js.Dom.DeviceMotionEventRotationRate.DeviceMotionEventRotationRate] ->
     receiver.rotation_rate().

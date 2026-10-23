@@ -14,10 +14,12 @@ module std.js.Dom.TextEncoderStreamTest.
 
 import type std.js.Dom.TextEncoderStream.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub readable_typechecks(receiver: TextEncoderStream): ReadableStream[Uint8Array[ArrayBuffer]] ->
+pub readable_typechecks(
+    receiver: TextEncoderStream,
+): std.js.Dom.ReadableStream.ReadableStream[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]] ->
     receiver.readable().
 
-pub writable_typechecks(receiver: TextEncoderStream): WritableStream[std.js.String.JsString] ->
+pub writable_typechecks(
+    receiver: TextEncoderStream,
+): std.js.Dom.WritableStream.WritableStream[std.js.String.JsString] ->
     receiver.writable().

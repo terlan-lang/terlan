@@ -12,41 +12,41 @@
  */
 module std.js.Dom.MutationObserverInit.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 
 pub opaque type MutationObserverInit.
 
 /**
  * Set to a list of attribute local names (without namespace) if not all attribute mutations need to be observed and attributes is true or omitted.
  */
-pub (value: MutationObserverInit) attribute_filter(): std.js.Array[std.js.String.JsString].
+pub (receiver: MutationObserverInit) attribute_filter(): Option[std.js.Array.Array[std.js.String.JsString]].
 
 /**
  * Set to true if attributes is true or omitted and target's attribute value before the mutation needs to be recorded.
  */
-pub (value: MutationObserverInit) attribute_old_value(): Bool.
+pub (receiver: MutationObserverInit) attribute_old_value(): Option[Bool].
 
 /**
  * Set to true if mutations to target's attributes are to be observed. Can be omitted if attributeOldValue or attributeFilter is specified.
  */
-pub (value: MutationObserverInit) attributes(): Bool.
+pub (receiver: MutationObserverInit) attributes(): Option[Bool].
 
 /**
  * Set to true if mutations to target's data are to be observed. Can be omitted if characterDataOldValue is specified.
  */
-pub (value: MutationObserverInit) character_data(): Bool.
+pub (receiver: MutationObserverInit) character_data(): Option[Bool].
 
 /**
  * Set to true if characterData is set to true or omitted and target's data before the mutation needs to be recorded.
  */
-pub (value: MutationObserverInit) character_data_old_value(): Bool.
+pub (receiver: MutationObserverInit) character_data_old_value(): Option[Bool].
 
 /**
  * Set to true if mutations to target's children are to be observed.
  */
-pub (value: MutationObserverInit) child_list(): Bool.
+pub (receiver: MutationObserverInit) child_list(): Option[Bool].
 
 /**
  * Set to true if mutations to not just target, but also target's descendants are to be observed.
  */
-pub (value: MutationObserverInit) subtree(): Bool.
+pub (receiver: MutationObserverInit) subtree(): Option[Bool].

@@ -3,13 +3,18 @@ use crate::terlan_typeck::{CoreExpr, CoreModule};
 use super::cast_semantics::cast_can_lower_as_js_identity;
 use super::direct_helpers::{
     core_binary_operator_to_oxc, core_float_literal_to_oxc_number, core_unary_operator_to_oxc,
-    is_direct_oxc_js_identifier, is_js_safe_integer, oxc_ident_name, oxc_string_value,
+    is_direct_oxc_js_identifier, is_js_safe_integer, oxc_binding_name, oxc_ident_name,
+    oxc_string_value,
 };
 use super::direct_reachability::reachable_direct_function_names;
 use super::template_runtime::template_renderer_identifier;
 
 mod case;
 mod comprehension;
+mod lambda;
+mod let_expr;
+use lambda::core_lam_expr_to_oxc_expression;
+pub(super) use lambda::core_lam_param_to_oxc_formal_parameter;
 
 use case::core_case_clauses_to_oxc_expression;
 use comprehension::core_list_comprehension_to_oxc_expression;
@@ -156,7 +161,7 @@ pub(crate) fn emit_core_module_with_direct_oxc_ast(module: &CoreModule) -> Optio
         }
         let mut params = ast.vec();
         for param in &function.params {
-            let param_name = oxc_ident_name(ast, param.name.as_str());
+            let param_name = oxc_binding_name(ast, param.name.as_str());
             params.push(ast.formal_parameter(
                 SPAN,
                 ast.vec(),
@@ -262,7 +267,7 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
             Some(ast.expression_string_literal(SPAN, oxc_string_value(ast, value.as_str()), None))
         }
         crate::terlan_typeck::CoreExpr::Var(name) if is_direct_oxc_js_identifier(name) => {
-            Some(ast.expression_identifier(SPAN, oxc_ident_name(ast, name.as_str())))
+            Some(ast.expression_identifier(SPAN, oxc_binding_name(ast, name.as_str())))
         }
         crate::terlan_typeck::CoreExpr::Tuple(items)
         | crate::terlan_typeck::CoreExpr::List(items)
@@ -399,6 +404,9 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
         }
         crate::terlan_typeck::CoreExpr::Lam { params, body, .. } => {
             core_lam_expr_to_oxc_expression(ast, params, body)
+        }
+        crate::terlan_typeck::CoreExpr::Let { bindings, body } => {
+            let_expr::core_let_to_oxc_expression(ast, bindings, body)
         }
         crate::terlan_typeck::CoreExpr::UnaryOp { operator, operand } => {
             Some(ast.expression_unary(
@@ -698,191 +706,6 @@ fn core_integer_division_to_oxc_expression<'a>(
     let mut args = ast.vec();
     args.push(Argument::from(quotient));
     Some(ast.expression_call(SPAN, callee, oxc_ast::NONE, args, false))
-}
-
-/// Lowers a CoreIR anonymous function value into an Oxc arrow function expression.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `params`: CoreIR lambda parameter patterns.
-/// - `body`: CoreIR lambda body expression.
-///
-/// Output:
-/// - `Some(Expression)` when every parameter is a direct variable binding and
-///   the body expression is directly lowerable.
-/// - `None` for destructuring parameters, wildcard parameters, unsupported
-///   parameter names, or unsupported body expressions.
-///
-/// Transformation:
-/// - Converts Terlan `(patterns) -> Expr` lambda values into JavaScript
-///   expression-body arrow functions. This only lowers the function value;
-///   callable-value invocation is handled by the dedicated `f(args)` syntax.
-fn core_lam_expr_to_oxc_expression<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    params: &[crate::terlan_typeck::CorePattern],
-    body: &crate::terlan_typeck::CoreExpr,
-) -> Option<oxc_ast::ast::Expression<'a>> {
-    use oxc_ast::ast::FormalParameterKind;
-    use oxc_span::SPAN;
-
-    let mut formal_params = ast.vec();
-    for param in params {
-        formal_params.push(core_lam_param_to_oxc_formal_parameter(ast, param)?);
-    }
-    let params = ast.alloc_formal_parameters(
-        SPAN,
-        FormalParameterKind::FormalParameter,
-        formal_params,
-        oxc_ast::NONE,
-    );
-    let body_expr = core_expr_to_oxc_expression(ast, body)?;
-    let body_span = SPAN;
-    let body = ast.alloc_function_body(
-        body_span,
-        ast.vec(),
-        ast.vec1(ast.statement_expression(body_span, body_expr)),
-    );
-    Some(ast.expression_arrow_function(
-        SPAN,
-        true,
-        false,
-        oxc_ast::NONE,
-        params,
-        oxc_ast::NONE,
-        body,
-    ))
-}
-
-/// Converts one CoreIR lambda parameter pattern into an Oxc formal parameter.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `param`: CoreIR lambda parameter pattern.
-///
-/// Output:
-/// - `Some(FormalParameter)` for direct variable and tuple/list destructuring
-///   patterns.
-/// - `None` for unsupported identifiers or patterns.
-///
-/// Transformation:
-/// - Reuses the direct Oxc backend's conservative JavaScript identifier policy
-///   and lowers Terlan tuple/list patterns to JavaScript array destructuring
-///   because this backend represents tuple and list values as arrays.
-pub(super) fn core_lam_param_to_oxc_formal_parameter<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    param: &crate::terlan_typeck::CorePattern,
-) -> Option<oxc_ast::ast::FormalParameter<'a>> {
-    use oxc_span::SPAN;
-
-    Some(ast.formal_parameter(
-        SPAN,
-        ast.vec(),
-        core_pattern_to_oxc_binding_pattern(ast, param)?,
-        oxc_ast::NONE,
-        oxc_ast::NONE,
-        false,
-        None,
-        false,
-        false,
-    ))
-}
-
-/// Converts a CoreIR pattern into an Oxc binding pattern for direct JS lambdas.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `param`: CoreIR lambda parameter pattern.
-///
-/// Output:
-/// - `Some(BindingPattern)` for variable, sequence, map, and record patterns.
-/// - `None` for wildcards at the top level or unsupported nested patterns.
-///
-/// Transformation:
-/// - Maps Terlan tuple/list destructuring onto arrays and map/record patterns
-///   onto objects. Wildcards are handled only as nested array holes by
-///   `core_pattern_to_oxc_array_binding_element`.
-fn core_pattern_to_oxc_binding_pattern<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    param: &crate::terlan_typeck::CorePattern,
-) -> Option<oxc_ast::ast::BindingPattern<'a>> {
-    use oxc_span::SPAN;
-
-    match param {
-        crate::terlan_typeck::CorePattern::Var(name) if is_direct_oxc_js_identifier(name) => {
-            Some(ast.binding_pattern_binding_identifier(SPAN, oxc_ident_name(ast, name.as_str())))
-        }
-        crate::terlan_typeck::CorePattern::Tuple(items)
-        | crate::terlan_typeck::CorePattern::List(items) => {
-            let mut elements = ast.vec();
-            for item in items {
-                elements.push(core_pattern_to_oxc_array_binding_element(ast, item)?);
-            }
-            Some(ast.binding_pattern_array_pattern(SPAN, elements, oxc_ast::NONE))
-        }
-        crate::terlan_typeck::CorePattern::Map(fields) => {
-            let mut properties = ast.vec();
-            for field in fields {
-                if !is_direct_oxc_js_identifier(&field.key) {
-                    return None;
-                }
-                properties.push(ast.binding_property(
-                    SPAN,
-                    ast.property_key_static_identifier(
-                        SPAN,
-                        oxc_ident_name(ast, field.key.as_str()),
-                    ),
-                    core_pattern_to_oxc_binding_pattern(ast, &field.value)?,
-                    false,
-                    false,
-                ));
-            }
-            Some(ast.binding_pattern_object_pattern(SPAN, properties, oxc_ast::NONE))
-        }
-        crate::terlan_typeck::CorePattern::Record { fields, .. } => {
-            let mut properties = ast.vec();
-            for field in fields {
-                if !is_direct_oxc_js_identifier(&field.key) {
-                    return None;
-                }
-                properties.push(ast.binding_property(
-                    SPAN,
-                    ast.property_key_static_identifier(
-                        SPAN,
-                        oxc_ident_name(ast, field.key.as_str()),
-                    ),
-                    core_pattern_to_oxc_binding_pattern(ast, &field.value)?,
-                    false,
-                    false,
-                ));
-            }
-            Some(ast.binding_pattern_object_pattern(SPAN, properties, oxc_ast::NONE))
-        }
-        _ => None,
-    }
-}
-
-/// Converts a nested CoreIR pattern into an Oxc array-binding element.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `param`: CoreIR pattern inside tuple/list destructuring.
-///
-/// Output:
-/// - `Some(Some(BindingPattern))` for bindable child patterns.
-/// - `Some(None)` for wildcard children, represented as JavaScript array holes.
-/// - `None` for unsupported child patterns.
-///
-/// Transformation:
-/// - Preserves wildcard non-binding semantics without inventing placeholder
-///   identifiers in generated JavaScript.
-fn core_pattern_to_oxc_array_binding_element<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    param: &crate::terlan_typeck::CorePattern,
-) -> Option<Option<oxc_ast::ast::BindingPattern<'a>>> {
-    match param {
-        crate::terlan_typeck::CorePattern::Wildcard => Some(None),
-        _ => Some(Some(core_pattern_to_oxc_binding_pattern(ast, param)?)),
-    }
 }
 
 /// Lowers total CoreIR if clauses into an Oxc conditional expression.

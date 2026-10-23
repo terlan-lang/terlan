@@ -12,7 +12,9 @@
  */
 module std.js.Dom.Notification.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,79 +29,72 @@ pub opaque type Notification.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/badge)
  */
-pub (value: Notification) badge(): JsString.
+pub (receiver: Notification) badge(): JsString.
 
 /**
  * The **`body`** read-only property of the specified in the `body` option of the A string.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/body)
  */
-pub (value: Notification) body(): JsString.
-
-/**
- * The **`dir`** read-only property of the Notification interface indicates the text direction of the notification, as specified in the `dir` option of the Notification.Notification constructor.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/dir)
- */
-pub (value: Notification) dir(): NotificationDirection.
+pub (receiver: Notification) body(): JsString.
 
 /**
  * The **`icon`** read-only property of the part of the notification, as specified in the `icon` option of the A string.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/icon)
  */
-pub (value: Notification) icon(): JsString.
+pub (receiver: Notification) icon(): JsString.
 
 /**
  * The **`lang`** read-only property of the as specified in the `lang` option of the The language itself is specified using a string representing a language tag according to MISSING: RFC(5646, 'Tags for Identifying Languages (also known as BCP 47)')].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/lang)
  */
-pub (value: Notification) lang(): JsString.
+pub (receiver: Notification) lang(): JsString.
 
 /**
  * The **`requireInteraction`** read-only property of the Notification interface returns a boolean value indicating that a notification should remain active until the user clicks or dismisses it, rather than closing automatically.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/requireInteraction)
  */
-pub (value: Notification) require_interaction(): Bool.
+pub (receiver: Notification) require_interaction(): Bool.
 
 /**
  * The **`silent`** read-only property of the silent, i.e., no sounds or vibrations should be issued regardless of the device settings.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/silent)
  */
-pub (value: Notification) silent(): Option[Bool].
+pub (receiver: Notification) silent(): Option[Bool].
 
 /**
  * The **`tag`** read-only property of the as specified in the `tag` option of the The idea of notification tags is that more than one notification can share the same tag, linking them together.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/tag)
  */
-pub (value: Notification) tag(): JsString.
+pub (receiver: Notification) tag(): JsString.
 
 /**
  * The **`title`** read-only property of the specified in the `title` parameter of the A string.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/title)
  */
-pub (value: Notification) title(): JsString.
+pub (receiver: Notification) title(): JsString.
 
 /**
  * The **`close()`** method of the Notification interface is used to close/remove a previously displayed notification.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/close)
  */
-pub (value: Notification) close(): Unit.
+pub (receiver: Notification) close(): Unit.
 
-pub (value: Notification) add_event_listener(
+pub (receiver: Notification) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: Notification) remove_event_listener(
+pub (receiver: Notification) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

@@ -14,9 +14,7 @@ module std.js.Dom.RTCRtpHeaderExtensionParametersTest.
 
 import type std.js.Dom.RTCRtpHeaderExtensionParameters.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub encrypted_typechecks(receiver: RTCRtpHeaderExtensionParameters): std.core.Bool ->
+pub encrypted_typechecks(receiver: RTCRtpHeaderExtensionParameters): std.core.Option.Option[Bool] ->
     receiver.encrypted().
 
 pub id_typechecks(receiver: RTCRtpHeaderExtensionParameters): std.js.Number.JsNumber ->

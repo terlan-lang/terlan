@@ -12,10 +12,12 @@
  */
 module std.js.Dom.VisualViewportEventMap.
 
+import type std.js.Dom.Event.{Event}.
+
 pub opaque type VisualViewportEventMap.
 
-pub (value: VisualViewportEventMap) resize(): Event ->
+pub (receiver: VisualViewportEventMap) resize(): Event ->
     native.
 
-pub (value: VisualViewportEventMap) scroll(): Event ->
+pub (receiver: VisualViewportEventMap) scroll(): Event ->
     native.

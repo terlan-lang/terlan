@@ -12,7 +12,9 @@
  */
 module std.js.Dom.AudioEncoder.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -28,15 +30,7 @@ pub opaque type AudioEncoder.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/encodeQueueSize)
  */
-pub (value: AudioEncoder) encode_queue_size(): std.js.Number.JsNumber ->
-    native.
-
-/**
- * The **`state`** read-only property of the AudioEncoder interface returns the current state of the underlying codec.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/state)
- */
-pub (value: AudioEncoder) state(): CodecState ->
+pub (receiver: AudioEncoder) encode_queue_size(): std.js.Number.JsNumber ->
     native.
 
 /**
@@ -44,7 +38,7 @@ pub (value: AudioEncoder) state(): CodecState ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/close)
  */
-pub (value: AudioEncoder) close(): Unit ->
+pub (receiver: AudioEncoder) close(): Unit ->
     native.
 
 /**
@@ -52,7 +46,7 @@ pub (value: AudioEncoder) close(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/configure)
  */
-pub (value: AudioEncoder) configure(config: AudioEncoderConfig): Unit ->
+pub (receiver: AudioEncoder) configure(config: std.js.Dom.AudioEncoderConfig.AudioEncoderConfig): Unit ->
     native.
 
 /**
@@ -60,7 +54,7 @@ pub (value: AudioEncoder) configure(config: AudioEncoderConfig): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/encode)
  */
-pub (value: AudioEncoder) encode(data: AudioData): Unit ->
+pub (receiver: AudioEncoder) encode(data: std.js.Dom.AudioData.AudioData): Unit ->
     native.
 
 /**
@@ -68,7 +62,7 @@ pub (value: AudioEncoder) encode(data: AudioData): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/flush)
  */
-pub (value: AudioEncoder) flush(): std.js.Promise[Unit] ->
+pub (receiver: AudioEncoder) flush(): std.js.Promise.Promise[Unit] ->
     native.
 
 /**
@@ -76,19 +70,19 @@ pub (value: AudioEncoder) flush(): std.js.Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioEncoder/reset)
  */
-pub (value: AudioEncoder) reset(): Unit ->
+pub (receiver: AudioEncoder) reset(): Unit ->
     native.
 
-pub (value: AudioEncoder) add_event_listener(
+pub (receiver: AudioEncoder) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: AudioEncoder) remove_event_listener(
+pub (receiver: AudioEncoder) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

@@ -14,7 +14,5 @@ module std.js.Dom.CSSMathInvertTest.
 
 import type std.js.Dom.CSSMathInvert.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub value_typechecks(receiver: CSSMathInvert): CSSNumericValue ->
+pub value_typechecks(receiver: CSSMathInvert): std.js.Dom.CSSNumericValue.CSSNumericValue ->
     receiver.value().

@@ -12,22 +12,20 @@
  */
 module std.js.Dom.CheckVisibilityOptionsTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.CheckVisibilityOptions.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub check_opacity_typechecks(receiver: CheckVisibilityOptions): Bool ->
+pub check_opacity_typechecks(receiver: CheckVisibilityOptions): Option[Bool] ->
     receiver.check_opacity().
 
-pub check_visibility_css_typechecks(receiver: CheckVisibilityOptions): Bool ->
+pub check_visibility_css_typechecks(receiver: CheckVisibilityOptions): Option[Bool] ->
     receiver.check_visibility_css().
 
-pub content_visibility_auto_typechecks(receiver: CheckVisibilityOptions): Bool ->
+pub content_visibility_auto_typechecks(receiver: CheckVisibilityOptions): Option[Bool] ->
     receiver.content_visibility_auto().
 
-pub opacity_property_typechecks(receiver: CheckVisibilityOptions): Bool ->
+pub opacity_property_typechecks(receiver: CheckVisibilityOptions): Option[Bool] ->
     receiver.opacity_property().
 
-pub visibility_property_typechecks(receiver: CheckVisibilityOptions): Bool ->
+pub visibility_property_typechecks(receiver: CheckVisibilityOptions): Option[Bool] ->
     receiver.visibility_property().

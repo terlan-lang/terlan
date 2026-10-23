@@ -14,13 +14,11 @@ module std.js.Dom.TextTrackCueListTest.
 
 import type std.js.Dom.TextTrackCueList.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub length_typechecks(receiver: TextTrackCueList): std.js.Number.JsNumber ->
     receiver.length().
 
 pub get_cue_by_id_typechecks(
     receiver: TextTrackCueList,
     id: std.js.String.JsString,
-): Option[TextTrackCue] ->
+): std.core.Option.Option[std.js.Dom.TextTrackCue.TextTrackCue] ->
     receiver.get_cue_by_id(id).

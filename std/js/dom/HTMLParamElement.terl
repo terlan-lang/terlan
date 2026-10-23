@@ -12,7 +12,9 @@
  */
 module std.js.Dom.HTMLParamElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -26,37 +28,37 @@ pub opaque type HTMLParamElement.
 /**
  * @deprecated
  */
-pub (value: HTMLParamElement) name(): JsString ->
+pub (receiver: HTMLParamElement) name(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLParamElement) type_(): JsString ->
+pub (receiver: HTMLParamElement) type_(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLParamElement) value(): JsString ->
+pub (receiver: HTMLParamElement) value(): JsString ->
     native.
 
 /**
  * @deprecated
  */
-pub (value: HTMLParamElement) value_type(): JsString ->
+pub (receiver: HTMLParamElement) value_type(): JsString ->
     native.
 
-pub (value: HTMLParamElement) add_event_listener(
+pub (receiver: HTMLParamElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
-pub (value: HTMLParamElement) remove_event_listener(
+pub (receiver: HTMLParamElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     native.

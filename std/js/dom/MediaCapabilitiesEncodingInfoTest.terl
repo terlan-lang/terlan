@@ -13,5 +13,3 @@
 module std.js.Dom.MediaCapabilitiesEncodingInfoTest.
 
 import type std.js.Dom.MediaCapabilitiesEncodingInfo.
-
-pub generated_binding_surface_contract(): Bool -> true.

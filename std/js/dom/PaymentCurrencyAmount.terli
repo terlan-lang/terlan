@@ -16,6 +16,6 @@ import type std.js.String.{JsString}.
 
 pub opaque type PaymentCurrencyAmount.
 
-pub (value: PaymentCurrencyAmount) currency(): JsString.
+pub (receiver: PaymentCurrencyAmount) currency(): JsString.
 
-pub (value: PaymentCurrencyAmount) value(): JsString.
+pub (receiver: PaymentCurrencyAmount) value(): JsString.

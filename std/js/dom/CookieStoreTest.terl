@@ -12,45 +12,57 @@
  */
 module std.js.Dom.CookieStoreTest.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.CookieList.{CookieList}.
+import type std.js.Dom.CookieListItem.{CookieListItem}.
 import type std.js.Dom.CookieStore.
+import type std.js.Dom.CookieStoreGetOptions.{CookieStoreGetOptions}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.{Promise}.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub delete_typechecks(receiver: CookieStore, name: JsString): Promise[Unit] ->
     receiver.delete(name).
 
-pub delete_typechecks(receiver: CookieStore, options: CookieStoreDeleteOptions): Promise[Unit] ->
-    receiver.delete(options).
+pub delete_overload_2_typechecks(
+    receiver: CookieStore,
+    options: std.js.Dom.CookieStoreDeleteOptions.CookieStoreDeleteOptions,
+): Promise[Unit] ->
+    receiver.delete_overload_2(options).
 
 pub get_typechecks(receiver: CookieStore, name: JsString): Promise[Option[CookieListItem]] ->
     receiver.get(name).
 
-pub get_typechecks(
+pub get_overload_2_typechecks(
     receiver: CookieStore,
-    options: CookieStoreGetOptions,
+    options: Option[CookieStoreGetOptions],
 ): Promise[Option[CookieListItem]] ->
-    receiver.get(options).
+    receiver.get_overload_2(options).
 
 pub get_all_typechecks(receiver: CookieStore, name: JsString): Promise[CookieList] ->
     receiver.get_all(name).
 
-pub get_all_typechecks(receiver: CookieStore, options: CookieStoreGetOptions): Promise[CookieList] ->
-    receiver.get_all(options).
+pub get_all_overload_2_typechecks(
+    receiver: CookieStore,
+    options: Option[CookieStoreGetOptions],
+): Promise[CookieList] ->
+    receiver.get_all_overload_2(options).
 
 pub set_typechecks(receiver: CookieStore, name: JsString, value: JsString): Promise[Unit] ->
     receiver.set(name, value).
 
-pub set_typechecks(receiver: CookieStore, options: CookieInit): Promise[Unit] ->
-    receiver.set(options).
+pub set_overload_2_typechecks(
+    receiver: CookieStore,
+    options: std.js.Dom.CookieInit.CookieInit,
+): Promise[Unit] ->
+    receiver.set_overload_2(options).
 
 pub add_event_listener_typechecks(
     receiver: CookieStore,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -58,6 +70,6 @@ pub remove_event_listener_typechecks(
     receiver: CookieStore,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

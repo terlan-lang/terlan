@@ -12,10 +12,12 @@
  */
 module std.js.Dom.MediaQueryListEventInit.
 
+import type std.core.Option.{Option}.
+
 pub opaque type MediaQueryListEventInit.
 
-pub (value: MediaQueryListEventInit) matches(): std.core.Bool ->
+pub (receiver: MediaQueryListEventInit) matches(): Option[Bool] ->
     native.
 
-pub (value: MediaQueryListEventInit) media(): std.js.String.JsString ->
+pub (receiver: MediaQueryListEventInit) media(): Option[std.js.String.JsString] ->
     native.

@@ -14,7 +14,7 @@ module std.js.Dom.RTCEncodedAudioFrameMetadataTest.
 
 import type std.js.Dom.RTCEncodedAudioFrameMetadata.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub sequence_number_typechecks(receiver: RTCEncodedAudioFrameMetadata): std.js.Number.JsNumber ->
+pub sequence_number_typechecks(
+    receiver: RTCEncodedAudioFrameMetadata,
+): std.core.Option.Option[std.js.Number.JsNumber] ->
     receiver.sequence_number().

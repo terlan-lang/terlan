@@ -12,25 +12,19 @@
  */
 module std.js.Dom.ShadowRootInitTest.
 
-import type std.core.{Bool}.
+import type std.core.Option.{Option}.
 import type std.js.Dom.ShadowRootInit.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub clonable_typechecks(receiver: ShadowRootInit): Bool ->
+pub clonable_typechecks(receiver: ShadowRootInit): Option[Bool] ->
     receiver.clonable().
 
-pub custom_element_registry_typechecks(receiver: ShadowRootInit): CustomElementRegistry ->
+pub custom_element_registry_typechecks(
+    receiver: ShadowRootInit,
+): Option[std.js.Dom.CustomElementRegistry.CustomElementRegistry] ->
     receiver.custom_element_registry().
 
-pub delegates_focus_typechecks(receiver: ShadowRootInit): Bool ->
+pub delegates_focus_typechecks(receiver: ShadowRootInit): Option[Bool] ->
     receiver.delegates_focus().
 
-pub mode_typechecks(receiver: ShadowRootInit): ShadowRootMode ->
-    receiver.mode().
-
-pub serializable_typechecks(receiver: ShadowRootInit): Bool ->
+pub serializable_typechecks(receiver: ShadowRootInit): Option[Bool] ->
     receiver.serializable().
-
-pub slot_assignment_typechecks(receiver: ShadowRootInit): SlotAssignmentMode ->
-    receiver.slot_assignment().

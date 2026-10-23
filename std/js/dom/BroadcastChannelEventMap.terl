@@ -12,10 +12,12 @@
  */
 module std.js.Dom.BroadcastChannelEventMap.
 
+import type std.js.Dom.MessageEvent.{MessageEvent}.
+
 pub opaque type BroadcastChannelEventMap.
 
-pub (value: BroadcastChannelEventMap) message(): MessageEvent ->
+pub (receiver: BroadcastChannelEventMap) message(): MessageEvent ->
     native.
 
-pub (value: BroadcastChannelEventMap) messageerror(): MessageEvent ->
+pub (receiver: BroadcastChannelEventMap) messageerror(): MessageEvent ->
     native.

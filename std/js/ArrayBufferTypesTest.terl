@@ -14,7 +14,5 @@ module std.js.ArrayBufferTypesTest.
 
 import type std.js.ArrayBufferTypes.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
-pub array_buffer_typechecks(receiver: ArrayBufferTypes): ArrayBuffer ->
+pub array_buffer_typechecks(receiver: ArrayBufferTypes): std.js.ArrayBuffer.ArrayBuffer ->
     receiver.array_buffer().

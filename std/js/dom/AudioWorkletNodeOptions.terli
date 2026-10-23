@@ -12,14 +12,13 @@
  */
 module std.js.Dom.AudioWorkletNodeOptions.
 
+import type std.core.Option.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type AudioWorkletNodeOptions.
 
-pub (value: AudioWorkletNodeOptions) number_of_inputs(): JsNumber.
+pub (receiver: AudioWorkletNodeOptions) number_of_inputs(): Option[JsNumber].
 
-pub (value: AudioWorkletNodeOptions) number_of_outputs(): JsNumber.
+pub (receiver: AudioWorkletNodeOptions) number_of_outputs(): Option[JsNumber].
 
-pub (value: AudioWorkletNodeOptions) output_channel_count(): std.js.Array[JsNumber].
-
-pub (value: AudioWorkletNodeOptions) parameter_data(): Record[std.js.String.JsString, JsNumber].
+pub (receiver: AudioWorkletNodeOptions) output_channel_count(): Option[std.js.Array.Array[JsNumber]].

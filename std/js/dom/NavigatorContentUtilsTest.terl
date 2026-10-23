@@ -15,11 +15,9 @@ module std.js.Dom.NavigatorContentUtilsTest.
 import type std.js.Dom.NavigatorContentUtils.
 import type std.js.String.{JsString}.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub register_protocol_handler_typechecks(
     receiver: NavigatorContentUtils,
     scheme: JsString,
-    url: URL | JsString,
-): std.core.Unit ->
+    url: std.js.Dom.URL.URL | JsString,
+): std.core.Unit.Unit ->
     receiver.register_protocol_handler(scheme, url).

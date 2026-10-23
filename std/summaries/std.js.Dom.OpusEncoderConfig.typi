@@ -15,14 +15,12 @@ module std.js.Dom.OpusEncoderConfig.
 
 pub opaque type OpusEncoderConfig.
 
-pub (value: OpusEncoderConfig) complexity(): std.js.Number.JsNumber.
+pub (receiver: OpusEncoderConfig) complexity(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: OpusEncoderConfig) format(): OpusBitstreamFormat.
+pub (receiver: OpusEncoderConfig) frame_duration(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: OpusEncoderConfig) frame_duration(): std.js.Number.JsNumber.
+pub (receiver: OpusEncoderConfig) packetlossperc(): std.core.Option.Option[std.js.Number.JsNumber].
 
-pub (value: OpusEncoderConfig) packetlossperc(): std.js.Number.JsNumber.
+pub (receiver: OpusEncoderConfig) usedtx(): std.core.Option.Option[Bool].
 
-pub (value: OpusEncoderConfig) usedtx(): std.core.Bool.
-
-pub (value: OpusEncoderConfig) useinbandfec(): std.core.Bool.
+pub (receiver: OpusEncoderConfig) useinbandfec(): std.core.Option.Option[Bool].

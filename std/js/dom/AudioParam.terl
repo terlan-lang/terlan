@@ -21,15 +21,12 @@ import type std.js.Number.{JsNumber}.
  */
 pub opaque type AudioParam.
 
-pub (value: AudioParam) automation_rate(): AutomationRate ->
-    native.
-
 /**
  * The **`defaultValue`** read-only property of the AudioParam interface represents the initial value of the attributes as defined by the specific AudioNode creating the `AudioParam`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/defaultValue)
  */
-pub (value: AudioParam) default_value(): JsNumber ->
+pub (receiver: AudioParam) default_value(): JsNumber ->
     native.
 
 /**
@@ -37,7 +34,7 @@ pub (value: AudioParam) default_value(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/maxValue)
  */
-pub (value: AudioParam) max_value(): JsNumber ->
+pub (receiver: AudioParam) max_value(): JsNumber ->
     native.
 
 /**
@@ -45,7 +42,7 @@ pub (value: AudioParam) max_value(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/minValue)
  */
-pub (value: AudioParam) min_value(): JsNumber ->
+pub (receiver: AudioParam) min_value(): JsNumber ->
     native.
 
 /**
@@ -53,7 +50,7 @@ pub (value: AudioParam) min_value(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/value)
  */
-pub (value: AudioParam) value(): JsNumber ->
+pub (receiver: AudioParam) value(): JsNumber ->
     native.
 
 /**
@@ -61,7 +58,7 @@ pub (value: AudioParam) value(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/cancelAndHoldAtTime)
  */
-pub (value: AudioParam) cancel_and_hold_at_time(cancel_time: JsNumber): AudioParam ->
+pub (receiver: AudioParam) cancel_and_hold_at_time(cancel_time: JsNumber): AudioParam ->
     native.
 
 /**
@@ -69,7 +66,7 @@ pub (value: AudioParam) cancel_and_hold_at_time(cancel_time: JsNumber): AudioPar
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/cancelScheduledValues)
  */
-pub (value: AudioParam) cancel_scheduled_values(cancel_time: JsNumber): AudioParam ->
+pub (receiver: AudioParam) cancel_scheduled_values(cancel_time: JsNumber): AudioParam ->
     native.
 
 /**
@@ -77,7 +74,7 @@ pub (value: AudioParam) cancel_scheduled_values(cancel_time: JsNumber): AudioPar
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/exponentialRampToValueAtTime)
  */
-pub (value: AudioParam) exponential_ramp_to_value_at_time(value: JsNumber, end_time: JsNumber): AudioParam ->
+pub (receiver: AudioParam) exponential_ramp_to_value_at_time(value: JsNumber, end_time: JsNumber): AudioParam ->
     native.
 
 /**
@@ -85,7 +82,7 @@ pub (value: AudioParam) exponential_ramp_to_value_at_time(value: JsNumber, end_t
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/linearRampToValueAtTime)
  */
-pub (value: AudioParam) linear_ramp_to_value_at_time(value: JsNumber, end_time: JsNumber): AudioParam ->
+pub (receiver: AudioParam) linear_ramp_to_value_at_time(value: JsNumber, end_time: JsNumber): AudioParam ->
     native.
 
 /**
@@ -93,7 +90,7 @@ pub (value: AudioParam) linear_ramp_to_value_at_time(value: JsNumber, end_time: 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/setTargetAtTime)
  */
-pub (value: AudioParam) set_target_at_time(target_: JsNumber, start_time: JsNumber, time_constant: JsNumber): AudioParam ->
+pub (receiver: AudioParam) set_target_at_time(target_: JsNumber, start_time: JsNumber, time_constant: JsNumber): AudioParam ->
     native.
 
 /**
@@ -101,7 +98,7 @@ pub (value: AudioParam) set_target_at_time(target_: JsNumber, start_time: JsNumb
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/setValueAtTime)
  */
-pub (value: AudioParam) set_value_at_time(value: JsNumber, start_time: JsNumber): AudioParam ->
+pub (receiver: AudioParam) set_value_at_time(value: JsNumber, start_time: JsNumber): AudioParam ->
     native.
 
 /**
@@ -109,8 +106,8 @@ pub (value: AudioParam) set_value_at_time(value: JsNumber, start_time: JsNumber)
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/setValueCurveAtTime)
  */
-pub (value: AudioParam) set_value_curve_at_time(
-    values: Float32Array | std.js.Array[JsNumber],
+pub (receiver: AudioParam) set_value_curve_at_time(
+    values: std.js.Float32Array.Float32Array | std.js.Array.Array[JsNumber],
     start_time: JsNumber,
     duration: JsNumber,
 ): AudioParam ->

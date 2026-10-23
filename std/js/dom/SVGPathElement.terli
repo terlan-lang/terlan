@@ -12,7 +12,9 @@
  */
 module std.js.Dom.SVGPathElement.
 
-import type std.core.{Bool, Unit}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -28,30 +30,30 @@ pub opaque type SVGPathElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPathElement/pathLength)
  */
-pub (value: SVGPathElement) path_length(): SVGAnimatedNumber.
+pub (receiver: SVGPathElement) path_length(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
 
 /**
  * The **`getPointAtLength()`** method of the SVGPathElement interface returns the point at a given distance along the path.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPathElement/getPointAtLength)
  */
-pub (value: SVGPathElement) get_point_at_length(distance: JsNumber): DOMPoint.
+pub (receiver: SVGPathElement) get_point_at_length(distance: JsNumber): std.js.Dom.DOMPoint.DOMPoint.
 
 /**
  * The **`getTotalLength()`** method of the SVGPathElement interface returns the user agent's computed value for the total length of the path in user units.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPathElement/getTotalLength)
  */
-pub (value: SVGPathElement) get_total_length(): JsNumber.
+pub (receiver: SVGPathElement) get_total_length(): JsNumber.
 
-pub (value: SVGPathElement) add_event_listener(
+pub (receiver: SVGPathElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: AddEventListenerOptions | Bool,
+    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
 ): Unit.
 
-pub (value: SVGPathElement) remove_event_listener(
+pub (receiver: SVGPathElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: EventListenerOptions | Bool,
+    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
 ): Unit.

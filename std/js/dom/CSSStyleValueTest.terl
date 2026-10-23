@@ -14,7 +14,5 @@ module std.js.Dom.CSSStyleValueTest.
 
 import type std.js.Dom.CSSStyleValue.
 
-pub generated_binding_surface_contract(): Bool -> true.
-
 pub to_string_typechecks(receiver: CSSStyleValue): std.js.String.JsString ->
     receiver.to_string().

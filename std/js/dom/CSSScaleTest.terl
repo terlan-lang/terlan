@@ -12,9 +12,8 @@
  */
 module std.js.Dom.CSSScaleTest.
 
+import type std.js.Dom.CSSNumberish.{CSSNumberish}.
 import type std.js.Dom.CSSScale.
-
-pub generated_binding_surface_contract(): Bool -> true.
 
 pub x_typechecks(receiver: CSSScale): CSSNumberish ->
     receiver.x().

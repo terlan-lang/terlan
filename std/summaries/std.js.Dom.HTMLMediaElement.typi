@@ -25,91 +25,91 @@ pub opaque type HTMLMediaElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/autoplay)
  */
-pub (value: HTMLMediaElement) autoplay(): std.core.Bool.
+pub (receiver: HTMLMediaElement) autoplay(): Bool.
 
 /**
  * The **`buffered`** read-only property of HTMLMediaElement objects returns a new static normalized `TimeRanges` object that represents the ranges of the media resource, if any, that the user agent has buffered at the moment the `buffered` property is accessed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/buffered)
  */
-pub (value: HTMLMediaElement) buffered(): TimeRanges.
+pub (receiver: HTMLMediaElement) buffered(): std.js.Dom.TimeRanges.TimeRanges.
 
 /**
  * The **`HTMLMediaElement.controls`** property reflects the `controls` HTML attribute, which controls whether user interface controls for playing the media item will be displayed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/controls)
  */
-pub (value: HTMLMediaElement) controls(): std.core.Bool.
+pub (receiver: HTMLMediaElement) controls(): Bool.
 
 /**
  * The **`HTMLMediaElement.crossOrigin`** property is the CORS setting for this media element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/crossOrigin)
  */
-pub (value: HTMLMediaElement) cross_origin(): Option[std.js.String.JsString].
+pub (receiver: HTMLMediaElement) cross_origin(): std.core.Option.Option[std.js.String.JsString].
 
 /**
  * The **`HTMLMediaElement.currentSrc`** property contains the absolute URL of the chosen media resource.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/currentSrc)
  */
-pub (value: HTMLMediaElement) current_src(): std.js.String.JsString.
+pub (receiver: HTMLMediaElement) current_src(): std.js.String.JsString.
 
 /**
  * The HTMLMediaElement interface's **`currentTime`** property specifies the current playback time in seconds.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/currentTime)
  */
-pub (value: HTMLMediaElement) current_time(): std.js.Number.JsNumber.
+pub (receiver: HTMLMediaElement) current_time(): std.js.Number.JsNumber.
 
 /**
  * The **`HTMLMediaElement.defaultMuted`** property reflects the `muted` HTML attribute, which indicates whether the media element's audio output should be muted by default.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/defaultMuted)
  */
-pub (value: HTMLMediaElement) default_muted(): std.core.Bool.
+pub (receiver: HTMLMediaElement) default_muted(): Bool.
 
 /**
  * The **`HTMLMediaElement.defaultPlaybackRate`** property indicates the default playback rate for the media.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/defaultPlaybackRate)
  */
-pub (value: HTMLMediaElement) default_playback_rate(): std.js.Number.JsNumber.
+pub (receiver: HTMLMediaElement) default_playback_rate(): std.js.Number.JsNumber.
 
 /**
  * The **`disableRemotePlayback`** property of the HTMLMediaElement interface determines whether the media element is allowed to have a remote playback UI.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/disableRemotePlayback)
  */
-pub (value: HTMLMediaElement) disable_remote_playback(): std.core.Bool.
+pub (receiver: HTMLMediaElement) disable_remote_playback(): Bool.
 
 /**
  * The _read-only_ HTMLMediaElement property **`duration`** indicates the length of the element's media in seconds.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/duration)
  */
-pub (value: HTMLMediaElement) duration(): std.js.Number.JsNumber.
+pub (receiver: HTMLMediaElement) duration(): std.js.Number.JsNumber.
 
 /**
  * The **`HTMLMediaElement.ended`** property indicates whether the media element has ended playback.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/ended)
  */
-pub (value: HTMLMediaElement) ended(): std.core.Bool.
+pub (receiver: HTMLMediaElement) ended(): Bool.
 
 /**
  * The **`HTMLMediaElement.error`** property is the there has not been an error.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/error)
  */
-pub (value: HTMLMediaElement) error(): Option[MediaError].
+pub (receiver: HTMLMediaElement) error(): std.core.Option.Option[std.js.Dom.MediaError.MediaError].
 
 /**
  * The **`HTMLMediaElement.loop`** property reflects the `loop` HTML attribute, which controls whether the media element should start over when it reaches the end.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/loop)
  */
-pub (value: HTMLMediaElement) loop(): std.core.Bool.
+pub (receiver: HTMLMediaElement) loop(): Bool.
 
 /**
  * The read-only **`HTMLMediaElement.mediaKeys`** property returns a MediaKeys object, that is a set of keys that the element can use for decryption of media data during playback.
@@ -117,77 +117,77 @@ pub (value: HTMLMediaElement) loop(): std.core.Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/mediaKeys)
  */
-pub (value: HTMLMediaElement) media_keys(): Option[MediaKeys].
+pub (receiver: HTMLMediaElement) media_keys(): std.core.Option.Option[std.js.Dom.MediaKeys.MediaKeys].
 
 /**
  * The **`HTMLMediaElement.muted`** property indicates whether the media element is muted.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/muted)
  */
-pub (value: HTMLMediaElement) muted(): std.core.Bool.
+pub (receiver: HTMLMediaElement) muted(): Bool.
 
 /**
  * The **`HTMLMediaElement.networkState`** property indicates the current state of the fetching of media over the network.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/networkState)
  */
-pub (value: HTMLMediaElement) network_state(): std.js.Number.JsNumber.
+pub (receiver: HTMLMediaElement) network_state(): std.js.Number.JsNumber.
 
 /**
  * The read-only **`HTMLMediaElement.paused`** property tells whether the media element is paused.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/paused)
  */
-pub (value: HTMLMediaElement) paused(): std.core.Bool.
+pub (receiver: HTMLMediaElement) paused(): Bool.
 
 /**
  * The **`HTMLMediaElement.playbackRate`** property sets the rate at which the media is being played back.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/playbackRate)
  */
-pub (value: HTMLMediaElement) playback_rate(): std.js.Number.JsNumber.
+pub (receiver: HTMLMediaElement) playback_rate(): std.js.Number.JsNumber.
 
 /**
  * The **`played`** read-only property of the HTMLMediaElement interface indicates the time ranges the resource, an audio or video media file, has played.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/played)
  */
-pub (value: HTMLMediaElement) played(): TimeRanges.
+pub (receiver: HTMLMediaElement) played(): std.js.Dom.TimeRanges.TimeRanges.
 
 /**
  * The **`HTMLMediaElement.preservesPitch`** property determines whether or not the browser should adjust the pitch of the audio to compensate for changes to the playback rate made by setting HTMLMediaElement.playbackRate.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/preservesPitch)
  */
-pub (value: HTMLMediaElement) preserves_pitch(): std.core.Bool.
+pub (receiver: HTMLMediaElement) preserves_pitch(): Bool.
 
 /**
  * The **`HTMLMediaElement.readyState`** property indicates the readiness state of the media.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/readyState)
  */
-pub (value: HTMLMediaElement) ready_state(): std.js.Number.JsNumber.
+pub (receiver: HTMLMediaElement) ready_state(): std.js.Number.JsNumber.
 
 /**
  * The **`remote`** read-only property of the HTMLMediaElement interface returns the RemotePlayback object associated with the media element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/remote)
  */
-pub (value: HTMLMediaElement) remote(): RemotePlayback.
+pub (receiver: HTMLMediaElement) remote(): std.js.Dom.RemotePlayback.RemotePlayback.
 
 /**
  * The **`seekable`** read-only property of HTMLMediaElement objects returns a new static normalized `TimeRanges` object that represents the ranges of the media resource, if any, that the user agent is able to seek to at the time `seekable` property is accessed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/seekable)
  */
-pub (value: HTMLMediaElement) seekable(): TimeRanges.
+pub (receiver: HTMLMediaElement) seekable(): std.js.Dom.TimeRanges.TimeRanges.
 
 /**
  * The **`seeking`** read-only property of the HTMLMediaElement interface is a Boolean indicating whether the resource, the audio or video, is in the process of seeking to a new position.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/seeking)
  */
-pub (value: HTMLMediaElement) seeking(): std.core.Bool.
+pub (receiver: HTMLMediaElement) seeking(): Bool.
 
 /**
  * The **`sinkId`** read-only property of the HTMLMediaElement interface returns a string that is the unique ID of the device to be used for playing audio output.
@@ -195,77 +195,63 @@ pub (value: HTMLMediaElement) seeking(): std.core.Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/sinkId)
  */
-pub (value: HTMLMediaElement) sink_id(): std.js.String.JsString.
+pub (receiver: HTMLMediaElement) sink_id(): std.js.String.JsString.
 
 /**
  * The **`HTMLMediaElement.src`** property reflects the value of the HTML media element's `src` attribute, which indicates the URL of a media resource to use in the element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/src)
  */
-pub (value: HTMLMediaElement) src(): std.js.String.JsString.
+pub (receiver: HTMLMediaElement) src(): std.js.String.JsString.
 
 /**
  * The **`srcObject`** property of the the source of the media associated with the HTMLMediaElement, or `null` if not assigned.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/srcObject)
  */
-pub (value: HTMLMediaElement) src_object(): Option[MediaProvider].
+pub (receiver: HTMLMediaElement) src_object(): std.core.Option.Option[std.js.Dom.MediaProvider.MediaProvider].
 
 /**
  * The read-only **`textTracks`** property on HTMLMediaElement objects returns a objects representing the media element's text tracks, in the same order as in the list of text tracks.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/textTracks)
  */
-pub (value: HTMLMediaElement) text_tracks(): TextTrackList.
+pub (receiver: HTMLMediaElement) text_tracks(): std.js.Dom.TextTrackList.TextTrackList.
 
 /**
  * The **`HTMLMediaElement.volume`** property sets the volume at which the media will be played.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/volume)
  */
-pub (value: HTMLMediaElement) volume(): std.js.Number.JsNumber.
-
-/**
- * The **`addTextTrack()`** method of the HTMLMediaElement interface creates a new TextTrack object and adds it to the media element.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/addTextTrack)
- */
-pub (value: HTMLMediaElement) add_text_track(kind: TextTrackKind, label: std.js.String.JsString, language: std.js.String.JsString): TextTrack.
-
-/**
- * The HTMLMediaElement method **`canPlayType()`** reports how likely it is that the current browser will be able to play media of a given MIME type.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/canPlayType)
- */
-pub (value: HTMLMediaElement) can_play_type(type_: std.js.String.JsString): CanPlayTypeResult.
+pub (receiver: HTMLMediaElement) volume(): std.js.Number.JsNumber.
 
 /**
  * The **`HTMLMediaElement.fastSeek()`** method quickly seeks the media to the new time with precision tradeoff.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/fastSeek)
  */
-pub (value: HTMLMediaElement) fast_seek(time: std.js.Number.JsNumber): std.core.Unit.
+pub (receiver: HTMLMediaElement) fast_seek(time: std.js.Number.JsNumber): std.core.Unit.Unit.
 
 /**
  * The HTMLMediaElement method **`load()`** resets the media element to its initial state and begins the process of selecting a media source and loading the media in preparation for playback to begin at the beginning.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/load)
  */
-pub (value: HTMLMediaElement) load(): std.core.Unit.
+pub (receiver: HTMLMediaElement) load(): std.core.Unit.Unit.
 
 /**
  * The **`HTMLMediaElement.pause()`** method will pause playback of the media, if the media is already in a paused state this method will have no effect.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/pause)
  */
-pub (value: HTMLMediaElement) pause(): std.core.Unit.
+pub (receiver: HTMLMediaElement) pause(): std.core.Unit.Unit.
 
 /**
  * The HTMLMediaElement **`play()`** method attempts to begin playback of the media.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/play)
  */
-pub (value: HTMLMediaElement) play(): std.js.Promise[std.core.Unit].
+pub (receiver: HTMLMediaElement) play(): std.js.Promise.Promise[std.core.Unit.Unit].
 
 /**
  * The **`setMediaKeys()`** method of the HTMLMediaElement interface sets the MediaKeys that will be used to decrypt media during playback.
@@ -273,7 +259,7 @@ pub (value: HTMLMediaElement) play(): std.js.Promise[std.core.Unit].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/setMediaKeys)
  */
-pub (value: HTMLMediaElement) set_media_keys(media_keys: Option[MediaKeys]): std.js.Promise[std.core.Unit].
+pub (receiver: HTMLMediaElement) set_media_keys(media_keys: std.core.Option.Option[std.js.Dom.MediaKeys.MediaKeys]): std.js.Promise.Promise[std.core.Unit.Unit].
 
 /**
  * The **`setSinkId()`** method of the HTMLMediaElement interface sets the ID of the audio device to use for output and returns a Promise.
@@ -281,8 +267,8 @@ pub (value: HTMLMediaElement) set_media_keys(media_keys: Option[MediaKeys]): std
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/setSinkId)
  */
-pub (value: HTMLMediaElement) set_sink_id(sink_id: std.js.String.JsString): std.js.Promise[std.core.Unit].
+pub (receiver: HTMLMediaElement) set_sink_id(sink_id: std.js.String.JsString): std.js.Promise.Promise[std.core.Unit.Unit].
 
-pub (value: HTMLMediaElement) add_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: AddEventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLMediaElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
 
-pub (value: HTMLMediaElement) remove_event_listener(type_: std.js.String.JsString, listener: EventListenerOrEventListenerObject, options: EventListenerOptions | std.core.Bool): std.core.Unit.
+pub (receiver: HTMLMediaElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.

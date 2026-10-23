@@ -13,5 +13,3 @@
 module std.js.Dom.WebGLRenderbufferTest.
 
 import type std.js.Dom.WebGLRenderbuffer.
-
-pub generated_binding_surface_contract(): Bool -> true.

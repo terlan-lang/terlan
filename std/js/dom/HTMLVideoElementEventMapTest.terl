@@ -13,8 +13,7 @@
 module std.js.Dom.HTMLVideoElementEventMapTest.
 
 import type std.js.Dom.HTMLVideoElementEventMap.
-
-pub generated_binding_surface_contract(): Bool -> true.
+import type std.js.Dom.PictureInPictureEvent.{PictureInPictureEvent}.
 
 pub enterpictureinpicture_typechecks(receiver: HTMLVideoElementEventMap): PictureInPictureEvent ->
     receiver.enterpictureinpicture().
