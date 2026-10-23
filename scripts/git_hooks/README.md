@@ -18,6 +18,13 @@ unrelated packages in the global Cargo cache out of staged validation. An
 explicit `CARGO_HOME` is honored; relative paths resolve from the working
 repository root. The default cache persists between commits.
 
+Every nonempty commit first runs `make rust-security-audit-check` against the
+staged lockfile and the current RustSec database, with warnings denied. This
+also catches newly published advisories when no dependencies were changed.
+Install the pinned auditor with `cargo install cargo-audit --version 0.22.2 --locked`.
+Missing tools, database download failures, and audit findings stop the commit
+before compiler builds begin.
+
 Every nonempty commit checks Rust formatting, builds the staged compiler, VM,
 and service runtime, and tests the hook policy and snapshot isolation. The paired
 service runtime is required by executable service-package tests. This requires Git, Bash, the
