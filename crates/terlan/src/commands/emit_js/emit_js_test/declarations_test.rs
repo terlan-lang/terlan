@@ -141,3 +141,28 @@ fn javascript_scalar_wrappers_emit_native_types_without_runtime_imports() {
     );
     assert!(!declarations.contains("import type"), "{declarations}");
 }
+
+#[test]
+fn native_options_emit_tagged_runtime_types_without_missing_imports() {
+    let source = "module js_option_declarations.\nimport std.core.Option.{Option, Some, None}.\npub type Values = Option[Int].\npub relay(value: Option[Int]): Option[Int] -> value.\n";
+    let artifacts = compile_syntax_module_through_phases_with_profile(
+        "js_option_declarations.terl",
+        source,
+        DiagnosticFormat::default(),
+        None,
+        NativePolicy::default(),
+        TargetProfile::JsShared,
+    )
+    .expect("check native option signature");
+    let output = declarations::emit_core_module_to_typescript_declarations(&artifacts.core);
+    assert!(
+        output.contains("export type Values = \"none\" | [\"some\", number]"),
+        "{output}"
+    );
+    assert!(
+        output
+            .contains("relay(value: \"none\" | [\"some\", number]): \"none\" | [\"some\", number]"),
+        "{output}"
+    );
+    assert!(!output.contains("import type"), "{output}");
+}

@@ -8,16 +8,15 @@ pub(super) fn qualify(core: &mut CoreModule, resolved: &ResolvedModule) {
         .iter()
         .filter_map(|(local, imported)| {
             let provider = resolved.interface_map.get(&imported.source_module)?;
-            (provider.struct_fields.contains_key(&imported.source_name)
-                || provider.opaque_types.contains(&imported.source_name)
-                || (local != &imported.source_name
-                    && provider.public_types.contains(&imported.source_name)))
-            .then(|| {
-                (
-                    local.clone(),
-                    format!("{}.{}", imported.source_module, imported.source_name),
-                )
-            })
+            provider
+                .public_types
+                .contains(&imported.source_name)
+                .then(|| {
+                    (
+                        local.clone(),
+                        format!("{}.{}", imported.source_module, imported.source_name),
+                    )
+                })
         })
         .collect::<HashMap<_, _>>();
     if names.is_empty() {

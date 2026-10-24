@@ -156,7 +156,32 @@ fn emit_declarations(module: &CoreModule, path: Option<&std::path::Path>) -> Str
 
 fn qualify_typescript_imports(module: &mut CoreModule, path: Option<&std::path::Path>) -> String {
     use std::collections::BTreeMap;
-    fn rewrite(ty: &mut CoreType, current: &str, imports: &mut BTreeMap<String, String>) {
+    fn rewrite(
+        ty: &mut CoreType,
+        current: &str,
+        option_names: &std::collections::HashSet<String>,
+        imports: &mut BTreeMap<String, String>,
+    ) {
+        // Native options cross the JS boundary as their tagged runtime values.
+        if let CoreType::Apply { constructor, args } = ty {
+            if option_names.contains(constructor) && args.len() == 1 {
+                let value = args.remove(0);
+                let some = CoreType::Tuple(vec![
+                    CoreTupleTypeElem::Type(CoreType::AtomLiteral("some".into())),
+                    CoreTupleTypeElem::Type(value),
+                ]);
+                *ty = if constructor.ends_with("Some") {
+                    some
+                } else {
+                    CoreType::Union(vec![CoreType::AtomLiteral("none".into()), some])
+                };
+            }
+        }
+        if let CoreType::Named(name) = ty {
+            if option_names.contains(name) && name.ends_with("None") {
+                *ty = CoreType::AtomLiteral("none".into());
+            }
+        }
         match ty {
             CoreType::Named(name) if name == "std.js.Number.JsNumber" => *ty = CoreType::Number,
             CoreType::Named(name) if name == "std.js.String.JsString" => *ty = CoreType::String,
@@ -175,29 +200,29 @@ fn qualify_typescript_imports(module: &mut CoreModule, path: Option<&std::path::
             }
             CoreType::Apply { constructor, args } => {
                 let mut name = CoreType::Named(constructor.clone());
-                rewrite(&mut name, current, imports);
+                rewrite(&mut name, current, option_names, imports);
                 if let CoreType::Named(name) = name {
                     *constructor = name;
                 }
                 for argument in args {
-                    rewrite(argument, current, imports);
+                    rewrite(argument, current, option_names, imports);
                 }
             }
             CoreType::Union(args) => {
                 for argument in args {
-                    rewrite(argument, current, imports);
+                    rewrite(argument, current, option_names, imports);
                 }
             }
-            CoreType::List(item) => rewrite(item, current, imports),
+            CoreType::List(item) => rewrite(item, current, option_names, imports),
             CoreType::Tuple(items) => {
                 for item in items {
                     let (CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. }) = item;
-                    rewrite(ty, current, imports);
+                    rewrite(ty, current, option_names, imports);
                 }
             }
             CoreType::Struct { fields, .. } => {
                 for field in fields {
-                    rewrite(&mut field.ty, current, imports);
+                    rewrite(&mut field.ty, current, option_names, imports);
                 }
             }
             CoreType::Arrow {
@@ -205,11 +230,30 @@ fn qualify_typescript_imports(module: &mut CoreModule, path: Option<&std::path::
                 return_type,
             } => {
                 for parameter in params {
-                    rewrite(parameter, current, imports);
+                    rewrite(parameter, current, option_names, imports);
                 }
-                rewrite(return_type, current, imports);
+                rewrite(return_type, current, option_names, imports);
             }
             _ => {}
+        }
+    }
+    let mut option_names = ["Option", "Some", "None"]
+        .into_iter()
+        .map(|name| format!("std.core.Option.{name}"))
+        .collect::<std::collections::HashSet<_>>();
+    if module
+        .imports
+        .iter()
+        .any(|import| import.module == "std.core.Option")
+    {
+        for name in ["Option", "Some", "None"] {
+            if !module
+                .types
+                .iter()
+                .any(|declaration| declaration.name == name)
+            {
+                option_names.insert(name.into());
+            }
         }
     }
     let mut imports = BTreeMap::new();
@@ -219,7 +263,7 @@ fn qualify_typescript_imports(module: &mut CoreModule, path: Option<&std::path::
         .filter(|decl| matches!(decl.visibility, CoreVisibility::Public))
     {
         if let Some(ty) = &mut declaration.core_body {
-            rewrite(ty, &module.module, &mut imports);
+            rewrite(ty, &module.module, &option_names, &mut imports);
         }
     }
     for function in module
@@ -229,11 +273,11 @@ fn qualify_typescript_imports(module: &mut CoreModule, path: Option<&std::path::
     {
         for parameter in &mut function.params {
             if let Some(ty) = &mut parameter.core_ty {
-                rewrite(ty, &module.module, &mut imports);
+                rewrite(ty, &module.module, &option_names, &mut imports);
             }
         }
         if let Some(ty) = &mut function.core_return_type {
-            rewrite(ty, &module.module, &mut imports);
+            rewrite(ty, &module.module, &option_names, &mut imports);
         }
     }
     let directory = module.module.split('.').collect::<Vec<_>>();
