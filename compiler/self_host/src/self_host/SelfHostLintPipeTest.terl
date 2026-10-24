@@ -1,0 +1,72 @@
+/** Positive and negative safe pipe-candidate contracts. */
+module self_host.SelfHostLintPipeTest.
+
+import self_host.SelfHostLintPipe.
+
+collection(): self_host.SelfHostLintPipe.PipeExpression ->
+    SelfHostLintPipe.base("var", "collection").
+
+callback(): self_host.SelfHostLintPipe.PipeExpression ->
+    SelfHostLintPipe.base("var", "cb").
+
+@test
+pub rewrites_safe_nested_remote_calls(): Bool ->
+    let inner = SelfHostLintPipe.named("Set", "iterator", [collection()], false, false, false);
+    let outer = SelfHostLintPipe.named("Iterator", "each", [inner, callback()], false, false, false);
+    let candidate = SelfHostLintPipe.candidate(outer);
+    candidate.valid
+        and candidate.original == "Iterator.each(Set.iterator(collection), cb)"
+        and candidate.stages == ["collection", "Set.iterator()", "Iterator.each(cb)"]
+        and SelfHostLintPipe.replacement(candidate, "    ") ==
+            "collection\n        |> Set.iterator()\n        |> Iterator.each(cb)".
+
+@test
+pub rewrites_safe_receiver_inner_calls(): Bool ->
+    let inner = SelfHostLintPipe.receiver(collection(), "iterator", [], false, false);
+    let outer = SelfHostLintPipe.named("Iterator", "each", [inner, callback()], false, false, false);
+    let candidate = SelfHostLintPipe.candidate(outer);
+    candidate.valid
+        and candidate.stages == ["collection", "iterator()", "Iterator.each(cb)"].
+
+@test
+pub rewrites_proven_local_helpers(): Bool ->
+    let iterator = SelfHostLintPipe.named("Set", "iterator", [collection()], false, false, false);
+    let local = SelfHostLintPipe.named("", "map_iterator", [iterator, callback()], true, false, false);
+    let outer = SelfHostLintPipe.named("Consumer", "consume", [local, SelfHostLintPipe.base("binary", "\"done\"")], false, false, false);
+    SelfHostLintPipe.candidate(outer).valid.
+
+@test
+pub rejects_named_or_typed_arguments(): Bool ->
+    let inner = SelfHostLintPipe.named("Set", "iterator", [collection()], false, false, false);
+    not SelfHostLintPipe.candidate(
+        SelfHostLintPipe.named("Iterator", "each", [inner, callback()], false, false, true),
+    ).valid
+        and not SelfHostLintPipe.candidate(
+            SelfHostLintPipe.named("Iterator", "each", [inner, callback()], false, true, false),
+        ).valid.
+
+@test
+pub rejects_ambiguous_outer_arity_and_unproven_locals(): Bool ->
+    let inner = SelfHostLintPipe.named("Set", "iterator", [collection()], false, false, false);
+    not SelfHostLintPipe.candidate(
+        SelfHostLintPipe.named("Iterator", "each", [inner], false, false, false),
+    ).valid
+        and not SelfHostLintPipe.candidate(
+            SelfHostLintPipe.named("Consumer", "consume", [
+                SelfHostLintPipe.named("", "runner", [inner], false, false, false),
+                callback(),
+            ], false, false, false),
+        ).valid.
+
+@test
+pub rejects_single_nested_stage(): Bool ->
+    not SelfHostLintPipe.candidate(
+        SelfHostLintPipe.named(
+            "Iterator",
+            "each",
+            [collection(), callback()],
+            false,
+            false,
+            false,
+        ),
+    ).valid.

@@ -1,0 +1,6 @@
+//! Shared CSS keyword alphabetic. Generated; do not edit.
+
+module std.css.keywords.Alphabetic.
+
+pub type Alphabetic =
+    Atom["alphabetic"].

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::terlan_typeck::types::FixedArraySize;
+use crate::terlan_typeck::types::ArraySize;
 use crate::terlan_typeck::{atom_type_literal_payload, MapFieldType, Type, TypeAlias, TypeVarId};
 
 use super::text::{
@@ -39,7 +39,7 @@ pub(crate) fn is_map_type(ty: &Type, aliases: &HashMap<String, TypeAlias>) -> bo
 ///
 /// Output:
 /// - `Some(Type)` when the expression is recognized.
-/// - `None` for malformed generic, fixed-array, map, or nested forms.
+/// - `None` for malformed generic, array, map, or nested forms.
 ///
 /// Transformation:
 /// - Removes insignificant whitespace, recognizes literals and composite
@@ -123,7 +123,9 @@ pub(crate) fn parse_type_expr(
             )?)));
         }
 
-        if base == "FixedArray" {
+        // Explicitly declared or imported Array types keep their own identity
+        // and arity (for example, the JavaScript-native Array[T] wrapper).
+        if base == "Array" && !aliases.contains(base) && !vars.contains_key(base) {
             let mut args = split_top_level_csv(&args).into_iter();
             let first = args.next()?;
             let second = args.next()?;
@@ -133,14 +135,12 @@ pub(crate) fn parse_type_expr(
 
             let size = parse_type_expr(first.trim(), aliases, vars, next_var)?;
             let size = match size {
-                Type::LiteralInt(size_value) => {
-                    FixedArraySize::Known(usize::try_from(size_value).ok()?)
-                }
-                Type::Var(id) => FixedArraySize::Param(id),
+                Type::LiteralInt(size_value) => ArraySize::Known(usize::try_from(size_value).ok()?),
+                Type::Var(id) => ArraySize::Param(id),
                 _ => return None,
             };
             let elem = parse_type_expr(second.trim(), aliases, vars, next_var)?;
-            return Some(Type::FixedArray {
+            return Some(Type::Array {
                 size,
                 elem: Box::new(elem),
             });

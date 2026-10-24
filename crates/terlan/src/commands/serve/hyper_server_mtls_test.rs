@@ -2,6 +2,7 @@
 
 use super::*;
 use http_body_util::Full;
+use hyper::service::service_fn;
 use rcgen::{
     BasicConstraints, Certificate, CertificateParams, ExtendedKeyUsagePurpose, IsCa, KeyPair,
 };

@@ -55,7 +55,7 @@ fn check_type_alias_implication_bounds_inner(
                 check_type_alias_implication_bounds_inner(&field.value, ctx, errors);
             }
         }
-        Type::FixedArray { elem, .. } => {
+        Type::Array { elem, .. } => {
             check_type_alias_implication_bounds_inner(elem, ctx, errors);
         }
         Type::Function { params, ret } => {

@@ -166,7 +166,11 @@ workspace_packages_json(values: List[GraphNode]): String ->
 cycles_at(values: List[Cycle], output: String): String ->
     case values {
         [] -> String.concat(["[", output, "]"]);
-        [value | rest] -> cycles_at(rest, append_item(output, strings_json(value.path)))
+        [value | rest] ->
+            cycles_at(
+                rest,
+                append_item(output, strings_json(value.path)),
+            )
     }.
 
 @pure
@@ -206,7 +210,10 @@ fan_in_sources(domain: String, edges: List[Edge], output: List[String]): List[St
                 domain,
                 rest,
                 if {
-                    edge.target == domain -> CargoMetadata.insert_sorted_unique(edge.source, output);
+                    edge.target == domain -> CargoMetadata.insert_sorted_unique(
+                        edge.source,
+                        output,
+                    );
                     true -> output
                 },
             )
@@ -238,9 +245,17 @@ fan_in_at(domains: List[DomainMetric], edges: List[Edge], output: String): Strin
                         "{\"domain\":",
                         Json.quote_string(domain.name),
                         ",\"reference_sites\":",
-                        Int.to_string(fan_in_sites(domain.name, edges, 0)),
+                        Int.to_string(
+                            fan_in_sites(domain.name, edges, 0),
+                        ),
                         ",\"source_domains\":",
-                        strings_json(fan_in_sources(domain.name, edges, List.new[String]())),
+                        strings_json(
+                            fan_in_sources(
+                                domain.name,
+                                edges,
+                                List.new[String](),
+                            ),
+                        ),
                         "}",
                     ],
                 );
@@ -425,7 +440,8 @@ load_timings(root: String): TimingResult ->
         Err(reason) -> TimingResult(valid = false, rows = [], message = reason.message);
         Ok(source) ->
             case Json.parse(source) {
-                Err(reason) -> TimingResult(valid = false, rows = [], message = reason.message);
+                Err(reason) ->
+                    TimingResult(valid = false, rows = [], message = reason.message);
                 Ok(document) ->
                     let {
                         Ok(values) <- Json.get(document, "scenarios");
@@ -522,7 +538,8 @@ budget_diagnostics(
         };
     let evidence =
         if {
-            List.length(source.production_domains) > 0 and timing_count > 0 -> integrations;
+            List.length(source.production_domains) > 0
+                and timing_count > 0 -> integrations;
             true -> ["dependency-impact report lacks domain or timing evidence" | integrations]
         };
     let cycles =
@@ -570,7 +587,11 @@ build_report(
 ): String ->
     let integration_policy =
         String.concat(
-            ["{\"maximum_targets\":13,\"targets\":", strings_json(cargo.integration_targets), "}"],
+            [
+                "{\"maximum_targets\":13,\"targets\":",
+                strings_json(cargo.integration_targets),
+                "}",
+            ],
         );
     let fanout_policy =
         String.concat(
@@ -597,7 +618,10 @@ build_report(
             ",\"dependency_fanout_policy\":",
             fanout_policy,
             ",\"domain_api_fan_in\":",
-            fan_in_json(source.production_domains, source.production_edges),
+            fan_in_json(
+                source.production_domains,
+                source.production_edges,
+            ),
             ",\"domain_change_blast_radius\":",
             blast_json(blast),
             ",\"domain_cycle_policy\":",
@@ -642,7 +666,11 @@ build(root: String, enforce_milestone: Bool): Model ->
                 true -> let source = DependencyImpactSource.analyze(ast.document);
                 if {
                     not source.valid -> model_failure(source.message);
-                    true -> let classifications = DependencyClassifications.check(root, cargo.duplicates);
+                    true -> let classifications =
+                        DependencyClassifications.check(
+                            root,
+                            cargo.duplicates,
+                        );
                     if {
                         not classifications.valid -> model_failure(classifications.message);
                         true -> let compilation = CompilationInputs.digest(root);
@@ -651,7 +679,10 @@ build(root: String, enforce_milestone: Bool): Model ->
                             true -> let timings = load_timings(root);
                             if {
                                 not timings.valid -> model_failure(timings.message);
-                                true -> let workspace_cycles = DependencyImpactGraph.cycles(cargo.nodes);
+                                true -> let workspace_cycles =
+                                    DependencyImpactGraph.cycles(
+                                        cargo.nodes,
+                                    );
                                 let domain_graph =
                                     DependencyImpactGraph.domain_graph(
                                         source.production_domains,
@@ -662,7 +693,9 @@ build(root: String, enforce_milestone: Bool): Model ->
                                 let policy =
                                     budget_diagnostics(
                                         cargo.direct_dependency_count,
-                                        List.length(cargo.duplicates),
+                                        List.length(
+                                            cargo.duplicates,
+                                        ),
                                         cargo.integration_targets,
                                         List.length(workspace_cycles),
                                         List.length(domain_cycles),
@@ -672,7 +705,11 @@ build(root: String, enforce_milestone: Bool): Model ->
                                         enforce_milestone,
                                     );
                                 let parsed = ast_parse_diagnostics(ast.document);
-                                let reviewed = List.concat(classifications.diagnostics, parsed);
+                                let reviewed =
+                                    List.concat(
+                                        classifications.diagnostics,
+                                        parsed,
+                                    );
                                 let diagnostics = List.concat(policy, reviewed);
                                 Model(
                                     valid = true,
@@ -687,10 +724,16 @@ build(root: String, enforce_milestone: Bool): Model ->
                                         blast,
                                     ),
                                     diagnostics = diagnostics,
-                                    production_domains = List.length(source.production_domains),
-                                    production_edges = List.length(source.production_edges),
+                                    production_domains = List.length(
+                                        source.production_domains,
+                                    ),
+                                    production_edges = List.length(
+                                        source.production_edges,
+                                    ),
                                     test_edges = List.length(source.test_edges),
-                                    integration_targets = List.length(cargo.integration_targets),
+                                    integration_targets = List.length(
+                                        cargo.integration_targets,
+                                    ),
                                     message = "",
                                 )
                             }

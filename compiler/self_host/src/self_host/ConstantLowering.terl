@@ -1,6 +1,8 @@
 /** Self-hosted lowering for typed constant declarations. */
 module self_host.ConstantLowering.
 
+import std.core.String.
+
 import self_host.DeclarationPayloadSyntax.{ConstantSyntax}.
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.Syntax.{ConstantDeclaration}.

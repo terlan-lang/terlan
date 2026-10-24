@@ -1,0 +1,52 @@
+/** Exact-boundary contracts for the documented minimal trusted base. */
+module self_host.SelfHostTrustedBaseTest.
+
+import std.core.String.
+
+import std.core.Option.{None, Some}.
+import self_host.SelfHostTrustedBase.
+
+
+manifest(): String ->
+    "terlc0\trecovery-compiler\trecovery-only\tcrates/terlan\trecovery seed\n"
+        + "terlan-vm\texecution-runtime\tnormal-and-recovery\tcrates/terlan/src/vm\texecution\n"
+        + "cranelift-adapter\tnative-codegen\tnormal-and-recovery\tcrates/terlan/src/compiler/native_ir/cranelift\tcodegen\n"
+        + "runtime-abi\tnative-boundary\tnormal-and-recovery\tcrates/terlan-runtime-abi\tabi\n"
+        + "dependency-lock\tdependency-identity\tnormal-and-recovery\tCargo.lock\tpinning\n".
+
+@test
+pub exact_recovery_and_runtime_boundary_is_minimal(): Bool ->
+    case SelfHostTrustedBase.decode(manifest()) {
+        None -> false;
+        Some(values) -> SelfHostTrustedBase.minimal(values)
+            and String.contains(
+                SelfHostTrustedBase.render(values),
+                "terlc0\trecovery-compiler\trecovery-only\tcrates/terlan\n",
+            )
+    }.
+
+@test
+pub normal_path_stage_zero_compiler_is_rejected(): Bool ->
+    SelfHostTrustedBase.decode(String.replace(
+        manifest(),
+        "terlc0\trecovery-compiler\trecovery-only",
+        "terlc0\trecovery-compiler\tnormal-and-recovery",
+    )) == None.
+
+@test
+pub added_or_missing_components_are_not_minimal(): Bool ->
+    case SelfHostTrustedBase.decode(String.replace(
+        manifest(),
+        "dependency-lock\tdependency-identity\tnormal-and-recovery\tCargo.lock\tpinning\n",
+        "",
+    )) {
+        None -> false;
+        Some(values) -> not SelfHostTrustedBase.minimal(values)
+    }.
+
+@test
+pub undocumented_or_duplicate_components_are_rejected(): Bool ->
+    SelfHostTrustedBase.decode(
+        manifest() + "other\tnative-codegen\tnormal-and-recovery\tother\textra\n",
+    ) == None
+        and SelfHostTrustedBase.decode(manifest() + manifest()) == None.

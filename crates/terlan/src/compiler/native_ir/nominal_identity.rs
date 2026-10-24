@@ -57,8 +57,10 @@ pub(crate) fn qualify_application_nominal_types(cores: &mut [CoreModule]) {
                             || import.module == format!("{provider}.{declaration}")
                         {
                             let module_name = provider.rsplit('.').next().expect("module name");
-                            let mut names =
-                                vec![declaration.clone(), format!("{module_name}.{declaration}")];
+                            let mut names = vec![
+                                declaration.clone(),
+                                format!("{module_name}.{declaration}"),
+                            ];
                             if module_name == declaration {
                                 names.push(provider.clone());
                             }
@@ -150,6 +152,15 @@ fn qualify_nominal_types(core: &mut CoreModule, imported: &HashMap<String, Strin
 fn qualify_name(name: &mut String, scope: &NominalScope<'_>) {
     if !name.contains('.') && scope.local.contains(name) {
         *name = format!("{}.{}", scope.module, name);
+    } else if name == scope.module
+        && scope
+            .module
+            .rsplit('.')
+            .next()
+            .is_some_and(|local| scope.local.contains(local))
+    {
+        let local = scope.module.rsplit('.').next().expect("module name");
+        *name = format!("{}.{}", scope.module, local);
     } else if let Some(canonical) = scope.imported.get(name) {
         *name = canonical.clone();
     }
@@ -195,7 +206,7 @@ fn qualify_intrinsic_id(id: &mut CoreIntrinsicId, scope: &NominalScope<'_>) {
 
 fn qualify_expr(expr: &mut CoreExpr, scope: &NominalScope<'_>) {
     match expr {
-        CoreExpr::Tuple(values) | CoreExpr::List(values) | CoreExpr::FixedArray(values) => values
+        CoreExpr::Tuple(values) | CoreExpr::List(values) | CoreExpr::Array(values) => values
             .iter_mut()
             .for_each(|value| qualify_expr(value, scope)),
         CoreExpr::ListCons { head, tail } => {

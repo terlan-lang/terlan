@@ -36,9 +36,7 @@ pub opaque type Json.
  * data shape without exposing target-specific exception values.
  */
 pub struct JsonError includes Error {
-    /**
-     * JSON error's byte offset, or zero when unavailable.
-     */
+    /** JSON error's byte offset, or zero when unavailable. */
     offset: Int,
 }.
 
@@ -52,13 +50,9 @@ pub struct JsonError includes Error {
  * are absent or non-string, while preserving exact array and field order.
  */
 pub struct StringFieldRow {
-    /**
-     * Whether a projected JSON array element was an object.
-     */
+    /** Whether a projected JSON array element was an object. */
     object: Bool,
-    /**
-     * Projected optional strings in requested field order.
-     */
+    /** Projected optional strings in requested field order. */
     values: List[Option[String]],
 }.
 
@@ -66,21 +60,13 @@ pub struct StringFieldRow {
  * One parent row and its nested object-array string projection.
  */
 pub struct NestedStringFieldRow {
-    /**
-     * Whether the projected parent row was an object.
-     */
+    /** Whether the projected parent row was an object. */
     object: Bool,
-    /**
-     * Projected parent string fields in requested order.
-     */
+    /** Projected parent string fields in requested order. */
     values: List[Option[String]],
-    /**
-     * Whether the requested child member was a JSON array.
-     */
+    /** Whether the requested child member was a JSON array. */
     child_array: Bool,
-    /**
-     * Child object-array projection in source order.
-     */
+    /** Child object-array projection in source order. */
     children: List[StringFieldRow],
 }.
 
@@ -90,17 +76,11 @@ pub struct NestedStringFieldRow {
  * handles, so validation code can safely retain them across continuations.
  */
 pub struct RequiredFieldProjection {
-    /**
-     * Required string values in requested order.
-     */
+    /** Required string values in requested order. */
     strings: List[String],
-    /**
-     * Required integer values in requested order.
-     */
+    /** Required integer values in requested order. */
     ints: List[Int],
-    /**
-     * Required array lengths in requested order.
-     */
+    /** Required array lengths in requested order. */
     array_lengths: List[Int],
 }.
 
@@ -113,17 +93,11 @@ pub struct RequiredFieldProjection {
  * cross the native boundary in bounded batches instead of once per field.
  */
 pub struct RequiredFieldRow {
-    /**
-     * Required string values projected from one object-array row.
-     */
+    /** Required string values projected from one object-array row. */
     strings: List[String],
-    /**
-     * Required integer values projected from one object-array row.
-     */
+    /** Required integer values projected from one object-array row. */
     ints: List[Int],
-    /**
-     * Required boolean values projected from one object-array row.
-     */
+    /** Required boolean values projected from one object-array row. */
     bools: List[Bool],
 }.
 
@@ -311,6 +285,7 @@ pub stringify_pretty(json: Json): Result[String, JsonError].
  * Transformation: performs a typed JSON object lookup without exposing the
  * backend object representation.
  */
+@pure
 @compiler.native
 pub (json: Json) get(key: String): Result[Json, JsonError].
 
@@ -323,12 +298,14 @@ pub (json: Json) get(key: String): Result[Json, JsonError].
  * Transformation: copies object member names into a portable `List[String]`
  * in bytewise sorted order without exposing the backend map representation.
  */
+@pure
 @compiler.native
 pub (json: Json) keys(): Result[List[String], JsonError].
 
 /**
  * Returns the number of members in a JSON object without allocating a key list.
  */
+@pure
 @compiler.native
 pub (json: Json) object_length(): Result[Int, JsonError].
 
@@ -459,6 +436,7 @@ pub string_object_rows(fields: List[String], rows: List[List[String]]): Result[J
  * Transformation: validates the JSON value kind and returns the array element
  * count without exposing the backend array representation.
  */
+@pure
 @compiler.native
 pub (json: Json) length(): Result[Int, JsonError].
 
@@ -471,6 +449,7 @@ pub (json: Json) length(): Result[Int, JsonError].
  * Transformation: performs a typed JSON array lookup without exposing the
  * backend array representation.
  */
+@pure
 @compiler.native
 pub (json: Json) at(index: Int): Result[Json, JsonError].
 
@@ -483,6 +462,7 @@ pub (json: Json) at(index: Int): Result[Json, JsonError].
  * Transformation: validates the JSON value kind before converting it to the
  * portable `String` type.
  */
+@pure
 @compiler.native
 pub (json: Json) as_string(): Result[String, JsonError].
 
@@ -495,6 +475,7 @@ pub (json: Json) as_string(): Result[String, JsonError].
  * Transformation: validates the JSON value kind and numeric range before
  * converting it to the portable `Int` type.
  */
+@pure
 @compiler.native
 pub (json: Json) as_int(): Result[Int, JsonError].
 
@@ -507,6 +488,7 @@ pub (json: Json) as_int(): Result[Int, JsonError].
  * Transformation: validates the JSON value kind before converting it to the
  * portable `Float` type.
  */
+@pure
 @compiler.native
 pub (json: Json) as_float(): Result[Float, JsonError].
 
@@ -519,6 +501,7 @@ pub (json: Json) as_float(): Result[Float, JsonError].
  * Transformation: validates the JSON value kind before converting it to the
  * portable `Bool` type.
  */
+@pure
 @compiler.native
 pub (json: Json) as_bool(): Result[Bool, JsonError].
 
@@ -529,6 +512,7 @@ pub (json: Json) as_bool(): Result[Bool, JsonError].
  * Output: `true` when the receiver is JSON null, otherwise `false`.
  * Transformation: observes the JSON value kind without changing the receiver.
  */
+@pure
 @compiler.native
 pub (json: Json) is_null(): Bool.
 

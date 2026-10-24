@@ -276,6 +276,60 @@ pub file(path: String, status: Int = 200, content_type: String = ""): Response -
     new(4, path, status, content_type).
 
 /**
+ * Streams a HTML file with its standard content type and an optional status.
+ */
+pub html_file(path: String, status: Int = 200): Response ->
+    file(path, status = status, content_type = "text/html; charset=utf-8").
+
+/**
+ * Streams a text file with its standard content type and an optional status.
+ */
+pub text_file(path: String, status: Int = 200): Response ->
+    file(path, status = status, content_type = "text/plain; charset=utf-8").
+
+/**
+ * Streams a JSON file with its standard content type and an optional status.
+ */
+pub json_file(path: String, status: Int = 200): Response ->
+    file(path, status = status, content_type = "application/json").
+
+/**
+ * Streams a CSS file with its standard content type and an optional status.
+ */
+pub css_file(path: String, status: Int = 200): Response ->
+    file(path, status = status, content_type = "text/css; charset=utf-8").
+
+/**
+ * Streams a javascript file with its standard content type and an optional status.
+ */
+pub javascript_file(path: String, status: Int = 200): Response ->
+    file(path, status = status, content_type = "text/javascript; charset=utf-8").
+
+/**
+ * Streams a SVG file with its standard content type and an optional status.
+ */
+pub svg_file(path: String, status: Int = 200): Response ->
+    file(path, status = status, content_type = "image/svg+xml").
+
+/**
+ * Streams a PNG file with its standard content type and an optional status.
+ */
+pub png_file(path: String, status: Int = 200): Response ->
+    file(path, status = status, content_type = "image/png").
+
+/**
+ * Streams a JPEG file with its standard content type and an optional status.
+ */
+pub jpeg_file(path: String, status: Int = 200): Response ->
+    file(path, status = status, content_type = "image/jpeg").
+
+/**
+ * Streams a PDF file with its standard content type and an optional status.
+ */
+pub pdf_file(path: String, status: Int = 200): Response ->
+    file(path, status = status, content_type = "application/pdf").
+
+/**
  * Creates a bounded streaming response from available text chunks.
  *
  * Input: ordered UTF-8 chunks, HTTP status, content type, maximum emitted

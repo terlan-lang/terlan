@@ -1,60 +1,32 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior-x
+//! The `overscroll-behavior-x` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! the browser's behavior when the horizontal boundary of a scrolling area is reached.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: Allows the default behavior at a scroll boundary. Scrolling may continue in another
+//! scroll container.
+//! - chain: Allows scrolling to continue outside the scroll container, but prevents overscroll
+//! "bounce" effects.
+//! - contain: Prevents scrolling from continuing outside the scroll container. "Bounce" effects may
+//! still occur.
+//! - none: Prevents scrolling from continuing outside the scroll container and also prevents
+//! overscroll "bounce" effects.
+//!
 //! Grammar: contain | none | auto | chain
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior-x
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overscroll-behavior-x
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OverscrollBehaviorX.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    overscroll_behavior_x: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    overscroll_behavior_x: Value
+    overscroll_behavior_x: Contain | None | Auto | Chain | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained overscroll-behavior-x value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword chain.
-
-pub chain(): Value.
-
-/// Returns the CSS keyword contain.
-
-pub contain(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

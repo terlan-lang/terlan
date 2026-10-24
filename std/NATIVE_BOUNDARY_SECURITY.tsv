@@ -18,6 +18,7 @@ module_prefix	capability	blocking_policy	cancellation_policy	timeout_policy	work
 std.time.Clock	clock	nonblocking	not-required	none	direct	value-only	typed-result	Package-owned host clock observations return copied integers without retaining resources; observations are effectful and never cacheable.
 std.crypto.Ed25519	crypto.signature.verify	nonblocking	not-required	none	direct	value-only	typed-result	Ed25519 verification is a bounded pure-value transformation over admitted payload text and never exposes key material or native resources.
 std.crypto.Hash	crypto.hash	nonblocking	not-required	none	direct	value-only	typed-result	SHA-256 byte and framed-field operations are bounded value transformations and return VM-owned digest text.
+std.crypto.Entropy	crypto.entropy	may-block	ignore-stale-reply	caller-provided	native-worker	value-only	typed-result	OS entropy acquisition is effectful and never cacheable; requests are bounded to 4096 bytes and failures never expose partial bytes or select a seeded fallback.
 std.data.Json	json	nonblocking	not-required	none	direct	value-only	typed-result	Serde JSON value operations do not carry native resources.
 std.data.Toml	structured-data.parse	nonblocking	not-required	none	direct	value-only	typed-result	TOML parsing produces an existing VM-owned JSON value and carries no parser or host resource.
 std.encoding.Base64	encoding	nonblocking	not-required	none	direct	value-only	typed-result	Base64 operations are bounded value transformations.

@@ -1,5 +1,6 @@
 use super::*;
 use crate::session_test_support::{failure, Probe};
+use terlan_runtime_abi::NativeValue;
 
 fn binding<S: SessionStorage + ?Sized>(operation: &str) -> Option<NativeContextBinding<S>> {
     bindings()
@@ -14,11 +15,11 @@ fn operations() -> [(&'static str, usize, NativeValue); 8] {
             1,
             Some(" \u{2003}identity=unchanged;\u{2003} ").into(),
         ),
-        ("create", 2, "issued".into()),
+        ("try_create", 2, true.into()),
         ("get", 2, Some("stored").into()),
         ("set", 3, NativeValue::Unit),
         ("delete", 2, NativeValue::Unit),
-        ("rotate", 2, "rotated".into()),
+        ("try_rotate", 3, true.into()),
         ("expire", 1, NativeValue::Unit),
         ("is_live", 1, true.into()),
     ]
@@ -30,18 +31,21 @@ fn every_operation_preserves_exact_arguments_results_and_backend_errors() {
         let operation = format!("std.http.session.{name}");
         let binding = binding::<dyn SessionStorage>(&operation).unwrap();
         assert_eq!(binding.operation, operation);
-        let timed = matches!(name, "create" | "rotate");
-        let texts = [
+        let timed = matches!(name, "try_create" | "try_rotate");
+        let mut texts = [
             " \u{2003}identity=unchanged;\u{2003} ",
-            if timed { "13" } else { " key\0 " },
+            " key\0 ",
             "\nvalue\0",
         ];
+        if timed {
+            texts[arity - 1] = "13";
+        }
         let mut args = texts[..arity]
             .iter()
             .map(|value| NativeValue::from(*value))
             .collect::<Vec<_>>();
         if timed {
-            args[1] = 13_i64.into();
+            args[arity - 1] = 13_i64.into();
         }
         let mut storage = Probe {
             value: Some("stored".into()),
@@ -77,10 +81,10 @@ fn every_argument_is_checked_before_backend_access() {
     ];
     for (name, arity, _) in operations() {
         let binding = binding::<dyn SessionStorage>(&format!("std.http.session.{name}")).unwrap();
-        let timed = matches!(name, "create" | "rotate");
+        let timed = matches!(name, "try_create" | "try_rotate");
         let mut valid = vec![NativeValue::from(""); arity];
         if timed {
-            valid[1] = 13_i64.into();
+            valid[arity - 1] = 13_i64.into();
         }
         let mut storage = Probe::default();
         for count in 0..=4 {
@@ -96,7 +100,7 @@ fn every_argument_is_checked_before_backend_access() {
         }
         for index in 0..arity {
             for value in &invalid_values {
-                if if timed && index == 1 {
+                if if timed && index == arity - 1 {
                     matches!(value, NativeValue::Int(_))
                 } else {
                     matches!(value, NativeValue::String(_))
@@ -117,20 +121,27 @@ fn every_argument_is_checked_before_backend_access() {
 
 #[test]
 fn lifetime_is_positive_and_validated_before_storage_access() {
-    for operation in ["std.http.session.create", "std.http.session.rotate"] {
+    for (operation, mut args) in [
+        (
+            "std.http.session.try_create",
+            vec!["id".into(), NativeValue::Unit],
+        ),
+        (
+            "std.http.session.try_rotate",
+            vec!["id".into(), "next".into(), NativeValue::Unit],
+        ),
+    ] {
         let binding = binding::<dyn SessionStorage>(operation).unwrap();
         let mut storage = Probe::default();
         for seconds in [i64::MIN, -1, 0] {
-            let error = binding
-                .call(&mut storage, &["id".into(), seconds.into()])
-                .unwrap_err();
+            *args.last_mut().unwrap() = seconds.into();
+            let error = binding.call(&mut storage, &args).unwrap_err();
             assert!(error.to_string().contains("TTL must be greater than 0"));
             assert!(storage.calls.is_empty());
         }
-        binding
-            .call(&mut storage, &["id".into(), i64::MAX.into()])
-            .unwrap();
-        assert_eq!(storage.calls[0][2], i64::MAX.to_string());
+        *args.last_mut().unwrap() = i64::MAX.into();
+        binding.call(&mut storage, &args).unwrap();
+        assert_eq!(storage.calls[0].last().unwrap(), &i64::MAX.to_string());
     }
 }
 
@@ -166,6 +177,9 @@ fn unknown_and_legacy_names_are_not_admitted() {
         "std.http.session.GET",
         "std.http.session.get.extra",
         "std.http.session.cookie",
+        "std.http.session.candidate",
+        "std.http.session.create",
+        "std.http.session.rotate",
         "std.http.session.current",
         "std.http.session.current ",
         "std.http.sessions.get",

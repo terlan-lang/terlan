@@ -1,0 +1,62 @@
+/** Canonical JSON codec for typed Core IR finite-sum layouts. */
+module self_host.SelfHostVariantIrJson.
+
+import self_host.SelfHostIrSyntax.{IrVariantLayout}.
+import self_host.SelfHostTypedCoreModule.{TypedCoreModule}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Result}.
+import std.data.Json.
+import type std.data.Json.{Json, JsonError}.
+
+
+strings(values: List[String], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> strings(rest, output.push(Json.string(value)))
+    }.
+
+optional_type(value: Option[String]): Json ->
+    case value {
+        Some(name) -> Json.object()
+            .put("known", Json.bool(true))
+            .put("name", Json.string(name));
+        None -> Json.object()
+            .put("known", Json.bool(false))
+            .put("name", Json.string(""))
+    }.
+
+optional_types(values: List[Option[String]], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> optional_types(rest, output.push(optional_type(value)))
+    }.
+
+layout(value: IrVariantLayout): Json ->
+    Json.object()
+        .put("owner", Json.string(value.owner))
+        .put("name", Json.string(value.name))
+        .put("discriminant", Json.int(value.discriminant))
+        .put("type_parameters", strings(value.type_parameters, Json.array()))
+        .put("payload_types", optional_types(value.payload_types, Json.array())).
+
+layouts(values: List[IrVariantLayout], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> layouts(rest, output.push(layout(value)))
+    }.
+
+/** Returns the stable, versioned variant-layout sidecar document. */
+pub document(values: List[IrVariantLayout]): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.self-host.variant-layout/v1"))
+        .put("variants", layouts(values, Json.array())).
+
+/** Encodes layouts already attached to a typed Core IR module. */
+pub encode(value: TypedCoreModule): Result[String, JsonError] ->
+    Json.stringify(document(value.variant_layouts)).
+
+/** Encodes a layout list for deterministic contract tests and adapter fixtures. */
+pub encode_layouts(values: List[IrVariantLayout]): Result[String, JsonError] ->
+    Json.stringify(document(values)).

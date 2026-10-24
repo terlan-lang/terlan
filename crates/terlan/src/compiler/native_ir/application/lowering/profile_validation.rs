@@ -62,7 +62,7 @@ pub(super) fn validate_profiles(
     );
     for owner in profile_owners {
         let profile = &call_profiles[&owner];
-        for continuation in &profile.continuations {
+        for continuation in profile.continuations.iter() {
             if !validated_profile_continuations.insert(continuation.id) {
                 continue;
             }

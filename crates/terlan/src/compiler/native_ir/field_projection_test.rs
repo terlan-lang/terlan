@@ -15,6 +15,90 @@ use crate::{
 use super::native_object_test_support::with_dispatch_lookup_harness;
 use super::{emit_native_application_object, NativeExpr, NativeModule};
 
+#[test]
+fn record_updates_construct_optional_fields_with_the_declared_union_layout() {
+    let core = super::source_constructor_test::checked_provider(
+        r#"
+module optional_record_update.
+pub type Missing = Atom["none"].
+pub type Present[T] = {Atom["some"], value: T}.
+pub type Maybe[T] = Missing | Present[T].
+pub struct Snapshot {value: Maybe[Int]}.
+pub answer(): Int ->
+    let base = Snapshot {value: Missing};
+    let updated = base#Snapshot{value: Present(42)};
+    case updated == Snapshot {value: Present(42)} and base == Snapshot {value: Missing} {
+        true -> 42;
+        false -> 0
+    }.
+"#,
+    );
+    let modules = NativeModule::lower_application(&[&core]).expect("lower optional record update");
+    let export = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "answer")
+        .unwrap()
+        .export_id;
+    let object = emit_native_application_object("optional_record_update", &modules).unwrap();
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "optional-record-update",
+        &modules,
+        &object,
+        &[super::native_object_test_support::NativeObjectInvocation {
+            export_id: export,
+            arguments: vec![],
+            expected_status: 0,
+            expected_result: Some(42),
+        }],
+    );
+}
+
+#[test]
+fn record_updates_preserve_zero_scalars_and_managed_fields() {
+    let core = super::source_constructor_test::checked_provider(
+        r#"
+module scalar_record_update.
+pub struct Snapshot {
+    enabled: Bool, count: Int, ratio: Float,
+    label: String, retained: String, tags: List[String]
+}.
+pub answer(): Int ->
+    let base = Snapshot {
+        enabled: false, count: 0, ratio: 0.0,
+        label: "before", retained: "keep", tags: ["tag"]
+    };
+    let updated = base#Snapshot {label: "after"};
+    if {
+        not updated.enabled and updated.count == 0 and updated.ratio == 0.0
+            and updated.label == "after" and updated.retained == "keep"
+            and updated.tags == ["tag"] and base.label == "before" -> 42;
+        true -> 0
+    }.
+"#,
+    );
+    let modules =
+        NativeModule::lower_application(&[&core]).expect("lower mixed-field record update");
+    let export_id = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "answer")
+        .unwrap()
+        .export_id;
+    let object = emit_native_application_object("scalar_record_update", &modules).unwrap();
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "scalar-record-update",
+        &modules,
+        &object,
+        &[super::native_object_test_support::NativeObjectInvocation {
+            export_id,
+            arguments: vec![],
+            expected_status: 0,
+            expected_result: Some(42),
+        }],
+    );
+}
+
 /// Lowers the canonical managed-record projection fixture into CoreIR.
 fn projection_core() -> CoreModule {
     let syntax = parse_module_as_syntax_output(
@@ -451,42 +535,3 @@ fn main() {
     assert_eq!(transition_len, 0);
 }
 "#;
-
-#[test]
-fn record_updates_construct_optional_fields_with_the_declared_union_layout() {
-    let core = super::source_constructor_test::checked_provider(
-        r#"
-module optional_record_update.
-pub type Missing = Atom["none"].
-pub type Present[T] = {Atom["some"], value: T}.
-pub type Maybe[T] = Missing | Present[T].
-pub struct Snapshot {value: Maybe[Int]}.
-pub answer(): Int ->
-    let base = Snapshot {value: Missing};
-    let updated = base#Snapshot{value: Present(42)};
-    case updated == Snapshot {value: Present(42)} and base == Snapshot {value: Missing} {
-        true -> 42;
-        false -> 0
-    }.
-"#,
-    );
-    let modules = NativeModule::lower_application(&[&core]).expect("lower optional record update");
-    let export = modules
-        .iter()
-        .flat_map(|module| &module.functions)
-        .find(|function| function.name == "answer")
-        .unwrap()
-        .export_id;
-    let object = emit_native_application_object("optional_record_update", &modules).unwrap();
-    super::native_object_test_support::assert_managed_native_object_invocations(
-        "optional-record-update",
-        &modules,
-        &object,
-        &[super::native_object_test_support::NativeObjectInvocation {
-            export_id: export,
-            arguments: vec![],
-            expected_status: 0,
-            expected_result: Some(42),
-        }],
-    );
-}

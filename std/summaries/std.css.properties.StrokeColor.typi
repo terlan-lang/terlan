@@ -1,48 +1,21 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-color
+//! Sets the solid paint color for strokes around text or SVG shapes. Use the stroke shorthand when
+//! changing the complete stroke, and this property when changing only its color.
+//!
+//! Initial: transparent. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: <color>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-color
+//!
+//! Author guide: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-color
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.StrokeColor.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    stroke_color: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    stroke_color: Value
+    stroke_color: std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained stroke-color value.
-
-pub opaque type Value.
-
-/// Constructs a stroke-color value from a typed color.
-
-pub color(value: std.css.Values.Color): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

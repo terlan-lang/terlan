@@ -5,6 +5,66 @@ use terlan_runtime_abi::NativeValue as Value;
 
 type Invoke<'a> = dyn FnMut(&Value, &MiddlewareContinuation<Value>) -> Result<Value, String> + 'a;
 
+#[test]
+fn stream_admission_metadata_is_shared_by_finite_and_live_transports() {
+    let headers = vec![
+        ("X-Source".into(), "policy".into()),
+        ("Cache-Control".into(), "private".into()),
+    ];
+    let plan = SseEndpointPlan::<Value>::new(1, 64)
+        .unwrap()
+        .with_response_headers(headers.clone())
+        .unwrap();
+    let response = sse_stream_response(&plan);
+    assert_eq!(response.status, 200);
+    assert_eq!(response.content_type, "text/event-stream");
+    assert_eq!(
+        response.body.as_bytes(),
+        Some(b": connected\n\n".as_slice())
+    );
+    assert_eq!(
+        response.headers,
+        [
+            ("X-Source".into(), "policy".into()),
+            ("Cache-Control".into(), "private".into()),
+            ("connection".into(), "keep-alive".into()),
+        ]
+    );
+    let head = sse_transport_response(&plan, "HEAD", true).unwrap();
+    assert_eq!(head.headers, headers);
+    assert_eq!(head.body.as_bytes(), Some(&b""[..]));
+}
+
+#[test]
+fn sse_transport_policy_rejects_unsupported_plans_and_never_opens_head() {
+    let callback_only = SseEndpointPlan::<Value>::new(1, 64).unwrap();
+    let producer = callback_only.clone().with_producer("next".into()).unwrap();
+    let heartbeat = producer.clone().with_keep_alive_ms(10).unwrap();
+    for (plan, pull_supported) in [(callback_only, false), (producer, true), (heartbeat, false)] {
+        for external in [false, true] {
+            for method in ["GET", "HEAD"] {
+                let response = sse_transport_response(&plan, method, external);
+                if !external && !pull_supported {
+                    let response = response.unwrap();
+                    assert_eq!(response.status, 501);
+                    assert!(response.headers.is_empty());
+                    assert!(std::str::from_utf8(response.body.as_bytes().unwrap())
+                        .unwrap()
+                        .contains("upgrade_adapter_missing"));
+                } else if method == "HEAD" {
+                    let response = response.unwrap();
+                    assert_eq!(response.status, 200);
+                    assert_eq!(response.content_type, "text/event-stream");
+                    assert_eq!(response.headers, plan.response_headers());
+                    assert_eq!(response.body.as_bytes(), Some(&b""[..]));
+                } else {
+                    assert!(response.is_none());
+                }
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 enum Channel {
     WebSocket,
@@ -110,6 +170,7 @@ fn admitted_plans_preserve_callbacks_and_policy_after_ordered_middleware() {
                 "/items/%34%32",
                 &mut |callback, next| {
                     invoked.push(callback.clone());
+                    assert_eq!(next.route_params(), [("id".into(), "42".into())]);
                     match next.step() {
                         MiddlewareStep::Middleware { middleware, .. } => {
                             assert_eq!(callback, &Value::from("outer"));

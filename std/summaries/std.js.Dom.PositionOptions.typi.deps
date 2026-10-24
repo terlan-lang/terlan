@@ -1,8 +1,8 @@
 module=std.js.Dom.PositionOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=3382970253429533733
-interface_hash=147873195713272880
-interface_doc_hash=147873195713272880
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=12561660545932565478
+interface_hash=14092644705058034752
+interface_doc_hash=14092644705058034752
 deps=0

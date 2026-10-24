@@ -1,0 +1,74 @@
+/** Filesystem boundary for the final production-authority decision. */
+module self_host.ProductionAuthorityTool.
+
+import self_host.ProductionAuthority.{ProductionDecision}.
+import self_host.ProductionAuthorityEvidence.
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.File.
+
+@pure
+status(value: Bool): String ->
+    if { value -> "pass"; true -> "fail" }.
+
+@pure
+failures_at(values: List[String], output: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> failures_at(
+            rest,
+            String.concat([output, "failure\t", value, "\n"]),
+        )
+    }.
+
+/** Renders a deterministic decision artifact suitable for release retention. */
+@pure
+pub render(decision: ProductionDecision): String ->
+    failures_at(
+        decision.failures,
+        String.concat([
+            "schema\tterlan.self-host.production-authority-decision/v1\n",
+            "transferable\t", status(decision.transferable), "\n",
+            "retain-terlc0\t", status(decision.retain_terlc0), "\n",
+        ]),
+    ).
+
+write_completion(marker: String): Bool ->
+    case File.write_text(marker, "complete\n") {
+        Err(_reason) -> false;
+        Ok(_unit) -> true
+    }.
+
+publish(
+    decision: ProductionDecision,
+    decision_output: String,
+    complete_marker: String,
+): Bool ->
+    case File.write_text(decision_output, render(decision)) {
+        Err(_reason) -> false;
+        Ok(_unit) ->
+            if {
+                decision.transferable -> write_completion(complete_marker);
+                true -> false
+            }
+    }.
+
+/** Evaluates persisted evidence and commits authority only after its decision artifact. */
+pub run(
+    evidence_input: String,
+    decision_output: String,
+    complete_marker: String,
+): Bool ->
+    case File.write_text(complete_marker, "pending\n") {
+        Err(_reason) -> false;
+        Ok(_unit) ->
+            case File.read_text(evidence_input) {
+                Err(_reason) -> false;
+                Ok(source) -> publish(
+                    ProductionAuthorityEvidence.evaluate(source),
+                    decision_output,
+                    complete_marker,
+                )
+            }
+    }.

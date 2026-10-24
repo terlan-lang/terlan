@@ -5,7 +5,7 @@ use super::*;
 #[test]
 fn only_the_qualified_standard_list_uses_builtin_storage() {
     let resolve_type =
-        |ty: &CoreType| resolve(ty, "app", &[], &HashMap::new(), &mut HashSet::new());
+        |ty: &CoreType| resolve(ty, "app", &[], &HashMap::new(), &mut HashSet::new(), true);
     for constructor in ["app.Containers.List", "app.List", "List"] {
         let user_type = CoreType::Apply {
             constructor: constructor.into(),
@@ -31,6 +31,57 @@ fn only_the_qualified_standard_list_uses_builtin_storage() {
         CoreType::List(Box::new(CoreType::List(Box::new(CoreType::Int))))
     );
     assert_eq!(resolve_type(&resolved), resolved);
+}
+
+#[test]
+fn later_alias_passes_do_not_unroll_recursive_storage_again() {
+    let mut aliases = HashMap::from([
+        (
+            "app.Tree".to_string(),
+            Alias {
+                module: "app".to_string(),
+                imports: Vec::new(),
+                params: Vec::new(),
+                body: CoreType::Union(vec![
+                    CoreType::AtomLiteral("leaf".to_string()),
+                    CoreType::List(Box::new(CoreType::Named("app.Branch".to_string()))),
+                ]),
+                recursive: false,
+            },
+        ),
+        (
+            "app.Branch".to_string(),
+            Alias {
+                module: "app".to_string(),
+                imports: Vec::new(),
+                params: Vec::new(),
+                body: CoreType::Tuple(vec![CoreTupleTypeElem::Type(CoreType::Named(
+                    "app.Tree".to_string(),
+                ))]),
+                recursive: false,
+            },
+        ),
+    ]);
+    mark_recursive_aliases(&mut aliases);
+    assert!(aliases.values().all(|alias| alias.recursive));
+
+    let first = resolve(
+        &CoreType::Named("app.Tree".to_string()),
+        "app",
+        &[],
+        &aliases,
+        &mut HashSet::new(),
+        true,
+    );
+    let second = resolve(
+        &first,
+        "app",
+        &[],
+        &aliases,
+        &mut HashSet::new(),
+        false,
+    );
+    assert_eq!(second, first);
 }
 
 #[test]

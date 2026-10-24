@@ -59,11 +59,11 @@ fn standard_base64_byte_decoder_round_trips_every_octet() {
 /// Locks padding, output length, and the large-input tail boundary.
 #[test]
 fn standard_base64_bytes_preserve_padding_for_short_and_large_inputs() {
-    for len in (0..=255).chain(2_395..=2_440) {
+    for len in (0_usize..=255).chain(2_395..=2_440) {
         let input = (0..len).map(|index| index as u8).collect::<Vec<_>>();
         let encoded = encode_bytes(&input);
 
-        assert_eq!(encoded.len(), ((len + 2) / 3) * 4);
+        assert_eq!(encoded.len(), len.div_ceil(3) * 4);
         assert!(encoded
             .bytes()
             .all(|byte| { byte.is_ascii_alphanumeric() || matches!(byte, b'+' | b'/' | b'=') }));

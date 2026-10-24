@@ -1,0 +1,8 @@
+module=std.css.keywords.SpellOut
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=5312924264913893544
+interface_hash=7174466733596670965
+interface_doc_hash=5702178237155035853
+deps=0

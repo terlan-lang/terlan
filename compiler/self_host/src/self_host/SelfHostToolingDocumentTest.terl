@@ -1,0 +1,23 @@
+/** Positive and negative lossless tooling-document contracts. */
+module self_host.SelfHostToolingDocumentTest.
+
+import self_host.SelfHostToolingDocument.
+
+
+@test
+pub valid_source_round_trips_comments_unicode_and_trailing_space(): Bool ->
+    let source = "/** Greets. */\nmodule sample.Tooling.\n\npub greet(): String -> \"café λ\".\n  ";
+    let document = SelfHostToolingDocument.build(source);
+    document.valid
+        and document.lexical_valid
+        and document.frontend_valid
+        and SelfHostToolingDocument.render(document) == source
+        and SelfHostToolingDocument.round_trips(document).
+
+@test
+pub rejected_source_still_round_trips_for_diagnostics(): Bool ->
+    let source = "module sample.Broken.\npub broken(: String -> \"x\".\n";
+    let document = SelfHostToolingDocument.build(source);
+    not document.valid
+        and SelfHostToolingDocument.render(document) == source
+        and SelfHostToolingDocument.round_trips(document).

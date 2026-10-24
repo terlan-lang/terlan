@@ -1,69 +1,27 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scrollbars-1/#propdef-scrollbar-color
+ * The `scrollbar-color` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * color of the scrollbar track and thumb.
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | <color>{2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scrollbars-1/#propdef-scrollbar-color
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scrollbar-color
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollbarColor.
 
-import type std.core.Option.
+import std.css.keywords.Auto.
 
-/**
- * A nominal, specification-constrained scrollbar-color value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    scrollbar_color: Value,
+    scrollbar_color: Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    scrollbar_color: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "scrollbar-color", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "scrollbar-color", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scrollbar-color", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scrollbar-color", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scrollbar-color", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scrollbar-color", css: "unset"}).

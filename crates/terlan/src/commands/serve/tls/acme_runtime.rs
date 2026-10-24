@@ -4,7 +4,6 @@ use crate::commands::serve::manifest::web_package_tls_config;
 use terlan_http_native::acme::AcmeRuntimePlan;
 use terlan_http_native::tls_runtime;
 
-pub(in crate::commands::serve) use terlan_http_native::acme::AcmeHttp01Challenge;
 pub(in crate::commands::serve) use terlan_http_native::tls_material::RuntimeConfig as RuntimeTlsConfig;
 
 #[cfg(test)]
@@ -67,20 +66,16 @@ fn issue_acme_certificate_cache_for_serve(
     )
 }
 
-/// Supplies project discovery to the package-owned HTTP-01 cache reader.
-pub(in crate::commands::serve) fn acme_http01_challenge(
+/// Supplies project discovery; the package owns HTTP-01 admission and responses.
+pub(in crate::commands::serve) fn acme_http01_response(
     web_root: &Path,
+    method: &str,
     request_path: &str,
-) -> Result<AcmeHttp01Challenge, String> {
-    if !request_path.starts_with(terlan_http_native::acme::ACME_HTTP01_PATH_PREFIX) {
-        return Ok(AcmeHttp01Challenge::NotMatched);
-    }
-    let project = web_package_tls_config(web_root)?;
-    terlan_http_native::acme::acme_http01_challenge(
-        project.as_ref().map(|(root, tls)| (root.as_path(), tls)),
-        request_path,
-    )
-    .map_err(String::from)
+) -> Result<Option<http::Response<bytes::Bytes>>, String> {
+    terlan_http_native::acme::http01::response(method, request_path, || {
+        web_package_tls_config(web_root).map_err(Into::into)
+    })
+    .map_err(|error| error.message().to_owned())
 }
 
 #[cfg(test)]

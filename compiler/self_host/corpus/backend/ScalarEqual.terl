@@ -1,0 +1,4 @@
+/** Executable ABI-1 canonical scalar equality adapter probe. */
+module self_host_probe.ScalarEqual.
+
+pub main(): Bool -> 1 == 1.

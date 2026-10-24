@@ -1,0 +1,6 @@
+//! Shared CSS keyword span-y-end. Generated; do not edit.
+
+module std.css.keywords.SpanYEnd.
+
+pub type SpanYEnd =
+    Atom["span-y-end"].

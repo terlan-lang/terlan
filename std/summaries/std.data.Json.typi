@@ -94,6 +94,7 @@ pub array(): Json.
 /// Transformation: validates the JSON value kind before converting it to the
 /// portable `Bool` type.
 
+@pure
 pub (json: Json) as_bool(): Result[Bool, JsonError].
 
 /// Reads a JSON floating-point value.
@@ -104,6 +105,7 @@ pub (json: Json) as_bool(): Result[Bool, JsonError].
 /// Transformation: validates the JSON value kind before converting it to the
 /// portable `Float` type.
 
+@pure
 pub (json: Json) as_float(): Result[Float, JsonError].
 
 /// Reads a JSON integer value.
@@ -114,6 +116,7 @@ pub (json: Json) as_float(): Result[Float, JsonError].
 /// Transformation: validates the JSON value kind and numeric range before
 /// converting it to the portable `Int` type.
 
+@pure
 pub (json: Json) as_int(): Result[Int, JsonError].
 
 /// Reads a JSON string value.
@@ -124,6 +127,7 @@ pub (json: Json) as_int(): Result[Int, JsonError].
 /// Transformation: validates the JSON value kind before converting it to the
 /// portable `String` type.
 
+@pure
 pub (json: Json) as_string(): Result[String, JsonError].
 
 /// Reads a JSON array element by index.
@@ -134,6 +138,7 @@ pub (json: Json) as_string(): Result[String, JsonError].
 /// Transformation: performs a typed JSON array lookup without exposing the
 /// backend array representation.
 
+@pure
 pub (json: Json) at(index: Int): Result[Json, JsonError].
 
 /// Creates a JSON boolean value.
@@ -167,6 +172,7 @@ pub float(value: Float): Result[Json, JsonError].
 /// Transformation: performs a typed JSON object lookup without exposing the
 /// backend object representation.
 
+@pure
 pub (json: Json) get(key: String): Result[Json, JsonError].
 
 /// Creates a JSON integer value.
@@ -184,6 +190,7 @@ pub int(value: Int): Json.
 /// Output: `true` when the receiver is JSON null, otherwise `false`.
 /// Transformation: observes the JSON value kind without changing the receiver.
 
+@pure
 pub (json: Json) is_null(): Bool.
 
 /// Returns the sorted member names of a JSON object.
@@ -194,6 +201,7 @@ pub (json: Json) is_null(): Bool.
 /// Transformation: copies object member names into a portable `List[String]`
 /// in bytewise sorted order without exposing the backend map representation.
 
+@pure
 pub (json: Json) keys(): Result[List[String], JsonError].
 
 /// Returns the length of a JSON array.
@@ -204,6 +212,7 @@ pub (json: Json) keys(): Result[List[String], JsonError].
 /// Transformation: validates the JSON value kind and returns the array element
 /// count without exposing the backend array representation.
 
+@pure
 pub (json: Json) length(): Result[Int, JsonError].
 
 /// Projects one object array and one nested object-array member in a single
@@ -239,6 +248,7 @@ pub object(): Json.
 
 /// Returns the number of members in a JSON object without allocating a key list.
 
+@pure
 pub (json: Json) object_length(): Result[Int, JsonError].
 
 /// Parses text into a JSON value.

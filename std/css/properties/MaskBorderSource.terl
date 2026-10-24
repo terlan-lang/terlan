@@ -1,69 +1,31 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-source
+ * The `mask-border-source` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * the source image used to create an element's [mask
+ * border](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border).
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - none: No mask border is used.
+ *
  * Grammar: <'border-image-source'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-source
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-source
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskBorderSource.
 
-import type std.core.Option.
+import std.css.keywords.None.
 
-/**
- * A nominal, specification-constrained mask-border-source value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    mask_border_source: Value,
+    mask_border_source: None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    mask_border_source: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "mask-border-source", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask-border-source", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "mask-border-source", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-border-source", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-border-source", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-border-source", css: "unset"}).

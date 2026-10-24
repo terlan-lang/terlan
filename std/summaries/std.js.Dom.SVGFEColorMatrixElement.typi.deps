@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGFEColorMatrixElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=18341248972589453662
-interface_hash=5144198858531236949
-interface_doc_hash=5144198858531236949
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=13813955255704332017
+interface_hash=12140873953408472842
+interface_doc_hash=12140873953408472842
 deps=0

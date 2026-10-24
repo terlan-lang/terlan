@@ -44,12 +44,22 @@ fn runtime() -> (
     Arc<AotHandlerRuntime>,
     WebSocketEndpointPlan<ReplValue>,
 ) {
+    runtime_with_source(SOURCE)
+}
+
+pub(super) fn runtime_with_source(
+    source: &str,
+) -> (
+    std::path::PathBuf,
+    Arc<AotHandlerRuntime>,
+    WebSocketEndpointPlan<ReplValue>,
+) {
     let root = test_fs::temp_path("serve", "aot_websocket_callbacks");
     let web_root = root.join("_build/web");
     fs::create_dir_all(&web_root).expect("create callback output");
     let artifacts = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
         "src/app/SocketCallbacks.terl",
-        SOURCE,
+        source,
         DiagnosticFormat::Text {
             color: ColorChoice::Never,
         },
@@ -125,7 +135,8 @@ fn websocket_callbacks_share_native_invocation_entry_resume_and_cancellation() {
             .expect("resume inbound callback"),
     );
     completed(session.writable().expect("dispatch writable callback"));
-    completed(session.close().expect("dispatch close callback"));
+    super::super::protocol_test_support::complete(session.close_suspendable())
+        .expect("dispatch close callback");
     assert!(!session.is_open());
     assert_eq!(
         session.executor().completed_events(),
@@ -224,14 +235,15 @@ fn websocket_incompatible_wakes_preserve_queued_frames_and_callback_owner() {
         for error in [
             session.enqueue_inbound("rejected".into()).unwrap_err(),
             session.dispatch_next_inbound_output().unwrap_err(),
-            session
-                .dispatch_next_paired_inbound_output(Some((
+            super::super::protocol_test_support::complete(
+                session.dispatch_next_paired_inbound_output(Some((
                     "state".into(),
                     1,
                     "first".into(),
                     "second".into(),
-                )))
-                .unwrap_err(),
+                ))),
+            )
+            .unwrap_err(),
         ] {
             assert!(
                 error.to_string().contains("serve.websocket.wake_type"),
@@ -247,7 +259,7 @@ fn websocket_incompatible_wakes_preserve_queued_frames_and_callback_owner() {
             .unwrap(),
     );
     assert_eq!(session.inspect().pending_frames, 2);
-    completed(session.close().unwrap());
+    super::super::protocol_test_support::complete(session.close_suspendable()).unwrap();
     fs::remove_dir_all(root).unwrap();
 }
 

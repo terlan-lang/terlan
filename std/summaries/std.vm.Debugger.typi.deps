@@ -1,7 +1,7 @@
 module=std.vm.Debugger
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=6312227637337116822
 interface_hash=1867578457100993600
 interface_doc_hash=12723357599240263866

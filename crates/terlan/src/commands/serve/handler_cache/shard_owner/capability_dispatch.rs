@@ -132,6 +132,9 @@ impl GeneratedCapabilityDispatcher {
             }
         }
         if trusted
+            && !crate::std_native_packages::value_operation_requires_worker(
+                &pending.wait.request().operation,
+            )
             && matches!(
                 pending.wait.request().capability.as_str(),
                 "package-native" | "system.environment"

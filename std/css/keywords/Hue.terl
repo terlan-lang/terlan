@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword hue. Generated; do not edit.
+ */
+module std.css.keywords.Hue.
+
+pub type Hue.

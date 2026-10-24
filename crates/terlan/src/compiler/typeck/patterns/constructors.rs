@@ -1,10 +1,12 @@
 //! Constructor pattern resolution, structural matching, and instantiation.
 
 use super::{
-    alias_constructor_schemes, apply_subst, check_syntax_pattern, instantiate_constructor_scheme,
-    next_constructor_type_var, parse_interface_constructor_schemes, pretty_type, unify,
-    ConstructorScheme, ExprInferContext, HashMap, SyntaxPatternOutput, Type, TypeAlias, TypeVarId,
+    alias_constructor_schemes, apply_subst, check_syntax_pattern, expand_type_aliases,
+    instantiate_constructor_scheme, next_constructor_type_var, parse_interface_constructor_schemes,
+    pretty_type, unify, ConstructorScheme, ExprInferContext, HashMap, SyntaxPatternOutput, Type,
+    TypeAlias, TypeVarId,
 };
+use crate::terlan_typeck::type_system::expand_interface_global_aliases;
 
 /// Checks a constructor pattern against a structural constructor shape.
 ///
@@ -170,8 +172,13 @@ pub(super) fn check_syntax_constructor_pattern(
             continue;
         }
 
-        if let Err(message) =
-            unify_constructor_pattern_return(expected, &instantiated.ret, &mut trial_subst)
+        let expanded_expected = expand_type_aliases(expected, aliases);
+        let expanded_expected = expand_interface_global_aliases(&expanded_expected, aliases);
+        if let Err(message) = unify_constructor_pattern_return(
+            &expanded_expected,
+            &instantiated.ret,
+            &mut trial_subst,
+        )
         {
             last_error = Some(message);
             continue;
@@ -286,7 +293,7 @@ fn constructor_pattern_schemes(
     }
 
     let imported = ctx.constructor_aliases.get(name)?;
-    let interface = ctx.interface_map.get(imported.module.as_ref()?)?;
+    let interface = ctx.interface_map.get(&imported.module)?;
     parse_interface_constructor_schemes(
         interface
             .constructors
@@ -314,14 +321,11 @@ fn imported_opaque_constructor_pattern_error(
     ctx: &ExprInferContext<'_>,
 ) -> Option<String> {
     let imported = ctx.constructor_aliases.get(name)?;
-    let interface = ctx.interface_map.get(imported.module.as_ref()?)?;
+    let interface = ctx.interface_map.get(&imported.module)?;
     interface.opaque_types.contains(&imported.name).then(|| {
         format!(
-            "cannot match opaque type {} as constructor pattern outside defining module",
-            crate::terlan_hir::public_type_path(
-                imported.module.as_deref().unwrap_or_default(),
-                &imported.name
-            )
+            "cannot match opaque type {}.{} as constructor pattern outside defining module",
+            imported.module, imported.name
         )
     })
 }

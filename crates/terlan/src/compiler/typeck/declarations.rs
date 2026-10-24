@@ -1,4 +1,6 @@
 mod alias_implications;
+mod atom_aliases;
+pub(crate) use atom_aliases::check as check_public_atom_aliases;
 mod purity;
 mod trait_impl;
 
@@ -49,14 +51,14 @@ pub(super) fn check_syntax_module_functions(
         local_aliases,
         expr_ctx,
     } = environment;
-    let mut diagnostics = Vec::new();
+    let mut diagnostics = atom_aliases::check(module, expr_ctx.interface_map);
     let effectful_imported_calls = collect_effectful_imported_calls(expr_ctx);
     timings.mark("effectful-imports");
     let effectful_local_calls = collect_effectful_local_calls(
         module,
         function_signatures,
         aliases,
-        expr_ctx.templates,
+        expr_ctx,
         &effectful_imported_calls,
     );
     timings.mark("effectful-locals");
@@ -432,7 +434,7 @@ fn check_syntax_constructor_clauses(
 
         let constructor_expr_ctx = expr_ctx_with_current_constructor(expr_ctx, constructor_name);
         let mut local_errors = Vec::new();
-        let expected_return = expand_type_aliases(&scheme.ret, aliases);
+        let expected_return = expand_interface_global_aliases(&scheme.ret, aliases);
         let inferred = infer_syntax_expr_with_expected(
             &clause.body,
             &expected_return,
@@ -455,7 +457,7 @@ fn check_syntax_constructor_clauses(
             diagnostics.push(expression_error_to_diagnostic(error, span));
         }
 
-        let inferred_expanded = expand_type_aliases(&inferred, aliases);
+        let inferred_expanded = expand_interface_global_aliases(&inferred, aliases);
         if let Err(message) = unify_return_type(&expected_return, &inferred_expanded, &mut subst) {
             diagnostics.push(Diagnostic {
                 span,
@@ -606,8 +608,8 @@ fn check_syntax_default_expr_against_type(
         diagnostics.push(expression_error_to_diagnostic(error, span));
     }
 
-    let expected_expanded = expand_type_aliases(expected_type, aliases);
-    let inferred_expanded = expand_type_aliases(&inferred, aliases);
+    let expected_expanded = expand_interface_global_aliases(expected_type, aliases);
+    let inferred_expanded = expand_interface_global_aliases(&inferred, aliases);
     if let Err(message) = unify(&expected_expanded, &inferred_expanded, &mut subst) {
         diagnostics.push(Diagnostic {
             span,
@@ -709,7 +711,10 @@ fn check_native_declaration(
 /// Transformation:
 /// - Centralizes annotation-path matching for compiler metadata consumed by
 ///   typechecking so individual checks do not duplicate vector/string logic.
-fn declaration_has_marker_annotation(declaration: &SyntaxDeclarationOutput, path: &[&str]) -> bool {
+pub(super) fn declaration_has_marker_annotation(
+    declaration: &SyntaxDeclarationOutput,
+    path: &[&str],
+) -> bool {
     declaration.annotations.iter().any(|annotation| {
         annotation.path.len() == path.len()
             && annotation

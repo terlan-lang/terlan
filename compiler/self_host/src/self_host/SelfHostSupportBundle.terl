@@ -1,0 +1,29 @@
+/** Deterministic length-framed support evidence for self-hosted tooling. */
+module self_host.SelfHostSupportBundle.
+
+import std.core.String.
+
+
+@pure
+section(name: String, value: String): String ->
+    "section\t"
+        + name
+        + "\t"
+        + value.byte_size().to_string()
+        + "\n"
+        + value
+        + "\n".
+
+/** Renders a bundle whose fixed section order and byte lengths are canonical. */
+@pure
+pub render(
+    diagnostics: String,
+    lint: String,
+    trace: String,
+    configuration: String,
+): String ->
+    "terlan.self-host.support-bundle/v1\n"
+        + section("diagnostics", diagnostics)
+        + section("lint", lint)
+        + section("trace", trace)
+        + section("configuration", configuration).

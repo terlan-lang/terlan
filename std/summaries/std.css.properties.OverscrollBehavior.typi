@@ -1,88 +1,49 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior
+//! The `overscroll-behavior` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! controls what happens when scrolling reaches the edge of a [scroll
+//! container](https://developer.mozilla.org/en-US/docs/Glossary/Scroll_container).
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: Allows the default behavior at a scroll boundary. Scrolling may continue in another
+//! scroll container.
+//! - chain: Allows scrolling to continue outside the scroll container, but prevents overscroll
+//! "bounce" effects.
+//! - contain: Prevents scrolling from continuing outside the scroll container. "Bounce" effects may
+//! still occur.
+//! - none: Prevents scrolling from continuing outside the scroll container and also prevents
+//! overscroll "bounce" effects.
+//!
 //! Grammar: [ contain | none | auto | chain ]{1,2}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overscroll-behavior
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OverscrollBehavior.
 
-/// A single non-global overscroll-behavior shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
-
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    overscroll_behavior: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    Contain
+  | None
+  | Auto
+  | Chain.
 
 pub struct Property {
-    overscroll_behavior: Value
+    overscroll_behavior: Contain | None | Auto | Chain | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained overscroll-behavior value.
+/// Supplies 2 components in grammar order.
 
-pub opaque type Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Returns the CSS keyword auto.
+/// Supplies 1 components in grammar order.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword chain.
-
-pub chain(): Value.
-
-/// Constructs one overscroll-behavior shorthand component.
-
-pub component_auto(): Component.
-
-/// Constructs one overscroll-behavior shorthand component.
-
-pub component_chain(): Component.
-
-/// Constructs one overscroll-behavior shorthand component.
-
-pub component_contain(): Component.
-
-/// Constructs one overscroll-behavior shorthand component.
-
-pub component_none(): Component.
-
-/// Returns the CSS keyword contain.
-
-pub contain(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub single(first: Component): Checked.

@@ -1,19 +1,28 @@
 [contract]
 name = "self-host-backend-ir"
 abi_major = 1
-abi_minor = 0
-status = "in-progress"
+abi_minor = 6
+status = "native-consumer-implemented-validation-pending"
 
 [implemented]
 target_neutral_ir = true
 structural_ir_validation = true
 versioned_backend_envelope = true
 artifact_parity_model = true
+canonical_semantic_hash = true
 
 [authority]
-rust_consumer = false
+rust_consumer = true
 executable_fixed_point = false
 authority_transfer = false
+
+[current_fixed_point]
+reference = "target/quality/self-host-phase4-current-stage0-54/bootstrap-artifact.json"
+candidate = "target/quality/self-host-phase4-current-stage1-55/bootstrap-artifact.json"
+evidence_artifacts = 800
+backend_artifacts = 200
+byte_identical = false
+interface_generation_complete = false
 
 [evidence_tooling]
 compiler_rust_consumer = true

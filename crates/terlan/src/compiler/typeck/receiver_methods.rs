@@ -9,9 +9,9 @@ use super::signature_loading::TypeResolutionEnvironment;
 use super::{
     collect_local_syntax_struct_fields, expand_imported_aliases_except_named,
     imported_type_aliases, normalize_trait_type_text, normalize_type_param_name,
-    parse_generic_bounds, parse_interface_signature, parse_structural_implication_bounds,
-    parse_type_expr, qualify_type_names, source_imported_module_names, FunctionBound,
-    FunctionScheme, QualifiedTypeName, Type, TypeAlias, TypeVarId,
+    parse_generic_bounds, parse_structural_implication_bounds, parse_type_expr, qualify_type_names,
+    source_imported_module_names, FunctionBound, FunctionScheme, InterfaceSignatureContext,
+    QualifiedTypeName, Type, TypeAlias, TypeVarId,
 };
 
 /// Receiver-method candidate used by expression dispatch.
@@ -33,6 +33,7 @@ pub(super) struct ReceiverMethodDispatchSignature {
     pub(super) param_names: Vec<String>,
     pub(super) param_defaults: Vec<Option<String>>,
     pub(super) receiver_mutable: bool,
+    pub(super) pure: bool,
 }
 
 /// Declaration-site receiver-method signature.
@@ -178,47 +179,47 @@ fn extend_receiver_method_dispatch_with_imported_receiver_methods(
         })
         .flat_map(|interface| {
             let global_aliases = &global_aliases;
+            let parser = std::cell::OnceCell::new();
             interface
                 .function_overloads
                 .values()
-                .flat_map(move |signatures| {
-                    signatures
-                        .iter()
-                        .filter(|signature| signature.public && signature.receiver_method)
-                        .filter_map(move |signature| {
-                            let scheme =
-                                parse_interface_signature(signature, interface, global_aliases)?;
-                            let mut params = scheme.params;
-                            if params.is_empty() {
-                                return None;
-                            }
-                            let receiver_type = params.remove(0);
-                            Some((
-                                (signature.name.clone(), params.len()),
-                                ReceiverMethodDispatchSignature {
-                                    receiver_type,
-                                    scheme: FunctionScheme {
-                                        params,
-                                        ret: scheme.ret,
-                                        generic_params: scheme.generic_params,
-                                        bounds: scheme.bounds,
-                                    },
-                                    param_names: signature
-                                        .params
-                                        .iter()
-                                        .skip(1)
-                                        .map(|param| param.name.clone())
-                                        .collect(),
-                                    param_defaults: signature
-                                        .params
-                                        .iter()
-                                        .skip(1)
-                                        .map(|param| param.default_text.clone())
-                                        .collect(),
-                                    receiver_mutable: signature.receiver_mutable,
-                                },
-                            ))
-                        })
+                .flatten()
+                .filter(|signature| signature.public && signature.receiver_method)
+                .filter_map(move |signature| {
+                    let scheme = parser
+                        .get_or_init(|| InterfaceSignatureContext::new(interface, global_aliases))
+                        .parse(signature)?;
+                    let mut params = scheme.params;
+                    if params.is_empty() {
+                        return None;
+                    }
+                    let receiver_type = params.remove(0);
+                    Some((
+                        (signature.name.clone(), params.len()),
+                        ReceiverMethodDispatchSignature {
+                            receiver_type,
+                            scheme: FunctionScheme {
+                                params,
+                                ret: scheme.ret,
+                                generic_params: scheme.generic_params,
+                                bounds: scheme.bounds,
+                            },
+                            param_names: signature
+                                .params
+                                .iter()
+                                .skip(1)
+                                .map(|param| param.name.clone())
+                                .collect(),
+                            param_defaults: signature
+                                .params
+                                .iter()
+                                .skip(1)
+                                .map(|param| param.default_text.clone())
+                                .collect(),
+                            receiver_mutable: signature.receiver_mutable,
+                            pure: signature.pure,
+                        },
+                    ))
                 })
         })
         .collect::<Vec<_>>();
@@ -324,6 +325,7 @@ pub(super) fn collect_syntax_receiver_method_dispatch_signatures(
             return_type,
             generic_params,
             generic_bounds,
+            super::declarations::declaration_has_marker_annotation(declaration, &["pure"]),
             TypeResolutionEnvironment {
                 alias_names,
                 imported_type_names,
@@ -382,6 +384,7 @@ fn extend_receiver_method_dispatch_with_imported_struct_includes(
             })
         })
         .flat_map(|(child, parent_source_name, interface)| {
+            let parser = std::cell::OnceCell::new();
             interface
                 .functions
                 .values()
@@ -394,7 +397,9 @@ fn extend_receiver_method_dispatch_with_imported_struct_includes(
                             .is_some_and(|param| param.annotation == parent_source_name)
                 })
                 .filter_map(move |signature| {
-                    let scheme = parse_interface_signature(signature, interface, global_aliases)?;
+                    let scheme = parser
+                        .get_or_init(|| InterfaceSignatureContext::new(interface, global_aliases))
+                        .parse(signature)?;
                     let mut params = scheme.params;
                     if params.is_empty() {
                         return None;
@@ -427,6 +432,7 @@ fn extend_receiver_method_dispatch_with_imported_struct_includes(
                                 .map(|param| param.default_text.clone())
                                 .collect(),
                             receiver_mutable: signature.receiver_mutable,
+                            pure: signature.pure,
                         },
                     ))
                 })
@@ -578,6 +584,7 @@ fn receiver_method_dispatch_signature(
     return_type: &SyntaxTypeOutput,
     generic_params: &[String],
     generic_bounds: &[String],
+    pure: bool,
     environment: TypeResolutionEnvironment<'_>,
 ) -> Option<ReceiverMethodDispatchSignature> {
     let TypeResolutionEnvironment {
@@ -682,5 +689,6 @@ fn receiver_method_dispatch_signature(
         param_names,
         param_defaults,
         receiver_mutable: receiver.is_mutable,
+        pure,
     })
 }

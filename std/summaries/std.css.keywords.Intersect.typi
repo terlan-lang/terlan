@@ -1,0 +1,6 @@
+//! Shared CSS keyword intersect. Generated; do not edit.
+
+module std.css.keywords.Intersect.
+
+pub type Intersect =
+    Atom["intersect"].

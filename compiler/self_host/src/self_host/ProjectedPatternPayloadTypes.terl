@@ -1,0 +1,139 @@
+/** Generic payload substitution for constructor-pattern contracts. */
+module self_host.ProjectedPatternPayloadTypes.
+
+import self_host.ProjectedPatternAuthority.{PatternConstructorContract}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+import self_host.Delimited.
+
+pub struct PatternTypeSubstitution {
+    parameter: String,
+    argument: String,
+}.
+
+pub constructor PatternTypeSubstitution {
+    (parameter: String, argument: String): PatternTypeSubstitution ->
+        PatternTypeSubstitution { parameter: parameter, argument: argument }
+}.
+
+@pure
+generic_open_at(value: String, index: Int): Int ->
+    if {
+        index == value.byte_size() -> -1;
+        value.utf8_byte_at(index) == 91 -> index;
+        true -> generic_open_at(value, index + 1)
+    }.
+
+@pure
+subject_arguments(value: String): List[String] ->
+    let text = String.trim(value);
+    let opening = generic_open_at(text, 0);
+    if {
+        opening < 0 or not String.ends_with(text, "]") -> List.new[String]();
+        true -> Delimited.split_top_level(
+            text.utf8_slice(opening + 1, text.byte_size() - opening - 2),
+            44,
+        )
+    }.
+
+@pure
+bindings(
+    parameters: List[String],
+    arguments: List[String],
+): List[PatternTypeSubstitution] ->
+    case parameters {
+        [] -> List.new[PatternTypeSubstitution]();
+        [parameter | parameter_rest] -> case arguments {
+            [] -> List.new[PatternTypeSubstitution]();
+            [argument | argument_rest] -> [PatternTypeSubstitution(
+                parameter,
+                String.trim(argument),
+            ) | bindings(parameter_rest, argument_rest)]
+        }
+    }.
+
+@pure
+replacement(name: String, values: List[PatternTypeSubstitution]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.parameter == name -> Some(value.argument);
+            true -> replacement(name, rest)
+        }
+    }.
+
+@pure
+join(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value] -> value;
+        [value | rest] -> String.concat([value, ", ", join(rest)])
+    }.
+
+@pure
+substitute_arguments(
+    values: List[String],
+    substitutions: List[PatternTypeSubstitution],
+): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [substitute(value, substitutions)
+            | substitute_arguments(rest, substitutions)]
+    }.
+
+@pure
+substitute(value: String, substitutions: List[PatternTypeSubstitution]): String ->
+    let text = String.trim(value);
+    case replacement(text, substitutions) {
+        Some(argument) -> argument;
+        None ->
+            let opening = generic_open_at(text, 0);
+            if {
+                opening < 0 or not String.ends_with(text, "]") -> text;
+                true -> String.concat([
+                    text.utf8_slice(0, opening),
+                    "[",
+                    join(substitute_arguments(
+                        Delimited.split_top_level(
+                            text.utf8_slice(opening + 1, text.byte_size() - opening - 2),
+                            44,
+                        ),
+                        substitutions,
+                    )),
+                    "]",
+                ])
+            }
+    }.
+
+@pure
+instantiate_optional(
+    value: Option[String],
+    substitutions: List[PatternTypeSubstitution],
+): Option[String] ->
+    case value {
+        None -> None;
+        Some(type_name) -> Some(substitute(type_name, substitutions))
+    }.
+
+@pure
+instantiate_at(
+    values: List[Option[String]],
+    substitutions: List[PatternTypeSubstitution],
+): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> [instantiate_optional(value, substitutions)
+            | instantiate_at(rest, substitutions)]
+    }.
+
+/** Instantiates constructor payload types from a concrete subject application. */
+@pure
+pub instantiate(
+    contract: PatternConstructorContract,
+    subject_type: String,
+): List[Option[String]] ->
+    instantiate_at(
+        contract.parameter_types,
+        bindings(contract.type_parameters, subject_arguments(subject_type)),
+    ).

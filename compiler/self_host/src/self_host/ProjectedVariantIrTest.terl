@@ -1,0 +1,36 @@
+/** Typed Core IR variant-layout lowering contracts. */
+module self_host.ProjectedVariantIrTest.
+
+import self_host.ProjectedVariantLayout.{VariantLayout, VariantLayoutPlan}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.test.Test.{assert}.
+import self_host.ProjectedVariantIr.
+
+
+@test
+valid_layout_crosses_the_core_ir_boundary(): Bool ->
+    let result = ProjectedVariantIr.lower(VariantLayoutPlan(
+        true,
+        [VariantLayout("Option", "Some", 1, ["T"], [Some("T")])],
+        List.new[String](),
+    ));
+    case result {
+        Some([value]) -> assert(
+            value.owner == "Option"
+                and value.name == "Some"
+                and value.discriminant == 1
+                and value.payload_types == [Some("T")],
+        );
+        _ -> assert(false)
+    }.
+
+
+@test
+invalid_layout_cannot_cross_the_core_ir_boundary(): Bool ->
+    assert(ProjectedVariantIr.lower(VariantLayoutPlan(
+        false,
+        List.new[VariantLayout](),
+        ["missing constructor schema"],
+    )) == None).

@@ -24,4 +24,6 @@ const server = http.createServer(async (request, response) => {
     response.writeHead(404).end();
   }
 });
-server.listen(port, '127.0.0.1');
+server.listen(port, '127.0.0.1', () => {
+  console.log(`Terlan browser server: http://127.0.0.1:${server.address().port}`);
+});

@@ -18,13 +18,15 @@ pub type InvalidSourceExport.
 pub type MissingExportDefinition.
 pub type DuplicateDeclaration.
 pub type DuplicateCallable.
+pub type TraitConformanceDiagnostic.
 
 pub type SemanticDiagnosticClass =
     InvalidDeclaration
     | InvalidSourceExport
     | MissingExportDefinition
     | DuplicateDeclaration
-    | DuplicateCallable.
+    | DuplicateCallable
+    | TraitConformanceDiagnostic.
 
 pub struct SemanticDiagnostic {
     class: self_host.SemanticSyntax.SemanticDiagnosticClass,

@@ -284,29 +284,28 @@ fn maps_symbolic_record_field_to_legal_terlan_identifier() {
     assert!(mapped.skipped.is_empty());
 }
 
-/// Verifies TypeScript callback shapes are skipped conservatively.
+/// Verifies TypeScript callbacks retain their argument and result contracts.
 ///
 /// Inputs:
 /// - A callback accepting a string and returning void.
 ///
 /// Output:
-/// - Test passes when the mapper emits a stable skip reason.
+/// - Test passes when the mapper emits Terlan function-type syntax.
 ///
 /// Transformation:
-/// - Prevents generated TypeScript bindings from emitting function-type syntax
-///   before that syntax is stable in public generated interfaces.
+/// - Keeps browser event handlers typed across generated bindings.
 #[test]
-fn skips_callback_shape_with_stable_reason() {
+fn maps_callback_shape_to_function_type() {
     let mapped = map_ts_type_to_terlan(&TsTypeRef::Callback {
         params: vec![TsTypeRef::Primitive(TsPrimitiveType::String)],
         return_type: Box::new(TsTypeRef::Primitive(TsPrimitiveType::Void)),
     });
 
-    assert!(mapped.terlan_type.is_none());
     assert_eq!(
-        mapped.skipped[0].reason,
-        "ts_bindgen.unsupported_callback_type"
+        mapped.terlan_type.as_deref(),
+        Some("(std.js.String.JsString) -> Unit")
     );
+    assert!(mapped.skipped.is_empty());
 }
 
 /// Verifies standalone nullish types are skipped.

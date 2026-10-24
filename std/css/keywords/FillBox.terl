@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword fill-box. Generated; do not edit.
+ */
+module std.css.keywords.FillBox.
+
+pub type FillBox = Atom["fill-box"].

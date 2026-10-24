@@ -21,7 +21,7 @@ pub(in crate::compiler::native_ir) fn unify(
                     Ok(())
                 }
                 Some(_) if concrete == &CoreType::Never => Ok(()),
-                Some(previous) if previous != concrete => Err(format!(
+                Some(previous) if !equivalent_concrete_types(previous, concrete) => Err(format!(
                     "error[native_ir.generic_unification]: `{name}` has incompatible concrete types `{}` and `{}`",
                     previous.contract_text(),
                     concrete.contract_text()
@@ -168,6 +168,19 @@ pub(in crate::compiler::native_ir) fn unify(
     }
 }
 
+/// Reuses ordinary unification equivalence for repeated generic witnesses.
+/// In particular, a recursive type's nominal anchor and its one-layer struct
+/// view are the same concrete type even though their CoreIR trees differ.
+fn equivalent_concrete_types(left: &CoreType, right: &CoreType) -> bool {
+    if left == right {
+        return true;
+    }
+    let mut left_to_right = HashMap::new();
+    let mut right_to_left = HashMap::new();
+    unify(left, right, &[], &mut left_to_right).is_ok()
+        && unify(right, left, &[], &mut right_to_left).is_ok()
+}
+
 pub(in crate::compiler::native_ir) fn substitute(
     ty: &CoreType,
     generic_params: &[String],
@@ -239,5 +252,40 @@ pub(in crate::compiler::native_ir) fn substitute(
                 .collect(),
         ),
         _ => ty.clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repeated_generic_witness_accepts_recursive_nominal_and_struct_views() {
+        let name = "app.Node".to_string();
+        let nominal = CoreType::Named(name.clone());
+        let structural = CoreType::Struct {
+            name,
+            fields: vec![CoreStructTypeField {
+                name: "children".to_string(),
+                ty: CoreType::List(Box::new(nominal.clone())),
+                is_private: false,
+            }],
+        };
+        let mut substitution = HashMap::new();
+        unify(
+            &CoreType::Named("T".to_string()),
+            &nominal,
+            &["T".to_string()],
+            &mut substitution,
+        )
+        .unwrap();
+        unify(
+            &CoreType::Named("T".to_string()),
+            &structural,
+            &["T".to_string()],
+            &mut substitution,
+        )
+        .unwrap();
+        assert_eq!(substitution["T"], nominal);
     }
 }

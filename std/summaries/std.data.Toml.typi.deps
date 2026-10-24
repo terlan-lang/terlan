@@ -1,11 +1,11 @@
 module=std.data.Toml
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=15334346824101605505
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9570465321904502456
 interface_hash=6986619561013070339
-interface_doc_hash=11165313373962274185
+interface_doc_hash=3627288008505036896
 deps=3
 std.core.Error=11862556521397520043
 std.core.Result=11040488711914238385
-std.data.Json=4042935175885744755
+std.data.Json=5091682687923972624

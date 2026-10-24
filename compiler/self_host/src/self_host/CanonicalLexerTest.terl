@@ -1,6 +1,8 @@
 /** Positive and negative canonical lexer contracts. */
 module self_host.CanonicalLexerTest.
 
+import std.core.String.
+
 import std.collections.List.
 import self_host.CanonicalLexer.
 

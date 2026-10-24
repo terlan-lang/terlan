@@ -1,4 +1,35 @@
 use super::*;
+use terlan_runtime_abi::NativeValue;
+
+#[test]
+fn decode_binding_retains_wire_pair_order_and_checks_its_exact_signature() {
+    assert_eq!(DECODE_COOKIE.arity, 1);
+    for (header, expected) in [
+        ("", vec![]),
+        ("; =bad; flag; good=yes", vec![("good", "yes")]),
+        (
+            "id=first; id=last; ID=upper; empty=",
+            vec![
+                ("id", "first"),
+                ("id", "last"),
+                ("ID", "upper"),
+                ("empty", ""),
+            ],
+        ),
+    ] {
+        assert_eq!(
+            (DECODE_COOKIE.invoke)(&[header.into()]).unwrap(),
+            expected.into()
+        );
+    }
+    for args in [
+        vec![],
+        vec!["a=b".into(), "c=d".into()],
+        vec![NativeValue::Unit],
+    ] {
+        assert!((DECODE_COOKIE.invoke)(&args).is_err());
+    }
+}
 
 fn arguments() -> Vec<NativeValue> {
     vec![

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword tabular-nums. Generated; do not edit.
+ */
+module std.css.keywords.TabularNums.
+
+pub type TabularNums = Atom["tabular-nums"].

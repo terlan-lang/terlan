@@ -1,10 +1,9 @@
 module=std.css.properties.Order
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17808339900834785402
-interface_hash=3490127206982037559
-interface_doc_hash=17959465641998986131
-deps=2
-std.core.Int=6981787512204747997
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=18216571295249965025
+interface_hash=13405913714020754290
+interface_doc_hash=5755732988844002750
+deps=1
+std.css.Values=330909209718432688

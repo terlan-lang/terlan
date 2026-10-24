@@ -77,11 +77,13 @@ pub sha256(text: String): String.
 
 /// Returns the lowercase SHA-256 digest of immutable binary data.
 
+@pure
 pub sha256_bytes(bytes: std.vm.Bytes): String.
 
 /// Hashes an unframed UTF-8 domain, one NUL separator, and ordered
 /// length-framed fields.
 
+@pure
 pub sha256_domain_framed(domain: String, fields: List[String]): String.
 
 /// Streams one regular file through SHA-256 without materializing it in an actor heap.
@@ -90,6 +92,7 @@ pub sha256_file(path: String): Result[String, FileError].
 
 /// Hashes ordered UTF-8 fields with unsigned 64-bit length framing.
 
+@pure
 pub sha256_framed(fields: List[String]): String.
 
 /// Streams caller-ordered labeled files using the compilation-input contract.
@@ -114,6 +117,7 @@ pub sha256_labeled_file_digests(files: List[LabeledFile]): Result[String, FileEr
 /// character in Terlan source. This preserves established release-candidate
 /// identities while keeping the byte framing inside the typed hash adapter.
 
+@pure
 pub sha256_nul_separated(fields: List[String]): String.
 
 /// Streams a deterministic digest over selected files in caller order.

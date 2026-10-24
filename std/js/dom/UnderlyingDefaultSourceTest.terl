@@ -12,9 +12,16 @@
  */
 module std.js.Dom.UnderlyingDefaultSourceTest.
 
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.UnderlyingDefaultSource.
 
 pub cancel_typechecks(
     receiver: UnderlyingDefaultSource[R],
-): std.core.Option[std.js.Dom.UnderlyingSourceCancelCallback] ->
+): Option[std.js.Dom.UnderlyingSourceCancelCallback] ->
     receiver.cancel().
+
+pub pull_typechecks(
+    receiver: UnderlyingDefaultSource[R],
+): Option[(std.js.Dom.ReadableStreamDefaultController[R]) -> std.js.PromiseLike[Unit] | Unit] ->
+    receiver.pull().

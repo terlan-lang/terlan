@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword plus-lighter. Generated; do not edit.
+ */
+module std.css.keywords.PlusLighter.
+
+pub type PlusLighter = Atom["plus-lighter"].

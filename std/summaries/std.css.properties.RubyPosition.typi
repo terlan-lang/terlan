@@ -1,60 +1,36 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-position
+//! The `ruby-position` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! position of a ruby element relative to its base element. It can be positioned over the element
+//! (`over`), under it (`under`), or to the right (`inter-character`).
+//!
+//! Initial: alternate. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - alternate: Is a keyword indicating that the ruby alternates between over and under, when there
+//! are multiple levels of annotation.
+//! - inter-character: Is a keyword indicating that the ruby annotation is placed to the right of the
+//! base text characters. This value is intended for bopomofo (zhuyin fuhao) ruby.
+//! - over: ![Over example](screen_shot_2015-03-04_at_13.02.20.png) Is a keyword indicating that the
+//! ruby has to be placed over the main text for horizontal scripts and right to it for vertical
+//! scripts.
+//! - under: ![Under example](screen_shot_2015-03-04_at_13.02.07.png) Is a keyword indicating that
+//! the ruby has to be placed under the main text for horizontal scripts and left to it for vertical
+//! scripts.
+//!
 //! Grammar: [ alternate || [ over | under ] ] | inter-character
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-position
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/ruby-position
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RubyPosition.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    ruby_position: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    ruby_position: Value
+    ruby_position: Alternate | Over | Under | InterCharacter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained ruby-position value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword alternate.
-
-pub alternate(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inter-character.
-
-pub inter_character(): Value.
-
-/// Returns the CSS keyword over.
-
-pub over(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword under.
-
-pub under(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

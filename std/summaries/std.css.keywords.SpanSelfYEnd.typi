@@ -1,0 +1,6 @@
+//! Shared CSS keyword span-self-y-end. Generated; do not edit.
+
+module std.css.keywords.SpanSelfYEnd.
+
+pub type SpanSelfYEnd =
+    Atom["span-self-y-end"].

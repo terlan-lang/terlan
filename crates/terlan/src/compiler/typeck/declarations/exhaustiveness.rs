@@ -24,7 +24,7 @@ pub(super) fn check_syntax_function_clause_exhaustiveness(
         &mut next_var,
     )
     .unwrap_or(Type::Dynamic);
-    let expanded = expand_type_aliases(&expected, aliases);
+    let expanded = expand_interface_global_aliases(&expected, aliases);
     let variants = as_exhaustive_union_variants(&expanded);
     if variants.len() <= 1 && !has_finite_fields(&expanded) {
         return;

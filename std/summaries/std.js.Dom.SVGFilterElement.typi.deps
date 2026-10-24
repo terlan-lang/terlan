@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGFilterElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=10030536157197747714
-interface_hash=13253646732051381806
-interface_doc_hash=13253646732051381806
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5292368937628313101
+interface_hash=3304209920248640426
+interface_doc_hash=3304209920248640426
 deps=0

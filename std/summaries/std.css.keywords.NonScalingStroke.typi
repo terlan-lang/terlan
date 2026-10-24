@@ -1,0 +1,6 @@
+//! Shared CSS keyword non-scaling-stroke. Generated; do not edit.
+
+module std.css.keywords.NonScalingStroke.
+
+pub type NonScalingStroke =
+    Atom["non-scaling-stroke"].

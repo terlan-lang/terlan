@@ -1,0 +1,6 @@
+//! Shared CSS keyword copy. Generated; do not edit.
+
+module std.css.keywords.Copy.
+
+pub type Copy =
+    Atom["copy"].

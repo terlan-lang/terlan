@@ -53,6 +53,12 @@ codec_binding!(
     |v: &Vec<u8>| base64::encode_url_bytes(v).into()
 );
 codec_binding!(
+    ENCODE_URL_UNPADDED_BYTES,
+    "std.encoding.base64.encode_url_unpadded_bytes",
+    Bytes,
+    |v: &Vec<u8>| base64::encode_url_unpadded_bytes(v).into()
+);
+codec_binding!(
     DECODE_TEXT,
     "std.encoding.base64.decode_text",
     String,

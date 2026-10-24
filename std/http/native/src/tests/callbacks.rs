@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::future::Future;
 use std::pin::pin;
+use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 
 use terlan_runtime_abi::{CallbackInvocation, CallbackState, NativeValue as V};
@@ -23,6 +24,22 @@ pub struct Executor<E> {
     pub cancel_error: bool,
     pub wait_error: bool,
     pub resume_error: bool,
+    pub resume_wait: Option<Wait>,
+    pub suspension: Option<Arc<Mutex<Suspension>>>,
+}
+
+#[derive(Debug, Default)]
+pub struct Suspension {
+    pub released: bool,
+    pub events: Vec<String>,
+}
+
+struct Suspended(Arc<Mutex<Suspension>>);
+
+impl Drop for Suspended {
+    fn drop(&mut self) {
+        self.0.lock().unwrap().events.push("future dropped".into());
+    }
 }
 
 impl<E> Default for Executor<E> {
@@ -35,6 +52,8 @@ impl<E> Default for Executor<E> {
             cancel_error: false,
             wait_error: false,
             resume_error: false,
+            resume_wait: None,
+            suspension: None,
         }
     }
 }
@@ -90,6 +109,9 @@ impl<E: Copy + Debug + Send> CallbackInvocation<E> for Executor<E> {
             return Err("busy".into());
         }
         self.calls.push((event, callback.cloned(), args));
+        if let Some(trace) = &self.suspension {
+            trace.lock().unwrap().events.push(format!("{event:?}"));
+        }
         self.next()
     }
 
@@ -99,7 +121,19 @@ impl<E: Copy + Debug + Send> CallbackInvocation<E> for Executor<E> {
         callback: &V,
         args: Vec<V>,
     ) -> Result<V, String> {
-        match self.invoke(event, Some(callback), args)? {
+        let state = self.invoke(event, Some(callback), args);
+        if let Some(trace) = &self.suspension {
+            let _active = Suspended(Arc::clone(trace));
+            std::future::poll_fn(|_| {
+                if trace.lock().unwrap().released {
+                    Poll::Ready(())
+                } else {
+                    Poll::Pending
+                }
+            })
+            .await;
+        }
+        match state? {
             State::Complete(value) => Ok(value),
             State::Waiting(_) => Err("still waiting".into()),
         }
@@ -110,10 +144,17 @@ impl<E: Copy + Debug + Send> CallbackInvocation<E> for Executor<E> {
         if self.resume_error {
             return Err("resume failed".into());
         }
+        if let Some(wait) = self.resume_wait.take() {
+            self.pending = Some(wait);
+            return Ok(State::Waiting(wait));
+        }
         Ok(State::Complete(V::String(text)))
     }
 
     fn cancel_pending(&mut self, reason: String) -> Result<(), String> {
+        if let Some(trace) = &self.suspension {
+            trace.lock().unwrap().events.push("cancel pending".into());
+        }
         self.pending = None;
         self.cancellations.push(reason);
         if self.cancel_error {

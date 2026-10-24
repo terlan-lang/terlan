@@ -1,0 +1,51 @@
+/** Contracts for self-hosted incremental invalidation. */
+module self_host.SelfHostIncrementalPlanTest.
+
+import self_host.SelfHostIncrementalPlan.{IncrementalUnit}.
+import self_host.SelfHostIncrementalPlan.
+import std.collections.List.
+
+@pure
+fixture(module_name: String, identity: String, dependencies: List[String]): IncrementalUnit ->
+    IncrementalUnit(module_name, identity, dependencies).
+
+@test
+pub unchanged_units_are_reused(): Bool ->
+    let units = [fixture("a", "a1", []), fixture("b", "b1", ["a"])];
+    let result = SelfHostIncrementalPlan.plan(units, units);
+    result.affected == []
+        and case result.decisions {
+            [a, b] -> not a.rebuild and a.reason == "reused"
+                and not b.rebuild and b.reason == "reused";
+            _ -> false
+        }.
+
+@test
+pub source_identity_change_rebuilds_the_unit(): Bool ->
+    let previous = [fixture("a", "a1", [])];
+    let current = [fixture("a", "a2", [])];
+    case SelfHostIncrementalPlan.plan(current, previous).decisions {
+        [a] -> a.rebuild and a.reason == "identity-changed";
+        _ -> false
+    }.
+
+@test
+pub dependency_change_propagates_to_transitive_dependents(): Bool ->
+    let previous = [
+        fixture("a", "a1", []),
+        fixture("b", "b1", ["a"]),
+        fixture("c", "c1", ["b"]),
+    ];
+    let current = [
+        fixture("c", "c1", ["b"]),
+        fixture("b", "b1", ["a"]),
+        fixture("a", "a2", []),
+    ];
+    let result = SelfHostIncrementalPlan.plan(current, previous);
+    List.length(result.affected) == 3
+        and case result.decisions {
+            [c, b, a] -> c.rebuild and c.reason == "dependency-changed"
+                and b.rebuild and b.reason == "dependency-changed"
+                and a.rebuild and a.reason == "identity-changed";
+            _ -> false
+        }.

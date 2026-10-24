@@ -1,9 +1,10 @@
 module=std.css.properties.MarkerEnd
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16103260770879532416
-interface_hash=1127118992277783096
-interface_doc_hash=1061695631317950076
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=17721541939779264260
+interface_hash=691798170084946238
+interface_doc_hash=2042773730029573184
+deps=2
+std.css.Values=330909209718432688
+std.css.keywords.None=3400229744369726074

@@ -1,9 +1,10 @@
 module=std.css.properties.HyphenateCharacter
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16628683278020749217
-interface_hash=17873286531632381308
-interface_doc_hash=16181741634677484108
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1401310204850326111
+interface_hash=7926333862695834159
+interface_doc_hash=485411689959420850
+deps=2
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722

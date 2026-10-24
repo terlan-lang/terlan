@@ -1,117 +1,32 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-clip-path
+ * The `clip-path` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property creates a
+ * clipping region that sets what part of an element should be shown. Parts that are inside the
+ * region are shown, while those outside are hidden.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: refer to reference box when specified, otherwise border-box.
+ *
+ * Keyword effects:
+ * - none: No clipping path is created.
+ *
  * Grammar: <clip-source> | [ <basic-shape> || <geometry-box> ] | none
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-clip-path
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/clip-path
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ClipPath.
 
-import type std.core.Option.
+import std.css.keywords.{BorderBox, ContentBox, FillBox, MarginBox, None, PaddingBox, StrokeBox, ViewBox}.
 
-/**
- * A nominal, specification-constrained clip-path value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    clip_path: Value,
+    clip_path: ContentBox | PaddingBox | BorderBox | MarginBox | FillBox | StrokeBox | ViewBox | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    clip_path: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword border-box.
- */
-pub border_box(): Value ->
-    Value(Token {property: "clip-path", css: "border-box"}).
-
-/**
- * Returns the CSS keyword content-box.
- */
-pub content_box(): Value ->
-    Value(Token {property: "clip-path", css: "content-box"}).
-
-/**
- * Returns the CSS keyword fill-box.
- */
-pub fill_box(): Value ->
-    Value(Token {property: "clip-path", css: "fill-box"}).
-
-/**
- * Returns the CSS keyword half-border-box.
- */
-pub half_border_box(): Value ->
-    Value(Token {property: "clip-path", css: "half-border-box"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "clip-path", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "clip-path", css: "initial"}).
-
-/**
- * Returns the CSS keyword margin-box.
- */
-pub margin_box(): Value ->
-    Value(Token {property: "clip-path", css: "margin-box"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "clip-path", css: "none"}).
-
-/**
- * Returns the CSS keyword padding-box.
- */
-pub padding_box(): Value ->
-    Value(Token {property: "clip-path", css: "padding-box"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "clip-path", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "clip-path", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword stroke-box.
- */
-pub stroke_box(): Value ->
-    Value(Token {property: "clip-path", css: "stroke-box"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "clip-path", css: "unset"}).
-
-/**
- * Returns the CSS keyword view-box.
- */
-pub view_box(): Value ->
-    Value(Token {property: "clip-path", css: "view-box"}).

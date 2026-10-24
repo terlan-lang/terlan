@@ -1,8 +1,8 @@
 module=std.js.Dom.IIRFilterOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=5094870238280307515
-interface_hash=14660565054135333405
-interface_doc_hash=14660565054135333405
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=16592399118057108196
+interface_hash=17518089841263866436
+interface_doc_hash=17518089841263866436
 deps=0

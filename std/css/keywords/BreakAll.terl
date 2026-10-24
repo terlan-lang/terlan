@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword break-all. Generated; do not edit.
+ */
+module std.css.keywords.BreakAll.
+
+pub type BreakAll = Atom["break-all"].

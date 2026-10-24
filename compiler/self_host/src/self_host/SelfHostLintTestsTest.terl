@@ -1,0 +1,79 @@
+/** Positive and negative normalized test lint contracts. */
+module self_host.SelfHostLintTestsTest.
+
+import self_host.SelfHostLintTests.{FakeTestFinding, TestDeclaration}.
+import self_host.SelfHostLintTests.
+
+@test
+pub recognizes_property_names_and_runners(): Bool ->
+    SelfHostLintTests.property_candidate_name("json_roundtrip_preserves_value")
+        and SelfHostLintTests.property_candidate_name("ordering_transitive_law_holds")
+        and not SelfHostLintTests.property_candidate_name("ordering_places_smallest_first")
+        and SelfHostLintTests.property_runner("for_all", "")
+        and SelfHostLintTests.property_runner("shrink_report", "std.test.Gen")
+        and not SelfHostLintTests.property_runner("for_all", "other.Gen").
+
+@test
+pub emits_declaration_rules_before_recursive_fake_findings(): Bool ->
+    let values = SelfHostLintTests.diagnostics(
+        "CodecTest.terl",
+        "test",
+        [TestDeclaration(
+            "surface_is_declared_roundtrip",
+            0,
+            true,
+            4,
+            3,
+            false,
+            [FakeTestFinding(0, "literal true assertion does not prove behavior")],
+        )],
+    );
+    case values {
+        [name, volume, table, property, expression] ->
+            name.rule_id == "TL0401"
+                and volume.rule_id == "TL0402"
+                and table.rule_id == "TL0403"
+                and property.rule_id == "TL0404"
+                and expression.rule_id == "TL0401";
+        _ -> false
+    }.
+
+@test
+pub accepts_focused_property_runner_test(): Bool ->
+    SelfHostLintTests.diagnostics(
+        "CodecTest.terl",
+        "test",
+        [TestDeclaration(
+            "json_roundtrip_preserves_value",
+            0,
+            true,
+            1,
+            1,
+            true,
+            [],
+        )],
+    ) == [].
+
+@test
+pub ignores_non_test_declarations_and_non_test_files(): Bool ->
+    let declaration = TestDeclaration(
+        "surface_is_declared",
+        0,
+        false,
+        9,
+        9,
+        false,
+        [FakeTestFinding(0, "identity assertion does not prove behavior")],
+    );
+    SelfHostLintTests.diagnostics("CodecTest.terl", "test", [declaration]) == []
+        and SelfHostLintTests.diagnostics(
+            "Codec.terl",
+            "test",
+            [TestDeclaration("surface_is_declared", 0, true, 9, 9, false, [])],
+        ) == [].
+
+@test
+pub recognizes_exact_test_filenames_only(): Bool ->
+    SelfHostLintTests.test_source_path("tests/CodecTest.terl")
+        and SelfHostLintTests.test_source_path("CodecTest.terli")
+        and not SelfHostLintTests.test_source_path("tests/Codec.terl").

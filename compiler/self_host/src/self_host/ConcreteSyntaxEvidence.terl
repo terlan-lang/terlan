@@ -1,6 +1,8 @@
 /** Stable preorder evidence for concrete parser-tree parity. */
 module self_host.ConcreteSyntaxEvidence.
 
+import std.core.String.
+
 import self_host.ConcreteSyntaxTree.{ConcreteSyntaxDocument, ConcreteSyntaxNode}.
 
 import std.collections.List.

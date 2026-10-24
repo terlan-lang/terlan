@@ -1,0 +1,8 @@
+module=std.css.keywords.SRGB
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=17734916968895682059
+interface_hash=2768874074634135331
+interface_doc_hash=11302347805286950465
+deps=0

@@ -215,6 +215,12 @@ pub type Hit.         // Atom["hit"]
 pub type InvalidMove. // Atom["invalid_move"]
 ```
 
+Public singleton atom aliases must have one declaration in the compilation's
+module graph. Declaring the same atom again, including with a different name or
+shorthand spelling, is a `duplicate_atom_alias` error. Import the shared alias
+instead. References to a shared alias, atom values inside unions, private aliases,
+and opaque types do not introduce another public singleton atom declaration.
+
 Generated interface summaries may still use bodyless type headers to declare a
 nominal public type without exposing a body.
 
@@ -393,34 +399,9 @@ upper-case public module namespace segments. This supports source paths such as
 `std.core.Bool` while keeping package roots lower-case.
 
 A module may expose a primary type whose name matches the final module segment,
-similar to a typed default export. The canonical public name of that type is
-its module path: `std.core.Option[T]`, `std.data.Json`, and
-`std.collections.Map[K, V]`, rather than `std.core.Option.Option[T]`,
-`std.data.Json.Json`, and `std.collections.Map.Map[K, V]`. This applies to
-qualified type annotations as well as imports. For example:
-
-```terlan
-import std.data.Json.
-import type std.collections.Map.
-
-pub encode(value: Json): std.data.Json -> value.
-pub counts(value: Map[String, Int]): std.collections.Map[String, Int] -> value.
-```
-
-The convention applies to every package, not only `std`: `polars.DataFrame`
-names the `DataFrame` type exported by that module, and `pytorch.Tensor` names
-its exported `Tensor` type. Secondary types retain their declared suffix, such
-as `std.data.Json.JsonError`, `polars.DataFrame.Series`, and
-`pytorch.Tensor.Scalar`.
-Aliases such as `import std.data.Json as Document.` bind the primary type as
-`Document`. The old repeated spelling remains accepted for compatibility;
-diagnostics and generated public signatures use the canonical shorter name.
-Types keep their owning module identity, so equally named types from different
-modules remain distinct. A module without a visible same-named type does not
-acquire a primary type merely from its path.
-
-This is semantic resolution, not parser behavior: the grammar preserves the
-path, and the resolver decides whether a primary type exists and is visible.
+similar to a typed default export. This is semantic resolution, not parser
+behavior: the grammar preserves the path, and the resolver decides whether a
+primary type exists and is visible.
 
 Selective imports preserve identifier class. A lower-case imported symbol must
 use a lower-case alias. An upper-case imported symbol must use an upper-case
@@ -744,6 +725,29 @@ Pipes prefer receiver-method resolution. `value |> method(extra)` resolves as
 `value.method(extra)` when `method` is available for `value`. If no receiver
 method exists, the pipe falls back to ordinary call insertion. If both are valid,
 semantic analysis reports an ambiguity unless the call is explicitly qualified.
+
+## Arrays and Lists
+
+`Array[N, T]` contains exactly `N` elements of type `T`. Array literals use
+`#[...]`, and bracket reads use zero-based indices:
+
+```terlan
+pub rgb(): Array[3, Int] -> #[255, 128, 0].
+
+pub red(): Int ->
+    let color = rgb();
+    color[0].
+
+pub first[const N: Int](values: Array[N, Int]): Int -> values[0].
+```
+
+The size is part of the type. A literal with a different element count cannot
+satisfy an array annotation, and constant indices outside the known bounds are
+rejected during typechecking.
+
+Use `List[T]` and `[1, 2, 3]` for portable growable collections. Explicitly
+imported array types, such as JavaScript's `std.js.Array.Array[T]`, retain their
+own identity and take precedence over the built-in name in that module.
 
 ## Runtime Boundaries
 

@@ -1,0 +1,6 @@
+//! Shared CSS keyword max-content. Generated; do not edit.
+
+module std.css.keywords.MaxContent.
+
+pub type MaxContent =
+    Atom["max-content"].

@@ -48,9 +48,8 @@ fn request_from_parts_with_metadata_preserves_lookup_pairs() {
         RequestMetadata {
             params: vec![("id".to_string(), "42".to_string())],
             query_string: ("tab=profile").into(),
-            query: vec![("tab".to_string(), "profile".to_string())],
             headers: vec![("Accept".to_string(), "application/json".to_string())],
-            cookies: vec![("theme".to_string(), "dark".to_string())],
+            cookies: vec!["theme=dark".into()],
         },
     );
 
@@ -59,12 +58,12 @@ fn request_from_parts_with_metadata_preserves_lookup_pairs() {
     assert_eq!(request.query_string(), "tab=profile");
     let parts = request.into_parts();
     assert_eq!(parts.params, [("id".into(), "42".into())]);
-    assert_eq!(parts.query, [("tab".into(), "profile".into())]);
+    assert_eq!(parts.query_string, "tab=profile");
     assert_eq!(
         parts.headers,
         [("Accept".into(), "application/json".into())]
     );
-    assert_eq!(parts.cookies, [("theme".into(), "dark".into())]);
+    assert_eq!(parts.cookies, ["theme=dark"]);
 }
 
 /// Verifies request metadata names remain text at the HTTP boundary.
@@ -88,17 +87,16 @@ fn request_metadata_names_that_look_like_atom_builders_remain_strings() {
         RequestMetadata {
             params: vec![("binary_to_atom".to_string(), "route".to_string())],
             query_string: ("list_to_atom=query").into(),
-            query: vec![("list_to_atom".to_string(), "query".to_string())],
             headers: vec![("Binary-To-Atom".to_string(), "header".to_string())],
-            cookies: vec![("list_to_atom".to_string(), "cookie".to_string())],
+            cookies: vec!["list_to_atom=cookie".into()],
         },
     );
 
     let parts = request.into_parts();
     assert_eq!(parts.params, [("binary_to_atom".into(), "route".into())]);
-    assert_eq!(parts.query, [("list_to_atom".into(), "query".into())]);
+    assert_eq!(parts.query_string, "list_to_atom=query");
     assert_eq!(parts.headers, [("Binary-To-Atom".into(), "header".into())]);
-    assert_eq!(parts.cookies, [("list_to_atom".into(), "cookie".into())]);
+    assert_eq!(parts.cookies, ["list_to_atom=cookie"]);
 }
 
 /// Verifies browser runtime asset MIME lookup stays at the HTTP adapter boundary.
@@ -161,7 +159,6 @@ fn request_converts_to_rust_http_request() {
         RequestMetadata {
             params: Vec::new(),
             query_string: ("active=true").into(),
-            query: vec![("active".to_string(), "true".to_string())],
             headers: Vec::new(),
             cookies: Vec::new(),
         },

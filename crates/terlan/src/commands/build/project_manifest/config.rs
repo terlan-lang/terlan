@@ -4,7 +4,7 @@ use super::model::{
     ProjectServerProfile, ProjectServerTls, ProjectServerTlsMode, ProjectServerTlsProvider,
     ProjectWebAssets,
 };
-use super::strings::{parse_string, parse_string_array};
+use super::strings::parse_string;
 
 /// Incremental parser state for optional `[web.assets]`.
 ///
@@ -23,38 +23,11 @@ pub(super) struct ProjectWebAssetsBuilder {
     pub(super) public_path: Option<String>,
     pub(super) inline_limit: Option<u64>,
     pub(super) rsbuild_config: Option<String>,
+    pub(super) html_template: Option<String>,
     pub(super) styles: Vec<String>,
 }
 
 impl ProjectWebAssetsBuilder {
-    /// Parses one web asset field with the manifest's path and line diagnostics.
-    pub(super) fn parse_field(
-        &mut self,
-        key: &str,
-        value: &str,
-        path: &Path,
-        line_no: usize,
-    ) -> Result<(), String> {
-        match key {
-            "styles" => self.styles = parse_string_array(value, path, line_no)?,
-            "directory" => self.directory = Some(parse_string(value, path, line_no)?),
-            "public_path" => self.public_path = Some(parse_string(value, path, line_no)?),
-            "inline_limit" => {
-                self.inline_limit = Some(parse_non_negative_u64(value, path, line_no)?)
-            }
-            "rsbuild_config" => self.rsbuild_config = Some(parse_string(value, path, line_no)?),
-            _ => {
-                return Err(format!(
-                    "{}:{}: unsupported [web.assets] key `{}`",
-                    path.display(),
-                    line_no,
-                    key
-                ))
-            }
-        }
-        Ok(())
-    }
-
     /// Finalizes parsed web asset configuration.
     ///
     /// Inputs:
@@ -74,6 +47,7 @@ impl ProjectWebAssetsBuilder {
             || self.public_path.is_some()
             || self.inline_limit.is_some()
             || self.rsbuild_config.is_some()
+            || self.html_template.is_some()
             || !self.styles.is_empty();
         if !has_any_key {
             return Ok(None);
@@ -106,11 +80,22 @@ impl ProjectWebAssetsBuilder {
                 ));
             }
         }
+        if self
+            .html_template
+            .as_deref()
+            .is_some_and(|value| value.trim().is_empty())
+        {
+            return Err(format!(
+                "{}: project manifest [web.assets] html_template cannot be empty",
+                path.display()
+            ));
+        }
         Ok(Some(ProjectWebAssets {
             directory,
             public_path: self.public_path,
             inline_limit: self.inline_limit,
             rsbuild_config: self.rsbuild_config,
+            html_template: self.html_template,
             styles: self.styles,
         }))
     }

@@ -1,72 +1,40 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `font-variant-caps` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property controls
+//! the use of alternate glyphs used for small or petite capitals or for titling.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - all-petite-caps: Enables display of petite capitals for both upper and lowercase letters
+//! (OpenType features: `c2pc`, `pcap`).
+//! - all-small-caps: Enables display of small capitals for both upper and lowercase letters
+//! (OpenType features: `c2sc`, `smcp`).
+//! - normal: Deactivates of the use of alternate glyphs.
+//! - petite-caps: Enables display of petite capitals (OpenType feature: `pcap`).
+//! - small-caps: Enables display of small capitals (OpenType feature: `smcp`). Small-caps glyphs
+//! typically use the form of uppercase letters but are displayed using the same size as lowercase
+//! letters.
+//! - titling-caps: Enables display of titling capitals (OpenType feature: `titl`). Uppercase letter
+//! glyphs are often designed for use with lowercase letters. When used in all uppercase titling
+//! sequences they can appear too strong. Titling capitals are designed specifically for this
+//! situation.
+//! - unicase: Enables display of mixture of small capitals for uppercase letters with normal
+//! lowercase letters (OpenType feature: `unic`).
+//!
+//! Grammar: normal | small-caps | all-small-caps | petite-caps | all-petite-caps | unicase |
+//! titling-caps
+//!
 //! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-caps
-//! Grammar: normal | small-caps | all-small-caps | petite-caps | all-petite-caps | unicase | titling-caps
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-variant-caps
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantCaps.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    font_variant_caps: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    font_variant_caps: Value
+    font_variant_caps: Normal | SmallCaps | AllSmallCaps | PetiteCaps | AllPetiteCaps | Unicase | TitlingCaps | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained font-variant-caps value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword all-petite-caps.
-
-pub all_petite_caps(): Value.
-
-/// Returns the CSS keyword all-small-caps.
-
-pub all_small_caps(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword petite-caps.
-
-pub petite_caps(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword small-caps.
-
-pub small_caps(): Value.
-
-/// Returns the CSS keyword titling-caps.
-
-pub titling_caps(): Value.
-
-/// Returns the CSS keyword unicase.
-
-pub unicase(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

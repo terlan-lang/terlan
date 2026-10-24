@@ -1,0 +1,285 @@
+/** Conservative normalized-expression authority for lint rule TL1002. */
+module self_host.SelfHostLintPipe.
+
+import std.collections.List.
+import std.core.String.
+
+pub struct PipeExpression {
+    kind: String,
+    text: String,
+    remote: String,
+    name: String,
+    args: List[PipeExpression],
+    receivers: List[PipeExpression],
+    local_proven: Bool,
+    has_type_args: Bool,
+    has_named_args: Bool,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+pub constructor PipeExpression {
+    (kind: String, text: String, remote: String, name: String, args: List[PipeExpression], receivers: List[PipeExpression], local_proven: Bool, has_type_args: Bool, has_named_args: Bool, start_byte: Int, end_byte: Int): PipeExpression ->
+        PipeExpression {
+            kind: kind,
+            text: text,
+            remote: remote,
+            name: name,
+            args: args,
+            receivers: receivers,
+            local_proven: local_proven,
+            has_type_args: has_type_args,
+            has_named_args: has_named_args,
+            start_byte: start_byte,
+            end_byte: end_byte,
+        }
+}.
+
+pub struct PipeCandidate {
+    valid: Bool,
+    original: String,
+    start_byte: Int,
+    end_byte: Int,
+    stages: List[String],
+}.
+
+pub constructor PipeCandidate {
+    (valid: Bool, original: String, start_byte: Int, end_byte: Int, stages: List[String]): PipeCandidate ->
+        PipeCandidate {
+            valid: valid,
+            original: original,
+            start_byte: start_byte,
+            end_byte: end_byte,
+            stages: stages,
+        }
+}.
+
+struct Rendered {
+    valid: Bool,
+    value: String,
+}.
+
+constructor Rendered {
+    (valid: Bool, value: String): Rendered -> Rendered { valid: valid, value: value }
+}.
+
+struct StageChain {
+    valid: Bool,
+    stages: List[String],
+}.
+
+constructor StageChain {
+    (valid: Bool, stages: List[String]): StageChain ->
+        StageChain { valid: valid, stages: stages }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+pub base(kind: String, text: String): PipeExpression ->
+    PipeExpression(kind, text, "", "", [], [], false, false, false, 0, 0).
+
+pub named(
+    remote: String,
+    name: String,
+    args: List[PipeExpression],
+    local_proven: Bool,
+    has_type_args: Bool,
+    has_named_args: Bool,
+): PipeExpression ->
+    PipeExpression(
+        "named-call", "", remote, name, args, [], local_proven,
+        has_type_args, has_named_args, 0, 0,
+    ).
+
+pub receiver(
+    value: PipeExpression,
+    name: String,
+    args: List[PipeExpression],
+    has_type_args: Bool,
+    has_named_args: Bool,
+): PipeExpression ->
+    PipeExpression(
+        "receiver-call", "", "", name, args, [value], false,
+        has_type_args, has_named_args, 0, 0,
+    ).
+
+simple_base(kind: String): Bool ->
+    kind == "var"
+        or kind == "atom"
+        or kind == "int"
+        or kind == "float"
+        or kind == "binary".
+
+safe_named(value: PipeExpression): Bool ->
+    value.kind == "named-call"
+        and not value.has_type_args
+        and not value.has_named_args
+        and (value.remote != "" or value.local_proven).
+
+safe_receiver(value: PipeExpression): Bool ->
+    value.kind == "receiver-call"
+        and not value.has_type_args
+        and not value.has_named_args
+        and List.length(value.receivers) == 1.
+
+render_args_at(values: List[PipeExpression], rendered: List[String]): Rendered ->
+    case values {
+        [] -> Rendered(true, String.join(rendered, ", "));
+        [value | rest] ->
+            let item = render(value);
+            if {
+                not item.valid -> item;
+                true -> render_args_at(rest, append(rendered, [item.value]))
+            }
+    }.
+
+render_args(values: List[PipeExpression]): Rendered -> render_args_at(values, []).
+
+render_named(value: PipeExpression): Rendered ->
+    let args = render_args(value.args);
+    if {
+        not safe_named(value) or not args.valid -> Rendered(false, "");
+        value.remote == "" -> Rendered(
+            true,
+            String.concat([value.name, "(", args.value, ")"]),
+        );
+        true -> Rendered(
+            true,
+            String.concat([value.remote, ".", value.name, "(", args.value, ")"]),
+        )
+    }.
+
+render_receiver(value: PipeExpression): Rendered ->
+    if {
+        not safe_receiver(value) -> Rendered(false, "");
+        true ->
+            case value.receivers {
+                [receiver_value] ->
+                    let receiver_rendered = render(receiver_value);
+                    let args = render_args(value.args);
+                    if {
+                        not receiver_rendered.valid or not args.valid -> Rendered(false, "");
+                        true -> Rendered(
+                            true,
+                            String.concat([
+                                receiver_rendered.value, ".", value.name,
+                                "(", args.value, ")",
+                            ]),
+                        )
+                    };
+                _ -> Rendered(false, "")
+            }
+    }.
+
+render(value: PipeExpression): Rendered ->
+    if {
+        simple_base(value.kind) -> Rendered(true, value.text);
+        value.kind == "named-call" -> render_named(value);
+        value.kind == "receiver-call" -> render_receiver(value);
+        true -> Rendered(false, "")
+    }.
+
+without_first[T](values: List[T]): List[T] ->
+    case values { [] -> []; [_first | rest] -> rest }.
+
+first_expression(values: List[PipeExpression]): List[PipeExpression] ->
+    case values { [] -> []; [first | _rest] -> [first] }.
+
+named_stage(value: PipeExpression, args: List[PipeExpression]): Rendered ->
+    render_named(PipeExpression(
+        value.kind, value.text, value.remote, value.name, args, value.receivers,
+        value.local_proven, value.has_type_args, value.has_named_args,
+        value.start_byte, value.end_byte,
+    )).
+
+receiver_stage(value: PipeExpression): Rendered ->
+    let args = render_args(value.args);
+    if {
+        not safe_receiver(value) or not args.valid -> Rendered(false, "");
+        true -> Rendered(
+            true,
+            String.concat([value.name, "(", args.value, ")"]),
+        )
+    }.
+
+stage_chain(value: PipeExpression): StageChain ->
+    if {
+        simple_base(value.kind) ->
+            let rendered = render(value);
+            StageChain(rendered.valid, if { rendered.valid -> [rendered.value]; true -> [] });
+        safe_named(value) ->
+            case first_expression(value.args) {
+                [] -> StageChain(false, []);
+                [first] ->
+                    let chain = stage_chain(first);
+                    let stage = named_stage(value, without_first(value.args));
+                    if {
+                        not chain.valid or not stage.valid -> StageChain(false, []);
+                        true -> StageChain(true, append(chain.stages, [stage.value]))
+                    }
+            };
+        safe_receiver(value) ->
+            case value.receivers {
+                [receiver_value] ->
+                    let chain = stage_chain(receiver_value);
+                    let stage = receiver_stage(value);
+                    if {
+                        not chain.valid or not stage.valid -> StageChain(false, []);
+                        true -> StageChain(true, append(chain.stages, [stage.value]))
+                    };
+                _ -> StageChain(false, [])
+            };
+        true -> StageChain(false, [])
+    }.
+
+/** Returns one safe nested first-argument candidate, or `valid = false`. */
+@pure
+pub candidate(value: PipeExpression): PipeCandidate ->
+    if {
+        not safe_named(value) or List.length(value.args) <= 1 ->
+            PipeCandidate(false, "", value.start_byte, value.end_byte, []);
+        true ->
+            case first_expression(value.args) {
+                [] -> PipeCandidate(false, "", value.start_byte, value.end_byte, []);
+                [first] ->
+                    let chain = stage_chain(first);
+                    let outer = named_stage(value, without_first(value.args));
+                    let original = render(value);
+                    if {
+                        not chain.valid
+                            or List.length(chain.stages) < 2
+                            or not outer.valid
+                            or not original.valid ->
+                            PipeCandidate(false, "", value.start_byte, value.end_byte, []);
+                        true -> PipeCandidate(
+                            true,
+                            original.value,
+                            value.start_byte,
+                            value.end_byte,
+                            append(chain.stages, [outer.value]),
+                        )
+                    }
+            }
+    }.
+
+/** Renders canonical continuation-indented pipe replacement text. */
+@pure
+pub replacement(candidate: PipeCandidate, indent: String): String ->
+    case candidate.stages {
+        [] -> "";
+        [first | rest] -> replacement_at(rest, indent, first)
+    }.
+
+replacement_at(stages: List[String], indent: String, output: String): String ->
+    case stages {
+        [] -> output;
+        [stage | rest] -> replacement_at(
+            rest,
+            indent,
+            String.concat([output, "\n", indent, "    |> ", stage]),
+        )
+    }.

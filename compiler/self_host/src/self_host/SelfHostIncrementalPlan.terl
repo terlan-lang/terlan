@@ -1,0 +1,153 @@
+/** Deterministic content-addressed invalidation for self-hosted package builds. */
+module self_host.SelfHostIncrementalPlan.
+
+import std.collections.List.
+import std.crypto.Hash.
+
+const UNIT_DOMAIN: String = "terlan.self-host.incremental-unit/v1".
+
+pub struct IncrementalUnit {
+    module_name: String,
+    identity: String,
+    dependencies: List[String],
+}.
+
+pub constructor IncrementalUnit {
+    (module_name: String, identity: String, dependencies: List[String]): IncrementalUnit ->
+        IncrementalUnit {
+            module_name: module_name,
+            identity: identity,
+            dependencies: dependencies,
+        }
+}.
+
+pub struct IncrementalDecision {
+    module_name: String,
+    rebuild: Bool,
+    reason: String,
+}.
+
+pub constructor IncrementalDecision {
+    (module_name: String, rebuild: Bool, reason: String): IncrementalDecision ->
+        IncrementalDecision {
+            module_name: module_name,
+            rebuild: rebuild,
+            reason: reason,
+        }
+}.
+
+pub struct IncrementalPlan {
+    affected: List[String],
+    decisions: List[self_host.SelfHostIncrementalPlan.IncrementalDecision],
+}.
+
+pub constructor IncrementalPlan {
+    (affected: List[String], decisions: List[self_host.SelfHostIncrementalPlan.IncrementalDecision]): IncrementalPlan ->
+        IncrementalPlan { affected: affected, decisions: decisions }
+}.
+
+/** Creates the stable identity used by both clean and incremental builds. */
+@pure
+pub unit(
+    module_name: String,
+    source: String,
+    interface_identity: String,
+    target: String,
+    dependencies: List[String],
+): IncrementalUnit ->
+    IncrementalUnit(
+        module_name,
+        Hash.sha256_domain_framed(
+            UNIT_DOMAIN,
+            List(module_name, source, interface_identity, target),
+        ),
+        dependencies,
+    ).
+
+@pure
+contains(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [candidate | rest] -> candidate == value or contains(value, rest)
+    }.
+
+@pure
+any_affected(dependencies: List[String], affected: List[String]): Bool ->
+    case dependencies {
+        [] -> false;
+        [dependency | rest] -> contains(dependency, affected) or any_affected(rest, affected)
+    }.
+
+@pure
+previous_identity(module_name: String, previous: List[IncrementalUnit]): String ->
+    case previous {
+        [] -> "";
+        [candidate | rest] -> if {
+            candidate.module_name == module_name -> candidate.identity;
+            true -> previous_identity(module_name, rest)
+        }
+    }.
+
+@pure
+directly_changed(value: IncrementalUnit, previous: List[IncrementalUnit]): Bool ->
+    value.identity != previous_identity(value.module_name, previous).
+
+@pure
+affected_pass(
+    current: List[IncrementalUnit],
+    previous: List[IncrementalUnit],
+    affected: List[String],
+): List[String] ->
+    case current {
+        [] -> affected;
+        [value | rest] -> if {
+            contains(value.module_name, affected) -> affected_pass(rest, previous, affected);
+            directly_changed(value, previous) or any_affected(value.dependencies, affected) ->
+                affected_pass(rest, previous, [value.module_name | affected]);
+            true -> affected_pass(rest, previous, affected)
+        }
+    }.
+
+@pure
+affected_fixed_point(
+    current: List[IncrementalUnit],
+    previous: List[IncrementalUnit],
+    affected: List[String],
+): List[String] ->
+    let next = affected_pass(current, previous, affected);
+    if {
+        List.length(next) == List.length(affected) -> next;
+        true -> affected_fixed_point(current, previous, next)
+    }.
+
+@pure
+reason(value: IncrementalUnit, previous: List[IncrementalUnit], affected: List[String]): String ->
+    if {
+        directly_changed(value, previous) -> "identity-changed";
+        any_affected(value.dependencies, affected) -> "dependency-changed";
+        true -> "reused"
+    }.
+
+@pure
+decisions(
+    current: List[IncrementalUnit],
+    previous: List[IncrementalUnit],
+    affected: List[String],
+): List[IncrementalDecision] ->
+    case current {
+        [] -> List.new[IncrementalDecision]();
+        [value | rest] -> [IncrementalDecision(
+            value.module_name,
+            contains(value.module_name, affected),
+            reason(value, previous, affected),
+        ) | decisions(rest, previous, affected)]
+    }.
+
+/** Computes the complete reverse-dependency invalidation closure. */
+@pure
+pub plan(
+    current: List[IncrementalUnit],
+    previous: List[IncrementalUnit],
+): IncrementalPlan ->
+    let affected = affected_fixed_point(current, previous, List.new[String]());
+    IncrementalPlan(affected, decisions(current, previous, affected)).

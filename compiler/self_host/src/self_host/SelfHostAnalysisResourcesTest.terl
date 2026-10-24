@@ -1,0 +1,43 @@
+/** Positive and negative contracts for compiler self-analysis resource limits. */
+module self_host.SelfHostAnalysisResourcesTest.
+
+import std.core.String.
+
+import self_host.SelfHostAnalysisResources.{AnalysisResourceLimits, AnalysisResourceUsage}.
+import self_host.SelfHostAnalysisResources.
+
+
+limits(): AnalysisResourceLimits ->
+    AnalysisResourceLimits(10, 100, 80, 60, 50, 20, 1000).
+
+@test
+pub complete_observation_within_limits_is_admitted(): Bool ->
+    SelfHostAnalysisResources.within_limits(
+        AnalysisResourceUsage(10, 99, 80, 55, 50, 12, 900),
+        limits(),
+    ).
+
+@test
+pub any_exceeded_limit_rejects_the_observation(): Bool ->
+    not SelfHostAnalysisResources.within_limits(
+        AnalysisResourceUsage(10, 101, 80, 55, 50, 12, 900),
+        limits(),
+    ).
+
+@test
+pub negative_or_missing_style_counts_are_rejected(): Bool ->
+    not SelfHostAnalysisResources.within_limits(
+        AnalysisResourceUsage(10, 99, -1, 55, 50, 12, 900),
+        limits(),
+    ).
+
+@test
+pub admitted_evidence_has_a_stable_metric_order(): Bool ->
+    let evidence = SelfHostAnalysisResources.render(
+        AnalysisResourceUsage(1, 2, 3, 4, 5, 6, 7),
+        AnalysisResourceLimits(10, 20, 30, 40, 50, 60, 70),
+    );
+    String.starts_with(
+        evidence,
+        "terlan.self-host.analysis-resources/v1\nmetric\tused\tlimit\nmodules\t1\t10\ntokens\t2\t20\n",
+    ) and String.ends_with(evidence, "native-bytes\t7\t70\n").

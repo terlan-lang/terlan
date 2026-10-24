@@ -1,6 +1,8 @@
 /** Stable semantic evidence shared by the Rust and self-hosted frontends. */
 module self_host.ProjectedSemanticEvidence.
 
+import std.core.String.
+
 
 import std.core.Option.{None, Option, Some}.
 import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
@@ -8,7 +10,9 @@ import self_host.ProjectedBindingSyntax.{BindingDeclaration, BindingDiagnostic, 
 import self_host.ProjectedCallableSyntax.{CallableDeclaration}.
 import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
 import self_host.ProjectedLocalSemanticSyntax.{LocalSemanticResult}.
+import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic}.
+import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
 
 import self_host.ProjectedCallableCatalog.
 import self_host.ProjectedLocalSemantic.
@@ -117,6 +121,63 @@ type_diagnostic_rows(values: List[TypeConstraintDiagnostic]): List[String] ->
 append_strings(left: List[String], right: List[String]): List[String] ->
     reverse_at(reverse(left), right).
 
+@pure
+signature_return_type(value: Option[ProjectedTypeNode]): Option[String] ->
+    case value { None -> Some("Dynamic"); Some(node) -> Some(node.text) }.
+
+@pure
+signature_byte_offset(value: CallableDeclaration, signature: ProjectedCallableSignature): Int ->
+    case signature.return_type {
+        None -> signature.span.start_byte;
+        Some(_return_type) -> value.byte_offset
+    }.
+
+@pure
+parameter_count(values: List[ProjectedParameterTree]): Int ->
+    case values {
+        [] -> 0;
+        [_value | rest] -> 1 + parameter_count(rest)
+    }.
+
+@pure
+signature_parameter_type(value: ProjectedParameterTree): Option[String] ->
+    case value.annotation { Some(node) -> Some(node.text); None -> None }.
+
+@pure
+signature_parameter_types(values: List[ProjectedParameterTree]): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> [signature_parameter_type(value) | signature_parameter_types(rest)]
+    }.
+
+@pure
+signature_callables(
+    values: List[CallableDeclaration],
+    signatures: List[ProjectedCallableSignature],
+): List[CallableDeclaration] ->
+    case values {
+        [] -> List.new[CallableDeclaration]();
+        [value | rest] -> case signatures {
+            [] -> [value | rest];
+            [signature | signature_rest] -> [CallableDeclaration(
+                module_name = value.module_name,
+                name = value.name,
+                arity = parameter_count(signature.parameters),
+                callable_kind = value.callable_kind,
+                type_parameters = signature.type_parameters,
+                parameter_types = signature_parameter_types(signature.parameters),
+                return_type = signature_return_type(signature.return_type),
+                byte_offset = signature_byte_offset(value, signature),
+            ) | signature_callables(rest, signature_rest)]
+        }
+    }.
+
+frontend_callables(frontend: ProjectedFrontendModule, interfaces: List[ModuleInterface]): List[CallableDeclaration] ->
+    signature_callables(
+        ProjectedCallableCatalog.build(frontend.backend, interfaces),
+        frontend.signatures.callables,
+    ).
+
 common_rows(semantics: LocalSemanticResult, callables: List[CallableDeclaration]): String ->
     String.concat(["schema terlan.self-host.semantic-common/v1\n" | append_strings(
         callable_rows(callables),
@@ -138,18 +199,34 @@ supplemental_rows(semantics: LocalSemanticResult): String ->
 /** Emits byte-comparable callable and immutable-binding semantic evidence. */
 pub common(frontend: ProjectedFrontendModule): String ->
     let interfaces = List.new[ModuleInterface]();
-    let callables = ProjectedCallableCatalog.build(frontend.backend, interfaces);
+    let callables = frontend_callables(frontend, interfaces);
     let semantics = ProjectedLocalSemantic.analyze_bodies(frontend.bodies, frontend.signatures, callables);
     common_rows(semantics, callables).
 
 /** Emits projected inferred-type facts that must remain present through bootstrap. */
 pub supplemental(frontend: ProjectedFrontendModule): String ->
-    let semantics = ProjectedLocalSemantic.analyze_frontend(frontend, List.new[ModuleInterface]());
+    let interfaces = List.new[ModuleInterface]();
+    let semantics = ProjectedLocalSemantic.analyze_bodies(
+        frontend.bodies,
+        frontend.signatures,
+        frontend_callables(frontend, interfaces),
+    );
     supplemental_rows(semantics).
+
+/** Emits separate common and supplemental documents from one semantic analysis. */
+pub common_and_supplemental(frontend: ProjectedFrontendModule): List[String] ->
+    let interfaces = List.new[ModuleInterface]();
+    let callables = frontend_callables(frontend, interfaces);
+    let semantics = ProjectedLocalSemantic.analyze_bodies(
+        frontend.bodies,
+        frontend.signatures,
+        callables,
+    );
+    [common_rows(semantics, callables), supplemental_rows(semantics)].
 
 /** Emits both semantic evidence sections from one catalog and analysis pass. */
 pub document(frontend: ProjectedFrontendModule): String ->
     let interfaces = List.new[ModuleInterface]();
-    let callables = ProjectedCallableCatalog.build(frontend.backend, interfaces);
+    let callables = frontend_callables(frontend, interfaces);
     let semantics = ProjectedLocalSemantic.analyze_bodies(frontend.bodies, frontend.signatures, callables);
     String.concat([common_rows(semantics, callables), supplemental_rows(semantics)]).

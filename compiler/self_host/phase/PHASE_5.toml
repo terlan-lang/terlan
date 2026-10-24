@@ -1,0 +1,75 @@
+schema = "terlan.self-host.phase/v1"
+phase = 5
+name = "typed-core-ir-and-lowering"
+status = "in-progress"
+
+[core_ir]
+schema = "terlan.self-host.backend/v1"
+abi_major = 1
+abi_minor = 6
+versioned_schema = true
+canonical_serializer = true
+canonical_semantic_hash = true
+target_independent_validation = true
+
+[lowering]
+typed_syntax_desugaring = "implemented-comprehension-normalization-and-complete-semantic-binder-identities-validation-pending"
+pattern_decision_trees = "implemented-complete-projected-pattern-surface-validation-pending"
+closure_and_capture = "implemented-validation-pending"
+actor_continuations = "implemented-validation-pending"
+native_capabilities = "implemented-complete-projected-surface-with-unsupported-opcode-admission-validation-pending"
+managed_layouts = "partial-list-tuple-array-record-map-and-pattern-environment-implemented-unverified"
+target_independent_optimization = "validated-current-optimizer-surface-branch-elimination-phi-rewrite-idempotence-determinism-runtime-and-cross-target"
+structured_try_regions = "implemented-nested-planning-and-abi-1.6-lowering-validation-pending"
+
+[backend]
+typed_operand_evidence = true
+rust_adapter = true
+sealed_native_image_publication = true
+native_image_validation = true
+
+[validation]
+retained_image = "target/quality/self-host-phase5-core-catalog-fast-v7/bin/terlan-self-host"
+runtime_evidence_image = "target/quality/self-host-phase5-core-catalog-fast-v6/bin/terlan-self-host"
+evidence_root = "target/quality/self-host-phase5-optimizer-runtime-v2"
+backend_equivalent_fixtures = 8
+backend_rejection_fixtures = 1
+duplicate_run_byte_determinism = true
+rust_abi_1_6_admission = true
+rust_canonical_roundtrip = true
+optimizer_idempotence = true
+optimizer_deterministic_regeneration = true
+optimizer_runtime_equivalence = true
+cross_target_equivalence = true
+
+[[gate]]
+id = "self-host-core-ir-differential-check"
+status = "maintained-corpus-contract-pass-v3-reference-regeneration-pending"
+
+[[gate]]
+id = "self-host-pattern-lowering-check"
+status = "control-flow-regression-corpus-pass-full-pattern-corpus-pending"
+
+[[gate]]
+id = "self-host-closure-lowering-check"
+status = "pending-validation"
+
+[[gate]]
+id = "self-host-actor-lowering-check"
+status = "pending-validation"
+
+[[gate]]
+id = "self-host-native-operation-lowering-check"
+status = "pending"
+
+[[gate]]
+id = "self-host-core-ir-determinism-check"
+status = "maintained-backend-corpus-pass-release-corpus-pending"
+
+[next]
+implementation = "close-remaining-typed-core-ir-and-release-corpus-validation"
+reason = "the complete current optimizer transformation surface has Terlan-owned structural, runtime, and cross-target authority evidence; unrelated Core IR validation remains pending"
+
+[[gate]]
+id = "self-host-core-optimization-equivalence-check"
+status = "pass-current-optimizer-transformation-surface"

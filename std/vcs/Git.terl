@@ -9,17 +9,11 @@ import type std.core.{Error, Result}.
  * One full revision and the exact tracked/untracked source-tree digest.
  */
 pub struct SourceTreeIdentity {
-    /**
-     * Full lowercase checked-out revision.
-     */
+    /** Full lowercase checked-out revision. */
     revision: String,
-    /**
-     * Whether tracked and nonignored untracked state is empty.
-     */
+    /** Whether tracked and nonignored untracked state is empty. */
     clean: Bool,
-    /**
-     * Domain-separated byte-exact source-tree digest.
-     */
+    /** Domain-separated byte-exact source-tree digest. */
     sha256: String,
 }.
 

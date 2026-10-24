@@ -1,99 +1,41 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ui-4/#propdef-resize
+ * The `resize` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether an
+ * element is resizable, and if so, in which directions.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - block: The element displays a mechanism for allowing the user to resize it in the _block_
+ * direction (either horizontally or vertically, depending on the `writing-mode` and `direction`
+ * value).
+ * - both: The element displays a mechanism for allowing the user to resize it, which may be resized
+ * both horizontally and vertically.
+ * - horizontal: The element displays a mechanism for allowing the user to resize it in the
+ * _horizontal_ direction.
+ * - inline: The element displays a mechanism for allowing the user to resize it in the _inline_
+ * direction (either horizontally or vertically, depending on the `writing-mode` and `direction`
+ * value).
+ * - none: The element offers no user-controllable method for resizing it.
+ * - vertical: The element displays a mechanism for allowing the user to resize it in the _vertical_
+ * direction.
+ *
  * Grammar: none | both | horizontal | vertical | block | inline
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-resize
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/resize
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Resize.
 
-import type std.core.Option.
+import std.css.keywords.{Block, Both, Horizontal, Inline, None, Vertical}.
 
-/**
- * A nominal, specification-constrained resize value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    resize: Value,
+    resize: None | Both | Horizontal | Vertical | Block | Inline | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    resize: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword block.
- */
-pub block(): Value ->
-    Value(Token {property: "resize", css: "block"}).
-
-/**
- * Returns the CSS keyword both.
- */
-pub both(): Value ->
-    Value(Token {property: "resize", css: "both"}).
-
-/**
- * Returns the CSS keyword horizontal.
- */
-pub horizontal(): Value ->
-    Value(Token {property: "resize", css: "horizontal"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "resize", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "resize", css: "initial"}).
-
-/**
- * Returns the CSS keyword inline.
- */
-pub inline(): Value ->
-    Value(Token {property: "resize", css: "inline"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "resize", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "resize", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "resize", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "resize", css: "unset"}).
-
-/**
- * Returns the CSS keyword vertical.
- */
-pub vertical(): Value ->
-    Value(Token {property: "resize", css: "vertical"}).

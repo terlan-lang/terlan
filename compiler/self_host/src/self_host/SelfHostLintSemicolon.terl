@@ -1,0 +1,193 @@
+/** Dense semicolon-chain diagnostics and safe fixes for TL0001. */
+module self_host.SelfHostLintSemicolon.
+
+import std.collections.List.
+import std.core.String.
+
+pub struct SemicolonDiagnostic {
+    path: String,
+    line: Int,
+    column: Int,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+    fix_available: Bool,
+}.
+
+pub constructor SemicolonDiagnostic {
+    (path: String, line: Int, column: Int, rule_id: String, rule_name: String, severity: String, message: String, fix_available: Bool): SemicolonDiagnostic ->
+        SemicolonDiagnostic {
+            path: path,
+            line: line,
+            column: column,
+            rule_id: rule_id,
+            rule_name: rule_name,
+            severity: severity,
+            message: message,
+            fix_available: fix_available,
+        }
+}.
+
+struct SplitResult {
+    valid: Bool,
+    parts: List[String],
+    first_column: Int,
+}.
+
+constructor SplitResult {
+    (valid: Bool, parts: List[String], first_column: Int): SplitResult ->
+        SplitResult { valid: valid, parts: parts, first_column: first_column }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+split_at(
+    line: String,
+    offset: Int,
+    start: Int,
+    in_string: Bool,
+    escaped: Bool,
+    saw_semicolon: Bool,
+    first_column: Int,
+    parts: List[String],
+): SplitResult ->
+    if {
+        offset >= String.byte_size(line) ->
+            if {
+                not saw_semicolon or in_string -> SplitResult(false, [], -1);
+                true -> SplitResult(
+                    true,
+                    append(parts, [String.utf8_slice(line, start, offset - start)]),
+                    first_column,
+                )
+            };
+        in_string and escaped -> split_at(
+            line, offset + 1, start, true, false,
+            saw_semicolon, first_column, parts,
+        );
+        in_string and String.utf8_byte_at(line, offset) == 92 -> split_at(
+            line, offset + 1, start, true, true,
+            saw_semicolon, first_column, parts,
+        );
+        in_string and String.utf8_byte_at(line, offset) == 34 -> split_at(
+            line, offset + 1, start, false, false,
+            saw_semicolon, first_column, parts,
+        );
+        in_string -> split_at(
+            line, offset + 1, start, true, false,
+            saw_semicolon, first_column, parts,
+        );
+        String.utf8_byte_at(line, offset) == 34 -> split_at(
+            line, offset + 1, start, true, false,
+            saw_semicolon, first_column, parts,
+        );
+        String.utf8_byte_at(line, offset) == 47
+            and offset + 1 < String.byte_size(line)
+            and String.utf8_byte_at(line, offset + 1) == 47 -> SplitResult(false, [], -1);
+        String.utf8_byte_at(line, offset) == 59 -> split_at(
+            line,
+            offset + 1,
+            offset + 1,
+            false,
+            false,
+            true,
+            if { first_column < 0 -> offset + 1; true -> first_column },
+            append(parts, [String.utf8_slice(line, start, offset - start)]),
+        );
+        true -> split_at(
+            line, offset + 1, start, false, false,
+            saw_semicolon, first_column, parts,
+        )
+    }.
+
+nonempty_parts(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            if { String.trim(value) == "" -> false; true -> nonempty_parts(rest) }
+    }.
+
+split(line: String): SplitResult ->
+    let trimmed = String.trim_start(line);
+    if {
+        String.starts_with(trimmed, "//") or String.starts_with(trimmed, "*") ->
+            SplitResult(false, [], -1);
+        true ->
+            let result = split_at(line, 0, 0, false, false, false, -1, []);
+            if {
+                result.valid
+                    and List.length(result.parts) > 1
+                    and nonempty_parts(result.parts) -> result;
+                true -> SplitResult(false, [], -1)
+            }
+    }.
+
+diagnostics_at(
+    lines: List[String],
+    path: String,
+    line_number: Int,
+): List[SemicolonDiagnostic] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            let remaining = diagnostics_at(rest, path, line_number + 1);
+            let result = split(line);
+            if {
+                not result.valid -> remaining;
+                true -> [SemicolonDiagnostic(
+                    path,
+                    line_number,
+                    result.first_column,
+                    "TL0001",
+                    "readability.semicolon-chain",
+                    "warning",
+                    "split dense semicolon expression chains into one expression per line",
+                    true,
+                ) | remaining]
+            }
+    }.
+
+@pure
+pub diagnostics(path: String, source: String): List[SemicolonDiagnostic] ->
+    diagnostics_at(String.split(source, "\n"), path, 1).
+
+render_parts(
+    parts: List[String],
+    indent: String,
+    output: List[String],
+): List[String] ->
+    case parts {
+        [] -> output;
+        [part] -> append(output, [String.concat([indent, String.trim(part)])]);
+        [part | rest] -> render_parts(
+            rest,
+            indent,
+            append(output, [String.concat([indent, String.trim(part), ";"])]),
+        )
+    }.
+
+fix_line(line: String): String ->
+    let result = split(line);
+    if {
+        not result.valid -> line;
+        true ->
+            let indent_length = String.byte_size(line) - String.byte_size(String.trim_start(line));
+            let indent = String.utf8_slice(line, 0, indent_length);
+            String.join(render_parts(result.parts, indent, []), "\n")
+    }.
+
+fix_lines(lines: List[String], output: List[String]): List[String] ->
+    case lines {
+        [] -> output;
+        [line | rest] -> fix_lines(rest, append(output, [fix_line(line)]))
+    }.
+
+/** Applies source-text-safe semicolon fixes while preserving terminal newlines. */
+@pure
+pub fix(source: String): String ->
+    String.join(fix_lines(String.split(source, "\n"), []), "\n").

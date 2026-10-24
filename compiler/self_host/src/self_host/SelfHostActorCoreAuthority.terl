@@ -1,0 +1,103 @@
+/** End-to-end actor authority projected directly from typed Core IR. */
+module self_host.SelfHostActorCoreAuthority.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok, Result}.
+
+import std.core.{String}.
+import self_host.SelfHostActorAuthorityProjection.{ActorFunctionAuthorityRequest}.
+import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
+import self_host.SelfHostActorCoreTraversal.{ActorDynamicCallEvidence}.
+import self_host.SelfHostActorIrSyntax.{ActorContinuation, ActorIrPlan, ActorSuspensionSite}.
+import self_host.SelfHostActorProjection.{ActorFunctionProjection, ActorModuleProjection}.
+import self_host.SelfHostIrSyntax.{IrFunction}.
+import self_host.SelfHostActorAuthorityProjection.
+import self_host.SelfHostActorCoreTraversal.
+
+
+/** Complete typed evidence required to project one function. */
+pub struct ActorCoreFunctionRequest {
+    function: IrFunction,
+    dynamic_calls: List[ActorDynamicCallEvidence],
+    suspension_profiles: List[ActorSuspensionProfile],
+}.
+
+pub constructor ActorCoreFunctionRequest {
+    (function: IrFunction, dynamic_calls: List[ActorDynamicCallEvidence], suspension_profiles: List[ActorSuspensionProfile]): ActorCoreFunctionRequest ->
+        ActorCoreFunctionRequest {
+            function: function,
+            dynamic_calls: dynamic_calls,
+            suspension_profiles: suspension_profiles,
+        }
+}.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+empty_actors(): ActorIrPlan ->
+    ActorIrPlan(List.new[ActorContinuation](), List.new[ActorSuspensionSite]()).
+
+@pure
+empty_module(): ActorModuleProjection ->
+    ActorModuleProjection(
+        true,
+        List.new[IrFunction](),
+        empty_actors(),
+        List.new[String](),
+    ).
+
+
+/**
+ * Runs canonical Core IR traversal, call/effect resolution, CFG splitting,
+ * liveness, and actor continuation planning for one function.
+ */
+@pure
+pub function(value: ActorCoreFunctionRequest): Result[ActorFunctionProjection, String] ->
+    case SelfHostActorCoreTraversal.function(value.function, value.dynamic_calls) {
+        Err(reason) -> Err(reason);
+        Ok(traversal) -> SelfHostActorAuthorityProjection.function(
+            ActorFunctionAuthorityRequest(
+                value.function,
+                traversal.observations,
+                value.suspension_profiles,
+            ),
+        )
+    }.
+
+
+@pure
+combine(current: ActorFunctionProjection, remaining: ActorModuleProjection): ActorModuleProjection ->
+    ActorModuleProjection(
+        current.valid and remaining.valid,
+        [current.function | remaining.functions],
+        ActorIrPlan(
+            append(current.actors.continuations, remaining.actors.continuations),
+            append(current.actors.suspension_sites, remaining.actors.suspension_sites),
+        ),
+        append(current.diagnostics, remaining.diagnostics),
+    ).
+
+@pure
+functions(values: List[ActorCoreFunctionRequest]): Result[ActorModuleProjection, String] ->
+    case values {
+        [] -> Ok(empty_module());
+        [value | rest] -> case function(value) {
+            Err(reason) -> Err(reason);
+            Ok(current) -> case functions(rest) {
+                Err(reason) -> Err(reason);
+                Ok(remaining) -> Ok(combine(current, remaining))
+            }
+        }
+    }.
+
+
+/** Projects an ordered typed Core IR function set and one complete actor plan. */
+@pure
+pub build_module(values: List[ActorCoreFunctionRequest]): Result[ActorModuleProjection, String] ->
+    functions(values).

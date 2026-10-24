@@ -1,0 +1,228 @@
+/** Rule-ordered diagnostics for normalized naming subjects. */
+module self_host.SelfHostLintNamingDiagnostics.
+
+import self_host.SelfHostLintNaming.
+import std.core.String.
+
+pub struct NamingSubject {
+    kind: String,
+    name: String,
+    start_byte: Int,
+}.
+
+pub constructor NamingSubject {
+    (kind: String, name: String, start_byte: Int): NamingSubject ->
+        NamingSubject { kind: kind, name: name, start_byte: start_byte }
+}.
+
+pub struct NamingDiagnostic {
+    path: String,
+    line: Int,
+    column: Int,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+    fix_available: Bool,
+}.
+
+pub constructor NamingDiagnostic {
+    (path: String, line: Int, column: Int, rule_id: String, rule_name: String, severity: String, message: String, fix_available: Bool): NamingDiagnostic ->
+        NamingDiagnostic {
+            path: path,
+            line: line,
+            column: column,
+            rule_id: rule_id,
+            rule_name: rule_name,
+            severity: severity,
+            message: message,
+            fix_available: fix_available,
+        }
+}.
+
+struct SourcePosition {
+    line: Int,
+    column: Int,
+}.
+
+constructor SourcePosition {
+    (line: Int, column: Int): SourcePosition ->
+        SourcePosition { line: line, column: column }
+}.
+
+position_at(source: String, target: Int, offset: Int, line: Int, column: Int): SourcePosition ->
+    if {
+        offset >= target or offset >= String.byte_size(source) -> SourcePosition(line, column);
+        String.utf8_byte_at(source, offset) == 10 ->
+            position_at(source, target, offset + 1, line + 1, 1);
+        true -> position_at(source, target, offset + 1, line, column + 1)
+    }.
+
+diagnostic(
+    source: String,
+    path: String,
+    subject: NamingSubject,
+    rule_id: String,
+    rule_name: String,
+    message: String,
+): NamingDiagnostic ->
+    let position = position_at(source, subject.start_byte, 0, 1, 1);
+    NamingDiagnostic(
+        path,
+        position.line,
+        position.column,
+        rule_id,
+        rule_name,
+        "warning",
+        message,
+        false,
+    ).
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+function_kind(kind: String): Bool -> kind == "function" or kind == "method".
+type_kind(kind: String): Bool ->
+    kind == "type" or kind == "struct" or kind == "constructor" or kind == "trait".
+declaration_kind(kind: String): Bool -> function_kind(kind) or type_kind(kind).
+
+function_diagnostics(
+    source: String,
+    path: String,
+    subjects: List[NamingSubject],
+): List[NamingDiagnostic] ->
+    case subjects {
+        [] -> [];
+        [subject | rest] ->
+            let remaining = function_diagnostics(source, path, rest);
+            if {
+                function_kind(subject.kind)
+                    and not SelfHostLintNaming.lower_snake_case(subject.name) ->
+                    [diagnostic(
+                        source,
+                        path,
+                        subject,
+                        "TL0301",
+                        "naming.function-snake-case",
+                        "function and method names should use lower_snake_case",
+                    ) | remaining];
+                true -> remaining
+            }
+    }.
+
+type_diagnostics(
+    source: String,
+    path: String,
+    subjects: List[NamingSubject],
+): List[NamingDiagnostic] ->
+    case subjects {
+        [] -> [];
+        [subject | rest] ->
+            let remaining = type_diagnostics(source, path, rest);
+            if {
+                type_kind(subject.kind)
+                    and not SelfHostLintNaming.upper_camel_case(subject.name) ->
+                    [diagnostic(
+                        source,
+                        path,
+                        subject,
+                        "TL0302",
+                        "naming.type-upper-camel",
+                        "type, struct, trait, and constructor names should use UpperCamelCase",
+                    ) | remaining];
+                true -> remaining
+            }
+    }.
+
+struct SeenDeclaration {
+    key: String,
+    name: String,
+}.
+
+constructor SeenDeclaration {
+    (key: String, name: String): SeenDeclaration ->
+        SeenDeclaration { key: key, name: name }
+}.
+
+seen_name(key: String, seen: List[SeenDeclaration]): String ->
+    case seen {
+        [] -> "";
+        [value | rest] -> if { value.key == key -> value.name; true -> seen_name(key, rest) }
+    }.
+
+collision_diagnostics_at(
+    source: String,
+    path: String,
+    subjects: List[NamingSubject],
+    seen: List[SeenDeclaration],
+): List[NamingDiagnostic] ->
+    case subjects {
+        [] -> [];
+        [subject | rest] ->
+            if {
+                not declaration_kind(subject.kind) ->
+                    collision_diagnostics_at(source, path, rest, seen);
+                true ->
+                    let key = SelfHostLintNaming.collision_key(subject.name);
+                    let previous = seen_name(key, seen);
+                    let updated = [SeenDeclaration(key, subject.name) | seen];
+                    let remaining = collision_diagnostics_at(source, path, rest, updated);
+                    if {
+                        previous != "" and previous != subject.name ->
+                            [diagnostic(
+                                source,
+                                path,
+                                subject,
+                                "TL0303",
+                                "naming.case-underscore-collision",
+                                "declaration names should not differ only by case or underscores",
+                            ) | remaining];
+                        true -> remaining
+                    }
+            }
+    }.
+
+binding_diagnostics(
+    source: String,
+    path: String,
+    subjects: List[NamingSubject],
+): List[NamingDiagnostic] ->
+    case subjects {
+        [] -> [];
+        [subject | rest] ->
+            let remaining = binding_diagnostics(source, path, rest);
+            if {
+                subject.kind == "binding"
+                    and not SelfHostLintNaming.lower_snake_binding(subject.name) ->
+                    [diagnostic(
+                        source,
+                        path,
+                        subject,
+                        "TL0304",
+                        "naming.binding-snake-case",
+                        "value bindings should use lower_snake_case",
+                    ) | remaining];
+                true -> remaining
+            }
+    }.
+
+/** Emits naming diagnostics in Rust rule-family order, preserving source order per rule. */
+@pure
+pub diagnostics(
+    source: String,
+    path: String,
+    subjects: List[NamingSubject],
+): List[NamingDiagnostic] ->
+    append(
+        function_diagnostics(source, path, subjects),
+        append(
+            type_diagnostics(source, path, subjects),
+            append(
+                collision_diagnostics_at(source, path, subjects, []),
+                binding_diagnostics(source, path, subjects),
+            ),
+        ),
+    ).

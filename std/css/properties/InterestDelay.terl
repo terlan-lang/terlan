@@ -1,120 +1,49 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ui-4/#propdef-interest-delay
+ * The `interest-delay` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+ * the delay between the user showing interest in an [interest
+ * invoker](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using_interest_invokers)
+ * element and the `interest` event firing, and the delay between the user losing interest and the
+ * `loseinterest` event firing.
+ *
+ * Initial: interest-delay-start: normal; interest-delay-end: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - normal: Sets the delay to the browser's default delay. This is the initial value.
+ *
  * Grammar: <'interest-delay-start'>{1,2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-interest-delay
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/interest-delay
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.InterestDelay.
 
-import std.css.Values.
-import std.css.Values.{time_css}.
+import std.css.keywords.Normal.
 
-import type std.core.Option.
-import type std.css.Values.{Time}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Time, Unset}.
 
-/**
- * A nominal, specification-constrained interest-delay value.
- */
-pub opaque type Value = Token.
+pub type Component = Normal | Time.
 
-/**
- * A single non-global interest-delay shorthand component.
- */
-pub opaque type Component = Token.
+pub opaque type Checked = {Atom["css_parts"], List[Component]}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    interest_delay: Value,
+    interest_delay: Normal | Time | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Supplies 1 components in grammar order.
  */
-pub struct OptionalProperty {
-    interest_delay: std.core.Option[Value],
-}.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Returns the CSS keyword inherit.
+ * Supplies 2 components in grammar order.
  */
-pub inherit(): Value ->
-    Value(Token {property: "interest-delay", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "interest-delay", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "interest-delay", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "interest-delay", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "interest-delay", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "interest-delay", css: "unset"}).
-
-/**
- * Constructs a interest-delay value from a typed time.
- */
-pub time(value: Time): Value ->
-    Value(Token {property: "interest-delay", css: time_css(value)}).
-
-/**
- * Constructs one interest-delay shorthand component.
- */
-pub component_normal(): Component ->
-    Component(Token {property: "interest-delay", css: "normal"}).
-
-/**
- * Constructs a interest-delay value from a typed time.
- */
-pub component_time(value: Time): Component ->
-    Component(Token {property: "interest-delay", css: time_css(value)}).
-
-/**
- * Serializes a library-owned shorthand component.
- */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
-
-/**
- * Combines 1 typed components in specification order.
- */
-pub single(first: Component): Value ->
-    Value(Token {property: "interest-delay", css: component_css(first)}).
-
-/**
- * Combines 2 typed components in specification order.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {property: "interest-delay", css: component_css(first) + " " + component_css(second)},
-    ).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

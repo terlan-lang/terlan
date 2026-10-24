@@ -116,7 +116,7 @@ pub(crate) fn core_expr_proof_coverage(
         | SyntaxExprKind::RecordConstruct
         | SyntaxExprKind::RecordAccess
         | SyntaxExprKind::RecordUpdate
-        | SyntaxExprKind::FixedArray
+        | SyntaxExprKind::Array
         | SyntaxExprKind::Index
         | SyntaxExprKind::IndexAssign
         | SyntaxExprKind::ListComprehension
@@ -243,7 +243,7 @@ pub(crate) fn core_expr_is_lean_modeled(expr: &CoreExpr) -> bool {
         CoreExpr::Binary(_) => true,
         CoreExpr::RemoteCall { .. } => remote_call_is_promoted_to_lean_covered(),
         CoreExpr::Float(_)
-        | CoreExpr::FixedArray(_)
+        | CoreExpr::Array(_)
         | CoreExpr::Index { .. }
         | CoreExpr::ListComprehension { .. }
         | CoreExpr::Let { .. }

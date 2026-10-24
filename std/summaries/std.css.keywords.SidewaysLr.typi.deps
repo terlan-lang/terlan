@@ -1,0 +1,8 @@
+module=std.css.keywords.SidewaysLr
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=13782093579934616537
+interface_hash=14627550430091442860
+interface_doc_hash=7030735066045259937
+deps=0

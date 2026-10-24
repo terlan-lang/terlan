@@ -1,131 +1,63 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `font-stretch` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property selects a
+ * normal, condensed, or expanded face from a font.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - condensed: Specifies a more condensed font face than normal, with `ultra-condensed` being the
+ * most condensed.
+ * - expanded: Specifies a more expanded font face than normal, with `ultra-expanded` being the most
+ * expanded.
+ * - extra-condensed: Specifies a more condensed font face than normal, with `ultra-condensed` being
+ * the most condensed.
+ * - extra-expanded: Specifies a more expanded font face than normal, with `ultra-expanded` being
+ * the most expanded.
+ * - normal: Specifies a normally condensed font face.
+ * - semi-condensed: Specifies a more condensed font face than normal, with `ultra-condensed` being
+ * the most condensed.
+ * - semi-expanded: Specifies a more expanded font face than normal, with `ultra-expanded` being the
+ * most expanded.
+ * - ultra-condensed: Specifies a more condensed font face than normal, with `ultra-condensed` being
+ * the most condensed.
+ * - ultra-expanded: Specifies a more expanded font face than normal, with `ultra-expanded` being
+ * the most expanded.
+ *
+ * Grammar: normal | <percentage [0,∞]> | ultra-condensed | extra-condensed | condensed |
+ * semi-condensed | semi-expanded | expanded | extra-expanded | ultra-expanded
+ *
  * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-stretch
- * Grammar: normal | <percentage [0,∞]> | ultra-condensed | extra-condensed | condensed | semi-condensed | semi-expanded | expanded | extra-expanded | ultra-expanded
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-stretch
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontStretch.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{percentage_amount, percentage_css, serialize}.
+import std.css.keywords.{Condensed, Expanded, ExtraCondensed, ExtraExpanded, Normal, SemiCondensed, SemiExpanded, UltraCondensed, UltraExpanded}.
 
 import type std.core.Option.
-import type std.css.Values.{Percentage}.
+import type std.css.Values.{Inherit, Initial, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained font-stretch value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    font_stretch: Value,
+    font_stretch: Normal | UltraCondensed | ExtraCondensed | Condensed | SemiCondensed | SemiExpanded | Expanded | ExtraExpanded | UltraExpanded | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the font-stretch percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub struct OptionalProperty {
-    font_stretch: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword condensed.
- */
-pub condensed(): Value ->
-    Value(Token {property: "font-stretch", css: "condensed"}).
-
-/**
- * Returns the CSS keyword expanded.
- */
-pub expanded(): Value ->
-    Value(Token {property: "font-stretch", css: "expanded"}).
-
-/**
- * Returns the CSS keyword extra-condensed.
- */
-pub extra_condensed(): Value ->
-    Value(Token {property: "font-stretch", css: "extra-condensed"}).
-
-/**
- * Returns the CSS keyword extra-expanded.
- */
-pub extra_expanded(): Value ->
-    Value(Token {property: "font-stretch", css: "extra-expanded"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-stretch", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-stretch", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "font-stretch", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-stretch", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-stretch", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword semi-condensed.
- */
-pub semi_condensed(): Value ->
-    Value(Token {property: "font-stretch", css: "semi-condensed"}).
-
-/**
- * Returns the CSS keyword semi-expanded.
- */
-pub semi_expanded(): Value ->
-    Value(Token {property: "font-stretch", css: "semi-expanded"}).
-
-/**
- * Returns the CSS keyword ultra-condensed.
- */
-pub ultra_condensed(): Value ->
-    Value(Token {property: "font-stretch", css: "ultra-condensed"}).
-
-/**
- * Returns the CSS keyword ultra-expanded.
- */
-pub ultra_expanded(): Value ->
-    Value(Token {property: "font-stretch", css: "ultra-expanded"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-stretch", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a font-stretch value.
- */
-pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "font-stretch", css: std.css.Values.percentage_css(value)}));
-        false -> None
+pub percentage(value: Percentage): Option[Checked] ->
+    case percentage_amount(value) >= 0 {
+        true -> Some(Checked(serialize("font-stretch", percentage_css(value))));
+        false -> Absent
     }.

@@ -1,48 +1,26 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-inline-start-color
+//! The `border-inline-start-color` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! defines the color of the logical inline start border of an element, which maps to a physical
+//! border color depending on the element's writing mode, directionality, and text orientation. It
+//! corresponds to the `border-top-color`, `border-right-color`, `border-bottom-color`, or
+//! `border-left-color` property depending on the values defined for `writing-mode`, `direction`, and
+//! `text-orientation`.
+//!
+//! Initial: currentcolor. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <color> | <image-1D>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-inline-start-color
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-inline-start-color
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderInlineStartColor.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    border_inline_start_color: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    border_inline_start_color: Value
+    border_inline_start_color: std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained border-inline-start-color value.
-
-pub opaque type Value.
-
-/// Constructs a border-inline-start-color value from a typed color.
-
-pub color(value: std.css.Values.Color): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

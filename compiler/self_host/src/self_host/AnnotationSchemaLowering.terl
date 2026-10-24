@@ -1,6 +1,8 @@
 /** Self-hosted lowering for annotation schema entries and option blocks. */
 module self_host.AnnotationSchemaLowering.
 
+import std.core.String.
+
 import self_host.AnnotationSchemaSyntax.{AnnotationSchemaEntrySyntax, AnnotationSchemaSyntax}.
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.Syntax.{AnnotationSchemaDeclaration}.

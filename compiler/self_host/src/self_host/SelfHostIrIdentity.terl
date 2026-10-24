@@ -1,0 +1,23 @@
+/** Canonical semantic identity for the versioned self-hosted Core IR. */
+module self_host.SelfHostIrIdentity.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import self_host.SelfHostIrJson.
+import self_host.SelfHostIrSyntax.{BackendEnvelope}.
+
+const DOMAIN: String = "terlan.self-host.core-ir/v1".
+
+/** Hashes canonical Core IR text with unambiguous field framing. */
+@pure
+pub canonical_hash(canonical: String): String ->
+    Hash.sha256_domain_framed(DOMAIN, List(canonical)).
+
+/** Returns semantic identity only after the envelope has canonical encoding. */
+pub hash(envelope: BackendEnvelope): Option[String] ->
+    case SelfHostIrJson.encode(envelope) {
+        Ok(canonical) -> Some(canonical_hash(canonical));
+        Err(_reason) -> None
+    }.

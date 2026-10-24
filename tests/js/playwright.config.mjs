@@ -1,6 +1,5 @@
 import { defineConfig } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
-import { url } from './server-config.mjs';
 
 const output = fileURLToPath(new URL('../../target/js-browser/', import.meta.url));
 
@@ -15,13 +14,12 @@ export default defineConfig({
   outputDir: `${output}/test-results`,
   reporter: [['list'], ['json', { outputFile: `${output}/results.json` }]],
   use: {
-    baseURL: url,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   webServer: {
     command: 'node server.mjs',
-    url,
+    wait: { stdout: /Terlan browser server: (?<terlan_js_base_url>http:\/\/127\.0\.0\.1:\d+)/ },
     reuseExistingServer: false,
     timeout: 15_000,
   },

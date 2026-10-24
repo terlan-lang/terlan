@@ -1,0 +1,51 @@
+/** Constructor-chain mandatory elimination contracts. */
+module self_host.ProjectedConstructorChainIrPlanTest.
+
+import self_host.ProjectedExpressionIrPlan.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedTypeConstraintSyntax.InferredTypeFact.
+import self_host.SelfHostIrSyntax.IrParameter.
+import self_host.SelfHostSemanticIrSyntax.SemanticInstructionPlan.
+import std.collections.List.
+import std.core.Option.Some.
+
+contains_opcode(value: String, instructions: List[SemanticInstructionPlan]): Bool ->
+    case instructions {
+        [] -> false;
+        [instruction | rest] -> instruction.opcode == value or contains_opcode(value, rest)
+    }.
+
+@test
+pub constructor_chain_sequences_base_and_returns_record_value(): Bool ->
+    let expression = ProjectedExpressionNode(
+        "constructor-chain",
+        "with",
+        10,
+        35,
+        [
+            ProjectedExpressionNode(
+                "resolved-constructor-call",
+                "User",
+                10,
+                20,
+                [
+                    ProjectedExpressionNode("constructor", "User", 10, 14, []),
+                    ProjectedExpressionNode("call-arguments", "", 14, 20, []),
+                ],
+            ),
+            ProjectedExpressionNode("identifier", "admin", 26, 31, []),
+        ],
+    );
+    let plan = ProjectedExpressionIrPlan.lower_expression(
+        expression,
+        0,
+        [
+            InferredTypeFact(1, Some("User"), 10),
+            InferredTypeFact(4, Some("Admin"), 26),
+        ],
+        [IrParameter("admin", "Admin")],
+    );
+    plan.result == "admin"
+        and plan.result_type == Some("Admin")
+        and contains_opcode("put-variant", plan.instructions)
+        and not contains_opcode("unsupported-constructor-chain", plan.instructions).

@@ -860,3 +860,49 @@ pub router(): Router ->
 
     fs::remove_dir_all(dir).expect("cleanup");
 }
+
+#[test]
+fn suspendable_dispatch_reserves_reload_before_manifest_fallback() {
+    run_async_serve_test(async {
+        let dir = temp_dir("suspendable_reserved_reload");
+        let web_root = dir.join("web");
+        write_valid_package(&web_root);
+        fs::write(
+            web_root.join("manifest.json"),
+            r#"{
+                "schema": "terlan-web-build-v1",
+                "target_profile": "js.browser",
+                "source_js_manifest": "../js/manifest.json",
+                "index": "index.html",
+                "handlers": [{
+                    "method": "GET", "route": "*", "module": "app.Missing",
+                    "function": "fallback", "arity": 1
+                }],
+                "assets": []
+            }"#,
+        )
+        .unwrap();
+        for (method, status, body) in [
+            ("GET", 200, ": connected\n\n"),
+            ("HEAD", 200, ""),
+            ("POST", 405, "method not allowed"),
+        ] {
+            // Use production dispatch: the development test wrapper handles
+            // reload itself and would conceal fallback ordering regressions.
+            let response = super::super::hyper_server::handle_request(
+                typed_request(method, RELOAD_ENDPOINT, ""),
+                &web_root,
+                1024,
+                None,
+            )
+            .await;
+            assert_eq!(response.status().as_u16(), status);
+            let bytes = http_body_util::BodyExt::collect(response.into_body())
+                .await
+                .unwrap()
+                .to_bytes();
+            assert_eq!(bytes.as_ref(), body.as_bytes());
+        }
+        fs::remove_dir_all(dir).unwrap();
+    });
+}

@@ -1,8 +1,8 @@
 module=std.js.Dom.BroadcastChannelEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=4388599322741688112
-interface_hash=2973891015657321195
-interface_doc_hash=2973891015657321195
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4456816241795757475
+interface_hash=8586908965139216043
+interface_doc_hash=8586908965139216043
 deps=0

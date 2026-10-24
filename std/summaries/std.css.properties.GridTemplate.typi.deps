@@ -1,9 +1,10 @@
 module=std.css.properties.GridTemplate
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=156428922425126242
-interface_hash=4324402765237516901
-interface_doc_hash=490028660569226716
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=7132277600793480096
+interface_hash=11752067875767995002
+interface_doc_hash=4864412947021873092
+deps=2
+std.css.Values=330909209718432688
+std.css.keywords.None=3400229744369726074

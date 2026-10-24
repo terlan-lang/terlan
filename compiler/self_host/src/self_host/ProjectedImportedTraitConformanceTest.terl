@@ -1,0 +1,75 @@
+/** Imported trait contract conformance through interface v3. */
+module self_host.ProjectedImportedTraitConformanceTest.
+
+import self_host.CanonicalLexer.
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.ProjectedFrontend.
+import self_host.ProjectedSemanticAnalysis.
+import self_host.Syntax.{MethodDeclaration, SyntaxSpan, TraitDeclaration}.
+import std.core.Option.{None, Some}.
+import std.core.String.
+
+named_interface(): ModuleInterface -> ModuleInterface(
+    "terlan.self-host.interface/v4",
+    "library.Named",
+    [
+        ExportedSymbol("Named", -1, TraitDeclaration, None, false, ["Value"], [], None, SyntaxSpan(0, 0)),
+        ExportedSymbol(
+            "name",
+            1,
+            MethodDeclaration,
+            Some("Named"),
+            false,
+            ["Value"],
+            [Some("Value")],
+            Some("String"),
+            SyntaxSpan(0, 0),
+        ),
+    ],
+).
+
+analyze(source: String): self_host.ProjectedSemanticSyntax.ProjectedSemanticModule ->
+    let lexed = CanonicalLexer.lex(source);
+    ProjectedSemanticAnalysis.analyze_with_interfaces(
+        ProjectedFrontend.compile(source, lexed.tokens),
+        ["Named", "library.Named.Named"],
+        [named_interface()],
+    ).
+
+matching_imported_impl_passes(): Bool ->
+    analyze(String.concat([
+        "module test.NamedUser.\n",
+        "import library.Named.{Named}.\n",
+        "pub struct User { name: String }.\n",
+        "impl Named[User] for User { name(value: User): String -> value.name. }.\n",
+    ])).expression_typecheck.valid.
+
+missing_imported_method_fails(): Bool ->
+    not analyze(String.concat([
+        "module test.MissingNamedUser.\n",
+        "import library.Named.{Named}.\n",
+        "pub struct User { name: String }.\n",
+        "impl Named[User] for User { }.\n",
+    ])).expression_typecheck.valid.
+
+wrong_imported_signature_fails(): Bool ->
+    not analyze(String.concat([
+        "module test.WrongNamedUser.\n",
+        "import library.Named.{Named}.\n",
+        "pub struct User { name: String }.\n",
+        "impl Named[User] for User { name(value: User, extra: Int): String -> value.name. }.\n",
+    ])).expression_typecheck.valid.
+
+wrong_imported_trait_arity_fails(): Bool ->
+    not analyze(String.concat([
+        "module test.WrongTraitArity.\n",
+        "import library.Named.{Named}.\n",
+        "pub struct User { name: String }.\n",
+        "impl Named for User { name(value: User): String -> value.name. }.\n",
+    ])).expression_typecheck.valid.
+
+pub self_test(): Bool ->
+    matching_imported_impl_passes()
+        and missing_imported_method_fails()
+        and wrong_imported_signature_fails()
+        and wrong_imported_trait_arity_fails().

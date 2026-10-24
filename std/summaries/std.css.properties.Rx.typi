@@ -1,56 +1,26 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/svgwg/svg2-draft/geometry.html#RxProperty
+//! The `rx` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the x-axis, or
+//! horizontal, radius of an SVG `ellipse` and the horizontal curve of the corners of an SVG `rect`
+//! rectangle. If present, it overrides the shape's `rx` attribute.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: refer to the width of the current SVG viewport.
+//!
+//! Keyword effects:
+//! - auto: When set or defaulting to `auto`, the `rx` value equals the absolute length value used
+//! for `ry`. If both `rx` and `ry` have a computed value of `auto`, the used value is `0`.
+//!
 //! Grammar: <length-percentage> | auto
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/geometry.html#RxProperty
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/rx
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Rx.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    rx: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    rx: Value
+    rx: Auto | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained rx value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a rx value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Constructs a rx value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

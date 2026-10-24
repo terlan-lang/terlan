@@ -1,81 +1,38 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-will-change-1/#propdef-will-change
+ * The `will-change` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property enables
+ * optimizing animations by providing a rendering hint to a browser about how an element is expected
+ * to change.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: Indicates that the browser applies whatever heuristics and optimizations it normally
+ * does. This is the default value.
+ * - contents: Specifies that the element's contents, including all the elements in its subtree, are
+ * expected to change in the near future, indicating the browser can cache the element less
+ * aggressively.
+ * - scroll-position: Indicates that the author expects to animate or change the scroll position of
+ * the element in the near future.
+ *
  * Grammar: auto | <animateable-feature>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-will-change-1/#propdef-will-change
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.WillChange.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, Contents, ScrollPosition}.
 
-/**
- * A nominal, specification-constrained will-change value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    will_change: Value,
+    will_change: Auto | ScrollPosition | Contents | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    will_change: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "will-change", css: "auto"}).
-
-/**
- * Returns the CSS keyword contents.
- */
-pub contents(): Value ->
-    Value(Token {property: "will-change", css: "contents"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "will-change", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "will-change", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "will-change", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "will-change", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword scroll-position.
- */
-pub scroll_position(): Value ->
-    Value(Token {property: "will-change", css: "scroll-position"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "will-change", css: "unset"}).

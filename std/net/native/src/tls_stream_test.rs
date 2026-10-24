@@ -18,6 +18,7 @@ struct Peer {
     write_limit: usize,
     eof: bool,
     shutdown: bool,
+    shutdown_error: Option<io::ErrorKind>,
     dropped: Rc<Cell<bool>>,
 }
 
@@ -70,8 +71,12 @@ impl Write for Transport {
 
 impl ShutdownWrite for Transport {
     fn shutdown_write(&mut self) -> io::Result<()> {
-        self.0.borrow_mut().shutdown = true;
-        Ok(())
+        let mut peer = self.0.borrow_mut();
+        peer.shutdown = true;
+        match peer.shutdown_error {
+            Some(error) => Err(error.into()),
+            None => Ok(()),
+        }
     }
 }
 
@@ -101,6 +106,7 @@ fn fixture() -> (Arc<ServerConfig>, Transport) {
         write_limit: usize::MAX,
         eof: false,
         shutdown: false,
+        shutdown_error: None,
         dropped: Rc::new(Cell::new(false)),
     };
     (Arc::new(config), Transport(Rc::new(RefCell::new(peer))))
@@ -394,4 +400,29 @@ fn pending_handshake_flush_can_resume_and_write_or_shutdown_flush_errors_propaga
         server.write(b"no capacity").unwrap_err().kind(),
         io::ErrorKind::WriteZero
     );
+}
+
+#[test]
+fn already_closed_write_half_is_terminal_but_tls_flush_errors_are_not_hidden() {
+    for error in [io::ErrorKind::NotConnected, io::ErrorKind::BrokenPipe] {
+        let (mut server, peer) = connected();
+        peer.borrow_mut().shutdown_error = Some(error);
+        let result = nonblocking(server.poll_shutdown());
+        if error == io::ErrorKind::NotConnected {
+            result.unwrap();
+        } else {
+            assert_eq!(result.unwrap_err().kind(), error);
+        }
+        assert!(peer.borrow().shutdown);
+        assert_eq!(peer.borrow_mut().client.reader().read(&mut [0]).unwrap(), 0);
+    }
+    let (mut server, peer) = connected();
+    peer.borrow_mut()
+        .writes
+        .push_back(io::ErrorKind::NotConnected);
+    assert_eq!(
+        nonblocking(server.poll_shutdown()).unwrap_err().kind(),
+        io::ErrorKind::NotConnected
+    );
+    assert!(!peer.borrow().shutdown);
 }

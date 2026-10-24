@@ -1,0 +1,19 @@
+/** Semantic-event binding identities cover every projected binder form. */
+module self_host.ProjectedSemanticPatternBindingsTest.
+
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedSemanticEventAdapter.
+
+node(kind: String, text: String): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, 0, text.byte_size(), []).
+
+@test
+pub plain_typed_and_capture_binders_have_canonical_semantic_names(): Bool ->
+    ProjectedSemanticEventAdapter.pattern_binding_name(node("binding-pattern", "plain")) == "plain"
+        and ProjectedSemanticEventAdapter.pattern_binding_name(node("typed-pattern", "typed: Int")) == "typed"
+        and ProjectedSemanticEventAdapter.pattern_binding_name(node("string-capture-segment", "capture: Bool")) == "capture".
+
+@test
+pub wildcard_and_nonbinding_nodes_have_no_semantic_binding_name(): Bool ->
+    ProjectedSemanticEventAdapter.pattern_binding_name(node("typed-pattern", "_: Int")) == "_"
+        and ProjectedSemanticEventAdapter.pattern_binding_name(node("literal-pattern", "42")) == "".

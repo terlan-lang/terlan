@@ -13,6 +13,10 @@ use hyper::service::service_fn;
 
 #[test]
 fn http2_limits_bound_streams_flow_headers_frames_and_host_tasks() {
+    assert_eq!(
+        task_capacity_error().to_string(),
+        "error[vm.http2.stream_pressure]: owner-local HTTP/2 task limit exceeded"
+    );
     assert_eq!(MAX_CONCURRENT_STREAMS, 256);
     assert_eq!(MAX_PENDING_RESET_STREAMS, 64);
     const { assert!(INITIAL_STREAM_WINDOW_BYTES < INITIAL_CONNECTION_WINDOW_BYTES) };

@@ -119,6 +119,15 @@ pub(super) enum BuildOneError {
     Exit(ExitCode),
 }
 
+impl std::fmt::Display for BuildOneError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Message(message) => formatter.write_str(message),
+            Self::Exit(code) => write!(formatter, "compiler exited with {code:?}"),
+        }
+    }
+}
+
 impl BuildOneError {
     /// Converts a single-source build error into the command exit code.
     ///

@@ -14,19 +14,15 @@ pub fn query_pairs(query: &str) -> Vec<(String, String)> {
         .collect()
 }
 
-use terlan_runtime_abi::{native_record, BoundaryError, ErrorDomain, NativeBinding, NativeValue};
+use terlan_runtime_abi::{
+    native_binding, native_record, BoundaryError, ErrorDomain, NativeBinding, NativeValue,
+};
 use url::Url;
 
 /// Exposes the same maintained query decoder to ordinary Terlan package code.
-pub const QUERY_PAIRS: NativeBinding = NativeBinding {
-    operation: "std.net.uri.query_pairs",
-    arity: 1,
-    invoke: |arguments| {
-        use terlan_runtime_abi::FromNativeValue;
-        QUERY_PAIRS.validate_arity(arguments.len())?;
-        Ok(query_pairs(<&str>::from_native(&arguments[0])?).into())
-    },
-};
+pub const QUERY_PAIRS: NativeBinding = native_binding!("std.net.uri.query_pairs", |query: &str| {
+    Ok(query_pairs(query))
+});
 
 /// Maintained URL parsing for the Terlan URI implementation.
 pub const PARSE: NativeBinding = NativeBinding {

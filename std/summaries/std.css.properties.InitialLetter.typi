@@ -1,52 +1,32 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-initial-letter
+//! The `initial-letter` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! size and sink for dropped, raised, and sunken initial letters. This property applies to
+//! `::first-letter` pseudo-elements and inline-level first children of block containers.
+//!
+//! Initial: normal. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - normal: No special initial-letter effect. Text behaves as normal.
+//!
 //! Grammar: normal | <number [1,∞]> <integer [1,∞]> | <number [1,∞]> && [ drop | raise ]?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-initial-letter
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/initial-letter
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.InitialLetter.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    initial_letter: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    initial_letter: Value
+    initial_letter: Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained initial-letter value.
+/// Checks the initial-letter number range. Returns Some when amount >= 1; otherwise returns None.
 
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Checks the specification range and constructs a initial-letter value.
-
-pub number(value: Float): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub number(value: Float): Option[Checked].

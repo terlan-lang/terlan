@@ -1,0 +1,299 @@
+/** Strict persisted finite-target evidence for opaque actor call-value sites. */
+module self_host.SelfHostActorDynamicEvidenceCatalog.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, Int, String}.
+import std.data.Json.
+import std.io.File.
+
+import type std.data.Json.{Json}.
+import self_host.SelfHostActorBackendCompile.{ActorFunctionCompileEvidence}.
+import self_host.SelfHostActorCoreTraversal.{ActorDynamicCallEvidence}.
+import self_host.SelfHostActorEffects.{ActorCallableIdentity}.
+
+
+@pure
+field(value: Json, name: String): Result[Json, String] ->
+    case value.get(name) {
+        Err(_) -> Err(String.concat(["actor dynamic evidence field is missing: ", name]));
+        Ok(found) -> Ok(found)
+    }.
+
+@pure
+string_field(value: Json, name: String): Result[String, String] ->
+    case field(value, name) {
+        Err(reason) -> Err(reason);
+        Ok(found) -> case found.as_string() {
+            Err(_) -> Err(String.concat(["actor dynamic evidence field is not a string: ", name]));
+            Ok(text) -> Ok(text)
+        }
+    }.
+
+@pure
+int_field(value: Json, name: String): Result[Int, String] ->
+    case field(value, name) {
+        Err(reason) -> Err(reason);
+        Ok(found) -> case found.as_int() {
+            Err(_) -> Err(String.concat(["actor dynamic evidence field is not an integer: ", name]));
+            Ok(number) -> Ok(number)
+        }
+    }.
+
+@pure
+same_target(left: ActorCallableIdentity, right: ActorCallableIdentity): Bool ->
+    left.module_name == right.module_name
+        and left.function_name == right.function_name
+        and left.arity == right.arity.
+
+@pure
+target_present(value: ActorCallableIdentity, values: List[ActorCallableIdentity]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same_target(value, current) or target_present(value, rest)
+    }.
+
+@pure
+target(value: Json): Result[ActorCallableIdentity, String] ->
+    let Ok(module_name) <- string_field(value, "module_name") else {
+        Err(reason) -> Err(reason)
+    };
+    let Ok(function_name) <- string_field(value, "function_name") else {
+        Err(reason) -> Err(reason)
+    };
+    let Ok(arity) <- int_field(value, "arity") else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        module_name == "" -> Err("actor dynamic target has no module name");
+        function_name == "" -> Err("actor dynamic target has no function name");
+        arity < 0 -> Err("actor dynamic target has a negative arity");
+        true -> Ok(ActorCallableIdentity(module_name, function_name, arity))
+    }.
+
+@pure
+targets_at(value: Json, index: Int, length: Int, output: List[ActorCallableIdentity]): Result[List[ActorCallableIdentity], String] ->
+    if {
+        index == length -> Ok(output);
+        true -> case value.at(index) {
+            Err(_) -> Err("actor dynamic target index is unavailable");
+            Ok(item) -> case target(item) {
+                Err(reason) -> Err(reason);
+                Ok(decoded) -> if {
+                    target_present(decoded, output) -> Err("actor dynamic call contains a duplicate target");
+                    true -> targets_at(value, index + 1, length, [decoded | output])
+                }
+            }
+        }
+    }.
+
+@pure
+reverse_targets(values: List[ActorCallableIdentity], output: List[ActorCallableIdentity]): List[ActorCallableIdentity] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_targets(rest, [value | output])
+    }.
+
+@pure
+targets(value: Json): Result[List[ActorCallableIdentity], String] ->
+    case value.length() {
+        Err(_) -> Err("actor dynamic targets field is not an array");
+        Ok(0) -> Err("actor dynamic call has no finite targets");
+        Ok(length) -> case targets_at(value, 0, length, List.new[ActorCallableIdentity]()) {
+            Err(reason) -> Err(reason);
+            Ok(reversed) -> Ok(reverse_targets(reversed, List.new[ActorCallableIdentity]()))
+        }
+    }.
+
+@pure
+dynamic_call(value: Json): Result[ActorDynamicCallEvidence, String] ->
+    let Ok(result_name) <- string_field(value, "result_name") else {
+        Err(reason) -> Err(reason)
+    };
+    let Ok(arity) <- int_field(value, "arity") else {
+        Err(reason) -> Err(reason)
+    };
+    let Ok(target_values) <- field(value, "targets") else {
+        Err(reason) -> Err(reason)
+    };
+    let Ok(decoded_targets) <- targets(target_values) else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        result_name == "" -> Err("actor dynamic call has no result name");
+        arity < 0 -> Err("actor dynamic call has a negative arity");
+        true -> Ok(ActorDynamicCallEvidence(
+            result_name,
+            arity,
+            decoded_targets,
+            false,
+            None,
+        ))
+    }.
+
+@pure
+same_call(left: ActorDynamicCallEvidence, right: ActorDynamicCallEvidence): Bool ->
+    left.result_name == right.result_name.
+
+@pure
+call_present(value: ActorDynamicCallEvidence, values: List[ActorDynamicCallEvidence]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same_call(value, current) or call_present(value, rest)
+    }.
+
+@pure
+calls_at(value: Json, index: Int, length: Int, output: List[ActorDynamicCallEvidence]): Result[List[ActorDynamicCallEvidence], String] ->
+    if {
+        index == length -> Ok(output);
+        true -> case value.at(index) {
+            Err(_) -> Err("actor dynamic call index is unavailable");
+            Ok(item) -> case dynamic_call(item) {
+                Err(reason) -> Err(reason);
+                Ok(decoded) -> if {
+                    call_present(decoded, output) -> Err("actor function evidence contains a duplicate result name");
+                    true -> calls_at(value, index + 1, length, [decoded | output])
+                }
+            }
+        }
+    }.
+
+@pure
+reverse_calls(values: List[ActorDynamicCallEvidence], output: List[ActorDynamicCallEvidence]): List[ActorDynamicCallEvidence] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_calls(rest, [value | output])
+    }.
+
+@pure
+calls(value: Json): Result[List[ActorDynamicCallEvidence], String] ->
+    case value.length() {
+        Err(_) -> Err("actor dynamic calls field is not an array");
+        Ok(0) -> Err("actor function evidence has no dynamic calls");
+        Ok(length) -> case calls_at(value, 0, length, List.new[ActorDynamicCallEvidence]()) {
+            Err(reason) -> Err(reason);
+            Ok(reversed) -> Ok(reverse_calls(reversed, List.new[ActorDynamicCallEvidence]()))
+        }
+    }.
+
+@pure
+function_evidence(value: Json): Result[ActorFunctionCompileEvidence, String] ->
+    let Ok(module_name) <- string_field(value, "module_name") else {
+        Err(reason) -> Err(reason)
+    };
+    let Ok(function_name) <- string_field(value, "function_name") else {
+        Err(reason) -> Err(reason)
+    };
+    let Ok(arity) <- int_field(value, "arity") else {
+        Err(reason) -> Err(reason)
+    };
+    let Ok(call_values) <- field(value, "dynamic_calls") else {
+        Err(reason) -> Err(reason)
+    };
+    let Ok(decoded_calls) <- calls(call_values) else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        module_name == "" -> Err("actor function evidence has no module name");
+        function_name == "" -> Err("actor function evidence has no function name");
+        arity < 0 -> Err("actor function evidence has a negative arity");
+        true -> Ok(ActorFunctionCompileEvidence(module_name, function_name, arity, decoded_calls))
+    }.
+
+@pure
+same_function(left: ActorFunctionCompileEvidence, right: ActorFunctionCompileEvidence): Bool ->
+    left.module_name == right.module_name
+        and left.function_name == right.function_name
+        and left.arity == right.arity.
+
+@pure
+function_present(value: ActorFunctionCompileEvidence, values: List[ActorFunctionCompileEvidence]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same_function(value, current) or function_present(value, rest)
+    }.
+
+@pure
+functions_at(value: Json, index: Int, length: Int, output: List[ActorFunctionCompileEvidence]): Result[List[ActorFunctionCompileEvidence], String] ->
+    if {
+        index == length -> Ok(output);
+        true -> case value.at(index) {
+            Err(_) -> Err("actor function evidence index is unavailable");
+            Ok(item) -> case function_evidence(item) {
+                Err(reason) -> Err(reason);
+                Ok(decoded) -> if {
+                    function_present(decoded, output) -> Err("actor dynamic evidence contains a duplicate function identity");
+                    true -> functions_at(value, index + 1, length, [decoded | output])
+                }
+            }
+        }
+    }.
+
+@pure
+reverse_functions(values: List[ActorFunctionCompileEvidence], output: List[ActorFunctionCompileEvidence]): List[ActorFunctionCompileEvidence] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_functions(rest, [value | output])
+    }.
+
+/** Decodes actor-dynamic-evidence/v1 and rejects ambiguous identities. */
+pub decode(text: String): Result[List[ActorFunctionCompileEvidence], String] ->
+    case Json.parse(text) {
+        Err(_) -> Err("actor dynamic evidence is not valid JSON");
+        Ok(value) -> let Ok(schema) <- string_field(value, "schema") else {
+            Err(reason) -> Err(reason)
+        };
+        if {
+            schema != "terlan.self-host.actor-dynamic-evidence/v1" ->
+                Err("unsupported actor dynamic evidence schema");
+            true -> let Ok(functions) <- field(value, "functions") else {
+                Err(reason) -> Err(reason)
+            };
+            case functions.length() {
+                Err(_) -> Err("actor dynamic evidence functions field is not an array");
+                Ok(length) -> case functions_at(
+                    functions,
+                    0,
+                    length,
+                    List.new[ActorFunctionCompileEvidence](),
+                ) {
+                    Err(reason) -> Err(reason);
+                    Ok(reversed) -> Ok(reverse_functions(
+                        reversed,
+                        List.new[ActorFunctionCompileEvidence](),
+                    ))
+                }
+            }
+        }
+    }.
+
+pub read(path: String): Result[List[ActorFunctionCompileEvidence], String] ->
+    case File.read_text(path) {
+        Err(_) -> Err(String.concat(["cannot read actor dynamic evidence: ", path]));
+        Ok(text) -> decode(text)
+    }.
+
+@pure
+merge(left: List[ActorFunctionCompileEvidence], right: List[ActorFunctionCompileEvidence]): Result[List[ActorFunctionCompileEvidence], String] ->
+    case right {
+        [] -> Ok(left);
+        [value | rest] -> if {
+            function_present(value, left) -> Err("actor dynamic evidence manifests duplicate a function identity");
+            true -> merge([value | left], rest)
+        }
+    }.
+
+pub read_all(paths: List[String]): Result[List[ActorFunctionCompileEvidence], String] ->
+    case paths {
+        [] -> Ok(List.new[ActorFunctionCompileEvidence]());
+        [path | rest] -> case read(path) {
+            Err(reason) -> Err(reason);
+            Ok(current) -> case read_all(rest) {
+                Err(reason) -> Err(reason);
+                Ok(remaining) -> merge(current, remaining)
+            }
+        }
+    }.

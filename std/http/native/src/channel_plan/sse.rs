@@ -20,6 +20,8 @@ pub struct SseEndpointPlan<C> {
     max_event_bytes: usize,
     keep_alive_ms: Option<u64>,
     callbacks: Option<SseCallbacks<C>>,
+    producer: Option<C>,
+    response_headers: Vec<(String, String)>,
 }
 
 impl<'de, C: serde::Deserialize<'de>> serde::Deserialize<'de> for SseEndpointPlan<C> {
@@ -31,10 +33,15 @@ impl<'de, C: serde::Deserialize<'de>> serde::Deserialize<'de> for SseEndpointPla
             max_event_bytes: usize,
             keep_alive_ms: Option<u64>,
             callbacks: Option<SseCallbacks<C>>,
+            producer: Option<C>,
+            response_headers: Vec<(String, String)>,
         }
         let wire = Wire::deserialize(deserializer)?;
         let mut plan = Self::new(wire.max_pending_events, wire.max_event_bytes)
             .map_err(serde::de::Error::custom)?;
+        plan = plan
+            .with_response_headers(wire.response_headers)
+            .map_err(|error| serde::de::Error::custom(error.message()))?;
         if let Some(interval) = wire.keep_alive_ms {
             plan = plan
                 .with_keep_alive_ms(interval)
@@ -42,6 +49,7 @@ impl<'de, C: serde::Deserialize<'de>> serde::Deserialize<'de> for SseEndpointPla
         }
         // A new plan has no callbacks to conflict with the deserialized set.
         plan.callbacks = wire.callbacks;
+        plan.producer = wire.producer;
         Ok(plan)
     }
 }
@@ -75,6 +83,8 @@ impl<C> SseEndpointPlan<C> {
                 drain: map(callbacks.drain),
                 cancellation: map(callbacks.cancellation),
             }),
+            producer: self.producer.map(map),
+            response_headers: self.response_headers,
         }
     }
 
@@ -88,6 +98,8 @@ impl<C> SseEndpointPlan<C> {
             max_event_bytes,
             keep_alive_ms: None,
             callbacks: None,
+            producer: None,
+            response_headers: Vec::new(),
         })
     }
 
@@ -115,6 +127,24 @@ impl<C> SseEndpointPlan<C> {
         self.keep_alive_ms
     }
 
+    /// Retains source-selected metadata after maintained header validation.
+    /// Framing and content type belong to the transport, not endpoint headers.
+    pub fn with_response_headers(
+        mut self,
+        headers: Vec<(String, String)>,
+    ) -> Result<Self, crate::HttpError> {
+        for (name, value) in &headers {
+            crate::validate_response_header(name, value)?;
+        }
+        self.response_headers = headers;
+        Ok(self)
+    }
+
+    /// Metadata shared by GET streams and body-free HEAD admission.
+    pub fn response_headers(&self) -> &[(String, String)] {
+        &self.response_headers
+    }
+
     /// Attaches one complete callback set to this endpoint.
     pub fn with_callbacks(mut self, callbacks: SseCallbacks<C>) -> Result<Self, SseError> {
         if self.callbacks.is_some() {
@@ -127,5 +157,24 @@ impl<C> SseEndpointPlan<C> {
     /// Returns the generated callback set retained by this endpoint.
     pub fn callbacks(&self) -> Option<&SseCallbacks<C>> {
         self.callbacks.as_ref()
+    }
+
+    /// Retains one source producer without invoking it during route discovery.
+    pub fn with_producer(mut self, producer: C) -> Result<Self, SseError> {
+        if self.producer.is_some() {
+            return Err(SseError::ProducerAlreadyConfigured);
+        }
+        self.producer = Some(producer);
+        Ok(self)
+    }
+
+    /// Borrows the source producer without granting execution authority.
+    pub fn producer(&self) -> Option<&C> {
+        self.producer.as_ref()
+    }
+
+    /// Independent heartbeat scheduling requires a host timer adapter.
+    pub fn supports_pull_transport(&self) -> bool {
+        self.producer.is_some() && self.keep_alive_ms.is_none()
     }
 }

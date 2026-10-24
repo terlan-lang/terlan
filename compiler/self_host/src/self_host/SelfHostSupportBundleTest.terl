@@ -1,0 +1,19 @@
+/** Canonical framing contracts for self-hosted support bundles. */
+module self_host.SelfHostSupportBundleTest.
+
+import std.core.String.
+
+import self_host.SelfHostSupportBundle.
+
+
+@test
+pub support_sections_have_fixed_order_and_byte_lengths(): Bool ->
+    SelfHostSupportBundle.render("error\n", "lint", "trace", "target=vm")
+        == "terlan.self-host.support-bundle/v1\nsection\tdiagnostics\t6\nerror\n\nsection\tlint\t4\nlint\nsection\ttrace\t5\ntrace\nsection\tconfiguration\t9\ntarget=vm\n".
+
+@test
+pub embedded_section_headers_do_not_change_framing(): Bool ->
+    String.contains(
+        SelfHostSupportBundle.render("section\tfake\t0", "", "", ""),
+        "section\tdiagnostics\t14\nsection\tfake\t0\n",
+    ).

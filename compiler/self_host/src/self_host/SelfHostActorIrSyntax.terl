@@ -1,0 +1,105 @@
+/** Typed Core IR metadata for actor suspension and continuation ownership. */
+module self_host.SelfHostActorIrSyntax.
+
+import std.collections.List.
+import std.core.Option.{Option}.
+import std.core.{Bool, Int, String}.
+
+
+pub struct ActorContinuation {
+    id: String,
+    source_module: String,
+    source_function: String,
+    source_arity: Int,
+    identity_kind: String,
+    outward_entry: Bool,
+    ordinal: Option[Int],
+    capture_names: List[String],
+    capture_types: List[String],
+    parameter_names: List[String],
+    parameter_types: List[String],
+    return_type: String,
+    entry_block: String,
+}.
+
+pub constructor ActorContinuation {
+    (id: String, source_module: String, source_function: String, source_arity: Int, identity_kind: String, outward_entry: Bool, ordinal: Option[Int], capture_names: List[String], capture_types: List[String], parameter_names: List[String], parameter_types: List[String], return_type: String, entry_block: String): ActorContinuation ->
+        ActorContinuation {
+            id: id,
+            source_module: source_module,
+            source_function: source_function,
+            source_arity: source_arity,
+            identity_kind: identity_kind,
+            outward_entry: outward_entry,
+            ordinal: ordinal,
+            capture_names: capture_names,
+            capture_types: capture_types,
+            parameter_names: parameter_names,
+            parameter_types: parameter_types,
+            return_type: return_type,
+            entry_block: entry_block,
+        }
+}.
+
+
+pub struct ActorResumeEdge {
+    callee_export_id: Option[String],
+    callee_continuation_id: String,
+    callee_capture_count: Int,
+    continuation_id: String,
+    caller_value_start: Int,
+}.
+
+pub constructor ActorResumeEdge {
+    (callee_export_id: Option[String], callee_continuation_id: String, callee_capture_count: Int, continuation_id: String, caller_value_start: Int): ActorResumeEdge ->
+        ActorResumeEdge {
+            callee_export_id: callee_export_id,
+            callee_continuation_id: callee_continuation_id,
+            callee_capture_count: callee_capture_count,
+            continuation_id: continuation_id,
+            caller_value_start: caller_value_start,
+        }
+}.
+
+
+pub struct ActorSuspensionSite {
+    source_function: String,
+    source_arity: Int,
+    native_call_index: Int,
+    block_label: String,
+    result_name: String,
+    callee_module: String,
+    callee_function: String,
+    callee_arity: Int,
+    value_names: List[String],
+    resumes: List[ActorResumeEdge],
+    completion_continuation_id: String,
+}.
+
+pub constructor ActorSuspensionSite {
+    (source_function: String, source_arity: Int, native_call_index: Int, block_label: String, result_name: String, callee_module: String, callee_function: String, callee_arity: Int, value_names: List[String], resumes: List[ActorResumeEdge], completion_continuation_id: String): ActorSuspensionSite ->
+        ActorSuspensionSite {
+            source_function: source_function,
+            source_arity: source_arity,
+            native_call_index: native_call_index,
+            block_label: block_label,
+            result_name: result_name,
+            callee_module: callee_module,
+            callee_function: callee_function,
+            callee_arity: callee_arity,
+            value_names: value_names,
+            resumes: resumes,
+            completion_continuation_id: completion_continuation_id,
+        }
+}.
+
+
+pub struct ActorIrPlan {
+    continuations: List[ActorContinuation],
+    suspension_sites: List[ActorSuspensionSite],
+}.
+
+pub constructor ActorIrPlan {
+    (continuations: List[ActorContinuation], suspension_sites: List[ActorSuspensionSite]): ActorIrPlan ->
+        ActorIrPlan { continuations: continuations, suspension_sites: suspension_sites }
+}.

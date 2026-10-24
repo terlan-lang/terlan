@@ -1,105 +1,28 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-spacing-trim
+ * The `text-spacing-trim` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property controls
+ * the internal spacing set on Chinese/Japanese/Korean (CJK) punctuation characters between adjacent
+ * characters (kerning) and at the start or end of text lines.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: <spacing-trim> | auto
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-spacing-trim
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-spacing-trim
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextSpacingTrim.
 
-import type std.core.Option.
+import std.css.keywords.{Normal, SpaceAll, SpaceFirst, TrimStart}.
 
-/**
- * A nominal, specification-constrained text-spacing-trim value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_spacing_trim: Value,
+    text_spacing_trim: SpaceAll | Normal | SpaceFirst | TrimStart | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    text_spacing_trim: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword space-all.
- */
-pub space_all(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "space-all"}).
-
-/**
- * Returns the CSS keyword space-first.
- */
-pub space_first(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "space-first"}).
-
-/**
- * Returns the CSS keyword trim-all.
- */
-pub trim_all(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "trim-all"}).
-
-/**
- * Returns the CSS keyword trim-both.
- */
-pub trim_both(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "trim-both"}).
-
-/**
- * Returns the CSS keyword trim-start.
- */
-pub trim_start(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "trim-start"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "unset"}).

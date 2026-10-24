@@ -1,9 +1,9 @@
 # Std VM Internals
 
-This directory owns Terlan VM process-oriented standard-library modules. These
-modules are not portable core APIs; they expose reliability, supervision,
-process, and native bridge concepts for targets that provide a VM process
-runtime.
+This directory owns Terlan VM process-oriented standard-library modules. Its
+runtime APIs expose reliability, supervision, process, and native bridge
+concepts for targets that provide a VM process runtime. Ordinary source values
+such as `Timeout` do not themselves require runtime services.
 
 Terlan VM owns this surface. `std.vm.*` is the public Terlan namespace for
 process-oriented runtime APIs and must not be described as a Beam-named
@@ -26,7 +26,7 @@ standard-library surface.
   modules.
 - `std.vm.NativeBridge`: bridge boundary for supervised native resources.
 - `std.vm.Bytes`: runtime-owned binary protocol frames.
-- `std.vm.Timeout`: typed timeout values for receive-style operations.
+- `std.vm.Timeout`: source-owned finite and unbounded timeout values.
 - `std.vm.Tcp`: connected TCP socket operations for integration tests.
 - `std.vm.Port`: external OS process and runtime port lifecycle operations.
 - `std.vm.Cluster`: VM-owned cluster profile, membership, and distributed
@@ -67,6 +67,20 @@ convenience APIs, persistent actor protocols, and typed service frameworks.
 These modules should compile to VMIR like any other Terlan code and use
 lower-level VM primitives instead of introducing framework-specific VMIR opcodes
 or `native` implementations for behavior that can be written in Terlan.
+
+`Timeout.milliseconds`, `Timeout.forever`, and `Timeout.wakes_after` are
+ordinary Terlan implementations with no native dispatch or compiler intrinsic.
+The private value stores an optional non-negative millisecond count; source
+guards reject negative durations and elapsed times. Deadline checks compare
+counts directly, including at the largest `Int`, without clock reads or sleeps.
+This value model does not schedule timers or make the still-unlowered `Tcp`
+and `Port` operations executable. Those operations need separate resource and
+cancellation integration; production HTTP currently uses package-owned native
+transport adapters instead.
+
+Run `terlc test std/vm/TimeoutTest.terl` for the source deadline checks.
+The Rust `timeout_source_test` integration tests additionally reject negative
+inputs and compile an edited local timeout module to verify source authority.
 
 Magic lowering is acceptable only for thin wrappers around real VM primitives.
 For example, `Process.receive`, timer creation, link/monitor operations, or

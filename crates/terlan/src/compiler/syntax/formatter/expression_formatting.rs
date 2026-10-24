@@ -67,11 +67,7 @@ pub(super) fn format_map_field(field: &MapField) -> String {
 /// Inputs: parsed map expression field. Output: `key: expr` text.
 /// Transformation: recursively formats the value expression.
 pub(super) fn format_map_expr_field(field: &MapExprField) -> String {
-    format!(
-        "{}: {}",
-        field.key,
-        format_assignment_child(&field.value, 0)
-    )
+    format!("{}: {}", field.key, format_field_value(&field.value, 0))
 }
 
 /// Formats a template or record construction field.
@@ -79,10 +75,14 @@ pub(super) fn format_map_expr_field(field: &MapExprField) -> String {
 /// Inputs: parsed expression field. Output: `key: expr` text. Transformation:
 /// recursively formats the value expression.
 pub(super) fn format_template_expr_field(field: &MapExprField) -> String {
-    format!(
-        "{}: {}",
-        field.key,
-        format_assignment_child(&field.value, 0)
+    format_map_expr_field(field)
+}
+
+fn format_field_value(value: &Expr, indent: usize) -> String {
+    // After a field colon, an ungrouped lambda can be tokenized as a type arrow.
+    parenthesize_if_needed(
+        format_assignment_child(value, indent),
+        matches!(value, Expr::Fun { .. }),
     )
 }
 
@@ -300,7 +300,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
         Expr::Var(name) => name.clone(),
         Expr::Tuple(items) => format_tuple(items, indent),
         Expr::List(items) => format_expr_delimited("[", "]", items, indent),
-        Expr::FixedArray(items) => format_expr_delimited("#[", "]", items, indent),
+        Expr::Array(items) => format_expr_delimited("#[", "]", items, indent),
         Expr::ListCons(head, tail) => {
             format!(
                 "[{} | {}]",
@@ -342,7 +342,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
                             format!(
                                 "{}: {}",
                                 field.key,
-                                format_assignment_child(&field.value, indent + 1)
+                                format_field_value(&field.value, indent + 1)
                             )
                         })
                         .collect::<Vec<_>>();
@@ -378,7 +378,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
                         format!(
                             "{}: {}",
                             field.key,
-                            format_assignment_child(&field.value, indent + 1)
+                            format_field_value(&field.value, indent + 1)
                         )
                     })
                     .collect::<Vec<_>>();
@@ -403,7 +403,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
                         format!(
                             "{}: {}",
                             field.key,
-                            format_assignment_child(&field.value, indent + 1)
+                            format_field_value(&field.value, indent + 1)
                         )
                     })
                     .collect::<Vec<_>>();
@@ -499,10 +499,12 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
                 }
             }
             if !catch_clauses.is_empty() {
-                out.push_str("catch\n");
                 let clause_spacing = "    ".repeat(indent + 1);
                 for (i, clause) in catch_clauses.iter().enumerate() {
                     out.push_str(&clause_spacing);
+                    if i == 0 {
+                        out.push_str("catch ");
+                    }
                     out.push_str(&format_case_clause(clause, indent + 1));
                     if i + 1 < catch_clauses.len() {
                         out.push(';');
@@ -511,8 +513,8 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
                 }
             }
             if let Some(after) = after_clause {
+                out.push_str(&"    ".repeat(indent + 1));
                 out.push_str("after ");
-                out.push_str(&spacing);
                 out.push_str(&format!(
                     "{} -> {}\n",
                     format_expr(&after.trigger, indent + 1),
@@ -630,7 +632,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
 fn format_raw_macro(name: &str, rendered_type_args: &str, raw: &str, indent: usize) -> String {
     let trimmed = raw.trim();
     if !trimmed.contains('\n') {
-        return format!("{name}{rendered_type_args} {{{trimmed}}}");
+        return format!("{name}{rendered_type_args}{{{trimmed}}}");
     }
 
     let lines = trimmed.lines().collect::<Vec<_>>();
@@ -659,7 +661,7 @@ fn format_raw_macro(name: &str, rendered_type_args: &str, raw: &str, indent: usi
         })
         .collect::<Vec<_>>()
         .join("\n");
-    format!("{name}{rendered_type_args} {{\n{body}\n{closing_indent}}}")
+    format!("{name}{rendered_type_args}{{\n{body}\n{closing_indent}}}")
 }
 
 /// Formats a long boolean chain with one operator-led continuation per line.

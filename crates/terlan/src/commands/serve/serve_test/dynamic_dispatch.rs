@@ -37,11 +37,12 @@ pub(super) fn hyper_request_handler_prefers_dynamic_handler_over_file_fallback()
             typed_request("GET", "/api/game/config", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
-        assert_eq!(response.status(), http::StatusCode::BAD_GATEWAY);
+        // Production rejects missing handler artifacts during ingress projection,
+        // before handler execution or either static fallback.
+        assert_eq!(response.status(), http::StatusCode::INTERNAL_SERVER_ERROR);
         let body = serve_response_text(response).await;
         assert!(body.contains("app.Api.config"));
 
@@ -86,11 +87,10 @@ pub(super) fn hyper_request_handler_prefers_dynamic_handler_over_static_response
             typed_request("GET", "/api/game/config", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
-        assert_eq!(response.status(), http::StatusCode::BAD_GATEWAY);
+        assert_eq!(response.status(), http::StatusCode::INTERNAL_SERVER_ERROR);
         let body = serve_response_text(response).await;
         assert!(body.contains("app.Api.config"));
 
@@ -167,13 +167,8 @@ pub(super) fn hyper_request_handler_executes_dynamic_handler_with_vm_runtime() {
             .header("Cookie", "session=abc")
             .body(Full::new(Bytes::from("payload")))
             .expect("request");
-        let response = handle_hyper_request(
-            request,
-            web_root.clone(),
-            Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
-        )
-        .await;
+        let response =
+            handle_hyper_request(request, web_root.clone(), Arc::new(Mutex::new(Vec::new()))).await;
 
         let status = response.status();
         let body = serve_response_text(response).await;
@@ -191,13 +186,8 @@ pub(super) fn hyper_request_handler_executes_dynamic_handler_with_vm_runtime() {
             .header("Cookie", "session=abc")
             .body(Full::new(Bytes::from("payload")))
             .expect("request");
-        let response = handle_hyper_request(
-            request,
-            web_root.clone(),
-            Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
-        )
-        .await;
+        let response =
+            handle_hyper_request(request, web_root.clone(), Arc::new(Mutex::new(Vec::new()))).await;
         let status = response.status();
         let body = serve_response_text(response).await;
         assert_eq!(
@@ -222,13 +212,8 @@ pub(super) fn hyper_request_handler_executes_dynamic_handler_with_vm_runtime() {
             .header("Cookie", "session=abc")
             .body(Full::new(Bytes::from("payload")))
             .expect("request");
-        let response = handle_hyper_request(
-            request,
-            web_root.clone(),
-            Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
-        )
-        .await;
+        let response =
+            handle_hyper_request(request, web_root.clone(), Arc::new(Mutex::new(Vec::new()))).await;
         let status = response.status();
         let body = serve_response_text(response).await;
         assert_eq!(status, http::StatusCode::ACCEPTED, "{body}");

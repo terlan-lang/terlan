@@ -4,7 +4,7 @@ This directory owns `terlc api` command support.
 
 ## Responsibilities
 
-- Discover static route declarations for the std.http API contract.
+- Evaluate source route declarations for the std.http API contract.
 - Render API schema artifacts without making OpenAPI the source of truth.
 - Keep route, handler, and schema diagnostics stable.
 
@@ -16,9 +16,11 @@ This directory owns `terlc api` command support.
 
 - `terlan_http_native::api_contract`: owns route identity, deterministic
   ordering, and minimal OpenAPI projection.
-- `source_contract`: CLI-only syntax discovery shared with deployment tooling.
-  This adapter does not evaluate Router source or resolve computed routes;
-  it requires literal paths and direct handler references.
+- `evaluated_contract`: shared source compilation and execution for API and
+  semantic deployment plans. Computed paths, delegated groups, and captured
+  handlers use ordinary Terlan semantics. The HTTP package validates returned
+  descriptors and owns schema projection. This executes trusted application
+  code, not sandboxed inspection; external service waits are rejected.
 - `commands::build::js_browser::routes`: supplies route conventions used by
   web builds.
 

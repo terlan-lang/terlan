@@ -1,0 +1,6 @@
+//! Shared CSS keyword content-inline-size. Generated; do not edit.
+
+module std.css.keywords.ContentInlineSize.
+
+pub type ContentInlineSize =
+    Atom["content-inline-size"].

@@ -10,14 +10,14 @@ pub(super) fn imported_trait_type_refs_qualify_nominal_types_but_preserve_primit
         (
             "List".to_string(),
             QualifiedTypeName {
-                module: Some("std.collections.List".to_string()),
+                module: "std.collections.List".to_string(),
                 name: "List".to_string(),
             },
         ),
         (
             "Unit".to_string(),
             QualifiedTypeName {
-                module: Some("std.core.Unit".to_string()),
+                module: "std.core.Unit".to_string(),
                 name: "Unit".to_string(),
             },
         ),

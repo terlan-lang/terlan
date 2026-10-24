@@ -1,0 +1,63 @@
+/** Regression contracts for standalone keyed-map type authority. */
+module self_host.ProjectedMapTypeMergeTest.
+
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedMapTypeMerge.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Bool, Int, String}.
+
+node(kind: String, text: String, start: Int, children: List[ProjectedExpressionNode]): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, start, start + 1, children).
+
+fact_at(values: List[InferredTypeFact], offset: Int, current: String): String ->
+    case values {
+        [] -> current;
+        [value | rest] -> case value.type_name {
+            Some(name) where value.byte_offset == offset -> fact_at(rest, offset, name);
+            _ -> fact_at(rest, offset, current)
+        }
+    }.
+
+map_with(left: ProjectedExpressionNode, right: ProjectedExpressionNode): ProjectedExpressionNode ->
+    node("keyed-container", "", 0, [
+        node("keyed-fields", ":", 1, [
+            node("keyed-field", "left", 2, [left]),
+            node("keyed-field", "right", 4, [right]),
+        ]),
+    ]).
+
+/** Homogeneous values infer one exact String-keyed map type. */
+pub homogeneous_values_infer_map_type(): Bool ->
+    let expression = map_with(node("integer", "1", 3, []), node("integer", "2", 5, []));
+    let merged = ProjectedMapTypeMerge.merge_expression(
+        expression,
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(3, Some("Int"), 3),
+                InferredTypeFact(5, Some("Int"), 5),
+            ],
+            [],
+        ),
+    );
+    merged.diagnostics == [] and fact_at(merged.facts, 0, "") == "Map[String, Int]".
+
+/** Heterogeneous values are rejected while the homogeneous companion remains valid. */
+pub heterogeneous_values_report_specific_diagnostic(): Bool ->
+    let expression = map_with(node("integer", "1", 3, []), node("string", "two", 5, []));
+    let merged = ProjectedMapTypeMerge.merge_expression(
+        expression,
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(3, Some("Int"), 3),
+                InferredTypeFact(5, Some("String"), 5),
+            ],
+            [],
+        ),
+    );
+    homogeneous_values_infer_map_type()
+        and case merged.diagnostics {
+            [diagnostic] -> diagnostic.code == "type.map_value_mismatch";
+            _ -> false
+        }.

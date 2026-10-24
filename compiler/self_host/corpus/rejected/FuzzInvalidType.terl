@@ -1,0 +1,3 @@
+module corpus.FuzzInvalidType.
+
+pub value(input: List[]): Int -> 0.

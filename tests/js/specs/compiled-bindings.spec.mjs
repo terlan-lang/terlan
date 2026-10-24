@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { inventory, output } from '../inventory.mjs';
 
+test.use({ baseURL: process.env.TERLAN_JS_BASE_URL });
+
 const { modules } = await inventory();
 let compilation;
 test.beforeAll(async () => {

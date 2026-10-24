@@ -1,6 +1,8 @@
 /** Deterministic evidence documents for canonical token differential checks. */
 module self_host.TokenEvidence.
 
+import std.core.String.
+
 import self_host.CanonicalToken.{CanonicalToken, EndToken}.
 
 import std.collections.List.

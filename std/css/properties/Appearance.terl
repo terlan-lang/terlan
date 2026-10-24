@@ -1,153 +1,36 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ui-4/#propdef-appearance
+ * The `appearance` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies the
+ * rendered appearance of replaced UI widget elements such as form controls. Most commonly, such
+ * elements are given native, platform-specific styling based on the operating system's theme, or a
+ * primitive appearance with styles that can be overridden using CSS.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: Sets interactive widgets to render with their _OS-native_ appearance. Behaves as `none`
+ * on elements with no OS-native styling.
+ * - base-select: Relevant only to the `select` element and `::picker(select)` pseudo-element,
+ * allowing them to be fully styled.
+ * - none: Gives the widget a _primitive_ appearance, making it stylable via CSS, while maintaining
+ * the widget's native functionality. This value does not affect non-widgets.
+ *
  * Grammar: none | auto | base | base-select | <compat-auto> | <compat-special>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-appearance
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/appearance
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Appearance.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, BaseSelect, Button, Checkbox, Listbox, Menulist, MenulistButton, Meter, None, ProgressBar, Radio, Searchfield, Textarea, Textfield}.
 
-/**
- * A nominal, specification-constrained appearance value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    appearance: Value,
+    appearance: None | Auto | BaseSelect | Searchfield | Textarea | Checkbox | Radio | Menulist | Listbox | Meter | ProgressBar | Button | Textfield | MenulistButton | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    appearance: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "appearance", css: "auto"}).
-
-/**
- * Returns the CSS keyword base.
- */
-pub base(): Value ->
-    Value(Token {property: "appearance", css: "base"}).
-
-/**
- * Returns the CSS keyword base-select.
- */
-pub base_select(): Value ->
-    Value(Token {property: "appearance", css: "base-select"}).
-
-/**
- * Returns the CSS keyword button.
- */
-pub button(): Value ->
-    Value(Token {property: "appearance", css: "button"}).
-
-/**
- * Returns the CSS keyword checkbox.
- */
-pub checkbox(): Value ->
-    Value(Token {property: "appearance", css: "checkbox"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "appearance", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "appearance", css: "initial"}).
-
-/**
- * Returns the CSS keyword listbox.
- */
-pub listbox(): Value ->
-    Value(Token {property: "appearance", css: "listbox"}).
-
-/**
- * Returns the CSS keyword menulist.
- */
-pub menulist(): Value ->
-    Value(Token {property: "appearance", css: "menulist"}).
-
-/**
- * Returns the CSS keyword menulist-button.
- */
-pub menulist_button(): Value ->
-    Value(Token {property: "appearance", css: "menulist-button"}).
-
-/**
- * Returns the CSS keyword meter.
- */
-pub meter(): Value ->
-    Value(Token {property: "appearance", css: "meter"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "appearance", css: "none"}).
-
-/**
- * Returns the CSS keyword progress-bar.
- */
-pub progress_bar(): Value ->
-    Value(Token {property: "appearance", css: "progress-bar"}).
-
-/**
- * Returns the CSS keyword radio.
- */
-pub radio(): Value ->
-    Value(Token {property: "appearance", css: "radio"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "appearance", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "appearance", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword searchfield.
- */
-pub searchfield(): Value ->
-    Value(Token {property: "appearance", css: "searchfield"}).
-
-/**
- * Returns the CSS keyword textarea.
- */
-pub textarea(): Value ->
-    Value(Token {property: "appearance", css: "textarea"}).
-
-/**
- * Returns the CSS keyword textfield.
- */
-pub textfield(): Value ->
-    Value(Token {property: "appearance", css: "textfield"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "appearance", css: "unset"}).

@@ -15,21 +15,13 @@ import type std.core.Option.
 import type std.crypto.Hash.LabeledFile.
 
 pub struct DigestResult {
-    /**
-     * Whether the compilation input inventory was read successfully.
-     */
+    /** Whether the compilation input inventory was read successfully. */
     valid: Bool,
-    /**
-     * Deterministic digest of the compilation input contents.
-     */
+    /** Deterministic digest of the compilation input contents. */
     digest: String,
-    /**
-     * Number of files contributing to the input digest.
-     */
+    /** Number of files contributing to the input digest. */
     file_count: Int,
-    /**
-     * Diagnostic explaining an input inventory failure.
-     */
+    /** Diagnostic explaining an input inventory failure. */
     message: String,
 }.
 
@@ -72,7 +64,12 @@ select(root: String, files: List[String], output: List[LabeledFile]): List[Label
 pub digest(root: String): DigestResult ->
     case Directory.files_recursive_excluding(root, ["target", ".git"]) {
         Err(reason) ->
-            DigestResult(valid = false, digest = "", file_count = 0, message = reason.message);
+            DigestResult(
+                valid = false,
+                digest = "",
+                file_count = 0,
+                message = reason.message,
+            );
         Ok(files) ->
             let selected = select(root, files, List.new[LabeledFile]());
             if {

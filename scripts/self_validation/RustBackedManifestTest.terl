@@ -235,6 +235,7 @@ allowed_crate(value: String): Bool ->
         or value == "std::env::consts"
         or value == "url"
         or value == "rand_chacha"
+        or value == "getrandom"
         or value == "regex"
         or value == "std::http"
         or value == "postgres-native"
@@ -723,6 +724,7 @@ expected_source(module_name: String): String ->
         "std.data.Toml" -> "std/data/Toml.terl";
         "std.crypto.Ed25519" -> "std/crypto/Ed25519.terl";
         "std.crypto.Hash" -> "std/crypto/Hash.terl";
+        "std.crypto.Entropy" -> "std/crypto/Entropy.terl";
         "std.encoding.Base64" -> "std/encoding/Base64.terl";
         "std.encoding.Md5" -> "std/encoding/Md5.terl";
         "std.io.Path" -> "std/io/Path.terl";

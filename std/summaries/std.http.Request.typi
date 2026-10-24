@@ -18,9 +18,8 @@ pub struct Request {
     #params: List[{String, String}],
     #body: String,
     #query_string: String,
-    #query: List[{String, String}],
     #headers: List[{String, String}],
-    #cookies: List[{String, String}],
+    #cookies: List[String],
     #body_file_path: String
 }.
 
@@ -71,7 +70,10 @@ pub (request: Request) cookie(name: String): Option[String].
 /// Output: a fresh source-owned `Cookies.Jar` for reading incoming cookies
 /// and recording response cookie mutations.
 /// Transformation: initializes an empty pending-header list in Terlan from the
-/// decoded incoming pairs, retaining the first value per case-sensitive name.
+/// raw Cookie headers. The first header wins, including an
+/// empty or invalid header; within it, the first value per case-sensitive name
+/// wins. Terlan selects the header before calling the maintained decoder;
+/// unselected headers are never decoded. Duplicate precedence is source-owned.
 /// Separate calls never share outgoing mutations.
 
 pub (request: Request) cookies(): Jar.
@@ -122,7 +124,8 @@ pub (request: Request) path(): String.
 /// Output: `Some(value)` when the request query included `name`, otherwise
 /// `None`.
 /// Transformation: selects the last decoded pair for the exact name in Terlan.
-/// Empty values remain present; query decoding stays in the maintained codec.
+/// Empty values remain present. Decoding runs only when queried, through
+/// std.net.Uri's maintained codec; ingress stores only the original text.
 
 pub (request: Request) query(name: String): Option[String].
 

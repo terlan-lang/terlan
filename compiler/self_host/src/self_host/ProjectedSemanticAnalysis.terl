@@ -7,15 +7,45 @@ import self_host.ProjectedSemanticSyntax.{ProjectedSemanticModule}.
 import std.collections.List.
 import std.core.String.
 import self_host.ProjectedExpressionTypecheck.
+import self_host.ProjectedPatternSemanticAnalysis.
 import self_host.ProjectedTypeResolution.
 
 
 /** Produces one semantic module using explicit external type identities. */
-@pure
+pub analyze_with_interfaces(
+    source: ProjectedFrontendModule,
+    external_types: List[String],
+    imported_interfaces: List[self_host.ModuleInterfaceSyntax.ModuleInterface],
+): ProjectedSemanticModule ->
+    let type_resolution = ProjectedTypeResolution.resolve_with_interfaces(
+        source,
+        external_types,
+        imported_interfaces,
+    );
+    let expression_typecheck = ProjectedExpressionTypecheck.check_with_interfaces(
+        source,
+        imported_interfaces,
+    );
+    let pattern_semantics = ProjectedPatternSemanticAnalysis.check_with_interfaces_and_facts(
+        source,
+        imported_interfaces,
+        expression_typecheck.facts,
+    );
+    ProjectedSemanticModule(
+        source.valid and type_resolution.valid and expression_typecheck.valid and pattern_semantics.valid,
+        source,
+        type_resolution,
+        expression_typecheck,
+        pattern_semantics,
+    ).
+
+/** Compatibility entry point for syntax-only semantic callers. */
 pub analyze(
     source: ProjectedFrontendModule,
     external_types: List[String],
 ): ProjectedSemanticModule ->
-    let type_resolution = ProjectedTypeResolution.resolve(source, external_types);
-    let expression_typecheck = ProjectedExpressionTypecheck.check(source);
-    ProjectedSemanticModule(source.valid and type_resolution.valid and expression_typecheck.valid, source, type_resolution, expression_typecheck).
+    analyze_with_interfaces(
+        source,
+        external_types,
+        List.new[self_host.ModuleInterfaceSyntax.ModuleInterface](),
+    ).

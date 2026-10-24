@@ -1,0 +1,6 @@
+//! Shared CSS keyword e-resize. Generated; do not edit.
+
+module std.css.keywords.EResize.
+
+pub type EResize =
+    Atom["e-resize"].

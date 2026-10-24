@@ -1,48 +1,23 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-display-4/#propdef-order
+//! The `order` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the order to
+//! lay out an item in a flex or grid container. Items in a container are sorted by ascending `order`
+//! value and then by their source code order. Items not given an explicit `order` value are assigned
+//! the default value of `0`.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <integer>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-display-4/#propdef-order
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/order
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Order.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    order: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    order: Value
+    order: Int | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained order value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a order value from a typed integer.
-
-pub integer(value: Int): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

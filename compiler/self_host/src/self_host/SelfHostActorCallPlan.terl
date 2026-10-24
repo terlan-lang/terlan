@@ -1,0 +1,146 @@
+/** Deterministic actor continuation plans for source-ordered non-tail calls. */
+module self_host.SelfHostActorCallPlan.
+
+import self_host.SelfHostActorIrSyntax.{ActorContinuation, ActorIrPlan, ActorResumeEdge, ActorSuspensionSite}.
+
+import std.collections.List.
+import std.core.Option.{Option, Some}.
+import std.core.{Int, String}.
+import self_host.SelfHostActorIdentity.
+
+
+pub struct ActorCalleeEntry {
+    export_identity: Option[String],
+    continuation_identity: String,
+    capture_count: Int,
+}.
+
+pub constructor ActorCalleeEntry {
+    (export_identity: Option[String], continuation_identity: String, capture_count: Int): ActorCalleeEntry ->
+        ActorCalleeEntry {
+            export_identity: export_identity,
+            continuation_identity: continuation_identity,
+            capture_count: capture_count,
+        }
+}.
+
+
+pub struct ActorCallSitePlan {
+    source_module: String,
+    source_function: String,
+    source_arity: Int,
+    continuation_ordinal: Int,
+    native_call_index: Int,
+    block_label: String,
+    result_name: String,
+    callee_module: String,
+    callee_function: String,
+    callee_arity: Int,
+    capture_names: List[String],
+    capture_types: List[String],
+    result_type: String,
+    function_return_type: String,
+    continuation_entry_block: String,
+    callee_entries: List[ActorCalleeEntry],
+}.
+
+pub constructor ActorCallSitePlan {
+    (source_module: String, source_function: String, source_arity: Int, continuation_ordinal: Int, native_call_index: Int, block_label: String, result_name: String, callee_module: String, callee_function: String, callee_arity: Int, capture_names: List[String], capture_types: List[String], result_type: String, function_return_type: String, continuation_entry_block: String, callee_entries: List[ActorCalleeEntry]): ActorCallSitePlan ->
+        ActorCallSitePlan {
+            source_module: source_module,
+            source_function: source_function,
+            source_arity: source_arity,
+            continuation_ordinal: continuation_ordinal,
+            native_call_index: native_call_index,
+            block_label: block_label,
+            result_name: result_name,
+            callee_module: callee_module,
+            callee_function: callee_function,
+            callee_arity: callee_arity,
+            capture_names: capture_names,
+            capture_types: capture_types,
+            result_type: result_type,
+            function_return_type: function_return_type,
+            continuation_entry_block: continuation_entry_block,
+            callee_entries: callee_entries,
+        }
+}.
+
+
+struct ActorCallAccumulation {
+    continuations: List[ActorContinuation],
+    sites: List[ActorSuspensionSite],
+}.
+
+constructor ActorCallAccumulation {
+    (continuations: List[ActorContinuation], sites: List[ActorSuspensionSite]): ActorCallAccumulation ->
+        ActorCallAccumulation { continuations: continuations, sites: sites }
+}.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+resume_edges(values: List[ActorCalleeEntry], completion: String): List[ActorResumeEdge] ->
+    case values {
+        [] -> List.new[ActorResumeEdge]();
+        [value | rest] -> [ActorResumeEdge(
+            value.export_identity,
+            value.continuation_identity,
+            value.capture_count,
+            completion,
+            0,
+        ) | resume_edges(rest, completion)]
+    }.
+
+@pure
+call_sites(values: List[ActorCallSitePlan]): ActorCallAccumulation ->
+    case values {
+        [] -> ActorCallAccumulation(List.new[ActorContinuation](), List.new[ActorSuspensionSite]());
+        [value | rest] ->
+            let completion = SelfHostActorIdentity.composed_completion(
+                value.source_module,
+                value.source_function,
+                value.source_arity,
+                value.continuation_ordinal,
+            );
+            let remaining = call_sites(rest);
+            ActorCallAccumulation(
+                [ActorContinuation(
+                    completion,
+                    value.source_module,
+                    value.source_function,
+                    value.source_arity,
+                    "composed-completion",
+                    true,
+                    Some(value.continuation_ordinal),
+                    value.capture_names,
+                    value.capture_types,
+                    append(value.capture_names, [value.result_name]),
+                    append(value.capture_types, [value.result_type]),
+                    value.function_return_type,
+                    value.continuation_entry_block,
+                ) | remaining.continuations],
+                [ActorSuspensionSite(
+                    value.source_function,
+                    value.source_arity,
+                    value.native_call_index,
+                    value.block_label,
+                    value.result_name,
+                    value.callee_module,
+                    value.callee_function,
+                    value.callee_arity,
+                    value.capture_names,
+                    resume_edges(value.callee_entries, completion),
+                    completion,
+                ) | remaining.sites],
+            )
+    }.
+
+/** Converts source-ordered typed call sites into scheduler-owned continuation metadata. */
+@pure
+pub plan(values: List[ActorCallSitePlan]): ActorIrPlan ->
+    let result = call_sites(values);
+    ActorIrPlan(result.continuations, result.sites).

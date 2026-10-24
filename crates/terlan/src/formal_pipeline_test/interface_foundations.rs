@@ -435,7 +435,7 @@ fn embedded_std_interfaces_include_keyed_enumerable_contract() {
     assert!(interface
         .trait_conformances
         .iter()
-        .any(|conformance| conformance.trait_ref == "KeyedEnumerable[std.collections.Map.Map]"));
+        .any(|conformance| conformance.trait_ref == "KeyedEnumerable[std.collections.Map]"));
 }
 
 /// Verifies embedded std summaries include the portable task contract.

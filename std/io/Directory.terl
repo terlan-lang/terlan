@@ -11,13 +11,13 @@ import std.core.Unit.
 
 import type std.core.{Error, Result}.
 
-pub type NotFound.
+pub type NotFound = std.io.File.NotFound.
 
-pub type PermissionDenied.
+pub type PermissionDenied = std.io.File.PermissionDenied.
 
-pub type InvalidPath.
+pub type InvalidPath = std.io.File.InvalidPath.
 
-pub type Unknown.
+pub type Unknown = std.io.File.Unknown.
 
 pub type DirectoryErrorCode = NotFound | PermissionDenied | InvalidPath | Unknown.
 

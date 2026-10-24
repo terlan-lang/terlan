@@ -1,88 +1,50 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-align
+//! The `scroll-snap-align` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies the box's snap position as an alignment of its [snap
+//! area](https://developer.mozilla.org/en-US/docs/Glossary/Scroll_snap#snap_area).
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - center: The center alignment of this box's scroll snap area, within the scroll container's
+//! snapport is a snap position in this axis.
+//! - end: The end alignment of this box's scroll snap area, within the scroll container's snapport
+//! is a snap position in this axis.
+//! - none: The box does not define a snap position in that axis.
+//! - start: The start alignment of this box's scroll [snap
+//! area](https://developer.mozilla.org/en-US/docs/Glossary/Scroll_snap#snap_area), within the scroll
+//! container's [snapport](https://developer.mozilla.org/en-US/docs/Glossary/Scroll_snap#snapport) is
+//! a snap position in this axis.
+//!
 //! Grammar: [ none | start | end | center ]{1,2}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-align
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-snap-align
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollSnapAlign.
 
-/// A single non-global scroll-snap-align shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
-
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    scroll_snap_align: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    None
+  | Start
+  | End
+  | Center.
 
 pub struct Property {
-    scroll_snap_align: Value
+    scroll_snap_align: None | Start | End | Center | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained scroll-snap-align value.
+/// Supplies 2 components in grammar order.
 
-pub opaque type Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Returns the CSS keyword center.
+/// Supplies 1 components in grammar order.
 
-pub center(): Value.
-
-/// Constructs one scroll-snap-align shorthand component.
-
-pub component_center(): Component.
-
-/// Constructs one scroll-snap-align shorthand component.
-
-pub component_end_value(): Component.
-
-/// Constructs one scroll-snap-align shorthand component.
-
-pub component_none(): Component.
-
-/// Constructs one scroll-snap-align shorthand component.
-
-pub component_start(): Component.
-
-/// Returns the CSS keyword end.
-
-pub end_value(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Returns the CSS keyword start.
-
-pub start(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub single(first: Component): Checked.

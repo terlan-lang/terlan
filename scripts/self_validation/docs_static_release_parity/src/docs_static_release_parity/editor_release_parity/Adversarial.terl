@@ -158,7 +158,8 @@ malformed_source_rejected(
     } else {
         _ -> false
     };
-    output.status != 0 and String.contains(String.lowercase(output.stderr), "error").
+    output.status != 0
+        and String.contains(String.lowercase(output.stderr), "error").
 
 /**
  * Executes the eight authoritative negative mutations in stable report order.

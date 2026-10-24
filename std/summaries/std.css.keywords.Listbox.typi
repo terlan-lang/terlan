@@ -1,0 +1,6 @@
+//! Shared CSS keyword listbox. Generated; do not edit.
+
+module std.css.keywords.Listbox.
+
+pub type Listbox =
+    Atom["listbox"].

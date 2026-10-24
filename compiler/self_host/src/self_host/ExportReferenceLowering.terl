@@ -1,6 +1,8 @@
 /** Lowers canonical interface export summaries of the form `export name/arity.`. */
 module self_host.ExportReferenceLowering.
 
+import std.core.String.
+
 
 import std.core.Option.{None, Some}.
 import self_host.ExportReferenceSyntax.{ExportReference}.

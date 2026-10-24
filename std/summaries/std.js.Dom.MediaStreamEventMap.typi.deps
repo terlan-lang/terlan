@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaStreamEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=8722289823565101188
-interface_hash=14548275883921930090
-interface_doc_hash=14548275883921930090
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=7419727870371991465
+interface_hash=14014740896826531118
+interface_doc_hash=14014740896826531118
 deps=0

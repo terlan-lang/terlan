@@ -1,56 +1,38 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-baseline-source
+//! The `baseline-source` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+//! which
+//! [baseline](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/baseline-position)
+//! to use when inline-level boxes have multiple possible baselines, such as multi-line [inline
+//! blocks](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Display/Block_and_inline_layout)
+//! or inline [flex
+//! containers](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Basic_concepts#the_flex_container).
+//! The values allow for choosing between aligning to the box's first baseline, last baseline, or
+//! letting the browser decide automatically based on the box type.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: Specifies [`last
+//! baseline`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/baseline-position#last_baseline)
+//! alignment for inline-block, [`first
+//! baseline`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/baseline-position#first_baseline)
+//! alignment for everything else.
+//! - first: Specifies `first baseline` alignment.
+//! - last: Specifies `last baseline` alignment.
+//!
 //! Grammar: auto | first | last
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-baseline-source
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/baseline-source
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BaselineSource.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    baseline_source: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    baseline_source: Value
+    baseline_source: Auto | First | Last | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained baseline-source value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword first.
-
-pub first(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword last.
-
-pub last(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

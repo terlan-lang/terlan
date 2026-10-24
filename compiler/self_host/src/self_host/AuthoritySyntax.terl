@@ -9,6 +9,13 @@ pub type AcceptedParserParityGate.
 pub type RejectedParserParityGate.
 pub type SemanticParityGate.
 pub type BackendContractParityGate.
+pub type TypedBackendAdapterGate.
+pub type NativeImageConsumerGate.
+pub type ActorIrParityGate.
+pub type ActorBackendAdapterGate.
+pub type ActorNativeConsumerGate.
+pub type ActorProfileCatalogGate.
+pub type ActorProfileFixedPointGate.
 pub type BootstrapFixedPointGate.
 
 pub type AuthorityGate =
@@ -17,6 +24,13 @@ pub type AuthorityGate =
     | RejectedParserParityGate
     | SemanticParityGate
     | BackendContractParityGate
+    | TypedBackendAdapterGate
+    | NativeImageConsumerGate
+    | ActorIrParityGate
+    | ActorBackendAdapterGate
+    | ActorNativeConsumerGate
+    | ActorProfileCatalogGate
+    | ActorProfileFixedPointGate
     | BootstrapFixedPointGate.
 
 pub struct AuthorityEvidence {
@@ -25,20 +39,77 @@ pub struct AuthorityEvidence {
     rejected_parser_parity: Bool,
     semantic_parity: Bool,
     backend_contract_parity: Bool,
+    typed_backend_adapter: Bool,
+    native_image_consumer: Bool,
+    actor_ir_parity: Bool,
+    actor_backend_adapter: Bool,
+    actor_native_consumer: Bool,
+    actor_profile_catalog: Bool,
+    actor_profile_fixed_point: Bool,
     stage0_artifact_hash: String,
     stage1_artifact_hash: String,
+    stage0_actor_hash: String,
+    stage1_actor_hash: String,
 }.
 
 pub constructor AuthorityEvidence {
-    (token_parity: Bool, accepted_parser_parity: Bool, rejected_parser_parity: Bool, semantic_parity: Bool, backend_contract_parity: Bool, stage0_artifact_hash: String, stage1_artifact_hash: String): AuthorityEvidence ->
+    (token_parity: Bool, accepted_parser_parity: Bool, rejected_parser_parity: Bool, semantic_parity: Bool, backend_contract_parity: Bool, typed_backend_adapter: Bool, native_image_consumer: Bool, stage0_artifact_hash: String, stage1_artifact_hash: String): AuthorityEvidence ->
         AuthorityEvidence {
             token_parity: token_parity,
             accepted_parser_parity: accepted_parser_parity,
             rejected_parser_parity: rejected_parser_parity,
             semantic_parity: semantic_parity,
             backend_contract_parity: backend_contract_parity,
+            typed_backend_adapter: typed_backend_adapter,
+            native_image_consumer: native_image_consumer,
+            actor_ir_parity: false,
+            actor_backend_adapter: false,
+            actor_native_consumer: false,
+            actor_profile_catalog: false,
+            actor_profile_fixed_point: false,
             stage0_artifact_hash: stage0_artifact_hash,
             stage1_artifact_hash: stage1_artifact_hash,
+            stage0_actor_hash: "",
+            stage1_actor_hash: "",
+        };
+    (token_parity: Bool, accepted_parser_parity: Bool, rejected_parser_parity: Bool, semantic_parity: Bool, backend_contract_parity: Bool, typed_backend_adapter: Bool, native_image_consumer: Bool, actor_ir_parity: Bool, actor_backend_adapter: Bool, actor_native_consumer: Bool, stage0_artifact_hash: String, stage1_artifact_hash: String, stage0_actor_hash: String, stage1_actor_hash: String): AuthorityEvidence ->
+        AuthorityEvidence {
+            token_parity: token_parity,
+            accepted_parser_parity: accepted_parser_parity,
+            rejected_parser_parity: rejected_parser_parity,
+            semantic_parity: semantic_parity,
+            backend_contract_parity: backend_contract_parity,
+            typed_backend_adapter: typed_backend_adapter,
+            native_image_consumer: native_image_consumer,
+            actor_ir_parity: actor_ir_parity,
+            actor_backend_adapter: actor_backend_adapter,
+            actor_native_consumer: actor_native_consumer,
+            actor_profile_catalog: false,
+            actor_profile_fixed_point: false,
+            stage0_artifact_hash: stage0_artifact_hash,
+            stage1_artifact_hash: stage1_artifact_hash,
+            stage0_actor_hash: stage0_actor_hash,
+            stage1_actor_hash: stage1_actor_hash,
+        }
+    ;
+    (token_parity: Bool, accepted_parser_parity: Bool, rejected_parser_parity: Bool, semantic_parity: Bool, backend_contract_parity: Bool, typed_backend_adapter: Bool, native_image_consumer: Bool, actor_ir_parity: Bool, actor_backend_adapter: Bool, actor_native_consumer: Bool, actor_profile_catalog: Bool, actor_profile_fixed_point: Bool, stage0_artifact_hash: String, stage1_artifact_hash: String, stage0_actor_hash: String, stage1_actor_hash: String): AuthorityEvidence ->
+        AuthorityEvidence {
+            token_parity: token_parity,
+            accepted_parser_parity: accepted_parser_parity,
+            rejected_parser_parity: rejected_parser_parity,
+            semantic_parity: semantic_parity,
+            backend_contract_parity: backend_contract_parity,
+            typed_backend_adapter: typed_backend_adapter,
+            native_image_consumer: native_image_consumer,
+            actor_ir_parity: actor_ir_parity,
+            actor_backend_adapter: actor_backend_adapter,
+            actor_native_consumer: actor_native_consumer,
+            actor_profile_catalog: actor_profile_catalog,
+            actor_profile_fixed_point: actor_profile_fixed_point,
+            stage0_artifact_hash: stage0_artifact_hash,
+            stage1_artifact_hash: stage1_artifact_hash,
+            stage0_actor_hash: stage0_actor_hash,
+            stage1_actor_hash: stage1_actor_hash,
         }
 }.
 

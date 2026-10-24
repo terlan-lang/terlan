@@ -38,6 +38,7 @@ pub from_int_be(value: Int, bit_width: Int): BitString ->
 /**
  * Encodes one unsigned integer in little-endian wire order.
  */
+@pure
 @target.vm {process_mailbox: true}
 pub from_uint_le(value: Int, bit_width: Int): BitString ->
     native.
@@ -157,6 +158,7 @@ pub (bits: BitString) concat(suffix: BitString): BitString ->
 /**
  * Converts an aligned bitstring to Bytes and rejects partial final bytes.
  */
+@pure
 @target.vm {process_mailbox: true}
 pub (bits: BitString) to_bytes(): Bytes ->
     native.

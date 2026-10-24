@@ -1,0 +1,83 @@
+/** Terlan source projection for TL0006 public API documentation. */
+module self_host.SelfHostLintPublicDocsSource.
+
+import std.core.String.
+import self_host.SelfHostLintReadability.PublicApiSubject.
+import self_host.SelfHostLintReadability.
+
+leading_bytes(line: String): Int ->
+    String.byte_size(line) - String.byte_size(String.trim_start(line)).
+
+public_api_line(trimmed: String): Bool ->
+    String.starts_with(trimmed, "pub ")
+        and not String.starts_with(trimmed, "pub import ")
+        and not String.starts_with(trimmed, "pub export ").
+
+line_doc(trimmed: String): Bool ->
+    String.starts_with(trimmed, "///")
+        and not String.starts_with(trimmed, "////").
+
+module_doc(trimmed: String): Bool -> String.starts_with(trimmed, "//!").
+
+block_doc_start(trimmed: String): Bool -> String.starts_with(trimmed, "/**").
+
+annotation_line(trimmed: String): Bool -> String.starts_with(trimmed, "@").
+
+project(
+    values: List[String],
+    offset: Int,
+    in_block_doc: Bool,
+    docs_pending: Bool,
+): List[PublicApiSubject] ->
+    case values {
+        [] -> [];
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            let next_offset = offset + String.byte_size(line) + 1;
+            if {
+                in_block_doc -> project(
+                    rest,
+                    next_offset,
+                    not String.contains(trimmed, "*/"),
+                    true,
+                );
+                block_doc_start(trimmed) -> project(
+                    rest,
+                    next_offset,
+                    not String.contains(trimmed, "*/"),
+                    true,
+                );
+                line_doc(trimmed) -> project(rest, next_offset, false, true);
+                module_doc(trimmed) -> project(rest, next_offset, false, false);
+                trimmed == "" -> project(rest, next_offset, false, docs_pending);
+                annotation_line(trimmed) -> project(rest, next_offset, false, docs_pending);
+                public_api_line(trimmed) -> [PublicApiSubject(
+                    offset + leading_bytes(line),
+                    true,
+                    docs_pending,
+                ) | project(rest, next_offset, false, false)];
+                true -> project(rest, next_offset, false, false)
+            }
+    }.
+
+/** Projects public declarations and whether attached API docs are present. */
+pub subjects(source: String): List[PublicApiSubject] ->
+    project(String.split(source, "\n"), 0, false, false).
+
+/** Runs TL0006 without native syntax projection. */
+@pure
+pub diagnostics(
+    path: String,
+    source: String,
+): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
+    SelfHostLintReadability.diagnostics(
+        path,
+        source,
+        [],
+        [],
+        [],
+        [],
+        subjects(source),
+        [],
+        [],
+    ).

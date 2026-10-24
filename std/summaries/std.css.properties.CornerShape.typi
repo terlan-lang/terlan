@@ -1,112 +1,50 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-corner-shape
+//! The `corner-shape` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property specifies the shape of a box's corners, within the area specified by its `border-radius`
+//! property value.
+//!
+//! Initial: corner-top-left-shape: round; corner-top-right-shape: round; corner-bottom-left-shape:
+//! round; corner-bottom-right-shape: round. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <'corner-top-left-shape'>{1,4}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-corner-shape
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/corner-shape
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.CornerShape.
 
-/// A single non-global corner-shape shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
-
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    corner_shape: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    Round
+  | Scoop
+  | Bevel
+  | Notch
+  | Square
+  | Squircle.
 
 pub struct Property {
-    corner_shape: Value
+    corner_shape: Round | Scoop | Bevel | Notch | Square | Squircle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained corner-shape value.
+/// Supplies 2 components in grammar order.
 
-pub opaque type Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Returns the CSS keyword bevel.
+/// Supplies 4 components in grammar order.
 
-pub bevel(): Value.
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
-/// Constructs one corner-shape shorthand component.
+/// Supplies 1 components in grammar order.
 
-pub component_bevel(): Component.
+pub single(first: Component): Checked.
 
-/// Constructs one corner-shape shorthand component.
+/// Supplies 3 components in grammar order.
 
-pub component_notch(): Component.
-
-/// Constructs one corner-shape shorthand component.
-
-pub component_round(): Component.
-
-/// Constructs one corner-shape shorthand component.
-
-pub component_scoop(): Component.
-
-/// Constructs one corner-shape shorthand component.
-
-pub component_square(): Component.
-
-/// Constructs one corner-shape shorthand component.
-
-pub component_squircle(): Component.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword notch.
-
-pub notch(): Value.
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Combines 4 typed components in specification order.
-
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword round.
-
-pub round(): Value.
-
-/// Returns the CSS keyword scoop.
-
-pub scoop(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Returns the CSS keyword square.
-
-pub square(): Value.
-
-/// Returns the CSS keyword squircle.
-
-pub squircle(): Value.
-
-/// Combines 3 typed components in specification order.
-
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub triple(first: Component, second: Component, third: Component): Checked.

@@ -1,72 +1,25 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-color
+ * The `background-color` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * background color of an element.
+ *
+ * Initial: transparent. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <color>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-color
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/background-color
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BackgroundColor.
 
-import std.css.Values.
+import type std.css.Values.{Color, CurrentColor, Inherit, Initial, Revert, RevertLayer, Transparent, Unset}.
 
-import type std.core.Option.
-import type std.css.Values.{Color}.
-
-/**
- * A nominal, specification-constrained background-color value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    background_color: Value,
+    background_color: Color | Transparent | CurrentColor | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    background_color: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "background-color", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "background-color", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "background-color", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "background-color", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "background-color", css: "unset"}).
-
-/**
- * Constructs a background-color value from a typed color.
- */
-pub color(value: Color): Value ->
-    Value(Token {property: "background-color", css: std.css.Values.color_css(value)}).

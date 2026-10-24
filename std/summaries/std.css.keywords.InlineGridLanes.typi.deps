@@ -1,0 +1,8 @@
+module=std.css.keywords.InlineGridLanes
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=91822288727664330
+interface_hash=8849972358660290045
+interface_doc_hash=12851762133896876614
+deps=0

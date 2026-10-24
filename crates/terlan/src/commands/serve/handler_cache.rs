@@ -683,6 +683,11 @@ impl VmHandlerRuntimeLease {
     pub(super) fn vm(&self) -> &AotHandlerRuntime {
         &self.0
     }
+
+    /// Transfers the pinned generation to a long-lived source invocation.
+    pub(super) fn into_runtime(self) -> Arc<AotHandlerRuntime> {
+        self.0
+    }
 }
 
 pub(super) fn cached_vm_handler_for_manifest(

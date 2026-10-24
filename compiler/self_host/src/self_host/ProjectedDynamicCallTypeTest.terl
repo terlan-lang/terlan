@@ -1,0 +1,40 @@
+/** Typed dynamic-call result projection contracts. */
+module self_host.ProjectedDynamicCallTypeTest.
+
+import std.core.Option.{None, Some}.
+import self_host.ProjectedTypeConstraintResolution.
+import self_host.ProjectedTypeConstraintSyntax.TypeConstraintEvent.
+
+@test
+pub projects_nested_generic_function_return_type(): Bool ->
+    let resolved = ProjectedTypeConstraintResolution.resolve([
+        TypeConstraintEvent("known", 1, 0, 0, "((Int) -> Bool, List[Int]) -> Result[String, Error]", 10),
+        TypeConstraintEvent("call-result", 2, 1, 0, "", 20),
+    ]);
+    case resolved.facts {
+        [_, result] ->
+            result.type_name == Some("Result[String, Error]")
+                and resolved.diagnostics == [];
+        _ -> false
+    }.
+
+@test
+pub rejects_known_non_function_targets(): Bool ->
+    let resolved = ProjectedTypeConstraintResolution.resolve([
+        TypeConstraintEvent("known", 1, 0, 0, "Int", 10),
+        TypeConstraintEvent("call-result", 2, 1, 0, "", 20),
+    ]);
+    case resolved.diagnostics {
+        [diagnostic] -> diagnostic.code == "invalid-dynamic-call-target";
+        _ -> false
+    }.
+
+@test
+pub leaves_unresolved_targets_unknown_without_inventing_a_type(): Bool ->
+    let resolved = ProjectedTypeConstraintResolution.resolve([
+        TypeConstraintEvent("call-result", 2, 1, 0, "", 20),
+    ]);
+    case resolved.facts {
+        [result] -> result.type_name == None and resolved.diagnostics == [];
+        _ -> false
+    }.

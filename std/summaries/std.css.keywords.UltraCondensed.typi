@@ -1,0 +1,6 @@
+//! Shared CSS keyword ultra-condensed. Generated; do not edit.
+
+module std.css.keywords.UltraCondensed.
+
+pub type UltraCondensed =
+    Atom["ultra-condensed"].

@@ -2,6 +2,23 @@ use super::super::format_source_module;
 use crate::terlan_syntax::parse_module;
 
 #[test]
+fn formatter_preserves_record_and_map_lambda_field_grouping() {
+    for expression in [
+        "Handler {callback: (() -> 42)}",
+        "Handler {callback: ((value: Int) -> value + 1)}",
+        "Handler {callback: (() -> case true { true -> 42; false -> 0 })}",
+        "{callback: (() -> 42)}",
+        "handler#Handler{callback: (() -> case true { true -> 42; false -> 0 })}",
+    ] {
+        let source = format!("module field_lambda. pub make() -> {expression}.");
+        let formatted = format_source_module(&source).expect("format field lambda");
+        parse_module(&formatted).expect("formatted field lambda must parse");
+        assert_eq!(format_source_module(&formatted).unwrap(), formatted);
+        assert!(formatted.contains("callback: (("), "{formatted}");
+    }
+}
+
+#[test]
 fn formatter_preserves_typed_lambda_contracts_and_imports() {
     for source in [
         "module lambda_fmt. identity(value: Int): Int -> value. pub callback(): (Int) -> Int -> ((value: Int) -> identity(value)).",

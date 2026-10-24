@@ -750,7 +750,7 @@ fn lower_expr(
         | CoreExpr::RecordUpdate { .. }
         | CoreExpr::ConstructorCall { .. }
         | CoreExpr::ConstructorChain { .. }
-        | CoreExpr::FixedArray(_) => Err(AcceleratorIrError::UnsupportedEffect(
+        | CoreExpr::Array(_) => Err(AcceleratorIrError::UnsupportedEffect(
             "allocation".to_string(),
         )),
         unsupported => Err(AcceleratorIrError::UnsupportedOperation(format!(

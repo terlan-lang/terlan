@@ -15,6 +15,10 @@ mod response_source_execution;
 #[cfg(test)]
 #[path = "js_browser_test/route_fixtures.rs"]
 mod route_fixtures;
+#[path = "js_browser_test/vm_source_routes.rs"]
+mod vm_source_routes;
+#[path = "js_browser_test/websocket_source_execution.rs"]
+mod websocket_source_execution;
 use route_fixtures::*;
 
 /// Verifies compiler-free VM service staging retains declared templates.

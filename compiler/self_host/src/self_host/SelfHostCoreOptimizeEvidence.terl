@@ -1,0 +1,97 @@
+/** Strict artifact-derived authority evidence for target-independent Core optimization. */
+module self_host.SelfHostCoreOptimizeEvidence.
+
+import std.core.String.
+
+import std.core.{Bool, String}.
+
+
+pub struct CoreOptimizeEvidence {
+    valid_before: Bool,
+    valid_after: Bool,
+    idempotent: Bool,
+    deterministic: Bool,
+    diagnostics_equivalent: Bool,
+    runtime_equivalent: Bool,
+    cross_target_complete: Bool,
+    ready: Bool,
+}.
+
+pub constructor CoreOptimizeEvidence {
+    (
+        valid_before: Bool,
+        valid_after: Bool,
+        idempotent: Bool,
+        deterministic: Bool,
+        diagnostics_equivalent: Bool,
+        runtime_equivalent: Bool,
+        cross_target_complete: Bool,
+        ready: Bool,
+    ): CoreOptimizeEvidence -> CoreOptimizeEvidence {
+        valid_before: valid_before,
+        valid_after: valid_after,
+        idempotent: idempotent,
+        deterministic: deterministic,
+        diagnostics_equivalent: diagnostics_equivalent,
+        runtime_equivalent: runtime_equivalent,
+        cross_target_complete: cross_target_complete,
+        ready: ready,
+    }
+}.
+
+@pure
+complete(value: String): Bool -> String.trim(value) == "complete".
+
+/** Derives authority only from independently materialized artifacts. */
+@pure
+pub evaluate(
+    validation_before: String,
+    validation_after: String,
+    optimized_once: String,
+    optimized_twice: String,
+    optimized_regenerated: String,
+    diagnostics_before: String,
+    diagnostics_after: String,
+    runtime_before: String,
+    runtime_after: String,
+    cross_target_marker: String,
+): CoreOptimizeEvidence ->
+    let valid_before = complete(validation_before);
+    let valid_after = complete(validation_after);
+    let idempotent = optimized_once == optimized_twice and optimized_once != "";
+    let deterministic = optimized_once == optimized_regenerated and optimized_once != "";
+    let diagnostics_equivalent = diagnostics_before == diagnostics_after;
+    let runtime_equivalent = runtime_before == runtime_after and runtime_before != "";
+    let cross_target_complete = complete(cross_target_marker);
+    CoreOptimizeEvidence(
+        valid_before,
+        valid_after,
+        idempotent,
+        deterministic,
+        diagnostics_equivalent,
+        runtime_equivalent,
+        cross_target_complete,
+        valid_before
+            and valid_after
+            and idempotent
+            and deterministic
+            and diagnostics_equivalent
+            and runtime_equivalent
+            and cross_target_complete,
+    ).
+
+@pure
+status(value: Bool): String -> if { value -> "pass"; true -> "fail" }.
+
+/** Renders the production-consumable v1 evidence record. */
+@pure
+pub render(value: CoreOptimizeEvidence): String ->
+    "terlan.self-host.core-optimization-evidence/v1\n"
+        + "validation-before\t" + status(value.valid_before) + "\n"
+        + "validation-after\t" + status(value.valid_after) + "\n"
+        + "optimizer-idempotence\t" + status(value.idempotent) + "\n"
+        + "optimizer-determinism\t" + status(value.deterministic) + "\n"
+        + "diagnostics-equivalence\t" + status(value.diagnostics_equivalent) + "\n"
+        + "runtime-equivalence\t" + status(value.runtime_equivalent) + "\n"
+        + "cross-target-equivalence\t" + status(value.cross_target_complete) + "\n"
+        + "target-independent-optimizer-authority\t" + status(value.ready) + "\n".

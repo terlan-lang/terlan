@@ -1,87 +1,27 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip-spaces
+ * Controls whether underline, overline, and line-through decorations cross spaces, including
+ * decorations inherited from ancestors.
+ *
+ * Keyword effects:
+ * - all: Omits decorations across all spaces.
+ * - end: Omits decorations across spaces at the end of each line.
+ * - none: Draws decorations across spaces.
+ * - start: Omits decorations across spaces at the start of each line.
+ *
  * Grammar: none | all | [ start || end ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip-spaces
+ *
+ * Author guide: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip-spaces
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextDecorationSkipSpaces.
 
-import type std.core.Option.
+import std.css.keywords.{All, End, None, Start}.
 
-/**
- * A nominal, specification-constrained text-decoration-skip-spaces value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_decoration_skip_spaces: Value,
+    text_decoration_skip_spaces: None | All | Start | End | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    text_decoration_skip_spaces: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword all.
- */
-pub all(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "all"}).
-
-/**
- * Returns the CSS keyword end.
- */
-pub end_value(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "end"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword start.
- */
-pub start(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "start"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "unset"}).

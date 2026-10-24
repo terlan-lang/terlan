@@ -452,6 +452,41 @@ fn render_module_contract(
         output.push('\n');
         output.push_str(&render_member(module, member, include_bodies));
     }
+    if let Some(methods) = module.callback_members() {
+        let mut target = "binding_target".to_string();
+        while methods.iter().any(|method| method.terlan_name == target) {
+            target.push('_');
+        }
+        let parameters = methods
+            .iter()
+            .map(|method| {
+                let arguments = method
+                    .params
+                    .iter()
+                    .map(|parameter| parameter.terlan_type.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!(
+                    "{}: ({arguments}) -> {}",
+                    method.terlan_name, method.return_type
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        output.push('\n');
+        output.push_str(&render_signature(
+            format!(
+            "pub with_members[BindingTarget]({target}: BindingTarget, {parameters}): BindingTarget"
+        ),
+            include_bodies,
+        ));
+    }
+    if manifest.generator.profile == "typescript-declarations" {
+        for operation in super::ts_record_helpers::operations(module) {
+            output.push('\n');
+            output.push_str(&operation.source(include_bodies));
+        }
+    }
     output
 }
 

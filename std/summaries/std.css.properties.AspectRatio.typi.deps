@@ -1,10 +1,12 @@
 module=std.css.properties.AspectRatio
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6132020598713117134
-interface_hash=993394226706697373
-interface_doc_hash=8738868113615618933
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5352767631441818790
+interface_hash=9921899203352205241
+interface_doc_hash=15890954081447160144
+deps=4
 std.core.Float=3784534907681217377
 std.core.Option=11539230284316612175
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722

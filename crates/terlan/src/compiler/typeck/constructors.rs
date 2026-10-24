@@ -2,14 +2,13 @@ use std::collections::HashMap;
 
 use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
 
-use crate::terlan_typeck::types::FixedArraySize;
 use crate::terlan_typeck::{
-    apply_subst, call_has_named_args, complete_defaulted_call_arg_types, expand_type_aliases,
-    infer_syntax_expr, instantiate_constructor_scheme, instantiate_type, interface_type_aliases,
-    is_constructor_name, next_constructor_type_var, normalize_union,
-    parse_interface_constructor_schemes, reorder_named_call_arg_types, substitute_type_vars,
-    supplied_named_parameter_slots, syntax_callee_name, unify, validate_named_call_args,
-    ConstructorScheme, ExprInferContext, Type, TypeAlias, TypeVarId,
+    apply_subst, call_has_named_args, complete_defaulted_call_arg_types,
+    expand_interface_global_aliases, expand_type_aliases, infer_syntax_expr,
+    instantiate_constructor_scheme, instantiate_type, interface_type_aliases, is_constructor_name,
+    next_constructor_type_var, parse_interface_constructor_schemes, reorder_named_call_arg_types,
+    substitute_type_vars, supplied_named_parameter_slots, syntax_callee_name, unify,
+    validate_named_call_args, ConstructorScheme, ExprInferContext, Type, TypeAlias, TypeVarId,
 };
 
 /// Infers a constructor call from explicit constructors or alias constructors.
@@ -53,11 +52,7 @@ pub(super) fn infer_constructor_call(
     // An imported explicit constructor owns construction authority before an
     // imported transparent alias can suggest a physical initializer shape.
     if let Some(imported) = ctx.constructor_aliases.get(name) {
-        if let Some(interface) = imported
-            .module
-            .as_ref()
-            .and_then(|module| ctx.interface_map.get(module))
-        {
+        if let Some(interface) = ctx.interface_map.get(&imported.module) {
             if let Some(schemes) = parse_interface_constructor_schemes(
                 interface
                     .constructors
@@ -326,8 +321,9 @@ fn unify_constructor_argument(
             Ok(())
         }
         Err(original) => {
-            let expected = expand_type_aliases(&apply_subst(expected, subst), aliases);
-            let actual = expand_type_aliases(&apply_subst(actual, subst), aliases);
+            let expected =
+                expand_interface_global_aliases(&apply_subst(expected, subst), aliases);
+            let actual = expand_interface_global_aliases(&apply_subst(actual, subst), aliases);
             unify(&expected, &actual, subst).map_err(|_| original)
         }
     }
@@ -366,20 +362,6 @@ pub(super) fn infer_opaque_constructor(
             arg_types.len()
         ));
         return Some(Type::Dynamic);
-    }
-
-    if name == "FixedArray" {
-        if let Type::Tuple(items) = &arg_types[0] {
-            let elem = if items.is_empty() {
-                Type::Never
-            } else {
-                normalize_union(items.clone())
-            };
-            return Some(Type::FixedArray {
-                size: FixedArraySize::Known(items.len()),
-                elem: Box::new(elem),
-            });
-        }
     }
 
     let expected = expand_type_aliases(&alias.body, aliases);

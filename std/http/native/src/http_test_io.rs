@@ -20,6 +20,9 @@ pub(crate) struct State {
     pub(crate) write_error: Option<io::ErrorKind>,
     pub(crate) write_budget: Option<usize>,
     pub(crate) flush_error: Option<io::ErrorKind>,
+    pub(crate) shutdowns: usize,
+    pub(crate) shutdown_pending: bool,
+    pub(crate) shutdown_error: Option<io::ErrorKind>,
 }
 
 pub(crate) struct MemoryIo<const KIND: u8>(pub(crate) Arc<Mutex<State>>);
@@ -112,7 +115,15 @@ impl<const KIND: u8> hyper::rt::Write for MemoryIo<KIND> {
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Poll::Ready(Ok(()))
+        let mut state = self.0.lock().unwrap();
+        state.shutdowns += 1;
+        if state.shutdown_pending {
+            return Poll::Pending;
+        }
+        Poll::Ready(match state.shutdown_error {
+            Some(error) => Err(error.into()),
+            None => Ok(()),
+        })
     }
 }
 

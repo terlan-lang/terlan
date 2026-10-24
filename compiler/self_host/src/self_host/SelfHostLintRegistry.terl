@@ -1,0 +1,175 @@
+/** Closed-world registry for self-hosted lint policy authority. */
+module self_host.SelfHostLintRegistry.
+
+import std.core.String.
+
+pub struct LintRuleAuthority {
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    policy_module: String,
+    projection_required: Bool,
+    fix_available: Bool,
+}.
+
+pub constructor LintRuleAuthority {
+    (
+        rule_id: String,
+        rule_name: String,
+        severity: String,
+        policy_module: String,
+        projection_required: Bool,
+        fix_available: Bool,
+    ): LintRuleAuthority -> LintRuleAuthority {
+        rule_id: rule_id,
+        rule_name: rule_name,
+        severity: severity,
+        policy_module: policy_module,
+        projection_required: projection_required,
+        fix_available: fix_available,
+    }
+}.
+
+rule(
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    policy_module: String,
+    projection_required: Bool,
+    fix_available: Bool,
+): LintRuleAuthority ->
+    LintRuleAuthority(
+        rule_id,
+        rule_name,
+        severity,
+        policy_module,
+        projection_required,
+        fix_available,
+    ).
+
+/** Every active lint rule in canonical registry order. */
+pub rules(): List[LintRuleAuthority] -> [
+    rule("TL0001", "syntax.semicolon", "error", "self_host.SelfHostLintSemicolon", false, true),
+    rule("TL0002", "readability.deep-expression", "warning", "self_host.SelfHostLintReadability", false, false),
+    rule("TL0003", "readability.callback-name", "warning", "self_host.SelfHostLintReadability", false, false),
+    rule("TL0004", "readability.unused-destructure-binding", "warning", "self_host.SelfHostLintReadability", false, false),
+    rule("TL0005", "readability.redundant-comment", "warning", "self_host.SelfHostLintReadability", false, false),
+    rule("TL0006", "readability.public-docs", "warning", "self_host.SelfHostLintReadability", false, false),
+    rule("TL0007", "readability.doc-comment-spacing", "warning", "self_host.SelfHostLintReadability", false, false),
+    rule("TL0008", "readability.boolean-heavy-branch", "warning", "self_host.SelfHostLintReadability", false, false),
+    rule("TL0009", "readability.grouped-binding", "error", "self_host.SelfHostLintReadability", false, false),
+    rule("TL0010", "readability.function-reference", "error", "self_host.SelfHostLintReadability", false, false),
+    rule("TL0301", "naming.function-snake-case", "warning", "self_host.SelfHostLintNamingDiagnostics", false, false),
+    rule("TL0302", "naming.type-upper-camel", "warning", "self_host.SelfHostLintNamingDiagnostics", false, false),
+    rule("TL0303", "naming.case-underscore-collision", "warning", "self_host.SelfHostLintNamingDiagnostics", false, false),
+    rule("TL0304", "naming.binding-snake-case", "warning", "self_host.SelfHostLintNamingDiagnostics", false, false),
+    rule("TL0401", "tests.fake", "error", "self_host.SelfHostLintTests", false, false),
+    rule("TL0402", "tests.assertion-volume", "suggestion", "self_host.SelfHostLintTests", false, false),
+    rule("TL0403", "tests.table-driven-candidate", "suggestion", "self_host.SelfHostLintTests", false, false),
+    rule("TL0404", "tests.property-candidate", "suggestion", "self_host.SelfHostLintTests", false, false),
+    rule("TL0501", "consistency.module-order", "warning", "self_host.SelfHostLintConsistency", false, false),
+    rule("TL0502", "consistency.import-order", "warning", "self_host.SelfHostLintConsistency", false, false),
+    rule("TL0503", "consistency.single-module", "error", "self_host.SelfHostLintConsistency", false, false),
+    rule("TL0504", "consistency.declaration-order", "warning", "self_host.SelfHostLintConsistency", false, false),
+    rule("TL0505", "consistency.std-module-path", "warning", "self_host.SelfHostLintConsistency", false, false),
+    rule("TL0506", "consistency.inline-named-atom", "error", "self_host.SelfHostLintNamedAtom", false, false),
+    rule("TL0601", "imports.duplicate", "warning", "self_host.SelfHostLintImports", false, false),
+    rule("TL0602", "imports.duplicate-selected", "warning", "self_host.SelfHostLintImports", false, false),
+    rule("TL0603", "imports.sort-order", "warning", "self_host.SelfHostLintImports", false, false),
+    rule("TL0604", "imports.selected-sort-order", "warning", "self_host.SelfHostLintImports", false, false),
+    rule("TL0605", "imports.grouped-selected", "warning", "self_host.SelfHostLintImportUsage", false, false),
+    rule("TL0606", "imports.unused-selected", "warning", "self_host.SelfHostLintImportUsage", false, false),
+    rule("TL0607", "imports.unused-module", "warning", "self_host.SelfHostLintImportUsage", false, false),
+    rule("TL0608", "imports.redundant-qualifier", "suggestion", "self_host.SelfHostLintImportRecommendations", false, false),
+    rule("TL0609", "imports.default-could-be-selected", "suggestion", "self_host.SelfHostLintImportRecommendations", false, false),
+    rule("TL0702", "targets.conflict", "error", "self_host.SelfHostLintTargets", false, false),
+    rule("TL0804", "generated.source-manifest", "error", "self_host.SelfHostLintGenerated", false, false),
+    rule("TL0805", "generated.lint-suppression-manifest", "error", "self_host.SelfHostLintGenerated", false, false),
+    rule("TL0806", "generated.skip-manifest", "error", "self_host.SelfHostLintGenerated", false, false),
+    rule("TL0901", "complexity.function-size", "warning", "self_host.SelfHostLintComplexity", false, false),
+    rule("TL0902", "complexity.file-size", "warning", "self_host.SelfHostLintComplexity", false, false),
+    rule("TL0903", "complexity.match-arm-size", "warning", "self_host.SelfHostLintComplexity", false, false),
+    rule("TL0904", "maintainability.debug-output", "warning", "self_host.SelfHostLintMaintainability", false, false),
+    rule("TL0905", "actor-vm.message-tag-equality", "warning", "self_host.SelfHostLintActorVm", false, false),
+    rule("TL0906", "actor-vm.state-parameter-name", "warning", "self_host.SelfHostLintActorVm", false, false),
+    rule("TL0907", "maintainability.sql-width", "warning", "self_host.SelfHostLintMaintainability", false, false),
+    rule("TL1002", "format-boundary.pipe-fix", "suggestion", "self_host.SelfHostLintPipe", false, true),
+].
+
+ids(values: List[LintRuleAuthority]): List[String] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [value.rule_id | ids(rest)]
+    }.
+
+pub rule_ids(): List[String] -> ids(rules()).
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+unique(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> not contains(rest, value) and unique(rest)
+    }.
+
+valid_rule(value: LintRuleAuthority): Bool ->
+    String.starts_with(value.rule_id, "TL")
+        and value.rule_name != ""
+        and value.policy_module != ""
+        and (
+            value.severity == "error"
+                or value.severity == "warning"
+                or value.severity == "suggestion"
+        ).
+
+all_valid(values: List[LintRuleAuthority]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> valid_rule(value) and all_valid(rest)
+    }.
+
+/** Rejects duplicate IDs and incomplete metadata before authority admission. */
+pub valid(): Bool ->
+    let values = rules();
+    unique(ids(values)) and all_valid(values).
+
+count_projection(values: List[LintRuleAuthority], count: Int): Int ->
+    case values {
+        [] -> count;
+        [value | rest] -> count_projection(
+            rest,
+            if { value.projection_required -> count + 1; true -> count },
+        )
+    }.
+
+/** Number of policies still waiting for shared frontend fact projection. */
+pub projection_rule_count(): Int -> count_projection(rules(), 0).
+
+render_rows(values: List[LintRuleAuthority]): String ->
+    case values {
+        [] -> "";
+        [value | rest] ->
+            value.rule_id
+                + "\t"
+                + value.rule_name
+                + "\t"
+                + value.severity
+                + "\t"
+                + value.policy_module
+                + "\t"
+                + if { value.projection_required -> "projected"; true -> "source" }
+                + "\t"
+                + if { value.fix_available -> "fix"; true -> "diagnostic" }
+                + "\n"
+                + render_rows(rest)
+    }.
+
+/** Versioned production evidence consumed by lint authority gates. */
+pub render(): String ->
+    "terlan.self-host.lint-registry/v1\n"
+        + "rule_id\trule_name\tseverity\tpolicy_module\tinput\tcapability\n"
+        + render_rows(rules()).

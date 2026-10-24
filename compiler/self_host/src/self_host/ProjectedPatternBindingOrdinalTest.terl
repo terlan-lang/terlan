@@ -1,0 +1,99 @@
+/** Recursive pattern binding selectors follow ABI preorder, not source offsets. */
+module self_host.ProjectedPatternBindingOrdinalTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import self_host.ProjectedExpressionSupportIrPlan.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+
+@test
+pub nested_bindings_use_dense_preorder_selectors(): Bool ->
+    let pattern = ProjectedExpressionNode(
+        "tuple-pattern",
+        "{}",
+        80,
+        240,
+        [
+            ProjectedExpressionNode("binding-pattern", "left", 101, 105, []),
+            ProjectedExpressionNode(
+                "constructor-pattern",
+                "Some",
+                150,
+                230,
+                [ProjectedExpressionNode("binding-pattern", "right", 211, 216, [])],
+            ),
+        ],
+    );
+    case ProjectedExpressionSupportIrPlan.shallow_pattern_bindings(
+        pattern,
+        "%environment",
+        [],
+        [],
+    ) {
+        [left, right] ->
+            case {left.operands, right.operands} {
+                {
+                    ["%environment" | ["0" | [_left_source | _left_pattern]]],
+                    ["%environment" | ["1" | [_right_source | _right_pattern]]],
+                } -> true;
+                _ -> false
+            };
+        _ -> false
+    }.
+
+@test
+pub typed_binder_desugars_to_canonical_binding_metadata(): Bool ->
+    let pattern = ProjectedExpressionNode(
+        "typed-pattern",
+        "value: Widget",
+        10,
+        23,
+        [],
+    );
+    let metadata = ProjectedExpressionSupportIrPlan.shallow_pattern_operands(
+        "%subject",
+        pattern,
+    );
+    case ProjectedExpressionSupportIrPlan.shallow_pattern_bindings(
+        pattern,
+        "%environment",
+        [],
+        [],
+    ) {
+        [binding] -> case binding.result {
+            Some(name) ->
+                name == "value"
+                    and metadata == [
+                        "%subject",
+                        "pattern-v2",
+                        "binding-pattern",
+                        "value",
+                        "0",
+                    ];
+            None -> false
+        };
+        _ -> false
+    }.
+
+@test
+pub malformed_typed_binder_remains_fail_closed(): Bool ->
+    let pattern = ProjectedExpressionNode(
+        "typed-pattern",
+        "value",
+        10,
+        15,
+        [],
+    );
+    ProjectedExpressionSupportIrPlan.shallow_pattern_operands("%subject", pattern) == [
+        "%subject",
+        "pattern-v2",
+        "typed-pattern",
+        "value",
+        "0",
+    ]
+        and ProjectedExpressionSupportIrPlan.shallow_pattern_bindings(
+            pattern,
+            "%environment",
+            [],
+            [],
+        ) == [].

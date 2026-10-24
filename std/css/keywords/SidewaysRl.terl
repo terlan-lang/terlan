@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword sideways-rl. Generated; do not edit.
+ */
+module std.css.keywords.SidewaysRl.
+
+pub type SidewaysRl = Atom["sideways-rl"].

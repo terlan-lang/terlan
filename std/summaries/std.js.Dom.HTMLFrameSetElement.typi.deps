@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLFrameSetElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=15753659774755983773
-interface_hash=656502714632575416
-interface_doc_hash=656502714632575416
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=18265503780204763854
+interface_hash=5384151940632967229
+interface_doc_hash=5384151940632967229
 deps=0

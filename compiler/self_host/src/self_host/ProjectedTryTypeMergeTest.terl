@@ -1,0 +1,59 @@
+/** Regression contracts for structured try result type authority. */
+module self_host.ProjectedTryTypeMergeTest.
+
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedTryTypeMerge.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.{Bool, Int, String}.
+
+node(kind: String, text: String, start: Int, children: List[ProjectedExpressionNode]): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, start, start + 1, children).
+
+try_expression(catch_body: ProjectedExpressionNode): ProjectedExpressionNode ->
+    node("try", "try", 0, [
+        node("integer", "1", 1, []),
+        node("success-clauses", "", 2, []),
+        node("catch-clauses", "", 3, [
+            node("clause", "->", 4, [
+                node("wildcard-pattern", "_", 5, []),
+                catch_body,
+            ]),
+        ]),
+    ]).
+
+fact_at(values: List[InferredTypeFact], offset: Int, current: String): String ->
+    case values {
+        [] -> current;
+        [value | rest] -> case value.type_name {
+            Some(name) where value.byte_offset == offset -> fact_at(rest, offset, name);
+            _ -> fact_at(rest, offset, current)
+        }
+    }.
+
+/** Protected and catch outcomes with the same type infer that exact type. */
+pub matching_try_outcomes_infer_result(): Bool ->
+    let merged = ProjectedTryTypeMerge.merge_expression(
+        try_expression(node("integer", "2", 6, [])),
+        TypeConstraintResolution([
+            InferredTypeFact(1, Some("Int"), 1),
+            InferredTypeFact(6, Some("Int"), 6),
+        ], []),
+    );
+    merged.diagnostics == [] and fact_at(merged.facts, 0, "") == "Int".
+
+/** A mismatched catch result fails specifically and retains a positive companion. */
+pub mismatched_try_outcome_reports_specific_diagnostic(): Bool ->
+    let merged = ProjectedTryTypeMerge.merge_expression(
+        try_expression(node("string", "\"bad\"", 6, [])),
+        TypeConstraintResolution([
+            InferredTypeFact(1, Some("Int"), 1),
+            InferredTypeFact(6, Some("String"), 6),
+        ], []),
+    );
+    matching_try_outcomes_infer_result()
+        and case merged.diagnostics {
+            [diagnostic] -> diagnostic.code == "type.try_result_mismatch";
+            _ -> false
+        }.

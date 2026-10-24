@@ -1,0 +1,114 @@
+/** Fail-closed authority admission for the self-hosted lint pipeline. */
+module self_host.SelfHostLintAuthority.
+
+import std.core.String.
+import self_host.SelfHostLintRegistry.
+
+pub struct LintAuthorityEvidence {
+    registry_artifact: String,
+    native_parity: Bool,
+    diagnostic_order_parity: Bool,
+    fix_parity: Bool,
+    corpus_parity: Bool,
+    bootstrap_compiled: Bool,
+}.
+
+pub constructor LintAuthorityEvidence {
+    (
+        registry_artifact: String,
+        native_parity: Bool,
+        diagnostic_order_parity: Bool,
+        fix_parity: Bool,
+        corpus_parity: Bool,
+        bootstrap_compiled: Bool,
+    ): LintAuthorityEvidence -> LintAuthorityEvidence {
+        registry_artifact: registry_artifact,
+        native_parity: native_parity,
+        diagnostic_order_parity: diagnostic_order_parity,
+        fix_parity: fix_parity,
+        corpus_parity: corpus_parity,
+        bootstrap_compiled: bootstrap_compiled,
+    }
+}.
+
+pub struct LintAuthorityDecision {
+    ready: Bool,
+    remaining_projection_rules: Int,
+    missing: List[String],
+}.
+
+pub constructor LintAuthorityDecision {
+    (
+        ready: Bool,
+        remaining_projection_rules: Int,
+        missing: List[String],
+    ): LintAuthorityDecision -> LintAuthorityDecision {
+        ready: ready,
+        remaining_projection_rules: remaining_projection_rules,
+        missing: missing,
+    }
+}.
+
+prepend_when(condition: Bool, value: String, values: List[String]): List[String] ->
+    if { condition -> [value | values]; true -> values }.
+
+missing_evidence(
+    value: LintAuthorityEvidence,
+    projection_count: Int,
+): List[String] ->
+    let bootstrap = prepend_when(
+        not value.bootstrap_compiled,
+        "bootstrap-compiled",
+        [],
+    );
+    let corpus = prepend_when(not value.corpus_parity, "corpus-parity", bootstrap);
+    let fixes = prepend_when(not value.fix_parity, "fix-parity", corpus);
+    let order = prepend_when(
+        not value.diagnostic_order_parity,
+        "diagnostic-order-parity",
+        fixes,
+    );
+    let native = prepend_when(not value.native_parity, "native-parity", order);
+    let projection = prepend_when(
+        projection_count != 0,
+        "zero-projection-rules",
+        native,
+    );
+    let registry_bytes = prepend_when(
+        value.registry_artifact != SelfHostLintRegistry.render(),
+        "canonical-registry-artifact",
+        projection,
+    );
+    prepend_when(not SelfHostLintRegistry.valid(), "valid-registry", registry_bytes).
+
+/** Injectable projection count keeps positive admission behavior testable. */
+pub decide_with_projection_count(
+    value: LintAuthorityEvidence,
+    projection_count: Int,
+): LintAuthorityDecision ->
+    let missing = missing_evidence(value, projection_count);
+    LintAuthorityDecision(missing == [], projection_count, missing).
+
+/** Evaluates authority against the current closed-world registry. */
+pub decide(value: LintAuthorityEvidence): LintAuthorityDecision ->
+    decide_with_projection_count(
+        value,
+        SelfHostLintRegistry.projection_rule_count(),
+    ).
+
+render_missing(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> "missing\t" + value + "\n" + render_missing(rest)
+    }.
+
+/** Renders a deterministic authority decision for production evidence. */
+pub render(value: LintAuthorityEvidence): String ->
+    let decision = decide(value);
+    "terlan.self-host.lint-authority/v1\n"
+        + "status\t"
+        + if { decision.ready -> "ready"; true -> "pending" }
+        + "\nremaining_projection_rules\t"
+        + decision.remaining_projection_rules.to_string()
+        + "\n"
+        + render_missing(decision.missing).

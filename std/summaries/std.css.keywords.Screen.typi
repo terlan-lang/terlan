@@ -1,0 +1,6 @@
+//! Shared CSS keyword screen. Generated; do not edit.
+
+module std.css.keywords.Screen.
+
+pub type Screen =
+    Atom["screen"].

@@ -1,9 +1,0 @@
-module=std.css.properties.CueBefore
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7193416908890286190
-interface_hash=9647535109619988074
-interface_doc_hash=11939978312051079930
-deps=1
-std.core.Option=11539230284316612175

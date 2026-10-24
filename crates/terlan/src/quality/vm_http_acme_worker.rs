@@ -45,8 +45,8 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
     (
         "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
         &[
-            "AcmeHttp01Challenge",
-            "acme_http01_challenge",
+            "acme_http01_response",
+            "terlan_http_native::acme::http01::response(",
             "runtime_tls_config_for_serve",
             "tls_runtime::load(",
             "terlan_http_native::acme::issuer::issue_certificate_cache(",
@@ -85,6 +85,10 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
     ),
     (
         "crates/terlan/src/commands/serve/request_dispatch.rs",
+        &["acme_http01_response(web_root, method, path)"],
+    ),
+    (
+        "std/http/native/src/acme/http01.rs",
         &[
             "acme_http01_challenge",
             "AcmeHttp01Challenge::Found",
@@ -95,6 +99,15 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
 ];
 
 const REQUIRED_TEST_ANCHORS: &[(&str, &[&str])] = &[
+    (
+        "std/http/native/src/acme/http01/tests.rs",
+        &[
+            "unrelated_paths_and_methods_never_discover_projects",
+            "challenges_and_missing_tokens_preserve_head_metadata",
+            "invalid_tokens_are_plain_text_errors_not_paths_or_headers",
+            "discovery_and_cache_read_failures_are_server_errors",
+        ],
+    ),
     (
         "std/http/native/src/acme/issuer_test.rs",
         &[

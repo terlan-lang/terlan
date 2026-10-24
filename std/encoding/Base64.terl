@@ -136,6 +136,17 @@ pub decode_bytes(text: String): Result[Bytes, Base64Error] ->
 pub encode_url_bytes(bytes: Bytes): String.
 
 /**
+ * Encodes arbitrary bytes using URL-safe Base64 without padding.
+ *
+ * Input: one immutable byte payload.
+ * Output: URL-safe Base64 text with no trailing equals signs.
+ * Transformation: delegates the unpadded encoding mode to the maintained
+ * codec, preserving every octet without a UTF-8 conversion.
+ */
+@compiler.native
+pub encode_url_unpadded_bytes(bytes: Bytes): String.
+
+/**
  * Decodes URL-safe Base64 text into arbitrary VM-owned bytes.
  *
  * Input: one strictly encoded URL-safe Base64 string.

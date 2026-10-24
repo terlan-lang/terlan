@@ -1,8 +1,8 @@
 module=std.js.Dom.InputEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=3277852965792800916
-interface_hash=9431374519320240351
-interface_doc_hash=9431374519320240351
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=7080826328267973396
+interface_hash=3013032148785752676
+interface_doc_hash=3013032148785752676
 deps=0

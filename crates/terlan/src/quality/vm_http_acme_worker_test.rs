@@ -55,7 +55,7 @@ VmAcmeWorkerWake::RenewalDue renewal_due_wakeups
         self.write(
             "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
             r#"
-AcmeHttp01Challenge acme_http01_challenge
+acme_http01_response terlan_http_native::acme::http01::response(
 runtime_tls_config_for_serve
 terlan_http_native::acme::issuer::issue_certificate_cache(
 tls_runtime::load( VmAcmeWorkerRuntime
@@ -87,6 +87,14 @@ start_listener_server_connection remove_listener_plan rustls_server_config
         )?;
         self.write(
             "crates/terlan/src/commands/serve/request_dispatch.rs",
+            "acme_http01_response(web_root, method, path)",
+        )?;
+        self.write(
+            "std/http/native/src/acme/http01/tests.rs",
+            "unrelated_paths_and_methods_never_discover_projects challenges_and_missing_tokens_preserve_head_metadata invalid_tokens_are_plain_text_errors_not_paths_or_headers discovery_and_cache_read_failures_are_server_errors",
+        )?;
+        self.write(
+            "std/http/native/src/acme/http01.rs",
             r#"
 acme_http01_challenge AcmeHttp01Challenge::Found AcmeHttp01Challenge::Missing
 AcmeHttp01Challenge::Invalid

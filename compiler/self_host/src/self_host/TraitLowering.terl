@@ -1,6 +1,8 @@
 /** Token-boundary lowering for trait constants and abstract/default methods. */
 module self_host.TraitLowering.
 
+import std.core.String.
+
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.CanonicalToken.{CanonicalLexOutput}.
 import self_host.ExpressionSyntax.{ExpressionParse}.
@@ -13,6 +15,7 @@ import self_host.TypeSyntax.{TypeParse}.
 
 import std.collections.List.
 import std.core.{Int, String}.
+import self_host.CallableConstraintParser.
 import self_host.CanonicalLexer.
 import self_host.Delimited.
 import self_host.ExpressionParser.
@@ -102,8 +105,18 @@ trait_constant(source: String): TraitConstantSyntax ->
     TraitConstantSyntax(colon > 6 and annotation.valid and (assignment < 0 or default_value.valid), constant_name(value, colon), annotation, assignment >= 0, default_value, constant_message(colon, annotation, assignment, default_value)).
 
 @pure
-method_parameter_text(value: String, open: Int, colon: Int, parameters_closed: Bool): String ->
-    if { parameters_closed -> value.utf8_slice(open + 1, colon - open - 2); true -> "" }.
+matching_parenthesis(value: String, index: Int, depth: Int): Int ->
+    if {
+        index >= value.byte_size() -> -1;
+        value.utf8_byte_at(index) == 40 -> matching_parenthesis(value, index + 1, depth + 1);
+        value.utf8_byte_at(index) == 41 and depth == 1 -> index;
+        value.utf8_byte_at(index) == 41 -> matching_parenthesis(value, index + 1, depth - 1);
+        true -> matching_parenthesis(value, index + 1, depth)
+    }.
+
+@pure
+method_parameter_text(value: String, open: Int, close: Int, parameters_closed: Bool): String ->
+    if { parameters_closed -> value.utf8_slice(open + 1, close - open - 1); true -> "" }.
 
 @pure
 method_return_end(value: String, arrow: Int): Int ->
@@ -125,15 +138,32 @@ method_body(value: String, arrow: Int): ExpressionParse ->
 
 @pure
 method_name(value: String, open: Int): String ->
-    if { open > 0 -> String.trim(value.utf8_slice(0, open)); true -> "" }.
+    if {
+        open <= 0 -> "";
+        true -> case String.split(String.trim(value.utf8_slice(0, open)), "[") {
+            [] -> "";
+            [name | _rest] -> String.trim(name)
+        }
+    }.
 
 @pure
-method_message(open: Int, parameters_closed: Bool, parameters: List[ParameterSyntax], return_type: TypeParse, arrow: Int, body: ExpressionParse): String ->
+method_message(open: Int, parameters_closed: Bool, parameters: List[ParameterSyntax], constraints_valid: Bool, constraints_message: String, return_type: TypeParse, arrow: Int, body: ExpressionParse): String ->
     if { open <= 0 or not parameters_closed -> "trait method signature is incomplete"; true -> method_parameter_message(parameters, return_type, arrow, body) }.
 
 @pure
 method_parameter_message(parameters: List[ParameterSyntax], return_type: TypeParse, arrow: Int, body: ExpressionParse): String ->
     if { not ParameterParser.all_valid(parameters) -> ParameterParser.first_error(parameters); true -> method_return_message(return_type, arrow, body) }.
+
+@pure
+method_constraint_message(constraints_valid: Bool, constraints_message: String, return_type: TypeParse, arrow: Int, body: ExpressionParse): String ->
+    if { not constraints_valid -> constraints_message; true -> method_return_message(return_type, arrow, body) }.
+
+@pure
+method_parameter_and_constraint_message(parameters: List[ParameterSyntax], constraints_valid: Bool, constraints_message: String, return_type: TypeParse, arrow: Int, body: ExpressionParse): String ->
+    if {
+        not ParameterParser.all_valid(parameters) -> ParameterParser.first_error(parameters);
+        true -> method_constraint_message(constraints_valid, constraints_message, return_type, arrow, body)
+    }.
 
 @pure
 method_return_message(return_type: TypeParse, arrow: Int, body: ExpressionParse): String ->
@@ -147,20 +177,35 @@ method_body_message(arrow: Int, body: ExpressionParse): String ->
 trait_method(source: String): TraitMethodSyntax ->
     let value = strip_terminal_dot(source);
     let open = Delimited.top_level_byte(value, 40);
+    let close = if { open < 0 -> -1; true -> matching_parenthesis(value, open + 1, 1) };
     let colon = Delimited.top_level_byte(value, 58);
     let arrow = Delimited.top_level_pair(value, 45, 62);
-    let parameters_closed = open >= 0 and colon > open and value.utf8_byte_at(colon - 1) == 41;
-    let parameter_text = method_parameter_text(value, open, colon, parameters_closed);
+    let parameters_closed = if {
+        open < 0 -> false;
+        colon <= open -> false;
+        true -> close > open and close < colon
+    };
+    let parameter_text = method_parameter_text(value, open, close, parameters_closed);
     let parameters = ParameterParser.parse_all(parameter_text);
+    let constraints = if {
+        parameters_closed -> CallableConstraintParser.parse(
+            value.utf8_slice(close + 1, colon - close - 1),
+        );
+        true -> CallableConstraintParser.parse("")
+    };
     let return_end = method_return_end(value, arrow);
     let return_type = method_return_type(value, colon, return_end);
     let body = method_body(value, arrow);
     let valid = open > 0
         and parameters_closed
         and ParameterParser.all_valid(parameters)
+        and constraints.valid
         and return_type.valid
         and (arrow < 0 or body.valid);
-    TraitMethodSyntax(valid, method_name(value, open), parameters, return_type, arrow >= 0, body, method_message(open, parameters_closed, parameters, return_type, arrow, body)).
+    TraitMethodSyntax(valid, method_name(value, open), parameters, constraints.values, return_type, arrow >= 0, body, if {
+        open <= 0 or not parameters_closed -> "trait method signature is incomplete";
+        true -> method_parameter_and_constraint_message(parameters, constraints.valid, constraints.message, return_type, arrow, body)
+    }).
 
 @pure
 segment_text(source: String, segment: TokenSegment): String ->
@@ -192,6 +237,85 @@ members_at(source: String, segments: List[TokenSegment], state: Members): Member
 @pure
 empty_members(): Members ->
     Members(valid = true, constants = List.new[TraitConstantSyntax](), methods = List.new[TraitMethodSyntax](), message = "").
+
+@pure
+trimmed_strings(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [String.trim(value) | trimmed_strings(rest)]
+    }.
+
+@pure
+trait_parameter_name(value: String): String ->
+    case String.split(String.trim(value), "[") {
+        [] -> "";
+        [name | _rest] -> String.trim(name)
+    }.
+
+@pure
+trait_parameter_names(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [trait_parameter_name(value) | trait_parameter_names(rest)]
+    }.
+
+@pure
+generic_open_at(value: String, index: Int): Int ->
+    if {
+        index >= value.byte_size() -> -1;
+        value.utf8_byte_at(index) == 91 -> index;
+        true -> generic_open_at(value, index + 1)
+    }.
+
+@pure
+generic_close_at(value: String, index: Int, depth: Int): Int ->
+    if {
+        index >= value.byte_size() -> -1;
+        value.utf8_byte_at(index) == 91 -> generic_close_at(value, index + 1, depth + 1);
+        value.utf8_byte_at(index) == 93 and depth == 1 -> index;
+        value.utf8_byte_at(index) == 93 -> generic_close_at(value, index + 1, depth - 1);
+        true -> generic_close_at(value, index + 1, depth)
+    }.
+
+@pure
+trait_header(source: DeclarationSyntax, open: Int): String ->
+    if { open < 0 -> ""; true -> String.trim(source.body.utf8_slice(0, open)) }.
+
+@pure
+trait_declaration_head(header: String): String ->
+    case String.split(header, " extends ") {
+        [] -> header;
+        [head | _rest] -> String.trim(head)
+    }.
+
+@pure
+trait_type_parameters(source: DeclarationSyntax, open: Int): List[String] ->
+    if {
+        open < 0 -> List.new[String]();
+        true -> let head = trait_declaration_head(trait_header(source, open));
+            let generic_open = generic_open_at(head, 0);
+            let generic_close = if {
+                generic_open < 0 -> -1;
+                true -> generic_close_at(head, generic_open + 1, 1)
+            };
+            if {
+                generic_open < 0 or generic_close < 0 -> List.new[String]();
+                true -> trait_parameter_names(Delimited.split_top_level(
+                    head.utf8_slice(
+                        generic_open + 1,
+                        generic_close - generic_open - 1,
+                    ),
+                    44,
+                ))
+            }
+    }.
+
+@pure
+trait_parents(source: DeclarationSyntax, open: Int): List[String] ->
+    case String.split(trait_header(source, open), " extends ") {
+        [_head, parents] -> trimmed_strings(Delimited.split_top_level(parents, 44));
+        _ -> List.new[String]()
+    }.
 
 @pure
 trait_body(source: DeclarationSyntax, open: Int, body_valid: Bool): String ->
@@ -231,4 +355,4 @@ pub lower(source: DeclarationSyntax): TraitSyntax ->
     let segmented = TokenSegmenter.split(TokenContext.project(lexical.tokens));
     let members = parsed_members(body, lexical, segmented);
     let supported = source.class == TraitDeclaration;
-    TraitSyntax(supported and body_valid and lexical.valid and segmented.valid and members.valid, source.name, members.constants, members.methods, source.is_public, source.span, lower_message(supported, body_valid, lexical, segmented, members)).
+    TraitSyntax(supported and body_valid and lexical.valid and segmented.valid and members.valid, source.name, trait_type_parameters(source, open), trait_parents(source, open), members.constants, members.methods, source.is_public, source.span, lower_message(supported, body_valid, lexical, segmented, members)).

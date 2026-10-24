@@ -1,75 +1,33 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-trigger-scope
+ * The `trigger-scope` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property can be used
+ * to limit the scope of a [scroll-triggered
+ * animation](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animation_triggers/Using_scroll-triggered_animations)
+ * trigger name to a document subtree.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - all: Sets the scope so that _any_ `timeline-trigger-name` values set in the subtree can only be
+ * associated with animated elements in the same subtree.
+ * - none: Specifies that no trigger scoping is set. This is the default value.
+ *
  * Grammar: none | all | <dashed-ident>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-trigger-scope
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/trigger-scope
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TriggerScope.
 
-import type std.core.Option.
+import std.css.keywords.{All, None}.
 
-/**
- * A nominal, specification-constrained trigger-scope value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    trigger_scope: Value,
+    trigger_scope: None | All | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    trigger_scope: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword all.
- */
-pub all(): Value ->
-    Value(Token {property: "trigger-scope", css: "all"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "trigger-scope", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "trigger-scope", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "trigger-scope", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "trigger-scope", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "trigger-scope", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "trigger-scope", css: "unset"}).

@@ -83,6 +83,27 @@ pub(crate) fn load_required_standard_interfaces(
             .iter()
             .find(|entry| entry.module == module_name);
         let Some(entry) = entry else {
+            if let Some(summary) = crate::support::library_paths::imported_std_summary_path(
+                &module_name,
+                Path::new(path),
+            ) {
+                if let Ok(source) = std::fs::read_to_string(&summary) {
+                    if let Some((name, interface)) = parse_interface_text(&source) {
+                        if name == module_name {
+                            if let Ok(manifest) =
+                                std::fs::read_to_string(summary.with_extension("typi.deps"))
+                            {
+                                if let Some(dependencies) =
+                                    parse_interface_dependency_entries(&manifest)
+                                {
+                                    required.extend(dependencies.into_iter().map(|(name, _)| name));
+                                }
+                            }
+                            interfaces.entry(name).or_insert(interface);
+                        }
+                    }
+                }
+            }
             continue;
         };
         let Some(manifest) = entry.dependencies else {
@@ -272,11 +293,6 @@ fn collect_type_modules(text: &str, modules: &mut BTreeSet<String>) {
             if let Some((module, name)) = token.rsplit_once('.') {
                 if name.starts_with(|ch: char| ch.is_ascii_uppercase()) {
                     modules.insert(module.to_string());
-                    // A qualified head can itself be the module's primary type.
-                    // The loader admits only candidates present in the catalog.
-                    if module.rsplit('.').next() != Some(name) {
-                        modules.insert(token.clone());
-                    }
                 }
             }
             token.clear();

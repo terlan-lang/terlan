@@ -1,0 +1,6 @@
+//! Shared CSS keyword padding-box. Generated; do not edit.
+
+module std.css.keywords.PaddingBox.
+
+pub type PaddingBox =
+    Atom["padding-box"].

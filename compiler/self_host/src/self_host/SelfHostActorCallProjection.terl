@@ -1,0 +1,278 @@
+/** Projects analyzed actor calls into CFG splits and continuation call plans. */
+module self_host.SelfHostActorCallProjection.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+
+import std.core.{String}.
+import self_host.SelfHostActorCallAnalysis.{ActorResolvedCall}.
+import self_host.SelfHostActorCallFacts.{ActorCallTarget, ActorSuspendingCallFact}.
+import self_host.SelfHostActorCallPlan.{ActorCalleeEntry, ActorCallSitePlan}.
+import self_host.SelfHostActorCfgSplit.{ActorSplitRequest}.
+
+
+/** Typed continuation-body evidence not present in a call instruction itself. */
+pub struct ActorCallBodyEvidence {
+    call: ActorResolvedCall,
+    capture_names: List[String],
+    capture_types: List[String],
+    result_type: String,
+    function_return_type: String,
+    callee_entries: List[ActorCalleeEntry],
+}.
+
+pub constructor ActorCallBodyEvidence {
+    (call: ActorResolvedCall, capture_names: List[String], capture_types: List[String], result_type: String, function_return_type: String, callee_entries: List[ActorCalleeEntry]): ActorCallBodyEvidence ->
+        ActorCallBodyEvidence {
+            call: call,
+            capture_names: capture_names,
+            capture_types: capture_types,
+            result_type: result_type,
+            function_return_type: function_return_type,
+            callee_entries: callee_entries,
+        }
+}.
+
+
+/** Ordered artifacts consumed by CFG splitting and actor IR planning. */
+pub struct ActorCallProjection {
+    split_requests: List[ActorSplitRequest],
+    call_sites: List[ActorCallSitePlan],
+}.
+
+pub constructor ActorCallProjection {
+    (split_requests: List[ActorSplitRequest], call_sites: List[ActorCallSitePlan]): ActorCallProjection ->
+        ActorCallProjection {
+            split_requests: split_requests,
+            call_sites: call_sites,
+        }
+}.
+
+
+struct ActorCalleeCoordinates {
+    module_name: String,
+    callable_name: String,
+}.
+
+constructor ActorCalleeCoordinates {
+    (module_name: String, callable_name: String): ActorCalleeCoordinates ->
+        ActorCalleeCoordinates {
+            module_name: module_name,
+            callable_name: callable_name,
+        }
+}.
+
+
+@pure
+append[T](values: List[T], value: T): List[T] ->
+    case values {
+        [] -> [value];
+        [head | rest] -> [head | append(rest, value)]
+    }.
+
+@pure
+same_size[T, U](left: List[T], right: List[U]): Bool ->
+    case left {
+        [] -> case right { [] -> true; _ -> false };
+        [_ | left_rest] -> case right {
+            [_ | right_rest] -> same_size(left_rest, right_rest);
+            _ -> false
+        }
+    }.
+
+@pure
+same_entry(left: ActorCalleeEntry, right: ActorCalleeEntry): Bool ->
+    left.export_identity == right.export_identity
+        and left.continuation_identity == right.continuation_identity
+        and left.capture_count == right.capture_count.
+
+@pure
+entry_present(value: ActorCalleeEntry, values: List[ActorCalleeEntry]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same_entry(value, current) or entry_present(value, rest)
+    }.
+
+
+@pure
+direct_entry(entry: ActorCalleeEntry, suspension: ActorSuspendingCallFact): Result[ActorCalleeEntry, String] ->
+    case entry.export_identity {
+        Some(_) -> Err("static actor call entry cannot have a dynamic export identity");
+        None -> if {
+            entry.continuation_identity == "" -> Err("static actor call entry has no continuation identity");
+            entry.capture_count < 0 -> Err("static actor call entry has a negative capture count");
+            not entry_present(entry, suspension.profile.entries) -> Err("static actor call entry is outside its suspension profile");
+            true -> Ok(entry)
+        }
+    }.
+
+@pure
+direct_entries_at(values: List[ActorCalleeEntry], suspension: ActorSuspendingCallFact, result: List[ActorCalleeEntry]): Result[List[ActorCalleeEntry], String] ->
+    case values {
+        [] -> Ok(result);
+        [entry | rest] -> if {
+            entry_present(entry, result) -> Err("static actor call has duplicate callee entries");
+            true -> case direct_entry(entry, suspension) {
+                Err(reason) -> Err(reason);
+                Ok(valid) -> direct_entries_at(rest, suspension, append(result, valid))
+            }
+        }
+    }.
+
+@pure
+direct_entries(values: List[ActorCalleeEntry], suspension: ActorSuspendingCallFact): Result[List[ActorCalleeEntry], String] ->
+    case values {
+        [] -> Err("static actor call has no callee entry");
+        [_ | _] -> case direct_entries_at(values, suspension, List.new[ActorCalleeEntry]()) {
+            Err(reason) -> Err(reason);
+            Ok(valid) -> if {
+                not same_size(valid, suspension.profile.entries) -> Err("static actor call does not cover its complete suspension profile");
+                true -> Ok(valid)
+            }
+        }
+    }.
+
+
+@pure
+dynamic_entry(entry: ActorCalleeEntry): Result[ActorCalleeEntry, String] ->
+    case entry.export_identity {
+        None -> Err("dynamic actor call entry has no export identity");
+        Some(export_identity) -> if {
+            export_identity == "" -> Err("dynamic actor call entry has an empty export identity");
+            entry.continuation_identity == "" -> Err("dynamic actor call entry has no continuation identity");
+            entry.capture_count < 0 -> Err("dynamic actor call entry has a negative capture count");
+            true -> Ok(entry)
+        }
+    }.
+
+@pure
+dynamic_entries_at(values: List[ActorCalleeEntry], result: List[ActorCalleeEntry]): Result[List[ActorCalleeEntry], String] ->
+    case values {
+        [] -> Ok(result);
+        [entry | rest] -> case dynamic_entry(entry) {
+            Err(reason) -> Err(reason);
+            Ok(valid) -> dynamic_entries_at(rest, append(result, valid))
+        }
+    }.
+
+@pure
+dynamic_entries(values: List[ActorCalleeEntry]): Result[List[ActorCalleeEntry], String] ->
+    case values {
+        [] -> Err("dynamic actor call has no dispatch entries");
+        _ -> dynamic_entries_at(values, [])
+    }.
+
+
+@pure
+validated_entries(target: ActorCallTarget, values: List[ActorCalleeEntry], suspension: ActorSuspendingCallFact): Result[List[ActorCalleeEntry], String] ->
+    if {
+        target.dynamic -> dynamic_entries(values);
+        true -> direct_entries(values, suspension)
+    }.
+
+
+@pure
+callee_coordinates(target: ActorCallTarget, suspension: ActorSuspendingCallFact): Result[ActorCalleeCoordinates, String] ->
+    if {
+        target.dynamic -> if {
+            suspension.profile.module_name == "" -> Err("dynamic actor profile has no logical module identity");
+            suspension.profile.callable_name == "" -> Err("dynamic actor profile has no logical callable identity");
+            true -> Ok(ActorCalleeCoordinates(
+                suspension.profile.module_name,
+                suspension.profile.callable_name,
+            ))
+        };
+        true -> case target.module_name {
+            Some(module_name) -> case target.callable_name {
+                Some(callable_name) -> Ok(ActorCalleeCoordinates(
+                    module_name,
+                    callable_name,
+                ));
+                _ -> Err("static actor call has no callable identity")
+            };
+            _ -> Err("static actor call has no callable identity")
+        }
+    }.
+
+
+@pure
+split_request(call: ActorResolvedCall, suspension: ActorSuspendingCallFact): ActorSplitRequest ->
+    ActorSplitRequest(
+        call.observation.block_label,
+        call.observation.result_name,
+        call.observation.continuation_label,
+        suspension.global_continuation_ordinal,
+        suspension.native_call_index,
+    ).
+
+@pure
+call_site(evidence: ActorCallBodyEvidence, suspension: ActorSuspendingCallFact, coordinates: ActorCalleeCoordinates, entries: List[ActorCalleeEntry]): ActorCallSitePlan ->
+    ActorCallSitePlan(
+        evidence.call.observation.caller_module,
+        evidence.call.observation.caller_name,
+        evidence.call.observation.caller_arity,
+        suspension.global_continuation_ordinal,
+        suspension.native_call_index,
+        evidence.call.observation.block_label,
+        evidence.call.observation.result_name,
+        coordinates.module_name,
+        coordinates.callable_name,
+        evidence.call.target.arity,
+        evidence.capture_names,
+        evidence.capture_types,
+        evidence.result_type,
+        evidence.function_return_type,
+        evidence.call.observation.continuation_label,
+        entries,
+    ).
+
+
+@pure
+project_suspension(evidence: ActorCallBodyEvidence, suspension: ActorSuspendingCallFact, projection: ActorCallProjection): Result[ActorCallProjection, String] ->
+    if {
+        !same_size(evidence.capture_names, evidence.capture_types) -> Err("actor call capture names and types have different lengths");
+        evidence.result_type == "" -> Err("actor call has no result type");
+        evidence.function_return_type == "" -> Err("actor call has no function return type");
+        true -> case validated_entries(
+            evidence.call.target,
+            evidence.callee_entries,
+            suspension,
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(entries) -> case callee_coordinates(evidence.call.target, suspension) {
+                Err(reason) -> Err(reason);
+                Ok(coordinates) -> Ok(ActorCallProjection(
+                    append(projection.split_requests, split_request(evidence.call, suspension)),
+                    append(projection.call_sites, call_site(evidence, suspension, coordinates, entries)),
+                ))
+            }
+        }
+    }.
+
+
+@pure
+project_one(evidence: ActorCallBodyEvidence, projection: ActorCallProjection): Result[ActorCallProjection, String] ->
+    case evidence.call.suspension {
+        None -> if {
+            evidence.callee_entries == [] -> Ok(projection);
+            true -> Err("non-suspending actor call cannot carry callee entries")
+        };
+        Some(suspension) -> project_suspension(evidence, suspension, projection)
+    }.
+
+@pure
+project_at(values: List[ActorCallBodyEvidence], projection: ActorCallProjection): Result[ActorCallProjection, String] ->
+    case values {
+        [] -> Ok(projection);
+        [value | rest] -> case project_one(value, projection) {
+            Err(reason) -> Err(reason);
+            Ok(next) -> project_at(rest, next)
+        }
+    }.
+
+
+/** Produces source-ordered split requests and actor call-site plans atomically. */
+@pure
+pub project(values: List[ActorCallBodyEvidence]): Result[ActorCallProjection, String] ->
+    project_at(values, ActorCallProjection([], [])).

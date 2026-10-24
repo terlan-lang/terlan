@@ -1,0 +1,83 @@
+/** Fail-closed typed Core IR admission checks. */
+module self_host.SelfHostIrValidationAuthorityTest.
+
+import self_host.SelfHostIrSyntax.{IrBlock, IrFunction, IrInstruction, IrModule, IrParameter, IrStructField, IrStructLayout, IrTerminator}.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import std.test.Test.{assert, assert_equal}.
+import self_host.SelfHostIrValidation.
+
+
+valid_function(instructions: List[IrInstruction], terminator: IrTerminator): IrFunction ->
+    IrFunction(
+        module_name = "sample",
+        name = "run",
+        arity = 1,
+        parameters = [IrParameter("value", "Int")],
+        return_type = "Int",
+        blocks = [IrBlock("entry", instructions, terminator)],
+        native_symbol = None,
+    ).
+
+
+@test
+typed_core_accepts_resolved_instruction(): Bool ->
+    let function = valid_function(
+        [IrInstruction("copy", Some("result"), ["value"], "Int")],
+        IrTerminator("return", ["result"], List.new[String]()),
+    );
+    let result = SelfHostIrValidation.validate(IrModule(
+        "sample",
+        [IrStructLayout("Pair", [IrStructField("left", "Int"), IrStructField("right", "Int")])],
+        [function],
+    ));
+    assert(result.valid).
+
+
+@test
+typed_core_rejects_empty_instruction_type(): Bool ->
+    let function = valid_function(
+        [IrInstruction("copy", Some("result"), ["value"], "")],
+        IrTerminator("return", ["result"], List.new[String]()),
+    );
+    let result = SelfHostIrValidation.validate(IrModule("sample", List.new[IrStructLayout](), [function]));
+    assert(not result.valid).
+
+
+@test
+typed_core_rejects_invalid_branch_shape(): Bool ->
+    let function = valid_function(
+        List.new[IrInstruction](),
+        IrTerminator("branch", List.new[String](), ["entry"]),
+    );
+    let result = SelfHostIrValidation.validate(IrModule("sample", List.new[IrStructLayout](), [function]));
+    assert(not result.valid).
+
+
+@test
+typed_core_rejects_ambiguous_layout(): Bool ->
+    let function = valid_function(
+        List.new[IrInstruction](),
+        IrTerminator("return", ["value"], List.new[String]()),
+    );
+    let result = SelfHostIrValidation.validate(IrModule(
+        "sample",
+        [IrStructLayout("Pair", [IrStructField("left", "Int"), IrStructField("left", "Int")])],
+        [function],
+    ));
+    assert_equal(false, result.valid).
+
+
+@test
+typed_core_rejects_multiple_value_producers(): Bool ->
+    let function = valid_function(
+        [
+            IrInstruction("copy", Some("result"), ["value"], "Int"),
+            IrInstruction("copy", Some("result"), ["value"], "Int"),
+        ],
+        IrTerminator("return", ["result"], List.new[String]()),
+    );
+    let result = SelfHostIrValidation.validate(IrModule("sample", List.new[IrStructLayout](), [function]));
+    assert(not result.valid).

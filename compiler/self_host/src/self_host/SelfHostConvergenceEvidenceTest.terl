@@ -1,0 +1,44 @@
+/** Contracts for nine-layer bootstrap convergence. */
+module self_host.SelfHostConvergenceEvidenceTest.
+
+import self_host.SelfHostConvergenceEvidence.{StageEvidence}.
+import self_host.SelfHostConvergenceEvidence.
+
+@pure
+stage(value: String): StageEvidence ->
+    StageEvidence(value, value, value, value, value, value, value, value, value).
+
+@test
+pub identical_stages_converge_across_every_layer(): Bool ->
+    let result = SelfHostConvergenceEvidence.compare(stage("same"), stage("same"));
+    result.converged
+        and result.compared_layers == 9
+        and result.first_difference == ""
+        and result.differences == [].
+
+@test
+pub earliest_difference_has_authority(): Bool ->
+    let reference = stage("same");
+    let candidate = StageEvidence(
+        "different-token",
+        "different-syntax",
+        "same",
+        "same",
+        "same",
+        "same",
+        "same",
+        "same",
+        "same",
+    );
+    let result = SelfHostConvergenceEvidence.compare(reference, candidate);
+    not result.converged
+        and result.first_difference == "tokens"
+        and result.differences == ["tokens", "syntax"].
+
+@test
+pub runtime_and_artifact_layers_are_independent(): Bool ->
+    let result = SelfHostConvergenceEvidence.compare(
+        stage("same"),
+        StageEvidence("same", "same", "same", "same", "same", "same", "same", "runtime", "image"),
+    );
+    result.differences == ["runtime-behavior", "executable-artifacts"].

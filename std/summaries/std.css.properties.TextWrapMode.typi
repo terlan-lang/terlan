@@ -1,52 +1,28 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-wrap-mode
+//! The `text-wrap-mode` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property controls
+//! whether the text inside an element is wrapped.
+//!
+//! Initial: wrap. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - nowrap: Text does not wrap across lines. It will overflow its containing element rather than
+//! breaking onto a new line.
+//! - wrap: Text is wrapped across lines at appropriate characters (for example spaces, in languages
+//! like English that use space separators) to minimize overflow. This is the default value.
+//!
 //! Grammar: wrap | nowrap
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-wrap-mode
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-wrap-mode
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextWrapMode.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    text_wrap_mode: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    text_wrap_mode: Value
+    text_wrap_mode: Wrap | Nowrap | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained text-wrap-mode value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword nowrap.
-
-pub nowrap(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword wrap.
-
-pub wrap(): Value.
-
-export type Token.

@@ -41,3 +41,24 @@ pub canonical_interface_has_stable_schema_and_identity(): Bool ->
 @test
 pub maintained_positive_and_negative_corpus_holds(): Bool ->
     Corpus.valid().
+
+@test
+pub corpus_minimal_holds(): Bool -> Corpus.valid_case("minimal").
+
+@test
+pub corpus_imports_and_types_holds(): Bool -> Corpus.valid_case("imports-and-types").
+
+@test
+pub corpus_unicode_and_comments_holds(): Bool -> Corpus.valid_case("unicode-and-comments").
+
+@test
+pub corpus_unicode_identifier_rejected_holds(): Bool -> Corpus.valid_case("unicode-identifier-rejected").
+
+@test
+pub corpus_missing_module_holds(): Bool -> Corpus.valid_case("missing-module").
+
+@test
+pub corpus_unterminated_string_holds(): Bool -> Corpus.valid_case("unterminated-string").
+
+@test
+pub corpus_unterminated_comment_holds(): Bool -> Corpus.valid_case("unterminated-comment").

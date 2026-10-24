@@ -21,7 +21,7 @@ fn persisted_aggregate_metadata_rejects_missing_proofs_and_rebuilds_legacy_schem
         .unwrap()
         .unwrap();
     let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-    assert_eq!(original["schema"], "terlan-serve-generation-v25");
+    assert_eq!(original["schema"], "terlan-serve-generation-v30");
     assert!(original["aggregate_projections"].is_array());
     assert!(original.get("request_projections").is_none());
 
@@ -77,7 +77,7 @@ fn persisted_aggregate_metadata_rejects_missing_proofs_and_rebuilds_legacy_schem
         .unwrap()
         .unwrap();
     let rebuilt: serde_json::Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
-    assert_eq!(rebuilt["schema"], "terlan-serve-generation-v25");
+    assert_eq!(rebuilt["schema"], "terlan-serve-generation-v30");
     assert!(rebuilt["aggregate_projections"].is_array());
     assert!(rebuilt.get("request_projections").is_none());
     // v18 Request records used maps; v19 Session used a combined acquisition
@@ -87,6 +87,11 @@ fn persisted_aggregate_metadata_rejects_missing_proofs_and_rebuilds_legacy_schem
     // v23 Session records lacked source-owned renewal lifetime and used unary
     // create/rotate bindings. v24 selected paired broadcast behavior natively
     // and did not use source Result callbacks with optional peer context.
+    // v25 SSE endpoints lacked source-owned response headers.
+    // v26 Request cookies were a single preselected header's pairs.
+    // v27 Session allocation and rotation selected identities natively.
+    // v28 Request cookies stored eagerly decoded pairs rather than raw headers.
+    // v29 Request retained a second, decoded query-pairs field.
     for schema in [
         "terlan-serve-generation-v18",
         "terlan-serve-generation-v19",
@@ -95,6 +100,11 @@ fn persisted_aggregate_metadata_rejects_missing_proofs_and_rebuilds_legacy_schem
         "terlan-serve-generation-v22",
         "terlan-serve-generation-v23",
         "terlan-serve-generation-v24",
+        "terlan-serve-generation-v25",
+        "terlan-serve-generation-v26",
+        "terlan-serve-generation-v27",
+        "terlan-serve-generation-v28",
+        "terlan-serve-generation-v29",
     ] {
         let path = source_generation::active_generation_metadata_path(&web_root, MODULE)
             .unwrap()
@@ -110,7 +120,7 @@ fn persisted_aggregate_metadata_rejects_missing_proofs_and_rebuilds_legacy_schem
             .unwrap()
             .unwrap();
         let rebuilt: serde_json::Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
-        assert_eq!(rebuilt["schema"], "terlan-serve-generation-v25");
+        assert_eq!(rebuilt["schema"], "terlan-serve-generation-v30");
     }
     fs::remove_dir_all(root).unwrap();
 }

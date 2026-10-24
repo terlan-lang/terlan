@@ -24,7 +24,10 @@ pub struct IrInstruction {
     opcode: String,
     result: Option[String],
     operands: List[String],
+    operand_types: List[Option[String]],
     type_name: String,
+    continuation_ordinal: Option[Int],
+    try_region: Option[self_host.SelfHostIrSyntax.IrTryRegion],
 }.
 
 pub constructor IrInstruction {
@@ -33,7 +36,40 @@ pub constructor IrInstruction {
             opcode: opcode,
             result: result,
             operands: operands,
+            operand_types: List.new[Option[String]](),
             type_name: type_name,
+            continuation_ordinal: None,
+            try_region: None,
+        };
+    (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], type_name: String): IrInstruction ->
+        IrInstruction {
+            opcode: opcode,
+            result: result,
+            operands: operands,
+            operand_types: operand_types,
+            type_name: type_name,
+            continuation_ordinal: None,
+            try_region: None,
+        };
+    (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], type_name: String, continuation_ordinal: Option[Int]): IrInstruction ->
+        IrInstruction {
+            opcode: opcode,
+            result: result,
+            operands: operands,
+            operand_types: operand_types,
+            type_name: type_name,
+            continuation_ordinal: continuation_ordinal,
+            try_region: None,
+        };
+    (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], type_name: String, continuation_ordinal: Option[Int], try_region: Option[self_host.SelfHostIrSyntax.IrTryRegion]): IrInstruction ->
+        IrInstruction {
+            opcode: opcode,
+            result: result,
+            operands: operands,
+            operand_types: operand_types,
+            type_name: type_name,
+            continuation_ordinal: continuation_ordinal,
+            try_region: try_region,
         }
 }.
 
@@ -70,10 +106,52 @@ pub constructor IrBlock {
 }.
 
 
+pub struct IrRegion {
+    label: String,
+    parameters: List[self_host.SelfHostIrSyntax.IrParameter],
+    blocks: List[self_host.SelfHostIrSyntax.IrBlock],
+    result: String,
+    type_name: String,
+}.
+
+pub constructor IrRegion {
+    (label: String, parameters: List[self_host.SelfHostIrSyntax.IrParameter], blocks: List[self_host.SelfHostIrSyntax.IrBlock], result: String, type_name: String): IrRegion ->
+        IrRegion {
+            label: label,
+            parameters: parameters,
+            blocks: blocks,
+            result: result,
+            type_name: type_name,
+        }
+}.
+
+
+pub struct IrTryRegion {
+    protected: self_host.SelfHostIrSyntax.IrRegion,
+    success: self_host.SelfHostIrSyntax.IrRegion,
+    failure: self_host.SelfHostIrSyntax.IrRegion,
+    /** Cleanup regions associated with leaving the protected region. */
+    cleanup: List[self_host.SelfHostIrSyntax.IrRegion],
+}.
+
+pub constructor IrTryRegion {
+    (protected: self_host.SelfHostIrSyntax.IrRegion, success: self_host.SelfHostIrSyntax.IrRegion, failure: self_host.SelfHostIrSyntax.IrRegion, cleanup: List[self_host.SelfHostIrSyntax.IrRegion]): IrTryRegion ->
+        IrTryRegion {
+            protected: protected,
+            success: success,
+            failure: failure,
+            cleanup: cleanup,
+        }
+}.
+
+
 pub struct IrFunction {
     module_name: String,
     name: String,
     arity: Int,
+    capture_count: Int,
+    receiver_mutable: Bool,
+    receiver_command: Bool,
     parameters: List[self_host.SelfHostIrSyntax.IrParameter],
     return_type: String,
     blocks: List[self_host.SelfHostIrSyntax.IrBlock],
@@ -86,6 +164,35 @@ pub constructor IrFunction {
             module_name: module_name,
             name: name,
             arity: arity,
+            capture_count: 0,
+            receiver_mutable: false,
+            receiver_command: false,
+            parameters: parameters,
+            return_type: return_type,
+            blocks: blocks,
+            native_symbol: native_symbol,
+        };
+    (module_name: String, name: String, arity: Int, receiver_mutable: Bool, receiver_command: Bool, parameters: List[self_host.SelfHostIrSyntax.IrParameter], return_type: String, blocks: List[self_host.SelfHostIrSyntax.IrBlock], native_symbol: Option[String]): IrFunction ->
+        IrFunction {
+            module_name: module_name,
+            name: name,
+            arity: arity,
+            capture_count: 0,
+            receiver_mutable: receiver_mutable,
+            receiver_command: receiver_command,
+            parameters: parameters,
+            return_type: return_type,
+            blocks: blocks,
+            native_symbol: native_symbol,
+        };
+    (module_name: String, name: String, arity: Int, capture_count: Int, receiver_mutable: Bool, receiver_command: Bool, parameters: List[self_host.SelfHostIrSyntax.IrParameter], return_type: String, blocks: List[self_host.SelfHostIrSyntax.IrBlock], native_symbol: Option[String]): IrFunction ->
+        IrFunction {
+            module_name: module_name,
+            name: name,
+            arity: arity,
+            capture_count: capture_count,
+            receiver_mutable: receiver_mutable,
+            receiver_command: receiver_command,
             parameters: parameters,
             return_type: return_type,
             blocks: blocks,
@@ -94,15 +201,62 @@ pub constructor IrFunction {
 }.
 
 
+pub struct IrVariantLayout {
+    owner: String,
+    name: String,
+    discriminant: Int,
+    type_parameters: List[String],
+    payload_types: List[Option[String]],
+}.
+
+pub constructor IrVariantLayout {
+    (owner: String, name: String, discriminant: Int, type_parameters: List[String], payload_types: List[Option[String]]): IrVariantLayout ->
+        IrVariantLayout {
+            owner: owner,
+            name: name,
+            discriminant: discriminant,
+            type_parameters: type_parameters,
+            payload_types: payload_types,
+        }
+}.
+
+
+pub struct IrStructField {
+    name: String,
+    type_name: String,
+}.
+
+pub constructor IrStructField {
+    (name: String, type_name: String): IrStructField ->
+        IrStructField { name: name, type_name: type_name }
+}.
+
+
+pub struct IrStructLayout {
+    name: String,
+    fields: List[self_host.SelfHostIrSyntax.IrStructField],
+}.
+
+pub constructor IrStructLayout {
+    (name: String, fields: List[self_host.SelfHostIrSyntax.IrStructField]): IrStructLayout ->
+        IrStructLayout {
+            name: name,
+            fields: fields,
+        }
+}.
+
+
 pub struct IrModule {
     name: String,
+    structs: List[self_host.SelfHostIrSyntax.IrStructLayout],
     functions: List[self_host.SelfHostIrSyntax.IrFunction],
 }.
 
 pub constructor IrModule {
-    (name: String, functions: List[self_host.SelfHostIrSyntax.IrFunction]): IrModule ->
+    (name: String, structs: List[self_host.SelfHostIrSyntax.IrStructLayout], functions: List[self_host.SelfHostIrSyntax.IrFunction]): IrModule ->
         IrModule {
             name: name,
+            structs: structs,
             functions: functions,
         }
 }.

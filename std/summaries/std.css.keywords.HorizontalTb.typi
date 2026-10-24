@@ -1,0 +1,6 @@
+//! Shared CSS keyword horizontal-tb. Generated; do not edit.
+
+module std.css.keywords.HorizontalTb.
+
+pub type HorizontalTb =
+    Atom["horizontal-tb"].

@@ -1,0 +1,276 @@
+/** Tooling-document projection for TL0004 destructured bindings. */
+module self_host.SelfHostLintDestructureProjection.
+
+import std.core.Option.{None, Some}.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.SelfHostLintReadability.DestructureBinding.
+import self_host.SelfHostLintReadability.
+import self_host.SelfHostToolingDocument.{ToolingDocument, ToolingToken}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+token_at(values: List[ToolingToken], start_byte: Int): Option[ToolingToken] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.start_byte == start_byte -> Some(value);
+                value.start_byte > start_byte -> None;
+                true -> token_at(rest, start_byte)
+            }
+    }.
+
+variable_token(value: ProjectedExpressionNode, tokens: List[ToolingToken]): Bool ->
+    if {
+        value.kind != "pattern-token" -> false;
+        true -> case token_at(tokens, value.start_byte) {
+            Some(token) -> token.terminal == "var";
+            None -> false
+        }
+    }.
+
+pattern_names(
+    value: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): List[String] ->
+    if {
+        variable_token(value, tokens) and value.text != "_" -> [value.text];
+        true -> pattern_names_at(value.children, tokens)
+    }.
+
+pattern_names_at(
+    values: List[ProjectedExpressionNode],
+    tokens: List[ToolingToken],
+): List[String] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            pattern_names(value, tokens),
+            pattern_names_at(rest, tokens),
+        )
+    }.
+
+direct_pattern(value: ProjectedExpressionNode, tokens: List[ToolingToken]): Bool ->
+    if {
+        variable_token(value, tokens) -> true;
+        value.kind == "pattern" -> case value.children {
+            [single] -> variable_token(single, tokens);
+            _ -> false
+        };
+        true -> false
+    }.
+
+expression_uses(value: ProjectedExpressionNode, name: String): Bool ->
+    (value.kind == "identifier" and value.text == name)
+        or expressions_use(value.children, name).
+
+expressions_use(values: List[ProjectedExpressionNode], name: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            expression_uses(value, name) or expressions_use(rest, name)
+    }.
+
+binding_values(
+    names: List[String],
+    uses: List[ProjectedExpressionNode],
+): List[DestructureBinding] ->
+    case names {
+        [] -> [];
+        [name | rest] -> [DestructureBinding(
+            name,
+            expressions_use(uses, name),
+        ) | binding_values(rest, uses)]
+    }.
+
+pattern_fact(
+    pattern: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+    uses: List[ProjectedExpressionNode],
+    start_byte: Int,
+): List[{Int, Bool, List[DestructureBinding]}] ->
+    let bindings = binding_values(pattern_names(pattern, tokens), uses);
+    if {
+        direct_pattern(pattern, tokens) or bindings == [] -> [];
+        true -> [{start_byte, true, bindings}]
+    }.
+
+regular_let_facts(
+    value: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): List[{Int, Bool, List[DestructureBinding]}] ->
+    case value.children {
+        [pattern, _bound, continuation] -> pattern_fact(
+            pattern,
+            tokens,
+            [continuation],
+            continuation.start_byte,
+        );
+        _ -> []
+    }.
+
+clause_facts(
+    value: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): List[{Int, Bool, List[DestructureBinding]}] ->
+    case value.children {
+        [pattern, body] -> pattern_fact(
+            pattern,
+            tokens,
+            [body],
+            body.start_byte,
+        );
+        [pattern, guard, body] -> pattern_fact(
+            pattern,
+            tokens,
+            [body, guard],
+            body.start_byte,
+        );
+        _ -> []
+    }.
+
+binding_pattern(value: ProjectedExpressionNode): Option[ProjectedExpressionNode] ->
+    case value.children {
+        [pattern, _source] where value.kind == "binding" -> Some(pattern);
+        _ -> None
+    }.
+
+binding_source(value: ProjectedExpressionNode): Option[ProjectedExpressionNode] ->
+    case value.children {
+        [_pattern, source] where value.kind == "binding" -> Some(source);
+        _ -> None
+    }.
+
+binding_sources(values: List[ProjectedExpressionNode]): List[ProjectedExpressionNode] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case binding_source(value) {
+            None -> binding_sources(rest);
+            Some(source) -> [source | binding_sources(rest)]
+        }
+    }.
+
+without_last_two(values: List[ProjectedExpressionNode]): List[ProjectedExpressionNode] ->
+    case values {
+        [] -> [];
+        [_] -> [];
+        [_, _] -> [];
+        [value | rest] -> [value | without_last_two(rest)]
+    }.
+
+last_two(values: List[ProjectedExpressionNode]): Option[{ProjectedExpressionNode, ProjectedExpressionNode}] ->
+    case values {
+        [first, second] -> Some({first, second});
+        [_ | rest] -> last_two(rest);
+        _ -> None
+    }.
+
+grouped_binding_facts(
+    bindings: List[ProjectedExpressionNode],
+    continuation: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): List[{Int, Bool, List[DestructureBinding]}] ->
+    case bindings {
+        [] -> [];
+        [value | rest] -> case binding_pattern(value) {
+            None -> grouped_binding_facts(rest, continuation, tokens);
+            Some(pattern) ->
+                let later_sources = binding_sources(rest);
+                let uses = append(later_sources, [continuation]);
+                let start_byte = case later_sources {
+                    [first | _] -> first.start_byte;
+                    [] -> continuation.start_byte
+                };
+                append(
+                    pattern_fact(pattern, tokens, uses, start_byte),
+                    grouped_binding_facts(rest, continuation, tokens),
+                )
+        }
+    }.
+
+refutable_let_facts(
+    value: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): List[{Int, Bool, List[DestructureBinding]}] ->
+    case last_two(value.children) {
+        None -> [];
+        Some({_fallback, continuation}) -> grouped_binding_facts(
+            without_last_two(value.children),
+            continuation,
+            tokens,
+        )
+    }.
+
+local_facts(
+    value: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): List[{Int, Bool, List[DestructureBinding]}] ->
+    if {
+        value.kind == "let" -> regular_let_facts(value, tokens);
+        value.kind == "let-refutable" -> refutable_let_facts(value, tokens);
+        value.kind == "clause" -> clause_facts(value, tokens);
+        true -> []
+    }.
+
+node_facts(
+    value: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): List[{Int, Bool, List[DestructureBinding]}] ->
+    append(
+        local_facts(value, tokens),
+        nodes_facts(value.children, tokens),
+    ).
+
+nodes_facts(
+    values: List[ProjectedExpressionNode],
+    tokens: List[ToolingToken],
+): List[{Int, Bool, List[DestructureBinding]}] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            node_facts(value, tokens),
+            nodes_facts(rest, tokens),
+        )
+    }.
+
+body_facts(
+    values: List[self_host.ProjectedBodySyntax.ProjectedBody],
+    tokens: List[ToolingToken],
+): List[{Int, Bool, List[DestructureBinding]}] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.expression.node {
+            None -> body_facts(rest, tokens);
+            Some(expression) -> append(
+                node_facts(expression, tokens),
+                body_facts(rest, tokens),
+            )
+        }
+    }.
+
+/** Projects destructured binding use facts with native-compatible scopes. */
+pub facts(value: ToolingDocument): List[{Int, Bool, List[DestructureBinding]}] ->
+    if {
+        value.valid and value.frontend.bodies.valid ->
+            body_facts(value.frontend.bodies.values, value.tokens);
+        true -> []
+    }.
+
+/** Runs TL0004 without native AST projection. */
+@pure
+pub diagnostics(
+    path: String,
+    value: ToolingDocument,
+): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
+    SelfHostLintReadability.diagnostics(
+        path,
+        value.source,
+        [],
+        [],
+        facts(value),
+        [],
+        [],
+        [],
+        [],
+    ).

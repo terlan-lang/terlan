@@ -1,10 +1,11 @@
 module=std.css.properties.RowGap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17396335576559909642
-interface_hash=18327783870729592665
-interface_doc_hash=13336341311967372609
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5255939338731753585
+interface_hash=12582407047780551544
+interface_doc_hash=16296816387349994182
+deps=3
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.Normal=15467599898019431818

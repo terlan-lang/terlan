@@ -1,52 +1,30 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-values-5/#propdef-interpolate-size
+//! The `interpolate-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows
+//! you to enable [animations](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animations)
+//! and [transitions](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Transitions) between a
+//! `<length-percentage>` value and an `intrinsic size`, `fit-content`, or `max-content`.
+//!
+//! Initial: numeric-only. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - allow-keywords: Enables
+//! [interpolation](https://developer.mozilla.org/en-US/docs/Glossary/Interpolation) between a
+//! `length-percentage` value and an intrinsic size value, to allow animation between the two.
+//! - numeric-only: The default behavior — intrinsic size values cannot be interpolated.
+//!
 //! Grammar: numeric-only | allow-keywords
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-values-5/#propdef-interpolate-size
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/interpolate-size
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.InterpolateSize.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    interpolate_size: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    interpolate_size: Value
+    interpolate_size: NumericOnly | AllowKeywords | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained interpolate-size value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword allow-keywords.
-
-pub allow_keywords(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword numeric-only.
-
-pub numeric_only(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

@@ -10,3 +10,6 @@ mod interface_and_effects;
 #[cfg(test)]
 #[path = "core_lowering_test/pattern_coverage.rs"]
 mod pattern_coverage;
+
+#[path = "core_lowering_test/qualified_function_values.rs"]
+mod qualified_function_values;

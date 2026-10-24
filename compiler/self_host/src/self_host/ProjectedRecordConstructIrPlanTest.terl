@@ -1,0 +1,63 @@
+/** Typed Core lowering contracts for nominal record construction. */
+module self_host.ProjectedRecordConstructIrPlanTest.
+
+import self_host.ProjectedExpressionIrPlan.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedTypeConstraintSyntax.InferredTypeFact.
+import self_host.SelfHostSemanticIrSyntax.SemanticInstructionPlan.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+
+last_instruction(
+    values: List[SemanticInstructionPlan],
+    current: Option[SemanticInstructionPlan],
+): Option[SemanticInstructionPlan] ->
+    case values {
+        [] -> current;
+        [value | rest] -> last_instruction(rest, Some(value))
+    }.
+
+@test
+pub nominal_record_carries_named_typed_field_pairs(): Bool ->
+    let expression = ProjectedExpressionNode(
+        "nominal-keyed",
+        "Point",
+        10,
+        30,
+        [
+            ProjectedExpressionNode("identifier", "Point", 10, 15, []),
+            ProjectedExpressionNode(
+                "keyed-field",
+                "x",
+                17,
+                21,
+                [ProjectedExpressionNode("integer", "1", 20, 21, [])],
+            ),
+            ProjectedExpressionNode(
+                "keyed-field",
+                "label",
+                23,
+                29,
+                [ProjectedExpressionNode("string", "p", 28, 29, [])],
+            ),
+        ],
+    );
+    let plan = ProjectedExpressionIrPlan.lower_expression(
+        expression,
+        0,
+        [
+            InferredTypeFact(0, Some("Point"), 10),
+            InferredTypeFact(3, Some("Int"), 20),
+            InferredTypeFact(5, Some("String"), 28),
+        ],
+        [],
+    );
+    case last_instruction(plan.instructions, None) {
+        None -> false;
+        Some(instruction) -> instruction.opcode == "put-struct"
+            and instruction.operands == ["x", "%3", "label", "%5"]
+            and instruction.operand_types == [
+                Some("String"), Some("Int"), Some("String"), Some("String"),
+            ]
+            and instruction.resolved_type == Some("Point")
+    }.

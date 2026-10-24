@@ -308,7 +308,7 @@ completions_hold(completions: List[BatchCompletion]): Bool ->
                 {Some(output), None} ->
                     if {
                         output.status == 0 -> completions_hold(rest);
-                        true -> print_output_failure("interface command failed", output)
+                        true -> print_output_failure("NativeBoundary metadata command failed", output)
                     };
                 {None, Some(reason)} ->
                     print_process_error("NativeBoundary metadata command failed", reason);
@@ -415,70 +415,15 @@ emit_interfaces(
     jobs: Int,
     inventory: SourceInventory,
 ): Bool ->
-    let standard = standard_interface_sources(inventory.sources);
-    let properties = css_interface_sources(inventory.sources);
-    let commands = [process_command(compiler, root, interface_arguments(standard, output)) | css_interface_commands(compiler, root, output, properties, [], 0)];
-    case Process.run_many(Process.batch(commands, jobs)) {
-        Ok(batch) ->
+    let arguments = interface_arguments(inventory.sources, output);
+    let command = process_command(compiler, root, arguments);
+    case Process.run(command) {
+        Ok(result) ->
             if {
-                completions_hold(batch.completions) -> emit_native_interfaces(root, output, compiler, jobs, inventory);
-                true -> false
+                result.status == 0 -> emit_native_interfaces(root, output, compiler, jobs, inventory);
+                true -> print_output_failure("interface generation failed", result)
             };
         Err(reason) -> print_process_error("interface generation failed", reason)
-    }.
-
-@pure
-is_css_property_source(path: String): Bool ->
-    String.starts_with(path, "std/css/properties/") or String.contains(path, "/std/css/properties/").
-
-@pure
-standard_interface_sources(paths: List[String]): List[String] ->
-    case paths {
-        [] -> [];
-        [path | rest] ->
-            if {
-                is_css_property_source(path) -> standard_interface_sources(rest);
-                true -> [path | standard_interface_sources(rest)]
-            }
-    }.
-
-@pure
-css_interface_sources(paths: List[String]): List[String] ->
-    case paths {
-        [] -> [];
-        [path | rest] ->
-            if {
-                is_css_property_source(path) -> [path | css_interface_sources(rest)];
-                true -> css_interface_sources(rest)
-            }
-    }.
-
-css_interface_commands(
-    compiler: String,
-    root: String,
-    output: String,
-    sources: List[String],
-    batch: List[String],
-    count: Int,
-): List[Command] ->
-    if {
-        count == 64 -> [process_command(compiler, root, interface_arguments(reverse_strings(batch), output)) | css_interface_commands(compiler, root, output, sources, [], 0)];
-        true -> case sources {
-            [] ->
-                case batch {
-                    [] -> [];
-                    _ ->
-                        [
-                            process_command(
-                                compiler,
-                                root,
-                                interface_arguments(reverse_strings(batch), output),
-                            ),
-                        ]
-                };
-            [source | rest] ->
-                css_interface_commands(compiler, root, output, rest, [source | batch], count + 1)
-        }
     }.
 
 emit_native_interfaces(

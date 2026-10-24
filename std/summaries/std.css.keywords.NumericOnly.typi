@@ -1,0 +1,6 @@
+//! Shared CSS keyword numeric-only. Generated; do not edit.
+
+module std.css.keywords.NumericOnly.
+
+pub type NumericOnly =
+    Atom["numeric-only"].

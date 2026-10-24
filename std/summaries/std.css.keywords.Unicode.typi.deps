@@ -1,0 +1,8 @@
+module=std.css.keywords.Unicode
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=17821798445372414659
+interface_hash=6617929628266428351
+interface_doc_hash=16744644223316519725
+deps=0

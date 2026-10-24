@@ -155,12 +155,27 @@ pub(super) fn parse_type(ty: &TSType<'_>) -> Result<TsTypeRef, TsParseError> {
         TSType::TSUnknownKeyword(_) => Ok(TsTypeRef::Unknown),
         TSType::TSObjectKeyword(_) => Ok(TsTypeRef::Object),
         TSType::TSFunctionType(function) => {
+            if function.type_parameters.is_some() || function.params.rest.is_some() {
+                return Err(unsupported(
+                    "ts_bindgen.unsupported_callback_parameters",
+                    "generic and variadic callbacks require an explicit adapter",
+                ));
+            }
             let params = function
                 .params
                 .items
                 .iter()
                 .map(parse_parameter)
-                .map(|param| param.map(|param| param.ty))
+                .map(|param| {
+                    let param = param?;
+                    if param.optional {
+                        return Err(unsupported(
+                            "ts_bindgen.unsupported_callback_parameters",
+                            "optional callback arguments require a nullable-value adapter",
+                        ));
+                    }
+                    Ok(param.ty)
+                })
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(TsTypeRef::Callback {
                 params,

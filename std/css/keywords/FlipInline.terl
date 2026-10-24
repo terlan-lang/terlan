@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword flip-inline. Generated; do not edit.
+ */
+module std.css.keywords.FlipInline.
+
+pub type FlipInline = Atom["flip-inline"].

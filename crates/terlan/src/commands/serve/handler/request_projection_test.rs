@@ -11,16 +11,15 @@ fn request() -> Request {
         terlan_http_native::RequestMetadata {
             params: vec![("id".to_string(), "7".to_string())],
             query_string: ("page=2").into(),
-            query: vec![("page".to_string(), "2".to_string())],
             headers: vec![("content-type".to_string(), "text/plain".to_string())],
-            cookies: vec![("session".to_string(), "abc".to_string())],
+            cookies: vec!["session=abc".into()],
         },
     )
     .with_body_file_path("/tmp/terlan-upload")
 }
 
 #[test]
-fn package_metadata_projection_and_late_source_projection_agree() {
+fn package_request_snapshot_and_late_source_projection_agree() {
     let params = vec![("id".into(), "7".into())];
     let mut headers = http::HeaderMap::new();
     headers.insert("X-Mode", http::HeaderValue::from_static("first"));
@@ -29,14 +28,13 @@ fn package_metadata_projection_and_late_source_projection_agree() {
         http::HeaderValue::from_static("user=Ada; user=Grace"),
     );
     let query = "name=Ada+Lovelace&name=Grace";
-    let make_request = |projection| {
-        Request::from_parts_with_raw_query_metadata(
-            "GET",
-            "/",
-            "",
-            terlan_http_native::RequestMetadata::from_http(projection, &params, query, &headers),
-        )
-    };
+    let mut input = http::Request::builder()
+        .method("POST")
+        .uri(format!("/items/7?{query}"))
+        .body("payload".into())
+        .unwrap();
+    *input.headers_mut() = headers;
+    let make_request = |projection| Request::from_http(&input, &params, projection);
     let complete = make_request(RequestFieldProjection::Complete);
     for mask in 0..(1 << 11) {
         let projection = RequestFieldProjection::Fields(mask);
@@ -74,7 +72,7 @@ fn body_only_projection_keeps_layout_but_omits_unobservable_payloads() {
     };
     assert_eq!(name, "Request");
 
-    assert_eq!(fields.len(), 9);
+    assert_eq!(fields.len(), 8);
     assert_eq!(fields[0].1, ReplValue::String(String::new()));
     assert_eq!(fields[1].1, ReplValue::String(String::new()));
     assert_eq!(fields[2].1, ReplValue::List(Vec::new()));
@@ -82,8 +80,7 @@ fn body_only_projection_keeps_layout_but_omits_unobservable_payloads() {
     assert_eq!(fields[4].1, ReplValue::String(String::new()));
     assert_eq!(fields[5].1, ReplValue::List(Vec::new()));
     assert_eq!(fields[6].1, ReplValue::List(Vec::new()));
-    assert_eq!(fields[7].1, ReplValue::List(Vec::new()));
-    assert_eq!(fields[8].1, ReplValue::String(String::new()));
+    assert_eq!(fields[7].1, ReplValue::String(String::new()));
 }
 
 #[test]
@@ -103,26 +100,16 @@ fn complete_projection_preserves_every_request_field() {
     assert_eq!(
         fields[5].1,
         ReplValue::List(vec![ReplValue::Tuple(vec![
-            ReplValue::String("page".to_string()),
-            ReplValue::String("2".to_string()),
-        ])])
-    );
-    assert_eq!(
-        fields[6].1,
-        ReplValue::List(vec![ReplValue::Tuple(vec![
             ReplValue::String("content-type".to_string()),
             ReplValue::String("text/plain".to_string()),
         ])])
     );
     assert_eq!(
-        fields[7].1,
-        ReplValue::List(vec![ReplValue::Tuple(vec![
-            ReplValue::String("session".to_string()),
-            ReplValue::String("abc".to_string()),
-        ])])
+        fields[6].1,
+        ReplValue::List(vec![ReplValue::String("session=abc".to_string())])
     );
     assert_eq!(
-        fields[8].1,
+        fields[7].1,
         ReplValue::String("/tmp/terlan-upload".to_string())
     );
 }
@@ -139,7 +126,7 @@ fn file_body_projection_omits_text_and_preserves_only_runtime_path() {
     assert_eq!(name, "Request");
     assert_eq!(fields[3].1, ReplValue::String(String::new()));
     assert_eq!(
-        fields[8].1,
+        fields[7].1,
         ReplValue::String("/tmp/terlan-upload".to_string())
     );
 }
@@ -163,7 +150,7 @@ fn repeated_projection_reuses_fixed_request_vector_without_native_jar() {
     assert_eq!(name, "Request");
     assert_eq!(fields.as_ptr(), request_storage);
     assert_eq!(fields[3].1, ReplValue::String("replacement".to_string()));
-    assert_eq!(fields.len(), 9);
+    assert_eq!(fields.len(), 8);
     assert!(fields.iter().all(|(name, _)| name != "cookie_jar"));
 }
 
@@ -186,7 +173,7 @@ fn replacing_request_clears_incoming_cookies_and_repairs_invalid_pair_shapes() {
         let ReplValue::Record { fields, .. } = &mut value else {
             panic!("request")
         };
-        fields[7].1 = replacement;
+        fields[6].1 = replacement;
         replace_vm_request_descriptor(
             &mut value,
             Request::from_parts("GET", "/", "").into_parts(),
@@ -195,6 +182,6 @@ fn replacing_request_clears_incoming_cookies_and_repairs_invalid_pair_shapes() {
         let ReplValue::Record { fields, .. } = &value else {
             panic!("request")
         };
-        assert_eq!(fields[7].1, ReplValue::List(Vec::new()));
+        assert_eq!(fields[6].1, ReplValue::List(Vec::new()));
     }
 }

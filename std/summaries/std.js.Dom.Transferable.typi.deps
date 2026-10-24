@@ -1,8 +1,8 @@
 module=std.js.Dom.Transferable
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=8866115997746676158
-interface_hash=16785627252595570752
-interface_doc_hash=16785627252595570752
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15057525575529231357
+interface_hash=17302551804640244746
+interface_doc_hash=17302551804640244746
 deps=0

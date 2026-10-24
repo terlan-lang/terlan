@@ -1,0 +1,6 @@
+//! Shared CSS keyword jis90. Generated; do not edit.
+
+module std.css.keywords.Jis90.
+
+pub type Jis90 =
+    Atom["jis90"].

@@ -1,8 +1,8 @@
 module=std.js.Dom.WindowSessionStorage
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=915011947118321588
-interface_hash=15173805453458376287
-interface_doc_hash=15173805453458376287
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=16752297305977100411
+interface_hash=17778563706497965680
+interface_doc_hash=17778563706497965680
 deps=0

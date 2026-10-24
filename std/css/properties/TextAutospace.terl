@@ -1,111 +1,34 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-autospace
+ * The `text-autospace` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows you
+ * to specify the space applied between Chinese/Japanese/Korean (CJK) and non-CJK characters.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: Lets the browser choose typographically appropriate spacing. The spacing may vary across
+ * browsers and platforms.
+ * - normal: Creates the default behavior to automatically apply spacing between CJK and non-CJK
+ * characters and around punctuation. This value has the same effect as applying both
+ * [`ideograph-alpha`](#ideograph-alpha) and [`ideograph-numeric`](#ideograph-numeric).
+ *
  * Grammar: normal | <autospace> | auto
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-autospace
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-autospace
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextAutospace.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, IdeographAlpha, IdeographNumeric, Insert, NoAutospace, Normal}.
 
-/**
- * A nominal, specification-constrained text-autospace value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_autospace: Value,
+    text_autospace: Normal | NoAutospace | IdeographAlpha | IdeographNumeric | Insert | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    text_autospace: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "text-autospace", css: "auto"}).
-
-/**
- * Returns the CSS keyword ideograph-alpha.
- */
-pub ideograph_alpha(): Value ->
-    Value(Token {property: "text-autospace", css: "ideograph-alpha"}).
-
-/**
- * Returns the CSS keyword ideograph-numeric.
- */
-pub ideograph_numeric(): Value ->
-    Value(Token {property: "text-autospace", css: "ideograph-numeric"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-autospace", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-autospace", css: "initial"}).
-
-/**
- * Returns the CSS keyword insert.
- */
-pub insert(): Value ->
-    Value(Token {property: "text-autospace", css: "insert"}).
-
-/**
- * Returns the CSS keyword no-autospace.
- */
-pub no_autospace(): Value ->
-    Value(Token {property: "text-autospace", css: "no-autospace"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "text-autospace", css: "normal"}).
-
-/**
- * Returns the CSS keyword punctuation.
- */
-pub punctuation(): Value ->
-    Value(Token {property: "text-autospace", css: "punctuation"}).
-
-/**
- * Returns the CSS keyword replace.
- */
-pub replace(): Value ->
-    Value(Token {property: "text-autospace", css: "replace"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-autospace", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-autospace", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-autospace", css: "unset"}).

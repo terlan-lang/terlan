@@ -98,7 +98,7 @@ pub(super) fn fold_completed_effect_runs(
                 *expr = replacement;
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
                 fold_completed_effect_runs(item, completed);
             }

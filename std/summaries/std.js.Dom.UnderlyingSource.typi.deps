@@ -1,8 +1,8 @@
 module=std.js.Dom.UnderlyingSource
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=11542652349064881714
-interface_hash=7098653807348523564
-interface_doc_hash=7098653807348523564
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=11066176504938415084
+interface_hash=7076161884416297040
+interface_doc_hash=7076161884416297040
 deps=0

@@ -5,11 +5,11 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
-use crate::commands::api::source_contract::{imports_std_http_router, routes_from_syntax_module};
+use crate::commands::api::evaluated_contract::from_router_file;
 use crate::commands::build::project_manifest::{
     ProjectArtifactKind, ProjectDeployment, ProjectManifest, ProjectRollbackCompatibility,
 };
-use crate::terlan_syntax::parse_module_as_syntax_output;
+use crate::terlan_syntax::{parse_module_as_syntax_output, SyntaxDeclarationPayload};
 
 use super::{
     deploy_capabilities, plan_dependency, plan_server_tls, plan_web_assets, DeployPlanDependency,
@@ -205,7 +205,7 @@ pub(super) fn build_semantic_deploy_plan(
                 service: service_name.clone(),
                 method: route.method,
                 path: route.path,
-                handler: format!("{}.{}/1", route.module, route.handler),
+                handler: route.handler,
                 source: SemanticRouteSource {
                     module: route.module,
                     path: route.source_path,
@@ -335,7 +335,7 @@ struct CollectedSource {
     module: String,
     relative_path: String,
     sha256: String,
-    text: String,
+    declares_router: bool,
 }
 
 #[derive(Debug)]
@@ -375,11 +375,16 @@ fn collect_sources(
                 syntax.module_name
             ));
         }
+        let declares_router = syntax.declarations.iter().any(|declaration| {
+            matches!(&declaration.payload, SyntaxDeclarationPayload::Function {
+                name, is_public: true, clauses, ..
+            } if name == "router" && clauses.iter().any(|clause| clause.patterns.is_empty()))
+        });
         sources.push(CollectedSource {
             module: syntax.module_name,
             relative_path: package_relative_path(project_dir, &path)?,
             sha256: sha256_hex(&bytes),
-            text,
+            declares_router,
         });
     }
     Ok(sources)
@@ -426,17 +431,30 @@ fn collect_routes(
 ) -> Result<Vec<CollectedRoute>, String> {
     let mut routes = Vec::new();
     let mut identities = BTreeMap::new();
-    for source in sources {
-        let syntax = parse_module_as_syntax_output(&source.text).map_err(|error| {
+    let candidates = sources
+        .iter()
+        .filter(|source| source.declares_router)
+        .collect::<Vec<_>>();
+    if candidates.is_empty() {
+        return Ok(routes);
+    }
+    // Build products are temporary and never enter the deployment source inventory.
+    let workspace = tempfile::tempdir()
+        .map_err(|error| format!("cannot create deploy discovery workspace: {error}"))?;
+    for source in candidates {
+        let contract = from_router_file(
+            &project_dir.join(&source.relative_path),
+            workspace.path(),
+            service,
+            "",
+        )
+        .map_err(|error| {
             format!(
-                "error[deploy.route_parse]: cannot parse {}: {error:?}",
+                "error[deploy.route_evaluation]: {}: {error}",
                 source.relative_path
             )
         })?;
-        if !imports_std_http_router(&syntax) {
-            continue;
-        }
-        for route in routes_from_syntax_module(&syntax)? {
+        for route in contract.routes {
             let identity = (route.method.clone(), route.path.clone());
             if let Some(existing) = identities.insert(identity.clone(), source.module.clone()) {
                 return Err(format!(
@@ -447,7 +465,11 @@ fn collect_routes(
             routes.push(CollectedRoute {
                 method: route.method,
                 path: route.path,
-                handler: route.handler,
+                handler: if route.handler.contains('.') {
+                    format!("{}/1", route.handler)
+                } else {
+                    format!("{}.{}/1", source.module, route.handler)
+                },
                 module: source.module.clone(),
                 source_path: source.relative_path.clone(),
             });
@@ -459,7 +481,6 @@ fn collect_routes(
             .then(left.method.cmp(&right.method))
             .then(left.handler.cmp(&right.handler))
     });
-    let _ = project_dir;
     Ok(routes)
 }
 
@@ -558,3 +579,7 @@ fn sha256_hex(bytes: &[u8]) -> String {
         .map(|byte| format!("{byte:02x}"))
         .collect()
 }
+
+#[cfg(test)]
+#[path = "semantic_test.rs"]
+mod tests;

@@ -1,87 +1,41 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-position
+ * The `ruby-position` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+ * position of a ruby element relative to its base element. It can be positioned over the element
+ * (`over`), under it (`under`), or to the right (`inter-character`).
+ *
+ * Initial: alternate. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - alternate: Is a keyword indicating that the ruby alternates between over and under, when there
+ * are multiple levels of annotation.
+ * - inter-character: Is a keyword indicating that the ruby annotation is placed to the right of the
+ * base text characters. This value is intended for bopomofo (zhuyin fuhao) ruby.
+ * - over: ![Over example](screen_shot_2015-03-04_at_13.02.20.png) Is a keyword indicating that the
+ * ruby has to be placed over the main text for horizontal scripts and right to it for vertical
+ * scripts.
+ * - under: ![Under example](screen_shot_2015-03-04_at_13.02.07.png) Is a keyword indicating that
+ * the ruby has to be placed under the main text for horizontal scripts and left to it for vertical
+ * scripts.
+ *
  * Grammar: [ alternate || [ over | under ] ] | inter-character
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-position
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/ruby-position
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.RubyPosition.
 
-import type std.core.Option.
+import std.css.keywords.{Alternate, InterCharacter, Over, Under}.
 
-/**
- * A nominal, specification-constrained ruby-position value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    ruby_position: Value,
+    ruby_position: Alternate | Over | Under | InterCharacter | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    ruby_position: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword alternate.
- */
-pub alternate(): Value ->
-    Value(Token {property: "ruby-position", css: "alternate"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "ruby-position", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "ruby-position", css: "initial"}).
-
-/**
- * Returns the CSS keyword inter-character.
- */
-pub inter_character(): Value ->
-    Value(Token {property: "ruby-position", css: "inter-character"}).
-
-/**
- * Returns the CSS keyword over.
- */
-pub over(): Value ->
-    Value(Token {property: "ruby-position", css: "over"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "ruby-position", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "ruby-position", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword under.
- */
-pub under(): Value ->
-    Value(Token {property: "ruby-position", css: "under"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "ruby-position", css: "unset"}).

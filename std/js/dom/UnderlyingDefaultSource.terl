@@ -12,7 +12,13 @@
  */
 module std.js.Dom.UnderlyingDefaultSource.
 
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
+
 pub opaque type UnderlyingDefaultSource[R].
 
-pub (receiver: UnderlyingDefaultSource[R]) cancel(): std.core.Option[std.js.Dom.UnderlyingSourceCancelCallback] ->
+pub (receiver: UnderlyingDefaultSource[R]) cancel(): Option[std.js.Dom.UnderlyingSourceCancelCallback] ->
+    native.
+
+pub (receiver: UnderlyingDefaultSource[R]) pull(): Option[(std.js.Dom.ReadableStreamDefaultController[R]) -> std.js.PromiseLike[Unit] | Unit] ->
     native.

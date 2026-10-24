@@ -322,22 +322,9 @@ pub classify(flag: Bool): Int ->
     assert!(js.contains("return flag === true ? 1 : 0;"), "{js}");
 }
 
-/// Verifies that CoreIR case expressions stay outside the direct JS backend
-/// subset until branch emission is represented.
-///
-/// Inputs:
-/// - A checked Terlan module with a public function containing an exhaustive
-///   case expression over a custom atom union.
-///
-/// Output:
-/// - Assertions over direct-AST rejection and fallback JavaScript source.
-///
-/// Transformation:
-/// - Compiles source through the formal pipeline, verifies the direct Oxc
-///   AST emitter declines `CoreExpr::Case`, then checks the command-facing
-///   facade preserves the JS stub fallback.
+/// Exhaustive atom cases lower directly and reject unexpected foreign values.
 #[test]
-pub(super) fn emit_core_module_with_oxc_codegen_falls_back_for_partial_case_expr() {
+pub(super) fn emit_core_module_with_oxc_codegen_handles_exhaustive_atom_case_expr() {
     let source = "\
 module js_core_partial_case_fallback.
 
@@ -361,15 +348,31 @@ pub choose(status: Status): Int ->
     )
     .expect("compile source to CoreIR");
 
-    assert!(oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core).is_none());
-
+    let direct = oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core)
+        .expect("direct backend lowers exhaustive atom cases");
     let js = oxc_backend::emit_core_module_with_oxc_codegen(&artifacts.core)
-        .expect("fallback Oxc backend emits bootstrap JS");
-
-    assert!(js.contains("export function choose(status)"));
+        .expect("Oxc backend emits executable case dispatch");
+    assert_eq!(direct, js);
+    assert!(!js.contains("Terlan JS backend stub"), "{js}");
+    let output = std::process::Command::new("node")
+        .args([
+            "--input-type=module",
+            "--eval",
+            &format!(
+                r#"{js}
+if (choose("none") !== 0 || choose("other") !== 1) process.exit(1);
+let rejected = false;
+try {{ choose("unknown"); }} catch (_) {{ rejected = true; }}
+if (!rejected) process.exit(2);
+"#
+            ),
+        ])
+        .output()
+        .expect("execute generated atom dispatch");
     assert!(
-        js.contains("throw new Error(\"Terlan JS backend stub\")"),
-        "{js}"
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
     );
 }
 

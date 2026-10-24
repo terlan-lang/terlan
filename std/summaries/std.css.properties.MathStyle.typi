@@ -1,52 +1,25 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/mathml-core/#propdef-math-style
+//! The `math-style` property indicates whether MathML equations should render with normal or compact
+//! height.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - compact: The math layout on descendants tries to minimize the logical height.
+//! - normal: The initial value, indicates normal rendering.
+//!
 //! Grammar: normal | compact
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/mathml-core/#propdef-math-style
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/math-style
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MathStyle.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    math_style: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    math_style: Value
+    math_style: Normal | Compact | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained math-style value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword compact.
-
-pub compact(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

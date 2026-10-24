@@ -1,10 +1,10 @@
 module=std.css.properties.InterestDelayStart
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=13276121232200846777
-interface_hash=1581613785462707229
-interface_doc_hash=10667029158733580717
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=7527966102315456826
+interface_hash=9695638432662425476
+interface_doc_hash=10327485330776766436
 deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.Normal=15467599898019431818

@@ -1,0 +1,6 @@
+//! Shared CSS keyword help. Generated; do not edit.
+
+module std.css.keywords.Help.
+
+pub type Help =
+    Atom["help"].

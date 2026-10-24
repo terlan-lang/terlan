@@ -1,115 +1,58 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-gap
+ * The `gap` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets the gaps (also called `gutters`) between rows and columns on
+ * [multi-column](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Multicol_layout),
+ * [flex](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout), and
+ * [grid](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout) containers.
+ *
+ * Initial: row-gap: normal; column-gap: normal. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - normal: Sets the gap to `1em` in multi-column layouts and to `0` in all other contexts. This is
+ * the default value.
+ *
  * Grammar: <'row-gap'> <'column-gap'>?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-gap
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/gap
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Gap.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
+import std.css.keywords.Normal.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained gap value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    gap: Value,
+    gap: Normal | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the gap length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub struct OptionalProperty {
-    gap: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "gap", css: "hairline"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "gap", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "gap", css: "initial"}).
-
-/**
- * Returns the CSS keyword medium.
- */
-pub medium(): Value ->
-    Value(Token {property: "gap", css: "medium"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "gap", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "gap", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "gap", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword thick.
- */
-pub thick(): Value ->
-    Value(Token {property: "gap", css: "thick"}).
-
-/**
- * Returns the CSS keyword thin.
- */
-pub thin(): Value ->
-    Value(Token {property: "gap", css: "thin"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "gap", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a gap value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "gap", css: std.css.Values.length_css(value)}));
-        false -> None
+pub length(value: Length): Option[Checked] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Checked(serialize("gap", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a gap value.
+ * Checks the gap percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "gap", css: std.css.Values.percentage_css(value)}));
-        false -> None
+pub percentage(value: Percentage): Option[Checked] ->
+    case percentage_amount(value) >= 0 {
+        true -> Some(Checked(serialize("gap", percentage_css(value))));
+        false -> Absent
     }.

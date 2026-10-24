@@ -8,7 +8,8 @@ mod packages;
 pub mod postgres;
 
 pub use packages::{
-    context_operation_arity, resource_operation, value_binding, RESOURCE_OPERATIONS, VALUE_BINDINGS,
+    context_operation_arity, resource_operation, value_binding, value_operation_requires_worker,
+    RESOURCE_OPERATIONS, VALUE_BINDINGS, WORKER_VALUE_OPERATIONS,
 };
 
 /// Cryptographic operations shared with host package tooling.

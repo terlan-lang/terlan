@@ -1,0 +1,263 @@
+/** Normalized self-hosted public documentation model and Markdown renderer. */
+module self_host.SelfHostDocumentation.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, Int, String}.
+
+import self_host.CanonicalToken.{CanonicalToken, CommentToken, DocCommentToken, ModuleDocCommentToken}.
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.SelfHostToolingDocument.{ToolingDocument}.
+import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, ExportDeclaration, FunctionDeclaration, ImportDeclaration, MethodDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration, UnknownDeclaration}.
+import self_host.TokenSegment.{TokenSegment}.
+import self_host.ProjectedDeclarationLowering.
+import self_host.SelfHostToolingDocument.
+import self_host.TokenSegmenter.
+
+
+pub struct DocumentationItem {
+    kind: String,
+    name: String,
+    signature: String,
+    docs: String,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+pub constructor DocumentationItem {
+    (
+        kind: String,
+        name: String,
+        signature: String,
+        docs: String,
+        start_byte: Int,
+        end_byte: Int,
+    ): DocumentationItem -> DocumentationItem {
+        kind: kind,
+        name: name,
+        signature: signature,
+        docs: docs,
+        start_byte: start_byte,
+        end_byte: end_byte,
+    }
+}.
+
+
+pub struct DocumentationModule {
+    valid: Bool,
+    module_name: String,
+    module_docs: String,
+    items: List[DocumentationItem],
+    message: String,
+}.
+
+pub constructor DocumentationModule {
+    (
+        valid: Bool,
+        module_name: String,
+        module_docs: String,
+        items: List[DocumentationItem],
+        message: String,
+    ): DocumentationModule -> DocumentationModule {
+        valid: valid,
+        module_name: module_name,
+        module_docs: module_docs,
+        items: items,
+        message: message,
+    }
+}.
+
+@pure
+is_trivia(value: CanonicalToken): Bool ->
+    value.category == CommentToken
+        or value.category == DocCommentToken
+        or value.category == ModuleDocCommentToken.
+
+@pure
+clean_doc(value: String): String ->
+    if {
+        String.starts_with(value, "///") or String.starts_with(value, "//!") ->
+            String.trim(value.utf8_slice(3, value.byte_size() - 3));
+        String.starts_with(value, "/**") and value.byte_size() >= 5 ->
+            String.trim(value.utf8_slice(3, value.byte_size() - 5));
+        true -> String.trim(value)
+    }.
+
+@pure
+append_doc(output: String, value: String): String ->
+    if {
+        value == "" -> output;
+        output == "" -> value;
+        true -> String.concat([output, "\n", value])
+    }.
+
+@pure
+leading_docs(
+    values: List[CanonicalToken],
+    module_docs: Bool,
+    output: String,
+): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> if {
+            value.category == ModuleDocCommentToken and module_docs ->
+                leading_docs(rest, module_docs, append_doc(output, clean_doc(value.text)));
+            value.category == DocCommentToken and not module_docs ->
+                leading_docs(rest, module_docs, append_doc(output, clean_doc(value.text)));
+            value.category == CommentToken -> leading_docs(rest, module_docs, output);
+            true -> output
+        }
+    }.
+
+@pure
+first_significant(values: List[CanonicalToken]): Int ->
+    case values {
+        [] -> -1;
+        [value | rest] -> if {
+            is_trivia(value) -> first_significant(rest);
+            true -> value.start_byte
+        }
+    }.
+
+@pure
+signature(source: String, value: TokenSegment): String ->
+    let start = first_significant(value.tokens);
+    if {
+        start < 0 -> "";
+        true -> String.trim(source.utf8_slice(start, value.end_byte - start))
+    }.
+
+@pure
+kind(value: DeclarationSyntax): String ->
+    if {
+        value.class == ConstantDeclaration -> "constant";
+        value.class == ConstFunctionDeclaration -> "const function";
+        value.class == TypeDeclaration -> "type";
+        value.class == OpaqueTypeDeclaration -> "opaque type";
+        value.class == StructDeclaration -> "struct";
+        value.class == ConstructorDeclaration -> "constructor";
+        value.class == TraitDeclaration -> "trait";
+        value.class == TraitImplDeclaration -> "trait implementation";
+        value.class == FunctionDeclaration -> "function";
+        value.class == MethodDeclaration -> "receiver method";
+        value.class == ShapeDeclaration -> "shape";
+        value.class == AnnotationSchemaDeclaration -> "annotation schema";
+        value.class == TemplateDeclaration -> "template";
+        value.class == NativeDeclaration -> "native declaration";
+        value.class == ConfigDeclaration -> "configuration";
+        value.class == ImportDeclaration -> "import";
+        value.class == ExportDeclaration -> "export";
+        value.class == UnknownDeclaration -> "declaration";
+        true -> "declaration"
+    }.
+
+@pure
+documentable(value: DeclarationSyntax): Bool ->
+    value.is_public
+        and value.class != ImportDeclaration
+        and value.class != ExportDeclaration
+        and value.class != ConfigDeclaration
+        and value.class != UnknownDeclaration.
+
+@pure
+item_name(value: DeclarationSyntax): String ->
+    if { value.name != "" -> value.name; true -> kind(value) }.
+
+@pure
+items(
+    source: String,
+    segments: List[TokenSegment],
+    declarations: List[DeclarationSyntax],
+): Result[List[DocumentationItem], String] ->
+    case { segments, declarations } {
+        {[], []} -> Ok(List.new[DocumentationItem]());
+        {[segment | segment_rest], [declaration | declaration_rest]} -> case items(
+            source,
+            segment_rest,
+            declaration_rest,
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(rest) -> if {
+                not documentable(declaration) -> Ok(rest);
+                true -> Ok([DocumentationItem(
+                    kind(declaration),
+                    item_name(declaration),
+                    signature(source, segment),
+                    leading_docs(segment.tokens, false, ""),
+                    declaration.span.start_byte,
+                    declaration.span.end_byte,
+                ) | rest])
+            }
+        };
+        _ -> Err("documentation declaration segments do not match projected declarations")
+    }.
+
+@pure
+missing_docs(values: List[DocumentationItem]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if {
+            value.docs == "" -> String.concat(["public ", value.kind, " `", value.name, "` is missing documentation"]);
+            true -> missing_docs(rest)
+        }
+    }.
+
+@pure
+build_document(value: ToolingDocument): DocumentationModule ->
+    let segments = TokenSegmenter.split(value.canonical_tokens).segments;
+    let lowered = ProjectedDeclarationLowering.lower(value.frontend.surface);
+    case segments {
+        [] -> DocumentationModule(false, lowered.name, "", [], "documentation source has no module segment");
+        [module_segment | declaration_segments] -> case items(
+            value.source,
+            declaration_segments,
+            lowered.declarations,
+        ) {
+            Err(reason) -> DocumentationModule(false, lowered.name, "", [], reason);
+            Ok(documentation_items) -> let missing = missing_docs(documentation_items);
+            DocumentationModule(
+                missing == "",
+                lowered.name,
+                leading_docs(module_segment.tokens, true, ""),
+                documentation_items,
+                if { missing == "" -> "ok"; true -> missing },
+            )
+        }
+    }.
+
+/** Builds validated public documentation from the shared tooling document. */
+@pure
+pub build(source: String): DocumentationModule ->
+    let document = SelfHostToolingDocument.build(source);
+    if {
+        not document.valid -> DocumentationModule(false, "", "", [], document.message);
+        true -> build_document(document)
+    }.
+
+@pure
+render_items(values: List[DocumentationItem]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([
+            "\n## ", value.name, "\n\n",
+            "**", value.kind, "**\n\n",
+            "```terlan\n", value.signature, "\n```\n\n",
+            value.docs, "\n",
+            render_items(rest),
+        ])
+    }.
+
+/** Renders deterministic source-order Markdown for one validated module. */
+@pure
+pub markdown(value: DocumentationModule): Result[String, String] ->
+    if {
+        not value.valid -> Err(value.message);
+        true -> Ok(String.concat([
+            "# ", value.module_name, "\n\n",
+            value.module_docs,
+            if { value.module_docs == "" -> ""; true -> "\n" },
+            render_items(value.items),
+        ]))
+    }.

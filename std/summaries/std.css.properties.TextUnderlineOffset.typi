@@ -1,56 +1,26 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-underline-offset
+//! The `text-underline-offset` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! the offset distance of an underline text decoration line (applied using `text-decoration`) from
+//! its original position.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: refer to the font size of the element itself.
+//!
+//! Keyword effects:
+//! - auto: The browser chooses the appropriate offset for underlines.
+//!
 //! Grammar: auto | <length-percentage>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-underline-offset
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-underline-offset
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextUnderlineOffset.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    text_underline_offset: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    text_underline_offset: Value
+    text_underline_offset: Auto | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained text-underline-offset value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a text-underline-offset value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Constructs a text-underline-offset value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

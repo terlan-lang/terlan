@@ -1,10 +1,11 @@
 module=std.css.properties.ScrollPaddingBottom
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=15717684758102651754
-interface_hash=5026261703726908919
-interface_doc_hash=4982252541229551131
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1758263547221748195
+interface_hash=17281309238079674322
+interface_doc_hash=9662164806501664236
+deps=3
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722

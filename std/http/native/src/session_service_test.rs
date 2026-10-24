@@ -84,6 +84,20 @@ fn session_host_failures_are_typed_and_retried_without_poisoning_the_context() {
 }
 
 #[test]
+fn application_maintenance_uses_package_limits_and_propagates_failures() {
+    assert_eq!(SESSION_MAINTENANCE_INTERVAL, Duration::from_secs(1));
+    let service = SessionService::new(Probe::default());
+    service.maintain_application().unwrap();
+    service
+        .with_storage(|state| {
+            assert_eq!(state.calls, [vec!["maintain", "64"]]);
+            state.fail = true;
+        })
+        .unwrap();
+    assert_eq!(service.maintain_application(), Err(failure()));
+}
+
+#[test]
 fn session_poisoned_contexts_fail_closed_for_host_and_image_access() {
     let service = SessionService::new(Probe::default());
     let image = service.native_services().unwrap();
@@ -101,6 +115,9 @@ fn session_poisoned_contexts_fail_closed_for_host_and_image_access() {
         assert!(result.unwrap_err().to_string().contains("lock poisoned"));
     }
     assert!(image
-        .call("std.http.session.create", &["".into(), 10_i64.into()])
+        .call(
+            "std.http.session.try_create",
+            &["candidate".into(), 10_i64.into()]
+        )
         .is_err());
 }

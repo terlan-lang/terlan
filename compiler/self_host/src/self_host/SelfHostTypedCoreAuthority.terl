@@ -1,0 +1,16 @@
+/** End-to-end finite-sum authority handoff into typed Core IR. */
+module self_host.SelfHostTypedCoreAuthority.
+
+import self_host.SelfHostIrSyntax.{IrModule}.
+import self_host.SelfHostTypedCoreModule.{TypedCoreModule}.
+import self_host.TypedModuleSyntax.{TypedModule}.
+
+import std.core.Option.{Option}.
+import self_host.ProjectedVariantLayout.
+import self_host.SelfHostTypedCoreModule.
+
+
+/** Derives pattern and runtime tags once, then attaches them atomically to Core IR. */
+@pure
+pub attach(source: TypedModule, ir_module: IrModule): Option[TypedCoreModule] ->
+    SelfHostTypedCoreModule.attach(ir_module, ProjectedVariantLayout.plan(source)).

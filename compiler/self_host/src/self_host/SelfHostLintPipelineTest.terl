@@ -1,0 +1,39 @@
+/** Complete self-hosted lint dispatcher contracts. */
+module self_host.SelfHostLintPipelineTest.
+
+import std.core.String.
+
+import self_host.SelfHostLint.
+
+rule_index(values: List[self_host.SelfHostLintSyntax.LintDiagnostic], rule_id: String, index: Int): Int ->
+    case values {
+        [] -> -1;
+        [value | rest] -> if {
+            value.rule_id == rule_id -> index;
+            true -> rule_index(rest, rule_id, index + 1)
+        }
+    }.
+
+@test
+pub dispatches_document_import_rules_before_naming(): Bool ->
+    let report = SelfHostLint.lint(
+        "Sample.terl",
+        "module sample.\nimport std.core.String.\npub BadName(input: String): String -> String.trim(input).\n",
+    );
+    let docs = rule_index(report.diagnostics, "TL0006", 0);
+    let selected = rule_index(report.diagnostics, "TL0609", 0);
+    let naming = rule_index(report.diagnostics, "TL0301", 0);
+    report.valid_source
+        and docs >= 0
+        and selected > docs
+        and naming > selected.
+
+@test
+pub rejects_invalid_document_without_partial_diagnostics(): Bool ->
+    let report = SelfHostLint.lint("Broken.terl", "module broken\n");
+    not report.valid_source and report.diagnostics == [].
+
+@test
+pub applies_semicolon_fix_before_structural_fixes(): Bool ->
+    SelfHostLint.fix("module sample.\nvalue(): Int -> 1;\n")
+        == "module sample.\nvalue(): Int -> 1.\n".

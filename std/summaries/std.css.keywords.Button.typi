@@ -1,0 +1,6 @@
+//! Shared CSS keyword button. Generated; do not edit.
+
+module std.css.keywords.Button.
+
+pub type Button =
+    Atom["button"].

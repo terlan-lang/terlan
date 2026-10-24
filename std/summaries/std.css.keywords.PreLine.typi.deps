@@ -1,0 +1,8 @@
+module=std.css.keywords.PreLine
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=8649958136024703944
+interface_hash=13851981929124512316
+interface_doc_hash=7845912159820895249
+deps=0

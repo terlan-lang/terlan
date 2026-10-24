@@ -1,0 +1,6 @@
+//! Shared CSS keyword nesw-resize. Generated; do not edit.
+
+module std.css.keywords.NeswResize.
+
+pub type NeswResize =
+    Atom["nesw-resize"].

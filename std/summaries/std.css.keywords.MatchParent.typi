@@ -1,0 +1,6 @@
+//! Shared CSS keyword match-parent. Generated; do not edit.
+
+module std.css.keywords.MatchParent.
+
+pub type MatchParent =
+    Atom["match-parent"].

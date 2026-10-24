@@ -22,6 +22,11 @@ const MAX_SEND_BUFFER_BYTES: usize = 1024 * 1024;
 /// Host admission includes bounded headroom for maintained protocol work.
 pub const CONNECTION_TASK_CAPACITY: usize = MAX_CONCURRENT_STREAMS as usize + 16;
 
+/// The host reports admission loss through the package's protocol diagnostic.
+pub fn task_capacity_error() -> crate::ServiceError {
+    "error[vm.http2.stream_pressure]: owner-local HTTP/2 task limit exceeded".into()
+}
+
 #[derive(Clone)]
 struct HostExecutor<E>(E);
 

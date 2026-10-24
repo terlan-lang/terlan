@@ -210,9 +210,6 @@ fn std_test_honesty_accepts_unannotated_generated_contracts() {
  */
 module std.js.Dom.DocumentTest.
 
-pub generated_binding_surface_contract(): Bool ->
-    true.
-
 pub get_element_by_id_typechecks(receiver: Document, element_id: JsString): Option[HTMLElement] ->
     receiver.get_element_by_id(element_id).
 "#,
@@ -224,6 +221,33 @@ pub get_element_by_id_typechecks(receiver: Document, element_id: JsString): Opti
     assert_eq!(summary.checked_file_count, 1);
     assert_eq!(summary.checked_test_count, 0);
     fs::remove_dir_all(root).expect("remove fixture");
+}
+
+#[test]
+fn std_test_honesty_rejects_unannotated_constant_helpers_and_their_callers() {
+    let root = make_quality_temp_dir("std_test_honesty_constant_helper");
+    write_file(
+        &root,
+        "std/sample/HiddenTest.terl",
+        r#"
+module sample.HiddenTest.
+pub accepts_plan(plan: Int): Bool -> true.
+@test
+pub hidden_pass(): Bool ->
+    let plan = 42;
+    accepts_plan(plan).
+"#,
+    );
+    let diagnostic = run_std_test_honesty_for_dir(&root, Path::new("std")).unwrap_err();
+    assert!(
+        diagnostic.contains("helper `accepts_plan` unconditionally returns true"),
+        "{diagnostic}"
+    );
+    assert!(
+        diagnostic.contains("@test `hidden_pass` returns constant helper"),
+        "{diagnostic}"
+    );
+    fs::remove_dir_all(root).unwrap();
 }
 
 /// Verifies compatibility test suffixes are discovered.

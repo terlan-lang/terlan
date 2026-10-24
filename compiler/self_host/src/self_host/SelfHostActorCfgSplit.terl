@@ -1,0 +1,207 @@
+/** Splits typed Core IR blocks at suspending calls into scheduler-owned continuations. */
+module self_host.SelfHostActorCfgSplit.
+
+import std.core.String.
+
+import self_host.SelfHostIrSyntax.{IrBlock, IrInstruction, IrTerminator}.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Bool, Int, String}.
+
+
+pub struct ActorSplitRequest {
+    source_block: String,
+    result_name: String,
+    continuation_block: String,
+    continuation_ordinal: Int,
+    native_call_index: Int,
+}.
+
+pub constructor ActorSplitRequest {
+    (source_block: String, result_name: String, continuation_block: String, continuation_ordinal: Int, native_call_index: Int): ActorSplitRequest ->
+        ActorSplitRequest {
+            source_block: source_block,
+            result_name: result_name,
+            continuation_block: continuation_block,
+            continuation_ordinal: continuation_ordinal,
+            native_call_index: native_call_index,
+        }
+}.
+
+
+pub struct ActorSplitAnchor {
+    result_name: String,
+    call_block: String,
+    continuation_block: String,
+    continuation_ordinal: Int,
+    native_call_index: Int,
+}.
+
+pub constructor ActorSplitAnchor {
+    (result_name: String, call_block: String, continuation_block: String, continuation_ordinal: Int, native_call_index: Int): ActorSplitAnchor ->
+        ActorSplitAnchor {
+            result_name: result_name,
+            call_block: call_block,
+            continuation_block: continuation_block,
+            continuation_ordinal: continuation_ordinal,
+            native_call_index: native_call_index,
+        }
+}.
+
+
+pub struct ActorCfgSplit {
+    valid: Bool,
+    blocks: List[IrBlock],
+    anchors: List[ActorSplitAnchor],
+    diagnostics: List[String],
+}.
+
+pub constructor ActorCfgSplit {
+    (valid: Bool, blocks: List[IrBlock], anchors: List[ActorSplitAnchor], diagnostics: List[String]): ActorCfgSplit ->
+        ActorCfgSplit {
+            valid: valid,
+            blocks: blocks,
+            anchors: anchors,
+            diagnostics: diagnostics,
+        }
+}.
+
+
+struct InstructionSplit {
+    found: Bool,
+    prefix: List[IrInstruction],
+    suffix: List[IrInstruction],
+}.
+
+constructor InstructionSplit {
+    (found: Bool, prefix: List[IrInstruction], suffix: List[IrInstruction]): InstructionSplit ->
+        InstructionSplit { found: found, prefix: prefix, suffix: suffix }
+}.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+split_instruction(values: List[IrInstruction], result_name: String): InstructionSplit ->
+    case values {
+        [] -> InstructionSplit(false, List.new[IrInstruction](), List.new[IrInstruction]());
+        [value | rest] -> case value.result {
+            Some(name) where name == result_name -> InstructionSplit(true, [value], rest);
+            _ ->
+                let remaining = split_instruction(rest, result_name);
+                InstructionSplit(
+                    remaining.found,
+                    [value | remaining.prefix],
+                    remaining.suffix,
+                )
+        }
+    }.
+
+@pure
+requests_for(label: String, values: List[ActorSplitRequest]): List[ActorSplitRequest] ->
+    case values {
+        [] -> List.new[ActorSplitRequest]();
+        [value | rest] where value.source_block == label -> [value | requests_for(label, rest)];
+        [_value | rest] -> requests_for(label, rest)
+    }.
+
+@pure
+request_count(values: List[ActorSplitRequest]): Int ->
+    case values { [] -> 0; [_value | rest] -> 1 + request_count(rest) }.
+
+@pure
+chain(
+    label: String,
+    instructions: List[IrInstruction],
+    terminator: IrTerminator,
+    requests: List[ActorSplitRequest],
+): ActorCfgSplit ->
+    case requests {
+        [] -> ActorCfgSplit(
+            true,
+            [IrBlock(label, instructions, terminator)],
+            List.new[ActorSplitAnchor](),
+            List.new[String](),
+        );
+        [request | rest] ->
+            let selected = split_instruction(instructions, request.result_name);
+            if {
+                not selected.found -> ActorCfgSplit(
+                    false,
+                    List.new[IrBlock](),
+                    List.new[ActorSplitAnchor](),
+                    [String.concat([
+                        "suspending result `",
+                        request.result_name,
+                        "` does not exist after split block `",
+                        label,
+                        "`",
+                    ])],
+                );
+                true ->
+                    let remaining = chain(
+                        request.continuation_block,
+                        selected.suffix,
+                        terminator,
+                        rest,
+                    );
+                    ActorCfgSplit(
+                        remaining.valid,
+                        [IrBlock(
+                            label,
+                            selected.prefix,
+                            IrTerminator("unreachable", List.new[String](), List.new[String]()),
+                        ) | remaining.blocks],
+                        [ActorSplitAnchor(
+                            request.result_name,
+                            label,
+                            request.continuation_block,
+                            request.continuation_ordinal,
+                            request.native_call_index,
+                        ) | remaining.anchors],
+                        remaining.diagnostics,
+                    )
+            }
+    }.
+
+@pure
+blocks_at(
+    values: List[IrBlock],
+    requests: List[ActorSplitRequest],
+): ActorCfgSplit ->
+    case values {
+        [] -> ActorCfgSplit(
+            true,
+            List.new[IrBlock](),
+            List.new[ActorSplitAnchor](),
+            List.new[String](),
+        );
+        [value | rest] ->
+            let own_requests = requests_for(value.label, requests);
+            let current = chain(value.label, value.instructions, value.terminator, own_requests);
+            let remaining = blocks_at(rest, requests);
+            ActorCfgSplit(
+                current.valid and remaining.valid,
+                append(current.blocks, remaining.blocks),
+                append(current.anchors, remaining.anchors),
+                append(current.diagnostics, remaining.diagnostics),
+            )
+    }.
+
+/** Produces split blocks and exact call/continuation anchors or fails closed. */
+@pure
+pub split(blocks: List[IrBlock], requests: List[ActorSplitRequest]): ActorCfgSplit ->
+    let result = blocks_at(blocks, requests);
+    if {
+        result.valid and result.anchors.length() == request_count(requests) -> result;
+        result.valid -> ActorCfgSplit(
+            false,
+            result.blocks,
+            result.anchors,
+            ["one or more actor split requests reference an unknown source block"],
+        );
+        true -> result
+    }.

@@ -1,84 +1,34 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-box-4/#propdef-margin-right
+ * The `margin-right` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * [margin
+ * area](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Box_model/Introduction#margin_area)
+ * on the right side of an element. A positive value places it farther from its neighbors, while a
+ * negative value places it closer.
+ *
+ * Initial: 0. Inherited: no.
+ * Percentages: refer to the width of the containing block.
+ *
+ * Keyword effects:
+ * - auto: The right margin receives a share of the unused horizontal space, as determined mainly by
+ * the layout mode that is used. If the values of `margin-left` and `margin-right` are both `auto`,
+ * the calculated space is evenly distributed. This table summarizes the different cases:
+ *
  * Grammar: <length-percentage> | auto | <anchor-size()>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-box-4/#propdef-margin-right
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-right
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MarginRight.
 
-import std.css.Values.
+import std.css.keywords.Auto.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained margin-right value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    margin_right: Value,
+    margin_right: Auto | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    margin_right: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "margin-right", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "margin-right", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "margin-right", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "margin-right", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "margin-right", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "margin-right", css: "unset"}).
-
-/**
- * Constructs a margin-right value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "margin-right", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a margin-right value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "margin-right", css: std.css.Values.percentage_css(value)}).

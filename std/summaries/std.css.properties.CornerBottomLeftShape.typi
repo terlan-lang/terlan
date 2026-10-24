@@ -1,68 +1,22 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-corner-bottom-left-shape
+//! The `corner-bottom-left-shape` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies the shape of a box's bottom-left corner, within its `border-radius` area.
+//!
+//! Initial: round. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <corner-shape-value>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-corner-bottom-left-shape
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/corner-bottom-left-shape
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.CornerBottomLeftShape.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    corner_bottom_left_shape: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    corner_bottom_left_shape: Value
+    corner_bottom_left_shape: Round | Scoop | Bevel | Notch | Square | Squircle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained corner-bottom-left-shape value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword bevel.
-
-pub bevel(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword notch.
-
-pub notch(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword round.
-
-pub round(): Value.
-
-/// Returns the CSS keyword scoop.
-
-pub scoop(): Value.
-
-/// Returns the CSS keyword square.
-
-pub square(): Value.
-
-/// Returns the CSS keyword squircle.
-
-pub squircle(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

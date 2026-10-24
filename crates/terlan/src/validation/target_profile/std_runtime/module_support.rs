@@ -220,6 +220,7 @@ fn is_rust_backed_std_module(module: &str) -> bool {
             | "std.data.Toml"
             | "std.crypto.Hash"
             | "std.crypto.Ed25519"
+            | "std.crypto.Entropy"
             | "std.regex.Regex"
             | "std.package.Registry"
             | "std.encoding.Base64"
@@ -282,6 +283,7 @@ fn target_profile_supports_rust_backed_std_module_with_options(
         module,
         "std.data.Json"
             | "std.data.Toml"
+            | "std.net.Uri"
             | "std.encoding.Base64"
             | "std.regex.Regex"
             | "std.package.Registry"
@@ -293,6 +295,7 @@ fn target_profile_supports_rust_backed_std_module_with_options(
         module,
         "std.crypto.Hash"
             | "std.crypto.Ed25519"
+            | "std.crypto.Entropy"
             | "std.io.Directory"
             | "std.io.Archive"
             | "std.io.Path"

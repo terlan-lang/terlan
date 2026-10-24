@@ -1,8 +1,8 @@
 module=std.js.Dom.FontFace
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=8031754923929477296
-interface_hash=15322114413555166027
-interface_doc_hash=15322114413555166027
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=16711803927998754915
+interface_hash=1427874862645399688
+interface_doc_hash=1427874862645399688
 deps=0

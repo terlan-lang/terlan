@@ -1,6 +1,8 @@
 /** Pratt parser implementing canonical Terlan operator precedence. */
 module self_host.ProjectedExpressionParser.
 
+import std.core.String.
+
 
 import std.core.Option.{None, Option, Some}.
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode, ProjectedExpressionResult}.
@@ -472,11 +474,153 @@ parse_case_clause(
 ): NodeListParse ->
     let separator = partition_terminal(values, "if-clause-semicolon");
     let arrow = partition(separator.left, "->");
+    let guard = partition(arrow.left, "where");
+    if {
+        guard.found -> parse_guarded_case_clause(separator, arrow, guard, output);
+        true -> parse_unguarded_case_clause(separator, arrow, output)
+    }.
+
+@pure
+parse_unguarded_case_clause(
+    separator: TokenPartition,
+    arrow: TokenPartition,
+    output: List[ProjectedExpressionNode],
+): NodeListParse ->
     let pattern = ProjectedPatternParser.parse(arrow.left);
     let body = parse(arrow.right);
     case pattern.node {
         Some(pattern_node) -> finish_case_clause_pattern(separator, arrow, pattern, pattern_node, body, output);
         None -> invalid_case_clause(output)
+    }.
+
+@pure
+parse_guarded_case_clause(
+    separator: TokenPartition,
+    arrow: TokenPartition,
+    guard: TokenPartition,
+    output: List[ProjectedExpressionNode],
+): NodeListParse ->
+    let pattern = ProjectedPatternParser.parse(guard.left);
+    let condition = parse(guard.right);
+    let body = parse(arrow.right);
+    case pattern.node {
+        Some(pattern_node) -> finish_guarded_case_pattern(
+            separator,
+            arrow,
+            guard,
+            pattern,
+            pattern_node,
+            condition,
+            body,
+            output,
+        );
+        None -> invalid_case_clause(output)
+    }.
+
+@pure
+finish_guarded_case_pattern(
+    separator: TokenPartition,
+    arrow: TokenPartition,
+    guard: TokenPartition,
+    pattern: ProjectedExpressionResult,
+    pattern_node: ProjectedExpressionNode,
+    condition: ProjectedExpressionResult,
+    body: ProjectedExpressionResult,
+    output: List[ProjectedExpressionNode],
+): NodeListParse ->
+    case condition.node {
+        Some(condition_node) -> finish_guarded_case_condition(
+            separator,
+            arrow,
+            guard,
+            pattern,
+            pattern_node,
+            condition,
+            condition_node,
+            body,
+            output,
+        );
+        None -> invalid_case_clause(output)
+    }.
+
+@pure
+finish_guarded_case_condition(
+    separator: TokenPartition,
+    arrow: TokenPartition,
+    guard: TokenPartition,
+    pattern: ProjectedExpressionResult,
+    pattern_node: ProjectedExpressionNode,
+    condition: ProjectedExpressionResult,
+    condition_node: ProjectedExpressionNode,
+    body: ProjectedExpressionResult,
+    output: List[ProjectedExpressionNode],
+): NodeListParse ->
+    case body.node {
+        Some(body_node) -> validate_guarded_case_clause(
+            separator,
+            arrow,
+            guard,
+            pattern,
+            pattern_node,
+            condition,
+            condition_node,
+            body,
+            body_node,
+            output,
+        );
+        None -> invalid_case_clause(output)
+    }.
+
+@pure
+validate_guarded_case_clause(
+    separator: TokenPartition,
+    arrow: TokenPartition,
+    guard: TokenPartition,
+    pattern: ProjectedExpressionResult,
+    pattern_node: ProjectedExpressionNode,
+    condition: ProjectedExpressionResult,
+    condition_node: ProjectedExpressionNode,
+    body: ProjectedExpressionResult,
+    body_node: ProjectedExpressionNode,
+    output: List[ProjectedExpressionNode],
+): NodeListParse ->
+    if {
+        arrow.found
+            and guard.found
+            and pattern.valid
+            and pattern.rest == []
+            and condition.valid
+            and condition.rest == []
+            and body.valid
+            and body.rest == [] ->
+            append_guarded_case_clause(
+                separator,
+                pattern_node,
+                condition_node,
+                body_node,
+                output,
+            );
+        true -> invalid_case_clause(output)
+    }.
+
+@pure
+append_guarded_case_clause(
+    separator: TokenPartition,
+    pattern_node: ProjectedExpressionNode,
+    condition_node: ProjectedExpressionNode,
+    body_node: ProjectedExpressionNode,
+    output: List[ProjectedExpressionNode],
+): NodeListParse ->
+    let clause_node = node(
+        "clause",
+        "where",
+        pattern_node.start_byte,
+        body_node.end_byte,
+        [pattern_node, condition_node, body_node],
+    );
+    if {
+        separator.found -> case_clauses_at(separator.right, [clause_node | output]);
+        true -> NodeListParse(true, reverse([clause_node | output]), "")
     }.
 
 @pure
@@ -1115,7 +1259,7 @@ parse_primary_fixed(
     rest: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     if {
-        first.text == "#" -> parse_fixed_array_lookahead(first, rest);
+        first.text == "#" -> parse_array_lookahead(first, rest);
         true -> ProjectedExpressionResult(true, Some(leaf(first)), rest, "")
     }.
 
@@ -1228,29 +1372,29 @@ invalid_group(slice: GroupSlice): ProjectedExpressionResult ->
     ProjectedExpressionResult(false, None, slice.rest, "expression group is invalid").
 
 @pure
-parse_fixed_array_lookahead(
+parse_array_lookahead(
     marker: ProjectedCanonicalToken,
     rest: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     case rest {
-        [opening | tail] -> parse_fixed_array_opening(marker, rest, opening, tail);
+        [opening | tail] -> parse_array_opening(marker, rest, opening, tail);
         [] -> ProjectedExpressionResult(true, Some(leaf(marker)), rest, "")
     }.
 
 @pure
-parse_fixed_array_opening(
+parse_array_opening(
     marker: ProjectedCanonicalToken,
     original_rest: List[ProjectedCanonicalToken],
     opening: ProjectedCanonicalToken,
     rest: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     if {
-        opening.text == "[" -> parse_fixed_array(marker, opening, rest);
+        opening.text == "[" -> parse_array(marker, opening, rest);
         true -> ProjectedExpressionResult(true, Some(leaf(marker)), original_rest, "")
     }.
 
 @pure
-parse_fixed_array(
+parse_array(
     marker: ProjectedCanonicalToken,
     opening: ProjectedCanonicalToken,
     rest: List[ProjectedCanonicalToken],
@@ -1258,12 +1402,12 @@ parse_fixed_array(
     let slice = group(opening, rest);
     let inner = parse_elements(slice.inner);
     case slice.close {
-        Some(close) -> validate_fixed_array(marker, slice, inner, close);
-        None -> invalid_fixed_array(slice)
+        Some(close) -> validate_array(marker, slice, inner, close);
+        None -> invalid_array(slice)
     }.
 
 @pure
-validate_fixed_array(
+validate_array(
     marker: ProjectedCanonicalToken,
     slice: GroupSlice,
     inner: ProjectedExpressionResult,
@@ -1271,18 +1415,18 @@ validate_fixed_array(
 ): ProjectedExpressionResult ->
     if {
         slice.valid -> ProjectedExpressionResult(inner.valid and inner.rest == [], Some(node(
-            "fixed-array",
+            "array",
             "#[",
             marker.start_byte,
             close.end_byte,
             optional_children(inner.node),
         )), slice.rest, inner.message);
-        true -> invalid_fixed_array(slice)
+        true -> invalid_array(slice)
     }.
 
 @pure
-invalid_fixed_array(slice: GroupSlice): ProjectedExpressionResult ->
-    ProjectedExpressionResult(false, None, slice.rest, "fixed array is missing its closing bracket").
+invalid_array(slice: GroupSlice): ProjectedExpressionResult ->
+    ProjectedExpressionResult(false, None, slice.rest, "array is missing its closing bracket").
 
 @pure
 parse_postfix_at(result: ProjectedExpressionResult): ProjectedExpressionResult ->

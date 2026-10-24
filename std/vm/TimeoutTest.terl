@@ -1,0 +1,42 @@
+/**
+ * Source-owned timeout boundary and deadline checks without runtime waits.
+ */
+module std.vm.TimeoutTest.
+
+import std.vm.Timeout.
+
+@test
+pub finite_timeout_becomes_due_at_the_deadline(): Bool ->
+    let timeout = Timeout.milliseconds(10);
+    not Timeout.wakes_after(timeout, 0)
+        and not Timeout.wakes_after(timeout, 9)
+        and Timeout.wakes_after(timeout, 10)
+        and Timeout.wakes_after(timeout, 11).
+
+@test
+pub zero_timeout_is_immediately_due(): Bool ->
+    let timeout = Timeout.milliseconds(0);
+    Timeout.wakes_after(timeout, 0) and Timeout.wakes_after(timeout, 9223372036854775807).
+
+@test
+pub unbounded_timeout_never_becomes_due(): Bool ->
+    let timeout = Timeout.forever();
+    not Timeout.wakes_after(timeout, 0)
+        and not Timeout.wakes_after(timeout, 1)
+        and not Timeout.wakes_after(timeout, 9223372036854775807).
+
+@test
+pub largest_timeout_does_not_overflow(): Bool ->
+    let timeout = Timeout.milliseconds(9223372036854775807);
+    not Timeout.wakes_after(timeout, 9223372036854775806)
+        and Timeout.wakes_after(timeout, 9223372036854775807).
+
+@test
+pub values_remain_independent(): Bool ->
+    let first = Timeout.milliseconds(3);
+    let second = Timeout.milliseconds(7);
+    let unbounded = Timeout.forever();
+    Timeout.wakes_after(first, 3)
+        and not Timeout.wakes_after(second, 3)
+        and not Timeout.wakes_after(unbounded, 3)
+        and Timeout.wakes_after(second, 7).

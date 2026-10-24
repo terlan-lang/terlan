@@ -1,0 +1,6 @@
+//! Shared CSS keyword ruby. Generated; do not edit.
+
+module std.css.keywords.Ruby.
+
+pub type Ruby =
+    Atom["ruby"].

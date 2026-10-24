@@ -1,75 +1,32 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-animation
+ * The `caret-animation` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property is used to
+ * enable or disable the blinking behavior of the insertion caret, the visible marker that appears
+ * in editable elements to indicate where the next character will be inserted or deleted.
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: The caret blinks on and off. This is the default (initial) value.
+ * - manual: The caret does not blink on and off.
+ *
  * Grammar: auto | manual
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-animation
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/caret-animation
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.CaretAnimation.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, Manual}.
 
-/**
- * A nominal, specification-constrained caret-animation value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    caret_animation: Value,
+    caret_animation: Auto | Manual | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    caret_animation: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "caret-animation", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "caret-animation", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "caret-animation", css: "initial"}).
-
-/**
- * Returns the CSS keyword manual.
- */
-pub manual(): Value ->
-    Value(Token {property: "caret-animation", css: "manual"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "caret-animation", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "caret-animation", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "caret-animation", css: "unset"}).

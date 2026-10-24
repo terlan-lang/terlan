@@ -17,13 +17,9 @@ import type std.data.Json.{Json, StringFieldRow}.
  * Exact installed editor evidence retained in the release report.
  */
 pub struct EditorSummary {
-    /**
-     * Version reported by the editor extension.
-     */
+    /** Version reported by the editor extension. */
     version: String,
-    /**
-     * Command identifiers contributed by the editor extension.
-     */
+    /** Command identifiers contributed by the editor extension. */
     command_ids: List[String],
     icon_hash: String,
     grammar_hash: String,
@@ -34,9 +30,7 @@ pub struct EditorSummary {
  * Exact installed Tree-sitter evidence retained in the release report.
  */
 pub struct TreeSummary {
-    /**
-     * Version declared by the editor source tree.
-     */
+    /** Version declared by the editor source tree. */
     version: String,
     grammar_hash: String,
     generated_parser_hash: String,

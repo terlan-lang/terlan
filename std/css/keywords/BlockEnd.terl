@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword block-end. Generated; do not edit.
+ */
+module std.css.keywords.BlockEnd.
+
+pub type BlockEnd = Atom["block-end"].

@@ -1,0 +1,51 @@
+/** Test-rule tooling-document projection contracts. */
+module self_host.SelfHostLintTestsProjectionTest.
+
+import self_host.SelfHostLintTestsProjection.
+import self_host.SelfHostToolingDocument.
+
+@test
+pub projects_annotation_counts_and_fake_assertions(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.SampleTest.\n@test\npub surface_is_declared_roundtrip(): Bool -> assert_equal(1, 1) and assert_equal(2, 2) and assert_equal(3, 3) and assert(true).\n",
+    );
+    case SelfHostLintTestsProjection.diagnostics("SampleTest.terl", document) {
+        [name, volume, table, property, first_identity, second_identity, third_identity, literal] ->
+            name.rule_id == "TL0401"
+                and volume.rule_id == "TL0402"
+                and table.rule_id == "TL0403"
+                and property.rule_id == "TL0404"
+                and first_identity.rule_id == "TL0401"
+                and second_identity.rule_id == "TL0401"
+                and third_identity.rule_id == "TL0401"
+                and literal.rule_id == "TL0401";
+        _ -> false
+    }.
+
+@test
+pub property_runner_suppresses_property_candidate(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.SampleTest.\n@test\npub json_roundtrip_preserves_value(): Bool -> std.test.Gen.for_all(generator(), (value) -> assert_equal(decode(encode(value)), value)).\n",
+    );
+    SelfHostLintTestsProjection.diagnostics("SampleTest.terl", document) == [].
+
+@test
+pub literal_true_body_is_fake_but_nested_true_is_not_a_body(): Bool ->
+    let literal = SelfHostToolingDocument.build(
+        "module sample.SampleTest.\n@test\npub succeeds(): Bool -> true.\n",
+    );
+    case SelfHostLintTestsProjection.diagnostics("SampleTest.terl", literal) {
+        [value] -> value.rule_id == "TL0401";
+        _ -> false
+    }.
+
+@test
+pub non_test_declarations_and_files_remain_exempt(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.SampleTest.\npub surface_is_declared(): Bool -> true.\n",
+    );
+    let annotated = SelfHostToolingDocument.build(
+        "module sample.\n@test\npub surface_is_declared(): Bool -> true.\n",
+    );
+    SelfHostLintTestsProjection.diagnostics("SampleTest.terl", document) == []
+        and SelfHostLintTestsProjection.diagnostics("Sample.terl", annotated) == [].

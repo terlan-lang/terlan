@@ -79,6 +79,7 @@ pub(super) const EMBEDDED_STD_INTERFACES: &[EmbeddedStdInterface] = &[
     embedded!("std.db.Postgres"),
     embedded!("std.crypto.Hash"),
     embedded!("std.crypto.Ed25519"),
+    embedded!("std.crypto.Entropy"),
     embedded!("std.encoding.Base64"),
     embedded!("std.encoding.Md5"),
     namespace!("std.http"),

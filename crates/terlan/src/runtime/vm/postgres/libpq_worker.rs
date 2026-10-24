@@ -592,15 +592,20 @@ impl VmPostgresLibpqWorker {
                 }
             }
             PendingPhase::Draining(_) => {
-                if let Some(result) = pending
+                let connection = pending
                     .connection
                     .as_mut()
-                    .expect("pending request owns its connection")
-                    .next_result()?
-                {
+                    .expect("pending request owns its connection");
+                connection.consume_input()?;
+                if connection.is_busy()? {
+                    self.set_wait(pending, VmPostgresIoInterest::Read)?;
+                    return Ok(None);
+                }
+                if let Some(result) = connection.next_result()? {
                     if matches!(pending.task, PendingTask::BatchExecute) {
                         let status = result.status()?;
                         if status == COMMAND_OK {
+                            self.set_wait(pending, VmPostgresIoInterest::Drive)?;
                             return Ok(None);
                         }
                         return Err(pending

@@ -195,7 +195,7 @@ pub(super) fn collect_pattern(pattern: &CorePattern, atoms: &mut BTreeSet<String
 pub(super) fn collect_expr(expr: &CoreExpr, atoms: &mut BTreeSet<String>) {
     match expr {
         CoreExpr::Atom(identity) => collect_atom(identity, atoms),
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items.iter().for_each(|item| collect_expr(item, atoms));
         }
         CoreExpr::ListCons { head, tail } => {

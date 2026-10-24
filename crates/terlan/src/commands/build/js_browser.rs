@@ -37,6 +37,7 @@ pub(super) struct BrowserStaticAssetConfig {
     pub(super) web_path_prefix: PathBuf,
     pub(super) inline_limit: Option<u64>,
     pub(super) rsbuild_config: Option<PathBuf>,
+    pub(super) html_template: Option<PathBuf>,
     pub(super) angular_ts: bool,
     pub(super) styles: Vec<PathBuf>,
 }

@@ -1,11 +1,11 @@
 module=std.css.properties.BorderImageOutset
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=4304857677064570060
-interface_hash=8694812372430967825
-interface_doc_hash=96548117425828896
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=950577279261823328
+interface_hash=12355357401033382146
+interface_doc_hash=16908853741577713579
 deps=3
 std.core.Float=3784534907681217377
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688

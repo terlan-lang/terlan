@@ -1,9 +1,11 @@
 module=std.css.properties.RubyOverhang
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=5847125087932808726
-interface_hash=18294502066124182156
-interface_doc_hash=12018439285537026201
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9669790133641695834
+interface_hash=10366446762146839731
+interface_doc_hash=7160772755523110368
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722
+std.css.keywords.Spaces=5937935170101852413

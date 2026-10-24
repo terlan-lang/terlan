@@ -93,7 +93,10 @@ pub(super) fn tuple_element_type(element: &CoreTupleTypeElem) -> &CoreType {
     }
 }
 
-pub(super) fn named_field_type<'a>(ty: &'a CoreType, name: &str) -> Option<&'a CoreType> {
+pub(in crate::compiler::native_ir) fn named_field_type<'a>(
+    ty: &'a CoreType,
+    name: &str,
+) -> Option<&'a CoreType> {
     match ty {
         CoreType::Tuple(elements) => elements.iter().find_map(|element| match element {
             CoreTupleTypeElem::Field { name: field, ty } if field == name => Some(ty),

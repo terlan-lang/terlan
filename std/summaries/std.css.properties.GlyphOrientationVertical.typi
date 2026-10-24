@@ -1,64 +1,18 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-glyph-orientation-vertical
+//! Controls glyph rotation in vertical SVG text. This legacy property is deprecated; use
+//! text-orientation for new layouts.
+//!
 //! Grammar: auto | 0deg | 90deg | 0 | 90
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-glyph-orientation-vertical
+//!
+//! Author guide: https://www.w3.org/TR/SVG11/text.html#GlyphOrientationVerticalProperty
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.GlyphOrientationVertical.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    glyph_orientation_vertical: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    glyph_orientation_vertical: Value
+    glyph_orientation_vertical: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained glyph-orientation-vertical value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword 0.
-
-pub keyword_0(): Value.
-
-/// Returns the CSS keyword 0deg.
-
-pub keyword_0deg(): Value.
-
-/// Returns the CSS keyword 90.
-
-pub keyword_90(): Value.
-
-/// Returns the CSS keyword 90deg.
-
-pub keyword_90deg(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

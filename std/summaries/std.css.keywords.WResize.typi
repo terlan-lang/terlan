@@ -1,0 +1,6 @@
+//! Shared CSS keyword w-resize. Generated; do not edit.
+
+module std.css.keywords.WResize.
+
+pub type WResize =
+    Atom["w-resize"].

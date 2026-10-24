@@ -1,9 +1,11 @@
 module=std.css.properties.AnimationPlayState
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14331249054573372681
-interface_hash=2974862075981222003
-interface_doc_hash=11543801260731869791
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=12692587018533050571
+interface_hash=6182110227999343482
+interface_doc_hash=7422350463105234679
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Paused=10291025271434767037
+std.css.keywords.Running=2393754015690580947

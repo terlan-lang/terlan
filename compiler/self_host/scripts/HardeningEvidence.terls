@@ -1,0 +1,39 @@
+#!/usr/bin/env -S terlc run
+/** Produces one fail-closed Phase 9 hardening evidence artifact. */
+import self_host.SelfHostCompatibilityAuthorityTool.
+import self_host.SelfHostAnalysisResourcesTool.
+import self_host.SelfHostExclusionAuthorityTool.
+import self_host.SelfHostNormalPathAuthorityTool.
+import self_host.SelfHostRegressionCorpusTool.
+import self_host.SelfHostTrustedBaseTool.
+import std.core.Option.{None, Some}.
+import std.system.Arguments.
+
+required(index: Int): String ->
+    case Arguments.get(index) {
+        Some(value) -> value;
+        None -> ""
+    }.
+
+case Arguments.get(0) {
+    Some("analysis-resources") -> assert(
+        SelfHostAnalysisResourcesTool.write_manifest(required(1), required(2)),
+    );
+    Some("bootstrap-workarounds") -> assert(
+        SelfHostCompatibilityAuthorityTool.write(required(1), required(2), required(3)),
+    );
+    Some("no-ad-hoc-exclusions") -> assert(
+        SelfHostExclusionAuthorityTool.write(required(1), required(2), required(3)),
+    );
+    Some("regression-corpus") -> assert(
+        SelfHostRegressionCorpusTool.write(required(1), required(2), required(3)),
+    );
+    Some("trusted-base") -> assert(
+        SelfHostTrustedBaseTool.write(required(1), required(2)),
+    );
+    Some("normal-paths") -> assert(
+        SelfHostNormalPathAuthorityTool.write(required(1), required(2)),
+    );
+    _ -> assert(false)
+};
+Unit.

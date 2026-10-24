@@ -149,7 +149,7 @@ fn channel_and_error_handler_admission_require_valid_source_contracts() {
         ("module", json!("bad/module")),
         ("source", Value::Null),
         ("route", json!("bad")),
-        ("protocol", json!("")),
+        ("protocol", json!(" ")),
         ("protocol", json!("bad protocol")),
         ("source", json!({"path":"a", "line":0,"column":1})),
     ] {

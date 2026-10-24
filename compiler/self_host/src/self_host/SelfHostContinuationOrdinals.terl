@@ -1,0 +1,209 @@
+/** Assigns the canonical per-function continuation ordinal stream. */
+module self_host.SelfHostContinuationOrdinals.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok, Result}.
+
+import std.core.{Bool, Int, String}.
+import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan, SemanticFunctionPlan, SemanticInstructionPlan, SemanticModulePlan}.
+
+
+struct OrdinalInstructionState {
+    instructions: List[SemanticInstructionPlan],
+    next_ordinal: Int,
+    used_ordinals: List[Int],
+}.
+
+constructor OrdinalInstructionState {
+    (instructions: List[SemanticInstructionPlan], next_ordinal: Int, used_ordinals: List[Int]): OrdinalInstructionState ->
+        OrdinalInstructionState {
+            instructions: instructions,
+            next_ordinal: next_ordinal,
+            used_ordinals: used_ordinals,
+        }
+}.
+
+
+struct OrdinalBlockState {
+    blocks: List[SemanticBlockPlan],
+    next_ordinal: Int,
+    used_ordinals: List[Int],
+}.
+
+constructor OrdinalBlockState {
+    (blocks: List[SemanticBlockPlan], next_ordinal: Int, used_ordinals: List[Int]): OrdinalBlockState ->
+        OrdinalBlockState {
+            blocks: blocks,
+            next_ordinal: next_ordinal,
+            used_ordinals: used_ordinals,
+        }
+}.
+
+
+@pure
+append[T](values: List[T], value: T): List[T] ->
+    case values {
+        [] -> [value];
+        [head | rest] -> [head | append(rest, value)]
+    }.
+
+@pure
+contains(value: Int, values: List[Int]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> current == value or contains(value, rest)
+    }.
+
+@pure
+next_available(value: Int, used: List[Int]): Int ->
+    if {
+        contains(value, used) -> next_available(value + 1, used);
+        true -> value
+    }.
+
+@pure
+prepared_call(opcode: String): Bool ->
+    opcode == "call-local"
+        or opcode == "call-import"
+        or opcode == "call-local-mut-receiver"
+        or opcode == "call-import-mut-receiver"
+        or opcode == "call-value".
+
+
+@pure
+reserve_instruction(value: SemanticInstructionPlan, reserved: List[Int]): Result[List[Int], String] ->
+    case value.continuation_ordinal {
+        None -> Ok(reserved);
+        Some(ordinal) -> if {
+            ordinal < 0 -> Err("semantic IR has a negative continuation ordinal");
+            contains(ordinal, reserved) -> Err("semantic IR repeats a continuation ordinal within a function");
+            true -> Ok(append(reserved, ordinal))
+        }
+    }.
+
+@pure
+reserve_instructions(values: List[SemanticInstructionPlan], reserved: List[Int]): Result[List[Int], String] ->
+    case values {
+        [] -> Ok(reserved);
+        [value | rest] -> case reserve_instruction(value, reserved) {
+            Err(reason) -> Err(reason);
+            Ok(next) -> reserve_instructions(rest, next)
+        }
+    }.
+
+@pure
+reserve_blocks(values: List[SemanticBlockPlan], reserved: List[Int]): Result[List[Int], String] ->
+    case values {
+        [] -> Ok(reserved);
+        [value | rest] -> case reserve_instructions(value.instructions, reserved) {
+            Err(reason) -> Err(reason);
+            Ok(next) -> reserve_blocks(rest, next)
+        }
+    }.
+
+
+@pure
+with_ordinal(value: SemanticInstructionPlan, ordinal: Int): SemanticInstructionPlan ->
+    SemanticInstructionPlan(
+        value.opcode,
+        value.result,
+        value.operands,
+        value.operand_types,
+        value.resolved_type,
+        Some(ordinal),
+    ).
+
+@pure
+assign_instruction(value: SemanticInstructionPlan, state: OrdinalInstructionState): OrdinalInstructionState ->
+    case value.continuation_ordinal {
+        Some(_) -> OrdinalInstructionState(
+            append(state.instructions, value),
+            state.next_ordinal,
+            state.used_ordinals,
+        );
+        None -> if {
+            !prepared_call(value.opcode) -> OrdinalInstructionState(
+                append(state.instructions, value),
+                state.next_ordinal,
+                state.used_ordinals,
+            );
+            true ->
+                let ordinal = next_available(state.next_ordinal, state.used_ordinals);
+                OrdinalInstructionState(
+                    append(state.instructions, with_ordinal(value, ordinal)),
+                    ordinal + 1,
+                    append(state.used_ordinals, ordinal),
+                )
+        }
+    }.
+
+@pure
+assign_instructions(values: List[SemanticInstructionPlan], state: OrdinalInstructionState): OrdinalInstructionState ->
+    case values {
+        [] -> state;
+        [value | rest] -> assign_instructions(rest, assign_instruction(value, state))
+    }.
+
+@pure
+assign_block(value: SemanticBlockPlan, state: OrdinalBlockState): OrdinalBlockState ->
+    let assigned = assign_instructions(
+        value.instructions,
+        OrdinalInstructionState([], state.next_ordinal, state.used_ordinals),
+    );
+    OrdinalBlockState(
+        append(state.blocks, SemanticBlockPlan(
+            value.label,
+            assigned.instructions,
+            value.terminator,
+        )),
+        assigned.next_ordinal,
+        assigned.used_ordinals,
+    ).
+
+@pure
+assign_blocks(values: List[SemanticBlockPlan], state: OrdinalBlockState): OrdinalBlockState ->
+    case values {
+        [] -> state;
+        [value | rest] -> assign_blocks(rest, assign_block(value, state))
+    }.
+
+
+@pure
+assign_function(value: SemanticFunctionPlan): Result[SemanticFunctionPlan, String] ->
+    case reserve_blocks(value.blocks, []) {
+        Err(reason) -> Err(reason);
+        Ok(reserved) ->
+            let assigned = assign_blocks(value.blocks, OrdinalBlockState([], 0, reserved));
+            Ok(SemanticFunctionPlan(
+                value.module_name,
+                value.name,
+                value.arity,
+                value.capture_count,
+                value.receiver_mutable,
+                value.receiver_command,
+                value.parameters,
+                value.resolved_return_type,
+                assigned.blocks,
+                value.native_symbol,
+            ))
+    }.
+
+@pure
+assign_functions(values: List[SemanticFunctionPlan], output: List[SemanticFunctionPlan]): Result[List[SemanticFunctionPlan], String] ->
+    case values {
+        [] -> Ok(output);
+        [value | rest] -> case assign_function(value) {
+            Err(reason) -> Err(reason);
+            Ok(assigned) -> assign_functions(rest, append(output, assigned))
+        }
+    }.
+
+
+/** Preserves explicit evidence and fills missing prepared-call ordinals. */
+@pure
+pub assign(value: SemanticModulePlan): Result[SemanticModulePlan, String] ->
+    case assign_functions(value.functions, []) {
+        Err(reason) -> Err(reason);
+        Ok(functions) -> Ok(SemanticModulePlan(value.name, value.structs, functions))
+    }.

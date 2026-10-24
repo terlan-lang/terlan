@@ -1,0 +1,48 @@
+/** Tooling-document projection for TL0901 function clause size. */
+module self_host.SelfHostLintComplexityProjection.
+
+import self_host.ProjectedParserSyntax.ProjectedSurfaceDeclaration.
+import self_host.SelfHostLintComplexity.ClauseSpan.
+import self_host.SelfHostLintComplexity.
+import self_host.SelfHostToolingDocument.ToolingDocument.
+import self_host.Syntax.{FunctionDeclaration, MethodDeclaration}.
+
+function_or_method(value: ProjectedSurfaceDeclaration): Bool ->
+    case value.class {
+        FunctionDeclaration -> true;
+        MethodDeclaration -> true;
+        _ -> false
+    }.
+
+spans_at(values: List[ProjectedSurfaceDeclaration]): List[ClauseSpan] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            if {
+                function_or_method(value) -> [ClauseSpan(
+                    value.span.start_byte,
+                    value.span.end_byte,
+                ) | spans_at(rest)];
+                true -> spans_at(rest)
+            }
+    }.
+
+/** Projects function and method declaration spans in source order. */
+pub spans(value: ToolingDocument): List[ClauseSpan] ->
+    if {
+        value.valid and value.frontend.surface.valid ->
+            spans_at(value.frontend.surface.declarations);
+        true -> []
+    }.
+
+/** Runs TL0901 without native syntax projection. */
+@pure
+pub diagnostics(
+    path: String,
+    value: ToolingDocument,
+): List[SelfHostLintComplexity.ComplexityDiagnostic] ->
+    SelfHostLintComplexity.function_size(
+        path,
+        value.source,
+        spans(value),
+    ).

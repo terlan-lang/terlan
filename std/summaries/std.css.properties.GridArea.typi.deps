@@ -1,9 +1,9 @@
 module=std.css.properties.GridArea
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7842950507561107202
-interface_hash=10477708666465005663
-interface_doc_hash=14312400436500699500
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3102547072522401137
+interface_hash=11950992334872696138
+interface_doc_hash=15807763223285373092
 deps=1
-std.core.Option=11539230284316612175
+std.css.Values=330909209718432688

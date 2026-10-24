@@ -24,9 +24,8 @@ pub(super) fn call(
                 http::RequestMetadata {
                     params: vec![],
                     query_string: "".into(),
-                    query: vec![],
                     headers: vec![("cookie".into(), cookie_header.clone())],
-                    cookies: http::parse_request_cookie_header(cookie_header),
+                    cookies: vec![cookie_header.to_owned()],
                 },
             );
             Ok(from_native(terlan_http_native::request_descriptor(

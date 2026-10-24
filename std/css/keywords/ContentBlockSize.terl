@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword content-block-size. Generated; do not edit.
+ */
+module std.css.keywords.ContentBlockSize.
+
+pub type ContentBlockSize = Atom["content-block-size"].

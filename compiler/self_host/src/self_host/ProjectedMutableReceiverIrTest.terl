@@ -1,0 +1,71 @@
+/** Functional mutable-receiver threading contracts. */
+module self_host.ProjectedMutableReceiverIrTest.
+
+import self_host.SelfHostIrSyntax.{IrParameter, IrStructLayout}.
+import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan, SemanticFunctionPlan, SemanticInstructionPlan, SemanticModulePlan, SemanticTerminatorPlan}.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.test.Test.{assert}.
+import self_host.ProjectedMutableReceiverIr.
+
+
+@test
+mutable_command_rebinds_later_receiver_reads(): Bool ->
+    let function = SemanticFunctionPlan(
+        "sample.Mutable",
+        "run",
+        2,
+        [IrParameter("map", "Map[String, Int]"), IrParameter("value", "Int")],
+        Some("Unit"),
+        [SemanticBlockPlan(
+            "entry",
+            [
+                SemanticInstructionPlan("move", Some("receiver0"), ["map"], Some("Map[String, Int]")),
+                SemanticInstructionPlan(
+                    "call-local-mut-receiver",
+                    Some("receiver1"),
+                    ["put", "map", "receiver0", "value"],
+                    Some("Map[String, Int]"),
+                ),
+                SemanticInstructionPlan("move", Some("observed"), ["map"], Some("Map[String, Int]")),
+            ],
+            SemanticTerminatorPlan("return", ["observed"], List.new[String]()),
+        )],
+        None,
+    );
+    let put = SemanticFunctionPlan(
+        "sample.Mutable",
+        "put",
+        2,
+        [IrParameter("map", "Map[String, Int]"), IrParameter("value", "Int")],
+        Some("Unit"),
+        [SemanticBlockPlan(
+            "entry",
+            List.new[SemanticInstructionPlan](),
+            SemanticTerminatorPlan("return", ["map"], List.new[String]()),
+        )],
+        None,
+    );
+    let normalized = ProjectedMutableReceiverIr.normalize(SemanticModulePlan(
+        "sample.Mutable",
+        List.new[IrStructLayout](),
+        [function, put],
+    ));
+    case normalized.functions {
+        [caller, command] -> case caller.blocks {
+            [block] -> case block.instructions {
+                [_first, _call, observed] -> assert(
+                    not caller.receiver_mutable
+                        and command.receiver_mutable
+                        and command.receiver_command
+                        and command.resolved_return_type == Some("Map[String, Int]")
+                        and observed.operands == ["receiver1"]
+                        and block.terminator.operands == ["observed"],
+                );
+                _ -> assert(false)
+            };
+            _ -> assert(false)
+        };
+        _ -> assert(false)
+    }.

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword ideographic-ink. Generated; do not edit.
+ */
+module std.css.keywords.IdeographicInk.
+
+pub type IdeographicInk = Atom["ideographic-ink"].

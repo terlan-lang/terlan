@@ -35,16 +35,15 @@ pub(in crate::commands::serve) fn execute_vm_router_websocket_admission_with_pac
     }
 
     let router = vm.execute_http_router(&websocket.module, ROUTER_FUNCTION, output)?;
-    let middleware_request = vm_request_descriptor(request, &[]);
     let outcome = channel_admission::websocket(
         &router,
         &websocket.route,
         request.path(),
-        |middleware, _| {
+        |middleware, next| {
             vm.execute_callable(
                 &websocket.module,
                 middleware,
-                vec![middleware_request.clone()],
+                vec![vm_request_descriptor(request, next.route_params())],
                 output,
             )
             .map_err(String::from)

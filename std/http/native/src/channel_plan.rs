@@ -28,6 +28,7 @@ pub enum SseError {
     DomPatchBackpressureExceeded,
     EventTooLarge,
     CallbacksAlreadyConfigured,
+    ProducerAlreadyConfigured,
 }
 
 impl std::fmt::Display for SseError {

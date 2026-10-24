@@ -1,0 +1,34 @@
+/** Unified fail-closed admission boundary for self-hosted documentation. */
+module self_host.SelfHostDocumentationAdmission.
+
+import std.core.Result.{Err, Ok}.
+
+import self_host.SelfHostDocumentation.{DocumentationModule}.
+import self_host.SelfHostDocumentationDoctest.
+import self_host.SelfHostDocumentationDoctestCompile.
+import self_host.SelfHostDocumentationValidation.
+
+pub struct DocumentationAdmission {
+    valid: Bool,
+    doctest_count: Int,
+    message: String,
+}.
+
+pub constructor DocumentationAdmission {
+    (valid: Bool, doctest_count: Int, message: String): DocumentationAdmission ->
+        DocumentationAdmission {
+            valid: valid,
+            doctest_count: doctest_count,
+            message: message,
+        }
+}.
+
+/** Requires model, links, fences, extraction, and frontend admission to pass. */
+pub admit(documentation: DocumentationModule): DocumentationAdmission ->
+    case SelfHostDocumentationValidation.validate_module(documentation) {
+        Err(message) -> DocumentationAdmission(false, 0, message);
+        Ok(_) ->
+            let extraction = SelfHostDocumentationDoctest.extract_module(documentation);
+            let doctests = SelfHostDocumentationDoctestCompile.admit(extraction);
+            DocumentationAdmission(doctests.valid, doctests.count, doctests.message)
+    }.

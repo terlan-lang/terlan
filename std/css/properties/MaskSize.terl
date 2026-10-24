@@ -1,104 +1,63 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-size
+ * The `mask-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies the
+ * sizes of specified mask images. Mask image sizes can be fully or partially constrained to
+ * preserve their `intrinsic aspect ratios`.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: Maintains the original aspect ratio of the mask source. When set for both the width and
+ * height, the origin size of the mask resource is used. Otherwise, `auto` scales the mask image in
+ * the corresponding direction such that its original aspect ratio is maintained.
+ * - contain: Scales the mask image up or down, while preserving its aspect-ratio, making the mask
+ * as large as possible within its container without cropping or stretching it. If the mask image is
+ * smaller than the container, the mask will tile, or repeat, unless the `mask-repeat` property is
+ * set to `no-repeat`.
+ * - cover: Scales the mask image to the smallest possible size to fill the container while
+ * preserving its aspect ratio. If the aspect ratio of the mask image differs from the element, it
+ * will be cropped vertically or horizontally.
+ *
  * Grammar: <bg-size>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-size
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-size
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskSize.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
+import std.css.keywords.{Auto, Contain, Cover}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained mask-size value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    mask_size: Value,
+    mask_size: Auto | Cover | Contain | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the mask-size length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub struct OptionalProperty {
-    mask_size: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "mask-size", css: "auto"}).
-
-/**
- * Returns the CSS keyword contain.
- */
-pub contain(): Value ->
-    Value(Token {property: "mask-size", css: "contain"}).
-
-/**
- * Returns the CSS keyword cover.
- */
-pub cover(): Value ->
-    Value(Token {property: "mask-size", css: "cover"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "mask-size", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask-size", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-size", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-size", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-size", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a mask-size value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "mask-size", css: std.css.Values.length_css(value)}));
-        false -> None
+pub length(value: Length): Option[Checked] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Checked(serialize("mask-size", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a mask-size value.
+ * Checks the mask-size percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "mask-size", css: std.css.Values.percentage_css(value)}));
-        false -> None
+pub percentage(value: Percentage): Option[Checked] ->
+    case percentage_amount(value) >= 0 {
+        true -> Some(Checked(serialize("mask-size", percentage_css(value))));
+        false -> Absent
     }.

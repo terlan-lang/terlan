@@ -1,0 +1,6 @@
+//! Shared CSS keyword inter-word. Generated; do not edit.
+
+module std.css.keywords.InterWord.
+
+pub type InterWord =
+    Atom["inter-word"].

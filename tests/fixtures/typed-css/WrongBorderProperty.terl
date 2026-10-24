@@ -1,7 +1,7 @@
 module typed_css.WrongBorderProperty.
 
-import std.css.Values.{transparent}.
-import std.css.properties.{Border, BorderTop}.
-
-pub invalid(): Border.Value ->
-    Border.compose(BorderTop.line_width_thin(), Border.line_style_solid(), transparent()).
+import std.css.Values.{Transparent}.
+import std.css.properties.Border.
+import std.css.keywords.Solid.{Solid}.
+import type std.css.properties.BorderTop.{CheckedLineWidth}.
+pub invalid(width: CheckedLineWidth): Border.Checked -> Border.compose(width, Solid, Transparent).

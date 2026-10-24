@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { output } from '../inventory.mjs';
 
+test.use({ baseURL: process.env.TERLAN_JS_BASE_URL });
+
 let evidence;
 test.beforeAll(async () => {
   const compilation = JSON.parse(await readFile(path.join(output, 'compilation.json')));

@@ -1,0 +1,39 @@
+/** Produces stale-safe production gate markers from deterministic parity evidence. */
+module self_host.ProductionGateMarker.
+
+import std.core.Result.{Err, Ok}.
+import std.io.File.
+
+/** Requires non-empty byte-identical canonical evidence. */
+@pure
+pub equivalent(reference: String, candidate: String): Bool ->
+    reference != "" and reference == candidate.
+
+complete(marker: String): Bool ->
+    case File.write_text(marker, "complete\n") {
+        Err(_reason) -> false;
+        Ok(_unit) -> true
+    }.
+
+compare_candidate(reference: String, candidate_path: String, marker: String): Bool ->
+    case File.read_text(candidate_path) {
+        Err(_reason) -> false;
+        Ok(candidate) ->
+            if {
+                equivalent(reference, candidate) -> complete(marker);
+                true -> false
+            }
+    }.
+
+compare_reference(reference_path: String, candidate_path: String, marker: String): Bool ->
+    case File.read_text(reference_path) {
+        Err(_reason) -> false;
+        Ok(reference) -> compare_candidate(reference, candidate_path, marker)
+    }.
+
+/** Invalidates stale success before comparing canonical reference and candidate files. */
+pub run(reference_path: String, candidate_path: String, marker: String): Bool ->
+    case File.write_text(marker, "pending\n") {
+        Err(_reason) -> false;
+        Ok(_unit) -> compare_reference(reference_path, candidate_path, marker)
+    }.

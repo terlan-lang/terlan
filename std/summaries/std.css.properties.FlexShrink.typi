@@ -1,48 +1,32 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-shrink
+//! The `flex-shrink` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the flex
+//! shrink factor of a flex item. If the size of all flex items is larger than the flex container,
+//! the [flex items can
+//! shrink](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Controlling_flex_item_ratios#the_flex-shrink_property)
+//! to fit according to their `flex-shrink` value. Each flex line's [negative free
+//! space](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Controlling_flex_item_ratios#positive_and_negative_free_space)
+//! is distributed between the line's flex items that have a `flex-shrink` value greater than `0`.
+//!
+//! Initial: 1. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <number [0,∞]>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-shrink
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-shrink
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FlexShrink.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    flex_shrink: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    flex_shrink: Value
+    flex_shrink: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained flex-shrink value.
+/// Checks the flex-shrink number range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a flex-shrink value.
-
-pub number(value: Float): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub number(value: Float): Option[Checked].

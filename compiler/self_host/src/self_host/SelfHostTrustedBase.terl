@@ -1,0 +1,163 @@
+/** Exact minimal trusted-base inventory for production self-hosting authority. */
+module self_host.SelfHostTrustedBase.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, String}.
+
+
+pub struct TrustedBaseEntry {
+    component: String,
+    role: String,
+    mode: String,
+    path: String,
+    rationale: String,
+}.
+
+pub constructor TrustedBaseEntry {
+    (
+        component: String,
+        role: String,
+        mode: String,
+        path: String,
+        rationale: String,
+    ): TrustedBaseEntry -> TrustedBaseEntry {
+        component: component,
+        role: role,
+        mode: mode,
+        path: path,
+        rationale: rationale,
+    }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+expected(component: String, role: String, mode: String, path: String): Bool ->
+    if {
+        component == "terlc0" -> role == "recovery-compiler"
+            and mode == "recovery-only"
+            and path == "crates/terlan";
+        component == "terlan-vm" -> role == "execution-runtime"
+            and mode == "normal-and-recovery"
+            and path == "crates/terlan/src/vm";
+        component == "cranelift-adapter" -> role == "native-codegen"
+            and mode == "normal-and-recovery"
+            and path == "crates/terlan/src/compiler/native_ir/cranelift";
+        component == "runtime-abi" -> role == "native-boundary"
+            and mode == "normal-and-recovery"
+            and path == "crates/terlan-runtime-abi";
+        component == "dependency-lock" -> role == "dependency-identity"
+            and mode == "normal-and-recovery"
+            and path == "Cargo.lock";
+        true -> false
+    }.
+
+@pure
+duplicate(values: List[TrustedBaseEntry], component: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.component == component or duplicate(rest, component)
+    }.
+
+@pure
+decode_row(line: String, output: List[TrustedBaseEntry]): Option[List[TrustedBaseEntry]] ->
+    case String.split(line, "\t") {
+        [component, role, mode, path, rationale] ->
+            let normalized_component = String.trim(component);
+            let normalized_role = String.trim(role);
+            let normalized_mode = String.trim(mode);
+            let normalized_path = String.trim(path);
+            let normalized_rationale = String.trim(rationale);
+            if {
+                normalized_rationale == "" -> None;
+                not expected(
+                    normalized_component,
+                    normalized_role,
+                    normalized_mode,
+                    normalized_path,
+                ) -> None;
+                duplicate(output, normalized_component) -> None;
+                true -> Some([TrustedBaseEntry(
+                    normalized_component,
+                    normalized_role,
+                    normalized_mode,
+                    normalized_path,
+                    normalized_rationale,
+                ) | output])
+            };
+        _ -> None
+    }.
+
+@pure
+decode_lines(
+    lines: List[String],
+    output: List[TrustedBaseEntry],
+): Option[List[TrustedBaseEntry]] ->
+    case lines {
+        [] -> Some(reverse_at(output, List.new[TrustedBaseEntry]()));
+        [line | rest] -> let normalized = String.trim(line);
+            if {
+                normalized == "" or String.starts_with(normalized, "#") ->
+                    decode_lines(rest, output);
+                true -> case decode_row(normalized, output) {
+                    None -> None;
+                    Some(next) -> decode_lines(rest, next)
+                }
+            }
+    }.
+
+@pure
+pub decode(manifest: String): Option[List[TrustedBaseEntry]] ->
+    decode_lines(String.split(manifest, "\n"), List.new[TrustedBaseEntry]()).
+
+@pure
+canonical_components(values: List[TrustedBaseEntry], names: List[String]): Bool ->
+    case values {
+        [] -> List.is_empty(names);
+        [value | rest] -> case names {
+            [] -> false;
+            [name | remaining] -> value.component == name
+                and canonical_components(rest, remaining)
+        }
+    }.
+
+/** Requires the exact five-component boundary and recovery-only stage-0 compiler authority. */
+@pure
+pub minimal(values: List[TrustedBaseEntry]): Bool ->
+    canonical_components(values, [
+        "terlc0",
+        "terlan-vm",
+        "cranelift-adapter",
+        "runtime-abi",
+        "dependency-lock",
+    ]).
+
+@pure
+render_rows(values: List[TrustedBaseEntry]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> value.component
+            + "\t"
+            + value.role
+            + "\t"
+            + value.mode
+            + "\t"
+            + value.path
+            + "\n"
+            + render_rows(rest)
+    }.
+
+/** Renders canonical path authority without prose-sensitive rationale text. */
+@pure
+pub render(values: List[TrustedBaseEntry]): String ->
+    "terlan.self-host.trusted-base/v1\n"
+        + "component\trole\tmode\tpath\n"
+        + render_rows(values).

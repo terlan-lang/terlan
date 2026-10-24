@@ -154,6 +154,16 @@ source must not call Erlang `io` directly.
 - For JS browser builds, emit `_build/web/manifest.json` with copied assets,
   static responses, dynamic VM handler routes, and source metadata that
   `terlc serve` can use for request logs and development errors.
+- Discover server routes by compiling and executing public `router/0`, then
+  project its returned graph through `std.http`'s manifest contract. Browser
+  assets remain JavaScript; server discovery and serving compile only the
+  selected module's resolved project import closure plus standard-library
+  implementations, not unrelated browser or CLI modules. Application source
+  owns route composition, callbacks, middleware, and capture adapters.
+- Evaluate legacy WebSocket `route/0` and `protocol/0` through the same generic
+  source-export evaluator, then let the HTTP package validate the values. Import
+  resolution, helper calls, and computed strings follow ordinary Terlan semantics.
+
 ## File Layout
 
 - `mod.rs` routes build command execution and coordinates target-specific
@@ -192,3 +202,8 @@ source must not call Erlang `io` directly.
   as release-supported compiler commands.
 - Keep command-specific process execution local unless another release command
   needs the same runner.
+
+`[web.assets] html_template` can select a project-relative generated HTML shell,
+for example `html_template = "_build/templates/index.html"`. The file must exist
+before packaging. When omitted, the bundler uses `index.html` in the configured
+asset directory. The compiler still owns bundle and stylesheet injection.

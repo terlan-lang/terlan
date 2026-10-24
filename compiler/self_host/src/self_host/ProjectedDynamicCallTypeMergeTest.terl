@@ -1,0 +1,135 @@
+/** Post-binding dynamic-call type merge contracts. */
+module self_host.ProjectedDynamicCallTypeMergeTest.
+
+import std.core.Option.{None, Some}.
+import std.collections.List.
+import self_host.ProjectedDynamicCallTypeMerge.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+
+dynamic_call(): ProjectedExpressionNode -> ProjectedExpressionNode(
+    "dynamic-call",
+    ".(",
+    20,
+    30,
+    [
+        ProjectedExpressionNode("identifier", "callback", 10, 18, []),
+        ProjectedExpressionNode("call-arguments", "", 21, 29, []),
+    ],
+).
+
+dynamic_call_with(arguments: List[ProjectedExpressionNode]): ProjectedExpressionNode ->
+    ProjectedExpressionNode(
+        "dynamic-call",
+        ".(",
+        20,
+        50,
+        [
+            ProjectedExpressionNode("identifier", "callback", 10, 18, []),
+            ProjectedExpressionNode("call-arguments", "", 21, 49, arguments),
+        ],
+    ).
+
+@test
+pub revisits_call_after_binding_type_merge(): Bool ->
+    let merged = ProjectedDynamicCallTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(1, Some("() -> String"), 10),
+                InferredTypeFact(2, None, 20),
+            ],
+            [],
+        ),
+        dynamic_call(),
+    );
+    case merged.facts {
+        [_, call] -> call.type_name == Some("String") and merged.diagnostics == [];
+        _ -> false
+    }.
+
+@test
+pub reports_a_final_known_non_function_target_once(): Bool ->
+    let merged = ProjectedDynamicCallTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(1, Some("Int"), 10),
+                InferredTypeFact(2, None, 20),
+            ],
+            [],
+        ),
+        dynamic_call(),
+    );
+    case merged.diagnostics {
+        [diagnostic] -> diagnostic.code == "invalid-dynamic-call-target";
+        _ -> false
+    }.
+
+@test
+pub validates_recovered_dynamic_call_argument_types(): Bool ->
+    let merged = ProjectedDynamicCallTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(1, Some("(Int, String) -> Bool"), 10),
+                InferredTypeFact(2, None, 20),
+                InferredTypeFact(3, Some("Int"), 30),
+                InferredTypeFact(4, Some("Bool"), 40),
+            ],
+            [],
+        ),
+        dynamic_call_with([
+            ProjectedExpressionNode("integer", "1", 30, 31, []),
+            ProjectedExpressionNode("atom", "true", 40, 44, []),
+        ]),
+    );
+    case merged.diagnostics {
+        [diagnostic] -> diagnostic.code == "call-argument-type-mismatch"
+            and diagnostic.byte_offset == 40;
+        _ -> false
+    }.
+
+@test
+pub reports_dynamic_call_arity_mismatch(): Bool ->
+    let merged = ProjectedDynamicCallTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(1, Some("(Int, String) -> Bool"), 10),
+                InferredTypeFact(2, None, 20),
+                InferredTypeFact(3, Some("Int"), 30),
+            ],
+            [],
+        ),
+        dynamic_call_with([
+            ProjectedExpressionNode("integer", "1", 30, 31, []),
+        ]),
+    );
+    case merged.diagnostics {
+        [diagnostic] -> diagnostic.code == "dynamic-call-arity-mismatch";
+        _ -> false
+    }.
+
+@test
+pub preserves_nested_parameter_type_boundaries(): Bool ->
+    let merged = ProjectedDynamicCallTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(
+                    1,
+                    Some("(Result[Int, String], (Int, String) -> Bool) -> String"),
+                    10,
+                ),
+                InferredTypeFact(2, None, 20),
+                InferredTypeFact(3, Some("Result[Int, String]"), 30),
+                InferredTypeFact(4, Some("(Int, String) -> Bool"), 40),
+            ],
+            [],
+        ),
+        dynamic_call_with([
+            ProjectedExpressionNode("identifier", "result", 30, 36, []),
+            ProjectedExpressionNode("identifier", "predicate", 40, 49, []),
+        ]),
+    );
+    case merged.facts {
+        [_ | [call | _rest]] -> call.type_name == Some("String")
+            and merged.diagnostics == [];
+        _ -> false
+    }.

@@ -1,9 +1,11 @@
 module=std.css.properties.MathStyle
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=11902118707607687060
-interface_hash=17042108519621133014
-interface_doc_hash=17777684071572255386
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4126090158619803132
+interface_hash=13333410116842734000
+interface_doc_hash=5041257054679682547
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Compact=14644387308080718204
+std.css.keywords.Normal=15467599898019431818

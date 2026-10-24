@@ -40,10 +40,7 @@ pub(super) fn lower_expression(
         Kind::Group => only_child(context, node),
         Kind::Tuple => Ok(Expr::Tuple(lower_expressions(context, &node.children)?)),
         Kind::List => Ok(Expr::List(lower_expressions(context, &node.children)?)),
-        Kind::FixedArray => Ok(Expr::FixedArray(lower_expressions(
-            context,
-            &node.children,
-        )?)),
+        Kind::Array => Ok(Expr::Array(lower_expressions(context, &node.children)?)),
         Kind::ListCons => lower_list_cons(context, node),
         Kind::ListComprehension => lower_comprehension(context, node),
         Kind::Map => Ok(Expr::Map(lower_fields(context, &node.children)?)),

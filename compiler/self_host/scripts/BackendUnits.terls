@@ -4,26 +4,27 @@ import self_host.ProjectedInterfaceCatalog.
 import std.core.Option.{None, Some}.
 import std.system.Arguments.
 
-run_units(index: Int, interface_manifest: String): Bool ->
+run_units(index: Int, catalog: self_host.ProjectedInterfaceCatalog.InterfaceCatalog): Bool ->
     case {
         Arguments.get(index),
         Arguments.get(index + 1),
         Arguments.get(index + 2)
     } {
         {Some(input), Some(output), Some(diagnostics)} ->
-            let _completed = ProjectedInterfaceCatalog.write_backend(
+            let _completed = ProjectedInterfaceCatalog.write_backend_catalog(
                 input,
-                interface_manifest,
+                catalog,
                 output,
                 diagnostics,
             );
-            run_units(index + 3, interface_manifest);
+            run_units(index + 3, catalog);
         {None, None, None} -> true;
         _ -> false
     }.
 
 case Arguments.get(0) {
-    Some(interface_manifest) -> assert(run_units(1, interface_manifest));
+    Some(interface_manifest) -> let catalog = ProjectedInterfaceCatalog.load(interface_manifest);
+        assert(run_units(1, catalog));
     None -> assert(false)
 };
 Unit.

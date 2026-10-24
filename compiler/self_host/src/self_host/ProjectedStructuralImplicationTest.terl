@@ -1,0 +1,98 @@
+/** Semantic checks for recursive closed-struct implication evidence. */
+module self_host.ProjectedStructuralImplicationTest.
+
+import self_host.ProjectedStructuralImplication.{ClosedStructShape, GenericTypeBinding}.
+import self_host.StructuralImplication.{StructuralField}.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import std.test.Test.{assert, assert_equal}.
+import self_host.ProjectedStructuralImplication.
+import self_host.StructuralImplication.
+
+
+@test
+recursive_closed_struct_evidence(): Bool ->
+    let shapes = [
+        ClosedStructShape("Profile", [StructuralField("title", "String")]),
+        ClosedStructShape("User", [
+            StructuralField("name", "String"),
+            StructuralField("profile", "Profile"),
+        ]),
+    ];
+    let requirement = StructuralImplication.parse(
+        "T => {name: String, profile: {title: String}}",
+    );
+    let proof = ProjectedStructuralImplication.prove("User", requirement, shapes);
+    assert(proof.valid).
+
+
+@test
+missing_nested_evidence_reports_path(): Bool ->
+    let shapes = [
+        ClosedStructShape("Profile", [StructuralField("label", "String")]),
+        ClosedStructShape("User", [StructuralField("profile", "Profile")]),
+    ];
+    let requirement = StructuralImplication.parse(
+        "T => {profile: {title: String}}",
+    );
+    let proof = ProjectedStructuralImplication.prove("User", requirement, shapes);
+    assert(not proof.valid);
+    assert(proof.message.contains("profile.title")).
+
+
+@test
+dynamic_evidence_fails_closed(): Bool ->
+    let shapes = [ClosedStructShape("User", [StructuralField("name", "Dynamic")])];
+    let requirement = StructuralImplication.parse("T => {name: String}");
+    let proof = ProjectedStructuralImplication.prove("User", requirement, shapes);
+    assert(not proof.valid);
+    assert(proof.message.contains("closed evidence")).
+
+
+@test
+width_subtyping_preserves_extra_fields(): Bool ->
+    let shapes = [ClosedStructShape("User", [
+        StructuralField("name", "String"),
+        StructuralField("age", "Int"),
+    ])];
+    let requirement = StructuralImplication.parse("T => {name: String}");
+    let proof = ProjectedStructuralImplication.prove("User", requirement, shapes);
+    assert_equal(true, proof.valid).
+
+
+@test
+generic_binding_requires_closed_shape_evidence(): Bool ->
+    let parsed = ProjectedStructuralImplication.constraints([
+        "T => {name: String}",
+        "Ignored",
+    ]);
+    let shapes = [ClosedStructShape("User", [StructuralField("name", "String")])];
+    let accepted = ProjectedStructuralImplication.admit_bindings(
+        parsed,
+        [GenericTypeBinding("T", "User")],
+        shapes,
+    );
+    let rejected = ProjectedStructuralImplication.admit_bindings(
+        parsed,
+        [GenericTypeBinding("T", "Dynamic")],
+        shapes,
+    );
+    assert(accepted.valid);
+    assert(not rejected.valid).
+
+
+@test
+field_lookup_is_constraint_scoped(): Bool ->
+    let parsed = ProjectedStructuralImplication.constraints([
+        "T => {name: String}",
+    ]);
+    assert_equal(
+        Some("String"),
+        ProjectedStructuralImplication.constrained_field_type("T", "name", parsed),
+    );
+    assert_equal(
+        None,
+        ProjectedStructuralImplication.constrained_field_type("U", "name", parsed),
+    ).

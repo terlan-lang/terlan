@@ -2,7 +2,7 @@
 //!
 //! It preserves backend failures without choosing public Terlan error codes.
 
-use base64::engine::general_purpose::{STANDARD, URL_SAFE};
+use base64::engine::general_purpose::{STANDARD, URL_SAFE, URL_SAFE_NO_PAD};
 use base64::Engine;
 
 /// Maintained decoder failures; portable error policy is in Base64.terl.
@@ -80,6 +80,11 @@ pub fn encode_url(text: &str) -> String {
 /// Encodes arbitrary bytes with the URL-safe Base64 alphabet.
 pub fn encode_url_bytes(bytes: &[u8]) -> String {
     URL_SAFE.encode(bytes)
+}
+
+/// Encodes arbitrary bytes with the URL-safe alphabet and no padding.
+pub fn encode_url_unpadded_bytes(bytes: &[u8]) -> String {
+    URL_SAFE_NO_PAD.encode(bytes)
 }
 
 /// Decodes URL-safe Base64 text into UTF-8 text.

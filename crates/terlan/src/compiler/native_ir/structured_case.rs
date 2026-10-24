@@ -61,6 +61,15 @@ pub(super) fn core_expr_type(
     type_support::core_expr_type(expr, types, functions)
 }
 
+pub(super) fn core_expr_type_with_constructors(
+    expr: &CoreExpr,
+    types: &HashMap<String, CoreType>,
+    functions: &HashMap<(String, usize), CoreType>,
+    constructors: &NativeConstructorLayouts,
+) -> Option<CoreType> {
+    type_support::core_expr_type_with_constructors(expr, types, functions, constructors)
+}
+
 #[derive(Clone)]
 pub(super) struct PatternBinding {
     pub(super) name: String,

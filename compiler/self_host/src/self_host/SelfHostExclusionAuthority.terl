@@ -1,0 +1,231 @@
+/** Structured authority for exclusions in the complete self-host source closure. */
+module self_host.SelfHostExclusionAuthority.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+
+
+pub struct ExclusionEntry {
+    kind: String,
+    path: String,
+    token: String,
+    owner: String,
+    reason: String,
+}.
+
+pub constructor ExclusionEntry {
+    (
+        kind: String,
+        path: String,
+        token: String,
+        owner: String,
+        reason: String,
+    ): ExclusionEntry -> ExclusionEntry {
+        kind: kind,
+        path: path,
+        token: token,
+        owner: owner,
+        reason: reason,
+    }
+}.
+
+pub struct ExclusionSource {
+    path: String,
+    source: String,
+}.
+
+pub constructor ExclusionSource {
+    (path: String, source: String): ExclusionSource ->
+        ExclusionSource { path: path, source: source }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+known_token(kind: String, token: String): Bool ->
+    if {
+        kind == "lint-suppression" -> token == "lint-disable"
+            or token == "terlan-lint-ignore"
+            or token == "nolint"
+            or token == "suppress lint";
+        kind == "unsupported-surface" -> token == "skip-manifest:"
+            or token == "unsupported-manifest:"
+            or token == "generated-skips:";
+        true -> false
+    }.
+
+@pure
+safe_path(path: String): Bool ->
+    path != ""
+        and not String.starts_with(path, "/")
+        and not String.contains(path, "..")
+        and String.ends_with(path, ".terl").
+
+@pure
+duplicate(
+    values: List[ExclusionEntry],
+    path: String,
+    token: String,
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            value.path == path and value.token == token -> true;
+            true -> duplicate(rest, path, token)
+        }
+    }.
+
+@pure
+decode_row(line: String, output: List[ExclusionEntry]): Option[List[ExclusionEntry]] ->
+    case String.split(line, "\t") {
+        [kind, path, token, owner, reason] ->
+            let normalized_kind = String.trim(kind);
+            let normalized_path = String.trim(path);
+            let normalized_token = String.trim(token);
+            let normalized_owner = String.trim(owner);
+            let normalized_reason = String.trim(reason);
+            if {
+                not known_token(normalized_kind, normalized_token) -> None;
+                not safe_path(normalized_path) -> None;
+                normalized_owner == "" or normalized_reason == "" -> None;
+                duplicate(output, normalized_path, normalized_token) -> None;
+                true -> Some([ExclusionEntry(
+                    normalized_kind,
+                    normalized_path,
+                    normalized_token,
+                    normalized_owner,
+                    normalized_reason,
+                ) | output])
+            };
+        _ -> None
+    }.
+
+@pure
+decode_lines(
+    lines: List[String],
+    output: List[ExclusionEntry],
+): Option[List[ExclusionEntry]] ->
+    case lines {
+        [] -> Some(reverse_at(output, List.new[ExclusionEntry]()));
+        [line | rest] -> let normalized = String.trim(line);
+            if {
+                normalized == "" or String.starts_with(normalized, "#") ->
+                    decode_lines(rest, output);
+                true -> case decode_row(normalized, output) {
+                    None -> None;
+                    Some(next) -> decode_lines(rest, next)
+                }
+            }
+    }.
+
+@pure
+pub decode(manifest: String): Option[List[ExclusionEntry]] ->
+    decode_lines(String.split(manifest, "\n"), List.new[ExclusionEntry]()).
+
+@pure
+comment_line(line: String): Bool ->
+    let normalized = String.trim(line);
+    String.starts_with(normalized, "//")
+        or String.starts_with(normalized, "/*")
+        or String.starts_with(normalized, "*").
+
+@pure
+directive_token(line: String): String ->
+    let lowered = String.lowercase(line);
+    if {
+        not comment_line(line) -> "";
+        String.contains(lowered, "lint-disable") -> "lint-disable";
+        String.contains(lowered, "terlan-lint-ignore") -> "terlan-lint-ignore";
+        String.contains(lowered, "nolint") -> "nolint";
+        String.contains(lowered, "suppress lint") -> "suppress lint";
+        String.contains(lowered, "skip-manifest:") -> "skip-manifest:";
+        String.contains(lowered, "unsupported-manifest:") -> "unsupported-manifest:";
+        String.contains(lowered, "generated-skips:") -> "generated-skips:";
+        true -> ""
+    }.
+
+@pure
+covered(entries: List[ExclusionEntry], path: String, token: String): Bool ->
+    case entries {
+        [] -> false;
+        [entry | rest] -> if {
+            entry.path == path and entry.token == token -> true;
+            true -> covered(rest, path, token)
+        }
+    }.
+
+@pure
+source_directives_covered(
+    lines: List[String],
+    path: String,
+    entries: List[ExclusionEntry],
+): Bool ->
+    case lines {
+        [] -> true;
+        [line | rest] -> let token = directive_token(line);
+            (token == "" or covered(entries, path, token))
+                and source_directives_covered(rest, path, entries)
+    }.
+
+@pure
+all_directives_covered(
+    sources: List[ExclusionSource],
+    entries: List[ExclusionEntry],
+): Bool ->
+    case sources {
+        [] -> true;
+        [source | rest] -> source_directives_covered(
+            String.split(source.source, "\n"),
+            source.path,
+            entries,
+        ) and all_directives_covered(rest, entries)
+    }.
+
+@pure
+entry_materialized(entry: ExclusionEntry, sources: List[ExclusionSource]): Bool ->
+    case sources {
+        [] -> false;
+        [source | rest] -> if {
+            source.path == entry.path and String.contains(
+                String.lowercase(source.source),
+                entry.token,
+            ) -> true;
+            true -> entry_materialized(entry, rest)
+        }
+    }.
+
+@pure
+all_entries_materialized(
+    entries: List[ExclusionEntry],
+    sources: List[ExclusionSource],
+): Bool ->
+    case entries {
+        [] -> true;
+        [entry | rest] -> entry_materialized(entry, sources)
+            and all_entries_materialized(rest, sources)
+    }.
+
+/** Admits a non-empty closure only when directives and structured rows correspond exactly. */
+@pure
+pub admit(sources: List[ExclusionSource], entries: List[ExclusionEntry]): Bool ->
+    not List.is_empty(sources)
+        and all_directives_covered(sources, entries)
+        and all_entries_materialized(entries, sources).
+
+/** Produces stable policy evidence without embedding source contents or host paths. */
+@pure
+pub render(sources: List[ExclusionSource], entries: List[ExclusionEntry]): String ->
+    "terlan.self-host.exclusion-authority/v1\n"
+        + "sources\t"
+        + List.length(sources).to_string()
+        + "\nstructured-exclusions\t"
+        + List.length(entries).to_string()
+        + "\n".

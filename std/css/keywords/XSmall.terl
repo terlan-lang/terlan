@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword x-small. Generated; do not edit.
+ */
+module std.css.keywords.XSmall.
+
+pub type XSmall = Atom["x-small"].

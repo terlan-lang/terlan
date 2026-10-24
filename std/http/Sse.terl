@@ -44,7 +44,9 @@ pub struct Endpoint {
     max_pending_events: Int,
     max_event_bytes: Int,
     keep_alive_ms: Option[Int],
+    #response_headers: List[{String, String}],
     #callbacks: List[Callbacks],
+    #producers: List[Producer],
 }.
 
 struct Callbacks {
@@ -55,6 +57,38 @@ struct Callbacks {
     cancellation: (String) -> Unit,
 }.
 
+struct Producer {
+    next: () -> Option[{String, String}],
+}.
+
+/**
+ * Supplies one event per transport pull. None ends the stream gracefully.
+ *
+ * Input: an endpoint and a callback returning an optional typed event.
+ * Output: the endpoint with a pull-driven source producer attached.
+ * Transformation: normalizes and frames each event only on transport demand.
+ * The callback may suspend on VM-owned operations. It never runs during route
+ * construction and only resumes production after the previous frame leaves
+ * the package. Independent keep-alive scheduling is not supported by this path.
+ */
+pub (endpoint: Endpoint) producer(next: () -> Option[Event]): Endpoint ->
+    let producer =
+        Producer {
+            next: (() ->
+                case next() {
+                    Some(event) -> Some({encode_event(event), event.data});
+                    None -> None
+                }),
+        };
+    Endpoint {
+        max_pending_events: endpoint.max_pending_events,
+        max_event_bytes: endpoint.max_event_bytes,
+        keep_alive_ms: endpoint.keep_alive_ms,
+        #response_headers: endpoint.#response_headers,
+        #callbacks: endpoint.#callbacks,
+        #producers: List.concat(endpoint.#producers, [producer]),
+    }.
+
 /**
  * Installs the complete generated callback set for an endpoint.
  *
@@ -63,6 +97,9 @@ struct Callbacks {
  * Output: the endpoint with one callback set attached.
  * Transformation: retains callbacks as ordinary source values. Repeated sets
  * remain visible for admission to reject; no callback runs during construction.
+ * Pull-driven streams await open on first body demand before producing events,
+ * and graceful drain before successful EOF. Both callbacks may suspend on VM
+ * operations. Cancellation callbacks remain synchronous.
  */
 pub (endpoint: Endpoint) callbacks(
     open: () -> Unit,
@@ -83,7 +120,9 @@ pub (endpoint: Endpoint) callbacks(
         max_pending_events: endpoint.max_pending_events,
         max_event_bytes: endpoint.max_event_bytes,
         keep_alive_ms: endpoint.keep_alive_ms,
+        #response_headers: endpoint.#response_headers,
         #callbacks: List.concat(endpoint.#callbacks, [configured]),
+        #producers: endpoint.#producers,
     }.
 
 /**
@@ -139,12 +178,15 @@ pub (event: Event) with_retry_ms(retry_ms: Int): Event ->
  */
 pub response(events: List[Event], status: Int = 200): Response ->
     Response.stream(
-        [encode(event.id, event.event, event.retry_ms, normalize_data(event.data)) | event <- events],
+        [encode_event(event) | event <- events],
         status,
         "text/event-stream; charset=utf-8",
         16384,
         128,
     ).
+
+encode_event(event: Event): String ->
+    encode(event.id, event.event, event.retry_ms, normalize_data(event.data)).
 
 normalize_data(data: String): String ->
     case data.contains("\r") {
@@ -168,7 +210,9 @@ pub endpoint(max_pending_events: Int = 128, max_event_bytes: Int = 65536): Endpo
         max_pending_events: max_pending_events,
         max_event_bytes: max_event_bytes,
         keep_alive_ms: None,
+        #response_headers: response_headers(),
         #callbacks: [],
+        #producers: [],
     }.
 
 /**
@@ -189,5 +233,10 @@ pub endpoint_with_keep_alive(
         max_pending_events: max_pending_events,
         max_event_bytes: max_event_bytes,
         keep_alive_ms: Some(keep_alive_ms),
+        #response_headers: response_headers(),
         #callbacks: [],
+        #producers: [],
     }.
+
+response_headers(): List[{String, String}] ->
+    [{"cache-control", "no-cache"}, {"x-content-type-options", "nosniff"}].

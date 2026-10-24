@@ -1,75 +1,37 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-scope
+ * The `view-transition-scope` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * enables the discoverability of elements with `view-transition-name` values set on them (and
+ * therefore the creation of view transition
+ * [snapshots](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API/Using#an_aside_on_snapshots))
+ * to be isolated to a specific element subtree.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - all: Limits the discoverability of elements to snapshot during a view transition to the subtree
+ * of the element on which this property is set. Only elements with a non-`none`
+ * `view-transition-name` are considered.
+ * - none: The initial value. Discoverability of elements to snapshot during a view transition is
+ * not limited to any specific subtree.
+ *
  * Grammar: none | all
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-scope
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/view-transition-scope
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ViewTransitionScope.
 
-import type std.core.Option.
+import std.css.keywords.{All, None}.
 
-/**
- * A nominal, specification-constrained view-transition-scope value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    view_transition_scope: Value,
+    view_transition_scope: None | All | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    view_transition_scope: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword all.
- */
-pub all(): Value ->
-    Value(Token {property: "view-transition-scope", css: "all"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "view-transition-scope", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "view-transition-scope", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "view-transition-scope", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "view-transition-scope", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "view-transition-scope", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "view-transition-scope", css: "unset"}).

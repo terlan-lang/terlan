@@ -1,0 +1,127 @@
+/** Materializes canonical ten-layer convergence evidence from digest artifacts. */
+module self_host.SelfHostConvergenceMaterialize.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.File.
+import self_host.SelfHostConvergenceEvidence.StageEvidence.
+import self_host.SelfHostConvergenceTool.
+
+const HEADER: String = "schema\tterlan.self-host.convergence-input/v1".
+
+layer_names(): List[String] -> [
+    "tokens",
+    "syntax",
+    "interfaces",
+    "diagnostics",
+    "typed-syntax",
+    "core-ir",
+    "actor-ir",
+    "managed-layouts",
+    "runtime-behavior",
+    "executable-artifacts",
+].
+
+non_empty_rows(values: List[String]): List[String] ->
+    case values {
+        [] -> [];
+        [value | rest] -> if {
+            String.trim(value) == "" -> non_empty_rows(rest);
+            true -> [String.trim(value) | non_empty_rows(rest)]
+        }
+    }.
+
+decode_rows(rows: List[String], names: List[String]): Option[List[String]] ->
+    case {rows, names} {
+        {[], []} -> Some([]);
+        {[row | rest], [name | remaining]} -> case String.split(row, "\t") {
+            [row_name, path] where row_name == name and path != "" ->
+                case decode_rows(rest, remaining) {
+                    Some(paths) -> Some([path | paths]);
+                    None -> None
+                };
+            _ -> None
+        };
+        _ -> None
+    }.
+
+/** Decodes only the exact ordered ten-layer input manifest. */
+pub decode_paths(source: String): Option[List[String]] ->
+    case non_empty_rows(String.split(source, "\n")) {
+        [header | rows] where header == HEADER -> decode_rows(rows, layer_names());
+        _ -> None
+    }.
+
+read_values(paths: List[String]): Option[List[String]] ->
+    case paths {
+        [] -> Some([]);
+        [path | rest] -> case File.read_text(path) {
+            Err(_) -> None;
+            Ok(source) ->
+                let value = String.trim(source);
+                if {
+                    value == "" -> None;
+                    true -> case read_values(rest) {
+                        Some(values) -> Some([value | values]);
+                        None -> None
+                    }
+                }
+        }
+    }.
+
+/** Renders exact v2 stage evidence from ten non-empty canonical digests. */
+pub render_values(values: List[String]): Option[String] ->
+    case values {
+        [
+            tokens,
+            syntax,
+            interfaces,
+            diagnostics,
+            typed_syntax,
+            core_ir,
+            actor_ir,
+            managed_layouts,
+            runtime_behavior,
+            executable_artifacts
+        ] -> SelfHostConvergenceTool.render(StageEvidence(
+            tokens,
+            syntax,
+            interfaces,
+            diagnostics,
+            typed_syntax,
+            core_ir,
+            actor_ir,
+            managed_layouts,
+            runtime_behavior,
+            executable_artifacts,
+        ));
+        _ -> None
+    }.
+
+write_output(output_path: String, marker_path: String, source: String): Bool ->
+    case File.write_text(output_path, source) {
+        Err(_) -> false;
+        Ok(_) -> case File.write_text(marker_path, "complete\n") {
+            Err(_) -> false;
+            Ok(_) -> true
+        }
+    }.
+
+/** Writes stage evidence first and a last-written completion marker second. */
+pub write(manifest_path: String, output_path: String, marker_path: String): Bool ->
+    let _removed = File.delete(marker_path);
+    case File.read_text(manifest_path) {
+        Err(_) -> false;
+        Ok(source) -> case decode_paths(source) {
+            None -> false;
+            Some(paths) -> case read_values(paths) {
+                None -> false;
+                Some(values) -> case render_values(values) {
+                    None -> false;
+                    Some(rendered) -> write_output(output_path, marker_path, rendered)
+                }
+            }
+        }
+    }.

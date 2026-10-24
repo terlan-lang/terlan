@@ -135,7 +135,11 @@ impl<S: Read + Write> TlsStream<S> {
     {
         self.connection.send_close_notify();
         std::task::ready!(self.poll_flush())?;
-        Poll::Ready(self.stream.shutdown_write())
+        Poll::Ready(match self.stream.shutdown_write() {
+            // The peer may already have closed after receiving the response.
+            Err(error) if error.kind() == io::ErrorKind::NotConnected => Ok(()),
+            result => result,
+        })
     }
 }
 

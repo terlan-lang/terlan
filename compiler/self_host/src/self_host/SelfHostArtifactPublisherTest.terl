@@ -1,0 +1,43 @@
+/** Pure contracts for fail-closed artifact publication. */
+module self_host.SelfHostArtifactPublisherTest.
+
+import self_host.ProjectedPackageSyntax.{ProjectedPackageArtifact, ProjectedPackageCompilation}.
+import self_host.SelfHostArtifactPublisher.
+import std.core.Option.{None, Some}.
+import std.core.String.
+
+@test
+pub valid_artifacts_produce_a_deterministic_commit_manifest(): Bool ->
+    let compilation = ProjectedPackageCompilation(
+        true,
+        [
+            ProjectedPackageArtifact("demo.A", Some("{\"a\":1}"), []),
+            ProjectedPackageArtifact("demo.B", Some("{\"b\":2}"), []),
+        ],
+        [],
+    );
+    case SelfHostArtifactPublisher.manifest(compilation) {
+        Some(value) -> String.contains(value, "demo.A\t")
+            and String.contains(value, "demo.B\t")
+            and value == case SelfHostArtifactPublisher.manifest(compilation) {
+                Some(second) -> second;
+                None -> ""
+            };
+        None -> false
+    }.
+
+@test
+pub invalid_artifacts_never_produce_a_commit_manifest(): Bool ->
+    SelfHostArtifactPublisher.manifest(ProjectedPackageCompilation(
+        false,
+        [ProjectedPackageArtifact("demo.Bad", None, ["invalid"])],
+        ["invalid"],
+    )) == None.
+
+@test
+pub unsafe_module_names_never_enter_the_manifest(): Bool ->
+    SelfHostArtifactPublisher.manifest(ProjectedPackageCompilation(
+        true,
+        [ProjectedPackageArtifact("../escape", Some("{}"), [])],
+        [],
+    )) == None.

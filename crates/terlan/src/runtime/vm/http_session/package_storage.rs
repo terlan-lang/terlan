@@ -36,13 +36,8 @@ impl SessionStorage for VmHttpSessionRuntime {
             .map_err(session_error)
     }
 
-    fn create(
-        &mut self,
-        excluded_identity: &str,
-        ttl_seconds: u64,
-    ) -> Result<String, BoundaryError> {
-        self.create_session_for(excluded_identity, ttl_seconds)
-            .map(|lookup| lookup.session.id)
+    fn try_create(&mut self, identity: &str, ttl_seconds: u64) -> Result<bool, BoundaryError> {
+        self.try_create_session(identity, ttl_seconds)
             .map_err(session_error)
     }
 
@@ -63,13 +58,14 @@ impl SessionStorage for VmHttpSessionRuntime {
         super::delete(self, &VmHttpSession::from_managed_id(identity.into()), key)
     }
 
-    fn rotate(&mut self, identity: &str, ttl_seconds: u64) -> Result<String, BoundaryError> {
-        self.rotate_for(
-            &VmHttpSession::from_managed_id(identity.into()),
-            ttl_seconds,
-        )
-        .map(|lookup| lookup.session.id)
-        .map_err(session_error)
+    fn try_rotate(
+        &mut self,
+        identity: &str,
+        replacement: &str,
+        ttl_seconds: u64,
+    ) -> Result<bool, BoundaryError> {
+        self.try_rotate_session(identity, replacement, ttl_seconds)
+            .map_err(session_error)
     }
 
     fn expire(&mut self, identity: &str) -> Result<(), BoundaryError> {

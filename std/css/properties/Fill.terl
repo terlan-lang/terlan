@@ -1,75 +1,32 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#FillProperty
+ * The `fill` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines how SVG text
+ * content and the interior canvas of SVG shapes are filled or painted. If present, it overrides the
+ * element's `fill` attribute.
+ *
+ * Initial: black. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - none: No `fill` is painted; the areas inside the stroke, if any, are transparent.
+ *
  * Grammar: <paint>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#FillProperty
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/fill
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Fill.
 
-import type std.core.Option.
+import std.css.keywords.None.
 
-/**
- * A nominal, specification-constrained fill value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    fill: Value,
+    fill: None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    fill: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword child.
- */
-pub child(): Value ->
-    Value(Token {property: "fill", css: "child"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "fill", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "fill", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "fill", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "fill", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "fill", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "fill", css: "unset"}).

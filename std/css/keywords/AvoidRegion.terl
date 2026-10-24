@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword avoid-region. Generated; do not edit.
+ */
+module std.css.keywords.AvoidRegion.
+
+pub type AvoidRegion = Atom["avoid-region"].

@@ -1,0 +1,6 @@
+//! Shared CSS keyword justify. Generated; do not edit.
+
+module std.css.keywords.Justify.
+
+pub type Justify =
+    Atom["justify"].

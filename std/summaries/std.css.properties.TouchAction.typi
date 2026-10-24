@@ -1,84 +1,61 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `touch-action` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how an
+//! element's region can be manipulated by a touchscreen user (for example, by zooming features built
+//! into the browser).
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: Enable browser handling of all panning and zooming gestures.
+//! - manipulation: Enable panning and pinch zoom gestures, but disable additional non-standard
+//! gestures such as double-tap to zoom. Disabling double-tap to zoom removes the need for browsers
+//! to delay the generation of click events when the user taps the screen. This is an alias for
+//! "pan-x pan-y pinch-zoom" (which, for compatibility, is itself still valid).
+//! - none: Disable browser handling of all panning and zooming gestures.
+//! - pan-down: Enable single-finger gestures that begin by scrolling in the given direction(s). Once
+//! scrolling has started, the direction may still be reversed. Note that scrolling "up" (pan-up)
+//! means that the user is dragging their finger downward on the screen surface, and likewise
+//! pan-left means the user is dragging their finger to the right. Multiple directions may be
+//! combined except when there is a simpler representation (for example, "pan-left pan-right" is
+//! invalid since "pan-x" is simpler, but "pan-left pan-down" is valid).
+//! - pan-left: Enable single-finger gestures that begin by scrolling in the given direction(s). Once
+//! scrolling has started, the direction may still be reversed. Note that scrolling "up" (pan-up)
+//! means that the user is dragging their finger downward on the screen surface, and likewise
+//! pan-left means the user is dragging their finger to the right. Multiple directions may be
+//! combined except when there is a simpler representation (for example, "pan-left pan-right" is
+//! invalid since "pan-x" is simpler, but "pan-left pan-down" is valid).
+//! - pan-right: Enable single-finger gestures that begin by scrolling in the given direction(s).
+//! Once scrolling has started, the direction may still be reversed. Note that scrolling "up"
+//! (pan-up) means that the user is dragging their finger downward on the screen surface, and
+//! likewise pan-left means the user is dragging their finger to the right. Multiple directions may
+//! be combined except when there is a simpler representation (for example, "pan-left pan-right" is
+//! invalid since "pan-x" is simpler, but "pan-left pan-down" is valid).
+//! - pan-up: Enable single-finger gestures that begin by scrolling in the given direction(s). Once
+//! scrolling has started, the direction may still be reversed. Note that scrolling "up" (pan-up)
+//! means that the user is dragging their finger downward on the screen surface, and likewise
+//! pan-left means the user is dragging their finger to the right. Multiple directions may be
+//! combined except when there is a simpler representation (for example, "pan-left pan-right" is
+//! invalid since "pan-x" is simpler, but "pan-left pan-down" is valid).
+//! - pan-x: Enable single-finger horizontal panning gestures. May be combined with pan-y, pan-up,
+//! pan-down and/or pinch-zoom.
+//! - pan-y: Enable single-finger vertical panning gestures. May be combined with pan-x, pan-left,
+//! pan-right and/or pinch-zoom.
+//! - pinch-zoom: Enable multi-finger panning and zooming of the page. This may be combined with any
+//! of the pan- values.
+//!
+//! Grammar: auto | none | [ [ pan-x | pan-left | pan-right ] || [ pan-y | pan-up | pan-down ] ||
+//! pinch-zoom ] | manipulation
+//!
 //! Specification: https://compat.spec.whatwg.org/#propdef-touch-action
-//! Grammar: auto | none | [ [ pan-x | pan-left | pan-right ] || [ pan-y | pan-up | pan-down ] || pinch-zoom ] | manipulation
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/touch-action
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TouchAction.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    touch_action: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    touch_action: Value
+    touch_action: Auto | None | PanX | PanLeft | PanRight | PanY | PanUp | PanDown | PinchZoom | Manipulation | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained touch-action value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword manipulation.
-
-pub manipulation(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword pan-down.
-
-pub pan_down(): Value.
-
-/// Returns the CSS keyword pan-left.
-
-pub pan_left(): Value.
-
-/// Returns the CSS keyword pan-right.
-
-pub pan_right(): Value.
-
-/// Returns the CSS keyword pan-up.
-
-pub pan_up(): Value.
-
-/// Returns the CSS keyword pan-x.
-
-pub pan_x(): Value.
-
-/// Returns the CSS keyword pan-y.
-
-pub pan_y(): Value.
-
-/// Returns the CSS keyword pinch-zoom.
-
-pub pinch_zoom(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

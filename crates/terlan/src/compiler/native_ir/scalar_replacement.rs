@@ -87,7 +87,7 @@ fn replace_nested(
                 .map(|item| replace_nested(item, layouts, ordinal))
                 .collect(),
         ),
-        CoreExpr::FixedArray(items) => CoreExpr::FixedArray(
+        CoreExpr::Array(items) => CoreExpr::Array(
             items
                 .iter()
                 .map(|item| replace_nested(item, layouts, ordinal))
@@ -416,7 +416,7 @@ fn projection_layout(
                 indexed: false,
             })
         }
-        CoreExpr::Tuple(items) | CoreExpr::FixedArray(items) => Some(ProjectionLayout {
+        CoreExpr::Tuple(items) | CoreExpr::Array(items) => Some(ProjectionLayout {
             arguments: items.clone(),
             field_names: vec![None; items.len()],
             indexed: true,
@@ -438,7 +438,7 @@ fn direct_fixed_index(base: &CoreExpr, index: &CoreExpr) -> Option<usize> {
     };
     let index = usize::try_from(*index).ok()?;
     let length = match base {
-        CoreExpr::Tuple(items) | CoreExpr::FixedArray(items) => items.len(),
+        CoreExpr::Tuple(items) | CoreExpr::Array(items) => items.len(),
         _ => return None,
     };
     (index < length).then_some(index)
@@ -532,7 +532,7 @@ fn expr_observes_local(expr: &CoreExpr, target: &str) -> bool {
     match expr {
         CoreExpr::Var(name) => name == target,
         CoreExpr::Int(_) | CoreExpr::Float(_) | CoreExpr::Binary(_) | CoreExpr::Atom(_) => false,
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items.iter().any(|item| expr_observes_local(item, target))
         }
         CoreExpr::ListCons { head, tail } => {

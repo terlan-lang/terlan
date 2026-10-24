@@ -46,8 +46,12 @@ openapi_operation_id
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/api/source_contract.rs",
-            "from_router_source routes_from_syntax_module ApiContract::from_routes",
+            "crates/terlan/src/commands/api/evaluated_contract.rs",
+            "from_router_file source_descriptor::router ApiContract::from_source_router",
+        )?;
+        self.write(
+            "crates/terlan/src/commands/api/evaluated_contract_test.rs",
+            "api_discovery_evaluates_computed_groups_closures_and_source_changes api_discovery_resolves_imports_with_relative_source_and_independent_output api_discovery_rejects_nonrouters_duplicates_and_channel_schemas",
         )?;
         self.write(
             "crates/terlan/src/commands/api/mod.rs",
@@ -59,11 +63,11 @@ terlan-api-import-skips-v1
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/api/source_contract_test.rs",
+            "crates/terlan/src/commands/deploy/semantic_test.rs",
             r#"
-router_source_contract_extracts_routes
-router_source_contract_projects_to_openapi_paths
-router_source_contract_extracts_group_routes
+deployment_evaluates_returned_routes_and_imported_handlers
+deployment_evaluates_grouped_fallback_and_source_edits
+deployment_rejects_conflicting_router_modules_and_invalid_descriptors
 "#,
         )?;
         self.write(
@@ -87,14 +91,12 @@ build_id web_build_id pub(super) use terlan_http_native::manifest
             r#"
 WebRouteManifestRows discover_web_route_manifest_from_sources
 route_source_context source_span_for_expr validate_discovered_web_routes
-validate_router_handler_rows
-route_param_types
+evaluated::discover_web_route_manifest_from_sources
 "#,
         )?;
         self.write(
             "crates/terlan/src/commands/build/js_browser/routes/validation.rs",
             r#"
-validate_router_handler_rows validate_route_handler_param_types
 validate_discovered_web_routes terlan_http_native::manifest::validate_route_namespace
 "#,
         )?;

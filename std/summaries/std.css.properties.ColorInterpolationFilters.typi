@@ -1,56 +1,33 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/filter-effects-1/#propdef-color-interpolation-filters
+//! The `color-interpolation-filters` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! property specifies the color space for imaging operations performed via SVG filter effects. If
+//! explicitly declared, the value of the CSS property overrides any value given in the element's
+//! `color-interpolation-filters` attribute.
+//!
+//! Initial: linearRGB. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: Indicates that the user agent can choose either the `sRGB` or `linearRGB` spaces for
+//! color interpolation. This option indicates that the author doesn't require that color
+//! interpolation occur in a particular color space.
+//! - linearRGB: Indicates that color interpolation should occur in the linearized RGB color space as
+//! described in [the sRGB specification](https://webstore.iec.ch/en/publication/6169). This is the
+//! default property value.
+//! - sRGB: Indicates that color interpolation should occur in the gamma-encoded sRGB color space.
+//!
 //! Grammar: auto | sRGB | linearRGB
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/filter-effects-1/#propdef-color-interpolation-filters
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/color-interpolation-filters
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ColorInterpolationFilters.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    color_interpolation_filters: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    color_interpolation_filters: Value
+    color_interpolation_filters: Auto | SRGB | LinearRGB | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained color-interpolation-filters value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword linearRGB.
-
-pub linearRGB(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword sRGB.
-
-pub sRGB(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

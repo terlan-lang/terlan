@@ -71,7 +71,13 @@ row_paths(rows: List[StringFieldRow], reversed: List[String]): Option[List[Strin
     }.
 
 metadata_projection(source: String, platform: ReleasePlatform): Option[MetadataProjection] ->
-    let names = [platform.compiler, platform.vm, platform.native_worker, platform.lsp];
+    let names =
+        [
+            platform.compiler,
+            platform.vm,
+            platform.native_worker,
+            platform.lsp,
+        ];
     let {
         Ok(metadata) <- Json.parse(source);
         Ok(schema_values) <- metadata.string_fields(["schema"]);
@@ -172,7 +178,9 @@ pub run_output(working_directory: String, program: String, arguments: List[Strin
                 true -> let _failed =
                     failure(
                         "command",
-                        String.concat([program, " failed:\n", output.stdout, output.stderr]),
+                        String.concat(
+                            [program, " failed:\n", output.stdout, output.stderr],
+                        ),
                     );
                 None
             };

@@ -1,0 +1,41 @@
+/** Fail-closed evidence publication for compiler self-analysis resource bounds. */
+module self_host.SelfHostAnalysisResourcesTool.
+
+import std.core.Result.{Err, Ok}.
+import std.core.Option.{None, Some}.
+import std.core.{Bool, String}.
+import std.io.File.
+
+import self_host.SelfHostAnalysisResources.{AnalysisResourceLimits, AnalysisResourceUsage}.
+import self_host.SelfHostAnalysisResources.
+import self_host.SelfHostAnalysisResourcesManifest.
+
+
+/** Writes evidence only for a complete observation within every configured limit. */
+pub write(
+    output_path: String,
+    usage: AnalysisResourceUsage,
+    limits: AnalysisResourceLimits,
+): Bool ->
+    let _removed = File.delete(output_path);
+    if {
+        not SelfHostAnalysisResources.within_limits(usage, limits) -> false;
+        true -> case File.write_text(
+            output_path,
+            SelfHostAnalysisResources.render(usage, limits),
+        ) {
+            Err(_) -> false;
+            Ok(_) -> true
+        }
+    }.
+
+/** Decodes one measured observation and publishes it only when all limits hold. */
+pub write_manifest(input_path: String, output_path: String): Bool ->
+    let _removed = File.delete(output_path);
+    case File.read_text(input_path) {
+        Err(_) -> false;
+        Ok(source) -> case SelfHostAnalysisResourcesManifest.decode(source) {
+            None -> false;
+            Some(value) -> write(output_path, value.usage, value.limits)
+        }
+    }.

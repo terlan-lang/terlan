@@ -1,0 +1,31 @@
+/** Closed-world lint registry contracts. */
+module self_host.SelfHostLintRegistryTest.
+
+import std.core.String.
+import self_host.SelfHostLintRegistry.
+
+length[T](values: List[T], count: Int): Int ->
+    case values { [] -> count; [_ | rest] -> length(rest, count + 1) }.
+
+@test
+pub registry_is_valid_and_closed_world(): Bool ->
+    SelfHostLintRegistry.valid()
+        and length(SelfHostLintRegistry.rules(), 0) == 45
+        and length(SelfHostLintRegistry.rule_ids(), 0) == 45.
+
+@test
+pub registry_order_spans_every_active_family(): Bool ->
+    case SelfHostLintRegistry.rule_ids() {
+        ["TL0001" | ["TL0002" | _]] ->
+            String.contains(SelfHostLintRegistry.render(), "TL0404\ttests.property-candidate")
+                and String.contains(SelfHostLintRegistry.render(), "TL0607\timports.missing")
+                and String.contains(SelfHostLintRegistry.render(), "TL0907\tmaintainability.sql-width")
+                and String.contains(SelfHostLintRegistry.render(), "TL1002\tstyle.pipe-candidate");
+        _ -> false
+    }.
+
+@test
+pub registry_records_completed_projection_transfer(): Bool ->
+    SelfHostLintRegistry.projection_rule_count() == 0
+        and not String.contains(SelfHostLintRegistry.render(), "\tprojected\t")
+        and String.contains(SelfHostLintRegistry.render(), "\tsource\t").

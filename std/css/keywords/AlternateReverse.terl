@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword alternate-reverse. Generated; do not edit.
+ */
+module std.css.keywords.AlternateReverse.
+
+pub type AlternateReverse = Atom["alternate-reverse"].

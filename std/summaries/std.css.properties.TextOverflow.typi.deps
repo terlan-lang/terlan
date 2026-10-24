@@ -1,9 +1,11 @@
 module=std.css.properties.TextOverflow
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=1995402921270422595
-interface_hash=5649588422375944740
-interface_doc_hash=15105877735706848118
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=13685387094657846448
+interface_hash=3912972853293336078
+interface_doc_hash=10947988263697524955
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Clip=7356550648355745283
+std.css.keywords.Ellipsis=12469173900601450612

@@ -1,75 +1,41 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-clip-rule
+ * The `clip-rule` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property determines, when
+ * parts of the path overlap other parts, which pixels in a mask's box are inside the clipping shape
+ * defined by a [clip
+ * path](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/clip-path) and which
+ * are outside.
+ *
+ * Initial: nonzero. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - evenodd: Determines the 'insideness' of a point on the canvas by drawing a ray from that point
+ * to infinity in any direction and counting the number of path segments from the given shape that
+ * the ray crosses.
+ * - nonzero: For every point in the clipping mask's box, a ray is drawn in a random direction.
+ * Every time the ray intersects with any part of the clipping path, a tally is increased by one if
+ * the clipping path's part is moving from left to right across the ray, whereas it is decreased by
+ * one if the path part is moving right to left across the ray. If the final total of the tally is
+ * zero, the point is outside the path's shape. Otherwise, it's inside the path's shape.
+ *
  * Grammar: nonzero | evenodd
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-clip-rule
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/clip-rule
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ClipRule.
 
-import type std.core.Option.
+import std.css.keywords.{Evenodd, Nonzero}.
 
-/**
- * A nominal, specification-constrained clip-rule value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    clip_rule: Value,
+    clip_rule: Nonzero | Evenodd | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    clip_rule: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword evenodd.
- */
-pub evenodd(): Value ->
-    Value(Token {property: "clip-rule", css: "evenodd"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "clip-rule", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "clip-rule", css: "initial"}).
-
-/**
- * Returns the CSS keyword nonzero.
- */
-pub nonzero(): Value ->
-    Value(Token {property: "clip-rule", css: "nonzero"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "clip-rule", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "clip-rule", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "clip-rule", css: "unset"}).

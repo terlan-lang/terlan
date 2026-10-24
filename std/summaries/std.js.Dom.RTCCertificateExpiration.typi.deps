@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCCertificateExpiration
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=13258301524937751862
-interface_hash=7651193192060900426
-interface_doc_hash=7651193192060900426
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1454872283361571181
+interface_hash=4210433914291087286
+interface_doc_hash=4210433914291087286
 deps=0

@@ -1,0 +1,6 @@
+//! Shared CSS keyword text. Generated; do not edit.
+
+module std.css.keywords.TextKeyword.
+
+pub type TextKeyword =
+    Atom["text"].

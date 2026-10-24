@@ -1,64 +1,43 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-overflow-3/#propdef-overflow-y
+//! The `overflow-y` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets what shows
+//! when content overflows a block-level element's top and bottom edges. This may be nothing, a
+//! scroll bar, or the overflow content. This property may also be set by using the `overflow`
+//! shorthand property.
+//!
+//! Initial: visible. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: Overflow content is clipped at the element's padding box, and overflow content can be
+//! scrolled into view. Unlike `scroll`, user agents display scroll bars _only if_ the content is
+//! overflowing, hiding scroll bars by default. If content fits inside the element's padding box, it
+//! looks the same as with `visible`, but still establishes a new block-formatting context.
+//! - clip: Overflow content is clipped at the element's _overflow clip edge_ that is defined using
+//! the `overflow-clip-margin` property. As a result, content overflows the element's padding box by
+//! the `<length>` value of `overflow-clip-margin` or by `0px` if not set. The difference between
+//! `clip` and `hidden` is that the `clip` keyword also forbids all scrolling, including programmatic
+//! scrolling. No new formatting context is created. To establish a formatting context, use
+//! `overflow: clip` along with `display: flow-root`. The element box is not a scroll container.
+//! - hidden: Overflow content is clipped if necessary to fit vertically in the elements' padding
+//! box. No scroll bars are provided.
+//! - scroll: Overflow content is clipped if necessary to fit vertically inside the element's padding
+//! box. Browsers display scroll bars in the vertical direction whether or not any content is
+//! actually clipped. (This prevents scroll bars from appearing or disappearing when the content
+//! changes.) Printers may still print overflowing content.
+//! - visible: Overflow content is not clipped and may be visible outside the element's padding box
+//! at the top and bottom edges. The element box is not a `scroll container`.
+//!
 //! Grammar: visible | hidden | clip | scroll | auto
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-overflow-3/#propdef-overflow-y
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow-y
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OverflowY.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    overflow_y: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    overflow_y: Value
+    overflow_y: Visible | Hidden | Clip | Scroll | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained overflow-y value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword clip.
-
-pub clip(): Value.
-
-/// Returns the CSS keyword hidden.
-
-pub hidden(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword scroll.
-
-pub scroll(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword visible.
-
-pub visible(): Value.
-
-export type Token.

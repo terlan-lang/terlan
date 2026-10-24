@@ -1,0 +1,175 @@
+/** Structural implication parsing and field-evidence conformance. */
+module self_host.StructuralImplication.
+
+import std.core.String.
+
+import self_host.TypeSyntax.{ImplicationType, MapType, TypeParse}.
+
+import std.collections.List.
+import std.core.{Bool, Int, String}.
+import self_host.Delimited.
+import self_host.TypeParser.
+
+
+pub struct StructuralField {
+    name: String,
+    type_text: String,
+}.
+
+pub constructor StructuralField {
+    (name: String, type_text: String): StructuralField ->
+        StructuralField { name: name, type_text: type_text }
+}.
+
+
+pub struct StructuralImplicationSyntax {
+    valid: Bool,
+    subject: String,
+    fields: List[StructuralField],
+    message: String,
+}.
+
+pub constructor StructuralImplicationSyntax {
+    (valid: Bool, subject: String, fields: List[StructuralField], message: String): StructuralImplicationSyntax ->
+        StructuralImplicationSyntax {
+            valid: valid,
+            subject: subject,
+            fields: fields,
+            message: message,
+        }
+}.
+
+
+pub struct StructuralEvidence {
+    valid: Bool,
+    message: String,
+}.
+
+pub constructor StructuralEvidence {
+    (valid: Bool, message: String): StructuralEvidence ->
+        StructuralEvidence { valid: valid, message: message }
+}.
+
+
+struct FieldParse {
+    valid: Bool,
+    field: StructuralField,
+    message: String,
+}.
+
+constructor FieldParse {
+    (valid: Bool, field: StructuralField, message: String): FieldParse ->
+        FieldParse { valid: valid, field: field, message: message }
+}.
+
+
+@pure
+empty_field(): StructuralField -> StructuralField("", "").
+
+@pure
+parse_field(source: String): FieldParse ->
+    let colon = Delimited.top_level_byte(source, 58);
+    if {
+        colon < 1 -> FieldParse(false, empty_field(), "structural field requires a name and type");
+        true ->
+            let name = String.trim(source.utf8_slice(0, colon));
+            let type_text = String.trim(source.utf8_slice(colon + 1, source.byte_size() - colon - 1));
+            let parsed_type = TypeParser.parse(type_text);
+            if {
+                name == "" -> FieldParse(false, empty_field(), "structural field name is empty");
+                not parsed_type.valid -> FieldParse(false, empty_field(), parsed_type.message);
+                true -> FieldParse(true, StructuralField(name, parsed_type.syntax.text), "")
+            }
+    }.
+
+@pure
+contains_field(values: List[StructuralField], name: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.name == name or contains_field(rest, name)
+    }.
+
+@pure
+parse_fields(values: List[String], output: List[StructuralField]): StructuralImplicationSyntax ->
+    case values {
+        [] -> StructuralImplicationSyntax(true, "", output, "");
+        [value | rest] ->
+            let parsed = parse_field(value);
+            if {
+                not parsed.valid -> StructuralImplicationSyntax(false, "", output, parsed.message);
+                contains_field(output, parsed.field.name) -> StructuralImplicationSyntax(
+                    false,
+                    "",
+                    output,
+                    String.concat(["duplicate structural field `", parsed.field.name, "`"]),
+                );
+                true -> parse_fields(rest, [parsed.field | output])
+            }
+    }.
+
+@pure
+map_contents(source: String): String ->
+    String.trim(source.utf8_slice(1, source.byte_size() - 2)).
+
+@pure
+parse_requirement(subject: String, requirement: TypeParse): StructuralImplicationSyntax ->
+    if {
+        not requirement.valid -> StructuralImplicationSyntax(false, subject, List.new[StructuralField](), requirement.message);
+        requirement.syntax.class != MapType -> StructuralImplicationSyntax(false, subject, List.new[StructuralField](), "structural implication requires a keyed field type");
+        true ->
+            let parsed = parse_fields(
+                Delimited.split_top_level(map_contents(requirement.syntax.text), 44),
+                List.new[StructuralField](),
+            );
+            StructuralImplicationSyntax(parsed.valid, subject, parsed.fields, parsed.message)
+    }.
+
+/** Parses `Subject => {field: Type}` into a reusable evidence requirement. */
+@pure
+pub parse(source: String): StructuralImplicationSyntax ->
+    let parsed = TypeParser.parse(source);
+    let arrow = Delimited.top_level_pair(source, 61, 62);
+    if {
+        not parsed.valid -> StructuralImplicationSyntax(false, "", List.new[StructuralField](), parsed.message);
+        parsed.syntax.class != ImplicationType or arrow < 1 -> StructuralImplicationSyntax(false, "", List.new[StructuralField](), "type is not a structural implication");
+        true ->
+            let subject = String.trim(source.utf8_slice(0, arrow));
+            let requirement_text = String.trim(source.utf8_slice(arrow + 2, source.byte_size() - arrow - 2));
+            if {
+                subject == "" -> StructuralImplicationSyntax(false, "", List.new[StructuralField](), "structural implication subject is empty");
+                true -> parse_requirement(subject, TypeParser.parse(requirement_text))
+            }
+    }.
+
+@pure
+find_field(values: List[StructuralField], name: String): StructuralField ->
+    case values {
+        [] -> empty_field();
+        [value | rest] -> if { value.name == name -> value; true -> find_field(rest, name) }
+    }.
+
+@pure
+first_evidence_error(available: List[StructuralField], required: List[StructuralField]): String ->
+    case required {
+        [] -> "";
+        [value | rest] ->
+            let found = find_field(available, value.name);
+            if {
+                found.name == "" -> String.concat(["missing required structural field `", value.name, "`"]);
+                found.type_text != value.type_text -> String.concat([
+                    "structural field `",
+                    value.name,
+                    "` expects ",
+                    value.type_text,
+                    ", found ",
+                    found.type_text,
+                ]);
+                true -> first_evidence_error(available, rest)
+            }
+    }.
+
+/** Proves width-compatible structural evidence by required field name and type. */
+@pure
+pub entails(available: List[StructuralField], required: List[StructuralField]): StructuralEvidence ->
+    let message = first_evidence_error(available, required);
+    StructuralEvidence(message == "", message).

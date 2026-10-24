@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword stroke-box. Generated; do not edit.
+ */
+module std.css.keywords.StrokeBox.
+
+pub type StrokeBox = Atom["stroke-box"].

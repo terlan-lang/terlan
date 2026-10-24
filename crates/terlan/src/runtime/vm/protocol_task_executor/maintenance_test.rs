@@ -131,9 +131,14 @@ fn idle_owner_expires_real_package_sessions_without_requests_or_manual_ticks() {
     ));
     service.start_clock().unwrap();
     let image = service.native_services().unwrap();
-    let identity = image
-        .call("std.http.session.create", &["".into(), 1_i64.into()])
-        .unwrap();
+    let identity = terlan_runtime_abi::NativeValue::from("idle-expiration-fixture");
+    assert_eq!(
+        image.call(
+            "std.http.session.try_create",
+            &[identity.clone(), 1_i64.into()]
+        ),
+        Ok(true.into())
+    );
     image
         .call(
             "std.http.session.set",

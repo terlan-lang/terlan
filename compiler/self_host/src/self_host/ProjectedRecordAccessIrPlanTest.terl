@@ -1,0 +1,46 @@
+/** Typed Core lowering contracts for explicit record field access. */
+module self_host.ProjectedRecordAccessIrPlanTest.
+
+import self_host.ProjectedExpressionIrPlan.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedTypeConstraintSyntax.InferredTypeFact.
+import self_host.SelfHostIrSyntax.IrParameter.
+import self_host.SelfHostSemanticIrSyntax.SemanticInstructionPlan.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+
+last_instruction(
+    values: List[SemanticInstructionPlan],
+    current: Option[SemanticInstructionPlan],
+): Option[SemanticInstructionPlan] ->
+    case values {
+        [] -> current;
+        [value | rest] -> last_instruction(rest, Some(value))
+    }.
+
+@test
+pub explicit_record_access_emits_checked_struct_projection(): Bool ->
+    let expression = ProjectedExpressionNode(
+        "record-access",
+        "x",
+        10,
+        23,
+        [
+            ProjectedExpressionNode("identifier", "point", 10, 15, []),
+            ProjectedExpressionNode("identifier", "Point", 16, 21, []),
+            ProjectedExpressionNode("identifier", "x", 22, 23, []),
+        ],
+    );
+    let plan = ProjectedExpressionIrPlan.lower_expression(
+        expression,
+        1,
+        [InferredTypeFact(1, Some("Int"), 10)],
+        [IrParameter("point", "Point")],
+    );
+    case last_instruction(plan.instructions, None) {
+        None -> false;
+        Some(instruction) -> instruction.opcode == "get-map-elements"
+            and instruction.operands == ["point", "x"]
+            and instruction.operand_types == [Some("Point"), Some("String")]
+            and instruction.resolved_type == Some("Int")
+    }.

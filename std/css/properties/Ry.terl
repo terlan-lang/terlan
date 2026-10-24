@@ -1,84 +1,31 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/geometry.html#RyProperty
+ * The `ry` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the y-axis, or
+ * vertical, radius of an SVG `ellipse` and the vertical curve of the corners of an SVG `rect`
+ * rectangle. If present, it overrides the shape's `ry` attribute.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: refer to the height of the current SVG viewport.
+ *
+ * Keyword effects:
+ * - auto: When set or defaulting to `auto`, the `ry` value equals the absolute length value used
+ * for `rx`. If both `ry` and `rx` have a computed value of `auto`, the used value is `0`.
+ *
  * Grammar: <length-percentage> | auto
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/geometry.html#RyProperty
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/ry
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Ry.
 
-import std.css.Values.
+import std.css.keywords.Auto.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained ry value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    ry: Value,
+    ry: Auto | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    ry: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "ry", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "ry", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "ry", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "ry", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "ry", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "ry", css: "unset"}).
-
-/**
- * Constructs a ry value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "ry", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a ry value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "ry", css: std.css.Values.percentage_css(value)}).

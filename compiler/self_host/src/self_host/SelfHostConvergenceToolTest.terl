@@ -1,0 +1,36 @@
+/** Pure codec contracts for convergence evidence. */
+module self_host.SelfHostConvergenceToolTest.
+
+import std.core.String.
+
+import self_host.SelfHostConvergenceEvidence.{StageEvidence}.
+import self_host.SelfHostConvergenceTool.
+import std.core.Option.{None, Some}.
+
+@pure
+evidence(value: String): StageEvidence ->
+    StageEvidence(value, value, value, value, value, value, value, value, value).
+
+@test
+pub stage_evidence_roundtrips_canonically(): Bool ->
+    case SelfHostConvergenceTool.render(evidence("sha256:test")) {
+        None -> false;
+        Some(text) -> case SelfHostConvergenceTool.decode(text) {
+            Some(decoded) -> decoded == evidence("sha256:test");
+            None -> false
+        }
+    }.
+
+@test
+pub wrong_schema_is_rejected(): Bool ->
+    SelfHostConvergenceTool.decode("{\"schema\":\"wrong\"}") == None.
+
+@test
+pub empty_layer_identity_is_rejected(): Bool ->
+    SelfHostConvergenceTool.decode(String.concat([
+        "{\"schema\":\"terlan.self-host.convergence-evidence/v1\",",
+        "\"tokens\":\"\",\"syntax\":\"x\",\"interfaces\":\"x\",",
+        "\"diagnostics\":\"x\",\"typed_syntax\":\"x\",\"core_ir\":\"x\",",
+        "\"managed_layouts\":\"x\",\"runtime_behavior\":\"x\",",
+        "\"executable_artifacts\":\"x\"}",
+    ])) == None.

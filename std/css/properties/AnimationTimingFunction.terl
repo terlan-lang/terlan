@@ -1,105 +1,52 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-timing-function
+ * The `animation-timing-function` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * sets how an animation progresses through the duration of each cycle.
+ *
+ * Initial: ease. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - ease-in: Represents the easing function `cubic-bezier(0.42, 0, 1, 1)`. It indicates that the
+ * interpolation starts slowly, then progressively speeds up until the end, at which point it stops
+ * abruptly. See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+ * - ease-in-out: Represents the easing function `cubic-bezier(0.42, 0, 0.58, 1)`. It indicates that
+ * the interpolation starts slowly, speeds up, and then slows down towards the end. At the
+ * beginning, it behaves like the `ease-in` keyword; at the end, it is like the `ease-out` keyword.
+ * See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+ * - ease-out: Represents the easing function `cubic-bezier(0, 0, 0.58, 1)`. It indicates that the
+ * interpolation starts abruptly and then progressively slows down towards the end. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+ * - linear: Equal to `cubic-bezier(0.0, 0.0, 1.0, 1.0)`, animates at an even speed. - `ease` - :
+ * Equal to `cubic-bezier(0.25, 0.1, 0.25, 1.0)`, the default value, increases in velocity towards
+ * the middle of the animation, slowing back down at the end. - `ease-in` - : Equal to
+ * `cubic-bezier(0.42, 0, 1.0, 1.0)`, starts off slowly, with the speed of the transition of the
+ * animating property increasing until complete. - `ease-out` - : Equal to `cubic-bezier(0, 0, 0.58,
+ * 1.0)`, starts quickly, slowing down the animation continues. - `ease-in-out` - : Equal to
+ * `cubic-bezier(0.42, 0, 0.58, 1.0)`, with the animating properties slowly transitioning, speeding
+ * up, and then slowing down again.
+ * - step-end: Represents the easing function `steps(1, jump-end)` or `steps(1, end)`. It indicates
+ * that the interpolation stays in its initial state until the end, at which point it jumps directly
+ * to its final state. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+ * - step-start: Equal to `steps(1, jump-start)` - `step-end` - : Equal to `steps(1, jump-end)`
+ *
  * Grammar: <easing-function>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-timing-function
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-timing-function
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.AnimationTimingFunction.
 
-import type std.core.Option.
+import std.css.keywords.{Ease, EaseIn, EaseInOut, EaseOut, Linear, StepEnd, StepStart}.
 
-/**
- * A nominal, specification-constrained animation-timing-function value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    animation_timing_function: Value,
+    animation_timing_function: Linear | Ease | EaseIn | EaseOut | EaseInOut | StepStart | StepEnd | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    animation_timing_function: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword ease.
- */
-pub ease(): Value ->
-    Value(Token {property: "animation-timing-function", css: "ease"}).
-
-/**
- * Returns the CSS keyword ease-in.
- */
-pub ease_in(): Value ->
-    Value(Token {property: "animation-timing-function", css: "ease-in"}).
-
-/**
- * Returns the CSS keyword ease-in-out.
- */
-pub ease_in_out(): Value ->
-    Value(Token {property: "animation-timing-function", css: "ease-in-out"}).
-
-/**
- * Returns the CSS keyword ease-out.
- */
-pub ease_out(): Value ->
-    Value(Token {property: "animation-timing-function", css: "ease-out"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "animation-timing-function", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "animation-timing-function", css: "initial"}).
-
-/**
- * Returns the CSS keyword linear.
- */
-pub linear(): Value ->
-    Value(Token {property: "animation-timing-function", css: "linear"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "animation-timing-function", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "animation-timing-function", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword step-end.
- */
-pub step_end(): Value ->
-    Value(Token {property: "animation-timing-function", css: "step-end"}).
-
-/**
- * Returns the CSS keyword step-start.
- */
-pub step_start(): Value ->
-    Value(Token {property: "animation-timing-function", css: "step-start"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "animation-timing-function", css: "unset"}).

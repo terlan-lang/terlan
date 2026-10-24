@@ -1,93 +1,37 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-style
+ * The `text-decoration-style` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * the style of the lines specified by . The style applies to all lines that are set with
+ * `text-decoration-line`.
+ *
+ * Initial: solid. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - dashed: Produces a dashed line style.
+ * - dotted: Produces a dotted line.
+ * - double: Produces a double line.
+ * - solid: Produces a solid line.
+ * - wavy: Produces a wavy line.
+ *
  * Grammar: solid | double | dotted | dashed | wavy
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-style
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-style
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextDecorationStyle.
 
-import type std.core.Option.
+import std.css.keywords.{Dashed, Dotted, Double, Solid, Wavy}.
 
-/**
- * A nominal, specification-constrained text-decoration-style value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_decoration_style: Value,
+    text_decoration_style: Solid | Double | Dotted | Dashed | Wavy | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    text_decoration_style: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword dashed.
- */
-pub dashed(): Value ->
-    Value(Token {property: "text-decoration-style", css: "dashed"}).
-
-/**
- * Returns the CSS keyword dotted.
- */
-pub dotted(): Value ->
-    Value(Token {property: "text-decoration-style", css: "dotted"}).
-
-/**
- * Returns the CSS keyword double.
- */
-pub double(): Value ->
-    Value(Token {property: "text-decoration-style", css: "double"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-decoration-style", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-decoration-style", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-decoration-style", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-decoration-style", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword solid.
- */
-pub solid(): Value ->
-    Value(Token {property: "text-decoration-style", css: "solid"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-decoration-style", css: "unset"}).
-
-/**
- * Returns the CSS keyword wavy.
- */
-pub wavy(): Value ->
-    Value(Token {property: "text-decoration-style", css: "wavy"}).

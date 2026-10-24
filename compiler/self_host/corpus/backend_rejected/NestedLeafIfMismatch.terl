@@ -1,0 +1,9 @@
+module self_host_probe.NestedLeafIfMismatch.
+
+import std.core.String.
+
+pub label(flag: Bool): String ->
+    String.append("status: ", if {
+        flag -> "enabled";
+        true -> 0
+    }).

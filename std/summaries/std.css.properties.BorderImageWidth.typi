@@ -1,96 +1,82 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-image-width
+//! The `border-image-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! the width of an element's [border
+//! image](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-image).
+//!
+//! Initial: 1. Inherited: no.
+//! Percentages: refer to the width or height of the border image area.
+//!
+//! Keyword effects:
+//! - auto: The width of the border is made equal to the intrinsic width or height (whichever is
+//! applicable) of the corresponding `border-image-slice`. If the image does not have the required
+//! intrinsic dimension, the corresponding `border-width` is used instead.
+//!
 //! Grammar: [ <length-percentage [0,∞]> | <number [0,∞]> | auto ]{1,4}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-image-width
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-image-width
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderImageWidth.
 
-/// A single non-global border-image-width shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
+pub opaque type CheckedComponent.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    border_image_width: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    Auto
+  | CheckedComponent.
 
 pub struct Property {
-    border_image_width: Value
+    border_image_width: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained border-image-width value.
+/// Checks the border-image-width length range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub opaque type Value.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-/// Returns the CSS keyword auto.
+/// Checks the border-image-width number range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub auto(): Value.
+pub component_number(value: Float): Option[CheckedComponent].
 
-/// Constructs one border-image-width shorthand component.
+/// Checks the border-image-width percentage range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub component_auto(): Component.
+pub component_percentage(value: std.css.Values.Percentage): Option[CheckedComponent].
 
-/// Checks the specification range and constructs a border-image-width value.
+/// Checks the border-image-width length range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub component_length(value: std.css.Values.Length): Option[Component].
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Checks the specification range and constructs a border-image-width value.
+/// Checks the border-image-width number range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub component_number(value: Float): Option[Component].
+pub number(value: Float): Option[Checked].
 
-/// Checks the specification range and constructs a border-image-width value.
+/// Supplies 2 components in grammar order.
 
-pub component_percentage(value: std.css.Values.Percentage): Option[Component].
+pub pair(first: Component, second: Component): Checked.
 
-/// Returns the CSS keyword inherit.
+/// Checks the border-image-width percentage range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub inherit(): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].
 
-/// Returns the CSS keyword initial.
+/// Supplies 4 components in grammar order.
 
-pub initial(): Value.
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
-/// Checks the specification range and constructs a border-image-width value.
+/// Supplies 1 components in grammar order.
 
-pub length(value: std.css.Values.Length): Option[Value].
+pub single(first: Component): Checked.
 
-/// Checks the specification range and constructs a border-image-width value.
+/// Supplies 3 components in grammar order.
 
-pub number(value: Float): Option[Value].
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Checks the specification range and constructs a border-image-width value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Combines 4 typed components in specification order.
-
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Combines 3 typed components in specification order.
-
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub triple(first: Component, second: Component, third: Component): Checked.

@@ -297,7 +297,7 @@ pub(crate) fn core_receiver_method_dispatch_signatures(
 ) -> HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>> {
     let local_aliases = collect_syntax_type_aliases(module);
     let imported_aliases = imported_type_aliases(resolved);
-    let imported_names = imported_type_names(resolved);
+    let imported_names = imported_type_names_for_module(module, resolved);
     let mut alias_names = collect_syntax_type_names(module);
     alias_names.extend(imported_aliases.keys().cloned());
     alias_names.extend(resolved.imported_types.keys().cloned());
@@ -506,7 +506,7 @@ fn resolve_constructor_identities_in_core_expr(
         | CoreExpr::RemoteFunRef { .. } => {}
         CoreExpr::Tuple(items)
         | CoreExpr::List(items)
-        | CoreExpr::FixedArray(items)
+        | CoreExpr::Array(items)
         | CoreExpr::SqlQuery {
             parameters: items, ..
         }

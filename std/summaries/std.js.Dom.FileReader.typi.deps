@@ -1,8 +1,8 @@
 module=std.js.Dom.FileReader
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14384386364848365938
-interface_hash=14806030558474408627
-interface_doc_hash=14806030558474408627
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15246174281780453103
+interface_hash=173532680471316901
+interface_doc_hash=173532680471316901
 deps=0

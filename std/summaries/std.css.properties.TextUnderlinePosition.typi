@@ -1,64 +1,39 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-underline-position
+//! The `text-underline-position` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies the position of the underline which is set using the `text-decoration` property's
+//! `underline` value.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: The `user agent` uses its own algorithm to place the line at or under the `alphabetic
+//! baseline`.
+//! - from-font: If the font file includes information about a preferred position, use that value. If
+//! the font file doesn't include this information, behave as if `auto` was set, with the browser
+//! choosing an appropriate position.
+//! - left: In vertical writing-modes, this keyword forces the line to be placed on the _left_ side
+//! of the text. In horizontal writing-modes, it is a synonym of `auto`.
+//! - right: In vertical writing-modes, this keyword forces the line to be placed on the _right_ side
+//! of the text. In horizontal writing-modes, it is a synonym of `auto`.
+//! - under: Forces the line to be set below the alphabetic baseline, at a position where it won't
+//! cross any descenders. This is useful for ensuring legibility with chemical and mathematical
+//! formulas, which make a large use of subscripts.
+//!
 //! Grammar: auto | [ from-font | under ] || [ left | right ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-underline-position
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-underline-position
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextUnderlinePosition.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    text_underline_position: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    text_underline_position: Value
+    text_underline_position: Auto | FromFont | Under | Left | Right | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained text-underline-position value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword from-font.
-
-pub from_font(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword under.
-
-pub under(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

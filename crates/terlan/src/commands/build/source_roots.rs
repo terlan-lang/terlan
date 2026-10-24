@@ -67,6 +67,10 @@ pub(super) fn prepare_source_root_interfaces(root: &Path, state: &CliState) -> R
             && state.incremental
             && cached_interface_is_current(root, &file, &source, cache_dir)
         {
+            let module = expected_module_name_for_source_path(root, &file)?;
+            let manifest = read_manifest(&cache_dir.join(format!("{module}.typi.deps")))
+                .ok_or_else(|| format!("current interface manifest disappeared for `{module}`"))?;
+            write_prepared_interface_hash(cache_dir, &module, manifest.interface_hash, state)?;
             continue;
         }
         let syntax_output = crate::formal_pipeline::parse_source_as_syntax_output(
@@ -92,10 +96,14 @@ pub(super) fn prepare_source_root_interfaces(root: &Path, state: &CliState) -> R
             continue;
         }
         let target = cache_dir.join(format!("{}.typi", syntax_output.module_name));
-        write_build_file(
-            &target,
-            interface.to_terlan_interface_text().as_bytes(),
-            state.incremental,
+        let interface_text = interface.to_terlan_interface_text();
+        let interface_hash = prepared_interface_hash(&interface_text)?;
+        write_build_file(&target, interface_text.as_bytes(), state.incremental)?;
+        write_prepared_interface_hash(
+            cache_dir,
+            &syntax_output.module_name,
+            interface_hash,
+            state,
         )?;
     }
     if !declarations.is_empty() {
@@ -125,20 +133,42 @@ pub(super) fn prepare_source_root_interfaces(root: &Path, state: &CliState) -> R
                     path.display()
                 ));
             };
-            validated.push((
-                syntax.module_name,
-                checked.interface.to_terlan_interface_text(),
-            ));
+            let interface_text = checked.interface.to_terlan_interface_text();
+            let interface_hash = prepared_interface_hash(&interface_text)?;
+            validated.push((syntax.module_name, interface_text, interface_hash));
         }
-        for (module, interface) in validated {
+        for (module, interface, interface_hash) in validated {
             write_build_file(
                 &cache_dir.join(format!("{module}.typi")),
                 interface.as_bytes(),
                 state.incremental,
             )?;
+            write_prepared_interface_hash(cache_dir, &module, interface_hash, state)?;
         }
     }
     Ok(())
+}
+
+fn write_prepared_interface_hash(
+    cache_dir: &Path,
+    module: &str,
+    interface_hash: u64,
+    state: &CliState,
+) -> Result<(), String> {
+    write_build_file(
+        &cache_dir.join(format!("{module}.typi.hash")),
+        interface_hash.to_string().as_bytes(),
+        state.incremental,
+    )
+}
+
+fn prepared_interface_hash(interface_text: &str) -> Result<u64, String> {
+    let syntax = crate::terlan_syntax::parse_interface_module_as_syntax_output(interface_text)
+        .map_err(|error| format!("cannot reparse prepared interface: {error:?}"))?;
+    let interface = syntax_module_output_to_interface(&syntax);
+    Ok(fingerprint(
+        interface.to_terlan_interface_type_text().as_bytes(),
+    ))
 }
 
 /// Determines whether an implementation's emitted interface can skip parsing.

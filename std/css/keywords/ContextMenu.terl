@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword context-menu. Generated; do not edit.
+ */
+module std.css.keywords.ContextMenu.
+
+pub type ContextMenu = Atom["context-menu"].

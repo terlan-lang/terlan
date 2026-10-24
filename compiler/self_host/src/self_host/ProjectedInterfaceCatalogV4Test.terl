@@ -1,0 +1,54 @@
+/** Mutable receiver metadata and v3 compatibility for interface catalog v4. */
+module self_host.ProjectedInterfaceCatalogV4Test.
+
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.Syntax.{MethodDeclaration, SyntaxSpan}.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import std.test.Test.{assert}.
+import self_host.ProjectedInterfaceCatalog.
+
+
+@test
+v4_preserves_mutable_receiver_identity(): Bool ->
+    let source = ModuleInterface(
+        "terlan.self-host.interface/v4",
+        "sample.Mutable",
+        [ExportedSymbol(
+            "put",
+            2,
+            MethodDeclaration,
+            None,
+            false,
+            true,
+            List.new[String](),
+            [Some("Map[String, Int]"), Some("Int")],
+            Some("Unit"),
+            SyntaxSpan(10, 20),
+        )],
+    );
+    let encoded = ProjectedInterfaceCatalog.render(source);
+    case ProjectedInterfaceCatalog.decode(encoded) {
+        Some(decoded) -> case decoded.symbols {
+            [symbol] -> assert(symbol.receiver_mutable);
+            _ -> assert(false)
+        };
+        None -> assert(false)
+    }.
+
+
+@test
+v3_defaults_receiver_to_immutable(): Bool ->
+    let encoded = String.concat([
+        "interface\tterlan.self-host.interface-catalog/v3\tsample.Legacy\n",
+        "symbol\tget\t1\tmethod\tInt\t\tMap[String, Int]\t_\tfalse\t1\t2\n",
+    ]);
+    case ProjectedInterfaceCatalog.decode(encoded) {
+        Some(decoded) -> case decoded.symbols {
+            [symbol] -> assert(not symbol.receiver_mutable);
+            _ -> assert(false)
+        };
+        None -> assert(false)
+    }.

@@ -28,4 +28,18 @@ negative_constructor(): Bool ->
         _ -> false
     }.
 
-pub self_test(): Bool -> positive_constructor() and negative_constructor().
+@pure
+duplicate_constructor_shape(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.User.\npub constructor User { (name: String): User -> User{name: name}; (other: String): User -> User{name: other} }.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let lowered_constructor = ConstructorLowering.lower(declaration);
+            not lowered_constructor.valid
+                and lowered_constructor.message == "duplicate constructor clause shape";
+        _ -> false
+    }.
+
+pub self_test(): Bool ->
+    positive_constructor() and negative_constructor() and duplicate_constructor_shape().

@@ -24,8 +24,8 @@ fn tuple_array_and_record_layouts_preserve_source_order_and_alignment() {
         ],
     )
     .expect("tuple");
-    let array = ManagedAggregateDescriptor::fixed_array("Array[Int,3]", ManagedFieldType::Int, 3)
-        .expect("array");
+    let array =
+        ManagedAggregateDescriptor::array("Array[Int,3]", ManagedFieldType::Int, 3).expect("array");
     let record = ManagedAggregateDescriptor::record(
         "app.User",
         vec![
@@ -242,10 +242,6 @@ fn aggregate_construction_rejects_malformed_shapes_and_values_atomically() {
         Err(ManagedMemoryError::InvalidAggregateShape)
     );
     assert_eq!(
-        ManagedAggregateDescriptor::fixed_array("Array[Int,0]", ManagedFieldType::Int, 0),
-        Err(ManagedMemoryError::InvalidAggregateShape)
-    );
-    assert_eq!(
         ManagedAggregateDescriptor::record(
             "app.Bad",
             vec![
@@ -290,6 +286,25 @@ fn aggregate_construction_rejects_malformed_shapes_and_values_atomically() {
         Err(ManagedMemoryError::InvalidManagedScalar)
     );
     assert_eq!(heap.object_count(), 0);
+}
+
+#[test]
+fn empty_array_has_a_distinct_minimum_managed_layout() {
+    let descriptor = Arc::new(
+        ManagedAggregateDescriptor::array("Array[0, Int]", ManagedFieldType::Int, 0)
+            .expect("empty fixed array descriptor"),
+    );
+    assert!(descriptor.fields().is_empty());
+    assert_eq!(descriptor.managed().size(), 1);
+    assert_eq!(descriptor.managed().alignment(), 1);
+    assert!(descriptor.managed().reference_offsets().is_empty());
+
+    let mut heap = heap();
+    let value = heap
+        .allocate_aggregate(Arc::clone(&descriptor), &[])
+        .expect("empty fixed array allocation");
+    heap.read_aggregate(value, &descriptor)
+        .expect("empty fixed array read");
 }
 
 #[test]

@@ -9,9 +9,10 @@ use super::*;
 pub(super) fn qualify(mapping: &mut DomModuleMapping) {
     let mut types = BTreeMap::<String, Vec<String>>::new();
     for module in &mapping.modules {
-        types.entry(module.type_name.clone()).or_default().push(
-            crate::terlan_hir::public_type_path(&module.module_path, &module.type_name),
-        );
+        types
+            .entry(module.type_name.clone())
+            .or_default()
+            .push(crate::terlan_hir::public_type_path(&module.module_path, &module.type_name));
     }
     for (name, provider) in [
         ("JsString", "std.js.String.JsString"),
@@ -25,6 +26,7 @@ pub(super) fn qualify(mapping: &mut DomModuleMapping) {
     }
     for module in &mut mapping.modules {
         let mut members = std::mem::take(&mut module.members);
+        let original_count = members.len();
         members.retain_mut(|member| {
             let mut unknown = Vec::new();
             let (name, annotations) = match member {
@@ -55,6 +57,7 @@ pub(super) fn qualify(mapping: &mut DomModuleMapping) {
             }
             unknown.is_empty()
         });
+        module.constructible &= members.len() == original_count;
         module.members = members;
         // JavaScript has one callable per property, while Terlan exports need
         // distinct names. Preserve every supported overload under a stable name.

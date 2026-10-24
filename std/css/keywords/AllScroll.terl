@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword all-scroll. Generated; do not edit.
+ */
+module std.css.keywords.AllScroll.
+
+pub type AllScroll = Atom["all-scroll"].

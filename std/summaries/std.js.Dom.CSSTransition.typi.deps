@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSTransition
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14518471076287574436
-interface_hash=8946085741843753726
-interface_doc_hash=8946085741843753726
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=17783411780237937854
+interface_hash=16678242960895789102
+interface_doc_hash=16678242960895789102
 deps=0

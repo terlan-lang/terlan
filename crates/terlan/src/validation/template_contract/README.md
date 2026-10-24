@@ -42,3 +42,9 @@ future generated render-function work.
 Existing integration tests still exercise this module through `check`, `emit`,
 and static-site command flows. Focused module-local tests cover rules that can
 be validated without full filesystem or command setup.
+
+Framework-owned custom elements can opt into literal output with the boolean
+`data-custom-element` attribute, for example
+`<board-grid data-custom-element rows="$ctrl.rows"></board-grid>`. Their children
+and interpolation slots are still checked. Declared Terlan components keep their
+normal prop validation; unmarked unknown component tags remain errors.

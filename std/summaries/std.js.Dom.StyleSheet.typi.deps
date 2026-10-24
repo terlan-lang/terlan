@@ -1,8 +1,8 @@
 module=std.js.Dom.StyleSheet
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6065909894492565929
-interface_hash=1160561059631278951
-interface_doc_hash=1160561059631278951
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5110319019557161149
+interface_hash=16171651670478979869
+interface_doc_hash=16171651670478979869
 deps=0

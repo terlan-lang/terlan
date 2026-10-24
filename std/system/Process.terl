@@ -41,17 +41,11 @@ pub struct Command {
  * Captured child completion. A nonzero status is still a successful launch.
  */
 pub struct Output {
-    /**
-     * Child status code, or `-1` for signal termination.
-     */
+    /** Child status code, or `-1` for signal termination. */
     status: Int,
-    /**
-     * Captured standard output.
-     */
+    /** Captured standard output. */
     stdout: String,
-    /**
-     * Captured standard error.
-     */
+    /** Captured standard error. */
     stderr: String,
 }.
 
@@ -59,13 +53,9 @@ pub struct Output {
  * One ordered batch completion; exactly one optional field is populated.
  */
 pub struct BatchCompletion {
-    /**
-     * Successful output for a batch entry when present.
-     */
+    /** Successful output for a batch entry when present. */
     output: Option[Output],
-    /**
-     * Typed process error for a batch entry when present.
-     */
+    /** Typed process error for a batch entry when present. */
     error: Option[ProcessError],
 }.
 
@@ -73,9 +63,7 @@ pub struct BatchCompletion {
  * Ordered child completions returned by `run_many`.
  */
 pub struct BatchOutput {
-    /**
-     * Ordered completions from a bounded batch.
-     */
+    /** Ordered completions from a bounded batch. */
     completions: List[BatchCompletion],
 }.
 
@@ -108,17 +96,11 @@ pub struct FramedRequest {
  * Ordered frame bodies and child completion from a framed session.
  */
 pub struct FramedOutput {
-    /**
-     * Child status code from a framed session.
-     */
+    /** Child status code from a framed session. */
     status: Int,
-    /**
-     * Ordered response frame bodies from a framed session.
-     */
+    /** Ordered response frame bodies from a framed session. */
     frames: List[String],
-    /**
-     * Captured standard error from a framed session.
-     */
+    /** Captured standard error from a framed session. */
     stderr: String,
 }.
 
@@ -126,33 +108,19 @@ pub struct FramedOutput {
  * Runtime-owned resource ceilings for bounded process orchestration.
  */
 pub struct Limits {
-    /**
-     * Maximum accepted wall-clock timeout in milliseconds.
-     */
+    /** Maximum accepted wall-clock timeout in milliseconds. */
     maximum_timeout_ms: Int,
-    /**
-     * Maximum accepted combined stdout/stderr capture bound.
-     */
+    /** Maximum accepted combined stdout/stderr capture bound. */
     maximum_output_bytes: Int,
-    /**
-     * Maximum accepted UTF-8 standard-input size.
-     */
+    /** Maximum accepted UTF-8 standard-input size. */
     maximum_stdin_bytes: Int,
-    /**
-     * Maximum number of commands accepted by one batch.
-     */
+    /** Maximum number of commands accepted by one batch. */
     maximum_batch_commands: Int,
-    /**
-     * Maximum worker concurrency accepted by one batch.
-     */
+    /** Maximum worker concurrency accepted by one batch. */
     maximum_batch_concurrency: Int,
-    /**
-     * Maximum number of write/read phases in one framed session.
-     */
+    /** Maximum number of write/read phases in one framed session. */
     maximum_framed_exchanges: Int,
-    /**
-     * Maximum total response frames in one framed session.
-     */
+    /** Maximum total response frames in one framed session. */
     maximum_framed_responses: Int,
 }.
 
@@ -183,17 +151,11 @@ pub type ProcessErrorCode =
  * Portable process failure with the attempted program attached.
  */
 pub struct ProcessError {
-    /**
-     * Stable process error category.
-     */
+    /** Stable process error category. */
     code: ProcessErrorCode,
-    /**
-     * Process error diagnostic.
-     */
+    /** Process error diagnostic. */
     message: String,
-    /**
-     * Attempted program.
-     */
+    /** Attempted program. */
     program: String,
 }.
 

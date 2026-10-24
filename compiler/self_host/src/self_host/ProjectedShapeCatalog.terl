@@ -1,0 +1,162 @@
+/** Bridges lowered shape declarations into projected expansion definitions. */
+module self_host.ProjectedShapeCatalog.
+
+import self_host.PatternSyntax.{PatternParse}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedShapeExpansion.{ProjectedShapeDefinition}.
+import self_host.ShapeSyntax.{ShapeSyntax}.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import self_host.CanonicalLexer.
+import self_host.ProjectedExpressionParser.
+import self_host.ProjectedPatternParser.
+import self_host.ProjectionAdapter.
+
+
+pub struct ProjectedShapeCatalogResult {
+    valid: Bool,
+    definitions: List[ProjectedShapeDefinition],
+    message: String,
+}.
+
+pub constructor ProjectedShapeCatalogResult {
+    (valid: Bool, definitions: List[ProjectedShapeDefinition], message: String): ProjectedShapeCatalogResult ->
+        ProjectedShapeCatalogResult {
+            valid: valid,
+            definitions: definitions,
+            message: message,
+        }
+}.
+
+
+struct DefinitionResult {
+    valid: Bool,
+    definition: ProjectedShapeDefinition,
+    message: String,
+}.
+
+constructor DefinitionResult {
+    (valid: Bool, definition: ProjectedShapeDefinition, message: String): DefinitionResult ->
+        DefinitionResult { valid: valid, definition: definition, message: message }
+}.
+
+
+@pure
+empty_node(): ProjectedExpressionNode ->
+    ProjectedExpressionNode("invalid", "", 0, 0, List.new[ProjectedExpressionNode]()).
+
+@pure
+empty_definition(): ProjectedShapeDefinition ->
+    ProjectedShapeDefinition("", List.new[String](), empty_node(), false, empty_node()).
+
+@pure
+project(source: String): List[self_host.ProjectionSyntax.ProjectedCanonicalToken] ->
+    let lexed = CanonicalLexer.lex(source);
+    if {
+        lexed.valid -> ProjectionAdapter.rewrite(source, lexed.tokens);
+        true -> List.new[self_host.ProjectionSyntax.ProjectedCanonicalToken]()
+    }.
+
+@pure
+parameter_names(values: List[PatternParse]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.syntax.text | parameter_names(rest)]
+    }.
+
+@pure
+definition_guard(shape: ShapeSyntax): DefinitionResult ->
+    case ProjectedExpressionParser.parse(project(shape.guard.syntax.text)).node {
+        None -> DefinitionResult(false, empty_definition(), "shape guard projection is invalid");
+        Some(guard) -> DefinitionResult(
+            true,
+            ProjectedShapeDefinition(
+                shape.name,
+                parameter_names(shape.parameters),
+                empty_node(),
+                true,
+                guard,
+            ),
+            "",
+        )
+    }.
+
+@pure
+definition_without_guard(shape: ShapeSyntax): DefinitionResult ->
+    DefinitionResult(
+        true,
+        ProjectedShapeDefinition(
+            shape.name,
+            parameter_names(shape.parameters),
+            empty_node(),
+            false,
+            empty_node(),
+        ),
+        "",
+    ).
+
+@pure
+definition_body(shape: ShapeSyntax, guard_result: DefinitionResult): DefinitionResult ->
+    case ProjectedPatternParser.parse(project(shape.body.syntax.text)).node {
+        None -> DefinitionResult(false, empty_definition(), "shape body projection is invalid");
+        Some(body) -> DefinitionResult(
+            true,
+            ProjectedShapeDefinition(
+                shape.name,
+                parameter_names(shape.parameters),
+                body,
+                guard_result.definition.has_guard,
+                guard_result.definition.guard,
+            ),
+            "",
+        )
+    }.
+
+@pure
+definition(shape: ShapeSyntax): DefinitionResult ->
+    if {
+        not shape.valid -> DefinitionResult(false, empty_definition(), shape.message);
+        true ->
+            let guard_result = if {
+                shape.has_guard -> definition_guard(shape);
+                true -> definition_without_guard(shape)
+            };
+            if {
+                not guard_result.valid -> guard_result;
+                true -> definition_body(shape, guard_result)
+            }
+    }.
+
+@pure
+contains_definition(values: List[ProjectedShapeDefinition], name: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.name == name or contains_definition(rest, name)
+    }.
+
+@pure
+build_at(
+    values: List[ShapeSyntax],
+    output: List[ProjectedShapeDefinition],
+): ProjectedShapeCatalogResult ->
+    case values {
+        [] -> ProjectedShapeCatalogResult(true, output, "");
+        [value | rest] ->
+            let lowered = definition(value);
+            if {
+                not lowered.valid -> ProjectedShapeCatalogResult(false, output, lowered.message);
+                contains_definition(output, lowered.definition.name) -> ProjectedShapeCatalogResult(
+                    false,
+                    output,
+                    String.concat(["duplicate shape declaration `", lowered.definition.name, "`"]),
+                );
+                true -> build_at(rest, [lowered.definition | output])
+            }
+    }.
+
+/** Builds the local compile-time shape catalog used by projected expansion. */
+@pure
+pub build(values: List[ShapeSyntax]): ProjectedShapeCatalogResult ->
+    build_at(values, List.new[ProjectedShapeDefinition]()).

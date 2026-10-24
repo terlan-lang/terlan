@@ -1,56 +1,28 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-inset
+//! The `text-decoration-inset` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! enables adjusting the start and end points of an element's text decoration so it can be
+//! shortened, lengthened, or have its position shifted with respect to the rendered text.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: refer to the size of the box itself.
+//!
+//! Keyword effects:
+//! - auto: The browser chooses a start and end inset amount to ensure that, if two decorated text
+//! boxes appear side-by-side, the appearance of a gap is created between their text decorations so
+//! they do not appear to have a single text decoration.
+//!
 //! Grammar: <length-percentage>{1,2} | auto
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-inset
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-inset
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextDecorationInset.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    text_decoration_inset: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    text_decoration_inset: Value
+    text_decoration_inset: Auto | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained text-decoration-inset value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a text-decoration-inset value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Constructs a text-decoration-inset value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

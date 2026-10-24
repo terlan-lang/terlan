@@ -47,7 +47,7 @@ pub(in crate::compiler::native_ir) fn install_struct_layouts(
                 encode_aggregate_layout(&descriptor)
                     .map_err(|error| format!("error[native_ir.struct_layout_abi]: {error}"))?,
             );
-            let layout = NativeConstructorLayout {
+            let layout = Arc::new(NativeConstructorLayout {
                 parameter_core_types: fields.iter().map(|field| Some(field.ty.clone())).collect(),
                 parameters,
                 result: NativeType::ManagedRef(
@@ -57,7 +57,7 @@ pub(in crate::compiler::native_ir) fn install_struct_layouts(
                 result_core_type: declaration.core_body.clone(),
                 descriptor,
                 encoded_layout,
-            };
+            });
             let qualified = (name.clone(), fields.len());
             if layouts.contains_key(&qualified) {
                 continue;

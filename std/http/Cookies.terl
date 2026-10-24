@@ -32,7 +32,7 @@ pub type Lax.
  * Transformation: gives cookie option records a stable source-visible policy
  * value without exposing backend header formatting.
  */
-pub type Strict.
+pub type Strict = std.core.Atom.Strict.
 
 /**
  * None represents the cross-site SameSite cookie policy.
@@ -42,7 +42,7 @@ pub type Strict.
  * Transformation: gives cookie option records a stable source-visible policy
  * value without exposing backend header formatting.
  */
-pub type None.
+pub type None = std.core.Option.None.
 
 /**
  * SameSite represents the supported SameSite cookie policies.
@@ -115,6 +115,18 @@ pub struct Jar {
  */
 pub from_map(incoming: Map[String, String]): Jar ->
     Jar {#incoming: incoming, #pending: []}.
+
+/**
+ * Parses one Cookie header through the maintained package codec.
+ *
+ * Malformed pairs are ignored by the codec. Terlan selects the first value
+ * for duplicate names and initializes independent pending response headers.
+ */
+pub parse(header: String): Jar ->
+    from_pairs(decode(header)).
+
+@compiler.native
+decode(header: String): List[{String, String}].
 
 /**
  * Creates a jar from ordered, decoded cookie pairs.

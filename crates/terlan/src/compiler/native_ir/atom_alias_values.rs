@@ -102,7 +102,7 @@ fn rewrite(expr: &mut CoreExpr, aliases: &HashMap<String, AliasValue>) {
         return;
     }
     match expr {
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items.iter_mut().for_each(|item| rewrite(item, aliases));
         }
         CoreExpr::ListCons { head, tail }

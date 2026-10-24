@@ -1,0 +1,6 @@
+//! Shared CSS keyword ease. Generated; do not edit.
+
+module std.css.keywords.Ease.
+
+pub type Ease =
+    Atom["ease"].

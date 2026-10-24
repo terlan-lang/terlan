@@ -1,0 +1,26 @@
+/** Positive and negative bootstrap identity contracts. */
+module self_host.ProductionArtifactIdentityTest.
+
+import self_host.ProductionArtifactIdentity.
+import std.core.String.
+
+@test
+pub non_empty_artifact_has_prefixed_identity(): Bool ->
+    String.starts_with(
+        ProductionArtifactIdentity.identity("canonical-artifact"),
+        "sha256:",
+    ).
+
+@test
+pub equal_artifacts_have_equal_identities(): Bool ->
+    ProductionArtifactIdentity.identity("canonical-artifact") ==
+        ProductionArtifactIdentity.identity("canonical-artifact").
+
+@test
+pub distinct_artifacts_have_distinct_identities(): Bool ->
+    ProductionArtifactIdentity.identity("canonical-artifact-a") !=
+        ProductionArtifactIdentity.identity("canonical-artifact-b").
+
+@test
+pub empty_artifact_has_no_identity(): Bool ->
+    ProductionArtifactIdentity.identity("") == "".

@@ -1,10 +1,10 @@
 module=std.css.properties.BorderStartStartRadius
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7118604580569958235
-interface_hash=16436501424928536723
-interface_doc_hash=8087756604897106506
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=7815815838378994277
+interface_hash=18374386458765411264
+interface_doc_hash=2171177280861215991
 deps=2
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688

@@ -1,75 +1,31 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css2/#propdef-page-break-inside
+ * The `page-break-inside` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property adjusts
+ * page breaks _inside_ the current element.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: Initial value. Automatic page breaks (neither forced nor forbidden).
+ * - avoid: Avoid page breaks inside the element.
+ *
  * Grammar: avoid | auto | inherit
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css2/#propdef-page-break-inside
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/page-break-inside
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PageBreakInside.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, Avoid}.
 
-/**
- * A nominal, specification-constrained page-break-inside value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    page_break_inside: Value,
+    page_break_inside: Avoid | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    page_break_inside: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "page-break-inside", css: "auto"}).
-
-/**
- * Returns the CSS keyword avoid.
- */
-pub avoid(): Value ->
-    Value(Token {property: "page-break-inside", css: "avoid"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "page-break-inside", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "page-break-inside", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "page-break-inside", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "page-break-inside", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "page-break-inside", css: "unset"}).

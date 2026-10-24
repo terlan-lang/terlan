@@ -1,0 +1,67 @@
+/** Ordered finite-sum runtime layout contracts. */
+module self_host.ProjectedVariantLayoutTest.
+
+import self_host.ProjectedPatternAuthority.{FiniteSumContract, PatternAuthorityCatalog, PatternConstructorContract}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.test.Test.{assert}.
+import self_host.ProjectedVariantLayout.
+
+
+@test
+union_order_is_the_runtime_discriminant(): Bool ->
+    let plan = ProjectedVariantLayout.from_catalog(PatternAuthorityCatalog(
+        [
+            PatternConstructorContract("None", 0, List.new[String](), List.new[Option[String]]()),
+            PatternConstructorContract("Some", 1, ["T"], [Some("T")]),
+        ],
+        [FiniteSumContract("Option", ["None", "Some"])],
+    ));
+    assert(plan.valid);
+    case plan.layouts {
+        [none_layout, some_layout] -> assert(
+            none_layout.owner == "Option"
+                and none_layout.name == "None"
+                and none_layout.discriminant == 0
+                and some_layout.owner == "Option"
+                and some_layout.name == "Some"
+                and some_layout.discriminant == 1
+                and some_layout.type_parameters == ["T"]
+                and some_layout.payload_types == [Some("T")]
+        );
+        _ -> assert(false)
+    }.
+
+
+@test
+missing_constructor_schema_fails_closed(): Bool ->
+    let plan = ProjectedVariantLayout.from_catalog(PatternAuthorityCatalog(
+        List.new[PatternConstructorContract](),
+        [FiniteSumContract("Option", ["None"])],
+    ));
+    assert(not plan.valid and plan.layouts == [] and plan.diagnostics != []).
+
+
+@test
+ambiguous_constructor_schema_fails_closed(): Bool ->
+    let plan = ProjectedVariantLayout.from_catalog(PatternAuthorityCatalog(
+        [PatternConstructorContract("Some", 1), PatternConstructorContract("Some", 1)],
+        [FiniteSumContract("Option", ["Some"])],
+    ));
+    assert(not plan.valid and plan.layouts == [] and plan.diagnostics != []).
+
+
+@test
+owned_constructor_schema_disambiguates_imports(): Bool ->
+    let plan = ProjectedVariantLayout.from_catalog(PatternAuthorityCatalog(
+        [
+            PatternConstructorContract("Value", 1, ["T"], [Some("T")], Some("First")),
+            PatternConstructorContract("Value", 1, ["T"], [Some("List[T]")], Some("Second")),
+        ],
+        [FiniteSumContract("Second", ["Value"])],
+    ));
+    case plan.layouts {
+        [value] -> assert(plan.valid and value.owner == "Second" and value.payload_types == [Some("List[T]")]);
+        _ -> assert(false)
+    }.

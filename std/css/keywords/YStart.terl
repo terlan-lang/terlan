@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword y-start. Generated; do not edit.
+ */
+module std.css.keywords.YStart.
+
+pub type YStart = Atom["y-start"].

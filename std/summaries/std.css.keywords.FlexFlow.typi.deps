@@ -1,0 +1,8 @@
+module=std.css.keywords.FlexFlow
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=14324374053772397879
+interface_hash=12770144003370600485
+interface_doc_hash=14054753334021808353
+deps=0

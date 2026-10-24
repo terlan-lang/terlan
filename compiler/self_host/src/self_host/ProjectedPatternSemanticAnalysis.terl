@@ -1,0 +1,278 @@
+/** Pattern coverage and shape expansion over projected callable bodies. */
+module self_host.ProjectedPatternSemanticAnalysis.
+
+import std.core.String.
+
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectedPatternSemanticSyntax.{ProjectedPatternSemanticCheck, ProjectedPatternSemanticDiagnostic}.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.ProjectedShapeExpansion.{ProjectedShapeDefinition}.
+import self_host.ShapeSyntax.{ShapeSyntax}.
+import self_host.TypedModuleSyntax.{ShapePayload, TypedDeclaration}.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Int, String}.
+import self_host.ProjectedDeclarationLowering.
+import self_host.ProjectedPatternSemantics.
+import self_host.ProjectedPatternAuthority.
+import self_host.ProjectedPatternTypeFacts.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
+import self_host.ProjectedShapeCatalog.
+import self_host.ProjectedShapeExpansion.
+import self_host.TypedModuleLowering.
+
+
+struct ExpandedClauses {
+    valid: Bool,
+    clauses: List[ProjectedExpressionNode],
+    diagnostics: List[ProjectedPatternSemanticDiagnostic],
+}.
+
+constructor ExpandedClauses {
+    (valid: Bool, clauses: List[ProjectedExpressionNode], diagnostics: List[ProjectedPatternSemanticDiagnostic]): ExpandedClauses ->
+        ExpandedClauses { valid: valid, clauses: clauses, diagnostics: diagnostics }
+}.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+collect_shapes(values: List[TypedDeclaration]): List[ShapeSyntax] ->
+    case values {
+        [] -> List.new[ShapeSyntax]();
+        [value | rest] -> case value.payload {
+            ShapePayload(shape) -> [shape | collect_shapes(rest)];
+            _ -> collect_shapes(rest)
+        }
+    }.
+
+@pure
+diagnostic(head: String, value: ProjectedExpressionNode, message: String): ProjectedPatternSemanticDiagnostic ->
+    ProjectedPatternSemanticDiagnostic(head, value.start_byte, value.end_byte, message).
+
+@pure
+invalid_clause_diagnostic(head: String, value: ProjectedExpressionNode): ProjectedPatternSemanticDiagnostic ->
+    diagnostic(head, value, "case clause has no pattern").
+
+@pure
+expanded_clause(
+    value: ProjectedExpressionNode,
+    rest: List[ProjectedExpressionNode],
+    definitions: List[ProjectedShapeDefinition],
+    head: String,
+): ExpandedClauses ->
+    case value.children {
+        [] -> ExpandedClauses(false, List.new[ProjectedExpressionNode](), [invalid_clause_diagnostic(head, value)]);
+        [pattern | _children] ->
+            let expanded = ProjectedShapeExpansion.expand(pattern, definitions);
+            if {
+                not expanded.valid -> ExpandedClauses(false, List.new[ProjectedExpressionNode](), [diagnostic(head, pattern, expanded.message)]);
+                true ->
+                    let remaining = expand_clauses(rest, definitions, head);
+                    let guarded = value.text == "where" or expanded.guards != [];
+                    let clause = ProjectedExpressionNode(
+                        "clause",
+                        if { guarded -> "where"; true -> "" },
+                        value.start_byte,
+                        value.end_byte,
+                        [expanded.pattern],
+                    );
+                    ExpandedClauses(
+                        remaining.valid,
+                        [clause | remaining.clauses],
+                        remaining.diagnostics,
+                    )
+            }
+    }.
+
+@pure
+expand_clauses(
+    values: List[ProjectedExpressionNode],
+    definitions: List[ProjectedShapeDefinition],
+    head: String,
+): ExpandedClauses ->
+    case values {
+        [] -> ExpandedClauses(true, List.new[ProjectedExpressionNode](), List.new[ProjectedPatternSemanticDiagnostic]());
+        [value | rest] -> if {
+            value.kind != "clause" -> ExpandedClauses(false, List.new[ProjectedExpressionNode](), [diagnostic(head, value, "case child is not a clause")]);
+            true -> expanded_clause(value, rest, definitions, head)
+        }
+    }.
+
+@pure
+coverage_diagnostics(
+    head: String,
+    case_node: ProjectedExpressionNode,
+    clauses: List[ProjectedExpressionNode],
+): List[ProjectedPatternSemanticDiagnostic] ->
+    let projected_case = ProjectedExpressionNode(
+        "case",
+        "case",
+        case_node.start_byte,
+        case_node.end_byte,
+        [ProjectedExpressionNode("subject", "", 0, 0, List.new[ProjectedExpressionNode]()) | clauses],
+    );
+    let semantic = ProjectedPatternSemantics.analyze_case(projected_case, List.new[String]());
+    if {
+        not semantic.valid -> [diagnostic(head, case_node, semantic.message)];
+        semantic.coverage.duplicate_binding != "" -> [diagnostic(
+            head,
+            case_node,
+            String.concat(["pattern binds `", semantic.coverage.duplicate_binding, "` more than once"]),
+        )];
+        semantic.coverage.unreachable_clause >= 0 -> [diagnostic(
+            head,
+            case_node,
+            String.concat(["unreachable case clause ", Int.to_string(semantic.coverage.unreachable_clause + 1)]),
+        )];
+        true -> List.new[ProjectedPatternSemanticDiagnostic]()
+    }.
+
+@pure
+case_diagnostics(
+    value: ProjectedExpressionNode,
+    definitions: List[ProjectedShapeDefinition],
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case value.children {
+        [] -> [diagnostic(head, value, "case expression has no subject")];
+        [_subject | clauses] ->
+            let expanded = expand_clauses(clauses, definitions, head);
+            if {
+                not expanded.valid -> expanded.diagnostics;
+                expanded.clauses == [] -> [diagnostic(head, value, "case expression has no clauses")];
+                true -> append(expanded.diagnostics, coverage_diagnostics(head, value, expanded.clauses))
+            }
+    }.
+
+@pure
+children_diagnostics(
+    values: List[ProjectedExpressionNode],
+    definitions: List[ProjectedShapeDefinition],
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [value | rest] -> append(
+            node_diagnostics(value, definitions, head),
+            children_diagnostics(rest, definitions, head),
+        )
+    }.
+
+@pure
+node_diagnostics(
+    value: ProjectedExpressionNode,
+    definitions: List[ProjectedShapeDefinition],
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    append(
+        if {
+            value.kind == "case" -> case_diagnostics(value, definitions, head);
+            true -> List.new[ProjectedPatternSemanticDiagnostic]()
+        },
+        children_diagnostics(value.children, definitions, head),
+    ).
+
+@pure
+body_diagnostics(
+    value: ProjectedBody,
+    definitions: List[ProjectedShapeDefinition],
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case value.expression.node {
+        None -> List.new[ProjectedPatternSemanticDiagnostic]();
+        Some(node) -> node_diagnostics(node, definitions, value.declaration_head)
+    }.
+
+@pure
+bodies_diagnostics(
+    values: List[ProjectedBody],
+    definitions: List[ProjectedShapeDefinition],
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [value | rest] -> append(
+            body_diagnostics(value, definitions),
+            bodies_diagnostics(rest, definitions),
+        )
+    }.
+
+/** Checks projected patterns after building the module-local shape catalog. */
+@pure
+pub check(source: ProjectedFrontendModule): ProjectedPatternSemanticCheck ->
+    let typed = TypedModuleLowering.lower(ProjectedDeclarationLowering.lower(source.surface));
+    let catalog = ProjectedShapeCatalog.build(collect_shapes(typed.declarations));
+    if {
+        not catalog.valid -> ProjectedPatternSemanticCheck(
+            false,
+            [ProjectedPatternSemanticDiagnostic("<module>", 0, 0, catalog.message)],
+        );
+        true ->
+            let diagnostics = append(
+                bodies_diagnostics(source.bodies.values, catalog.definitions),
+                ProjectedPatternAuthority.check(typed, source.bodies.values),
+            );
+            ProjectedPatternSemanticCheck(source.valid and diagnostics == [], diagnostics)
+    }.
+
+/** Checks patterns with the import resolver's already-visible interface set. */
+@pure
+pub check_with_interfaces(
+    source: ProjectedFrontendModule,
+    interfaces: List[ModuleInterface],
+): ProjectedPatternSemanticCheck ->
+    let typed = TypedModuleLowering.lower(ProjectedDeclarationLowering.lower(source.surface));
+    let catalog = ProjectedShapeCatalog.build(collect_shapes(typed.declarations));
+    if {
+        not catalog.valid -> ProjectedPatternSemanticCheck(
+            false,
+            [ProjectedPatternSemanticDiagnostic("<module>", 0, 0, catalog.message)],
+        );
+        true ->
+            let diagnostics = append(
+                bodies_diagnostics(source.bodies.values, catalog.definitions),
+                ProjectedPatternAuthority.check_with_interfaces(typed, source.bodies.values, interfaces),
+            );
+            ProjectedPatternSemanticCheck(source.valid and diagnostics == [], diagnostics)
+    }.
+
+/** Checks imported pattern contracts and identifier subjects using inferred type facts. */
+@pure
+pub check_with_interfaces_and_facts(
+    source: ProjectedFrontendModule,
+    interfaces: List[ModuleInterface],
+    facts: List[InferredTypeFact],
+): ProjectedPatternSemanticCheck ->
+    let typed = TypedModuleLowering.lower(ProjectedDeclarationLowering.lower(source.surface));
+    let catalog = ProjectedShapeCatalog.build(collect_shapes(typed.declarations));
+    if {
+        not catalog.valid -> ProjectedPatternSemanticCheck(
+            false,
+            [ProjectedPatternSemanticDiagnostic("<module>", 0, 0, catalog.message)],
+        );
+        true ->
+            let authority = ProjectedPatternAuthority.catalog_with_interfaces(typed, interfaces);
+            let diagnostics = append(
+                bodies_diagnostics(source.bodies.values, catalog.definitions),
+                append(
+                    ProjectedPatternAuthority.check_with_interfaces(
+                        typed,
+                        source.bodies.values,
+                        interfaces,
+                    ),
+                    ProjectedPatternTypeFacts.check_bodies(
+                        source.bodies.values,
+                        facts,
+                        authority,
+                    ),
+                ),
+            );
+            ProjectedPatternSemanticCheck(source.valid and diagnostics == [], diagnostics)
+    }.

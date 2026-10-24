@@ -87,6 +87,11 @@ debug = "line-tables-only"
 [profile.test]
 debug = "line-tables-only"
 
+# Shipped tools do not need static symbol tables. Keep the canonical release
+# executables within their size budget, including the embedded service runtime.
+[profile.release]
+strip = "symbols"
+
 # Validation hashes complete toolchains and artifacts. Keep SHA-2's compression
 # backend optimized in developer/test tools without optimizing the whole compiler
 # or removing its line tables. CPU feature selection remains portable.

@@ -45,7 +45,7 @@ fn collect_free_variables(
                 free.insert(name.clone());
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             collect_many(items, bound, free);
         }
         CoreExpr::ListCons { head, tail }

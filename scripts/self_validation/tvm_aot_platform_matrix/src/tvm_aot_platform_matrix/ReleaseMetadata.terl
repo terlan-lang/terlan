@@ -37,7 +37,11 @@ binary_descriptors(platform: ReleasePlatform): Json ->
     let result = Json.array();
     let _compiler = result.push(binary_descriptor("terlc", platform.compiler));
     let _vm = result.push(binary_descriptor("terlan-vm", platform.vm));
-    let _worker = result.push(binary_descriptor("terlan-native-worker", platform.native_worker));
+    let _worker =
+        result
+            .push(
+                binary_descriptor("terlan-native-worker", platform.native_worker),
+            );
     result.push(binary_descriptor("terlan-lsp", platform.lsp)).
 
 binary_hashes(values: List[Payload], result: Json): Option[Json] ->

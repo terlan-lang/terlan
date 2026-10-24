@@ -1,0 +1,6 @@
+//! Shared CSS keyword color-burn. Generated; do not edit.
+
+module std.css.keywords.ColorBurn.
+
+pub type ColorBurn =
+    Atom["color-burn"].

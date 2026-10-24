@@ -1,0 +1,6 @@
+//! Shared CSS keyword grid-rows. Generated; do not edit.
+
+module std.css.keywords.GridRows.
+
+pub type GridRows =
+    Atom["grid-rows"].

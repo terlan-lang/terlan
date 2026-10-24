@@ -265,7 +265,7 @@ impl HigherOrderSpecializer<'_> {
             }
             CoreExpr::Tuple(_)
             | CoreExpr::List(_)
-            | CoreExpr::FixedArray(_)
+            | CoreExpr::Array(_)
             | CoreExpr::ListCons { .. }
             | CoreExpr::Map(_)
             | CoreExpr::RecordConstruct { .. }

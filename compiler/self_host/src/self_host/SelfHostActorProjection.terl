@@ -1,0 +1,151 @@
+/** Orchestrates actor CFG splitting, liveness, and continuation planning. */
+module self_host.SelfHostActorProjection.
+
+import self_host.SelfHostActorCallPlan.{ActorCalleeEntry}.
+import self_host.SelfHostActorCfgSplit.{ActorSplitRequest}.
+import self_host.SelfHostActorIrSyntax.{ActorContinuation, ActorIrPlan, ActorSuspensionSite}.
+import self_host.SelfHostActorLiveness.{ActorResolvedCallee}.
+import self_host.SelfHostIrSyntax.{IrFunction}.
+
+import std.collections.List.
+import std.core.{Bool, String}.
+import self_host.SelfHostActorCallExtraction.
+import self_host.SelfHostActorCfgSplit.
+import self_host.SelfHostActorLiveness.
+
+
+pub struct ActorFunctionRequest {
+    function: IrFunction,
+    split_requests: List[ActorSplitRequest],
+    callees: List[ActorResolvedCallee],
+}.
+
+pub constructor ActorFunctionRequest {
+    (function: IrFunction, split_requests: List[ActorSplitRequest], callees: List[ActorResolvedCallee]): ActorFunctionRequest ->
+        ActorFunctionRequest {
+            function: function,
+            split_requests: split_requests,
+            callees: callees,
+        }
+}.
+
+
+pub struct ActorFunctionProjection {
+    valid: Bool,
+    function: IrFunction,
+    actors: ActorIrPlan,
+    diagnostics: List[String],
+}.
+
+pub constructor ActorFunctionProjection {
+    (valid: Bool, function: IrFunction, actors: ActorIrPlan, diagnostics: List[String]): ActorFunctionProjection ->
+        ActorFunctionProjection {
+            valid: valid,
+            function: function,
+            actors: actors,
+            diagnostics: diagnostics,
+        }
+}.
+
+
+pub struct ActorModuleProjection {
+    valid: Bool,
+    functions: List[IrFunction],
+    actors: ActorIrPlan,
+    diagnostics: List[String],
+}.
+
+pub constructor ActorModuleProjection {
+    (valid: Bool, functions: List[IrFunction], actors: ActorIrPlan, diagnostics: List[String]): ActorModuleProjection ->
+        ActorModuleProjection {
+            valid: valid,
+            functions: functions,
+            actors: actors,
+            diagnostics: diagnostics,
+        }
+}.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+empty_actors(): ActorIrPlan ->
+    ActorIrPlan(List.new[ActorContinuation](), List.new[ActorSuspensionSite]()).
+
+@pure
+with_blocks(value: IrFunction, blocks: List[self_host.SelfHostIrSyntax.IrBlock]): IrFunction ->
+    IrFunction(
+        value.module_name,
+        value.name,
+        value.arity,
+        value.capture_count,
+        value.receiver_mutable,
+        value.receiver_command,
+        value.parameters,
+        value.return_type,
+        blocks,
+        value.native_symbol,
+    ).
+
+/** Projects one function without allowing a partial actor plan to escape. */
+@pure
+pub function(value: ActorFunctionRequest): ActorFunctionProjection ->
+    let split = SelfHostActorCfgSplit.split(value.function.blocks, value.split_requests);
+    if {
+        not split.valid -> ActorFunctionProjection(
+            false,
+            value.function,
+            empty_actors(),
+            split.diagnostics,
+        );
+        true ->
+            let projected = with_blocks(value.function, split.blocks);
+            let observations = SelfHostActorLiveness.observations(
+                projected,
+                split.anchors,
+                value.callees,
+            );
+            if {
+                not observations.valid -> ActorFunctionProjection(
+                    false,
+                    projected,
+                    empty_actors(),
+                    observations.diagnostics,
+                );
+                true -> ActorFunctionProjection(
+                    true,
+                    projected,
+                    SelfHostActorCallExtraction.plan(observations.observations),
+                    List.new[String](),
+                )
+            }
+    }.
+
+@pure
+functions(values: List[ActorFunctionRequest]): ActorModuleProjection ->
+    case values {
+        [] -> ActorModuleProjection(
+            true,
+            List.new[IrFunction](),
+            empty_actors(),
+            List.new[String](),
+        );
+        [value | rest] ->
+            let current = function(value);
+            let remaining = functions(rest);
+            ActorModuleProjection(
+                current.valid and remaining.valid,
+                [current.function | remaining.functions],
+                ActorIrPlan(
+                    append(current.actors.continuations, remaining.actors.continuations),
+                    append(current.actors.suspension_sites, remaining.actors.suspension_sites),
+                ),
+                append(current.diagnostics, remaining.diagnostics),
+            )
+    }.
+
+/** Projects an ordered module function set and one complete actor plan. */
+@pure
+pub build_module(values: List[ActorFunctionRequest]): ActorModuleProjection -> functions(values).

@@ -22,6 +22,21 @@ positive_impl(): Bool ->
     }.
 
 @pure
+positive_generic_method_name(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Mapping.\nimpl Mapping[List] for List { map[U](value: List[T], f: (T) -> U)[Mappable[List]]: List[U] -> value. }.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let implementation = TraitImplLowering.lower(declaration);
+            case implementation.methods {
+                [method] -> implementation.valid and method.name == "map" and List.length(method.constraints) == 1;
+                _ -> false
+            };
+        _ -> false
+    }.
+
+@pure
 positive_negative_impl(): Bool ->
     let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
         "module demo.Secret.\npub impl not JsonEncode[Box[Secret]].\n",
@@ -46,4 +61,8 @@ negative_impl_contract(): Bool ->
     ));
     case lowered_module.declarations { [declaration] -> not TraitImplLowering.lower(declaration).valid; _ -> false }.
 
-pub self_test(): Bool -> positive_impl() and positive_negative_impl() and negative_impl_contract().
+pub self_test(): Bool ->
+    positive_impl()
+        and positive_generic_method_name()
+        and positive_negative_impl()
+        and negative_impl_contract().

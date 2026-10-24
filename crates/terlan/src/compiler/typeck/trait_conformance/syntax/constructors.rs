@@ -21,7 +21,7 @@ pub(super) fn type_constructor_arities(
     let mut arities = HashMap::from([
         ("List".to_string(), 1usize),
         ("Map".to_string(), 2usize),
-        ("FixedArray".to_string(), 2usize),
+        ("Array".to_string(), 2usize),
     ]);
 
     for (name, alias) in aliases {
@@ -74,7 +74,7 @@ pub(super) fn type_constructor_variances(
             "Map".to_string(),
             vec![Variance::Covariant, Variance::Covariant],
         ),
-        ("FixedArray".to_string(), vec![Variance::Covariant]),
+        ("Array".to_string(), vec![Variance::Covariant]),
     ]);
 
     for (name, alias) in aliases {

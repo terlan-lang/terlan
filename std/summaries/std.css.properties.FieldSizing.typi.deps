@@ -1,9 +1,11 @@
 module=std.css.properties.FieldSizing
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=3444296544272393671
-interface_hash=8740066357986671325
-interface_doc_hash=6383794198804240004
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=17805491038946760679
+interface_hash=6358150486524387677
+interface_doc_hash=13444317143425343030
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Content=6757923625871065052
+std.css.keywords.Fixed=2398942837349121612

@@ -2,6 +2,71 @@
 
 use super::*;
 
+#[test]
+fn collapsed_default_type_path_expands_through_canonical_alias_key() {
+    let payload = Type::Union(vec![
+        Type::LiteralAtom("none".to_string()),
+        Type::Tuple(vec![Type::LiteralAtom("some".to_string()), Type::Int]),
+    ]);
+    let option = TypeAlias {
+        params: vec![0],
+        param_variance: vec![Variance::Invariant],
+        bounds: vec![],
+        body: Type::Union(vec![
+            Type::LiteralAtom("none".to_string()),
+            Type::Tuple(vec![Type::LiteralAtom("some".to_string()), Type::Var(0)]),
+        ]),
+        constructor_param_names: vec![],
+        is_opaque: false,
+    };
+    let aliases = HashMap::from([("std.core.Option.Option".to_string(), option)]);
+    let collapsed = Type::Named {
+        module: Some("std.core".to_string()),
+        name: "Option".to_string(),
+        args: vec![payload.clone()],
+    };
+
+    assert_eq!(
+        expand_type_aliases(&collapsed, &aliases),
+        Type::Union(vec![
+            Type::LiteralAtom("none".to_string()),
+            Type::Tuple(vec![Type::LiteralAtom("some".to_string()), payload]),
+        ])
+    );
+}
+
+#[test]
+fn collapsed_opaque_default_type_path_normalizes_to_canonical_identity() {
+    let iterator = TypeAlias {
+        params: vec![0],
+        param_variance: vec![Variance::Invariant],
+        bounds: vec![],
+        body: Type::Dynamic,
+        constructor_param_names: vec![],
+        is_opaque: true,
+    };
+    let aliases = HashMap::from([(
+        "std.collections.Iterator.Iterator".to_string(),
+        iterator,
+    )]);
+    let collapsed = Type::Named {
+        module: Some("std.collections".to_string()),
+        name: "Iterator".to_string(),
+        args: vec![Type::Int],
+    };
+    let canonical = Type::Named {
+        module: Some("std.collections.Iterator".to_string()),
+        name: "Iterator".to_string(),
+        args: vec![Type::Int],
+    };
+
+    assert_eq!(
+        expand_type_aliases(&collapsed, &aliases),
+        expand_type_aliases(&canonical, &aliases)
+    );
+    assert_eq!(expand_type_aliases(&collapsed, &aliases), canonical);
+}
+
 /// Every inferred alternative must fit, irrespective of branch order.
 #[test]
 fn return_union_checks_every_variant_instead_of_any_overlap() {

@@ -7,7 +7,8 @@ pub(crate) fn check_syntax_negative_trait_impls(
     visible_type_names: &HashSet<String>,
     resolved: &ResolvedModule,
 ) -> Vec<Diagnostic> {
-    let imported_type_refs = imported_type_text_refs(&imported_type_names(resolved));
+    let imported_type_refs =
+        imported_type_text_refs(&imported_type_names_for_module(module, resolved));
     let positive_impl_entries =
         collect_syntax_positive_trait_impl_keys(module, &imported_type_refs);
     let positive_impls = positive_impl_entries
@@ -145,7 +146,8 @@ pub(crate) fn collect_visible_negative_trait_impl_type_args(
     resolved: &ResolvedModule,
     alias_names: &HashSet<String>,
 ) -> HashMap<String, Vec<Vec<Type>>> {
-    let imported_type_refs = imported_type_text_refs(&imported_type_names(resolved));
+    let imported_type_refs =
+        imported_type_text_refs(&imported_type_names_for_module(module, resolved));
     let mut facts = HashMap::new();
 
     for declaration in &module.declarations {
@@ -385,8 +387,8 @@ fn first_unresolved_negative_target(
         Type::List(inner) => {
             first_unresolved_negative_target(inner, visible_type_names, resolved, vars)
         }
-        Type::FixedArray { size, elem } => {
-            if let crate::terlan_typeck::types::FixedArraySize::Param(id) = size {
+        Type::Array { size, elem } => {
+            if let crate::terlan_typeck::types::ArraySize::Param(id) = size {
                 return vars
                     .iter()
                     .find_map(|(name, candidate)| (*candidate == *id).then(|| name.clone()))

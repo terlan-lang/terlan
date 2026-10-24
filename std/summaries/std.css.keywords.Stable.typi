@@ -1,0 +1,6 @@
+//! Shared CSS keyword stable. Generated; do not edit.
+
+module std.css.keywords.Stable.
+
+pub type Stable =
+    Atom["stable"].

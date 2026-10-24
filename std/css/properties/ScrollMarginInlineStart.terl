@@ -1,72 +1,28 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-inline-start
+ * The `scroll-margin-inline-start` property defines the margin of the scroll snap area at the start
+ * of the inline dimension that is used for snapping this box to the
+ * [snapport](https://developer.mozilla.org/en-US/docs/Glossary/Scroll_snap#snapport). The scroll
+ * snap area is determined by taking the transformed border box, finding its rectangular bounding
+ * box (axis-aligned in the scroll container's coordinate space), then adding the specified outsets.
+ *
+ * Initial: 0. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <length>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-inline-start
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-margin-inline-start
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollMarginInlineStart.
 
-import std.css.Values.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, Unset}.
 
-import type std.core.Option.
-import type std.css.Values.{Length}.
-
-/**
- * A nominal, specification-constrained scroll-margin-inline-start value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    scroll_margin_inline_start: Value,
+    scroll_margin_inline_start: Length | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    scroll_margin_inline_start: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "scroll-margin-inline-start", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scroll-margin-inline-start", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scroll-margin-inline-start", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scroll-margin-inline-start", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scroll-margin-inline-start", css: "unset"}).
-
-/**
- * Constructs a scroll-margin-inline-start value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "scroll-margin-inline-start", css: std.css.Values.length_css(value)}).

@@ -1,0 +1,142 @@
+/** Lossless canonical source document shared by self-hosted tooling. */
+module self_host.SelfHostToolingDocument.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.{Bool, Int, String}.
+
+import self_host.CanonicalToken.{CanonicalToken, TokenCategory}.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.CanonicalLexer.
+import self_host.ProjectedFrontend.
+
+
+pub struct ToolingToken {
+    category: TokenCategory,
+    terminal: String,
+    text: String,
+    leading: String,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+pub constructor ToolingToken {
+    (
+        category: TokenCategory,
+        terminal: String,
+        text: String,
+        leading: String,
+        start_byte: Int,
+        end_byte: Int,
+    ): ToolingToken -> ToolingToken {
+        category: category,
+        terminal: terminal,
+        text: text,
+        leading: leading,
+        start_byte: start_byte,
+        end_byte: end_byte,
+    }
+}.
+
+
+pub struct ToolingDocument {
+    valid: Bool,
+    lexical_valid: Bool,
+    frontend_valid: Bool,
+    source: String,
+    canonical_tokens: List[CanonicalToken],
+    tokens: List[ToolingToken],
+    frontend: ProjectedFrontendModule,
+    message: String,
+}.
+
+pub constructor ToolingDocument {
+    (
+        valid: Bool,
+        lexical_valid: Bool,
+        frontend_valid: Bool,
+        source: String,
+        canonical_tokens: List[CanonicalToken],
+        tokens: List[ToolingToken],
+        frontend: ProjectedFrontendModule,
+        message: String,
+    ): ToolingDocument -> ToolingDocument {
+        valid: valid,
+        lexical_valid: lexical_valid,
+        frontend_valid: frontend_valid,
+        source: source,
+        canonical_tokens: canonical_tokens,
+        tokens: tokens,
+        frontend: frontend,
+        message: message,
+    }
+}.
+
+@pure
+slice(source: String, start: Int, end: Int): String ->
+    source.utf8_slice(start, end - start).
+
+@pure
+tooling_tokens(
+    source: String,
+    values: List[CanonicalToken],
+    previous_end: Int,
+): List[ToolingToken] ->
+    case values {
+        [] -> List.new[ToolingToken]();
+        [value | rest] -> [ToolingToken(
+            value.category,
+            value.terminal,
+            value.text,
+            slice(source, previous_end, value.start_byte),
+            value.start_byte,
+            value.end_byte,
+        ) | tooling_tokens(source, rest, value.end_byte)]
+    }.
+
+@pure
+render_tokens(values: List[ToolingToken]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([
+            value.leading,
+            value.text,
+            render_tokens(rest),
+        ])
+    }.
+
+@pure
+message(lexical_valid: Bool, frontend: ProjectedFrontendModule): String ->
+    if {
+        not lexical_valid -> "canonical lexer rejected tooling source";
+        not frontend.valid -> frontend.message;
+        true -> "ok"
+    }.
+
+/** Lexes and projects source exactly once while retaining every source byte. */
+@pure
+pub build(source: String): ToolingDocument ->
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    let tokens = tooling_tokens(source, lexed.tokens, 0);
+    let lossless = render_tokens(tokens) == source;
+    ToolingDocument(
+        lexed.valid and frontend.valid and lossless,
+        lexed.valid,
+        frontend.valid,
+        source,
+        lexed.tokens,
+        tokens,
+        frontend,
+        if { lossless -> message(lexed.valid, frontend); true -> "tooling token reconstruction is not lossless" },
+    ).
+
+/** Reconstructs the exact original source, including trailing trivia. */
+@pure
+pub render(value: ToolingDocument): String ->
+    render_tokens(value.tokens).
+
+@pure
+pub round_trips(value: ToolingDocument): Bool ->
+    render(value) == value.source.

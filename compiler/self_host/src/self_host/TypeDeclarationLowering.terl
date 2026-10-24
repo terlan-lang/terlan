@@ -1,13 +1,66 @@
 /** Self-hosted lowering for transparent and opaque type declarations. */
 module self_host.TypeDeclarationLowering.
 
+import std.core.String.
+
 import self_host.DeclarationPayloadSyntax.{TypeDeclarationSyntax}.
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.Syntax.{OpaqueTypeDeclaration, TypeDeclaration}.
 
+import std.collections.List.
 import std.core.{Bool, Int, String}.
 import self_host.Delimited.
 import self_host.TypeParser.
+
+
+@pure
+generic_open_at(source: String, assignment: Int, index: Int): Int ->
+    if {
+        index >= assignment -> -1;
+        source.utf8_byte_at(index) == 91 -> index;
+        true -> generic_open_at(source, assignment, index + 1)
+    }.
+
+@pure
+generic_close_at(source: String, assignment: Int, index: Int, depth: Int): Int ->
+    if {
+        index >= assignment -> -1;
+        source.utf8_byte_at(index) == 91 -> generic_close_at(source, assignment, index + 1, depth + 1);
+        source.utf8_byte_at(index) == 93 and depth == 1 -> index;
+        source.utf8_byte_at(index) == 93 -> generic_close_at(source, assignment, index + 1, depth - 1);
+        true -> generic_close_at(source, assignment, index + 1, depth)
+    }.
+
+@pure
+parameter_name(value: String): String ->
+    let text = String.trim(value);
+    let constraint = Delimited.top_level_byte(text, 58);
+    if {
+        constraint < 0 -> text;
+        true -> String.trim(text.utf8_slice(0, constraint))
+    }.
+
+@pure
+parameter_names(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [parameter_name(value) | parameter_names(rest)]
+    }.
+
+@pure
+type_parameters(source: String, assignment: Int): List[String] ->
+    let opening = generic_open_at(source, assignment, 0);
+    if {
+        opening < 0 -> List.new[String]();
+        true -> let closing = generic_close_at(source, assignment, opening + 1, 1);
+            if {
+                closing < 0 -> List.new[String]();
+                true -> parameter_names(Delimited.split_top_level(
+                    source.utf8_slice(opening + 1, closing - opening - 1),
+                    44,
+                ))
+            }
+    }.
 
 
 @pure
@@ -43,6 +96,7 @@ pub lower(source: DeclarationSyntax): TypeDeclarationSyntax ->
     TypeDeclarationSyntax(
         valid,
         source.name,
+        type_parameters(source.body, if { assignment < 0 -> source.body.byte_size(); true -> assignment }),
         assignment >= 0,
         representation,
         source.class == OpaqueTypeDeclaration,

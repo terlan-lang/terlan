@@ -24,7 +24,24 @@ positive_function(): Bool ->
                 and function.parameters == "value: String"
                 and List.length(function.typed_parameters) == 1
                 and function.return_type.syntax.class == AppliedType
+                and function.has_body
                 and function.body.syntax.class == PipeExpression;
+        _ -> false
+    }.
+
+@pure
+positive_native_signature(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.Function.\n@compiler.native\npub read(value: String)[Readable[String]]: Result[String, Error].\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let function = FunctionLowering.lower(declaration);
+            function.valid
+                and function.name == "read"
+                and not function.has_body
+                and List.length(function.constraints) == 1
+                and function.return_type.syntax.class == AppliedType;
         _ -> false
     }.
 
@@ -38,4 +55,4 @@ negative_function(): Bool ->
         _ -> false
     }.
 
-pub self_test(): Bool -> positive_function() and negative_function().
+pub self_test(): Bool -> positive_function() and positive_native_signature() and negative_function().

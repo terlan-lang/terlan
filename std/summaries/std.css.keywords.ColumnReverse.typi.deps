@@ -1,0 +1,8 @@
+module=std.css.keywords.ColumnReverse
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=17630436444364935758
+interface_hash=18301553420526956452
+interface_doc_hash=6439066771262279368
+deps=0

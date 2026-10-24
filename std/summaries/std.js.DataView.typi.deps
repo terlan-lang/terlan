@@ -1,8 +1,8 @@
 module=std.js.DataView
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14604117336082439744
-interface_hash=4549229471798859741
-interface_doc_hash=4549229471798859741
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3182769490431368618
+interface_hash=36663330670479386
+interface_doc_hash=36663330670479386
 deps=0

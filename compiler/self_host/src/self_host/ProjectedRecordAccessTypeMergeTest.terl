@@ -1,0 +1,75 @@
+/** Declaration-authoritative record access typing contracts. */
+module self_host.ProjectedRecordAccessTypeMergeTest.
+
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedRecordAccessTypeMerge.
+import self_host.ProjectedRecordAccessTypeMerge.{RecordFieldType, RecordLayoutType}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+
+record_access(field: String): ProjectedExpressionNode -> ProjectedExpressionNode(
+    "record-access",
+    field,
+    10,
+    23,
+    [
+        ProjectedExpressionNode("identifier", "point", 10, 15, []),
+        ProjectedExpressionNode("identifier", "Point", 16, 21, []),
+        ProjectedExpressionNode("identifier", field, 22, 23, []),
+    ],
+).
+
+layouts(): List[RecordLayoutType] -> [RecordLayoutType(
+    "Point",
+    "sample.Geometry.Point",
+    [RecordFieldType("x", Some("Int"))],
+)].
+
+@test
+pub field_type_replaces_only_the_record_access_fact(): Bool ->
+    let merged = ProjectedRecordAccessTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(0, None, 10),
+                InferredTypeFact(1, Some("Point"), 10),
+            ],
+            [],
+        ),
+        record_access("x"),
+        layouts(),
+    );
+    case merged.facts {
+        [access, receiver] -> access.type_name == Some("Int")
+            and receiver.type_name == Some("Point")
+            and merged.diagnostics == [];
+        _ -> false
+    }.
+
+@test
+pub unknown_field_is_a_type_diagnostic(): Bool ->
+    let merged = ProjectedRecordAccessTypeMerge.merge_expression(
+        TypeConstraintResolution([InferredTypeFact(0, None, 10)], []),
+        record_access("missing"),
+        layouts(),
+    );
+    case merged.diagnostics {
+        [diagnostic] -> diagnostic.code == "unknown-record-field";
+        _ -> false
+    }.
+
+@test
+pub private_fields_require_private_spelling(): Bool ->
+    let merged = ProjectedRecordAccessTypeMerge.merge_expression(
+        TypeConstraintResolution([InferredTypeFact(0, None, 10)], []),
+        record_access("secret"),
+        [RecordLayoutType(
+            "Point",
+            "sample.Geometry.Point",
+            [RecordFieldType("secret", Some("String"), true)],
+        )],
+    );
+    case merged.diagnostics {
+        [diagnostic] -> diagnostic.code == "record-field-visibility";
+        _ -> false
+    }.

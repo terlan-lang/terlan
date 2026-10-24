@@ -1,0 +1,8 @@
+module=std.css.keywords.Notch
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=4640956149299231642
+interface_hash=13696185018577540897
+interface_doc_hash=16705567685326238670
+deps=0

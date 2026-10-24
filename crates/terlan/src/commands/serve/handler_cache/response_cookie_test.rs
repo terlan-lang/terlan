@@ -162,10 +162,7 @@ pub invalid(request: Request, name: String, value: String, path: String, remove:
         "/",
         "",
         terlan_http_native::RequestMetadata {
-            cookies: vec![
-                ("session".into(), "original".into()),
-                ("session".into(), "shadowed".into()),
-            ],
+            cookies: vec!["session=original; session=shadowed".into()],
             ..Default::default()
         },
     );
@@ -179,6 +176,7 @@ pub invalid(request: Request, name: String, value: String, path: String, remove:
         .unwrap();
     let mut helpers = VmPackageNativeHelpers::default();
     let mut headers = Vec::new();
+    step = super::super::handler_cache_test_support::resume_cookie_decode(step, &mut helpers);
     for _ in 0..3 {
         let AotHandlerInvocationStep::CapabilityWaiting(invocation) = step else {
             panic!("jar mutation must suspend for package validation");
@@ -198,6 +196,9 @@ pub invalid(request: Request, name: String, value: String, path: String, remove:
                 header,
             )))
             .unwrap();
+    }
+    for _ in 0..2 {
+        step = super::super::handler_cache_test_support::resume_cookie_decode(step, &mut helpers);
     }
     let AotHandlerInvocationStep::Complete(response_value) = step else {
         panic!("source replay must complete without native jar operations");
@@ -234,6 +235,8 @@ pub invalid(request: Request, name: String, value: String, path: String, remove:
                 ],
             )
             .unwrap();
+        let step =
+            super::super::handler_cache_test_support::resume_cookie_decode(step, &mut helpers);
         let AotHandlerInvocationStep::CapabilityWaiting(invocation) = step else {
             panic!("invalid mutation must suspend for validation");
         };

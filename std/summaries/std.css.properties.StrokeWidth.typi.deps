@@ -1,11 +1,10 @@
 module=std.css.properties.StrokeWidth
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=3704195458790671813
-interface_hash=4086970653361179613
-interface_doc_hash=15235745212148802471
-deps=3
-std.core.Float=3784534907681217377
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1103795181860560423
+interface_hash=5427095218639994386
+interface_doc_hash=12251991863026364211
+deps=2
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688

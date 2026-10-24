@@ -1,0 +1,55 @@
+/** Contracts for Terlan-owned public documentation projection. */
+module self_host.SelfHostLintPublicDocsSourceTest.
+
+import std.core.String.
+
+import self_host.SelfHostLintPublicDocsSource.
+
+@test
+pub accepts_attached_line_and_block_documentation(): Bool ->
+    SelfHostLintPublicDocsSource.diagnostics(
+        "Api.terl",
+        "/// Returns a value.\npub value(): Int -> 1.\n\n/** A public type. */\n@stable\npub struct Value { item: Int }.\n",
+    ) == [].
+
+@test
+pub diagnoses_undocumented_public_declarations_and_trait_methods(): Bool ->
+    let values = SelfHostLintPublicDocsSource.diagnostics(
+        "Api.terl",
+        "/** A service. */\npub trait Service {\n    pub run(value: Int): Int.\n}.\npub execute(value: Int): Int -> value.\n",
+    );
+    case values {
+        [method, function] ->
+            method.rule_id == "TL0006"
+                and method.line == 3
+                and function.rule_id == "TL0006"
+                and function.line == 5;
+        _ -> false
+    }.
+
+@test
+pub excludes_public_imports_and_exports(): Bool ->
+    SelfHostLintPublicDocsSource.subjects(
+        "pub import std.core.String.\npub export Value.\n",
+    ) == [].
+
+@test
+pub preserves_policy_path_exemptions(): Bool ->
+    SelfHostLintPublicDocsSource.diagnostics(
+        "ApiTest.terl",
+        "pub test_value(): Bool -> true.\n",
+    ) == []
+        and SelfHostLintPublicDocsSource.diagnostics(
+            "tool.terls",
+            "pub main(): Int -> 0.\n",
+        ) == [].
+
+@test
+pub module_docs_do_not_document_the_next_public_item(): Bool ->
+    case SelfHostLintPublicDocsSource.diagnostics(
+        "Api.terl",
+        "//! Module documentation.\npub value(): Int -> 1.\n",
+    ) {
+        [value] -> value.rule_id == "TL0006" and value.line == 2;
+        _ -> false
+    }.

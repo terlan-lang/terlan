@@ -1,52 +1,30 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-multicol-2/#propdef-column-count
+//! The `column-count` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property breaks an
+//! element's content into the specified number of columns.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: The number of columns is determined by other CSS properties, such as `column-width`.
+//!
 //! Grammar: auto | <integer [1,∞]>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-multicol-2/#propdef-column-count
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-count
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ColumnCount.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    column_count: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    column_count: Value
+    column_count: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained column-count value.
+/// Checks the column-count integer range. Returns Some when amount >= 1; otherwise returns None.
 
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a column-count value.
-
-pub integer(value: Int): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub integer(value: Int): Option[Checked].

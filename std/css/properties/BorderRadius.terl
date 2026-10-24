@@ -1,155 +1,98 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-radius
+ * The `border-radius` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property rounds the corners of an element's outer border edge. You can set a single radius to
+ * make circular corners, or two radii to make elliptical corners.
+ *
+ * Initial: border-top-left-radius: 0; border-top-right-radius: 0; border-bottom-right-radius: 0;
+ * border-bottom-left-radius: 0. Inherited: no.
+ * Percentages: refer to the corresponding dimension of the border box.
+ *
  * Grammar: <length-percentage [0,∞]>{1,4} [ / <length-percentage [0,∞]>{1,4} ]?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-radius
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-radius
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BorderRadius.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
-import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css}.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained border-radius value.
- */
-pub opaque type Value = Token.
+pub opaque type CheckedComponent = SerializedValue.
 
-/**
- * A single non-global border-radius shorthand component.
- */
-pub opaque type Component = Token.
+pub type Component = CheckedComponent.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[Component]}.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    border_radius: Value,
+    border_radius: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the border-radius length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub struct OptionalProperty {
-    border_radius: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "border-radius", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "border-radius", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "border-radius", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "border-radius", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "border-radius", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a border-radius value.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "border-radius", css: length_css(value)}));
-        false -> None
+        true -> Some(Checked(serialize("border-radius", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a border-radius value.
+ * Checks the border-radius percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "border-radius", css: percentage_css(value)}));
-        false -> None
+        true -> Some(Checked(serialize("border-radius", percentage_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a border-radius value.
+ * Checks the border-radius length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub component_length(value: Length): Option[Component] ->
+pub component_length(value: Length): Option[CheckedComponent] ->
     case length_amount(value) >= 0 {
-        true -> Some(Component(Token {property: "border-radius", css: length_css(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("border-radius", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a border-radius value.
+ * Checks the border-radius percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub component_percentage(value: Percentage): Option[Component] ->
+pub component_percentage(value: Percentage): Option[CheckedComponent] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Component(Token {property: "border-radius", css: percentage_css(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("border-radius", percentage_css(value))));
+        false -> Absent
     }.
 
 /**
- * Serializes a library-owned shorthand component.
+ * Supplies 1 components in grammar order.
  */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Combines 1 typed components in specification order.
+ * Supplies 2 components in grammar order.
  */
-pub single(first: Component): Value ->
-    Value(Token {property: "border-radius", css: component_css(first)}).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).
 
 /**
- * Combines 2 typed components in specification order.
+ * Supplies 3 components in grammar order.
  */
-pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {property: "border-radius", css: component_css(first) + " " + component_css(second)},
-    ).
+pub triple(first: Component, second: Component, third: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third]}).
 
 /**
- * Combines 3 typed components in specification order.
+ * Supplies 4 components in grammar order.
  */
-pub triple(first: Component, second: Component, third: Component): Value ->
-    Value(
-        Token {
-            property: "border-radius",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third),
-        },
-    ).
-
-/**
- * Combines 4 typed components in specification order.
- */
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value ->
-    Value(
-        Token {
-            property: "border-radius",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third) + " " + component_css(fourth),
-        },
-    ).
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third, fourth]}).

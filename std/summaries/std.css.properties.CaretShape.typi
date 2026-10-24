@@ -1,60 +1,32 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-shape
+//! The `caret-shape` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the shape
+//! of the insertion caret, the visible marker that appears in editable elements to indicate where
+//! the next character will be inserted or deleted.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: The default value. The browser determines the caret shape. This typically follows
+//! platform conventions and may change based on context.
+//! - bar: The caret appears as a thin vertical line at the insertion point, positioned between
+//! characters rather than over them.
+//! - block: The caret appears as a rectangle that overlaps the next character after the insertion
+//! point. If no character follows, it appears after the last character.
+//! - underscore: The caret appears as a thin horizontal line underneath the next character after the
+//! insertion point. If no character follows, it appears after the last character.
+//!
 //! Grammar: auto | bar | block | underscore
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-shape
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/caret-shape
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.CaretShape.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    caret_shape: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    caret_shape: Value
+    caret_shape: Auto | Bar | Block | Underscore | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained caret-shape value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword bar.
-
-pub bar(): Value.
-
-/// Returns the CSS keyword block.
-
-pub block(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword underscore.
-
-pub underscore(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

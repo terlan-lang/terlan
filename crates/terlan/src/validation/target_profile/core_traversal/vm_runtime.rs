@@ -159,7 +159,7 @@ fn expr_contains_vm_supported_std_runtime(profile: TargetProfile, expr: &CoreExp
         | CoreExpr::Binary(_)
         | CoreExpr::Atom(_)
         | CoreExpr::Var(_)
-        | CoreExpr::FixedArray(_)
+        | CoreExpr::Array(_)
         | CoreExpr::RemoteFunRef { .. } => false,
     }
 }

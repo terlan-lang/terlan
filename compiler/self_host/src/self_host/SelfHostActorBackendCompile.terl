@@ -1,0 +1,414 @@
+/** Atomically emits CFG-projected Core IR and its actor sidecar. */
+module self_host.SelfHostActorBackendCompile.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+
+import std.core.{Bool, Int, String}.
+import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
+import self_host.SelfHostActorCoreAuthority.{ActorCoreFunctionRequest}.
+import self_host.SelfHostActorCoreTraversal.{ActorDynamicCallEvidence}.
+import self_host.SelfHostActorProjection.{ActorModuleProjection}.
+import self_host.SelfHostIrSyntax.{BackendEnvelope, IrDiagnostic, IrFunction, IrModule}.
+import self_host.SelfHostSemanticIrSyntax.{BackendCompilation, SemanticModulePlan}.
+import self_host.TypedModuleSyntax.{TypedModule}.
+import self_host.SelfHostActorCoreAuthority.
+import self_host.SelfHostActorCoreEffects.
+import self_host.SelfHostActorEffectAuthority.
+import self_host.SelfHostActorEffectProjection.
+import self_host.SelfHostActorDynamicTargets.
+import self_host.SelfHostActorDynamicDiscovery.
+import self_host.SelfHostActorDynamicDiscovery.{DynamicTargetEnvironment}.
+import self_host.SelfHostActorIrJson.
+import self_host.SelfHostActorProfileDerivation.
+import self_host.SelfHostActorProfileConvergence.
+import self_host.SelfHostActorTypedCoreModule.
+import self_host.SelfHostBackendCompile.
+import self_host.SelfHostBackendEnvelope.
+import self_host.SelfHostIrJson.
+import self_host.SelfHostIrValidation.
+import self_host.SelfHostTypedCoreAuthority.
+import self_host.SelfHostVariantIrJson.
+
+
+/** Typed dynamic-dispatch and callee-entry evidence for one function. */
+pub struct ActorFunctionCompileEvidence {
+    module_name: String,
+    function_name: String,
+    arity: Int,
+    dynamic_calls: List[ActorDynamicCallEvidence],
+}.
+
+pub constructor ActorFunctionCompileEvidence {
+    (module_name: String, function_name: String, arity: Int, dynamic_calls: List[ActorDynamicCallEvidence]): ActorFunctionCompileEvidence ->
+        ActorFunctionCompileEvidence {
+            module_name: module_name,
+            function_name: function_name,
+            arity: arity,
+            dynamic_calls: dynamic_calls,
+        }
+}.
+
+
+/** Complete input for one actor-aware backend compilation. */
+pub struct ActorBackendRequest {
+    source: TypedModule,
+    semantic_plan: SemanticModulePlan,
+    target: String,
+    suspension_profiles: List[ActorSuspensionProfile],
+    function_evidence: List[ActorFunctionCompileEvidence],
+}.
+
+pub constructor ActorBackendRequest {
+    (source: TypedModule, semantic_plan: SemanticModulePlan, target: String, suspension_profiles: List[ActorSuspensionProfile], function_evidence: List[ActorFunctionCompileEvidence]): ActorBackendRequest ->
+        ActorBackendRequest {
+            source: source,
+            semantic_plan: semantic_plan,
+            target: target,
+            suspension_profiles: suspension_profiles,
+            function_evidence: function_evidence,
+        }
+}.
+
+
+/** Both artifacts are absent unless every authority gate succeeds. */
+pub struct ActorBackendCompilation {
+    envelope: Option[BackendEnvelope],
+    backend_json: Option[String],
+    variant_json: Option[String],
+    actor_json: Option[String],
+    diagnostics: List[String],
+}.
+
+pub constructor ActorBackendCompilation {
+    (envelope: Option[BackendEnvelope], backend_json: Option[String], actor_json: Option[String], diagnostics: List[String]): ActorBackendCompilation ->
+        ActorBackendCompilation {
+            envelope: envelope,
+            backend_json: backend_json,
+            variant_json: None,
+            actor_json: actor_json,
+            diagnostics: diagnostics,
+        };
+    (envelope: Option[BackendEnvelope], backend_json: Option[String], variant_json: Option[String], actor_json: Option[String], diagnostics: List[String]): ActorBackendCompilation ->
+        ActorBackendCompilation {
+            envelope: envelope,
+            backend_json: backend_json,
+            variant_json: variant_json,
+            actor_json: actor_json,
+            diagnostics: diagnostics,
+        }
+}.
+
+
+@pure
+failed(diagnostics: List[String]): ActorBackendCompilation ->
+    ActorBackendCompilation(None, None, None, diagnostics).
+
+@pure
+same_function(value: ActorFunctionCompileEvidence, function: IrFunction): Bool ->
+    value.module_name == function.module_name
+        and value.function_name == function.name
+        and value.arity == function.arity.
+
+@pure
+evidence_for(function: IrFunction, values: List[ActorFunctionCompileEvidence], found: Option[ActorFunctionCompileEvidence]): Result[Option[ActorFunctionCompileEvidence], String] ->
+    case values {
+        [] -> Ok(found);
+        [value | rest] -> if {
+            !same_function(value, function) -> evidence_for(function, rest, found);
+            true -> case found {
+                None -> evidence_for(function, rest, Some(value));
+                Some(_) -> Err("actor backend has duplicate function evidence")
+            }
+        }
+    }.
+
+@pure
+function_exists(value: ActorFunctionCompileEvidence, functions: List[IrFunction]): Bool ->
+    case functions {
+        [] -> false;
+        [function | rest] -> same_function(value, function) or function_exists(value, rest)
+    }.
+
+@pure
+all_evidence_matches(values: List[ActorFunctionCompileEvidence], functions: List[IrFunction]): Result[Bool, String] ->
+    case values {
+        [] -> Ok(true);
+        [value | rest] -> if {
+            value.module_name == "" -> Err("actor function evidence has no module name");
+            value.function_name == "" -> Err("actor function evidence has no function name");
+            value.arity < 0 -> Err("actor function evidence has a negative arity");
+            !function_exists(value, functions) -> Err("actor function evidence does not belong to the lowered module");
+            true -> all_evidence_matches(rest, functions)
+        }
+    }.
+
+@pure
+request_for(function: IrFunction, environment: DynamicTargetEnvironment, profiles: List[ActorSuspensionProfile], evidence: Option[ActorFunctionCompileEvidence]): Result[ActorCoreFunctionRequest, String] ->
+    case evidence {
+        None -> case SelfHostActorDynamicDiscovery.function_in(function, environment) {
+            Err(reason) -> Err(reason);
+            Ok(discovered) -> case SelfHostActorDynamicTargets.resolve(discovered, profiles) {
+                Err(reason) -> Err(reason);
+                Ok(dynamic_calls) -> Ok(ActorCoreFunctionRequest(
+                    function,
+                    dynamic_calls,
+                    profiles,
+                ))
+            }
+        };
+        Some(value) -> case SelfHostActorDynamicTargets.resolve(value.dynamic_calls, profiles) {
+            Err(reason) -> Err(reason);
+            Ok(dynamic_calls) -> Ok(ActorCoreFunctionRequest(
+                function,
+                dynamic_calls,
+                profiles,
+            ))
+        }
+    }.
+
+@pure
+requests(values: List[IrFunction], environment: DynamicTargetEnvironment, profiles: List[ActorSuspensionProfile], evidence: List[ActorFunctionCompileEvidence], output: List[ActorCoreFunctionRequest]): Result[List[ActorCoreFunctionRequest], String] ->
+    case values {
+        [] -> Ok(output);
+        [function | rest] -> case evidence_for(function, evidence, None) {
+            Err(reason) -> Err(reason);
+            Ok(found) -> case request_for(function, environment, profiles, found) {
+                Err(reason) -> Err(reason);
+                Ok(request) -> requests(
+                    rest,
+                    environment,
+                    profiles,
+                    evidence,
+                    [request | output],
+                )
+            }
+        }
+    }.
+
+@pure
+reverse_requests(values: List[ActorCoreFunctionRequest], output: List[ActorCoreFunctionRequest]): List[ActorCoreFunctionRequest] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_requests(rest, [value | output])
+    }.
+
+@pure
+function_requests(functions: List[IrFunction], profiles: List[ActorSuspensionProfile], evidence: List[ActorFunctionCompileEvidence]): Result[List[ActorCoreFunctionRequest], String] ->
+    case all_evidence_matches(evidence, functions) {
+        Err(reason) -> Err(reason);
+        Ok(_) -> case SelfHostActorDynamicDiscovery.environment(functions) {
+            Err(reason) -> Err(reason);
+            Ok(environment) -> case requests(functions, environment, profiles, evidence, []) {
+                Err(reason) -> Err(reason);
+                Ok(reversed) -> Ok(reverse_requests(reversed, []))
+            }
+        }
+    }.
+
+@pure
+function_requests_in(functions: List[IrFunction], environment: DynamicTargetEnvironment, profiles: List[ActorSuspensionProfile], evidence: List[ActorFunctionCompileEvidence]): Result[List[ActorCoreFunctionRequest], String] ->
+    case all_evidence_matches(evidence, functions) {
+        Err(reason) -> Err(reason);
+        Ok(_) -> case requests(functions, environment, profiles, evidence, []) {
+            Err(reason) -> Err(reason);
+            Ok(reversed) -> Ok(reverse_requests(reversed, []))
+        }
+    }.
+
+@pure
+requests_with_profiles(
+    values: List[ActorCoreFunctionRequest],
+    profiles: List[ActorSuspensionProfile],
+): Result[List[ActorCoreFunctionRequest], String] ->
+    case values {
+        [] -> Ok(List.new[ActorCoreFunctionRequest]());
+        [value | rest] -> case SelfHostActorDynamicTargets.resolve(
+            value.dynamic_calls,
+            profiles,
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(dynamic_calls) -> case requests_with_profiles(rest, profiles) {
+                Err(reason) -> Err(reason);
+                Ok(remaining) -> Ok([ActorCoreFunctionRequest(
+                    value.function,
+                    dynamic_calls,
+                    profiles,
+                ) | remaining])
+            }
+        }
+    }.
+
+
+@pure
+diagnostic_messages(values: List[IrDiagnostic]): List[String] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [String.concat([
+            value.code,
+            " function=", value.function_name,
+            " block=", value.block_label,
+            " message=", value.message,
+        ]) | diagnostic_messages(rest)]
+    }.
+
+@pure
+projected_module(source: IrModule, projection: ActorModuleProjection): IrModule ->
+    IrModule(source.name, source.structs, projection.functions).
+
+@pure
+append_profiles(
+    left: List[ActorSuspensionProfile],
+    right: List[ActorSuspensionProfile],
+): List[ActorSuspensionProfile] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_profiles(rest, right)]
+    }.
+
+encoded(request: ActorBackendRequest, ir_module: IrModule, actors: self_host.SelfHostActorIrSyntax.ActorIrPlan): ActorBackendCompilation ->
+    let validation = SelfHostIrValidation.validate(ir_module);
+    if {
+        !validation.valid -> failed(diagnostic_messages(validation.diagnostics));
+        true -> case SelfHostTypedCoreAuthority.attach(request.source, ir_module) {
+            None -> failed(["variant-layout-authority-attachment-failed"]);
+            Some(core) -> case SelfHostVariantIrJson.encode(core) {
+                Err(_) -> failed(["variant-json-encoding-failed"]);
+                Ok(variant_json) -> case SelfHostActorTypedCoreModule.attach(
+                    core,
+                    actors,
+                    append_profiles(
+                        SelfHostActorProfileConvergence.runtime_profiles(
+                            request.suspension_profiles,
+                            ir_module.name,
+                        ),
+                        SelfHostActorProfileDerivation.derive(actors),
+                    ),
+                ) {
+                    None -> failed(["actor-ir-validation-failed"]);
+                    Some(actor_core) ->
+                        let envelope = SelfHostBackendEnvelope.current(ir_module, request.target);
+                        case SelfHostIrJson.encode(envelope) {
+                            Err(_) -> failed(["backend-json-encoding-failed"]);
+                            Ok(backend_json) -> case SelfHostActorIrJson.encode(actor_core) {
+                                Err(_) -> failed(["actor-json-encoding-failed"]);
+                                Ok(actor_json) -> ActorBackendCompilation(
+                                    Some(envelope),
+                                    Some(backend_json),
+                                    Some(variant_json),
+                                    Some(actor_json),
+                                    [],
+                                )
+                            }
+                        }
+                }
+            }
+        }
+    }.
+
+
+project_with_environment(request: ActorBackendRequest, envelope: BackendEnvelope, environment: DynamicTargetEnvironment, remaining: Int): ActorBackendCompilation ->
+    case function_requests_in(
+        envelope.ir_module.functions,
+        environment,
+        request.suspension_profiles,
+        request.function_evidence,
+    ) {
+        Err(reason) -> failed([reason]);
+        Ok(functions) -> case SelfHostActorCoreEffects.build_module(functions) {
+            Err(reason) -> failed([reason]);
+            Ok(edges) -> let effect_seeds = SelfHostActorCoreEffects.seeds(functions);
+            let imported_suspending = SelfHostActorCoreEffects.imported_suspending(edges, functions);
+            case SelfHostActorEffectProjection.project_module(
+                effect_seeds,
+                edges,
+                envelope.ir_module.functions,
+            ) {
+                Err(reason) -> failed([reason]);
+                Ok(effects) -> let seeded_profiles = SelfHostActorProfileConvergence.complete_seed(
+                    request.suspension_profiles,
+                    effects,
+                    imported_suspending,
+                    envelope.ir_module.name,
+                    envelope.ir_module.functions,
+                );
+                let seeded_request = ActorBackendRequest(
+                    request.source,
+                    request.semantic_plan,
+                    request.target,
+                    seeded_profiles,
+                    request.function_evidence,
+                );
+                case requests_with_profiles(functions, seeded_profiles) {
+                    Err(reason) -> failed([reason]);
+                    Ok(seeded_functions) -> case SelfHostActorEffectAuthority.authorize(
+                        seeded_profiles,
+                        effects,
+                        imported_suspending,
+                        envelope.ir_module.functions,
+                    ) {
+                        Err(reason) -> failed([reason]);
+                        Ok(_) -> case SelfHostActorCoreAuthority.build_module(seeded_functions) {
+                            Err(reason) -> failed([reason]);
+                            Ok(projection) -> if {
+                                !projection.valid -> failed(projection.diagnostics);
+                                true -> let generated = SelfHostActorProfileDerivation.derive(projection.actors);
+                                if {
+                                    SelfHostActorProfileConvergence.stable(
+                                        seeded_profiles,
+                                        generated,
+                                        envelope.ir_module.name,
+                                        envelope.ir_module.functions,
+                                    ) -> encoded(
+                                        seeded_request,
+                                        projected_module(envelope.ir_module, projection),
+                                        projection.actors,
+                                    );
+                                    remaining <= 0 -> failed(["actor suspension profiles did not converge within the bounded projection phases"]);
+                                    true -> project_with_environment(
+                                        ActorBackendRequest(
+                                            seeded_request.source,
+                                            seeded_request.semantic_plan,
+                                            seeded_request.target,
+                                            SelfHostActorProfileConvergence.next(
+                                                seeded_profiles,
+                                                generated,
+                                                envelope.ir_module.name,
+                                                envelope.ir_module.functions,
+                                            ),
+                                            seeded_request.function_evidence,
+                                        ),
+                                        envelope,
+                                        environment,
+                                        remaining - 1,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }.
+
+/** Enters actor projection with one reusable dynamic-target environment. */
+project_at(request: ActorBackendRequest, envelope: BackendEnvelope, remaining: Int): ActorBackendCompilation ->
+    case SelfHostActorDynamicDiscovery.environment(envelope.ir_module.functions) {
+        Err(reason) -> failed([reason]);
+        Ok(environment) -> project_with_environment(request, envelope, environment, remaining)
+    }.
+
+project(request: ActorBackendRequest, envelope: BackendEnvelope): ActorBackendCompilation ->
+    project_at(request, envelope, 8).
+
+
+/** Emits matching Core IR and actor metadata or no artifacts at all. */
+pub compile(request: ActorBackendRequest): ActorBackendCompilation ->
+    let base = SelfHostBackendCompile.compile(request.semantic_plan, request.target);
+    case base.envelope {
+        None -> failed(base.diagnostics);
+        Some(envelope) -> project(request, envelope)
+    }.

@@ -1,80 +1,50 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `mask-border` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property lets you create a mask along the edge of an element's border.
+//!
+//! Initial: mask-border-mode: alpha; mask-border-outset: 0; mask-border-repeat: stretch;
+//! mask-border-slice: 0; mask-border-source: none; mask-border-width: auto. Inherited: no.
+//! Percentages: mask-border-slice: refer to size of the mask border image; mask-border-width:
+//! relative to width/height of the mask border image area.
+//!
+//! Keyword effects:
+//! - none: No mask border is used. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-source
+//! - repeat: The source image's edge regions are tiled (repeated) to fill the gap between each
+//! border. Tiles may be clipped to achieve the proper fit. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-repeat
+//! - round: The source image's edge regions are tiled (repeated) to fill the gap between each
+//! border. Tiles may be stretched to achieve the proper fit. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-repeat
+//! - space: The source image's edge regions are tiled (repeated) to fill the gap between each
+//! border. Extra space will be distributed in between tiles to achieve the proper fit. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-repeat
+//! - stretch: The source image's edge regions are stretched to fill the gap between each border. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-repeat
+//!
+//! Grammar: <'mask-border-source'> || <'mask-border-slice'> [ / <'mask-border-width'>? [ /
+//! <'mask-border-outset'> ]? ]? || <'mask-border-repeat'> || <'mask-border-mode'>
+//!
 //! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border
-//! Grammar: <'mask-border-source'> || <'mask-border-slice'> [ / <'mask-border-width'>? [ / <'mask-border-outset'> ]? ]? || <'mask-border-repeat'> || <'mask-border-mode'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MaskBorder.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    mask_border: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    mask_border: Value
+    mask_border: None | Stretch | Repeat | Round | Space | Luminance | Alpha | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained mask-border value.
+/// Checks the mask-border number range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub number(value: Float): Option[Checked].
 
-/// Returns the CSS keyword alpha.
+/// Checks the mask-border percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub alpha(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword luminance.
-
-pub luminance(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Checks the specification range and constructs a mask-border value.
-
-pub number(value: Float): Option[Value].
-
-/// Checks the specification range and constructs a mask-border value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Returns the CSS keyword repeat.
-
-pub repeat(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword round.
-
-pub round(): Value.
-
-/// Returns the CSS keyword space.
-
-pub space(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

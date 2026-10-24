@@ -1,10 +1,10 @@
 module=std.css.properties.ColumnRuleInsetCapEnd
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=12282884892533726327
-interface_hash=6350167671690228272
-interface_doc_hash=1075368190399681802
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=18185807619304940913
+interface_hash=15093890108458335925
+interface_doc_hash=1961253668301145312
 deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.OverlapJoin=9675458474359427514

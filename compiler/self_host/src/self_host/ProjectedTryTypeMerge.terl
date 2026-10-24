@@ -1,0 +1,281 @@
+/** Adds authoritative result facts and diagnostics for structured try expressions. */
+module self_host.ProjectedTryTypeMerge.
+
+import std.core.String.
+
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+
+struct TryMergeState {
+    next_id: Int,
+    facts: List[InferredTypeFact],
+    diagnostics: List[TypeConstraintDiagnostic],
+}.
+
+constructor TryMergeState {
+    (
+        next_id: Int,
+        facts: List[InferredTypeFact],
+        diagnostics: List[TypeConstraintDiagnostic],
+    ): TryMergeState -> TryMergeState {
+        next_id: next_id,
+        facts: facts,
+        diagnostics: diagnostics,
+    }
+}.
+
+struct TryOutcomeSummary {
+    count: Int,
+    resolved: Bool,
+    homogeneous: Bool,
+    type_name: String,
+}.
+
+constructor TryOutcomeSummary {
+    (
+        count: Int,
+        resolved: Bool,
+        homogeneous: Bool,
+        type_name: String,
+    ): TryOutcomeSummary -> TryOutcomeSummary {
+        count: count,
+        resolved: resolved,
+        homogeneous: homogeneous,
+        type_name: type_name,
+    }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+fact_name_at(
+    values: List[InferredTypeFact],
+    byte_offset: Int,
+    current: Option[String],
+): Option[String] ->
+    case values {
+        [] -> current;
+        [value | rest] -> if {
+            value.byte_offset == byte_offset and value.type_name != None ->
+                fact_name_at(rest, byte_offset, value.type_name);
+            true -> fact_name_at(rest, byte_offset, current)
+        }
+    }.
+
+last_node(
+    values: List[ProjectedExpressionNode],
+    current: Option[ProjectedExpressionNode],
+): Option[ProjectedExpressionNode] ->
+    case values {
+        [] -> current;
+        [value | rest] -> last_node(rest, Some(value))
+    }.
+
+merge_outcome(summary: TryOutcomeSummary, value: Option[String]): TryOutcomeSummary ->
+    case value {
+        None -> TryOutcomeSummary(summary.count + 1, false, summary.homogeneous, summary.type_name);
+        Some(name) -> if {
+            summary.count == 0 -> TryOutcomeSummary(1, true, true, name);
+            summary.type_name == name -> TryOutcomeSummary(
+                summary.count + 1,
+                summary.resolved,
+                summary.homogeneous,
+                summary.type_name,
+            );
+            true -> TryOutcomeSummary(summary.count + 1, summary.resolved, false, summary.type_name)
+        }
+    }.
+
+merge_node_outcome(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    summary: TryOutcomeSummary,
+): TryOutcomeSummary ->
+    merge_outcome(summary, fact_name_at(facts, node.start_byte, None)).
+
+merge_clause_outcome(
+    clause: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    summary: TryOutcomeSummary,
+): TryOutcomeSummary ->
+    case last_node(clause.children, None) {
+        Some(body) -> merge_node_outcome(body, facts, summary);
+        None -> merge_outcome(summary, None)
+    }.
+
+merge_clause_outcomes(
+    clauses: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    summary: TryOutcomeSummary,
+): TryOutcomeSummary ->
+    case clauses {
+        [] -> summary;
+        [clause | rest] -> merge_clause_outcomes(
+            rest,
+            facts,
+            merge_clause_outcome(clause, facts, summary),
+        )
+    }.
+
+try_outcomes(
+    body: ProjectedExpressionNode,
+    success: ProjectedExpressionNode,
+    catches: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+): TryOutcomeSummary ->
+    let initial = TryOutcomeSummary(0, true, true, "");
+    let successful = if {
+        success.children == [] -> merge_node_outcome(body, facts, initial);
+        true -> merge_clause_outcomes(success.children, facts, initial)
+    };
+    merge_clause_outcomes(catches.children, facts, successful).
+
+replaced_try_diagnostic(value: TypeConstraintDiagnostic, byte_offset: Int): Bool ->
+    value.byte_offset == byte_offset and (
+        String.contains(value.code, "unknown")
+            or String.contains(value.code, "deferred")
+            or String.contains(value.message, "try") and String.contains(value.message, "deferred")
+    ).
+
+remove_replaced_diagnostics(
+    values: List[TypeConstraintDiagnostic],
+    byte_offset: Int,
+): List[TypeConstraintDiagnostic] ->
+    case values {
+        [] -> List.new[TypeConstraintDiagnostic]();
+        [value | rest] -> if {
+            replaced_try_diagnostic(value, byte_offset) -> remove_replaced_diagnostics(rest, byte_offset);
+            true -> [value | remove_replaced_diagnostics(rest, byte_offset)]
+        }
+    }.
+
+try_diagnostic(code: String, message: String, node: ProjectedExpressionNode): TypeConstraintDiagnostic ->
+    TypeConstraintDiagnostic(code, message, node.start_byte).
+
+merge_try_outcomes(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    catches: ProjectedExpressionNode,
+    outcomes: TryOutcomeSummary,
+    state: TryMergeState,
+): TryMergeState ->
+    let diagnostics = remove_replaced_diagnostics(state.diagnostics, node.start_byte);
+    if {
+        catches.children == [] -> TryMergeState(
+            state.next_id,
+            state.facts,
+            append(diagnostics, [try_diagnostic(
+                "type.try_catch_missing",
+                "try expression requires at least one catch clause",
+                node,
+            )]),
+        );
+        not outcomes.resolved or outcomes.count == 0 -> TryMergeState(
+            state.next_id,
+            state.facts,
+            append(diagnostics, [try_diagnostic(
+                "type.try_result_unresolved",
+                "try expression outcome types are unresolved",
+                node,
+            )]),
+        );
+        not outcomes.homogeneous -> TryMergeState(
+            state.next_id,
+            state.facts,
+            append(diagnostics, [try_diagnostic(
+                "type.try_result_mismatch",
+                "try success and catch outcomes must have one result type",
+                node,
+            )]),
+        );
+        true -> TryMergeState(
+            state.next_id,
+            append(state.facts, [InferredTypeFact(node_id, Some(outcomes.type_name), node.start_byte)]),
+            diagnostics,
+        )
+    }.
+
+merge_try(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    state: TryMergeState,
+): TryMergeState ->
+    case node.children {
+        [body | [success | [catches | _rest]]] -> merge_try_outcomes(
+            node,
+            node_id,
+            catches,
+            try_outcomes(body, success, catches, state.facts),
+            state,
+        );
+        _ -> TryMergeState(
+            state.next_id,
+            state.facts,
+            append(
+                remove_replaced_diagnostics(state.diagnostics, node.start_byte),
+                [try_diagnostic("type.try_shape", "try expression has an invalid semantic shape", node)],
+            ),
+        )
+    }.
+
+merge_children(
+    values: List[ProjectedExpressionNode],
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    diagnostics: List[TypeConstraintDiagnostic],
+): TryMergeState ->
+    case values {
+        [] -> TryMergeState(node_id, facts, diagnostics);
+        [value | rest] ->
+            let child = merge_node(value, node_id, facts, diagnostics);
+            merge_children(rest, child.next_id, child.facts, child.diagnostics)
+    }.
+
+merge_node(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    diagnostics: List[TypeConstraintDiagnostic],
+): TryMergeState ->
+    let children = merge_children(node.children, node_id + 1, facts, diagnostics);
+    if {
+        node.kind == "try" -> merge_try(node, node_id, children);
+        true -> children
+    }.
+
+/** Merges structured try facts for one expression tree. */
+pub merge_expression(
+    node: ProjectedExpressionNode,
+    resolution: TypeConstraintResolution,
+): TypeConstraintResolution ->
+    let state = merge_node(node, 0, resolution.facts, resolution.diagnostics);
+    TypeConstraintResolution(state.facts, state.diagnostics).
+
+merge_body(value: ProjectedBody, resolution: TypeConstraintResolution): TypeConstraintResolution ->
+    case value.expression.node {
+        Some(node) -> merge_expression(node, resolution);
+        None -> resolution
+    }.
+
+merge_bodies(
+    values: List[ProjectedBody],
+    resolution: TypeConstraintResolution,
+): TypeConstraintResolution ->
+    case values {
+        [] -> resolution;
+        [value | rest] -> merge_bodies(rest, merge_body(value, resolution))
+    }.
+
+/** Merges structured try facts across every projected callable body. */
+pub merge(
+    bodies: List[ProjectedBody],
+    resolution: TypeConstraintResolution,
+): TypeConstraintResolution ->
+    merge_bodies(bodies, resolution).

@@ -8,6 +8,20 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { definitionSyntax } from 'css-tree';
 import webref from '@webref/css';
+import mdn from 'mdn-data';
+import { atomAdopted, propertyAdoption } from './adoption.mjs';
+import { comment, normalize } from './documentation.mjs';
+import { renderProperty } from './property.mjs';
+const documentation = JSON.parse(await readFile(new URL('documentation-data.json', import.meta.url)));
+const cssLabels = JSON.parse(await readFile(new URL('node_modules/mdn-data/l10n/css.json', import.meta.url)));
+const label = key => Array.isArray(key) ? key.map(name => `${name}: ${label(mdn.css.properties[name]?.percentages ?? 'see specification')}`).join('; ') : normalize(cssLabels[key]?.['en-US'] ?? String(key));
+function propertyFacts(name) {
+  const entry = mdn.css.properties[name];
+  if (!entry) return '';
+  const initial = Array.isArray(entry.initial) ? entry.initial.map(name => `${name}: ${mdn.css.properties[name]?.initial ?? 'see specification'}`).join('; ') : entry.initial;
+  return `Initial: ${initial}. Inherited: ${entry.inherited ? 'yes' : 'no'}.\nPercentages: ${entry.percentages === 'no' ? 'not accepted' : label(entry.percentages)}.`;
+}
+
 
 export const identifier = name => name.replaceAll('-', '_');
 export const typeName = name => name.split('-').filter(Boolean).map(s => s[0].toUpperCase() + s.slice(1)).join('');
@@ -115,114 +129,30 @@ const callable = name => {
   return reserved.has(value) ? `${value}_value` : value;
 };
 
-export function generateProperty(property, definitions) {
-  const name = typeName(property.name);
-  const grammar = definitionSyntax.parse(property.syntax);
-  const atoms = [...new Map(atomicValues(grammar, definitions, new Set(), property.name)
-    .map(value => [JSON.stringify(value), value])).values()];
-  const repeated = repeatedValues(grammar, definitions, new Set(), property.name);
-  const grouped = groupedValues(grammar, definitions, new Set(), property.name);
-  const keywords = [...new Set([...globals, ...atoms.filter(a => a.kind === 'keyword').map(a => a.name)])].sort();
-  const constructors = [];
-  const imports = new Set();
-  for (const keyword of keywords) {
-    constructors.push(`/** Returns the CSS keyword ${keyword}. */\npub ${callable(keyword)}(): Value ->\n    Value(Token {property: ${JSON.stringify(property.name)}, css: ${JSON.stringify(keyword)}}).`);
-  }
-  let needsOption = false;
-  const token = (resultType, css) => `${resultType}(Token {property: ${JSON.stringify(property.name)}, css: ${css}})`;
-  const emitPrimitives = (values, resultType, prefix = '', construct = css => token(resultType, css)) => {
-    const emitted = new Set();
-    for (const atom of values.filter(a => a.kind === 'primitive')) {
-      const primitive = primitives.get(atom.name);
-      const [valueType, render] = primitive ?? [atom.name === 'integer' ? 'Int' : 'Float', null];
-      const range = atom.range;
-      const min = typeof range?.min === 'number' ? range.min : null;
-      const max = typeof range?.max === 'number' ? range.max : null;
-      let fn = prefix + atom.name;
-      if (emitted.has(fn)) fn += `_${emitted.size}`;
-      emitted.add(fn);
-      let argumentType = valueType;
-      let expression;
-      if (primitive) {
-        imports.add(`import type std.css.Values.{${valueType}}.`);
-        imports.add('import std.css.Values.');
-        expression = `std.css.Values.${render}(value)`;
-      } else {
-        imports.add(`import std.core.${valueType}.`);
-        expression = `std.core.${valueType}.to_string(value)`;
-      }
-      let check;
-      if (primitive && (min !== null || max !== null)) {
-        // Shared values retain a numeric magnitude, so grammar ranges are checked
-        // before constructing a nominal property value.
-        check = `std.css.Values.${atom.name}_amount(value)`;
-      } else check = 'value';
-      const conditions = [min !== null ? `${check} >= ${min}` : null, max !== null ? `${check} <= ${max}` : null].filter(Boolean);
-      if (conditions.length) {
-        needsOption = true;
-        constructors.push(`/** Checks the specification range and constructs a ${property.name} value. */\npub ${fn}(value: ${argumentType}): Option[${resultType}] ->\n    case ${conditions.join(' and ')} {\n        true -> Some(${construct(expression)});\n        false -> None\n    }.`);
-      } else {
-        constructors.push(`/** Constructs a ${property.name} value from a typed ${atom.name}. */\npub ${fn}(value: ${argumentType}): ${resultType} ->\n    ${construct(expression)}.`);
-      }
-    }
-  };
-  emitPrimitives(atoms, 'Value');
-  if (repeated) {
-    for (const keyword of [...new Set(repeated.atoms.filter(a => a.kind === 'keyword').map(a => a.name))].sort()) {
-      constructors.push(`/** Constructs one ${property.name} shorthand component. */\npub component_${callable(keyword)}(): Component ->\n    Component(Token {property: ${JSON.stringify(property.name)}, css: ${JSON.stringify(keyword)}}).`);
-    }
-    emitPrimitives(repeated.atoms, 'Component', 'component_');
-    constructors.push('/** Serializes a library-owned shorthand component. */\ncomponent_css(value: Component): String ->\n    let token = component_token(value);\n    token.css.\n\ncomponent_token(value: Component): Token ->\n    value.');
-    const parameters = ['first', 'second', 'third', 'fourth'];
-    const arities = ['single', 'pair', 'triple', 'quad'];
-    for (let count = repeated.min; count <= repeated.max; count++) {
-      const names = parameters.slice(0, count);
-      const args = names.map(name => `${name}: Component`).join(', ');
-      const css = names.map(name => `component_css(${name})`).join(' + " " + ');
-      constructors.push(`/** Combines ${count} typed components in specification order. */\npub ${arities[count - 1]}(${args}): Value ->\n    Value(Token {property: ${JSON.stringify(property.name)}, css: ${css}}).`);
-    }
-  }
-  const partTypes = [];
-  if (grouped) {
-    const parameters = [];
-    const expressions = [];
-    for (const group of grouped.groups) {
-      const parameter = callable(group.name);
-      const [atom] = group.atoms;
-      const direct = group.atoms.length === 1 && atom.kind === 'primitive'
-        && atom.range?.min == null && atom.range?.max == null;
-      if (direct) {
-        const primitive = primitives.get(atom.name);
-        const [valueType, render] = primitive ?? [atom.name === 'integer' ? 'Int' : 'Float', null];
-        if (primitive) {
-          imports.add(`import type std.css.Values.{${valueType}}.`);
-          imports.add('import std.css.Values.');
-          expressions.push(`std.css.Values.${render}(${parameter})`);
-        } else {
-          imports.add(`import std.core.${valueType}.`);
-          expressions.push(`std.core.${valueType}.to_string(${parameter})`);
-        }
-        parameters.push(`${parameter}: ${valueType}`);
-        continue;
-      }
-      const partType = `${typeName(group.name)}Part`;
-      partTypes.push(`/** A non-global ${group.name} component of ${property.name}. */\npub opaque type ${partType} = String.\n\n`);
-      const prefix = identifier(group.name) + '_';
-      for (const keyword of [...new Set(group.atoms.filter(a => a.kind === 'keyword').map(a => a.name))].sort()) {
-        constructors.push(`/** Constructs the ${group.name} keyword ${keyword}. */\npub ${prefix}${callable(keyword)}(): ${partType} ->\n    ${partType}(${JSON.stringify(keyword)}).`);
-      }
-      emitPrimitives(group.atoms, partType, prefix, css => `${partType}(${css})`);
-      constructors.push(`${prefix}css(value: ${partType}): String ->\n    value.`);
-      parameters.push(`${parameter}: ${partType}`);
-      expressions.push(`${prefix}css(${parameter})`);
-    }
-    constructors.push(`/** Combines every named specification group in canonical order. */\npub compose(${parameters.join(', ')}): Value ->\n    ${token('Value', expressions.join(' + " " + '))}.`);
-  }
-  if (needsOption) imports.add('import std.core.Option.{None, Some}.');
-  imports.add('import type std.core.Option.');
-  const component = (repeated ? `/** A single non-global ${property.name} shorthand component. */\npub opaque type Component = Token.\n\n` : '') + partTypes.join('');
-  const source = `/**\n * Generated from @webref/css 8.7.8. Do not edit.\n * Specification: ${property.href}\n * Grammar: ${property.syntax.replaceAll('*/', '* /')}\n * Constructors cover complete atomic alternatives; see bindings.json for scope.\n */\nmodule std.css.properties.${name}.\n\n${[...imports].sort().join('\n')}\n\n/** A nominal, specification-constrained ${property.name} value. */\npub opaque type Value = Token.\n\n${component}struct Token {\n    property: String,\n    css: String,\n}.\n\n/** Include this property in an application style struct. */\npub struct Property {\n    ${identifier(property.name)}: Value,\n}.\n\n/** Include an optional declaration in a shared style block. */\npub struct OptionalProperty {\n    ${identifier(property.name)}: std.core.Option[Value],\n}.\n\n${constructors.join('\n\n')}\n`;
-  return { source, atoms, repeated, grouped };
+const keywordReservedTypes = new Set(['Value', 'Css', 'CssWide', 'Property', 'Component', 'ComponentCss', 'SerializedValue', 'Absent', 'Some', 'Option', 'Length', 'Percentage', 'Color', 'Angle', 'Time', 'Int', 'Float', 'String', 'Text', 'Bool', 'Atom', 'List', 'Map', 'Set', 'Unit']);
+const keywordName = keyword => keywordReservedTypes.has(typeName(keyword)) ? typeName(keyword) + 'Keyword' : typeName(keyword);
+const sharedAtomAliases = new Map([
+  ['auto', 'std.core.Atom.Auto'],
+  ['left', 'std.core.Atom.Left'],
+  ['manual', 'std.core.Atom.Manual'],
+  ['none', 'std.core.Option.None'],
+  ['strict', 'std.core.Atom.Strict'],
+]);
+
+// Property modules import these aliases; each literal is declared once.
+export function generateKeywords(keywords) {
+  return new Map([...new Set(keywords)].sort().map(keyword => {
+    const name = keywordName(keyword);
+    const body = sharedAtomAliases.get(keyword) ?? `Atom[${JSON.stringify(keyword)}]`;
+    return [name, `/** Shared CSS keyword ${keyword}. Generated; do not edit. */\nmodule std.css.keywords.${name}.\n\npub type ${name} = ${body}.\n`];
+  }));
+}
+
+export function generateProperty(property, definitions, adoptedAtoms = null) {
+  return renderProperty(property, definitions, adoptedAtoms, {
+    identifier, typeName, atomicValues, repeatedValues, groupedValues,
+    documentation, propertyFacts, keywordModule: 'std.css.keywords', canonicalKeyword: keywordName
+  });
 }
 
 async function main() {
@@ -238,18 +168,46 @@ async function main() {
   }
   const files = new Map();
   const coverage = [];
+  const keywords = new Set();
+  const excluded = [];
+  const adoptedDefinitions = new Map([
+    ...Object.entries(mdn.css.syntaxes).map(([name, value]) => [`Type:${name}`, definitionSyntax.parse(value.syntax)]),
+    ...Object.entries(mdn.css.properties).map(([name, value]) => [`Property:${name}`, definitionSyntax.parse(value.syntax)]),
+  ]);
   for (const property of data.properties.filter(p => /^[a-z][a-z0-9-]*$/.test(p.name) && p.syntax).sort((a, b) => a.name.localeCompare(b.name, 'en'))) {
-    const { source, atoms, repeated, grouped } = generateProperty(property, definitions);
+    const adoption = propertyAdoption(property.name);
+    if (!adoption.included) {
+      excluded.push({ name: property.name, reason: adoption.reason });
+      continue;
+    }
+    const adoptedGrammar = adoptedDefinitions.get(`Property:${property.name}`);
+    const candidates = adoptedGrammar ? [
+      ...atomicValues(adoptedGrammar, adoptedDefinitions, new Set(), property.name),
+      ...(repeatedValues(adoptedGrammar, adoptedDefinitions, new Set(), property.name)?.atoms ?? []),
+      ...(groupedValues(adoptedGrammar, adoptedDefinitions, new Set(), property.name)?.groups.flatMap(group => group.atoms) ?? []),
+    ] : [];
+    const { source, atoms, repeated, grouped, keywords: propertyKeywords } = generateProperty(property, definitions, candidates);
+    for (const keyword of propertyKeywords) keywords.add(keyword);
     files.set(`properties/${typeName(property.name)}.terl`, source);
-    coverage.push({ name: property.name, field: identifier(property.name), module: `std.css.properties.${typeName(property.name)}`, syntax: property.syntax, href: property.href, constructors: atoms, ...(repeated ? {repetition: repeated} : {}), ...(grouped ? {composition: grouped} : {}) });
+    coverage.push({ name: property.name, field: identifier(property.name), module: `std.css.properties.${typeName(property.name)}`, syntax: property.syntax, href: property.href, browsers: adoption.browsers, constructors: atoms, ...(repeated ? {repetition: repeated} : {}), ...(grouped ? {composition: grouped} : {}) });
   }
+  for (const [name, source] of generateKeywords(keywords)) files.set(`keywords/${name}.terl`, source);
   const snapshot = await readFile(new URL('node_modules/@webref/css/css.json', import.meta.url));
-  files.set('bindings.json', JSON.stringify({ schema: 'terlan.css.bindings.v1', source: '@webref/css', version: '8.7.8', sha256: createHash('sha256').update(snapshot).digest('hex'), scope: 'CSS-wide keywords, complete atomic alternatives, bounded space-separated repetitions of up to four components, and all-term composition of named &&/|| groups; other compound values and CSS functions are not yet generated', properties: coverage }, null, 2) + '\n');
+  const compatibilitySnapshot = await readFile(new URL('node_modules/@mdn/browser-compat-data/data.json', import.meta.url));
+  const syntaxSnapshot = await readFile(new URL('node_modules/mdn-data/css/properties.json', import.meta.url));
+  const typesSnapshot = await readFile(new URL('node_modules/mdn-data/css/syntaxes.json', import.meta.url));
+  files.set('bindings.json', JSON.stringify({ schema: 'terlan.css.bindings.v1', source: '@webref/css', version: '8.7.8', sha256: createHash('sha256').update(snapshot).digest('hex'), adoption: {
+    policy: 'Standards-track CSS with an unprefixed, unflagged implementation in at least one current released browser. Values require a released implementation or evidence in the MDN property grammar.',
+    compatibility: { source: '@mdn/browser-compat-data', version: '8.1.7', sha256: createHash('sha256').update(compatibilitySnapshot).digest('hex') },
+    syntax: { source: 'mdn-data', version: '2.37.2', sha256: createHash('sha256').update(syntaxSnapshot).update(typesSnapshot).digest('hex') },
+    excluded,
+  }, scope: 'CSS-wide keywords, complete atomic alternatives, bounded space-separated repetitions of up to four components, and all-term composition of named &&/|| groups; other compound values and CSS functions are not yet generated', properties: coverage }, null, 2) + '\n');
   // Generated sources obey the same canonical formatting gate as handwritten
   // library modules. Format in a temporary directory so --check stays read-only.
   const temporary = await mkdtemp(path.join(tmpdir(), 'terlan-css-format-'));
   try {
     await mkdir(path.join(temporary, 'properties'));
+    await mkdir(path.join(temporary, 'keywords'));
     const sources = [...files.keys()].filter(name => name.endsWith('.terl'));
     await Promise.all(sources.map(name => writeFile(path.join(temporary, name), files.get(name))));
     for (let pass = 0; pass < 4; pass++) {
@@ -269,17 +227,42 @@ async function main() {
   }
   const directory = `${root}std/css`;
   const check = process.argv.includes('--check');
-  if (!check) await mkdir(`${directory}/properties`, { recursive: true });
+  if (!check) {
+    await mkdir(`${directory}/properties`, { recursive: true });
+    await mkdir(`${directory}/keywords`, { recursive: true });
+  }
   for (const [name, content] of files) {
     const target = `${directory}/${name}`;
     if (check) {
       if (await readFile(target, 'utf8').catch(() => null) !== content) throw new Error(`stale generated CSS binding: ${target}`);
     } else await writeFile(target, content);
   }
-  for (const name of await readdir(`${directory}/properties`)) {
-    if (!files.has(`properties/${name}`)) throw new Error(`untracked generated CSS binding: ${name}`);
+  await pruneGeneratedModules(`${directory}/keywords`, new Set([...files.keys()].filter(name => name.startsWith('keywords/')).map(name => path.basename(name))), `${root}std/summaries`, check, 'std.css.keywords');
+  // Remove the superseded aggregate after writing the independent keyword modules.
+  if (!check) {
+    for (const name of ['Keywords.terl']) await rm(`${directory}/${name}`, {force: true});
+    for (const suffix of ['.typi', '.typi.deps']) await rm(`${root}std/summaries/std.css.Keywords${suffix}`, {force: true});
   }
+  await pruneGeneratedModules(`${directory}/properties`, new Set([...files.keys()].filter(name => name.startsWith('properties/')).map(name => path.basename(name))), `${root}std/summaries`, check);
   process.stdout.write(`${check ? 'Verified' : 'Generated'} ${coverage.length} CSS property modules from @webref/css 8.7.8\n`);
+}
+
+export async function pruneGeneratedModules(directory, retained, summaries, check = false, namespace = 'std.css.properties') {
+  for (const name of await readdir(directory)) {
+    if (retained.has(name)) continue;
+    if (check) throw new Error(`obsolete generated CSS binding: ${name}`);
+    const filename = path.join(directory, name);
+    const module = `${namespace}.${name.slice(0, -5)}`;
+    const source = name.endsWith('.terl') ? await readFile(filename, 'utf8') : '';
+    const generated = source.includes('Generated from @webref/css ')
+      || (namespace === 'std.css.keywords' && /Shared CSS keyword [^\n]+\. Generated; do not edit\./.test(source));
+    if (!generated || !source.includes(`module ${module}.`)) {
+      throw new Error(`refusing to remove a file not owned by the CSS generator: ${filename}`);
+    }
+    await rm(filename);
+    await rm(path.join(summaries, `${module}.typi`), { force: true });
+    await rm(path.join(summaries, `${module}.typi.deps`), { force: true });
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) await main();

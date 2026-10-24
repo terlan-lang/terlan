@@ -499,7 +499,7 @@ fn is_inline_function_body_expr(expr: &Expr) -> bool {
             true
         }
         Expr::Var(name) => matches!(name.as_str(), "true" | "false"),
-        Expr::Tuple(items) | Expr::List(items) | Expr::FixedArray(items) => {
+        Expr::Tuple(items) | Expr::List(items) | Expr::Array(items) => {
             items.iter().all(is_inline_function_body_expr)
         }
         Expr::UnaryOp { expr, .. } => is_inline_function_body_expr(expr),

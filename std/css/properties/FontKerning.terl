@@ -1,81 +1,33 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-kerning
+ * The `font-kerning` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the use
+ * of the kerning information stored in a font.
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: The browser determines whether font kerning should be used or not. For example, some
+ * browsers will disable kerning on small fonts, since applying it could harm the readability of
+ * text.
+ * - none: Font kerning information stored in the font is disabled.
+ * - normal: Font kerning information stored in the font must be applied.
+ *
  * Grammar: auto | normal | none
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-kerning
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-kerning
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontKerning.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, None, Normal}.
 
-/**
- * A nominal, specification-constrained font-kerning value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    font_kerning: Value,
+    font_kerning: Auto | Normal | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    font_kerning: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "font-kerning", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-kerning", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-kerning", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "font-kerning", css: "none"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "font-kerning", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-kerning", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-kerning", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-kerning", css: "unset"}).

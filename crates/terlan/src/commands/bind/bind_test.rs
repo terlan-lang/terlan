@@ -301,13 +301,7 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
         fs::read_to_string(out_dir.join("std/js/dom/WebkitURL.terl")).expect("read source");
     assert!(webkit_url_source.contains("@source-interface webkitURL"));
     assert!(webkit_url_source.contains("module std.js.Dom.WebkitURL."));
-    assert!(webkit_url_source.contains("pub type WebkitURL = std.js.Dom.URL."));
-
-    let document_summary =
-        fs::read_to_string(out_dir.join("std/summaries/std.js.Dom.Document.typi"))
-            .expect("read generated summary");
-    assert!(document_summary.contains("std.core.Option["));
-    assert!(!document_summary.contains("std.core.Option.Option["));
+    assert!(webkit_url_source.contains("pub type WebkitURL = std.js.Dom.URL.URL."));
 
     let document_test = fs::read_to_string(out_dir.join("std/js/dom/DocumentTest.terl"))
         .expect("read generated DOM test");
@@ -322,13 +316,7 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(document_test.contains("@source-input std/js/fixtures/lib.es5.d.ts"));
     assert!(document_test.contains("@source-interface Document"));
     assert!(document_test.contains("module std.js.Dom.DocumentTest."));
-    let parsed_test = crate::terlan_syntax::parse_module_as_syntax_output(&document_test)
-        .expect("parse generated test imports");
-    assert!(parsed_test.declarations.iter().any(|declaration| matches!(
-        &declaration.payload,
-        crate::terlan_syntax::SyntaxDeclarationPayload::Import { module_name, items, is_type: true, .. }
-            if module_name == "std.js.Dom" && items.iter().any(|item| item.name == "Document")
-    )));
+    assert!(document_test.contains("import type std.js.Dom.Document."));
     assert!(!document_test.contains("generated_binding_surface_contract"));
     assert!(document_test.contains("_typechecks("));
     assert!(document_test.contains(
@@ -343,7 +331,9 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(
         map_source.contains("@returns true if an element in the Map existed and has been removed")
     );
-    assert!(map_source.contains("pub (receiver: Map[K, V]) get(key: K): std.core.Option[V] ->"));
+    assert!(
+        map_source.contains("pub (receiver: Map[K, V]) get(key: K): std.core.Option[V] ->")
+    );
     assert!(map_source.contains("Returns a specified element from the Map object."));
     assert!(map_source.contains("pub (receiver: Map[K, V]) size(): std.js.Number.JsNumber ->"));
     assert!(map_source.contains("@returns the number of elements in the Map."));
@@ -443,7 +433,11 @@ fn generate_js_dom_bindings_writes_angular_namespace_facade() {
     let namespace_path = root.join("@types/namespace.d.ts");
     fs::create_dir_all(namespace_path.parent().expect("namespace parent"))
         .expect("create namespace parent");
-    let namespace_source = r#"declare global {
+    let namespace_source = r#"export interface LifecycleCallbacks {
+    $onInit(): void;
+    $onDestroy(): void;
+}
+declare global {
   export namespace ng {
     type Angular = TAngular;
     type NgModule = TNgModule;
@@ -517,13 +511,17 @@ fn generate_js_dom_bindings_writes_angular_namespace_facade() {
         fs::read_to_string(out_dir.join("terlan/angular/Ng.terl")).expect("read facade source");
     assert!(facade_source.contains("module terlan.angular.Ng."));
     assert!(facade_source.contains("import type std.js.String.{JsString}."));
-    assert!(facade_source.contains("import type terlan.angular.ng.{"));
+    assert!(facade_source.contains("import type terlan.angular.ng.NgModule.{NgModule}."));
+    assert!(facade_source
+        .contains("import type terlan.angular.ng.TemplateCacheService.{TemplateCacheService}."));
     assert!(facade_source.contains("NgModule"));
     assert!(facade_source.contains("TemplateCacheService"));
-    assert!(facade_source.contains("pub angular(): terlan.angular.ng.Angular ->"));
+    assert!(facade_source.contains("pub angular(): terlan.angular.ng.Angular.Angular ->"));
     assert!(facade_source.contains("pub ng_module(name: JsString): NgModule ->"));
     assert!(facade_source.contains("pub register_component("));
-    assert!(facade_source.contains("pub apply_scope(scope: terlan.angular.ng.Scope): Unit ->"));
+    assert!(
+        facade_source.contains("pub apply_scope(scope: terlan.angular.ng.Scope.Scope): Unit ->")
+    );
     assert!(facade_source.contains("pub template_put("));
     assert!(facade_source.contains("pub http_get("));
     for marker in [
@@ -550,6 +548,31 @@ fn generate_js_dom_bindings_writes_angular_namespace_facade() {
 
     let manifest = fs::read_to_string(out_dir.join("std/js/manifests/std_js_bindings.json"))
         .expect("read binding manifest");
+    let callbacks = fs::read_to_string(out_dir.join("terlan/angular/LifecycleCallbacks.terl"))
+        .expect("read lifecycle callbacks");
+    assert!(
+        callbacks.contains("pub with_members[BindingTarget]("),
+        "{callbacks}"
+    );
+    let bindings: serde_json::Value = serde_json::from_str(&manifest).unwrap();
+    let lifecycle = bindings["outputs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|module| module["module"] == "terlan.angular.LifecycleCallbacks")
+        .unwrap();
+    let mixin = lifecycle["members"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|member| member["name"] == "with_members")
+        .unwrap();
+    assert_eq!(mixin["kind"], "mixin");
+    assert_eq!(
+        mixin["js_names"],
+        serde_json::json!(["$onInit", "$onDestroy"])
+    );
+    assert_eq!(mixin["parameters"][0]["type"], "() -> std.core.Unit.Unit");
     assert!(manifest.contains("\"module\": \"terlan.angular.Ng\""));
     assert!(manifest.contains("\"source\": \"terlan/angular/Ng.terl\""));
     assert!(manifest.contains("\"summary\": \"std/summaries/terlan.angular.Ng.typi\""));

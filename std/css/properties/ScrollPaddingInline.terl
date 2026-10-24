@@ -1,149 +1,94 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-inline
+ * The `scroll-padding-inline` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets the scroll padding of an element in the inline dimension.
+ *
+ * Initial: scroll-padding-inline-start: auto; scroll-padding-inline-end: auto. Inherited: no.
+ * Percentages: relative to the scroll container's scrollport.
+ *
+ * Keyword effects:
+ * - auto: The offset is determined by the user agent. This will generally be 0px, but a user agent
+ * is able to detect and do something else if a non-zero value is more appropriate.
+ *
  * Grammar: [ auto | <length-percentage [0,∞]> ]{1,2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-inline
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-padding-inline
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollPaddingInline.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
-import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css}.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
+import std.css.keywords.Auto.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained scroll-padding-inline value.
- */
-pub opaque type Value = Token.
+pub opaque type CheckedComponent = SerializedValue.
 
-/**
- * A single non-global scroll-padding-inline shorthand component.
- */
-pub opaque type Component = Token.
+pub type Component = Auto | CheckedComponent.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[Component]}.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    scroll_padding_inline: Value,
+    scroll_padding_inline: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the scroll-padding-inline length range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub struct OptionalProperty {
-    scroll_padding_inline: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "scroll-padding-inline", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "scroll-padding-inline", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scroll-padding-inline", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scroll-padding-inline", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scroll-padding-inline", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scroll-padding-inline", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a scroll-padding-inline value.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "scroll-padding-inline", css: length_css(value)}));
-        false -> None
+        true -> Some(Checked(serialize("scroll-padding-inline", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a scroll-padding-inline value.
+ * Checks the scroll-padding-inline percentage range. Returns Some when amount >= 0; otherwise
+ * returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "scroll-padding-inline", css: percentage_css(value)}));
-        false -> None
+        true -> Some(Checked(serialize("scroll-padding-inline", percentage_css(value))));
+        false -> Absent
     }.
 
 /**
- * Constructs one scroll-padding-inline shorthand component.
+ * Checks the scroll-padding-inline length range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub component_auto(): Component ->
-    Component(Token {property: "scroll-padding-inline", css: "auto"}).
-
-/**
- * Checks the specification range and constructs a scroll-padding-inline value.
- */
-pub component_length(value: Length): Option[Component] ->
+pub component_length(value: Length): Option[CheckedComponent] ->
     case length_amount(value) >= 0 {
-        true -> Some(Component(Token {property: "scroll-padding-inline", css: length_css(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("scroll-padding-inline", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a scroll-padding-inline value.
+ * Checks the scroll-padding-inline percentage range. Returns Some when amount >= 0; otherwise
+ * returns None.
  */
-pub component_percentage(value: Percentage): Option[Component] ->
+pub component_percentage(value: Percentage): Option[CheckedComponent] ->
     case percentage_amount(value) >= 0 {
-        true ->
-            Some(Component(Token {property: "scroll-padding-inline", css: percentage_css(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("scroll-padding-inline", percentage_css(value))));
+        false -> Absent
     }.
 
 /**
- * Serializes a library-owned shorthand component.
+ * Supplies 1 components in grammar order.
  */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Combines 1 typed components in specification order.
+ * Supplies 2 components in grammar order.
  */
-pub single(first: Component): Value ->
-    Value(Token {property: "scroll-padding-inline", css: component_css(first)}).
-
-/**
- * Combines 2 typed components in specification order.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {
-            property: "scroll-padding-inline",
-            css: component_css(first) + " " + component_css(second),
-        },
-    ).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

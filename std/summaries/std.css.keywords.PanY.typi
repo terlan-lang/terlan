@@ -1,0 +1,6 @@
+//! Shared CSS keyword pan-y. Generated; do not edit.
+
+module std.css.keywords.PanY.
+
+pub type PanY =
+    Atom["pan-y"].

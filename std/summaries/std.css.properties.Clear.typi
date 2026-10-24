@@ -1,92 +1,38 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `clear` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether an
+//! element must be moved below (cleared)
+//! [floating](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/float) elements
+//! that precede it. The `clear` property applies to floating and non-floating elements.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - both: Is a keyword indicating that the element is moved down to clear past _both_ left and
+//! right floats.
+//! - inline-end: Is a keyword indicating that the element is moved down to clear floats on _end side
+//! of its containing block_, that is the _right_ floats on ltr scripts and the _left_ floats on rtl
+//! scripts.
+//! - inline-start: Is a keyword indicating that the element is moved down to clear floats on _start
+//! side of its containing block_, that is the _left_ floats on ltr scripts and the _right_ floats on
+//! rtl scripts.
+//! - left: Is a keyword indicating that the element is moved down to clear past _left_ floats.
+//! - none: Is a keyword indicating that the element is _not_ moved down to clear past floating
+//! elements.
+//! - right: Is a keyword indicating that the element is moved down to clear past _right_ floats.
+//!
+//! Grammar: inline-start | inline-end | block-start | block-end | left | right | top | bottom |
+//! both-inline | both-block | both | none
+//!
 //! Specification: https://drafts.csswg.org/css-page-floats-3/#propdef-clear
-//! Grammar: inline-start | inline-end | block-start | block-end | left | right | top | bottom | both-inline | both-block | both | none
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/clear
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Clear.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    clear: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    clear: Value
+    clear: InlineStart | InlineEnd | Left | Right | Both | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained clear value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword block-end.
-
-pub block_end(): Value.
-
-/// Returns the CSS keyword block-start.
-
-pub block_start(): Value.
-
-/// Returns the CSS keyword both.
-
-pub both(): Value.
-
-/// Returns the CSS keyword both-block.
-
-pub both_block(): Value.
-
-/// Returns the CSS keyword both-inline.
-
-pub both_inline(): Value.
-
-/// Returns the CSS keyword bottom.
-
-pub bottom(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inline-end.
-
-pub inline_end(): Value.
-
-/// Returns the CSS keyword inline-start.
-
-pub inline_start(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword top.
-
-pub top(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

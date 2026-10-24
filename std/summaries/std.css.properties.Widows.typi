@@ -1,48 +1,29 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-break-4/#propdef-widows
+//! The `widows` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the minimum
+//! number of lines in a block container that must be shown at the _top_ of a
+//! [page](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Paged_media), region, or
+//! [column](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Multicol_layout).
+//!
+//! Initial: 2. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: <integer [1,∞]>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-break-4/#propdef-widows
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/widows
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Widows.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    widows: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    widows: Value
+    widows: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained widows value.
+/// Checks the widows integer range. Returns Some when amount >= 1; otherwise returns None.
 
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a widows value.
-
-pub integer(value: Int): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub integer(value: Int): Option[Checked].

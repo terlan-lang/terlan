@@ -1,75 +1,34 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-position-4/#propdef-overlay
+ * The `overlay` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies whether
+ * an element appearing in the [top
+ * layer](https://developer.mozilla.org/en-US/docs/Glossary/Top_layer) (for example, a shown
+ * [popover](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API) or modal `dialog`
+ * element) is actually rendered in the top layer. This property is only relevant within a list of
+ * `transition-property` values, and only if `allow-discrete` is set as the `transition-behavior`.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: The element is rendered in the top layer if it is promoted to the top layer.
+ * - none: The element is not rendered in the top layer.
+ *
  * Grammar: none | auto
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-position-4/#propdef-overlay
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overlay
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Overlay.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, None}.
 
-/**
- * A nominal, specification-constrained overlay value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    overlay: Value,
+    overlay: None | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    overlay: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "overlay", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "overlay", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "overlay", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "overlay", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "overlay", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "overlay", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "overlay", css: "unset"}).

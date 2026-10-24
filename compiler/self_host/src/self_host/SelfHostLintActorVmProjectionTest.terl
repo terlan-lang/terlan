@@ -1,0 +1,41 @@
+/** Actor/VM tooling-document projection contracts. */
+module self_host.SelfHostLintActorVmProjectionTest.
+
+import self_host.SelfHostLintActorVmProjection.
+import self_host.SelfHostToolingDocument.
+
+@test
+pub projects_manual_tag_equality_and_state_parameter_rules(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nhandle(message: Message, current: State): Bool -> message.tag == \"ready\".\n",
+    );
+    case SelfHostLintActorVmProjection.diagnostics("Actor.terl", document) {
+        [tag, state] ->
+            tag.rule_id == "TL0905"
+                and state.rule_id == "TL0906";
+        _ -> false
+    }.
+
+@test
+pub accepts_matching_and_canonical_state_names(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nhandle(message: Message, actor_state: ActorState): Bool -> case message { Ready -> true; _ -> false }.\n",
+    );
+    SelfHostLintActorVmProjection.diagnostics("Actor.terl", document) == [].
+
+@test
+pub recognizes_reversed_kind_atom_comparisons(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\non_message(msg: Message, state: State): Bool -> Atom[\"ready\"] == msg.kind.\n",
+    );
+    case SelfHostLintActorVmProjection.diagnostics("Actor.terl", document) {
+        [value] -> value.rule_id == "TL0905";
+        _ -> false
+    }.
+
+@test
+pub test_sources_remain_exempt(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nhandle(message: Message, current: State): Bool -> message.tag == \"ready\".\n",
+    );
+    SelfHostLintActorVmProjection.diagnostics("ActorTest.terl", document) == [].

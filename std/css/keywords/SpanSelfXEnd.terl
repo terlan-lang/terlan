@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword span-self-x-end. Generated; do not edit.
+ */
+module std.css.keywords.SpanSelfXEnd.
+
+pub type SpanSelfXEnd = Atom["span-self-x-end"].

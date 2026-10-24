@@ -141,6 +141,13 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     completed(session.keep_alive().expect("dispatch keep-alive callback"));
     completed(session.drain().expect("dispatch drain callback"));
     assert!(!session.is_open());
+    for result in [
+        session.keep_alive(),
+        session.event_ready("late".into()),
+        session.drain(),
+    ] {
+        assert!(result.unwrap_err().to_string().contains("serve.sse.closed"));
+    }
     assert_eq!(
         session.executor().completed_events(),
         &[
@@ -157,18 +164,28 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
         SseSession::open(endpoint.clone()),
     )
     .expect("dispatch second open callback");
-    assert!(matches!(
-        cancelled
-            .event_ready("pending".to_string())
-            .expect("park second event callback"),
-        AotSseCallbackState::Waiting(_)
-    ));
+    let AotSseCallbackState::Waiting(cancelled_wait) = cancelled
+        .event_ready("pending".to_string())
+        .expect("park second event callback")
+    else {
+        panic!("event callback must park");
+    };
     completed(
         cancelled
             .cancel("client disconnected".to_string())
             .expect("cancel parked callback and dispatch cancellation"),
     );
     assert!(!cancelled.is_open());
+    assert!(cancelled
+        .resume(cancelled_wait.wake(ReplValue::String("late".into())))
+        .unwrap_err()
+        .to_string()
+        .contains("serve.sse.closed"));
+    terlan_http_native::sse_callbacks::SseCancellation::cancel(
+        &mut cancelled,
+        "transport cleanup".into(),
+    )
+    .unwrap();
     assert_eq!(
         cancelled.executor().completed_events(),
         &[AotSseCallbackEvent::Open, AotSseCallbackEvent::Cancellation,]

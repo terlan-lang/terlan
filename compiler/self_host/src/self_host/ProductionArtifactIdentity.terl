@@ -1,0 +1,31 @@
+/** Produces canonical identities for normalized bootstrap artifacts. */
+module self_host.ProductionArtifactIdentity.
+
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.io.File.
+
+/** Returns an empty identity for empty artifacts and SHA-256 otherwise. */
+@pure
+pub identity(artifact: String): String ->
+    if {
+        artifact == "" -> "";
+        true -> String.concat(["sha256:", Hash.sha256(artifact)])
+    }.
+
+/** Writes the identity of one non-empty normalized bootstrap artifact. */
+pub write(artifact_path: String, identity_output: String): Bool ->
+    case File.read_text(artifact_path) {
+        Err(_reason) -> false;
+        Ok(artifact) ->
+            let value = identity(artifact);
+            if {
+                value == "" -> false;
+                true ->
+                    case File.write_text(identity_output, String.concat([value, "\n"])) {
+                        Err(_reason) -> false;
+                        Ok(_unit) -> true
+                    }
+            }
+    }.

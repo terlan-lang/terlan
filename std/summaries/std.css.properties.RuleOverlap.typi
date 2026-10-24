@@ -1,52 +1,23 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-overlap
+//! The `rule-overlap` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+//! which rule is painted on top when column rules and row rules intersect.
+//!
+//! Keyword effects:
+//! - column-over-row: Specifies that column rules are painted over row rules.
+//! - row-over-column: Specifies that row rules are painted over column rules. This is the default
+//! value.
+//!
 //! Grammar: row-over-column | column-over-row
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-overlap
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/rule-overlap
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RuleOverlap.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    rule_overlap: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    rule_overlap: Value
+    rule_overlap: RowOverColumn | ColumnOverRow | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained rule-overlap value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword column-over-row.
-
-pub column_over_row(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword row-over-column.
-
-pub row_over_column(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

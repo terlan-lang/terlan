@@ -744,7 +744,8 @@ finish(
             let _stdout = Console.println(output.stdout);
             let _stderr = Console.eprintln(output.stderr);
             if {
-                output.status != 0 or not String.contains(output.stdout, owner.required_stdout) -> let _recorded =
+                output.status != 0
+                    or not String.contains(output.stdout, owner.required_stdout) -> let _recorded =
                     OwnerStorage.atomic_json(
                         root,
                         ledger_path(owner),

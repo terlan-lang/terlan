@@ -1,0 +1,306 @@
+/** VM-process execution for bounded self-hosted backend compilation batches. */
+module self_host.SelfHostParallelBackendDriver.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, Int, String, Unit}.
+import std.vm.{Message, Process}.
+import std.vm.Process.{ActorMessage}.
+
+import self_host.ProjectedInterfaceCatalog.{InterfaceCatalog}.
+import self_host.SelfHostWorkerOrchestrator.{WorkerSchedulerState}.
+import self_host.SelfHostWorkerPlan.{WorkerBatch}.
+import self_host.ProjectedInterfaceCatalog.
+import self_host.SelfHostWorkerOrchestrator.
+
+
+const BACKEND_WORKER_ENTRY: Int = 7001.
+
+pub struct BackendWorkerJob {
+    identity: String,
+    input: String,
+    output: String,
+    diagnostics: String,
+}.
+
+pub constructor BackendWorkerJob {
+    (identity: String, input: String, output: String, diagnostics: String): BackendWorkerJob ->
+        BackendWorkerJob {
+            identity: identity,
+            input: input,
+            output: output,
+            diagnostics: diagnostics,
+        }
+}.
+
+pub struct BackendWorkerCommand {
+    job: BackendWorkerJob,
+    catalog: InterfaceCatalog,
+    reply_to: std.vm.Process.Process[BackendWorkerReply],
+}.
+
+pub constructor BackendWorkerCommand {
+    (job: BackendWorkerJob, catalog: InterfaceCatalog, reply_to: std.vm.Process.Process[BackendWorkerReply]): BackendWorkerCommand ->
+        BackendWorkerCommand { job: job, catalog: catalog, reply_to: reply_to }
+}.
+
+pub struct BackendWorkerReply {
+    identity: String,
+    success: Bool,
+}.
+
+pub constructor BackendWorkerReply {
+    (identity: String, success: Bool): BackendWorkerReply ->
+        BackendWorkerReply { identity: identity, success: success }
+}.
+
+struct ActiveBackendWorker {
+    identity: String,
+    process: std.vm.Process.Process[BackendWorkerCommand],
+}.
+
+constructor ActiveBackendWorker {
+    (identity: String, process: std.vm.Process.Process[BackendWorkerCommand]): ActiveBackendWorker ->
+        ActiveBackendWorker { identity: identity, process: process }
+}.
+
+@pure
+contains(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> current == value or contains(value, rest)
+    }.
+
+@pure
+has_duplicate(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> contains(value, rest) or has_duplicate(rest)
+    }.
+
+@pure
+identities(values: List[BackendWorkerJob]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.identity | identities(rest)]
+    }.
+
+@pure
+outputs(values: List[BackendWorkerJob]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.output | outputs(rest)]
+    }.
+
+@pure
+diagnostic_outputs(values: List[BackendWorkerJob]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.diagnostics | diagnostic_outputs(rest)]
+    }.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+valid_paths(values: List[BackendWorkerJob]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> value.identity != ""
+            and value.input != ""
+            and value.output != ""
+            and value.diagnostics != ""
+            and value.output != value.diagnostics
+            and valid_paths(rest)
+    }.
+
+@pure
+take_jobs(values: List[BackendWorkerJob], remaining: Int): List[BackendWorkerJob] ->
+    if {
+        remaining <= 0 -> List.new[BackendWorkerJob]();
+        true -> case values {
+            [] -> List.new[BackendWorkerJob]();
+            [value | rest] -> [value | take_jobs(rest, remaining - 1)]
+        }
+    }.
+
+@pure
+drop_jobs(values: List[BackendWorkerJob], remaining: Int): List[BackendWorkerJob] ->
+    if {
+        remaining <= 0 -> values;
+        true -> case values {
+            [] -> List.new[BackendWorkerJob]();
+            [_ | rest] -> drop_jobs(rest, remaining - 1)
+        }
+    }.
+
+@pure
+job_identities(values: List[BackendWorkerJob]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.identity | job_identities(rest)]
+    }.
+
+@pure
+batches(values: List[BackendWorkerJob], width: Int, index: Int): List[WorkerBatch] ->
+    case values {
+        [] -> List.new[WorkerBatch]();
+        [_ | _] -> [WorkerBatch(index, job_identities(take_jobs(values, width)))
+            | batches(drop_jobs(values, width), width, index + 1)]
+    }.
+
+/** Validates jobs and constructs deterministic bounded execution batches. */
+@pure
+pub plan(values: List[BackendWorkerJob], worker_limit: Int): Result[List[WorkerBatch], String] ->
+    let job_identities = identities(values);
+    let job_outputs = outputs(values);
+    let job_diagnostics = diagnostic_outputs(values);
+    let all_output_paths = append(job_outputs, job_diagnostics);
+    if {
+        worker_limit <= 0 -> Err("backend worker limit must be positive");
+        not valid_paths(values) -> Err("backend worker job contains an empty or aliased path");
+        has_duplicate(job_identities) -> Err("backend worker jobs contain duplicate identities");
+        has_duplicate(all_output_paths) -> Err("backend worker jobs contain aliased artifact or diagnostic outputs");
+        true -> Ok(batches(values, worker_limit, 0))
+    }.
+
+@pure
+job(identity: String, values: List[BackendWorkerJob]): Option[BackendWorkerJob] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.identity == identity -> Some(value);
+            true -> job(identity, rest)
+        }
+    }.
+
+@pure
+active_contains(identity: String, values: List[ActiveBackendWorker]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.identity == identity or active_contains(identity, rest)
+    }.
+
+@pure
+remove_active(identity: String, values: List[ActiveBackendWorker]): List[ActiveBackendWorker] ->
+    case values {
+        [] -> List.new[ActiveBackendWorker]();
+        [value | rest] -> if {
+            value.identity == identity -> rest;
+            true -> [value | remove_active(identity, rest)]
+        }
+    }.
+
+cancel_active(values: List[ActiveBackendWorker]): Unit ->
+    case values {
+        [] -> Unit;
+        [value | rest] -> let _cancelled = Process.cancel[BackendWorkerCommand](value.process);
+        cancel_active(rest)
+    }.
+
+spawn_workers(
+    modules: List[String],
+    jobs: List[BackendWorkerJob],
+    catalog: InterfaceCatalog,
+    reply_to: std.vm.Process.Process[BackendWorkerReply],
+): Result[List[ActiveBackendWorker], String] ->
+    case modules {
+        [] -> Ok(List.new[ActiveBackendWorker]());
+        [identity | rest] -> case job(identity, jobs) {
+            None -> Err("worker batch names an unknown backend job");
+            Some(value) -> let process = Process.spawn[BackendWorkerCommand](
+                Process.entry[BackendWorkerCommand](BACKEND_WORKER_ENTRY),
+            );
+            let _linked = Process.link[BackendWorkerCommand](process);
+            let _sent = Process.send[BackendWorkerCommand](
+                process,
+                Message.wrap[BackendWorkerCommand](BackendWorkerCommand(value, catalog, reply_to)),
+            );
+            case spawn_workers(rest, jobs, catalog, reply_to) {
+                Err(reason) -> let _cancelled = Process.cancel[BackendWorkerCommand](process);
+                Err(reason);
+                Ok(active) -> Ok([ActiveBackendWorker(identity, process) | active])
+            }
+        }
+    }.
+
+run_state(
+    state: WorkerSchedulerState,
+    jobs: List[BackendWorkerJob],
+    catalog: InterfaceCatalog,
+): Bool ->
+    if {
+        SelfHostWorkerOrchestrator.finished(state) -> SelfHostWorkerOrchestrator.succeeded(state);
+        true -> case SelfHostWorkerOrchestrator.dispatch(state) {
+            Err(_) -> false;
+            Ok(dispatched) -> let reply_to = Process.current[BackendWorkerReply]();
+            case spawn_workers(dispatched.modules, jobs, catalog, reply_to) {
+                Err(_) -> false;
+                Ok(active) -> collect_batch(dispatched.state, active, jobs, catalog)
+            }
+        }
+    }.
+
+collect_batch(
+    state: WorkerSchedulerState,
+    active: List[ActiveBackendWorker],
+    jobs: List[BackendWorkerJob],
+    catalog: InterfaceCatalog,
+): Bool ->
+    case active {
+        [] -> run_state(state, jobs, catalog);
+        [_ | _] -> let reply = Message.unwrap[BackendWorkerReply](Process.receive[BackendWorkerReply]());
+        if {
+            not active_contains(reply.identity, active) -> let _cancelled = cancel_active(active);
+            false;
+            true -> case SelfHostWorkerOrchestrator.complete(state, reply.identity, reply.success) {
+                Err(_) -> let _cancelled = cancel_active(active);
+                false;
+                Ok(next) -> if {
+                    not reply.success -> let _cancelled = cancel_active(remove_active(reply.identity, active));
+                    false;
+                    true -> collect_batch(
+                        next,
+                        remove_active(reply.identity, active),
+                        jobs,
+                        catalog,
+                    )
+                }
+            }
+        }
+    }.
+
+/** Runs backend jobs with at most worker_limit VM processes at a time. */
+@target.vm {process_mailbox: true}
+pub run(values: List[BackendWorkerJob], catalog: InterfaceCatalog, worker_limit: Int): Bool ->
+    if {
+        not catalog.valid -> false;
+        true -> case plan(values, worker_limit) {
+            Err(_) -> false;
+            Ok(worker_batches) -> case SelfHostWorkerOrchestrator.start(worker_batches) {
+                Err(_) -> false;
+                Ok(state) -> run_state(state, values, catalog)
+            }
+        }
+    }.
+
+/** Static image entry used by all compiler backend worker processes. */
+@target.vm {process_mailbox: true}
+pub spawn_7001(): Unit ->
+    let command = Message.unwrap[BackendWorkerCommand](Process.receive[BackendWorkerCommand]());
+    let success = ProjectedInterfaceCatalog.write_backend_catalog(
+        command.job.input,
+        command.catalog,
+        command.job.output,
+        command.job.diagnostics,
+    );
+    Process.send[BackendWorkerReply](
+        command.reply_to,
+        Message.wrap[BackendWorkerReply](BackendWorkerReply(command.job.identity, success)),
+    );
+    Unit.

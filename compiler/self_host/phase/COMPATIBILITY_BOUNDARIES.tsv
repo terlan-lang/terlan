@@ -1,0 +1,5 @@
+# path	disposition	reason
+compiler/self_host/src/self_host/ProjectedBackendCompile.terl	permanent-api	Supports callers whose complete dynamic-call target set is already inferred.
+compiler/self_host/src/self_host/ProjectedSemanticAnalysis.terl	permanent-api	Supports syntax-only semantic tooling without constructing imported interface state.
+compiler/self_host/src/self_host/ProjectedExpressionTypecheck.terl	permanent-api	Supports isolated expression analysis without an imported type catalog.
+compiler/self_host/src/self_host/ProjectedInterfaceCatalog.terl	permanent-api	Decodes persisted v3 and v4 interface catalogs during their declared schema compatibility window.

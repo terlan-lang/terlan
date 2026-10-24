@@ -1,6 +1,8 @@
 /** Adapts canonical lexer tokens to implementation-neutral LR projections. */
 module self_host.ProjectionAdapter.
 
+import std.core.String.
+
 
 import std.core.Option.{None, Option, Some}.
 import self_host.CanonicalToken.{CanonicalToken}.
@@ -103,20 +105,22 @@ concrete_tokens_at(
 ): List[ProjectedCanonicalToken] ->
     case values {
         [] -> reverse_at(output, List.new[ProjectedCanonicalToken]());
-        [value | rest]
-            where terminal_is(value, "eof", "EOF")
-                or (value.text == "" and value.start_byte == value.end_byte) ->
-            concrete_tokens_at(rest, output);
-        [value | rest] -> concrete_tokens_at(
-            rest,
-            [ProjectedCanonicalToken(
-                concrete_terminal(value),
-                value.text,
-                value.start_byte,
-                value.end_byte,
-            )
-            | output],
-        )
+        [value | rest] ->
+            if {
+                terminal_is(value, "eof", "EOF")
+                    or (value.text == "" and value.start_byte == value.end_byte) ->
+                    concrete_tokens_at(rest, output);
+                true -> concrete_tokens_at(
+                    rest,
+                    [ProjectedCanonicalToken(
+                        concrete_terminal(value),
+                        value.text,
+                        value.start_byte,
+                        value.end_byte,
+                    )
+                    | output],
+                )
+            }
     }.
 
 @pure
@@ -154,10 +158,12 @@ none_projection_mark(): Option[ProjectionMark] -> None.
 next_nontrivia(values: List[ProjectionToken]): Option[ProjectionToken] ->
     case values {
         [] -> none_projection_token();
-        [value | rest]
-            where value.kind == CommentProjection or value.kind == DocProjection ->
-            next_nontrivia(rest);
-        [value | _rest] -> some_projection_token(value)
+        [value | rest] ->
+            if {
+                value.kind == CommentProjection or value.kind == DocProjection ->
+                    next_nontrivia(rest);
+                true -> some_projection_token(value)
+            }
     }.
 
 @pure
@@ -222,10 +228,12 @@ collect_at(
 ): List[ProjectionMark] ->
     case values {
         [] -> output;
-        [value | rest]
-            where value.kind == CommentProjection or value.kind == DocProjection ->
-            collect_at(rest, previous, arrows, output);
-        [value | rest] -> collect_value(values, value, rest, previous, arrows, output)
+        [value | rest] ->
+            if {
+                value.kind == CommentProjection or value.kind == DocProjection ->
+                    collect_at(rest, previous, arrows, output);
+                true -> collect_value(values, value, rest, previous, arrows, output)
+            }
     }.
 
 /** Computes every currently modeled contextual mark from canonical tokens. */
@@ -281,11 +289,13 @@ terminal_native(class: ProjectionClass): String ->
 insert_mark(value: ProjectionMark, values: List[ProjectionMark]): List[ProjectionMark] ->
     case values {
         [] -> [value];
-        [head | _rest]
-            where value.start_byte < head.start_byte
-                or (value.start_byte == head.start_byte and value.end_byte > head.end_byte) ->
-            [value | values];
-        [head | rest] -> [head | insert_mark(value, rest)]
+        [head | rest] ->
+            if {
+                value.start_byte < head.start_byte
+                    or (value.start_byte == head.start_byte and value.end_byte > head.end_byte) ->
+                    [value | values];
+                true -> [head | insert_mark(value, rest)]
+            }
     }.
 
 @pure
@@ -363,9 +373,12 @@ rewrite_at(
 ): List[ProjectedCanonicalToken] ->
     case values {
         [] -> reverse_at(output, List.new[ProjectedCanonicalToken]());
-        [value | rest] where value.start_byte < skip_until ->
-            rewrite_at(source, rest, marks, skip_until, output);
-        [value | rest] -> rewrite_value(source, value, rest, marks, skip_until, output)
+        [value | rest] ->
+            if {
+                value.start_byte < skip_until ->
+                    rewrite_at(source, rest, marks, skip_until, output);
+                true -> rewrite_value(source, value, rest, marks, skip_until, output)
+            }
     }.
 
 /** Rewrites canonical lexer tokens into the exact contextual terminal stream. */

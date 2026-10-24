@@ -1,75 +1,33 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-type
+ * The `mask-type` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property applies to the
+ * SVG `mask` element. It defines whether to use the _luminance_ (brightness) or _alpha_
+ * (transparency) content of the mask. This property may be overridden by the `mask-mode` property.
+ * The `mask-type` property has no effect on image or gradient masks.
+ *
+ * Initial: luminance. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - alpha: Indicates that the alpha (transparency) values of the `<mask>` should be used.
+ * - luminance: Indicates that the [luminance (brightness) values](#understanding_luminance) of the
+ * `<mask>` should be used.
+ *
  * Grammar: luminance | alpha
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-type
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-type
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskType.
 
-import type std.core.Option.
+import std.css.keywords.{Alpha, Luminance}.
 
-/**
- * A nominal, specification-constrained mask-type value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    mask_type: Value,
+    mask_type: Luminance | Alpha | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    mask_type: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword alpha.
- */
-pub alpha(): Value ->
-    Value(Token {property: "mask-type", css: "alpha"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "mask-type", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask-type", css: "initial"}).
-
-/**
- * Returns the CSS keyword luminance.
- */
-pub luminance(): Value ->
-    Value(Token {property: "mask-type", css: "luminance"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-type", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-type", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-type", css: "unset"}).

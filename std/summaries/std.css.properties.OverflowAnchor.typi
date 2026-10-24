@@ -1,52 +1,27 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-anchoring-1/#propdef-overflow-anchor
+//! The `overflow-anchor` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property provides a
+//! way to opt out of the browser's scroll anchoring behavior, which adjusts scroll position to
+//! minimize content shifts.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: The element becomes a potential anchor when adjusting scroll position.
+//! - none: The element won't be selected as a potential anchor.
+//!
 //! Grammar: auto | none
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-anchoring-1/#propdef-overflow-anchor
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow-anchor
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OverflowAnchor.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    overflow_anchor: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    overflow_anchor: Value
+    overflow_anchor: Auto | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained overflow-anchor value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

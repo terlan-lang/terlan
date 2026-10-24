@@ -8,7 +8,7 @@ import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
 import self_host.Syntax.{SyntaxSpan}.
 
 import std.collections.List.
-import std.core.String.
+import std.core.{Int, String}.
 
 
 pub struct ProjectedParameterTree {
@@ -34,19 +34,23 @@ pub constructor ProjectedParameterTree {
 pub struct ProjectedCallableSignature {
     valid: Bool,
     declaration_head: String,
+    type_parameters: List[String],
     parameters: List[self_host.ProjectedSignatureSyntax.ProjectedParameterTree],
     return_type: Option[ProjectedTypeNode],
+    guard: Option[ProjectedExpressionNode],
     span: SyntaxSpan,
     message: String,
 }.
 
 pub constructor ProjectedCallableSignature {
-    (valid: Bool, declaration_head: String, parameters: List[self_host.ProjectedSignatureSyntax.ProjectedParameterTree], return_type: Option[ProjectedTypeNode], span: SyntaxSpan, message: String): ProjectedCallableSignature ->
+    (valid: Bool, declaration_head: String, type_parameters: List[String], parameters: List[self_host.ProjectedSignatureSyntax.ProjectedParameterTree], return_type: Option[ProjectedTypeNode], guard: Option[ProjectedExpressionNode], span: SyntaxSpan, message: String): ProjectedCallableSignature ->
         ProjectedCallableSignature {
             valid: valid,
             declaration_head: declaration_head,
+            type_parameters: type_parameters,
             parameters: parameters,
             return_type: return_type,
+            guard: guard,
             span: span,
             message: message,
         }
@@ -56,6 +60,9 @@ pub constructor ProjectedCallableSignature {
 pub struct ProjectedTypeDeclarationTree {
     valid: Bool,
     declaration_head: String,
+    name: String,
+    type_parameter_count: Int,
+    type_parameters: List[String],
     representation: Option[ProjectedTypeNode],
     is_opaque: Bool,
     span: SyntaxSpan,
@@ -63,10 +70,13 @@ pub struct ProjectedTypeDeclarationTree {
 }.
 
 pub constructor ProjectedTypeDeclarationTree {
-    (valid: Bool, declaration_head: String, representation: Option[ProjectedTypeNode], is_opaque: Bool, span: SyntaxSpan, message: String): ProjectedTypeDeclarationTree ->
+    (valid: Bool, declaration_head: String, name: String, type_parameter_count: Int, type_parameters: List[String], representation: Option[ProjectedTypeNode], is_opaque: Bool, span: SyntaxSpan, message: String): ProjectedTypeDeclarationTree ->
         ProjectedTypeDeclarationTree {
             valid: valid,
             declaration_head: declaration_head,
+            name: name,
+            type_parameter_count: type_parameter_count,
+            type_parameters: type_parameters,
             representation: representation,
             is_opaque: is_opaque,
             span: span,
@@ -75,18 +85,34 @@ pub constructor ProjectedTypeDeclarationTree {
 }.
 
 
+pub struct ProjectedTypeConstructorArity {
+    name: String,
+    arity: Int,
+}.
+
+pub constructor ProjectedTypeConstructorArity {
+    (name: String, arity: Int): ProjectedTypeConstructorArity ->
+        ProjectedTypeConstructorArity {
+            name: name,
+            arity: arity,
+        }
+}.
+
+
 pub struct ProjectedSignatureDocument {
     valid: Bool,
     callables: List[self_host.ProjectedSignatureSyntax.ProjectedCallableSignature],
     types: List[self_host.ProjectedSignatureSyntax.ProjectedTypeDeclarationTree],
+    type_constructors: List[self_host.ProjectedSignatureSyntax.ProjectedTypeConstructorArity],
 }.
 
 pub constructor ProjectedSignatureDocument {
-    (valid: Bool, callables: List[self_host.ProjectedSignatureSyntax.ProjectedCallableSignature], types: List[self_host.ProjectedSignatureSyntax.ProjectedTypeDeclarationTree]): ProjectedSignatureDocument ->
+    (valid: Bool, callables: List[self_host.ProjectedSignatureSyntax.ProjectedCallableSignature], types: List[self_host.ProjectedSignatureSyntax.ProjectedTypeDeclarationTree], type_constructors: List[self_host.ProjectedSignatureSyntax.ProjectedTypeConstructorArity]): ProjectedSignatureDocument ->
         ProjectedSignatureDocument {
             valid: valid,
             callables: callables,
             types: types,
+            type_constructors: type_constructors,
         }
 }.
 

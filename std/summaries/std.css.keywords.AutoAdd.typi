@@ -1,0 +1,6 @@
+//! Shared CSS keyword auto-add. Generated; do not edit.
+
+module std.css.keywords.AutoAdd.
+
+pub type AutoAdd =
+    Atom["auto-add"].

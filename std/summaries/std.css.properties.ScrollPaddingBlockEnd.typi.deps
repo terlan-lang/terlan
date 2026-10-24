@@ -1,10 +1,11 @@
 module=std.css.properties.ScrollPaddingBlockEnd
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=15402171911551705851
-interface_hash=17481943703052445213
-interface_doc_hash=11325157041993036507
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15252539773783440839
+interface_hash=9891489923355542337
+interface_doc_hash=11647685265486285165
+deps=3
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722

@@ -11,6 +11,9 @@ use terlan_http_native::session_bindings::SessionStorage;
 #[path = "session_acquisition_test.rs"]
 mod acquisition;
 
+#[path = "session_identity_policy_test.rs"]
+mod identity_policy;
+
 #[test]
 fn canonical_session_provider_preserves_commands_rotation_and_expiration() {
     let fixture = compile_native_handler_fixture(
@@ -44,11 +47,12 @@ pub expire(session: Session): Bool ->
     done == Unit.
 "#,
     );
-    let sessions = super::super::session_service::new_session_service();
-    let identity = sessions
-        .with_storage(|state| state.create("", 86400))
+    let sessions = super::super::session_service::http_session_service_for(&fixture.root).unwrap();
+    let identity = "fixture-issued".to_string();
+    assert!(sessions
+        .with_storage(|state| state.try_create(&identity, 86400))
         .unwrap()
-        .unwrap();
+        .unwrap());
     let session = ReplValue::Record {
         name: "Session".into(),
         fields: vec![
@@ -70,7 +74,22 @@ pub expire(session: Session): Bool ->
     let invoke = |runtime: &AotHandlerRuntime, function, value| {
         runtime
             .begin_request_invocation("app.Sessions", function, vec![value])
-            .map(|step| {
+            .map(|mut step| {
+                if function == "rotate" {
+                    let mut helpers =
+                        crate::runtime::vm::package_native_helper::VmPackageNativeHelpers::default(
+                        );
+                    for operation in [
+                        "std.crypto.entropy.bytes",
+                        "std.encoding.base64.encode_url_unpadded_bytes",
+                    ] {
+                        step = super::super::handler_cache_test_support::resume_value_codec(
+                            step,
+                            &mut helpers,
+                            operation,
+                        );
+                    }
+                }
                 let AotHandlerInvocationStep::Complete(value) = step else {
                     panic!("registered session services must complete on the owner");
                 };
@@ -85,8 +104,13 @@ pub expire(session: Session): Bool ->
         invoke(&runtime, "update", session.clone()).unwrap(),
         ReplValue::Bool(true)
     );
-    let replacement = load(sessions.clone());
-    let isolated = load(super::super::session_service::new_session_service());
+    let replacement = load(
+        super::super::session_service::http_session_service_for(&fixture.root.join(".")).unwrap(),
+    );
+    let other_application = fixture.root.join("isolated-app");
+    std::fs::create_dir(&other_application).unwrap();
+    let isolated =
+        load(super::super::session_service::http_session_service_for(&other_application).unwrap());
     for function in ["read", "expire"] {
         assert_stale(&isolated, function, session.clone());
     }
@@ -134,18 +158,21 @@ fn compiled_session_capabilities_reject_incompatible_context_results() {
         "app_SessionBoundary",
         r#"module app.SessionBoundary.
 import std.core.Option.
+import type std.vm.Bytes.
 @compiler.native {std.http.session.lookup}
 pub lookup(identity: String): Option[String].
-@compiler.native {std.http.session.create}
-pub create(identity: String, ttl_seconds: Int): String.
+@compiler.native {std.crypto.entropy.bytes}
+pub entropy(count: Int): Bytes.
+@compiler.native {std.http.session.try_create}
+pub try_create(identity: String, ttl_seconds: Int): Bool.
 @compiler.native {std.http.session.get}
 pub get(identity: String, key: String): Option[String].
 @compiler.native {std.http.session.set}
 pub set(identity: String, key: String, value: String): Unit.
 @compiler.native {std.http.session.delete}
 pub delete(identity: String, key: String): Unit.
-@compiler.native {std.http.session.rotate}
-pub rotate(identity: String, ttl_seconds: Int): String.
+@compiler.native {std.http.session.try_rotate}
+pub try_rotate(identity: String, replacement: String, ttl_seconds: Int): Bool.
 @compiler.native {std.http.session.expire}
 pub expire(identity: String): Unit.
 @compiler.native {std.http.session.is_live}
@@ -157,11 +184,12 @@ pub healthy(): Int -> 42.
     let mut services = NativeServices::default();
     let operations = [
         ("std.http.session.lookup", "lookup", 1),
-        ("std.http.session.create", "create", 2),
+        ("std.crypto.entropy.bytes", "entropy", 1),
+        ("std.http.session.try_create", "try_create", 2),
         ("std.http.session.get", "get", 2),
         ("std.http.session.set", "set", 3),
         ("std.http.session.delete", "delete", 2),
-        ("std.http.session.rotate", "rotate", 2),
+        ("std.http.session.try_rotate", "try_rotate", 3),
         ("std.http.session.expire", "expire", 1),
         ("std.http.session.is_live", "is_live", 1),
     ];
@@ -183,8 +211,8 @@ pub healthy(): Int -> 42.
     let mut helpers = VmPackageNativeHelpers::default();
     for (index, (_, export, arity)) in operations.iter().enumerate() {
         let mut args = vec![ReplValue::String("identity".into()); *arity];
-        if matches!(*export, "create" | "rotate") {
-            args[1] = ReplValue::Int(86400);
+        if matches!(*export, "try_create" | "try_rotate" | "entropy") {
+            args[*arity - 1] = ReplValue::Int(32);
         }
         let error = execute_call(&mut shard, &mut helpers, export, &args).unwrap_err();
         let expected = if matches!(*export, "get" | "lookup") {

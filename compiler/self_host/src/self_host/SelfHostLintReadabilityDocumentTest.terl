@@ -1,0 +1,37 @@
+/** Structural readability contracts over the shared tooling document. */
+module self_host.SelfHostLintReadabilityDocumentTest.
+
+import self_host.SelfHostLintReadabilityDocument.
+import self_host.SelfHostToolingDocument.
+
+@test
+pub reports_the_first_expression_beyond_depth_eight(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nvalue(input: Int): Int -> wrap(wrap(wrap(wrap(wrap(wrap(wrap(wrap(wrap(input))))))))).\n",
+    );
+    case SelfHostLintReadabilityDocument.diagnostics("Sample.terl", document) {
+        [value] -> value.rule_id == "TL0002" and value.line == 2;
+        _ -> false
+    }.
+
+@test
+pub accepts_staged_expression_depth(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nvalue(input: Int): Int -> let first = wrap(input); let second = wrap(first); wrap(second).\n",
+    );
+    SelfHostLintReadabilityDocument.diagnostics("Sample.terl", document) == [].
+
+@test
+pub preserves_property_test_exemption(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nvalue(input: Int): Int -> wrap(wrap(wrap(wrap(wrap(wrap(wrap(wrap(wrap(input))))))))).\n",
+    );
+    SelfHostLintReadabilityDocument.diagnostics(
+        "SamplePropertyTest.terl",
+        document,
+    ) == [].
+
+@test
+pub invalid_tooling_documents_produce_no_lint_facts(): Bool ->
+    let document = SelfHostToolingDocument.build("not valid terlan source");
+    SelfHostLintReadabilityDocument.deep_expression_facts(document) == [].

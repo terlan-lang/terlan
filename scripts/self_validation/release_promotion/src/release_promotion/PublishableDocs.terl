@@ -13,17 +13,11 @@ import std.io.File.
 import type std.core.Option.
 
 pub struct Manifest {
-    /**
-     * Whether the publishable documentation manifest passed validation.
-     */
+    /** Whether the publishable documentation manifest passed validation. */
     accepted: Bool,
-    /**
-     * Documentation paths admitted for publication.
-     */
+    /** Documentation paths admitted for publication. */
     files: List[String],
-    /**
-     * Diagnostic explaining why the documentation manifest was rejected.
-     */
+    /** Diagnostic explaining why the documentation manifest was rejected. */
     failure: String,
 }.
 

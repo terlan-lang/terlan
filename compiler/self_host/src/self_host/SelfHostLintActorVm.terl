@@ -1,0 +1,240 @@
+/** Normalized actor/VM lint authority for TL0905 and TL0906. */
+module self_host.SelfHostLintActorVm.
+
+import self_host.SelfHostLintMaintainability.
+import std.core.String.
+
+pub struct ActorParameter {
+    name: String,
+    type_name: String,
+    start_byte: Int,
+}.
+
+pub constructor ActorParameter {
+    (name: String, type_name: String, start_byte: Int): ActorParameter ->
+        ActorParameter { name: name, type_name: type_name, start_byte: start_byte }
+}.
+
+pub struct TagOperand {
+    kind: String,
+    text: String,
+    receiver: String,
+    field: String,
+}.
+
+pub constructor TagOperand {
+    (kind: String, text: String, receiver: String, field: String): TagOperand ->
+        TagOperand { kind: kind, text: text, receiver: receiver, field: field }
+}.
+
+pub struct TagEquality {
+    left: TagOperand,
+    right: TagOperand,
+    start_byte: Int,
+}.
+
+pub constructor TagEquality {
+    (left: TagOperand, right: TagOperand, start_byte: Int): TagEquality ->
+        TagEquality { left: left, right: right, start_byte: start_byte }
+}.
+
+pub struct ActorFunction {
+    name: String,
+    params: List[ActorParameter],
+    tag_equalities: List[TagEquality],
+}.
+
+pub constructor ActorFunction {
+    (name: String, params: List[ActorParameter], tag_equalities: List[TagEquality]): ActorFunction ->
+        ActorFunction { name: name, params: params, tag_equalities: tag_equalities }
+}.
+
+pub struct ActorVmDiagnostic {
+    path: String,
+    line: Int,
+    column: Int,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+    fix_available: Bool,
+}.
+
+pub constructor ActorVmDiagnostic {
+    (path: String, line: Int, column: Int, rule_id: String, rule_name: String, severity: String, message: String, fix_available: Bool): ActorVmDiagnostic ->
+        ActorVmDiagnostic {
+            path: path,
+            line: line,
+            column: column,
+            rule_id: rule_id,
+            rule_name: rule_name,
+            severity: severity,
+            message: message,
+            fix_available: fix_available,
+        }
+}.
+
+pub handler_name(name: String): Bool ->
+    name == "handle"
+        or String.starts_with(name, "handle_")
+        or String.ends_with(name, "_handler")
+        or name == "dispatch"
+        or name == "on_message"
+        or name == "receive"
+        or name == "route_message".
+
+pub lifecycle_name(name: String): Bool ->
+    handler_name(name)
+        or name == "init"
+        or name == "start"
+        or name == "stop"
+        or name == "terminate"
+        or name == "on_start"
+        or name == "on_stop".
+
+pub state_type(type_name: String): Bool ->
+    let value = String.trim(type_name);
+    value == "State"
+        or String.ends_with(value, ".State")
+        or String.ends_with(value, "State")
+        or String.contains(value, "[State]").
+
+pub state_name(name: String): Bool ->
+    name == "state" or String.ends_with(name, "_state").
+
+message_receiver(name: String): Bool ->
+    let value = String.trim(name);
+    value == "message"
+        or value == "msg"
+        or value == "event"
+        or value == "envelope"
+        or String.ends_with(value, "_message")
+        or String.ends_with(value, "_msg")
+        or String.ends_with(value, "_event")
+        or String.ends_with(value, "_envelope").
+
+message_tag_access(value: TagOperand): Bool ->
+    value.kind == "field-access"
+        and (
+            String.trim(value.field) == "tag"
+                or String.trim(value.field) == "kind"
+                or String.trim(value.field) == "type"
+        )
+        and message_receiver(value.receiver).
+
+uppercase_identifier(value: String): Bool ->
+    case String.characters(value) {
+        [] -> false;
+        [first | _rest] ->
+            String.uppercase(first) == first and String.lowercase(first) != first
+    }.
+
+tag_literal(value: TagOperand): Bool ->
+    value.kind == "binary"
+        or value.kind == "atom"
+        or (value.kind == "var" and uppercase_identifier(value.text))
+        or String.starts_with(String.trim(value.text), "\"")
+        or String.starts_with(String.trim(value.text), "Atom[").
+
+manual_tag_equality(value: TagEquality): Bool ->
+    (message_tag_access(value.left) and tag_literal(value.right))
+        or (tag_literal(value.left) and message_tag_access(value.right)).
+
+struct SourcePosition {
+    line: Int,
+    column: Int,
+}.
+
+constructor SourcePosition {
+    (line: Int, column: Int): SourcePosition ->
+        SourcePosition { line: line, column: column }
+}.
+
+position_at(source: String, target: Int, offset: Int, line: Int, column: Int): SourcePosition ->
+    if {
+        offset >= target or offset >= String.byte_size(source) -> SourcePosition(line, column);
+        String.utf8_byte_at(source, offset) == 10 ->
+            position_at(source, target, offset + 1, line + 1, 1);
+        true -> position_at(source, target, offset + 1, line, column + 1)
+    }.
+
+tag_diagnostics(
+    source: String,
+    path: String,
+    values: List[TagEquality],
+): List[ActorVmDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let remaining = tag_diagnostics(source, path, rest);
+            if {
+                not manual_tag_equality(value) -> remaining;
+                true ->
+                    let position = position_at(source, value.start_byte, 0, 1, 1);
+                    [ActorVmDiagnostic(
+                        path, position.line, position.column,
+                        "TL0905", "actor-vm.message-tag-equality", "warning",
+                        "prefer pattern or shape matching over manual actor message tag equality",
+                        false,
+                    ) | remaining]
+            }
+    }.
+
+state_diagnostics(
+    source: String,
+    path: String,
+    values: List[ActorParameter],
+): List[ActorVmDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let remaining = state_diagnostics(source, path, rest);
+            if {
+                not state_type(value.type_name) or state_name(value.name) -> remaining;
+                true ->
+                    let position = position_at(source, value.start_byte, 0, 1, 1);
+                    [ActorVmDiagnostic(
+                        path, position.line, position.column,
+                        "TL0906", "actor-vm.state-parameter-name", "warning",
+                        "actor lifecycle state parameters should be named `state` or end with `_state`",
+                        false,
+                    ) | remaining]
+            }
+    }.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+function_diagnostics(
+    source: String,
+    path: String,
+    functions: List[ActorFunction],
+): List[ActorVmDiagnostic] ->
+    case functions {
+        [] -> [];
+        [value | rest] ->
+            let tags = if {
+                handler_name(value.name) -> tag_diagnostics(source, path, value.tag_equalities);
+                true -> []
+            };
+            let states = if {
+                lifecycle_name(value.name) -> state_diagnostics(source, path, value.params);
+                true -> []
+            };
+            append(tags, append(states, function_diagnostics(source, path, rest)))
+    }.
+
+/** Emits actor diagnostics in declaration order, skipping test sources. */
+@pure
+pub diagnostics(
+    path: String,
+    source: String,
+    functions: List[ActorFunction],
+): List[ActorVmDiagnostic] ->
+    if {
+        SelfHostLintMaintainability.test_source_path(path) -> [];
+        true -> function_diagnostics(source, path, functions)
+    }.

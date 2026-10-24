@@ -1,0 +1,363 @@
+/**
+ * Measures compiler commands, preserving correctness evidence and diagnostics.
+ */
+module compilation_benchmark.Runner.
+
+import compilation_benchmark.{Corpus, Evidence}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.{sha256_file, sha256_tree}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{create_all, remove_all}.
+import std.io.File.{exists, read_text, write_text}.
+import std.system.{Environment, Process}.
+import std.time.Clock.{monotonic_time_ns, unix_time_ns}.
+
+import type std.core.Option.
+import type std.data.Json.
+
+struct Session {
+    compiler: String,
+    project: String,
+    build: String,
+    cache: String,
+    directory: String,
+    report: Json,
+    rows: Json,
+}.
+
+struct Completion {
+    status: Int,
+    stdout: String,
+    stderr: String,
+}.
+
+save(path: String, text: String): Bool ->
+    case write_text(path, text) {
+        Ok(_) -> true;
+        Err(_) -> false
+    }.
+
+write_report(session: Session): Bool ->
+    let _commands = session.report.put("commands", session.rows);
+    case Json.stringify_pretty(session.report) {
+        Ok(text) ->
+            save(String.append(session.directory, "/report.json"), String.append(text, "\n"));
+        Err(_) -> false
+    }.
+
+capture(
+    session: Session,
+    name: String,
+    program: String,
+    arguments: List[String],
+): Option[Completion] ->
+    let log = String.concat([session.directory, "/", name, ".activity.jsonl"]);
+    let command = Process.with_arguments(Process.command(program), arguments);
+    let configured =
+        Process.with_environment(
+            command,
+            [
+                Process.environment_entry("TERLAN_BUILD_ACTIVITY_LOG", log),
+                Process.environment_entry("TERLAN_BUILD_JOBS", "8"),
+            ],
+        );
+    let bounded = Process.with_timeout_ms(configured, 1200000);
+    let limited = Process.with_output_limit_bytes(bounded, 8388608);
+    let started_unix = unix_time_ns();
+    let started = monotonic_time_ns();
+    let result = Process.run(limited);
+    let elapsed = monotonic_time_ns() - started;
+    let row = Json.object();
+    let _name = row.put("name", Json.string(name));
+    let _program = row.put("program", Json.string(program));
+    let _arguments = row.put("arguments", json_strings(arguments));
+    let _started = row.put("started_unix_ns", Json.int(started_unix));
+    let _time = row.put("wall_time_ns", Json.int(elapsed));
+    let _activity = row.put("native_activity_log", Json.string(log));
+    let native_work = Evidence.native_work(log);
+    let _work = row.put("native_work_started", Json.int(native_work));
+    case result {
+        Err(reason) ->
+            let _error = row.put("process_error", Json.string(reason.message));
+            let _row = session.rows.push(row);
+            let _saved_error = write_report(session);
+            None;
+        Ok(output) ->
+            let _status = row.put("status", Json.int(output.status));
+            let _stdout = save(String.concat([session.directory, "/", name, ".stdout"]), output.stdout);
+            let _stderr = save(String.concat([session.directory, "/", name, ".stderr"]), output.stderr);
+            let _row = session.rows.push(row);
+            let _saved_output = write_report(session);
+            if {
+                _stdout and _stderr and _saved_output and native_work >= 0 -> Some(
+                    Completion(
+                        status = output.status,
+                        stdout = output.stdout,
+                        stderr = output.stderr,
+                    ),
+                );
+                true -> None
+            }
+    }.
+
+json_strings(values: List[String]): Json ->
+    let result = Json.array();
+    let _filled = push_strings(result, values);
+    result.
+
+push_strings(mut result: Json, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let _pushed = result.push(Json.string(value));
+            push_strings(result, rest)
+    }.
+
+build_arguments(session: Session, reference: Bool): List[String] ->
+    let suffix =
+        if {
+            reference -> "-reference";
+            true -> ""
+        };
+    [
+        "build",
+        "--incremental",
+        "--cache-dir",
+        String.append(session.cache, suffix),
+        session.project,
+        "--out-dir",
+        String.append(session.build, suffix),
+    ].
+
+binary(session: Session, reference: Bool): String ->
+    String.concat(
+        [
+            session.build,
+            if {
+                reference -> "-reference";
+                true -> ""
+            },
+            "/bin/app",
+        ],
+    ).
+
+successful(result: Option[Completion]): Bool ->
+    case result {
+        Some(output) -> output.status == 0;
+        None -> false
+    }.
+
+build(session: Session, name: String, reference: Bool, expected: Int): Bool ->
+    successful(capture(session, name, session.compiler, build_arguments(session, reference)))
+        and case capture(session, String.append(name, "-runtime"), binary(session, reference), []) {
+    Some(output) -> output.status == 0 and output.stdout.trim() == Int.to_string(expected);
+    None -> false
+}.
+
+same_artifact(session: Session, phase: String): Bool ->
+    let {
+        Ok(incremental) <- sha256_file(binary(session, false));
+        Ok(reference) <- sha256_file(binary(session, true))
+    } else {
+        _ -> false
+    };
+    (let valid = incremental == reference; let evidence = Json.object(); let _a = evidence.put("incremental_sha256", Json.string(incremental)); let _b = evidence.put("clean_sha256", Json.string(reference)); let _c = evidence.put("identical", Json.bool(valid)); let _d = session.report.put(String.append(phase, "_artifact_parity"), evidence); valid and write_report(session)).
+
+remove_reference(session: Session): Bool ->
+    case {
+        remove_all(String.append(session.build, "-reference")),
+        remove_all(String.append(session.cache, "-reference")),
+    } {
+        {Ok(_), Ok(_)} -> true;
+        _ -> false
+    }.
+
+verify_reference(session: Session, phase: String, expected: Int): Bool ->
+    build(session, String.append(phase, "-clean-reference"), true, expected)
+        and same_artifact(session, phase)
+        and remove_reference(session).
+
+check_arguments(session: Session, fresh: Bool): List[String] ->
+    [
+        "check",
+        "--incremental",
+        "--cache-dir",
+        String.append(
+            session.cache,
+            if {
+                fresh -> "-check-fresh";
+                true -> "-check"
+            },
+        ),
+        String.append(session.project, "/src"),
+    ].
+
+check(session: Session, name: String, fresh: Bool): Option[Completion] ->
+    capture(session, name, session.compiler, check_arguments(session, fresh)).
+
+diagnostic_cycle(session: Session): Bool ->
+    successful(check(session, "check-cold", false))
+        and successful(check(session, "check-warm", false))
+        and Corpus.break_interface(session.project)
+        and case {check(session, "diagnostic-incremental", false), check(session, "diagnostic-clean", true)} {
+    {Some(incremental), Some(clean)} ->
+        incremental.status == 1
+            and clean.status == 1
+            and (incremental.stderr.contains("error[type_error]")
+    or incremental.stderr.contains("error[type_mismatch]"))
+            and incremental.stderr == clean.stderr
+            and Corpus.edit(session.project, true, true)
+            and successful(check(session, "diagnostic-repaired", false));
+    _ -> false
+}.
+
+run_sample(session: Session, count: Int, width: Int, records: Bool): Bool ->
+    let expected = count * width;
+    let {
+        true <- Corpus.generate(session.project, count, width, records);
+        Ok(source_hash) <- sha256_tree(session.project);
+        Ok(compiler_hash) <- sha256_file(session.compiler);
+        Some(stdlib_hash) <- Evidence.stdlib_digest(Environment.current_directory())
+    } else {
+        _ -> false
+    };
+    (let _source = session.report.put("initial_project_sha256", Json.string(source_hash));
+let _compiler = session.report.put("compiler_sha256", Json.string(compiler_hash));
+let _stdlib = session.report.put("stdlib_source_and_summary_sha256", Json.string(stdlib_hash));
+let _host = session.report.put("host_before", Evidence.host_snapshot());
+let _cwd = session.report.put("working_directory", Json.string(Environment.current_directory()));
+(let {
+    true <- successful(capture(session, "compiler-version", session.compiler, ["--version"]));
+    true <- toolchain(session);
+    true <- build(session, "build-cold", false, expected);
+    true <- Evidence.native_work(String.append(session.directory, "/build-cold.activity.jsonl")) > 0;
+    Ok(initial) <- sha256_file(binary(session, false));
+    true <- build(session, "build-warm", false, expected);
+    Ok(warm) <- sha256_file(binary(session, false))
+} else {
+    _ -> false
+};
+(let _same = session.report.put("warm_artifact_unchanged", Json.bool(initial == warm));
+initial == warm
+    and Evidence.native_work(String.append(session.directory, "/build-warm.activity.jsonl")) == 0
+    and Corpus.edit(session.project, true, false)
+    and build(session, "implementation-edit", false, expected + count)
+    and verify_reference(session, "implementation", expected + count)
+    and Corpus.edit(session.project, true, true)
+    and build(session, "public-interface-edit", false, expected + count)
+    and verify_reference(session, "interface", expected + count)
+    and diagnostic_cycle(session)
+    and Evidence.stdlib_digest(Environment.current_directory()) == Some(stdlib_hash)
+    and sha256_file(session.compiler) == Ok(compiler_hash)))).
+
+clean_artifacts(session: Session): Bool ->
+    remove_paths(
+        [
+            session.build,
+            session.cache,
+            String.append(session.cache, "-check"),
+            String.append(session.cache, "-check-fresh"),
+        ],
+    ).
+
+remove_paths(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            case remove_all(path) {
+                Ok(_) -> remove_paths(rest);
+                Err(_) -> false
+            }
+    }.
+
+pub run(compiler: String, directory: String, count: Int, width: Int, records: Bool): Bool ->
+    let valid_input = count > 0 and count <= 1024 and width > 0 and width <= 256;
+    if {
+        not valid_input or exists(directory) -> let _error = eprintln("Benchmark requires positive bounded dimensions and a new output directory.");
+        false;
+        true -> let Ok(_) <- create_all(directory) else {
+            _ -> false
+        };
+        (let report = Json.object();
+let rows = Json.array();
+let _schema = report.put("schema", Json.string("terlan.compilation-benchmark.v1"));
+let _jobs = report.put("build_jobs", Json.int(8));
+let _count = report.put("leaf_modules", Json.int(count));
+let _width = report.put("functions_per_leaf", Json.int(width));
+let _shape =
+    report
+        .put(
+            "workload",
+            Json.string(
+                if {
+                    records -> "records-generics";
+                    true -> "scalar-calls"
+                },
+            ),
+        );
+let _rows = report.put("commands", rows);
+let _limits =
+    report
+        .put(
+            "limitations",
+            Json.string(
+                "Synthetic scalar or record/generic call graphs. Results do not predict arbitrary generated applications; measure repeated samples on a controlled host.",
+            ),
+        );
+let _note =
+    report
+        .put(
+            "cache_definition",
+            Json.string(
+                "Cold uses a fresh compiler cache and output; OS filesystem caches are not flushed.",
+            ),
+        );
+let session =
+    Session(
+        compiler = compiler,
+        project = String.append(directory, "/project"),
+        build = String.append(directory, "/build"),
+        cache = String.append(directory, "/cache"),
+        directory = directory,
+        report = report,
+        rows = rows,
+    );
+let passed = run_sample(session, count, width, records);
+let _host_after = report.put("host_after", Evidence.host_snapshot());
+let cleaned =
+    if {
+        passed -> clean_artifacts(session);
+        true -> false
+    };
+let _passed = report.put("passed", Json.bool(passed));
+let _cleaned = report.put("build_artifacts_removed", Json.bool(cleaned));
+let _written = write_report(session);
+let _message =
+    println(
+        String.append("Compilation benchmark report: ", String.append(directory, "/report.json")),
+    );
+passed and cleaned and _written)
+    }.
+
+/**
+ * Captures compiler, backend, ABI, target, and exact linker identities.
+ */
+toolchain(session: Session): Bool ->
+    let {
+        Some(output) <-
+            capture(
+                session,
+                "native-toolchain",
+                session.compiler,
+                ["build", "--print-toolchain-identity"],
+            );
+        true <- output.status == 0;
+        Ok(identity) <- Json.parse(output.stdout)
+    } else {
+        _ -> false
+    };
+    (let _identity = session.report.put("native_toolchain", identity); write_report(session)).

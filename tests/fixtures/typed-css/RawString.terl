@@ -1,5 +1,4 @@
 module typed_css.RawString.
 
-import type std.css.properties.Width.{Value as Width}.
-
-pub invalid(): Width -> "30px".
+import std.css.properties.Width.{Property}.
+pub invalid(): Property -> Property {width: "30px"}.

@@ -1,0 +1,27 @@
+module self_host.ProjectedCanonicalTypeTest.
+
+import self_host.ProjectedCanonicalType.{qualify}.
+import self_host.ProjectedTypeResolutionSyntax.{ProjectedTypeDiagnostic, ProjectedTypeResolution, TypeIdentityBinding}.
+import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
+import std.collections.List.
+import std.core.Result.{Ok}.
+
+@pure
+resolution(): ProjectedTypeResolution -> ProjectedTypeResolution(
+    true,
+    ["Point"],
+    List.new[String](),
+    [TypeIdentityBinding("Point", "sample.Geometry.Point")],
+    List.new[ProjectedTypeDiagnostic](),
+).
+
+@test
+pub generic_arguments_use_resolved_canonical_identities(): Bool ->
+    let point = ProjectedTypeNode("named-type", "Point", 5, 10, List.new[ProjectedTypeNode]());
+    let list = ProjectedTypeNode("generic-type", "List", 0, 11, [point]);
+    qualify(list, resolution(), List.new[String]()) == Ok("List[sample.Geometry.Point]").
+
+@test
+pub lexical_type_parameters_remain_lexical(): Bool ->
+    let parameter = ProjectedTypeNode("named-type", "T", 0, 1, List.new[ProjectedTypeNode]());
+    qualify(parameter, resolution(), ["T"]) == Ok("T").

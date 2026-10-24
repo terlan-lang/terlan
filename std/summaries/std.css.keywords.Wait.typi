@@ -1,0 +1,6 @@
+//! Shared CSS keyword wait. Generated; do not edit.
+
+module std.css.keywords.Wait.
+
+pub type Wait =
+    Atom["wait"].

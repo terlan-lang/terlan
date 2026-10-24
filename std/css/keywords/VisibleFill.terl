@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword visibleFill. Generated; do not edit.
+ */
+module std.css.keywords.VisibleFill.
+
+pub type VisibleFill = Atom["visibleFill"].

@@ -1,0 +1,59 @@
+/** Regression contract for semantic try-region lowering and canonical ABI encoding. */
+module self_host.SelfHostSemanticTryRegionLoweringTest.
+
+import std.core.String.
+
+import self_host.SelfHostIrJson.
+import self_host.SelfHostIrSyntax.{BackendEnvelope, IrParameter}.
+import self_host.SelfHostSemanticIrLowering.
+import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan, SemanticFunctionPlan, SemanticInstructionPlan, SemanticModulePlan, SemanticRegionPlan, SemanticTerminatorPlan, SemanticTryRegionPlan}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.{Bool, String}.
+
+region(
+    label: String,
+    parameters: List[IrParameter],
+    result: String,
+    type_name: String,
+): SemanticRegionPlan ->
+    SemanticRegionPlan(label, parameters, List.new[SemanticBlockPlan](), result, Some(type_name)).
+
+/** Structured regions survive semantic lowering and both canonical JSON paths. */
+pub structured_try_region_reaches_abi_1_6_json(): Bool ->
+    let protected = region("protected", [], "%protected", "Int");
+    let success = region("success", [IrParameter("%value", "Int")], "%success", "Int");
+    let failure = region("failure", [IrParameter("%status", "Int")], "%failure", "Int");
+    let cleanup = region("cleanup", [], "%unit", "Unit");
+    let instruction = SemanticInstructionPlan(
+        "try-region",
+        Some("%result"),
+        [],
+        [],
+        Some("Int"),
+        None,
+        Some(SemanticTryRegionPlan(protected, success, failure, [cleanup])),
+    );
+    let function = SemanticFunctionPlan(
+        "demo.Try",
+        "run",
+        0,
+        [],
+        Some("Int"),
+        [SemanticBlockPlan(
+            "entry",
+            [instruction],
+            SemanticTerminatorPlan("return", ["%result"], []),
+        )],
+        None,
+    );
+    case SelfHostSemanticIrLowering.lower(SemanticModulePlan("demo.Try", [], [function])).ir_module {
+        None -> false;
+        Some(ir_module) -> case SelfHostIrJson.encode(BackendEnvelope(1, 6, "terlan-vm", ir_module)) {
+            Ok(json) -> String.contains(json, "\"try_region\":{")
+                and String.contains(json, "\"protected\":{")
+                and String.contains(json, "\"cleanup\":[{");
+            _ -> false
+        }
+    }.

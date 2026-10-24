@@ -1,0 +1,225 @@
+/** Builds the type identities actually exposed by source imports. */
+module self_host.ProjectedImportedTypeCatalog.
+
+import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
+import self_host.ImportSyntax.{ImportItemSyntax, ImportSyntax}.
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.ProjectedTypeResolutionSyntax.{TypeIdentityBinding}.
+import self_host.Syntax.{ConstructorDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, TraitDeclaration, TypeDeclaration}.
+import self_host.TypedModuleSyntax.{ImportPayload}.
+import std.collections.List.
+import std.core.String.
+
+@pure
+is_type_symbol(value: ExportedSymbol): Bool ->
+    value.class == TypeDeclaration
+        or value.class == OpaqueTypeDeclaration
+        or value.class == StructDeclaration
+        or value.class == ShapeDeclaration
+        or value.class == TraitDeclaration
+        or value.class == ConstructorDeclaration.
+
+@pure
+selected_item(name: String, values: List[ImportItemSyntax]): Bool ->
+    case values { [] -> false; [value | rest] -> value.name == name or selected_item(name, rest) }.
+
+@pure
+last(values: List[String], fallback: String): String ->
+    case values { [] -> fallback; [value | rest] -> last(rest, value) }.
+
+@pure
+module_alias(module_name: String): String -> last(String.split(module_name, "."), module_name).
+
+@pure
+qualified_names(module_name: String, symbol_name: String): List[String] -> [
+    symbol_name,
+    String.concat([module_alias(module_name), ".", symbol_name]),
+    String.concat([module_name, ".", symbol_name]),
+].
+
+@pure
+selected_names(imported: ImportSyntax, symbol: ExportedSymbol): List[String] ->
+    if {
+        selected_item(symbol.name, imported.items) -> qualified_names(imported.module_name, symbol.name);
+        true -> List.new[String]()
+    }.
+
+@pure
+exact_module_names(imported: ImportSyntax, symbol: ExportedSymbol): List[String] ->
+    if { imported.is_selected -> selected_names(imported, symbol); true -> qualified_names(imported.module_name, symbol.name) }.
+
+@pure
+direct_symbol_names(imported: ImportSyntax, module_name: String, symbol: ExportedSymbol): List[String] ->
+    if {
+        imported.module_name == String.concat([module_name, ".", symbol.name]) -> [symbol.name];
+        true -> List.new[String]()
+    }.
+
+@pure
+selected_submodule_at(
+    module_name: String,
+    parent: String,
+    values: List[ImportItemSyntax],
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            module_name == String.concat([parent, ".", value.name]) -> true;
+            true -> selected_submodule_at(module_name, parent, rest)
+        }
+    }.
+
+@pure
+selected_submodule(module_name: String, imported: ImportSyntax): Bool ->
+    selected_submodule_at(module_name, imported.module_name, imported.items).
+
+@pure
+names_for_import(imported: ImportSyntax, module_name: String, symbol: ExportedSymbol): List[String] ->
+    if {
+        not imported.valid or not is_type_symbol(symbol) -> List.new[String]();
+        imported.module_name == module_name -> exact_module_names(imported, symbol);
+        selected_submodule(module_name, imported) -> qualified_names(module_name, symbol.name);
+        true -> direct_symbol_names(imported, module_name, symbol)
+    }.
+
+@pure
+append(left: List[String], right: List[String]): List[String] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+symbol_import_names(
+    imported: ImportSyntax,
+    module_name: String,
+    values: List[ExportedSymbol],
+): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(
+            names_for_import(imported, module_name, value),
+            symbol_import_names(imported, module_name, rest),
+        )
+    }.
+
+@pure
+declaration_import_names(
+    value: BackendDeclaration,
+    interface: ModuleInterface,
+): List[String] ->
+    case value.payload {
+        ImportPayload(imported) -> symbol_import_names(imported, interface.module_name, interface.symbols);
+        _ -> List.new[String]()
+    }.
+
+@pure
+interface_import_names(
+    declarations: List[BackendDeclaration],
+    interface: ModuleInterface,
+): List[String] ->
+    case declarations {
+        [] -> List.new[String]();
+        [value | rest] -> append(
+            declaration_import_names(value, interface),
+            interface_import_names(rest, interface),
+        )
+    }.
+
+@pure
+interfaces_at(
+    declarations: List[BackendDeclaration],
+    values: List[ModuleInterface],
+): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(
+            interface_import_names(declarations, value),
+            interfaces_at(declarations, rest),
+        )
+    }.
+
+/** Returns only imported type identities, including legal qualified spellings. */
+@pure
+pub build(source: BackendModule, interfaces: List[ModuleInterface]): List[String] ->
+    interfaces_at(source.declarations, interfaces).
+
+@pure
+bindings_for_names(
+    names: List[String],
+    canonical_name: String,
+): List[TypeIdentityBinding] ->
+    case names {
+        [] -> List.new[TypeIdentityBinding]();
+        [name | rest] -> [
+            TypeIdentityBinding(name, canonical_name)
+            | bindings_for_names(rest, canonical_name)
+        ]
+    }.
+
+@pure
+symbol_import_bindings(
+    imported: ImportSyntax,
+    module_name: String,
+    values: List[ExportedSymbol],
+): List[TypeIdentityBinding] ->
+    case values {
+        [] -> List.new[TypeIdentityBinding]();
+        [value | rest] -> if {
+            not is_type_symbol(value) -> symbol_import_bindings(imported, module_name, rest);
+            true -> append_bindings(
+                bindings_for_names(
+                    names_for_import(imported, module_name, value),
+                    String.concat([module_name, ".", value.name]),
+                ),
+                symbol_import_bindings(imported, module_name, rest),
+            )
+        }
+    }.
+
+@pure
+append_bindings(
+    left: List[TypeIdentityBinding],
+    right: List[TypeIdentityBinding],
+): List[TypeIdentityBinding] ->
+    case left { [] -> right; [value | rest] -> [value | append_bindings(rest, right)] }.
+
+@pure
+declaration_import_bindings(
+    value: BackendDeclaration,
+    interface: ModuleInterface,
+): List[TypeIdentityBinding] ->
+    case value.payload {
+        ImportPayload(imported) -> symbol_import_bindings(imported, interface.module_name, interface.symbols);
+        _ -> List.new[TypeIdentityBinding]()
+    }.
+
+@pure
+interface_import_bindings(
+    declarations: List[BackendDeclaration],
+    interface: ModuleInterface,
+): List[TypeIdentityBinding] ->
+    case declarations {
+        [] -> List.new[TypeIdentityBinding]();
+        [value | rest] -> append_bindings(
+            declaration_import_bindings(value, interface),
+            interface_import_bindings(rest, interface),
+        )
+    }.
+
+@pure
+bindings_at(
+    declarations: List[BackendDeclaration],
+    values: List[ModuleInterface],
+): List[TypeIdentityBinding] ->
+    case values {
+        [] -> List.new[TypeIdentityBinding]();
+        [value | rest] -> append_bindings(
+            interface_import_bindings(declarations, value),
+            bindings_at(declarations, rest),
+        )
+    }.
+
+/** Returns each legal imported spelling with its unique semantic identity. */
+@pure
+pub build_bindings(
+    source: BackendModule,
+    interfaces: List[ModuleInterface],
+): List[TypeIdentityBinding] -> bindings_at(source.declarations, interfaces).

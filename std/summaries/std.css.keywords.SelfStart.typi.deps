@@ -1,0 +1,8 @@
+module=std.css.keywords.SelfStart
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=15306390213004106429
+interface_hash=14137945951996610276
+interface_doc_hash=13024772846912095036
+deps=0

@@ -1,0 +1,6 @@
+//! Shared CSS keyword base-select. Generated; do not edit.
+
+module std.css.keywords.BaseSelect.
+
+pub type BaseSelect =
+    Atom["base-select"].

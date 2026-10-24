@@ -1,84 +1,32 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-block-start
+ * The `margin-block-start` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+ * the logical block start margin of an element, which maps to a physical margin depending on the
+ * element's writing mode, directionality, and text orientation.
+ *
+ * Initial: 0. Inherited: no.
+ * Percentages: depends on layout model.
+ *
+ * Keyword effects:
+ * - auto: The browser selects a suitable value to use. See `margin`. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-top
+ *
  * Grammar: <'margin-top'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-block-start
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-block-start
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MarginBlockStart.
 
-import std.css.Values.
+import std.css.keywords.Auto.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained margin-block-start value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    margin_block_start: Value,
+    margin_block_start: Auto | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    margin_block_start: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "margin-block-start", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "margin-block-start", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "margin-block-start", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "margin-block-start", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "margin-block-start", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "margin-block-start", css: "unset"}).
-
-/**
- * Constructs a margin-block-start value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "margin-block-start", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a margin-block-start value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "margin-block-start", css: std.css.Values.percentage_css(value)}).

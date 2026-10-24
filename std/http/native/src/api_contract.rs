@@ -7,6 +7,8 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+mod source;
+
 pub const API_CONTRACT_SCHEMA: &str = "terlan-api-contract-v1";
 pub const OPENAPI_VERSION: &str = "3.1.0";
 

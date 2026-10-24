@@ -1,0 +1,6 @@
+//! Shared CSS keyword region. Generated; do not edit.
+
+module std.css.keywords.Region.
+
+pub type Region =
+    Atom["region"].

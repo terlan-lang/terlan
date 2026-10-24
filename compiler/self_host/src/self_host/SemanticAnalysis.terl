@@ -3,9 +3,15 @@ module self_host.SemanticAnalysis.
 
 
 import std.core.Option.{None, Option, Some}.
-import self_host.SemanticSyntax.{DuplicateCallable, DuplicateDeclaration, InterfaceSource, InvalidDeclaration, InvalidSourceExport, MissingExportDefinition, ModuleSource, SemanticDiagnostic, SemanticModule, SemanticSourceKind, SemanticSymbol}.
+import self_host.FunctionSyntax.{FunctionSyntax}.
+import self_host.Delimited.
+import self_host.ImportSyntax.{ImportItemSyntax, ImportSyntax}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
+import self_host.SemanticSyntax.{DuplicateCallable, DuplicateDeclaration, InterfaceSource, InvalidDeclaration, InvalidSourceExport, MissingExportDefinition, ModuleSource, SemanticDiagnostic, SemanticModule, SemanticSourceKind, SemanticSymbol, TraitConformanceDiagnostic}.
 import self_host.Syntax.{ExportDeclaration, FunctionDeclaration, MethodDeclaration, OpaqueTypeDeclaration, StructDeclaration, TypeDeclaration}.
-import self_host.TypedModuleSyntax.{TypedDeclaration, TypedModule}.
+import self_host.TraitImplSyntax.{ImplConstantSyntax, TraitImplSyntax}.
+import self_host.TraitSyntax.{TraitConstantSyntax, TraitMethodSyntax, TraitSyntax}.
+import self_host.TypedModuleSyntax.{ImportPayload, TraitImplPayload, TraitPayload, TypedDeclaration, TypedModule}.
 
 
 import std.collections.List.
@@ -251,6 +257,736 @@ analyze_at(
         [value | rest] -> analyze_at(rest, source_kind, analyze_declaration(value, source_kind, state))
     }.
 
+@pure
+parameter_annotation(value: ParameterSyntax): String ->
+    if { value.has_annotation -> value.annotation.syntax.text; true -> "" }.
+
+@pure
+type_argument(
+    parameters: List[String],
+    arguments: List[String],
+    name: String,
+): Option[String] ->
+    case {parameters, arguments} {
+        {[parameter | parameter_rest], [argument | argument_rest]} -> if {
+            parameter == name -> Some(argument);
+            true -> type_argument(parameter_rest, argument_rest, name)
+        };
+        _ -> None
+    }.
+
+@pure
+type_identifier_byte(value: Int): Bool ->
+    (value >= 48 and value <= 57)
+        or (value >= 65 and value <= 90)
+        or (value >= 97 and value <= 122)
+        or value == 95.
+
+@pure
+type_identifier_end(value: String, index: Int): Int ->
+    if {
+        index >= value.byte_size() -> index;
+        type_identifier_byte(value.utf8_byte_at(index)) -> type_identifier_end(value, index + 1);
+        true -> index
+    }.
+
+@pure
+substitute_type_at(
+    value: String,
+    index: Int,
+    parameters: List[String],
+    arguments: List[String],
+    output: String,
+): String ->
+    if {
+        index >= value.byte_size() -> output;
+        type_identifier_byte(value.utf8_byte_at(index)) ->
+            let end = type_identifier_end(value, index);
+            let identifier = value.utf8_slice(index, end - index);
+            case type_argument(parameters, arguments, identifier) {
+                Some(argument) -> substitute_type_at(
+                    value,
+                    end,
+                    parameters,
+                    arguments,
+                    String.append(output, argument),
+                );
+                None -> substitute_type_at(
+                    value,
+                    end,
+                    parameters,
+                    arguments,
+                    String.append(output, identifier),
+                )
+            };
+        true -> substitute_type_at(
+            value,
+            index + 1,
+            parameters,
+            arguments,
+            String.append(output, value.utf8_slice(index, 1)),
+        )
+    }.
+
+@pure
+substitute_type(value: String, parameters: List[String], arguments: List[String]): String ->
+    substitute_type_at(value, 0, parameters, arguments, "").
+
+@pure
+last_path_separator(value: String, index: Int, current: Int): Int ->
+    if {
+        index >= value.byte_size() -> current;
+        value.utf8_byte_at(index) == 46 -> last_path_separator(value, index + 1, index);
+        true -> last_path_separator(value, index + 1, current)
+    }.
+
+@pure
+last_path_component(value: String): String ->
+    let separator = last_path_separator(value, 0, -1);
+    if {
+        separator < 0 -> value;
+        true -> value.utf8_slice(separator + 1, value.byte_size() - separator - 1)
+    }.
+
+@pure
+item_local_name(value: ImportItemSyntax): String ->
+    if { value.has_alias -> value.alias; true -> value.name }.
+
+@pure
+selected_type_identity(module_name: String, item: ImportItemSyntax): String ->
+    let selected_module = String.concat([module_name, ".", item.name]);
+    if {
+        String.ends_with(module_name, String.concat([".", item.name])) -> selected_module;
+        true -> String.concat([selected_module, ".", item.name])
+    }.
+
+@pure
+selected_imported_type(module_name: String, values: List[ImportItemSyntax], name: String): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if {
+            item_local_name(value) == name -> selected_type_identity(module_name, value);
+            true -> selected_imported_type(module_name, rest, name)
+        }
+    }.
+
+@pure
+direct_imported_type(value: ImportSyntax, name: String): String ->
+    let imported_name = last_path_component(value.module_name);
+    let local_name = if { value.has_alias -> value.alias; true -> imported_name };
+    if {
+        local_name == name -> String.concat([value.module_name, ".", imported_name]);
+        true -> ""
+    }.
+
+@pure
+imported_type(value: ImportSyntax, name: String): String ->
+    if {
+        value.is_selected -> selected_imported_type(value.module_name, value.items, name);
+        true -> direct_imported_type(value, name)
+    }.
+
+@pure
+resolve_imported_type(values: List[TypedDeclaration], name: String): String ->
+    case values {
+        [] -> name;
+        [value | rest] -> case value.payload {
+            ImportPayload(imported) ->
+                let resolved = imported_type(imported, name);
+                if { resolved != "" -> resolved; true -> resolve_imported_type(rest, name) };
+            _ -> resolve_imported_type(rest, name)
+        }
+    }.
+
+@pure
+qualified_type_identifier_byte(value: Int): Bool ->
+    type_identifier_byte(value) or value == 46.
+
+@pure
+qualified_type_identifier_end(value: String, index: Int): Int ->
+    if {
+        index >= value.byte_size() -> index;
+        qualified_type_identifier_byte(value.utf8_byte_at(index)) ->
+            qualified_type_identifier_end(value, index + 1);
+        true -> index
+    }.
+
+@pure
+type_space(value: Int): Bool -> value == 32 or value == 9 or value == 10 or value == 13.
+
+@pure
+canonical_type_at(value: String, index: Int, all: List[TypedDeclaration], output: String): String ->
+    if {
+        index >= value.byte_size() -> output;
+        type_space(value.utf8_byte_at(index)) -> canonical_type_at(value, index + 1, all, output);
+        type_identifier_byte(value.utf8_byte_at(index)) ->
+            let end = qualified_type_identifier_end(value, index);
+            let identifier = value.utf8_slice(index, end - index);
+            let resolved = if {
+                String.contains(identifier, ".") -> identifier;
+                true -> resolve_imported_type(all, identifier)
+            };
+            canonical_type_at(value, end, all, String.append(output, resolved));
+        true -> canonical_type_at(
+            value,
+            index + 1,
+            all,
+            String.append(output, value.utf8_slice(index, 1)),
+        )
+    }.
+
+@pure
+canonical_type(value: String, all: List[TypedDeclaration]): String ->
+    canonical_type_at(value, 0, all, "").
+
+@pure
+types_match(left: String, right: String, all: List[TypedDeclaration]): Bool ->
+    canonical_type(left, all) == canonical_type(right, all).
+
+@pure
+parameters_match(
+    required: List[ParameterSyntax],
+    provided: List[ParameterSyntax],
+    type_parameters: List[String],
+    type_arguments: List[String],
+    all: List[TypedDeclaration],
+): Bool ->
+    case required {
+        [] -> provided == [];
+        [left | left_rest] -> case provided {
+            [] -> false;
+            [right | right_rest] ->
+                left.is_mutable == right.is_mutable
+                    and types_match(
+                        substitute_type(
+                            parameter_annotation(left),
+                            type_parameters,
+                            type_arguments,
+                        ),
+                        parameter_annotation(right),
+                        all,
+                    )
+                    and parameters_match(
+                        left_rest,
+                        right_rest,
+                        type_parameters,
+                        type_arguments,
+                        all,
+                    )
+        }
+    }.
+
+@pure
+method_signature_matches(
+    required: TraitMethodSyntax,
+    provided: FunctionSyntax,
+    type_parameters: List[String],
+    type_arguments: List[String],
+    all: List[TypedDeclaration],
+): Bool ->
+    parameters_match(
+        required.parameters,
+        provided.typed_parameters,
+        type_parameters,
+        type_arguments,
+        all,
+    ) and constraints_match(
+        required.constraints,
+        provided.constraints,
+        type_parameters,
+        type_arguments,
+        all,
+    ) and types_match(
+        substitute_type(required.return_type.syntax.text, type_parameters, type_arguments),
+        provided.return_type.syntax.text,
+        all,
+    ).
+
+@pure
+constraints_match(
+    required: List[self_host.TypeSyntax.TypeParse],
+    provided: List[self_host.TypeSyntax.TypeParse],
+    type_parameters: List[String],
+    type_arguments: List[String],
+    all: List[TypedDeclaration],
+): Bool ->
+    case required {
+        [] -> provided == [];
+        [left | left_rest] -> case provided {
+            [] -> false;
+            [right | right_rest] ->
+                types_match(
+                    substitute_type(left.syntax.text, type_parameters, type_arguments),
+                    right.syntax.text,
+                    all,
+                ) and constraints_match(
+                    left_rest,
+                    right_rest,
+                    type_parameters,
+                    type_arguments,
+                    all,
+                )
+        }
+    }.
+
+@pure
+find_method(values: List[FunctionSyntax], name: String): Option[FunctionSyntax] ->
+    case values {
+        [] -> None;
+        [value | _rest] where value.name == name -> Some(value);
+        [_value | rest] -> find_method(rest, name)
+    }.
+
+@pure
+method_declared(values: List[TraitMethodSyntax], name: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.name == name or method_declared(rest, name)
+    }.
+
+@pure
+name_seen(values: List[String], name: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == name or name_seen(rest, name)
+    }.
+
+@pure
+first_duplicate_method(values: List[FunctionSyntax], seen: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if {
+            name_seen(seen, value.name) -> value.name;
+            true -> first_duplicate_method(rest, [value.name | seen])
+        }
+    }.
+
+@pure
+first_undeclared_method(required: List[TraitMethodSyntax], provided: List[FunctionSyntax]): String ->
+    case provided {
+        [] -> "";
+        [value | rest] -> if {
+            method_declared(required, value.name) -> first_undeclared_method(required, rest);
+            true -> value.name
+        }
+    }.
+
+@pure
+method_conformance_message(
+    required: TraitMethodSyntax,
+    provided: List[FunctionSyntax],
+    type_parameters: List[String],
+    type_arguments: List[String],
+    all: List[TypedDeclaration],
+): String ->
+    case find_method(provided, required.name) {
+        Some(value) -> if {
+            method_signature_matches(required, value, type_parameters, type_arguments, all) -> "";
+            true -> String.concat(["trait method signature mismatch: ", required.name])
+        };
+        None -> if {
+            required.has_default -> "";
+            true -> String.concat(["trait implementation missing required method: ", required.name])
+        }
+    }.
+
+@pure
+required_methods_conformance_message(
+    required: List[TraitMethodSyntax],
+    provided: List[FunctionSyntax],
+    type_parameters: List[String],
+    type_arguments: List[String],
+    all: List[TypedDeclaration],
+): String ->
+    case required {
+        [] -> "";
+        [value | rest] -> let message = method_conformance_message(
+            value,
+            provided,
+            type_parameters,
+            type_arguments,
+            all,
+        );
+            if {
+                message != "" -> message;
+                true -> required_methods_conformance_message(
+                    rest,
+                    provided,
+                    type_parameters,
+                    type_arguments,
+                    all,
+                )
+            }
+    }.
+
+@pure
+methods_conformance_message(
+    required: List[TraitMethodSyntax],
+    provided: List[FunctionSyntax],
+    type_parameters: List[String],
+    type_arguments: List[String],
+    all: List[TypedDeclaration],
+): String ->
+    let duplicate = first_duplicate_method(provided, List.new[String]());
+    let undeclared = first_undeclared_method(required, provided);
+    if {
+        duplicate != "" -> String.concat(["duplicate method `", duplicate, "` in trait implementation"]);
+        undeclared != "" -> String.concat(["method `", undeclared, "` is not declared in trait"]);
+        true -> required_methods_conformance_message(
+            required,
+            provided,
+            type_parameters,
+            type_arguments,
+            all,
+        )
+    }.
+
+@pure
+find_constant(
+    values: List[ImplConstantSyntax],
+    name: String,
+): Option[ImplConstantSyntax] ->
+    case values {
+        [] -> None;
+        [value | _rest] where value.name == name -> Some(value);
+        [_value | rest] -> find_constant(rest, name)
+    }.
+
+@pure
+constant_declared(values: List[TraitConstantSyntax], name: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.name == name or constant_declared(rest, name)
+    }.
+
+@pure
+first_duplicate_constant(values: List[ImplConstantSyntax], seen: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if {
+            name_seen(seen, value.name) -> value.name;
+            true -> first_duplicate_constant(rest, [value.name | seen])
+        }
+    }.
+
+@pure
+first_undeclared_constant(
+    required: List[TraitConstantSyntax],
+    provided: List[ImplConstantSyntax],
+): String ->
+    case provided {
+        [] -> "";
+        [value | rest] -> if {
+            constant_declared(required, value.name) -> first_undeclared_constant(required, rest);
+            true -> value.name
+        }
+    }.
+
+@pure
+constant_signature_matches(
+    required: TraitConstantSyntax,
+    provided: ImplConstantSyntax,
+    type_parameters: List[String],
+    type_arguments: List[String],
+): Bool ->
+    not provided.has_annotation
+        or substitute_type(
+            required.annotation.syntax.text,
+            type_parameters,
+            type_arguments,
+        ) == provided.annotation.syntax.text.
+
+@pure
+constant_conformance_message(
+    required: TraitConstantSyntax,
+    provided: List[ImplConstantSyntax],
+    type_parameters: List[String],
+    type_arguments: List[String],
+): String ->
+    case find_constant(provided, required.name) {
+        Some(value) -> if {
+            constant_signature_matches(required, value, type_parameters, type_arguments) -> "";
+            true -> String.concat(["trait constant signature mismatch: ", required.name])
+        };
+        None -> if {
+            required.has_default -> "";
+            true -> String.concat(["trait implementation missing required constant: ", required.name])
+        }
+    }.
+
+@pure
+required_constants_conformance_message(
+    required: List[TraitConstantSyntax],
+    provided: List[ImplConstantSyntax],
+    type_parameters: List[String],
+    type_arguments: List[String],
+): String ->
+    case required {
+        [] -> "";
+        [value | rest] -> let message = constant_conformance_message(
+            value,
+            provided,
+            type_parameters,
+            type_arguments,
+        );
+            if {
+                message != "" -> message;
+                true -> required_constants_conformance_message(
+                    rest,
+                    provided,
+                    type_parameters,
+                    type_arguments,
+                )
+            }
+    }.
+
+@pure
+constants_conformance_message(
+    required: List[TraitConstantSyntax],
+    provided: List[ImplConstantSyntax],
+    type_parameters: List[String],
+    type_arguments: List[String],
+): String ->
+    let duplicate = first_duplicate_constant(provided, List.new[String]());
+    let undeclared = first_undeclared_constant(required, provided);
+    if {
+        duplicate != "" -> String.concat(["duplicate constant `", duplicate, "` in trait implementation"]);
+        undeclared != "" -> String.concat(["constant `", undeclared, "` is not declared in trait"]);
+        true -> required_constants_conformance_message(
+            required,
+            provided,
+            type_parameters,
+            type_arguments,
+        )
+    }.
+
+@pure
+append_trait_methods(left: List[TraitMethodSyntax], right: List[TraitMethodSyntax]): List[TraitMethodSyntax] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_trait_methods(rest, right)]
+    }.
+
+@pure
+append_trait_constants(left: List[TraitConstantSyntax], right: List[TraitConstantSyntax]): List[TraitConstantSyntax] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_trait_constants(rest, right)]
+    }.
+
+@pure
+trait_reference_base(value: String): String ->
+    case String.split(value, "[") {
+        [] -> value;
+        [name | _rest] -> String.trim(name)
+    }.
+
+@pure
+inherited_trait_methods(
+    parents: List[String],
+    all: List[TypedDeclaration],
+    seen: List[String],
+): List[TraitMethodSyntax] ->
+    case parents {
+        [] -> List.new[TraitMethodSyntax]();
+        [parent | rest] -> case find_local_trait(all, trait_reference_base(parent)) {
+            None -> inherited_trait_methods(rest, all, seen);
+            Some(contract) -> append_trait_methods(
+                trait_methods_closure(contract, all, seen),
+                inherited_trait_methods(rest, all, seen),
+            )
+        }
+    }.
+
+@pure
+trait_methods_closure(
+    contract: TraitSyntax,
+    all: List[TypedDeclaration],
+    seen: List[String],
+): List[TraitMethodSyntax] ->
+    if {
+        name_seen(seen, contract.name) -> List.new[TraitMethodSyntax]();
+        true -> append_trait_methods(
+            contract.methods,
+            inherited_trait_methods(contract.parents, all, [contract.name | seen]),
+        )
+    }.
+
+@pure
+inherited_trait_constants(
+    parents: List[String],
+    all: List[TypedDeclaration],
+    seen: List[String],
+): List[TraitConstantSyntax] ->
+    case parents {
+        [] -> List.new[TraitConstantSyntax]();
+        [parent | rest] -> case find_local_trait(all, trait_reference_base(parent)) {
+            None -> inherited_trait_constants(rest, all, seen);
+            Some(contract) -> append_trait_constants(
+                trait_constants_closure(contract, all, seen),
+                inherited_trait_constants(rest, all, seen),
+            )
+        }
+    }.
+
+@pure
+trait_constants_closure(
+    contract: TraitSyntax,
+    all: List[TypedDeclaration],
+    seen: List[String],
+): List[TraitConstantSyntax] ->
+    if {
+        name_seen(seen, contract.name) -> List.new[TraitConstantSyntax]();
+        true -> append_trait_constants(
+            contract.constants,
+            inherited_trait_constants(contract.parents, all, [contract.name | seen]),
+        )
+    }.
+
+@pure
+trait_conformance_message(
+    contract: TraitSyntax,
+    implementation: TraitImplSyntax,
+    all: List[TypedDeclaration],
+): String ->
+    let arguments = trait_type_arguments(implementation.trait_type.syntax.text);
+    let constants = constants_conformance_message(
+        trait_constants_closure(contract, all, List.new[String]()),
+        implementation.constants,
+        contract.type_parameters,
+        arguments,
+    );
+    if {
+        List.length(contract.type_parameters) != List.length(arguments) ->
+            "trait implementation generic argument count mismatch";
+        constants != "" -> constants;
+        true -> let methods = methods_conformance_message(
+                trait_methods_closure(contract, all, List.new[String]()),
+                implementation.methods,
+                contract.type_parameters,
+                arguments,
+            all,
+            );
+            if {
+                methods == "" -> "";
+                List.is_empty(contract.parents) -> String.concat([
+                    methods,
+                    "; trait `",
+                    contract.name,
+                    "` has no declared parents",
+                ]);
+                true -> String.concat([
+                    methods,
+                    "; declared parents: ",
+                    String.join(contract.parents, ", "),
+                ])
+            }
+    }.
+
+@pure
+trimmed_type_arguments(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [String.trim(value) | trimmed_type_arguments(rest)]
+    }.
+
+@pure
+trait_type_arguments(value: String): List[String] ->
+    let open = Delimited.top_level_byte(value, 91);
+    if {
+        open < 0 or not String.ends_with(value, "]") -> List.new[String]();
+        true -> trimmed_type_arguments(Delimited.split_top_level(
+            value.utf8_slice(open + 1, value.byte_size() - open - 2),
+            44,
+        ))
+    }.
+
+@pure
+trait_base_name(value: TraitImplSyntax): String ->
+    case String.split(value.trait_type.syntax.text, "[") {
+        [] -> value.trait_type.syntax.text;
+        [name | _rest] -> name
+    }.
+
+@pure
+find_local_trait(
+    values: List[TypedDeclaration],
+    name: String,
+): Option[TraitSyntax] ->
+    case values {
+        [] -> None;
+        [value | rest] -> case value.payload {
+            TraitPayload(contract) -> if {
+                contract.name == name -> Some(contract);
+                true -> find_local_trait(rest, name)
+            };
+            _ -> find_local_trait(rest, name)
+        }
+    }.
+
+@pure
+trait_conformance_error(
+    state: AnalysisState,
+    declaration: TypedDeclaration,
+    message: String,
+): AnalysisState ->
+    AnalysisState(
+        valid = false,
+        symbols = state.symbols,
+        diagnostics = [SemanticDiagnostic(
+            TraitConformanceDiagnostic,
+            message,
+            declaration.symbol_name,
+            declaration.span,
+        ) | state.diagnostics],
+    ).
+
+@pure
+validate_positive_trait_impl(
+    declaration: TypedDeclaration,
+    implementation: TraitImplSyntax,
+    all: List[TypedDeclaration],
+    state: AnalysisState,
+): AnalysisState ->
+    case find_local_trait(all, trait_base_name(implementation)) {
+        None -> state;
+        Some(contract) -> let message = trait_conformance_message(contract, implementation, all);
+            if {
+                message == "" -> state;
+                true -> trait_conformance_error(state, declaration, message)
+            }
+    }.
+
+@pure
+validate_trait_impl(
+    declaration: TypedDeclaration,
+    implementation: TraitImplSyntax,
+    all: List[TypedDeclaration],
+    state: AnalysisState,
+): AnalysisState ->
+    if {
+        implementation.is_negative -> state;
+        true -> validate_positive_trait_impl(declaration, implementation, all, state)
+    }.
+
+@pure
+validate_trait_implementations(
+    values: List[TypedDeclaration],
+    all: List[TypedDeclaration],
+    state: AnalysisState,
+): AnalysisState ->
+    case values {
+        [] -> state;
+        [value | rest] -> case value.payload {
+            TraitImplPayload(implementation) -> validate_trait_implementations(
+                rest,
+                all,
+                validate_trait_impl(value, implementation, all, state),
+            );
+            _ -> validate_trait_implementations(rest, all, state)
+        }
+    }.
+
 /** Checks declaration validity and module-scope symbols for one source kind. */
 @pure
 pub analyze_as(source: TypedModule, source_kind: SemanticSourceKind): SemanticModule ->
@@ -263,7 +999,12 @@ pub analyze_as(source: TypedModule, source_kind: SemanticSourceKind): SemanticMo
         );
         true -> declarations_state
     };
-    SemanticModule(state.valid, source.name, source_kind, source.declarations, reverse(state.symbols), reverse(state.diagnostics)).
+    let conformance = validate_trait_implementations(
+        source.declarations,
+        source.declarations,
+        state,
+    );
+    SemanticModule(conformance.valid, source.name, source_kind, source.declarations, reverse(conformance.symbols), reverse(conformance.diagnostics)).
 
 /** Checks an ordinary `.terl` source module. */
 @pure

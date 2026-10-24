@@ -3,6 +3,7 @@ module self_host.ProjectedExpressionTypecheckSyntax.
 
 import std.collections.List.
 import std.core.String.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
 
 pub struct InferredProjectedType {
     known: Bool,
@@ -38,13 +39,15 @@ pub constructor ProjectedExpressionTypeDiagnostic {
 
 pub struct ProjectedExpressionTypecheck {
     valid: Bool,
+    facts: List[InferredTypeFact],
     diagnostics: List[self_host.ProjectedExpressionTypecheckSyntax.ProjectedExpressionTypeDiagnostic],
 }.
 
 pub constructor ProjectedExpressionTypecheck {
-    (valid: Bool, diagnostics: List[self_host.ProjectedExpressionTypecheckSyntax.ProjectedExpressionTypeDiagnostic]): ProjectedExpressionTypecheck ->
+    (valid: Bool, facts: List[InferredTypeFact], diagnostics: List[self_host.ProjectedExpressionTypecheckSyntax.ProjectedExpressionTypeDiagnostic]): ProjectedExpressionTypecheck ->
         ProjectedExpressionTypecheck {
             valid: valid,
+            facts: facts,
             diagnostics: diagnostics,
         }
 }.

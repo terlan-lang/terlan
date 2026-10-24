@@ -1,102 +1,70 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-inline-3/#propdef-line-height
+ * The `line-height` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * height of a line box in horizontal [writing
+ * modes](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/writing-mode#vertical-rl).
+ * In vertical writing modes, it sets the width of a line box. It's commonly used to set the
+ * distance between lines of text. On block-level elements in horizontal writing modes, it specifies
+ * the preferred height of line boxes within the element, and on
+ * non-[replaced](https://developer.mozilla.org/en-US/docs/Glossary/Replaced_elements) inline
+ * elements, it specifies the height that is used to calculate line box height.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: refer to the font size of the element itself.
+ *
+ * Keyword effects:
+ * - normal: Depends on the user agent. Desktop browsers (including Firefox) use a default value of
+ * roughly `1.2`, depending on the element's `font-family`.
+ *
  * Grammar: normal | <number [0,∞]> | <length-percentage [0,∞]>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-inline-3/#propdef-line-height
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/line-height
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.LineHeight.
 
 import std.core.Float.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
+import std.css.keywords.Normal.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained line-height value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    line_height: Value,
+    line_height: Normal | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the line-height number range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub struct OptionalProperty {
-    line_height: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "line-height", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "line-height", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "line-height", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "line-height", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "line-height", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "line-height", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a line-height value.
- */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(Token {property: "line-height", css: std.core.Float.to_string(value)}));
-        false -> None
+        true -> Some(Checked(serialize("line-height", std.core.Float.to_string(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a line-height value.
+ * Checks the line-height length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "line-height", css: std.css.Values.length_css(value)}));
-        false -> None
+pub length(value: Length): Option[Checked] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Checked(serialize("line-height", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a line-height value.
+ * Checks the line-height percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "line-height", css: std.css.Values.percentage_css(value)}));
-        false -> None
+pub percentage(value: Percentage): Option[Checked] ->
+    case percentage_amount(value) >= 0 {
+        true -> Some(Checked(serialize("line-height", percentage_css(value))));
+        false -> Absent
     }.

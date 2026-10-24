@@ -1,82 +1,46 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-inline-3/#propdef-initial-letter
+ * The `initial-letter` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * size and sink for dropped, raised, and sunken initial letters. This property applies to
+ * `::first-letter` pseudo-elements and inline-level first children of block containers.
+ *
+ * Initial: normal. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - normal: No special initial-letter effect. Text behaves as normal.
+ *
  * Grammar: normal | <number [1,∞]> <integer [1,∞]> | <number [1,∞]> && [ drop | raise ]?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-inline-3/#propdef-initial-letter
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/initial-letter
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.InitialLetter.
 
 import std.core.Float.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
+import std.css.Values.{serialize}.
+import std.css.keywords.Normal.
 
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained initial-letter value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    initial_letter: Value,
+    initial_letter: Normal | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the initial-letter number range. Returns Some when amount >= 1; otherwise returns None.
  */
-pub struct OptionalProperty {
-    initial_letter: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "initial-letter", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "initial-letter", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "initial-letter", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "initial-letter", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "initial-letter", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "initial-letter", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a initial-letter value.
- */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 1 {
-        true ->
-            Some(Value(Token {property: "initial-letter", css: std.core.Float.to_string(value)}));
-        false -> None
+        true -> Some(Checked(serialize("initial-letter", std.core.Float.to_string(value))));
+        false -> Absent
     }.

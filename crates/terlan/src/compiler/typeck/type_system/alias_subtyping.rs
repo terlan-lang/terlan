@@ -86,11 +86,11 @@ fn is_subtype_with_aliases_uncached(
             })
         }
         (
-            Type::FixedArray {
+            Type::Array {
                 size: lhs_size,
                 elem: lhs_elem,
             },
-            Type::FixedArray {
+            Type::Array {
                 size: rhs_size,
                 elem: rhs_elem,
             },

@@ -295,6 +295,7 @@ pub(super) fn infer_syntax_remote_call(
             .chars()
             .next()
             .is_some_and(|ch| ch.is_ascii_uppercase())
+            && resolved_module_name != ctx.current_module
             && interface.opaque_types.contains(function_name)
         {
             errors.push(format!(
@@ -639,7 +640,7 @@ pub(super) fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>
             if module.is_none() {
                 if let Some(imported) = ctx.imported_type_names.get(name) {
                     return Type::Named {
-                        module: imported.module.clone(),
+                        module: Some(imported.module.clone()),
                         name: imported.name.clone(),
                         args,
                     };
@@ -662,7 +663,7 @@ pub(super) fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>
             let inner = qualify_imported_named_heads(inner, ctx);
             if let Some(imported) = ctx.imported_type_names.get("List") {
                 Type::Named {
-                    module: imported.module.clone(),
+                    module: Some(imported.module.clone()),
                     name: imported.name.clone(),
                     args: vec![inner],
                 }
@@ -699,7 +700,7 @@ pub(super) fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>
                 .collect(),
             ret: Box::new(qualify_imported_named_heads(ret, ctx)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: *size,
             elem: Box::new(qualify_imported_named_heads(elem, ctx)),
         },

@@ -1,69 +1,37 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `grid-template` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property specifies the `grid columns`, `grid rows`, and `grid areas`.
+ *
+ * Initial: grid-template-columns: none; grid-template-rows: none; grid-template-areas: none.
+ * Inherited: no.
+ * Percentages: grid-template-columns: refer to corresponding dimension of the content area;
+ * grid-template-rows: refer to corresponding dimension of the content area.
+ *
+ * Keyword effects:
+ * - none: Sets all three longhand properties to `none`, meaning there is no explicit grid. There
+ * are no named grid areas. Rows and columns will be implicitly generated; their size will be
+ * determined by the `grid-auto-rows` and `grid-auto-columns` properties. This is the default value.
+ *
+ * Grammar: none | [ <'grid-template-rows'> / <'grid-template-columns'> ] | [ <line-names>? <string>
+ * <track-size>? <line-names>? ]+ [ / <explicit-track-list> ]?
+ *
  * Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-template
- * Grammar: none | [ <'grid-template-rows'> / <'grid-template-columns'> ] | [ <line-names>? <string> <track-size>? <line-names>? ]+ [ / <explicit-track-list> ]?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/grid-template
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.GridTemplate.
 
-import type std.core.Option.
+import std.css.keywords.None.
 
-/**
- * A nominal, specification-constrained grid-template value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    grid_template: Value,
+    grid_template: None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    grid_template: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "grid-template", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "grid-template", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "grid-template", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "grid-template", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "grid-template", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "grid-template", css: "unset"}).

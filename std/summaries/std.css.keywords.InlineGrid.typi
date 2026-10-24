@@ -1,0 +1,6 @@
+//! Shared CSS keyword inline-grid. Generated; do not edit.
+
+module std.css.keywords.InlineGrid.
+
+pub type InlineGrid =
+    Atom["inline-grid"].

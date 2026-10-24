@@ -1,0 +1,51 @@
+module std.http.CookiesTest.
+
+@pure
+pub accepts_jar(value: std.http.Cookies.Jar): std.http.Cookies.Jar.
+
+@pure
+pub accepts_options(value: std.http.Cookies.Options): std.http.Cookies.Options.
+
+@pure
+pub accepts_same_site(value: std.http.Cookies.SameSite): std.http.Cookies.SameSite.
+
+pub cookie_defaults_flags_and_deletion_paths_are_source_composition(): Bool.
+
+pub cookie_full_options_header_serializes_attributes(): Bool.
+
+pub cookie_header_builders_serialize_defaults(): Bool.
+
+pub cookie_jar_delete_threads_expiring_response_header(): Bool.
+
+pub cookie_jar_get_reads_present_and_missing_values(): Bool.
+
+pub cookie_jar_set_threads_response_header(): Bool.
+
+pub decoded_pairs_keep_first_values_without_sharing_pending_headers(): Bool.
+
+pub duplicate_wire_cookie_values_agree_between_request_and_jar(): Bool.
+
+@pure
+pub option_string_or_empty(value: Option[String]): String.
+
+pub raw_headers_decode_only_wire_syntax_and_preserve_source_precedence(): Bool.
+
+pub request_cookie_views_do_not_share_pending_mutations(): Bool.
+
+pub same_site_strict_marker_round_trips(): Bool.
+
+pub sample_delete_cookie_header(): String.
+
+pub sample_full_set_cookie_header(): String.
+
+pub sample_jar(): std.http.Cookies.Jar.
+
+pub sample_set_cookie_header(): String.
+
+pub sample_set_cookie_header_options(options: std.http.Cookies.Options): String.
+
+pub source_cookie_policy_normalizes_case_and_preserves_age_omission(): Bool.
+
+pub source_jar_construction_preserves_empty_values_and_map_snapshots(): Bool.
+
+pub typed_cookie_options_serialize_present_and_absent_attributes(): Bool.

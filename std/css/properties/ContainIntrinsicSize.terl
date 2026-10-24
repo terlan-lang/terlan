@@ -1,130 +1,75 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-sizing-4/#propdef-contain-intrinsic-size
+ * The `contain-intrinsic-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets the size of an element that a browser will use for layout when the element is
+ * subject to [size
+ * containment](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Using#size_containment).
+ *
+ * Initial: contain-intrinsic-width: none; contain-intrinsic-height: none. Inherited: no.
+ * Percentages: contain-intrinsic-width: no; contain-intrinsic-height: no.
+ *
+ * Keyword effects:
+ * - none: The element has no intrinsic size in the given dimension(s).
+ *
  * Grammar: [ auto? [ none | <length [0,∞]> ] ]{1,2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-sizing-4/#propdef-contain-intrinsic-size
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/contain-intrinsic-size
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ContainIntrinsicSize.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
-import std.css.Values.{length_amount, length_css}.
+import std.css.Values.{length_amount, length_css, serialize}.
+import std.css.keywords.None.
 
 import type std.core.Option.
-import type std.css.Values.{Length}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained contain-intrinsic-size value.
- */
-pub opaque type Value = Token.
+pub opaque type CheckedComponent = SerializedValue.
 
-/**
- * A single non-global contain-intrinsic-size shorthand component.
- */
-pub opaque type Component = Token.
+pub type Component = None | CheckedComponent.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[Component]}.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    contain_intrinsic_size: Value,
+    contain_intrinsic_size: None | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the contain-intrinsic-size length range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub struct OptionalProperty {
-    contain_intrinsic_size: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "contain-intrinsic-size", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "contain-intrinsic-size", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "contain-intrinsic-size", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "contain-intrinsic-size", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "contain-intrinsic-size", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "contain-intrinsic-size", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a contain-intrinsic-size value.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "contain-intrinsic-size", css: length_css(value)}));
-        false -> None
+        true -> Some(Checked(serialize("contain-intrinsic-size", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Constructs one contain-intrinsic-size shorthand component.
+ * Checks the contain-intrinsic-size length range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub component_none(): Component ->
-    Component(Token {property: "contain-intrinsic-size", css: "none"}).
-
-/**
- * Checks the specification range and constructs a contain-intrinsic-size value.
- */
-pub component_length(value: Length): Option[Component] ->
+pub component_length(value: Length): Option[CheckedComponent] ->
     case length_amount(value) >= 0 {
-        true -> Some(Component(Token {property: "contain-intrinsic-size", css: length_css(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("contain-intrinsic-size", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Serializes a library-owned shorthand component.
+ * Supplies 1 components in grammar order.
  */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Combines 1 typed components in specification order.
+ * Supplies 2 components in grammar order.
  */
-pub single(first: Component): Value ->
-    Value(Token {property: "contain-intrinsic-size", css: component_css(first)}).
-
-/**
- * Combines 2 typed components in specification order.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {
-            property: "contain-intrinsic-size",
-            css: component_css(first) + " " + component_css(second),
-        },
-    ).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

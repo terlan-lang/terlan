@@ -18,5 +18,11 @@ negative_unterminated(): Bool ->
     let segmented = TokenSegmenter.split(TokenContext.project(CanonicalLexer.lex(source).tokens));
     not segmented.valid and segmented.unterminated_start_byte > 0.
 
-pub self_test(): Bool -> positive_boundaries() and negative_unterminated().
+@pure
+keyword_module_path_boundaries(): Bool ->
+    let source = "module std.template.Template.\nimport std.template.Template.{trusted}.\n";
+    let segmented = TokenSegmenter.split(TokenContext.project(CanonicalLexer.lex(source).tokens));
+    segmented.valid and List.length(segmented.segments) == 2.
+
+pub self_test(): Bool -> positive_boundaries() and keyword_module_path_boundaries() and negative_unterminated().
 

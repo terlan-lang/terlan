@@ -442,7 +442,7 @@ module core_v0_rejects_float.\n\npub value(): Dynamic ->\n    1.0.\n",
 ///
 /// Inputs:
 /// - Temporary source file whose function body lowers to a typed
-///   fixed-array CoreIR expression.
+///   array CoreIR expression.
 ///
 /// Output:
 /// - Test assertion only; the temporary source file is deleted by the OS
@@ -450,15 +450,15 @@ module core_v0_rejects_float.\n\npub value(): Dynamic ->\n    1.0.\n",
 ///
 /// Transformation:
 /// - Runs the command-level `check` path with `TargetProfile::CoreV0` and
-///   asserts proof-model-required fixed-array CoreIR is rejected before a
+///   asserts proof-model-required array CoreIR is rejected before a
 ///   successful result is returned.
 #[test]
-pub(super) fn run_check_single_file_rejects_fixed_array_for_core_v0_target_profile() {
-    let dir = make_temp_dir("check_single_file_core_v0_rejects_fixed_array");
+pub(super) fn run_check_single_file_rejects_array_for_core_v0_target_profile() {
+    let dir = make_temp_dir("check_single_file_core_v0_rejects_array");
     let path = fixture(
         &dir,
         "\
-module core_v0_rejects_fixed_array.\n\npub value(): Dynamic ->\n    #[1, 2, 3].\n",
+module core_v0_rejects_array.\n\npub value(): Dynamic ->\n    #[1, 2, 3].\n",
     );
 
     let exit = commands::check::run(

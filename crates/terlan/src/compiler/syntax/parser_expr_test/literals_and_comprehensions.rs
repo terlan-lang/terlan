@@ -267,7 +267,7 @@ pub(super) fn formal_list_comprehension_rejects_where_filter_spelling() {
 /// Verifies collection expressions accepted by the A0.24 syntax baseline.
 ///
 /// Inputs:
-/// - Source expressions for list, cons-list, generator, fixed-array, and
+/// - Source expressions for list, cons-list, generator, array, and
 ///   map forms.
 ///
 /// Output:
@@ -281,7 +281,7 @@ pub(super) fn formal_list_comprehension_rejects_where_filter_spelling() {
 /// Verifies collection expressions accepted by the A0.24 syntax baseline.
 ///
 /// Inputs:
-/// - Source expressions for list, cons-list, generator, fixed-array, and
+/// - Source expressions for list, cons-list, generator, array, and
 ///   map forms.
 ///
 /// Output:
@@ -306,7 +306,7 @@ pub(super) fn formal_collection_exprs_preserve_ast_shapes() {
     ));
 
     let fixed = parse_terlan_expr("#[255, 128, 0]").expect("parse fixed array");
-    assert!(matches!(fixed, Expr::FixedArray(items) if items.len() == 3));
+    assert!(matches!(fixed, Expr::Array(items) if items.len() == 3));
 
     let map = parse_terlan_expr("{name: \"Ada\", age: 42}").expect("parse map");
     let Expr::Map(fields) = map else {

@@ -1,10 +1,10 @@
 module=std.css.properties.Inset
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=2955507867906504544
-interface_hash=4345691218604215858
-interface_doc_hash=14220620914167033656
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5555219980553231853
+interface_hash=16751879792425514092
+interface_doc_hash=17034427304416580561
 deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722

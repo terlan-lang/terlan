@@ -1,72 +1,45 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin
+//! The `scroll-margin` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets all of the scroll margins of an element at once, assigning values much like the
+//! `margin` property does for margins of an element.
+//!
+//! Initial: scroll-margin-bottom: 0; scroll-margin-left: 0; scroll-margin-right: 0;
+//! scroll-margin-top: 0. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <length>{1,4}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-margin
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollMargin.
 
-/// A single non-global scroll-margin shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
-
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    scroll_margin: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    std.css.Values.Length.
 
 pub struct Property {
-    scroll_margin: Value
+    scroll_margin: std.css.Values.Length | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained scroll-margin value.
+/// First sets top/bottom; second sets left/right.
 
-pub opaque type Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Constructs a scroll-margin value from a typed length.
+/// Sets top, right, bottom, and left in that order.
 
-pub component_length(value: std.css.Values.Length): Component.
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
-/// Returns the CSS keyword inherit.
+/// Applies to all four sides.
 
-pub inherit(): Value.
+pub single(first: Component): Checked.
 
-/// Returns the CSS keyword initial.
+/// First sets top; second sets left/right; third sets bottom.
 
-pub initial(): Value.
-
-/// Constructs a scroll-margin value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Combines 4 typed components in specification order.
-
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Combines 3 typed components in specification order.
-
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub triple(first: Component, second: Component, third: Component): Checked.

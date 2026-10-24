@@ -1,0 +1,4 @@
+module typed_css.InvalidColorEnum.
+
+import std.css.properties.BackgroundColor.{Property}.
+pub invalid(): Property -> Property {background_color: Atom["not-a-color-keyword"]}.

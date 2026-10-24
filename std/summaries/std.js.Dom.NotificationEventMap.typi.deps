@@ -1,8 +1,8 @@
 module=std.js.Dom.NotificationEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6183979149107067905
-interface_hash=2872843262393911202
-interface_doc_hash=2872843262393911202
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=17424264017367123476
+interface_hash=15048362842976306654
+interface_doc_hash=15048362842976306654
 deps=0

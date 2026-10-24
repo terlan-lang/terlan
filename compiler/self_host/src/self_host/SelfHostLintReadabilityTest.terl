@@ -1,0 +1,85 @@
+/** Positive and negative contracts for self-hosted readability policy. */
+module self_host.SelfHostLintReadabilityTest.
+
+import self_host.SelfHostLintReadability.{DestructureBinding, ForwardingLambda, GroupedBindingCandidate, PublicApiSubject, ReadabilityLine}.
+import self_host.SelfHostLintReadability.
+
+forwarding(start_byte: Int, arguments: List[String]): ForwardingLambda ->
+    ForwardingLambda(
+        start_byte,
+        1,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        ["left", "right"],
+        arguments,
+    ).
+
+@test
+pub owns_readability_thresholds_and_exemptions(): Bool ->
+    SelfHostLintReadability.weak_callback_name("x")
+        and SelfHostLintReadability.weak_callback_name("_tmp")
+        and not SelfHostLintReadability.weak_callback_name("value")
+        and SelfHostLintReadability.intentionally_unused_name("_ignored")
+        and not SelfHostLintReadability.intentionally_unused_name("ignored")
+        and SelfHostLintReadability.property_test_source_path("CodecPropertyTest.terl")
+        and not SelfHostLintReadability.property_test_source_path("CodecTest.terl").
+
+@test
+pub recognizes_only_semantics_preserving_function_references(): Bool ->
+    SelfHostLintReadability.forwarding_lambda(forwarding(0, ["left", "right"]))
+        and not SelfHostLintReadability.forwarding_lambda(forwarding(0, ["right", "left"])).
+
+@test
+pub recognizes_grouped_binding_candidate_facts(): Bool ->
+    SelfHostLintReadability.grouped_binding_candidate(
+        GroupedBindingCandidate(0, 2, 2, true, true, false),
+    )
+        and not SelfHostLintReadability.grouped_binding_candidate(
+            GroupedBindingCandidate(0, 2, 2, true, true, true),
+        ).
+
+@test
+pub emits_all_rules_in_stable_rule_order(): Bool ->
+    let values = SelfHostLintReadability.diagnostics(
+        "Codec.terl",
+        "public value",
+        [{0, 9}],
+        [{0, true, ["it"]}],
+        [{0, true, [DestructureBinding("unused", false)]}],
+        [ReadabilityLine(1, 1, true, false, true, true, 2)],
+        [PublicApiSubject(0, true, false)],
+        [GroupedBindingCandidate(0, 2, 2, true, true, false)],
+        [forwarding(0, ["left", "right"])],
+    );
+    case values {
+        [deep, callback, binding, comment, docs, spacing, branch, grouped, reference] ->
+            deep.rule_id == "TL0002"
+                and callback.rule_id == "TL0003"
+                and binding.rule_id == "TL0004"
+                and comment.rule_id == "TL0005"
+                and docs.rule_id == "TL0006"
+                and spacing.rule_id == "TL0007"
+                and branch.rule_id == "TL0008"
+                and grouped.rule_id == "TL0009"
+                and reference.rule_id == "TL0010";
+        _ -> false
+    }.
+
+@test
+pub suppresses_non_findings_and_path_exemptions(): Bool ->
+    SelfHostLintReadability.diagnostics(
+        "CodecPropertyTest.terl",
+        "public value",
+        [{0, 9}],
+        [{0, false, ["it"]}],
+        [{0, true, [DestructureBinding("_unused", false), DestructureBinding("used", true)]}],
+        [ReadabilityLine(1, 1, true, true, true, false, 1)],
+        [PublicApiSubject(0, true, true)],
+        [GroupedBindingCandidate(0, 2, 2, true, false, false)],
+        [forwarding(0, ["right", "left"])],
+    ) == [].

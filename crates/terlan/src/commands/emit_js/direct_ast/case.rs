@@ -8,6 +8,7 @@ use crate::commands::emit_js::direct_helpers::{
 enum CasePathSegment {
     Index(usize),
     Field(String),
+    Tail,
 }
 
 #[derive(Clone, Copy)]
@@ -25,19 +26,14 @@ struct CaseObjectField<'a> {
 /// - `clauses`: CoreIR case clauses in source order.
 ///
 /// Output:
-/// - `Some(Expression)` when every
-///   non-final clause is an unguarded supported literal or exact tuple/list
-///   destructuring pattern, the final clause is an unguarded wildcard
-///   fallback, and all branch bodies are directly lowerable.
-/// - `None` for guarded, partial, or otherwise unsupported case expressions.
+/// - `Some(Expression)` for supported literal, sequence, head/tail, and object
+///   patterns with lowerable guards and branch bodies.
+/// - `None` when a pattern, guard, or body cannot be emitted.
 ///
 /// Transformation:
-/// - Uses the final wildcard branch as the alternate expression and folds
-///   preceding clauses from right to left into nested Oxc conditional
-///   expressions. Tuple/list branches first prove array shape and exact length,
-///   then invoke a destructuring arrow closure for branch-local bindings. The
-///   scrutinee is captured in a fresh closure parameter when needed so it is
-///   evaluated once.
+/// - Folds clauses into conditional expressions, checking structure before
+///   destructuring branch bindings. An unmatched runtime value throws when
+///   there is no wildcard fallback. The scrutinee is evaluated once.
 pub(super) fn core_case_clauses_to_oxc_expression<'a>(
     ast: oxc_ast::AstBuilder<'a>,
     scrutinee: &crate::terlan_typeck::CoreExpr,
@@ -81,17 +77,16 @@ pub(super) fn core_case_clauses_to_oxc_expression<'a>(
         return None;
     }
 
-    let (fallback, clauses) = clauses.split_last()?;
-    if fallback.guard.is_some()
-        || !matches!(
+    let (fallback, preceding) = clauses.split_last()?;
+    let (mut expr, clauses) = if fallback.guard.is_none()
+        && matches!(
             fallback.pattern,
             crate::terlan_typeck::CorePattern::Wildcard
-        )
-    {
-        return None;
-    }
-
-    let mut expr = core_expr_to_oxc_expression(ast, &fallback.body)?;
+        ) {
+        (core_expr_to_oxc_expression(ast, &fallback.body)?, preceding)
+    } else {
+        (unmatched_case(ast), clauses)
+    };
     for clause in clauses.iter().rev() {
         let consequent = if core_case_pattern_needs_destructuring(&clause.pattern) {
             core_case_destructuring_branch_to_oxc_expression(
@@ -126,11 +121,36 @@ pub(super) fn core_case_clauses_to_oxc_expression<'a>(
     Some(expr)
 }
 
+fn unmatched_case<'a>(ast: oxc_ast::AstBuilder<'a>) -> oxc_ast::ast::Expression<'a> {
+    use oxc_ast::{
+        ast::{Argument, FormalParameterKind},
+        NONE,
+    };
+    use oxc_span::SPAN;
+    let error = ast.expression_new(
+        SPAN,
+        ast.expression_identifier(SPAN, oxc_ident_name(ast, "Error")),
+        NONE,
+        ast.vec1(Argument::from(ast.expression_string_literal(
+            SPAN,
+            oxc_string_value(ast, "Terlan case has no matching clause"),
+            None,
+        ))),
+    );
+    let body = ast.alloc_function_body(SPAN, ast.vec(), ast.vec1(ast.statement_throw(SPAN, error)));
+    let parameters =
+        ast.alloc_formal_parameters(SPAN, FormalParameterKind::FormalParameter, ast.vec(), NONE);
+    let function = ast.expression_arrow_function(SPAN, false, false, NONE, parameters, NONE, body);
+    ast.expression_call(SPAN, function, NONE, ast.vec(), false)
+}
+
 /// Reports whether a structural case pattern needs a binding closure.
 fn core_case_pattern_needs_destructuring(pattern: &crate::terlan_typeck::CorePattern) -> bool {
     match pattern {
         crate::terlan_typeck::CorePattern::Tuple(_)
         | crate::terlan_typeck::CorePattern::List(_)
+        | crate::terlan_typeck::CorePattern::ListCons { .. }
+        | crate::terlan_typeck::CorePattern::Var(_)
         | crate::terlan_typeck::CorePattern::Map(_)
         | crate::terlan_typeck::CorePattern::Record { .. } => true,
         crate::terlan_typeck::CorePattern::Constructor { args, .. } => !args.is_empty(),
@@ -168,6 +188,41 @@ fn core_case_pattern_test_at_path<'a>(
     pattern: &crate::terlan_typeck::CorePattern,
 ) -> Option<oxc_ast::ast::Expression<'a>> {
     match pattern {
+        crate::terlan_typeck::CorePattern::Var(_) | crate::terlan_typeck::CorePattern::Wildcard => {
+            Some(ast.expression_boolean_literal(oxc_span::SPAN, true))
+        }
+        crate::terlan_typeck::CorePattern::ListCons { head, tail } => {
+            use oxc_span::SPAN;
+            use oxc_syntax::{
+                number::NumberBase,
+                operator::{BinaryOperator, LogicalOperator},
+            };
+            let value = core_case_scrutinee_path_to_oxc_expression(ast, scrutinee_name, path);
+            let is_array = core_case_array_is_array_to_oxc_expression(ast, value);
+            let length = ast
+                .member_expression_static(
+                    SPAN,
+                    core_case_scrutinee_path_to_oxc_expression(ast, scrutinee_name, path),
+                    ast.identifier_name(SPAN, oxc_ident_name(ast, "length")),
+                    false,
+                )
+                .into();
+            let nonempty = ast.expression_binary(
+                SPAN,
+                length,
+                BinaryOperator::GreaterThan,
+                ast.expression_numeric_literal(SPAN, 0.0, None, NumberBase::Decimal),
+            );
+            let mut test = ast.expression_logical(SPAN, is_array, LogicalOperator::And, nonempty);
+            let mut child_path = path.to_vec();
+            child_path.push(CasePathSegment::Index(0));
+            let head_test = core_case_pattern_test_at_path(ast, scrutinee_name, &child_path, head)?;
+            test = ast.expression_logical(SPAN, test, LogicalOperator::And, head_test);
+            let mut tail_path = path.to_vec();
+            tail_path.push(CasePathSegment::Tail);
+            let tail_test = core_case_pattern_test_at_path(ast, scrutinee_name, &tail_path, tail)?;
+            Some(ast.expression_logical(SPAN, test, LogicalOperator::And, tail_test))
+        }
         crate::terlan_typeck::CorePattern::Tuple(_)
         | crate::terlan_typeck::CorePattern::List(_) => {
             core_case_sequence_pattern_test_to_oxc_expression(ast, scrutinee_name, path, pattern)
@@ -506,6 +561,26 @@ fn core_case_scrutinee_path_to_oxc_expression<'a>(
 
     let mut expression = ast.expression_identifier(SPAN, oxc_binding_name(ast, scrutinee_name));
     for segment in path {
+        if matches!(segment, CasePathSegment::Tail) {
+            let callee = ast
+                .member_expression_static(
+                    SPAN,
+                    expression,
+                    ast.identifier_name(SPAN, oxc_ident_name(ast, "slice")),
+                    false,
+                )
+                .into();
+            expression = ast.expression_call(
+                SPAN,
+                callee,
+                oxc_ast::NONE,
+                ast.vec1(oxc_ast::ast::Argument::from(
+                    ast.expression_numeric_literal(SPAN, 1.0, None, NumberBase::Decimal),
+                )),
+                false,
+            );
+            continue;
+        }
         let property = match segment {
             CasePathSegment::Index(index) => {
                 ast.expression_numeric_literal(SPAN, *index as f64, None, NumberBase::Decimal)
@@ -513,6 +588,7 @@ fn core_case_scrutinee_path_to_oxc_expression<'a>(
             CasePathSegment::Field(field) => {
                 ast.expression_string_literal(SPAN, oxc_string_value(ast, field), None)
             }
+            CasePathSegment::Tail => unreachable!("tail paths are handled above"),
         };
         expression = ast
             .member_expression_computed(SPAN, expression, property, false)
@@ -558,6 +634,10 @@ pub(super) fn core_case_binding_pattern(
 
     match pattern {
         CorePattern::Var(name) => Some(CorePattern::Var(name.clone())),
+        CorePattern::ListCons { head, tail } => Some(CorePattern::ListCons {
+            head: Box::new(core_case_binding_pattern(head)?),
+            tail: Box::new(core_case_binding_pattern(tail)?),
+        }),
         CorePattern::Wildcard
         | CorePattern::Atom(_)
         | CorePattern::Int(_)
@@ -626,6 +706,9 @@ fn core_case_pattern_binds_value(pattern: &crate::terlan_typeck::CorePattern) ->
 
     match pattern {
         CorePattern::Var(_) => true,
+        CorePattern::ListCons { head, tail } => {
+            core_case_pattern_binds_value(head) || core_case_pattern_binds_value(tail)
+        }
         CorePattern::Tuple(items) | CorePattern::List(items) => {
             items.iter().any(core_case_pattern_binds_value)
         }

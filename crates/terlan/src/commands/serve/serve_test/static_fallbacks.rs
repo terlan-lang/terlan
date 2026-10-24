@@ -1,5 +1,37 @@
 use super::*;
 
+#[test]
+fn hyper_request_handler_enforces_package_body_admission_before_static_dispatch() {
+    run_async_serve_test(async {
+        let dir = temp_dir("hyper_package_body_admission");
+        let web_root = dir.join("web");
+        write_valid_package(&web_root);
+        let limit = 1024 * 1024;
+        for (declared, body, status, diagnostic) in [
+            (Some(limit + 1), vec![], 413, "request body exceeds"),
+            (None, vec![b'x'; limit + 1], 413, "request body exceeds"),
+            (Some(1), vec![b'x'; limit + 1], 413, "request body exceeds"),
+            (None, vec![0xff], 400, "invalid UTF-8 body"),
+            (None, vec![b'x'; limit], 200, "hello asset"),
+        ] {
+            let mut request = Request::builder().method("GET").uri("/assets/hello.txt");
+            if let Some(length) = declared {
+                request = request.header(http::header::CONTENT_LENGTH, length);
+            }
+            let response = handle_hyper_request(
+                request.body(Full::new(Bytes::from(body))).expect("request"),
+                web_root.clone(),
+                Arc::new(Mutex::new(Vec::new())),
+            )
+            .await;
+            assert_eq!(response.status().as_u16(), status);
+            let body = serve_response_text(response).await;
+            assert!(body.contains(diagnostic), "{body}");
+        }
+        fs::remove_dir_all(dir).expect("cleanup");
+    });
+}
+
 #[cfg(unix)]
 #[test]
 fn vm_stream_static_indexes_reject_escaping_symlinks() {
@@ -323,7 +355,6 @@ pub(super) fn hyper_request_handler_recompiles_changed_managed_aot_module() {
             typed_request("GET", "/api/source", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
         let status = response.status();
@@ -371,7 +402,6 @@ pub(super) fn hyper_request_handler_prefers_physical_static_asset_over_file_fall
             typed_request("GET", "/assets/js/modules/app.js", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -426,7 +456,6 @@ pub(super) fn hyper_request_handler_prefers_physical_static_asset_over_static_re
             typed_request("GET", "/assets/hello.txt", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -448,7 +477,6 @@ pub(super) fn hyper_request_handler_rejects_static_parent_path() {
             typed_request("GET", "/../secret.txt", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -468,7 +496,6 @@ pub(super) fn hyper_request_handler_streams_reload_sse_events() {
             typed_request("GET", RELOAD_ENDPOINT, ""),
             PathBuf::from("/tmp/no-web-root-needed"),
             Arc::clone(&reload_hub),
-            websocket_hub(),
         )
         .await;
 
@@ -520,7 +547,6 @@ pub(super) fn hyper_request_handler_heads_reload_sse_without_opening_stream() {
             typed_request("HEAD", RELOAD_ENDPOINT, ""),
             PathBuf::from("/tmp/no-web-root-needed"),
             Arc::clone(&reload_hub),
-            websocket_hub(),
         )
         .await;
 
@@ -562,7 +588,6 @@ pub(super) fn hyper_request_handler_rejects_reload_sse_mutating_method() {
             typed_request("POST", RELOAD_ENDPOINT, "payload"),
             PathBuf::from("/tmp/no-web-root-needed"),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -613,7 +638,6 @@ email = "admin@example.test""#,
             typed_request("GET", "/.well-known/acme-challenge/token_123", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -665,7 +689,6 @@ email = "admin@example.test""#,
             typed_request("HEAD", "/.well-known/acme-challenge/token_123", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -713,7 +736,6 @@ email = "admin@example.test""#,
             typed_request("GET", "/.well-known/acme-challenge/missing", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -752,7 +774,6 @@ email = "admin@example.test""#,
             typed_request("GET", "/.well-known/acme-challenge/bad.token", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -790,7 +811,6 @@ pub(super) fn hyper_request_handler_keeps_acme_like_static_files_for_plain_http_
             typed_request("GET", "/.well-known/acme-challenge/token_123", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -812,7 +832,6 @@ pub(super) fn hyper_request_handler_omits_static_head_response_body() {
             typed_request("HEAD", "/assets/hello.txt", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -838,7 +857,6 @@ pub(super) fn hyper_request_handler_rejects_unmatched_mutating_method() {
             typed_request("POST", "/assets/hello.txt", "payload"),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 

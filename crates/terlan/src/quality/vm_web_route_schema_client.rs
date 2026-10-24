@@ -24,9 +24,9 @@ const REQUIRED_API_CONTRACT_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_API_DISCOVERY_ANCHORS: &[&str] = &[
-    "from_router_source",
-    "routes_from_syntax_module",
-    "ApiContract::from_routes",
+    "from_router_file",
+    "source_descriptor::router",
+    "ApiContract::from_source_router",
 ];
 
 const REQUIRED_API_COMMAND_ANCHORS: &[&str] = &[
@@ -45,11 +45,19 @@ const REQUIRED_API_COMMAND_ANCHORS: &[&str] = &[
 
 const REQUIRED_API_TEST_ANCHORS: &[(&str, &[&str])] = &[
     (
-        "crates/terlan/src/commands/api/source_contract_test.rs",
+        "crates/terlan/src/commands/api/evaluated_contract_test.rs",
         &[
-            "router_source_contract_extracts_routes",
-            "router_source_contract_projects_to_openapi_paths",
-            "router_source_contract_extracts_group_routes",
+            "api_discovery_evaluates_computed_groups_closures_and_source_changes",
+            "api_discovery_resolves_imports_with_relative_source_and_independent_output",
+            "api_discovery_rejects_nonrouters_duplicates_and_channel_schemas",
+        ],
+    ),
+    (
+        "crates/terlan/src/commands/deploy/semantic_test.rs",
+        &[
+            "deployment_evaluates_returned_routes_and_imported_handlers",
+            "deployment_evaluates_grouped_fallback_and_source_edits",
+            "deployment_rejects_conflicting_router_modules_and_invalid_descriptors",
         ],
     ),
     (
@@ -81,13 +89,10 @@ const REQUIRED_ROUTE_EXTRACTION_ANCHORS: &[&str] = &[
     "route_source_context",
     "source_span_for_expr",
     "validate_discovered_web_routes",
-    "validate_router_handler_rows",
-    "route_param_types",
+    "evaluated::discover_web_route_manifest_from_sources",
 ];
 
 const REQUIRED_ROUTE_VALIDATION_ANCHORS: &[&str] = &[
-    "validate_router_handler_rows",
-    "validate_route_handler_param_types",
     "validate_discovered_web_routes",
     "terlan_http_native::manifest::validate_route_namespace",
 ];
@@ -132,7 +137,7 @@ const GENERATED_CLIENT_FIXTURES: &[&str] = &[
 const SECURITY_POLICY_LINKS: &[&str] = &[
     "router middleware callback types are checked by the ordinary compiler",
     "router recovery callbacks execute from source, not generated manifest rows",
-    "route parameter names and types are checked against handler signatures",
+    "route capture adapters are ordinary source callbacks checked against the package Handler type",
     "security policy schema output remains rejected until typed policy rows exist",
 ];
 
@@ -188,9 +193,9 @@ pub fn run_vm_web_route_schema_client(root: &Path) -> QualityResult<VmWebRouteSc
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/api/source_contract.rs",
+        "crates/terlan/src/commands/api/evaluated_contract.rs",
         REQUIRED_API_DISCOVERY_ANCHORS,
-        "CLI static API discovery",
+        "CLI evaluated API discovery",
     )?);
     diagnostics.extend(validate_required_terms(
         root,

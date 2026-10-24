@@ -1,6 +1,8 @@
 /** Declaration parser consuming the projected canonical terminal stream. */
 module self_host.ProjectedParser.
 
+import std.core.String.
+
 import self_host.ProjectedParserSyntax.{ProjectedSurfaceDeclaration, ProjectedSurfaceModule}.
 import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
 import self_host.Syntax.{SyntaxSpan}.
@@ -178,8 +180,11 @@ scan_value(value: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken], 
 scan(values: List[ProjectedCanonicalToken], state: SegmentState): SegmentState ->
     case values {
         [] -> scan_complete(state);
-        [value | rest] where is_end(value) -> scan(List.new[ProjectedCanonicalToken](), state);
-        [value | rest] -> scan_value(value, rest, state)
+        [value | rest] ->
+            if {
+                is_end(value) -> scan(List.new[ProjectedCanonicalToken](), state);
+                true -> scan_value(value, rest, state)
+            }
     }.
 
 /** Splits projected tokens only at ordinary depth-zero declaration dots. */

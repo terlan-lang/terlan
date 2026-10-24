@@ -7,6 +7,8 @@
  */
 module self_host.Parser.
 
+import std.core.String.
+
 import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, DeclarationClass, ExportDeclaration, FunctionDeclaration, ImportDeclaration, InvalidModuleDeclaration, MethodDeclaration, MissingModuleDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ParseError, ShapeDeclaration, SourceBeforeModuleDeclaration, StructDeclaration, SurfaceDeclaration, SurfaceModule, SyntaxSpan, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration, UnknownDeclaration, UnterminatedDeclaration}.
 
 import std.collections.List.
@@ -111,7 +113,14 @@ declaration_after_method(head: String, text: String): DeclarationClass ->
 
 @pure
 declaration_after_native(head: String, text: String): DeclarationClass ->
-    if { String.starts_with(head, "(") -> MethodDeclaration; true -> declaration_after_method(head, text) }.
+    if {
+        String.starts_with(head, "(") -> MethodDeclaration;
+        (String.contains(text, "@compiler.native")
+            or String.contains(text, "@compiler.intrinsic"))
+            and String.contains(head, "(")
+            and String.contains(text, ")") -> FunctionDeclaration;
+        true -> declaration_after_method(head, text)
+    }.
 
 @pure
 declaration_after_config(head: String, text: String): DeclarationClass ->

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword wrap-reverse. Generated; do not edit.
+ */
+module std.css.keywords.WrapReverse.
+
+pub type WrapReverse = Atom["wrap-reverse"].

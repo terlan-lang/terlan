@@ -1,0 +1,6 @@
+//! Shared CSS keyword stroke. Generated; do not edit.
+
+module std.css.keywords.Stroke.
+
+pub type Stroke =
+    Atom["stroke"].

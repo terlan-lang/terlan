@@ -1,0 +1,6 @@
+//! Shared CSS keyword flip-y. Generated; do not edit.
+
+module std.css.keywords.FlipY.
+
+pub type FlipY =
+    Atom["flip-y"].

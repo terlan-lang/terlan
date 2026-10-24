@@ -1,135 +1,39 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `float` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property places an element on
+ * the left or right side of its container, allowing text and inline elements to wrap around it. The
+ * element is removed from the normal flow of the page, though still remaining a part of the flow
+ * (in contrast to [absolute
+ * positioning](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position#absolute_positioning)).
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - inline-end: The element must float on the end side of its containing block. That is the right
+ * side with `ltr` scripts, and the left side with `rtl` scripts.
+ * - inline-start: The element must float on the start side of its containing block. That is the
+ * left side with `ltr` scripts, and the right side with `rtl` scripts.
+ * - left: The element must float on the left side of its containing block.
+ * - none: The element must not float.
+ * - right: The element must float on the right side of its containing block.
+ *
+ * Grammar: block-start | block-end | inline-start | inline-end | snap-block | <snap-block()> |
+ * snap-inline | <snap-inline()> | left | right | top | bottom | none | footnote
+ *
  * Specification: https://drafts.csswg.org/css-page-floats-3/#propdef-float
- * Grammar: block-start | block-end | inline-start | inline-end | snap-block | <snap-block()> | snap-inline | <snap-inline()> | left | right | top | bottom | none | footnote
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/float
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Float.
 
-import type std.core.Option.
+import std.css.keywords.{InlineEnd, InlineStart, Left, None, Right}.
 
-/**
- * A nominal, specification-constrained float value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    float: Value,
+    float: InlineStart | InlineEnd | Left | Right | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    float: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword block-end.
- */
-pub block_end(): Value ->
-    Value(Token {property: "float", css: "block-end"}).
-
-/**
- * Returns the CSS keyword block-start.
- */
-pub block_start(): Value ->
-    Value(Token {property: "float", css: "block-start"}).
-
-/**
- * Returns the CSS keyword bottom.
- */
-pub bottom(): Value ->
-    Value(Token {property: "float", css: "bottom"}).
-
-/**
- * Returns the CSS keyword footnote.
- */
-pub footnote(): Value ->
-    Value(Token {property: "float", css: "footnote"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "float", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "float", css: "initial"}).
-
-/**
- * Returns the CSS keyword inline-end.
- */
-pub inline_end(): Value ->
-    Value(Token {property: "float", css: "inline-end"}).
-
-/**
- * Returns the CSS keyword inline-start.
- */
-pub inline_start(): Value ->
-    Value(Token {property: "float", css: "inline-start"}).
-
-/**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "float", css: "left"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "float", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "float", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "float", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "float", css: "right"}).
-
-/**
- * Returns the CSS keyword snap-block.
- */
-pub snap_block(): Value ->
-    Value(Token {property: "float", css: "snap-block"}).
-
-/**
- * Returns the CSS keyword snap-inline.
- */
-pub snap_inline(): Value ->
-    Value(Token {property: "float", css: "snap-inline"}).
-
-/**
- * Returns the CSS keyword top.
- */
-pub top(): Value ->
-    Value(Token {property: "float", css: "top"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "float", css: "unset"}).

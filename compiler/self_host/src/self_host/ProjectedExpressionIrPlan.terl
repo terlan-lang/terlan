@@ -3,7 +3,9 @@
  */
 module self_host.ProjectedExpressionIrPlan.
 
-import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, concat_instructions, expression_type, indexed_label, lambda_captures, lambda_symbol, last_string, literal_operands, nested_if_result_type, node_opcode, node_size, parameter_named, parameter_names, register, resolved_or_dynamic, some_string}.
+import std.core.String.
+
+import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, append_ir_parameters, binding_pattern, concat_instructions, expression_type, indexed_label, lambda_captures, lambda_symbol, last_string, literal_operands, nested_if_result_type, node_opcode, node_size, none_string, parameter_named, parameter_names, pattern_parameters, register, resolved_or_dynamic, some_string}.
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
 import self_host.SelfHostIrSyntax.{IrParameter}.
@@ -173,31 +175,164 @@ lower_node_children(
     parameters: List[IrParameter],
 ): ChildrenPlan ->
     if {
-        node.kind == "list" or node.kind == "list-cons" or node.kind == "tuple" ->
+        node.kind == "list" or node.kind == "list-cons" or node.kind == "tuple"
+            or node.kind == "array" ->
             lower_flattened_children(node.children, next_id, facts, parameters);
         true -> lower_children(node.children, next_id, facts, parameters)
     }.
 
-call_identity(callee: ProjectedExpressionNode): List[String] ->
+call_identity(
+    callee: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[String] ->
     if {
-        callee.kind == "field" -> field_call_identity(callee, callee.children);
+        callee.kind == "resolved-local-call"
+            or callee.kind == "resolved-local-method"
+            or callee.kind == "resolved-local-mut-method" -> [callee.text];
+        String.starts_with(callee.kind, "resolved-import:") -> [resolved_call_module(callee.kind, 16), callee.text];
+        String.starts_with(callee.kind, "resolved-import-method:") -> [resolved_call_module(callee.kind, 23), callee.text];
+        String.starts_with(callee.kind, "resolved-import-mut-method:") -> [resolved_call_module(callee.kind, 27), callee.text];
+        callee.kind == "field" -> field_call_identity(callee, callee.children, facts, parameters);
         true -> [callee.text]
     }.
+
+resolved_call_module(kind: String, prefix_size: Int): String ->
+    kind.utf8_slice(prefix_size, kind.byte_size() - prefix_size).
 
 field_call_identity(
     callee: ProjectedExpressionNode,
     values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
 ): List[String] ->
     case values {
-        [base | _rest] -> [base.text, callee.text];
+        [base | _rest] -> if {
+            static_field_base(base) -> [base.text, callee.text];
+            true -> [receiver_module(base, facts, parameters), callee.text]
+        };
         [] -> [callee.text]
+    }.
+
+static_field_base(base: ProjectedExpressionNode): Bool ->
+    if {
+        base.text == "" -> false;
+        true -> let byte = base.text.utf8_byte_at(0); byte >= 65 and byte <= 90
+    }.
+
+type_base_at(value: String, index: Int): String ->
+    if {
+        index == value.byte_size() -> value;
+        value.utf8_byte_at(index) == 91 -> value.utf8_slice(0, index);
+        true -> type_base_at(value, index + 1)
+    }.
+
+type_module(value: String): String ->
+    let base = type_base_at(value, 0);
+    if {
+        base == "List" -> "std.collections.List";
+        base == "Map" -> "std.collections.Map";
+        base == "Set" -> "std.collections.Set";
+        base == "String" -> "std.core.String";
+        base == "Object" -> "std.core.Object";
+        base == "Json" -> "std.data.Json";
+        true -> base
+    }.
+
+receiver_module(
+    receiver: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): String ->
+    case expression_type(receiver, facts, parameters) {
+        Some(value) -> if {
+            value == "Dynamic" -> dynamic_receiver_module(receiver);
+            true -> type_module(value)
+        };
+        None -> receiver.text
+    }.
+
+dynamic_receiver_module(receiver: ProjectedExpressionNode): String ->
+    if {
+        receiver.kind == "field" and receiver.text == "children" -> "std.collections.List";
+        true -> "Dynamic"
     }.
 
 call_opcode(callee: ProjectedExpressionNode, parameters: List[IrParameter]): String ->
     if {
+        callee.kind == "resolved-local-mut-method" -> "call-local-mut-receiver";
+        String.starts_with(callee.kind, "resolved-import-mut-method:") -> "call-import-mut-receiver";
+        callee.kind == "resolved-local-call" or callee.kind == "resolved-local-method" -> "call-local";
+        String.starts_with(callee.kind, "resolved-import:")
+            or String.starts_with(callee.kind, "resolved-import-method:") -> "call-import";
         callee.kind == "field" -> "call-import";
         parameter_named(callee.text, parameters) -> "call-value";
         true -> "call-local"
+    }.
+
+@pure
+mutable_receiver_callee(callee: ProjectedExpressionNode): Bool ->
+    callee.kind == "resolved-local-mut-method"
+        or String.starts_with(callee.kind, "resolved-import-mut-method:").
+
+@pure
+mutable_receiver_place(callee: ProjectedExpressionNode): String ->
+    case callee.children { [receiver | _] -> receiver.text; [] -> "" }.
+
+mutable_receiver_type(
+    callee: ProjectedExpressionNode,
+    fallback: Option[String],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[String] ->
+    case callee.children {
+        [receiver | _] -> resolved_or_dynamic(expression_type(receiver, facts, parameters));
+        [] -> fallback
+    }.
+
+@pure
+call_operands(
+    callee: ProjectedExpressionNode,
+    identity: List[String],
+    receiver: List[String],
+    arguments: List[String],
+): List[String] ->
+    if {
+        mutable_receiver_callee(callee) -> concat(
+            identity,
+            [mutable_receiver_place(callee) | concat(receiver, arguments)],
+        );
+        true -> concat(identity, concat(receiver, arguments))
+    }.
+
+resolved_method(callee: ProjectedExpressionNode): Bool ->
+    callee.kind == "resolved-local-method"
+        or callee.kind == "resolved-local-mut-method"
+        or String.starts_with(callee.kind, "resolved-import-method:")
+        or String.starts_with(callee.kind, "resolved-import-mut-method:")
+        or unresolved_method(callee).
+
+unresolved_method(callee: ProjectedExpressionNode): Bool ->
+    case callee.children {
+        [base | _] -> callee.kind == "field" and not static_field_base(base);
+        [] -> false
+    }.
+
+lower_method_receiver(
+    callee: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ChildrenPlan ->
+    case callee.children {
+        [receiver | _] ->
+            let lowered = lower_expression(receiver, node_id + 2, facts, parameters);
+            ChildrenPlan(
+                lowered.next_id,
+                [lowered.result],
+                lowered.instructions,
+            );
+        [] -> ChildrenPlan(node_id + 1, List.new[String](), List.new[SemanticInstructionPlan]())
     }.
 
 lower_call_arguments(
@@ -221,11 +356,24 @@ lower_call(
     case node.children {
         [callee | arguments] ->
             let argument_start = node_id + 1 + node_size(callee);
+            let receiver = if {
+                resolved_method(callee) -> lower_method_receiver(callee, node_id, facts, parameters);
+                true -> ChildrenPlan(argument_start, List.new[String](), List.new[SemanticInstructionPlan]())
+            };
             let lowered = lower_call_arguments(arguments, argument_start, facts, parameters);
             let result = register(node_id);
             let instruction_result = some_string(result);
-            let resolved_type = expression_type(node, facts, parameters);
-            let operands = concat(call_identity(callee), lowered.results);
+            let source_type = expression_type(node, facts, parameters);
+            let resolved_type = if {
+                mutable_receiver_callee(callee) -> mutable_receiver_type(callee, source_type, facts, parameters);
+                true -> source_type
+            };
+            let operands = call_operands(
+                callee,
+                call_identity(callee, facts, parameters),
+                receiver.results,
+                lowered.results,
+            );
             let instruction =
                 SemanticInstructionPlan(
                     opcode = call_opcode(callee, parameters),
@@ -233,7 +381,7 @@ lower_call(
                     operands = operands,
                     resolved_type = resolved_type,
                 );
-            let instructions = concat(lowered.instructions, [instruction]);
+            let instructions = concat(receiver.instructions, concat(lowered.instructions, [instruction]));
             ExpressionPlan(
                 next_id = node_id + node_size(node),
                 result = result,
@@ -256,6 +404,35 @@ lower_call(
                     ),
                 ],
             )
+    }.
+
+lower_constructor_call(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [callee | arguments] ->
+            let argument_start = node_id + 1 + node_size(callee);
+            let lowered = lower_call_arguments(arguments, argument_start, facts, parameters);
+            let result = register(node_id);
+            let result_type = some_string(node.text);
+            ExpressionPlan(
+                node_id + node_size(node),
+                result,
+                result_type,
+                concat(
+                    lowered.instructions,
+                    [SemanticInstructionPlan(
+                        "put-variant",
+                        some_string(result),
+                        [callee.text | lowered.results],
+                        result_type,
+                    )],
+                ),
+            );
+        [] -> empty_let_plan(node, node_id)
     }.
 
 lower_let(
@@ -319,13 +496,22 @@ build_lower_let(
 ): ExpressionPlan ->
     let source_id = node_id + 1 + node_size(pattern);
     let lowered_source = lower_expression(source, source_id, facts, parameters);
-    let lowered_continuation = lower_expression(continuation, lowered_source.next_id, facts, parameters);
+    let continuation_parameters = append_ir_parameters(
+        parameters,
+        pattern_parameters(pattern, lowered_source.result_type, facts, parameters),
+    );
+    let lowered_continuation = lower_expression(
+        continuation,
+        lowered_source.next_id,
+        facts,
+        continuation_parameters,
+    );
     let lowered_fallback = lower_children(fallback, lowered_continuation.next_id, facts, parameters);
     let binding = lower_let_binding(pattern, lowered_source);
     ExpressionPlan(
         next_id = node_id + node_size(node),
         result = lowered_continuation.result,
-        result_type = expression_type(node, facts, parameters),
+        result_type = lowered_continuation.result_type,
         instructions = concat(
             lowered_source.instructions,
             concat(
@@ -340,7 +526,7 @@ lower_let_binding(
     source: ExpressionPlan,
 ): List[SemanticInstructionPlan] ->
     if {
-        pattern.kind == "binding-pattern" -> [
+        binding_pattern(pattern) -> [
             SemanticInstructionPlan(
                 opcode = "move",
                 result = some_string(pattern.text),
@@ -913,7 +1099,7 @@ lower_leaf_if_nonlast_clause(
         matching_plan_result_type(
             body_plan.result_type,
             tail_plan.result_type,
-            some_string("Dynamic"),
+            none_string(),
         );
     ExpressionPlan(
         tail_plan.next_id,
@@ -975,13 +1161,399 @@ lower_lambda(
         ],
     ).
 
-pub lower_expression(
+lower_list_flat_map(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [source, callback] ->
+            let source_plan = lower_expression(source, node_id + 1, facts, parameters);
+            let callback_plan = lower_expression(
+                callback,
+                node_id + 1 + node_size(source),
+                facts,
+                parameters,
+            );
+            let result = register(node_id);
+            let result_type = resolved_or_dynamic(expression_type(node, facts, parameters));
+            ExpressionPlan(
+                node_id + node_size(node),
+                result,
+                result_type,
+                concat_instructions(
+                    source_plan.instructions,
+                    concat_instructions(
+                        callback_plan.instructions,
+                        [SemanticInstructionPlan(
+                            "call-import",
+                            some_string(result),
+                            [
+                                "std.collections.List",
+                                "flat_map",
+                                source_plan.result,
+                                callback_plan.result,
+                            ],
+                            result_type,
+                        )],
+                    ),
+                ),
+            );
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+lower_dynamic_call(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [callee | arguments] ->
+            let callee_plan = lower_expression(callee, node_id + 1, facts, parameters);
+            let lowered = lower_call_arguments(
+                arguments,
+                callee_plan.next_id,
+                facts,
+                parameters,
+            );
+            let result = register(node_id);
+            let result_type = resolved_or_dynamic(expression_type(node, facts, parameters));
+            ExpressionPlan(
+                node_id + node_size(node),
+                result,
+                result_type,
+                concat_instructions(
+                    callee_plan.instructions,
+                    concat_instructions(
+                        lowered.instructions,
+                        [SemanticInstructionPlan(
+                            "call-value",
+                            some_string(result),
+                            [callee_plan.result | lowered.results],
+                            result_type,
+                        )],
+                    ),
+                ),
+            );
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+lower_array(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    let lowered = lower_node_children(node, node_id + 1, facts, parameters);
+    let result = register(node_id);
+    let result_type = resolved_or_dynamic(expression_type(node, facts, parameters));
+    ExpressionPlan(
+        node_id + node_size(node),
+        result,
+        result_type,
+        concat_instructions(
+            lowered.instructions,
+            [SemanticInstructionPlan(
+                "put-array",
+                some_string(result),
+                lowered.results,
+                result_type,
+            )],
+        ),
+    ).
+
+lower_constructor_chain(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [base, record] ->
+            let base_plan = lower_expression(base, node_id + 1, facts, parameters);
+            let record_plan = lower_expression(
+                record,
+                node_id + 1 + node_size(base),
+                facts,
+                parameters,
+            );
+            ExpressionPlan(
+                node_id + node_size(node),
+                record_plan.result,
+                record_plan.result_type,
+                concat_instructions(base_plan.instructions, record_plan.instructions),
+            );
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+struct RecordConstructPlan {
+    next_id: Int,
+    operands: List[String],
+    operand_types: List[Option[String]],
+    instructions: List[SemanticInstructionPlan],
+}.
+
+constructor RecordConstructPlan {
+    (
+        next_id: Int,
+        operands: List[String],
+        operand_types: List[Option[String]],
+        instructions: List[SemanticInstructionPlan],
+    ): RecordConstructPlan -> RecordConstructPlan {
+        next_id: next_id,
+        operands: operands,
+        operand_types: operand_types,
+        instructions: instructions,
+    }
+}.
+
+lower_record_construct_fields(
+    values: List[ProjectedExpressionNode],
+    field_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): RecordConstructPlan ->
+    case values {
+        [] -> RecordConstructPlan(field_id, [], [], []);
+        [field | rest] -> case field.children {
+            [value] ->
+                let lowered = lower_expression(value, field_id + 1, facts, parameters);
+                let remaining = lower_record_construct_fields(
+                    rest,
+                    field_id + node_size(field),
+                    facts,
+                    parameters,
+                );
+                RecordConstructPlan(
+                    remaining.next_id,
+                    [record_field_name(field.text) | [lowered.result | remaining.operands]],
+                    [some_string("String") | [lowered.result_type | remaining.operand_types]],
+                    concat_instructions(lowered.instructions, remaining.instructions),
+                );
+            _ -> lower_record_construct_fields(
+                rest,
+                field_id + node_size(field),
+                facts,
+                parameters,
+            )
+        }
+    }.
+
+lower_nominal_keyed(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [type_marker | fields] ->
+            let lowered = lower_record_construct_fields(
+                fields,
+                node_id + 1 + node_size(type_marker),
+                facts,
+                parameters,
+            );
+            let result = register(node_id);
+            let result_type = case expression_type(node, facts, parameters) {
+                Some(name) -> Some(name);
+                None -> some_string(node.text)
+            };
+            ExpressionPlan(
+                node_id + node_size(node),
+                result,
+                result_type,
+                concat_instructions(
+                    lowered.instructions,
+                    [SemanticInstructionPlan(
+                        "put-struct",
+                        some_string(result),
+                        lowered.operands,
+                        lowered.operand_types,
+                        result_type,
+                    )],
+                ),
+            );
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+record_source_type(
+    source: ExpressionPlan,
+    type_name: ProjectedExpressionNode,
+): Option[String] ->
+    case source.result_type {
+        Some(name) -> Some(name);
+        None -> some_string(type_name.text)
+    }.
+
+record_field_name(value: String): String ->
+    if {
+        String.starts_with(value, "#") -> String.utf8_slice(value, 1, String.byte_size(value) - 1);
+        true -> value
+    }.
+
+lower_record_access(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [source, type_name, field] ->
+            let source_plan = lower_expression(source, node_id + 1, facts, parameters);
+            let result = register(node_id);
+            let result_type = resolved_or_dynamic(expression_type(node, facts, parameters));
+            ExpressionPlan(
+                node_id + node_size(node),
+                result,
+                result_type,
+                concat_instructions(
+                    source_plan.instructions,
+                    [SemanticInstructionPlan(
+                        "get-map-elements",
+                        some_string(result),
+                        [source_plan.result, record_field_name(field.text)],
+                        [record_source_type(source_plan, type_name), some_string("String")],
+                        result_type,
+                    )],
+                ),
+            );
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+struct RecordUpdatePlan {
+    next_id: Int,
+    result: String,
+    instructions: List[SemanticInstructionPlan],
+}.
+
+constructor RecordUpdatePlan {
+    (next_id: Int, result: String, instructions: List[SemanticInstructionPlan]): RecordUpdatePlan ->
+        RecordUpdatePlan { next_id: next_id, result: result, instructions: instructions }
+}.
+
+lower_record_update_fields(
+    values: List[ProjectedExpressionNode],
+    field_id: Int,
+    source_result: String,
+    source_type: Option[String],
+    final_result: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): RecordUpdatePlan ->
+    case values {
+        [] -> RecordUpdatePlan(field_id, source_result, []);
+        [field | rest] -> case field.children {
+            [replacement] ->
+                let replacement_plan = lower_expression(
+                    replacement,
+                    field_id + 1,
+                    facts,
+                    parameters,
+                );
+                let update_result = if {
+                    rest == [] -> final_result;
+                    true -> register(field_id)
+                };
+                let remaining = lower_record_update_fields(
+                    rest,
+                    field_id + node_size(field),
+                    update_result,
+                    source_type,
+                    final_result,
+                    facts,
+                    parameters,
+                );
+                RecordUpdatePlan(
+                    remaining.next_id,
+                    remaining.result,
+                    concat_instructions(
+                        replacement_plan.instructions,
+                        concat_instructions(
+                            [SemanticInstructionPlan(
+                                "update-struct-field",
+                                some_string(update_result),
+                                [source_result, record_field_name(field.text), replacement_plan.result],
+                                [source_type, some_string("String"), replacement_plan.result_type],
+                                source_type,
+                            )],
+                            remaining.instructions,
+                        ),
+                    ),
+                );
+            _ -> lower_record_update_fields(
+                rest,
+                field_id + node_size(field),
+                source_result,
+                source_type,
+                final_result,
+                facts,
+                parameters,
+            )
+        }
+    }.
+
+lower_record_update(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [source | [type_name | fields]] ->
+            let source_plan = lower_expression(source, node_id + 1, facts, parameters);
+            let result = register(node_id);
+            let result_type = record_source_type(source_plan, type_name);
+            let lowered = lower_record_update_fields(
+                fields,
+                node_id + 1 + node_size(source) + node_size(type_name),
+                source_plan.result,
+                result_type,
+                result,
+                facts,
+                parameters,
+            );
+            if {
+                fields == [] -> ExpressionPlan(
+                    node_id + node_size(node),
+                    result,
+                    result_type,
+                    concat_instructions(
+                        source_plan.instructions,
+                        [SemanticInstructionPlan(
+                            "move",
+                            some_string(result),
+                            [source_plan.result],
+                            result_type,
+                        )],
+                    ),
+                );
+                true -> ExpressionPlan(
+                    node_id + node_size(node),
+                    result,
+                    result_type,
+                    concat_instructions(source_plan.instructions, lowered.instructions),
+                )
+            };
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+lower_expression_without_map(
     node: ProjectedExpressionNode,
     node_id: Int,
     facts: List[InferredTypeFact],
     parameters: List[IrParameter],
 ): ExpressionPlan ->
     if {
+        node.kind == "dynamic-call" -> lower_dynamic_call(node, node_id, facts, parameters);
+        node.kind == "array" -> lower_array(node, node_id, facts, parameters);
+        node.kind == "constructor-chain" -> lower_constructor_chain(node, node_id, facts, parameters);
+        node.kind == "nominal-keyed" -> lower_nominal_keyed(node, node_id, facts, parameters);
+        node.kind == "list-flat-map" -> lower_list_flat_map(node, node_id, facts, parameters);
+        node.kind == "record-access" -> lower_record_access(node, node_id, facts, parameters);
+        node.kind == "record-update" -> lower_record_update(node, node_id, facts, parameters);
+        node.kind == "resolved-constructor-call" -> lower_constructor_call(node, node_id, facts, parameters);
         node.kind == "call" -> lower_call(node, node_id, facts, parameters);
         true -> lower_expression_after_call(node, node_id, facts, parameters)
     }.
@@ -1118,4 +1690,130 @@ expression_instructions(
                 ),
             ],
         )
+    }.
+
+/** Ordered key/value operands and instructions for one keyed map literal. */
+struct MapEntriesPlan {
+    next_id: Int,
+    operands: List[String],
+    operand_types: List[Option[String]],
+    instructions: List[SemanticInstructionPlan],
+}.
+
+constructor MapEntriesPlan {
+    (
+        next_id: Int,
+        operands: List[String],
+        operand_types: List[Option[String]],
+        instructions: List[SemanticInstructionPlan],
+    ): MapEntriesPlan -> MapEntriesPlan {
+        next_id: next_id,
+        operands: operands,
+        operand_types: operand_types,
+        instructions: instructions,
+    }
+}.
+
+map_concat[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | map_concat(rest, right)]
+    }.
+
+map_key_instruction(field: ProjectedExpressionNode, result: String): SemanticInstructionPlan ->
+    SemanticInstructionPlan(
+        "load-literal",
+        Some(result),
+        [field.text],
+        List.new[Option[String]](),
+        Some("String"),
+        None,
+    ).
+
+map_entries(
+    values: List[ProjectedExpressionNode],
+    field_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): MapEntriesPlan ->
+    case values {
+        [] -> MapEntriesPlan(
+            field_id,
+            List.new[String](),
+            List.new[Option[String]](),
+            List.new[SemanticInstructionPlan](),
+        );
+        [field | rest] -> case field.children {
+            [value] ->
+                let key_result = register(field_id);
+                let value_plan = lower_expression(value, field_id + 1, facts, parameters);
+                let remaining = map_entries(rest, value_plan.next_id, facts, parameters);
+                MapEntriesPlan(
+                    remaining.next_id,
+                    map_concat([key_result, value_plan.result], remaining.operands),
+                    map_concat(
+                        [Some("String"), value_plan.result_type],
+                        remaining.operand_types,
+                    ),
+                    concat_instructions(
+                        [map_key_instruction(field, key_result)],
+                        concat_instructions(value_plan.instructions, remaining.instructions),
+                    ),
+                );
+            _ -> map_entries(rest, field_id + node_size(field), facts, parameters)
+        }
+    }.
+
+map_literal_entries(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): MapEntriesPlan ->
+    case node.children {
+        [fields] -> map_entries(fields.children, node_id + 2, facts, parameters);
+        _ -> MapEntriesPlan(
+            node_id + node_size(node),
+            List.new[String](),
+            List.new[Option[String]](),
+            List.new[SemanticInstructionPlan](),
+        )
+    }.
+
+map_literal_plan(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    let entries = map_literal_entries(node, node_id, facts, parameters);
+    let result = register(node_id);
+    let result_type = expression_type(node, facts, parameters);
+    ExpressionPlan(
+        node_id + node_size(node),
+        result,
+        result_type,
+        concat_instructions(
+            entries.instructions,
+            [SemanticInstructionPlan(
+                "put-map",
+                Some(result),
+                entries.operands,
+                entries.operand_types,
+                result_type,
+                None,
+            )],
+        ),
+    ).
+
+/** Lowers one typed expression, including standalone keyed map literals. */
+pub lower_expression(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    if {
+        node.kind == "keyed-container" -> map_literal_plan(node, node_id, facts, parameters);
+        true -> lower_expression_without_map(node, node_id, facts, parameters)
     }.

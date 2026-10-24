@@ -1,0 +1,61 @@
+/** Positive and negative projected type-constructor resolution contracts. */
+module self_host.ProjectedTypeResolutionTest.
+
+import std.collections.List.
+import std.core.String.
+import self_host.CanonicalLexer.
+import self_host.ProjectedFrontend.
+import self_host.ProjectedSemanticAnalysis.
+
+valid_source(source: String): Bool ->
+    let lexed = CanonicalLexer.lex(source);
+    ProjectedSemanticAnalysis.analyze(
+        ProjectedFrontend.compile(source, lexed.tokens),
+        List.new[String](),
+    ).valid.
+
+valid_builtin_applications(): Bool ->
+    valid_source(
+        String.concat([
+            "module demo.ValidTypes.\n",
+            "pub keep(value: Option[Int]): Result[Option[Int], String] -> value.\n",
+        ]),
+    ).
+
+invalid_builtin_arity(): Bool ->
+    let source = String.concat([
+        "module demo.InvalidTypes.\n",
+        "pub keep(value: Option[Int, String]): Option[Int, String] -> value.\n",
+    ]);
+    let lexed = CanonicalLexer.lex(source);
+    let semantic = ProjectedSemanticAnalysis.analyze(
+        ProjectedFrontend.compile(source, lexed.tokens),
+        List.new[String](),
+    );
+    case semantic.type_resolution.diagnostics {
+        [diagnostic | _rest] ->
+            not semantic.valid
+                and diagnostic.type_name == "Option"
+                and diagnostic.message == "type constructor `Option` expects 1 type argument(s), found 2";
+        [] -> false
+    }.
+
+valid_local_application(): Bool ->
+    valid_source(String.concat([
+        "module demo.ValidLocalTypes.\n",
+        "type Box[T] = {T}.\n",
+        "pub keep(value: Box[Int]): Box[Int] -> value.\n",
+    ])).
+
+invalid_local_arity(): Bool ->
+    not valid_source(String.concat([
+        "module demo.InvalidLocalTypes.\n",
+        "type Box[T] = {T}.\n",
+        "pub keep(value: Box[Int, String]): Box[Int, String] -> value.\n",
+    ])).
+
+pub self_test(): Bool ->
+    valid_builtin_applications()
+        and invalid_builtin_arity()
+        and valid_local_application()
+        and invalid_local_arity().

@@ -274,6 +274,7 @@ pub(crate) struct ProjectWebAssets {
     pub(crate) public_path: Option<String>,
     pub(crate) inline_limit: Option<u64>,
     pub(crate) rsbuild_config: Option<String>,
+    pub(crate) html_template: Option<String>,
     pub(crate) styles: Vec<String>,
 }
 

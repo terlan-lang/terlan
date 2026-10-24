@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword min-content. Generated; do not edit.
+ */
+module std.css.keywords.MinContent.
+
+pub type MinContent = Atom["min-content"].

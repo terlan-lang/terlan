@@ -1,0 +1,156 @@
+schema = "terlan.self-host.phase/v1"
+phase = 9
+name = "authority-transfer-and-architecture-hardening"
+status = "in-progress"
+
+[authority]
+production_decision_model = true
+decision_function = "self_host.ProductionAuthority.evaluate"
+non_empty_fixed_point_required = true
+actor_ir_authority_required = true
+actor_backend_complete_required = true
+actor_tooling_authority_required = true
+actor_bootstrap_convergence_required = true
+non_empty_actor_fixed_point_required = true
+actor_profile_catalog_authority_required = true
+actor_profile_projection_fixed_point_required = true
+performance_required = true
+recovery_required = true
+trusted_base_required = true
+no_ad_hoc_exclusions_required = true
+pattern_semantics_authority_required = true
+backend_language_completeness_required = true
+self_hosted_tooling_authority_required = true
+dynamic_call_target_authority_required = true
+target_independent_optimizer_authority_required = true
+bounded_parallel_backend_authority_required = true
+normal_path_rust_frontend_retirement_required = true
+terlc0_retained_for_recovery = true
+transferred = false
+
+[hardening]
+nested_control_flow = "implemented-unverified"
+complete_pattern_surface = "implemented-typed-variant-pattern-and-construction-path-validation-pending"
+complete_pattern_surface_status = "implemented-unverified"
+bootstrap_workarounds_removed = "implemented-complete-closure-classification-validation-pending"
+self_analysis_resource_bounds = "implemented-explicit-fail-closed-evidence-validation-pending"
+compiler_regression_corpus = "implemented-stage-aware-inventory-and-file-admission-validation-pending"
+minimal_trusted_base = "implemented-exact-recovery-runtime-codegen-abi-lock-boundary-validation-pending"
+rust_frontend_removed_from_normal_paths = "implemented-explicit-self-hosted-entrypoint-authority-validation-pending"
+post_cleanup_convergence = "implemented-semantic-and-byte-fixed-point-evidence-validation-pending"
+production_hardening_decision_model = "implemented-unverified"
+
+[persisted_production_authority_evidence]
+status = "implemented-unverified"
+schema = "terlan.self-host.production-authority/v1"
+projector = "self_host.ProductionAuthorityEvidence.project"
+decision = "self_host.ProductionAuthorityEvidence.evaluate"
+strict_duplicate_rejection = true
+strict_malformed_row_rejection = true
+strict_unknown_row_rejection = true
+missing_rows_fail_closed = true
+publication_tool = "self_host.ProductionAuthorityTool.run"
+decision_schema = "terlan.self-host.production-authority-decision/v1"
+decision_before_completion_marker = true
+denied_decisions_publish_completion_marker = false
+stale_completion_marker_invalidated_before_evaluation = true
+source_aggregator = "self_host.ProductionAuthorityCatalog.write"
+source_schema = "terlan.self-host.production-authority-sources/v1"
+source_manifest = "compiler/self_host/phase/PRODUCTION_AUTHORITY_SOURCES.tsv"
+phase_4_through_8_artifact_reads = true
+missing_gate_markers_emit_failure = true
+missing_or_empty_identity_artifacts_reject_catalog = true
+end_to_end_pipeline = "self_host.ProductionAuthorityPipeline.run"
+pipeline_status = "implemented-unverified"
+normal_path_orchestrator = "compiler/self_host/scripts/production_authority.sh"
+
+[production_gate_marker]
+status = "implemented-unverified"
+producer = "self_host.ProductionGateMarker.run"
+comparison = "non-empty-byte-identical-canonical-evidence"
+stale_marker_invalidation = true
+
+[production_evidence_pipeline]
+status = "implemented-unverified"
+plan = "compiler/self_host/phase/PRODUCTION_EVIDENCE_PLAN.tsv"
+schema = "terlan.self-host.production-evidence-plan/v1"
+executor = "self_host.ProductionEvidencePipeline.run"
+duplicate_job_rejection = true
+unknown_job_rejection = true
+fail_fast = true
+authority_invalidated_before_first_job = true
+actor_ir_authority = "implemented-unverified"
+actor_backend_complete = "implemented-unverified"
+actor_tooling_authority = "implemented-unverified"
+
+[[gate]]
+id = "self-host-backend-language-completeness-check"
+status = "pending"
+
+[[gate]]
+id = "self-host-bootstrap-workaround-inventory-check"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-idiomatic-source-restoration-check"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-pattern-decision-tree-check"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-self-analysis-resource-bound-check"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-compiler-regression-corpus-check"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-minimal-trusted-base-check"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-rust-frontend-retirement-check"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-no-ad-hoc-exclusion-check"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-post-cleanup-convergence-check"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-actor-authority-check"
+status = "pending-regeneration-and-validation"
+
+[[gate]]
+id = "self-host-actor-profile-authority-check"
+status = "pending-regeneration-and-validation"
+
+[[gate]]
+id = "self-host-actor-profile-fixed-point-check"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-actor-backend-unit"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-authority-transfer-check"
+status = "implemented-unverified"
+
+[next]
+implementation = "actor-authority-regeneration-and-validation"
+reason = "managed variants now flow through single-module and application object/image paths; actor Core IR, native objects, and stage identities must be regenerated and validated"
+
+[dynamic_call_production_gate]
+required = true
+evidence = "finite module-wide target authority for every Core call-value"
+
+[persisted_dynamic_call_evidence_gate]
+required = true
+evidence = "self-hosted actor driver admits strict finite-target artifacts for opaque higher-order calls"

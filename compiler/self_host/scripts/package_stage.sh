@@ -9,13 +9,20 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 OUTPUT=$1
 SEED=${2:-}
-TERLC=${TERLC:-target/debug/terlc}
+TERLC=${TERLC:-$ROOT/target/bootstrap/terlc1/terlc}
 # Bootstrap stages prove compiler parity, not release-code optimization. The
 # development policy emits bounded, reusable module objects; release remains
 # available explicitly for final distribution validation.
 PROFILE=${TERLAN_SELF_HOST_PROFILE:-development}
 CACHE=${TERLAN_SELF_HOST_CACHE:-$ROOT/target/quality/self-host-build-cache}
 JOBS=${TERLAN_SELF_HOST_JOBS:-8}
+
+case "$TERLC" in
+    */target/debug/terlc|*/target/bootstrap/terlc0/terlc|target/debug/terlc|target/bootstrap/terlc0/terlc)
+        echo "recovery compiler is not admitted on the normal package path: $TERLC" >&2
+        exit 2
+        ;;
+esac
 
 if [[ ! "$JOBS" =~ ^[1-9][0-9]*$ ]]; then
     echo "TERLAN_SELF_HOST_JOBS must be a positive integer" >&2

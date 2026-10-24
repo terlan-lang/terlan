@@ -15,7 +15,7 @@ import std.collections.List.
 import type std.data.Json.{Json, JsonError}.
 import self_host.SelfHostIrSyntax.
 
-import self_host.SelfHostIrSyntax.{BackendEnvelope, IrBlock, IrFunction, IrInstruction, IrModule, IrParameter, IrTerminator}.
+import self_host.SelfHostIrSyntax.{BackendEnvelope, IrBlock, IrFunction, IrInstruction, IrModule, IrParameter, IrRegion, IrStructField, IrStructLayout, IrTerminator, IrTryRegion}.
 string_array_at(values: List[String], output: Json): Json ->
     case values {
         [] -> output;
@@ -30,6 +30,51 @@ optional_string(value: Option[String]): Json ->
         None -> Json.null();
         Some(text) -> Json.string(text)
     }.
+
+optional_int(value: Option[Int]): Json ->
+    case value {
+        None -> Json.null();
+        Some(number) -> Json.int(number)
+    }.
+
+optional_string_array_at(values: List[Option[String]], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> optional_string_array_at(rest, output.push(optional_string(value)))
+    }.
+
+optional_string_array(values: List[Option[String]]): Json ->
+    optional_string_array_at(values, Json.array()).
+
+optional_try_region(value: Option[IrTryRegion]): Json ->
+    case value {
+        None -> Json.null();
+        Some(region_value) -> try_region(region_value)
+    }.
+
+region(value: IrRegion): Json ->
+    Json.object()
+        .put("label", Json.string(value.label))
+        .put("parameters", parameters(value.parameters))
+        .put("blocks", blocks(value.blocks))
+        .put("result", Json.string(value.result))
+        .put("type_name", Json.string(value.type_name)).
+
+regions_at(values: List[IrRegion], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> regions_at(rest, output.push(region(value)))
+    }.
+
+regions(values: List[IrRegion]): Json ->
+    regions_at(values, Json.array()).
+
+try_region(value: IrTryRegion): Json ->
+    Json.object()
+        .put("protected", region(value.protected))
+        .put("success", region(value.success))
+        .put("failure", region(value.failure))
+        .put("cleanup", regions(value.cleanup)).
 
 parameter(value: IrParameter): Json ->
     Json.object()
@@ -50,7 +95,10 @@ instruction(value: IrInstruction): Json ->
         .put("opcode", Json.string(value.opcode))
         .put("result", optional_string(value.result))
         .put("operands", string_array(value.operands))
-        .put("type_name", Json.string(value.type_name)).
+        .put("operand_types", optional_string_array(value.operand_types))
+        .put("type_name", Json.string(value.type_name))
+        .put("continuation_ordinal", optional_int(value.continuation_ordinal))
+        .put("try_region", optional_try_region(value.try_region)).
 
 instructions_at(values: List[IrInstruction], output: Json): Json ->
     case values {
@@ -87,6 +135,9 @@ function(value: IrFunction): Json ->
         .put("module_name", Json.string(value.module_name))
         .put("name", Json.string(value.name))
         .put("arity", Json.int(value.arity))
+        .put("capture_count", Json.int(value.capture_count))
+        .put("receiver_mutable", Json.bool(value.receiver_mutable))
+        .put("receiver_command", Json.bool(value.receiver_command))
         .put("parameters", parameters(value.parameters))
         .put("return_type", Json.string(value.return_type))
         .put("blocks", blocks(value.blocks))
@@ -101,9 +152,38 @@ functions_at(values: List[IrFunction], output: Json): Json ->
 functions(values: List[IrFunction]): Json ->
     functions_at(values, Json.array()).
 
+struct_layout(value: IrStructLayout): Json ->
+    Json.object()
+        .put("name", Json.string(value.name))
+        .put("fields", struct_fields(value.fields)).
+
+struct_field(value: IrStructField): Json ->
+    Json.object()
+        .put("name", Json.string(value.name))
+        .put("type_name", Json.string(value.type_name)).
+
+struct_fields_at(values: List[IrStructField], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> struct_fields_at(rest, output.push(struct_field(value)))
+    }.
+
+struct_fields(values: List[IrStructField]): Json ->
+    struct_fields_at(values, Json.array()).
+
+struct_layouts_at(values: List[IrStructLayout], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> struct_layouts_at(rest, output.push(struct_layout(value)))
+    }.
+
+struct_layouts(values: List[IrStructLayout]): Json ->
+    struct_layouts_at(values, Json.array()).
+
 ir_module_json(value: IrModule): Json ->
     Json.object()
         .put("name", Json.string(value.name))
+        .put("structs", struct_layouts(value.structs))
         .put("functions", functions(value.functions)).
 
 pub to_json(envelope: BackendEnvelope): Json ->
@@ -125,6 +205,13 @@ optional_string_text(value: Option[String]): String ->
     }.
 
 @pure
+optional_int_text(value: Option[Int]): String ->
+    case value {
+        Some(number) -> Int.to_string(number);
+        None -> "null"
+    }.
+
+@pure
 string_items(values: List[String], output: String, separator: String): String ->
     case values {
         [] -> output;
@@ -138,6 +225,68 @@ string_items(values: List[String], output: String, separator: String): String ->
 @pure
 string_array_text(values: List[String]): String ->
     String.concat(["[", string_items(values, "", ""), "]"]).
+
+@pure
+optional_string_items(
+    values: List[Option[String]],
+    output: String,
+    separator: String,
+): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> optional_string_items(
+            rest,
+            String.concat([output, separator, optional_string_text(value)]),
+            ",",
+        )
+    }.
+
+@pure
+optional_string_array_text(values: List[Option[String]]): String ->
+    String.concat(["[", optional_string_items(values, "", ""), "]"]).
+
+@pure
+optional_try_region_text(value: Option[IrTryRegion]): String ->
+    case value {
+        None -> "null";
+        Some(region_value) -> try_region_text(region_value)
+    }.
+
+@pure
+region_text(value: IrRegion): String ->
+    String.concat([
+        "{\"label\":", quoted(value.label),
+        ",\"parameters\":", parameter_array_text(value.parameters),
+        ",\"blocks\":", block_array_text(value.blocks),
+        ",\"result\":", quoted(value.result),
+        ",\"type_name\":", quoted(value.type_name),
+        "}",
+    ]).
+
+@pure
+region_items(values: List[IrRegion], output: String, separator: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> region_items(
+            rest,
+            String.concat([output, separator, region_text(value)]),
+            ",",
+        )
+    }.
+
+@pure
+region_array_text(values: List[IrRegion]): String ->
+    String.concat(["[", region_items(values, "", ""), "]"]).
+
+@pure
+try_region_text(value: IrTryRegion): String ->
+    String.concat([
+        "{\"protected\":", region_text(value.protected),
+        ",\"success\":", region_text(value.success),
+        ",\"failure\":", region_text(value.failure),
+        ",\"cleanup\":", region_array_text(value.cleanup),
+        "}",
+    ]).
 
 @pure
 parameter_text(value: IrParameter): String ->
@@ -168,7 +317,10 @@ instruction_text(value: IrInstruction): String ->
         "{\"opcode\":", quoted(value.opcode),
         ",\"result\":", optional_string_text(value.result),
         ",\"operands\":", string_array_text(value.operands),
+        ",\"operand_types\":", optional_string_array_text(value.operand_types),
         ",\"type_name\":", quoted(value.type_name),
+        ",\"continuation_ordinal\":", optional_int_text(value.continuation_ordinal),
+        ",\"try_region\":", optional_try_region_text(value.try_region),
         "}",
     ]).
 
@@ -226,6 +378,9 @@ function_text(value: IrFunction): String ->
         "{\"module_name\":", quoted(value.module_name),
         ",\"name\":", quoted(value.name),
         ",\"arity\":", Int.to_string(value.arity),
+        ",\"capture_count\":", Int.to_string(value.capture_count),
+        ",\"receiver_mutable\":", if { value.receiver_mutable -> "true"; true -> "false" },
+        ",\"receiver_command\":", if { value.receiver_command -> "true"; true -> "false" },
         ",\"parameters\":", parameter_array_text(value.parameters),
         ",\"return_type\":", quoted(value.return_type),
         ",\"blocks\":", block_array_text(value.blocks),
@@ -249,12 +404,63 @@ function_array_text(values: List[IrFunction]): String ->
     String.concat(["[", function_items(values, "", ""), "]"]).
 
 @pure
+struct_layout_text(value: IrStructLayout): String ->
+    String.concat([
+        "{\"name\":", quoted(value.name),
+        ",\"fields\":", struct_field_array_text(value.fields),
+        "}",
+    ]).
+
+@pure
+struct_field_text(value: IrStructField): String ->
+    String.concat([
+        "{\"name\":", quoted(value.name),
+        ",\"type_name\":", quoted(value.type_name),
+        "}",
+    ]).
+
+@pure
+struct_field_items(values: List[IrStructField], output: String, separator: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> struct_field_items(
+            rest,
+            String.concat([output, separator, struct_field_text(value)]),
+            ",",
+        )
+    }.
+
+@pure
+struct_field_array_text(values: List[IrStructField]): String ->
+    String.concat(["[", struct_field_items(values, "", ""), "]"]).
+
+@pure
+struct_layout_items(values: List[IrStructLayout], output: String, separator: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> struct_layout_items(
+            rest,
+            String.concat([output, separator, struct_layout_text(value)]),
+            ",",
+        )
+    }.
+
+@pure
+struct_layout_array_text(values: List[IrStructLayout]): String ->
+    String.concat(["[", struct_layout_items(values, "", ""), "]"]).
+
+@pure
 module_text(value: IrModule): String ->
     String.concat([
         "{\"name\":", quoted(value.name),
+        ",\"structs\":", struct_layout_array_text(value.structs),
         ",\"functions\":", function_array_text(value.functions),
         "}",
     ]).
+
+/** Canonical target-neutral Core module encoding for optimizer equivalence evidence. */
+@pure
+pub encode_module(value: IrModule): String -> module_text(value).
 
 @pure
 envelope_text(envelope: BackendEnvelope): String ->

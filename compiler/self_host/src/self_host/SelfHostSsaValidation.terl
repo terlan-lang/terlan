@@ -1,0 +1,209 @@
+/** CFG/SSA authority checks for predecessor-indexed typed Core phi nodes. */
+module self_host.SelfHostSsaValidation.
+
+import std.collections.List.
+import std.core.Option.{Option}.
+import std.core.{Bool, String}.
+
+import self_host.SelfHostIrSyntax.{IrBlock, IrDiagnostic, IrFunction, IrInstruction, IrModule}.
+
+
+pub struct SsaValidation {
+    valid: Bool,
+    diagnostics: List[IrDiagnostic],
+}.
+
+pub constructor SsaValidation {
+    (valid: Bool, diagnostics: List[IrDiagnostic]): SsaValidation ->
+        SsaValidation { valid: valid, diagnostics: diagnostics }
+}.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+contains(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> current == value or contains(value, rest)
+    }.
+
+@pure
+add_unique(value: String, values: List[String]): List[String] ->
+    if { contains(value, values) -> values; true -> [value | values] }.
+
+@pure
+targets_label(targets: List[String], label: String): Bool ->
+    case targets {
+        [] -> false;
+        [value | rest] -> value == label or targets_label(rest, label)
+    }.
+
+@pure
+predecessors_at(values: List[IrBlock], label: String, output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> if {
+            targets_label(value.terminator.targets, label) ->
+                predecessors_at(rest, label, add_unique(value.label, output));
+            true -> predecessors_at(rest, label, output)
+        }
+    }.
+
+@pure
+phi_shape(
+    operands: List[String],
+    operand_types: List[Option[String]],
+): Bool ->
+    case operands {
+        [] -> operand_types == [];
+        [_predecessor | [_value | rest]] -> case operand_types {
+            [_predecessor_type | [_value_type | type_rest]] -> phi_shape(rest, type_rest);
+            _ -> false
+        };
+        _ -> false
+    }.
+
+@pure
+phi_labels(operands: List[String], output: List[String]): List[String] ->
+    case operands {
+        [] -> output;
+        [predecessor | [_value | rest]] -> phi_labels(rest, [predecessor | output]);
+        _ -> output
+    }.
+
+@pure
+has_duplicate(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> contains(value, rest) or has_duplicate(rest)
+    }.
+
+@pure
+all_present(values: List[String], expected: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> contains(value, expected) and all_present(rest, expected)
+    }.
+
+@pure
+same_set(left: List[String], right: List[String]): Bool ->
+    List.length(left) == List.length(right)
+        and all_present(left, right)
+        and all_present(right, left).
+
+@pure
+diagnostic(code: String, message: String, function_name: String, block_label: String): IrDiagnostic ->
+    IrDiagnostic(
+        code = code,
+        message = message,
+        function_name = function_name,
+        block_label = block_label,
+    ).
+
+@pure
+phi_diagnostics(
+    value: IrInstruction,
+    predecessors: List[String],
+    function_name: String,
+    block_label: String,
+    follows_non_phi: Bool,
+): List[IrDiagnostic] ->
+    let shape_valid = phi_shape(value.operands, value.operand_types);
+    let labels = phi_labels(value.operands, List.new[String]());
+    let order = if {
+        follows_non_phi -> [diagnostic(
+            "phi-after-non-phi",
+            "phi instructions must form a contiguous prefix of their block",
+            function_name,
+            block_label,
+        )];
+        true -> List.new[IrDiagnostic]()
+    };
+    let shape = if {
+        not shape_valid -> [diagnostic(
+            "invalid-phi-input-shape",
+            "phi operands and operand types must be predecessor/value pairs",
+            function_name,
+            block_label,
+        )];
+        true -> List.new[IrDiagnostic]()
+    };
+    let duplicates = if {
+        shape_valid and has_duplicate(labels) -> [diagnostic(
+            "duplicate-phi-predecessor",
+            "phi inputs must name each predecessor at most once",
+            function_name,
+            block_label,
+        )];
+        true -> List.new[IrDiagnostic]()
+    };
+    let coverage = if {
+        shape_valid and not has_duplicate(labels) and not same_set(labels, predecessors) -> [diagnostic(
+            "phi-predecessor-mismatch",
+            "phi inputs must exactly cover the block CFG predecessors",
+            function_name,
+            block_label,
+        )];
+        true -> List.new[IrDiagnostic]()
+    };
+    append(order, append(shape, append(duplicates, coverage))).
+
+@pure
+instruction_diagnostics(
+    values: List[IrInstruction],
+    predecessors: List[String],
+    function_name: String,
+    block_label: String,
+    follows_non_phi: Bool,
+): List[IrDiagnostic] ->
+    case values {
+        [] -> List.new[IrDiagnostic]();
+        [value | rest] -> if {
+            value.opcode == "phi" -> append(
+                phi_diagnostics(value, predecessors, function_name, block_label, follows_non_phi),
+                instruction_diagnostics(rest, predecessors, function_name, block_label, follows_non_phi),
+            );
+            true -> instruction_diagnostics(rest, predecessors, function_name, block_label, true)
+        }
+    }.
+
+@pure
+block_diagnostics(
+    values: List[IrBlock],
+    all: List[IrBlock],
+    function_name: String,
+): List[IrDiagnostic] ->
+    case values {
+        [] -> List.new[IrDiagnostic]();
+        [value | rest] -> append(
+            instruction_diagnostics(
+                value.instructions,
+                predecessors_at(all, value.label, List.new[String]()),
+                function_name,
+                value.label,
+                false,
+            ),
+            block_diagnostics(rest, all, function_name),
+        )
+    }.
+
+@pure
+function_diagnostics(values: List[IrFunction]): List[IrDiagnostic] ->
+    case values {
+        [] -> List.new[IrDiagnostic]();
+        [value | rest] -> append(
+            block_diagnostics(value.blocks, value.blocks, value.name),
+            function_diagnostics(rest),
+        )
+    }.
+
+/** Proves canonical phi ordering, pair shape, uniqueness, and CFG coverage. */
+@pure
+pub validate(value: IrModule): SsaValidation ->
+    let diagnostics = function_diagnostics(value.functions);
+    SsaValidation(diagnostics == [], diagnostics).

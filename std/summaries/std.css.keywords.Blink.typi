@@ -1,0 +1,6 @@
+//! Shared CSS keyword blink. Generated; do not edit.
+
+module std.css.keywords.Blink.
+
+pub type Blink =
+    Atom["blink"].

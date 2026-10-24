@@ -1,0 +1,6 @@
+//! Shared CSS keyword pair. Generated; do not edit.
+
+module std.css.keywords.Pair.
+
+pub type Pair =
+    Atom["pair"].

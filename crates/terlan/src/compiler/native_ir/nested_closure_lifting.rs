@@ -13,11 +13,25 @@ type Signatures = HashMap<(String, usize), (Vec<CoreType>, CoreType)>;
 #[derive(Clone, Copy)]
 struct ClosureLiftEnvironment<'a> {
     signatures: &'a Signatures,
+    types: &'a HashMap<String, (Vec<String>, CoreType)>,
     module: &'a str,
     owner: &'a CoreFunction,
 }
 
 pub(super) fn lift_nested_closure_arguments(cores: &mut [CoreModule]) -> Result<(), String> {
+    let types = cores
+        .iter()
+        .flat_map(|core| {
+            core.types.iter().filter_map(|ty| {
+                ty.core_body.clone().map(|body| {
+                    (
+                        format!("{}.{}", core.module, ty.name),
+                        (ty.params.clone(), body),
+                    )
+                })
+            })
+        })
+        .collect::<HashMap<_, _>>();
     let signatures = cores
         .iter()
         .flat_map(|core| {
@@ -109,6 +123,7 @@ pub(super) fn lift_nested_closure_arguments(cores: &mut [CoreModule]) -> Result<
                             &lambda_variables,
                             ClosureLiftEnvironment {
                                 signatures: &signatures,
+                                types: &types,
                                 module: &module,
                                 owner: &owner,
                             },
@@ -122,6 +137,7 @@ pub(super) fn lift_nested_closure_arguments(cores: &mut [CoreModule]) -> Result<
                             &variables,
                             ClosureLiftEnvironment {
                                 signatures: &signatures,
+                                types: &types,
                                 module: &module,
                                 owner: &owner,
                             },
@@ -147,6 +163,7 @@ fn rewrite(
 ) -> Result<(), String> {
     let ClosureLiftEnvironment {
         signatures,
+        types,
         module,
         owner,
     } = environment;
@@ -313,7 +330,7 @@ fn rewrite(
                 )?;
             }
         }
-        CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::List(items) | CoreExpr::Array(items) => {
             let element =
                 expected.and_then(super::collection_intrinsic_specialization::list_element);
             for item in items {
@@ -351,9 +368,22 @@ fn rewrite(
             }
         }
         CoreExpr::FunctionCall { callee, args } => {
+            let parameters = match infer_projected(callee, variables, environment) {
+                Some(CoreType::Arrow { params, .. }) => Some(params),
+                _ => None,
+            };
             rewrite(callee, None, variables, environment, generated, ordinal)?;
-            for arg in args {
-                rewrite(arg, None, variables, environment, generated, ordinal)?;
+            for (index, arg) in args.iter_mut().enumerate() {
+                rewrite(
+                    arg,
+                    parameters
+                        .as_ref()
+                        .and_then(|parameters| parameters.get(index)),
+                    variables,
+                    environment,
+                    generated,
+                    ordinal,
+                )?;
             }
         }
         CoreExpr::MutableReceiverCall { receiver, args, .. } => {
@@ -374,11 +404,34 @@ fn rewrite(
                 )?;
             }
         }
-        CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
+        CoreExpr::RecordConstruct { name, fields }
+        | CoreExpr::TemplateInstantiate { name, fields } => {
+            let record_type = match expected {
+                Some(ty @ CoreType::Struct { .. }) => Some(ty.clone()),
+                Some(CoreType::Apply { constructor, args }) => types
+                    .get(constructor)
+                    .or_else(|| types.get(&format!("{module}.{constructor}")))
+                    .filter(|(parameters, _)| parameters.len() == args.len())
+                    .map(|(parameters, body)| {
+                        let values = parameters
+                            .iter()
+                            .cloned()
+                            .zip(args.iter().cloned())
+                            .collect();
+                        super::generic_specialization::substitute(body, parameters, &values)
+                    }),
+                _ => types
+                    .get(name)
+                    .or_else(|| types.get(&format!("{module}.{name}")))
+                    .filter(|(parameters, _)| parameters.is_empty())
+                    .map(|(_, body)| body.clone()),
+            };
             for field in fields {
                 rewrite(
                     &mut field.value,
-                    None,
+                    record_type.as_ref().and_then(|ty| {
+                        super::collection_intrinsic_specialization::named_field_type(ty, &field.key)
+                    }),
                     variables,
                     environment,
                     generated,
@@ -496,6 +549,46 @@ fn rewrite(
         | CoreExpr::RemoteFunRef { .. } => {}
     }
     Ok(())
+}
+
+/// Recovers callback signatures from concrete generic record projections.
+fn infer_projected(
+    expr: &CoreExpr,
+    variables: &HashMap<String, CoreType>,
+    environment: ClosureLiftEnvironment<'_>,
+) -> Option<CoreType> {
+    match expr {
+        CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
+            let base = infer_projected(base, variables, environment)?;
+            let base = match base {
+                CoreType::Apply { constructor, args } => {
+                    let (parameters, body) = environment.types.get(&constructor).or_else(|| {
+                        environment
+                            .types
+                            .get(&format!("{}.{constructor}", environment.module))
+                    })?;
+                    if parameters.len() != args.len() {
+                        return None;
+                    }
+                    let values = parameters.iter().cloned().zip(args).collect();
+                    super::generic_specialization::substitute(body, parameters, &values)
+                }
+                CoreType::Named(name) => environment
+                    .types
+                    .get(&name)
+                    .or_else(|| {
+                        environment
+                            .types
+                            .get(&format!("{}.{name}", environment.module))
+                    })?
+                    .1
+                    .clone(),
+                ty => ty,
+            };
+            super::collection_intrinsic_specialization::named_field_type(&base, field).cloned()
+        }
+        _ => infer(expr, variables, environment.signatures, environment.module),
+    }
 }
 
 fn named_function_reference(expr: &CoreExpr, variables: &HashMap<String, CoreType>) -> bool {

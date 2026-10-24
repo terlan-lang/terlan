@@ -1,8 +1,8 @@
 module=std.js.Dom.WheelEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14799512904690557086
-interface_hash=8666578101118957231
-interface_doc_hash=8666578101118957231
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=401572388559859521
+interface_hash=1505016834863997117
+interface_doc_hash=1505016834863997117
 deps=0

@@ -174,3 +174,50 @@ pub response_security_policy_markers_typecheck(): Bool ->
     accepts_frame_options(Deny) == Deny
         and accepts_referrer_policy(NoReferrer) == NoReferrer
         and accepts_security_headers(sample_default_security_headers()) == sample_default_security_headers().
+
+@test
+pub file_shortcuts_preserve_paths_status_and_content_types(): Bool ->
+    assert(
+    Response.html_file("asset") == Response.file("asset", content_type = "text/html; charset=utf-8"),
+)
+        and assert(
+    Response.html_file("asset", status = 206) == Response.file("asset", status = 206, content_type = "text/html; charset=utf-8"),
+)
+        and assert(
+    Response.text_file("asset") == Response.file("asset", content_type = "text/plain; charset=utf-8"),
+)
+        and assert(
+    Response.text_file("asset", status = 206) == Response.file("asset", status = 206, content_type = "text/plain; charset=utf-8"),
+)
+        and assert(Response.json_file("asset") == Response.file("asset", content_type = "application/json"))
+        and assert(
+    Response.json_file("asset", status = 206) == Response.file("asset", status = 206, content_type = "application/json"),
+)
+        and assert(
+    Response.css_file("asset") == Response.file("asset", content_type = "text/css; charset=utf-8"),
+)
+        and assert(
+    Response.css_file("asset", status = 206) == Response.file("asset", status = 206, content_type = "text/css; charset=utf-8"),
+)
+        and assert(
+    Response.javascript_file("asset") == Response.file("asset", content_type = "text/javascript; charset=utf-8"),
+)
+        and assert(
+    Response.javascript_file("asset", status = 206) == Response.file("asset", status = 206, content_type = "text/javascript; charset=utf-8"),
+)
+        and assert(Response.svg_file("asset") == Response.file("asset", content_type = "image/svg+xml"))
+        and assert(
+    Response.svg_file("asset", status = 206) == Response.file("asset", status = 206, content_type = "image/svg+xml"),
+)
+        and assert(Response.png_file("asset") == Response.file("asset", content_type = "image/png"))
+        and assert(
+    Response.png_file("asset", status = 206) == Response.file("asset", status = 206, content_type = "image/png"),
+)
+        and assert(Response.jpeg_file("asset") == Response.file("asset", content_type = "image/jpeg"))
+        and assert(
+    Response.jpeg_file("asset", status = 206) == Response.file("asset", status = 206, content_type = "image/jpeg"),
+)
+        and assert(Response.pdf_file("asset") == Response.file("asset", content_type = "application/pdf"))
+        and assert(
+    Response.pdf_file("asset", status = 206) == Response.file("asset", status = 206, content_type = "application/pdf"),
+).

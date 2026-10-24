@@ -1,0 +1,76 @@
+/** Homogeneous array inference contracts. */
+module self_host.ProjectedArrayTypeMergeTest.
+
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedArrayTypeMerge.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import std.core.Option.{None, Some}.
+
+expression(): ProjectedExpressionNode -> ProjectedExpressionNode(
+    "array",
+    "#[",
+    10,
+    17,
+    [ProjectedExpressionNode(
+        "sequence",
+        ",",
+        12,
+        16,
+        [
+            ProjectedExpressionNode("integer", "1", 12, 13, []),
+            ProjectedExpressionNode("integer", "2", 15, 16, []),
+        ],
+    )],
+).
+
+@test
+pub homogeneous_elements_determine_size_and_element_type(): Bool ->
+    let merged = ProjectedArrayTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(0, None, 10),
+                InferredTypeFact(2, Some("Int"), 12),
+                InferredTypeFact(3, Some("Int"), 15),
+            ],
+            [TypeConstraintDiagnostic("unknown-type-constraint", "deferred", 10)],
+        ),
+        expression(),
+    );
+    case {merged.facts, merged.diagnostics} {
+        {[array | _rest], []} -> array.type_name == Some("Array[2, Int]");
+        _ -> false
+    }.
+
+@test
+pub heterogeneous_elements_are_rejected(): Bool ->
+    let merged = ProjectedArrayTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(0, None, 10),
+                InferredTypeFact(2, Some("Int"), 12),
+                InferredTypeFact(3, Some("String"), 15),
+            ],
+            [],
+        ),
+        expression(),
+    );
+    case merged.diagnostics {
+        [diagnostic] -> diagnostic.code == "heterogeneous-array";
+        _ -> false
+    }.
+
+@test
+pub contextual_empty_array_retains_its_element_type(): Bool ->
+    let empty = ProjectedExpressionNode("array", "#[", 20, 22, []);
+    let merged = ProjectedArrayTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [InferredTypeFact(0, Some("Array[0, Int]"), 20)],
+            [],
+        ),
+        empty,
+    );
+    merged.diagnostics == []
+        and case merged.facts {
+            [fact] -> fact.type_name == Some("Array[0, Int]");
+            _ -> false
+        }.

@@ -300,7 +300,7 @@ pub pair(): {Int, Int} ->
 pub values(): List[Int] ->
     [3, 4].
 
-pub fixed(): FixedArray[2, Int] ->
+pub fixed(): Array[2, Int] ->
     #[5, 6].
 ";
     let artifacts = compile_syntax_module_through_phases_with_profile(
@@ -404,7 +404,7 @@ pub prepend(head: Int, tail: List[Int]): List[Int] ->
 /// Verifies that source index expressions currently fall back in Oxc JS.
 ///
 /// Inputs:
-/// - A checked Terlan module with one public fixed-array indexing
+/// - A checked Terlan module with one public array indexing
 ///   function.
 ///
 /// Output:
@@ -420,7 +420,7 @@ pub(super) fn emit_core_module_with_oxc_codegen_falls_back_for_index_trait_call(
     let source = "\
 module js_core_direct_index.
 
-pub first(items: FixedArray[2, Int]): Int ->
+pub first(items: Array[2, Int]): Int ->
     items[0].
 ";
     let artifacts = compile_syntax_module_through_phases_with_profile(

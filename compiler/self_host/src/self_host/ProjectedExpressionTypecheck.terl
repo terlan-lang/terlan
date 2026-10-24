@@ -1,13 +1,21 @@
 /** Conservatively checks known projected expression results against signatures. */
 module self_host.ProjectedExpressionTypecheck.
 
+import std.core.String.
+
 
 import std.core.Option.{None, Option, Some}.
 import self_host.ProjectedBodySyntax.{ProjectedBody}.
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
 import self_host.ProjectedExpressionTypecheckSyntax.{InferredProjectedType, ProjectedExpressionTypeDiagnostic, ProjectedExpressionTypecheck}.
 import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
-import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature}.
+import self_host.ProjectedLocalSemantic.
+import self_host.ProjectedImportedTraitConformance.
+import self_host.ProjectedBindingSyntax.{BindingDiagnostic}.
+import self_host.ProjectedCallableSyntax.{CallableDiagnostic}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic}.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree}.
 import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
 
 
@@ -20,6 +28,16 @@ known(name: String): InferredProjectedType -> InferredProjectedType(true, name).
 
 @pure
 unknown(): InferredProjectedType -> InferredProjectedType(false, "").
+
+struct LocalTypeBinding {
+    name: String,
+    type_name: String,
+}.
+
+constructor LocalTypeBinding {
+    (name: String, type_name: String): LocalTypeBinding ->
+        LocalTypeBinding { name: name, type_name: type_name }
+}.
 
 @pure
 type_name(value: Option[ProjectedTypeNode]): String ->
@@ -132,7 +150,13 @@ case_children(values: List[ProjectedExpressionNode]): InferredProjectedType ->
 
 @pure
 infer_list(value: ProjectedExpressionNode): InferredProjectedType ->
-    if { value.kind == "list" or value.kind == "list-cons" or value.kind == "list-comprehension" -> known("List"); true -> unknown() }.
+    if {
+        value.kind == "list"
+            or value.kind == "list-cons"
+            or value.kind == "list-comprehension"
+            or value.kind == "list-flat-map" -> known("List");
+        true -> unknown()
+    }.
 
 @pure
 infer_try(value: ProjectedExpressionNode): InferredProjectedType ->
@@ -170,54 +194,454 @@ infer_binary(value: ProjectedExpressionNode): InferredProjectedType ->
 infer_html(value: ProjectedExpressionNode): InferredProjectedType ->
     if { value.kind == "html-raw-block" -> known("Html"); true -> infer_binary(value) }.
 
+@pure
+infer_typed_literal(value: ProjectedExpressionNode): InferredProjectedType ->
+    if {
+        value.kind == "integer" -> known("Int");
+        value.kind == "float" -> known("Float");
+        value.kind == "string" -> known("String");
+        true -> infer_html(value)
+    }.
+
 /** Infers a result only when the projected tree provides sufficient local evidence. */
 @pure
 pub infer(value: ProjectedExpressionNode): InferredProjectedType ->
-    if { value.kind == "primary" -> primitive(value.text); true -> infer_html(value) }.
+    if { value.kind == "primary" -> primitive(value.text); true -> infer_typed_literal(value) }.
+
+@pure
+fact_type_at(
+    values: List[InferredTypeFact],
+    byte_offset: Int,
+    current: Option[String],
+): Option[String] ->
+    case values {
+        [] -> current;
+        [value | rest] -> if {
+            value.byte_offset == byte_offset and value.type_name != None ->
+                fact_type_at(rest, byte_offset, value.type_name);
+            true -> fact_type_at(rest, byte_offset, current)
+        }
+    }.
+
+@pure
+resolved_clause_result(
+    value: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+    bindings: List[LocalTypeBinding],
+): InferredProjectedType ->
+    if {
+        value.kind == "clause" -> resolved_last_inferred(value.children, facts, parameters, bindings);
+        true -> resolved_infer_at(value, facts, parameters, bindings)
+    }.
+
+@pure
+resolved_merge_branches(
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+    bindings: List[LocalTypeBinding],
+    current: InferredProjectedType,
+): InferredProjectedType ->
+    case values {
+        [] -> current;
+        [value | rest] -> resolved_merge_branches(
+            rest,
+            facts,
+            parameters,
+            bindings,
+            merge_branch(current, resolved_clause_result(value, facts, parameters, bindings)),
+        )
+    }.
+
+@pure
+resolved_case_children(
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+    bindings: List[LocalTypeBinding],
+): InferredProjectedType ->
+    case values {
+        [] -> unknown();
+        [_subject | clauses] -> resolved_merge_branches(
+            clauses,
+            facts,
+            parameters,
+            bindings,
+            unknown(),
+        )
+    }.
+
+@pure
+resolved_last_inferred(
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+    bindings: List[LocalTypeBinding],
+): InferredProjectedType ->
+    case values {
+        [] -> unknown();
+        [value] -> resolved_infer_at(value, facts, parameters, bindings);
+        [_value | rest] -> resolved_last_inferred(rest, facts, parameters, bindings)
+    }.
+
+@pure
+pattern_name(value: ProjectedExpressionNode): String ->
+    if {
+        value.kind == "typed-pattern" -> case String.split(value.text, ":") {
+            [name | _rest] -> String.trim(name);
+            [] -> ""
+        };
+        value.kind == "binding-pattern" or value.kind == "identifier" or value.kind == "atom" -> value.text;
+        true -> ""
+    }.
+
+@pure
+binding_type(name: String, values: List[LocalTypeBinding]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | _rest] where value.name == name -> Some(value.type_name);
+        [_value | rest] -> binding_type(name, rest)
+    }.
+
+@pure
+parameter_pattern_name(value: ProjectedParameterTree): String ->
+    case value.pattern { Some(pattern) -> pattern_name(pattern); None -> "" }.
+
+@pure
+parameter_type(name: String, values: List[ProjectedParameterTree]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            parameter_pattern_name(value) == name -> case value.annotation {
+                Some(annotation) -> Some(annotation.text);
+                None -> None
+            };
+            true -> parameter_type(name, rest)
+        }
+    }.
+
+@pure
+named_type(
+    name: String,
+    parameters: List[ProjectedParameterTree],
+    bindings: List[LocalTypeBinding],
+): InferredProjectedType ->
+    case binding_type(name, bindings) {
+        Some(type_name) -> known(type_name);
+        None -> case parameter_type(name, parameters) {
+            Some(type_name) -> known(type_name);
+            None -> primitive(name)
+        }
+    }.
+
+@pure
+resolved_binary_children(
+    value: ProjectedExpressionNode,
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+    bindings: List[LocalTypeBinding],
+): InferredProjectedType ->
+    case values {
+        [left_node, right_node] ->
+            let left = resolved_infer_at(left_node, facts, parameters, bindings);
+            let right = resolved_infer_at(right_node, facts, parameters, bindings);
+            if {
+                value.text == "==" or value.text == "!=" or value.text == "<" or value.text == ">" or value.text == "<=" or value.text == ">=" or value.text == "in" or value.text == "and" or value.text == "or" -> known("Bool");
+                value.text == "|>" -> right;
+                true -> binary_same(left, right)
+            };
+        _ -> unknown()
+    }.
+
+@pure
+with_binding(
+    pattern: ProjectedExpressionNode,
+    inferred: InferredProjectedType,
+    bindings: List[LocalTypeBinding],
+): List[LocalTypeBinding] ->
+    let name = pattern_name(pattern);
+    if {
+        name != "" and name != "_" and inferred.known -> [LocalTypeBinding(name, inferred.name) | bindings];
+        true -> bindings
+    }.
+
+@pure
+resolved_let_rest(
+    rest: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+    bindings: List[LocalTypeBinding],
+): InferredProjectedType ->
+    resolved_last_inferred(rest, facts, parameters, bindings).
+
+@pure
+resolved_let_children(
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+    bindings: List[LocalTypeBinding],
+): InferredProjectedType ->
+    case values {
+        [pattern | remaining] -> case remaining {
+            [source | rest] ->
+                let source_type = resolved_infer_at(source, facts, parameters, bindings);
+                resolved_let_rest(
+                    rest,
+                    facts,
+                    parameters,
+                    with_binding(pattern, source_type, bindings),
+                );
+            [] -> unknown()
+        };
+        [] -> unknown()
+    }.
+
+@pure
+resolved_without_fact(
+    value: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+    bindings: List[LocalTypeBinding],
+): InferredProjectedType ->
+    if {
+        value.kind == "if" -> resolved_merge_branches(value.children, facts, parameters, bindings, unknown());
+        value.kind == "case" -> resolved_case_children(value.children, facts, parameters, bindings);
+        value.kind == "let" or value.kind == "let-refutable" -> resolved_let_children(value.children, facts, parameters, bindings);
+        value.kind == "sequence" -> resolved_last_inferred(value.children, facts, parameters, bindings);
+        value.kind == "binary" -> resolved_binary_children(value, value.children, facts, parameters, bindings);
+        value.kind == "unary" and (value.text == "not" or value.text == "!") -> known("Bool");
+        value.kind == "unary" -> resolved_last_inferred(value.children, facts, parameters, bindings);
+        value.kind == "primary" or value.kind == "identifier" or value.kind == "atom" -> named_type(value.text, parameters, bindings);
+        true -> infer(value)
+    }.
+
+@pure
+resolved_infer_at(
+    value: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+    bindings: List[LocalTypeBinding],
+): InferredProjectedType ->
+    case fact_type_at(facts, value.start_byte, None) {
+        Some(name) -> known(name);
+        None -> resolved_without_fact(value, facts, parameters, bindings)
+    }.
+
+@pure
+resolved_infer(
+    value: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+): InferredProjectedType ->
+    resolved_infer_at(value, facts, parameters, List.new[LocalTypeBinding]()).
 
 @pure
 inferred_node(value: Option[ProjectedExpressionNode]): InferredProjectedType ->
     case value { Some(node) -> infer(node); None -> unknown() }.
 
 @pure
-next_diagnostics(expected: String, actual: InferredProjectedType, body: ProjectedBody, output: List[ProjectedExpressionTypeDiagnostic]): List[ProjectedExpressionTypeDiagnostic] ->
+resolved_node(
+    value: Option[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+): InferredProjectedType ->
+    case value { Some(node) -> resolved_infer(node, facts, parameters); None -> unknown() }.
+
+@pure
+type_matches(expected: String, actual: String): Bool ->
+    expected == actual
+        or String.starts_with(expected, String.append(actual, "["))
+        or String.starts_with(actual, String.append(expected, "[")).
+
+@pure
+next_diagnostics(expected: String, actual: InferredProjectedType, body: ProjectedBody, require_resolved: Bool, output: List[ProjectedExpressionTypeDiagnostic]): List[ProjectedExpressionTypeDiagnostic] ->
     if {
-        expected != "" and actual.known and expected != actual.name -> [ProjectedExpressionTypeDiagnostic(body.declaration_head, expected, actual.name, String.concat([
+        expected != "" and actual.known and not type_matches(expected, actual.name) -> [ProjectedExpressionTypeDiagnostic(body.declaration_head, expected, actual.name, String.concat([
             "callable result type mismatch: expected ", expected, ", found ", actual.name,
         ])) | output];
+        expected != "" and require_resolved and not actual.known -> [ProjectedExpressionTypeDiagnostic(
+            body.declaration_head,
+            expected,
+            "unresolved",
+            String.concat(["callable result type is unresolved: expected ", expected]),
+        ) | output];
         true -> output
     }.
 
 @pure
-check_bodies(signature: ProjectedCallableSignature, signature_rest: List[ProjectedCallableSignature], bodies: List[ProjectedBody], output: List[ProjectedExpressionTypeDiagnostic]): List[ProjectedExpressionTypeDiagnostic] ->
+guard_diagnostics(
+    signature: ProjectedCallableSignature,
+    facts: List[InferredTypeFact],
+    require_resolved: Bool,
+    output: List[ProjectedExpressionTypeDiagnostic],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    case signature.guard {
+        None -> output;
+        Some(guard) -> let actual = resolved_infer(guard, facts, signature.parameters);
+            if {
+                actual.known and actual.name != "Bool" -> [ProjectedExpressionTypeDiagnostic(
+                    signature.declaration_head,
+                    "Bool",
+                    actual.name,
+                    String.concat(["callable guard type mismatch: expected Bool, found ", actual.name]),
+                ) | output];
+                require_resolved and not actual.known -> [ProjectedExpressionTypeDiagnostic(
+                    signature.declaration_head,
+                    "Bool",
+                    "unresolved",
+                    "callable guard type is unresolved",
+                ) | output];
+                true -> output
+            }
+    }.
+
+@pure
+check_bodies(signature: ProjectedCallableSignature, signature_rest: List[ProjectedCallableSignature], bodies: List[ProjectedBody], facts: List[InferredTypeFact], require_resolved: Bool, output: List[ProjectedExpressionTypeDiagnostic]): List[ProjectedExpressionTypeDiagnostic] ->
     case bodies {
-        [] -> output;
+        [] -> check_at(
+            signature_rest,
+            List.new[ProjectedBody](),
+            facts,
+            require_resolved,
+            guard_diagnostics(signature, facts, require_resolved, output),
+        );
         [body | body_rest] -> let expected = type_name(signature.return_type);
-            let actual = inferred_node(body.expression.node);
-            check_at(signature_rest, body_rest, next_diagnostics(expected, actual, body, output))
+            let actual = resolved_node(body.expression.node, facts, signature.parameters);
+            let guarded = guard_diagnostics(signature, facts, require_resolved, output);
+            check_at(signature_rest, body_rest, facts, require_resolved, next_diagnostics(expected, actual, body, require_resolved, guarded))
     }.
 
 @pure
 check_at(
     signatures: List[ProjectedCallableSignature],
     bodies: List[ProjectedBody],
+    facts: List[InferredTypeFact],
+    require_resolved: Bool,
     output: List[ProjectedExpressionTypeDiagnostic],
 ): List[ProjectedExpressionTypeDiagnostic] ->
     case signatures {
         [] -> output;
-        [signature | signature_rest] -> check_bodies(signature, signature_rest, bodies, output)
+        [signature | signature_rest] -> check_bodies(signature, signature_rest, bodies, facts, require_resolved, output)
     }.
 
 @pure
 reverse_at[T](values: List[T], output: List[T]): List[T] ->
     case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
 
-/** Checks every callable with a known projected result type. */
 @pure
-pub check(source: ProjectedFrontendModule): ProjectedExpressionTypecheck ->
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+declaration_head_at(byte_offset: Int, values: List[ProjectedBody]): String ->
+    case values {
+        [] -> "local semantic analysis";
+        [value | rest] -> if {
+            byte_offset >= value.span.start_byte and byte_offset <= value.span.end_byte -> value.declaration_head;
+            true -> declaration_head_at(byte_offset, rest)
+        }
+    }.
+
+@pure
+constraint_diagnostics(
+    values: List[TypeConstraintDiagnostic],
+    bodies: List[ProjectedBody],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedExpressionTypeDiagnostic]();
+        [value | rest] -> [ProjectedExpressionTypeDiagnostic(
+            declaration_head_at(value.byte_offset, bodies),
+            "",
+            "",
+            value.message,
+        ) | constraint_diagnostics(rest, bodies)]
+    }.
+
+@pure
+binding_diagnostics(
+    values: List[BindingDiagnostic],
+    bodies: List[ProjectedBody],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedExpressionTypeDiagnostic]();
+        [value | rest] -> [ProjectedExpressionTypeDiagnostic(
+            declaration_head_at(value.byte_offset, bodies),
+            "",
+            "",
+            value.message,
+        ) | binding_diagnostics(rest, bodies)]
+    }.
+
+@pure
+callable_diagnostics(
+    values: List[CallableDiagnostic],
+    bodies: List[ProjectedBody],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedExpressionTypeDiagnostic]();
+        [value | rest] -> [ProjectedExpressionTypeDiagnostic(
+            declaration_head_at(value.byte_offset, bodies),
+            "",
+            "",
+            value.message,
+        ) | callable_diagnostics(rest, bodies)]
+    }.
+
+@pure
+local_diagnostics(
+    bindings: List[BindingDiagnostic],
+    callables: List[CallableDiagnostic],
+    types: List[TypeConstraintDiagnostic],
+    bodies: List[ProjectedBody],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    append(
+        binding_diagnostics(bindings, bodies),
+        append(callable_diagnostics(callables, bodies), constraint_diagnostics(types, bodies)),
+    ).
+
+check_with_policy(
+    source: ProjectedFrontendModule,
+    imported_interfaces: List[ModuleInterface],
+    require_resolved: Bool,
+): ProjectedExpressionTypecheck ->
+    let local = ProjectedLocalSemantic.analyze_frontend(
+        source,
+        imported_interfaces,
+    );
+    let imported_trait_diagnostics = ProjectedImportedTraitConformance.check(
+        source.backend,
+        imported_interfaces,
+    );
     let diagnostics = reverse_at(check_at(
         source.signatures.callables,
         source.bodies.values,
-        List.new[ProjectedExpressionTypeDiagnostic](),
+        local.types.facts,
+        require_resolved,
+        append(
+            local_diagnostics(
+                local.bindings.diagnostics,
+                local.callables.diagnostics,
+                local.types.diagnostics,
+                source.bodies.values,
+            ),
+            imported_trait_diagnostics,
+        ),
     ), List.new[ProjectedExpressionTypeDiagnostic]());
-    ProjectedExpressionTypecheck(source.valid and diagnostics == [], diagnostics).
+    ProjectedExpressionTypecheck(
+        source.valid and diagnostics == [],
+        local.types.facts,
+        diagnostics,
+    ).
+
+/** Checks every callable using local and imported callable type facts. */
+pub check_with_interfaces(
+    source: ProjectedFrontendModule,
+    imported_interfaces: List[ModuleInterface],
+): ProjectedExpressionTypecheck ->
+    check_with_policy(source, imported_interfaces, true).
+
+/** Compatibility entry point for callers without imported interfaces. */
+pub check(source: ProjectedFrontendModule): ProjectedExpressionTypecheck ->
+    check_with_policy(source, List.new[ModuleInterface](), false).

@@ -1,10 +1,10 @@
 module=std.css.properties.ShapeMargin
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7826809675272729731
-interface_hash=11447043490676109352
-interface_doc_hash=16166626823311982322
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=8083708516353354115
+interface_hash=16019872665103329048
+interface_doc_hash=3573268814634404772
 deps=2
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688

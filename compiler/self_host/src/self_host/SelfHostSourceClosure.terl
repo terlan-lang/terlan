@@ -1,6 +1,8 @@
 /** Deterministic Terlan source-closure discovery for bootstrap stages. */
 module self_host.SelfHostSourceClosure.
 
+import std.core.String.
+
 
 import std.core.Result.{Err, Ok, Result}.
 import std.collections.List.
@@ -15,6 +17,12 @@ struct ClosureState {
     unresolved: List[String],
 }.
 
+struct DependencyRecord {
+    path: String,
+    module_name: String,
+    imports: List[String],
+}.
+
 constructor ClosureState {
     (queue: List[String], seen: List[String], unresolved: List[String]): ClosureState ->
         ClosureState {
@@ -22,6 +30,11 @@ constructor ClosureState {
             seen: seen,
             unresolved: unresolved,
         }
+}.
+
+constructor DependencyRecord {
+    (path: String, module_name: String, imports: List[String]): DependencyRecord ->
+        DependencyRecord { path: path, module_name: module_name, imports: imports }
 }.
 
 @pure
@@ -119,6 +132,115 @@ import_modules(values: List[String]): List[String] ->
                 module_name == "" -> import_modules(rest);
                 true -> [module_name | import_modules(rest)]
             }
+    }.
+
+@pure
+manifest_lines(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> let line = String.trim(value);
+            if {
+                line == "" or String.starts_with(line, "#") -> manifest_lines(rest);
+                true -> [line | manifest_lines(rest)]
+            }
+    }.
+
+@pure
+module_declaration(line: String): String ->
+    let declaration = String.trim(line);
+    if {
+        String.starts_with(declaration, "module ") -> strip_terminal_dot(String.trim(
+            String.utf8_slice(declaration, 7, String.byte_size(declaration) - 7),
+        ));
+        true -> ""
+    }.
+
+@pure
+declared_module(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> let declared = module_declaration(value);
+            if { declared == "" -> declared_module(rest); true -> declared }
+    }.
+
+dependency_record(path: String): DependencyRecord ->
+    case File.read_text(path) {
+        Err(_reason) -> DependencyRecord(
+            path = path,
+            module_name = "",
+            imports = List.new[String](),
+        );
+        Ok(source) -> let lines = String.split(source, "\n");
+            DependencyRecord(
+                path = path,
+                module_name = declared_module(lines),
+                imports = import_modules(lines),
+            )
+    }.
+
+dependency_records(paths: List[String]): List[DependencyRecord] ->
+    case paths {
+        [] -> List.new[DependencyRecord]();
+        [path | rest] -> [dependency_record(path) | dependency_records(rest)]
+    }.
+
+@pure
+affected_modules(
+    records: List[DependencyRecord],
+    affected: List[String],
+): List[String] ->
+    case records {
+        [] -> List.new[String]();
+        [record | rest] -> if {
+            contains(affected, record.path) -> [
+                record.module_name | affected_modules(rest, affected)
+            ];
+            true -> affected_modules(rest, affected)
+        }
+    }.
+
+@pure
+imports_any(imports: List[String], modules: List[String]): Bool ->
+    case imports {
+        [] -> false;
+        [module_name | rest] -> contains(modules, module_name) or imports_any(rest, modules)
+    }.
+
+@pure
+add_affected_dependents(
+    records: List[DependencyRecord],
+    modules: List[String],
+    affected: List[String],
+): List[String] ->
+    case records {
+        [] -> affected;
+        [record | rest] -> let expanded = if {
+            contains(affected, record.path) or not imports_any(record.imports, modules) -> affected;
+            true -> [record.path | affected]
+        };
+            add_affected_dependents(rest, modules, expanded)
+    }.
+
+@pure
+expand_affected(
+    records: List[DependencyRecord],
+    affected: List[String],
+): List[String] ->
+    let expanded = add_affected_dependents(
+        records,
+        affected_modules(records, affected),
+        affected,
+    );
+    if { expanded == affected -> affected; true -> expand_affected(records, expanded) }.
+
+@pure
+ordered_affected(paths: List[String], affected: List[String]): List[String] ->
+    case paths {
+        [] -> List.new[String]();
+        [path | rest] -> if {
+            contains(affected, path) -> [path | ordered_affected(rest, affected)];
+            true -> ordered_affected(rest, affected)
+        }
     }.
 
 @pure
@@ -245,4 +367,37 @@ pub write(output: String): Bool ->
     case Directory.files_recursive("compiler/self_host/src/self_host") {
         Err(_reason) -> false;
         Ok(initial) -> write_initial(output, initial)
+    }.
+
+write_affected_sources(
+    source_text: String,
+    changed_text: String,
+    output: String,
+): Bool ->
+    let sources = manifest_lines(String.split(source_text, "\n"));
+    let changed = manifest_lines(String.split(changed_text, "\n"));
+    if {
+        sources == [] or changed == [] -> false;
+        true -> let records = dependency_records(sources);
+            case File.write_text(output, manifest(ordered_affected(
+                sources,
+                expand_affected(records, changed),
+            ))) {
+                Ok(_unit) -> true;
+                Err(_reason) -> false
+            }
+    }.
+
+/** Writes changed sources plus their complete reverse-import dependency closure. */
+pub write_affected(
+    sources_manifest: String,
+    changed_manifest: String,
+    output: String,
+): Bool ->
+    case File.read_text(sources_manifest) {
+        Err(_reason) -> false;
+        Ok(source_text) -> case File.read_text(changed_manifest) {
+            Err(_reason) -> false;
+            Ok(changed_text) -> write_affected_sources(source_text, changed_text, output)
+        }
     }.

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword ruby-base. Generated; do not edit.
+ */
+module std.css.keywords.RubyBase.
+
+pub type RubyBase = Atom["ruby-base"].

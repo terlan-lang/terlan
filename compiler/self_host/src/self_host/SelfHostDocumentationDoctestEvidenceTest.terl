@@ -1,0 +1,37 @@
+/** Canonical documentation doctest evidence contracts. */
+module self_host.SelfHostDocumentationDoctestEvidenceTest.
+
+import self_host.SelfHostDocumentationDoctest.
+import self_host.SelfHostDocumentationDoctestEvidence.
+import std.core.String.
+
+@test
+pub admitted_example_produces_versioned_evidence(): Bool ->
+    let extraction = SelfHostDocumentationDoctest.extract(
+        "```terlan\nmodule evidence_example.\n```",
+    );
+    let evidence = SelfHostDocumentationDoctestEvidence.render(extraction);
+    String.starts_with(
+        evidence,
+        "schema\tterlan.self-host.documentation-doctest/v1\ncount\t1\nblock\t0\t",
+    ) and String.contains(evidence, "module evidence_example.\n").
+
+@test
+pub empty_admitted_suite_has_canonical_evidence(): Bool ->
+    SelfHostDocumentationDoctestEvidence.render(
+        SelfHostDocumentationDoctest.extract("No examples."),
+    ) == "schema\tterlan.self-host.documentation-doctest/v1\ncount\t0\n".
+
+@test
+pub invalid_example_produces_no_evidence(): Bool ->
+    let extraction = SelfHostDocumentationDoctest.extract(
+        "```terlan\nmodule .\n```",
+    );
+    SelfHostDocumentationDoctestEvidence.render(extraction) == "".
+
+@test
+pub unclosed_fence_produces_no_evidence(): Bool ->
+    let extraction = SelfHostDocumentationDoctest.extract(
+        "```terlan\nmodule incomplete.",
+    );
+    SelfHostDocumentationDoctestEvidence.render(extraction) == "".

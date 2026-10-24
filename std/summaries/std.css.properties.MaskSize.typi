@@ -1,64 +1,44 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-size
+//! The `mask-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies the
+//! sizes of specified mask images. Mask image sizes can be fully or partially constrained to
+//! preserve their `intrinsic aspect ratios`.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: Maintains the original aspect ratio of the mask source. When set for both the width and
+//! height, the origin size of the mask resource is used. Otherwise, `auto` scales the mask image in
+//! the corresponding direction such that its original aspect ratio is maintained.
+//! - contain: Scales the mask image up or down, while preserving its aspect-ratio, making the mask
+//! as large as possible within its container without cropping or stretching it. If the mask image is
+//! smaller than the container, the mask will tile, or repeat, unless the `mask-repeat` property is
+//! set to `no-repeat`.
+//! - cover: Scales the mask image to the smallest possible size to fill the container while
+//! preserving its aspect ratio. If the aspect ratio of the mask image differs from the element, it
+//! will be cropped vertically or horizontally.
+//!
 //! Grammar: <bg-size>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-size
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-size
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MaskSize.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    mask_size: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    mask_size: Value
+    mask_size: Auto | Cover | Contain | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained mask-size value.
+/// Checks the mask-size length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Returns the CSS keyword auto.
+/// Checks the mask-size percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword contain.
-
-pub contain(): Value.
-
-/// Returns the CSS keyword cover.
-
-pub cover(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a mask-size value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Checks the specification range and constructs a mask-size value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

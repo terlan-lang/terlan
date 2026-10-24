@@ -3,23 +3,284 @@
  */
 module self_host.ProjectedSemanticIrPlan.
 
+import std.core.String.
+
 import self_host.BackendSyntax.{BackendDeclaration}.
+import self_host.DeclarationPayloadSyntax.{StructFieldSyntax}.
 import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedCallableSyntax.{CallableDeclaration, ResolvedCallableUse}.
 import self_host.ProjectedExpressionIrPlan.{lower_expression}.
-import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, append_ir_parameters, body_for, concat_blocks, concat_instructions, ir_parameters, lambda_body, lambda_body_id, lambda_captures, lambda_parameters, lambda_symbol, node_size, none_string, parameter, parameter_count, resolved_or_dynamic, resolved_return, shallow_pattern_bindings, shallow_pattern_operands, shallow_pattern_supported, some_string}.
-import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedComprehensionDesugar.
+import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, append_ir_parameters, body_for, concat_blocks, concat_instructions, expression_type, ir_parameters, lambda_body, lambda_body_id, lambda_captures, lambda_parameters, lambda_symbol, node_size, none_string, parameter, parameter_count, register, resolved_or_dynamic, resolved_return, shallow_pattern_bindings, shallow_pattern_operands, shallow_pattern_supported, some_string}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode, ProjectedExpressionResult}.
 import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
 import self_host.ProjectedLocalSemanticSyntax.{LocalSemanticResult}.
-import self_host.ProjectedEmbeddedControlIrPlan.{EmbeddedBranchPlan, embedded_case_at, embedded_if_any_at, root_embedded_if_blocks, root_refutable_let_blocks}.
+import self_host.ProjectedEmbeddedControlIrPlan.{EmbeddedBranchPlan, embedded_case_at, embedded_if_any_at, root_embedded_case_blocks, root_embedded_if_blocks, root_refutable_let_blocks}.
 import self_host.ProjectedNestedControlIrPlan.{ExpressionNodePair, ExpressionNodeQuad, ExpressionNodeTriple, expression_node_pair, expression_node_quad, expression_node_triple, linear_binding, nested_let_if_blocks}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
-import self_host.SelfHostIrSyntax.{IrParameter}.
-import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan, SemanticFunctionPlan, SemanticInstructionPlan, SemanticModulePlan, SemanticTerminatorPlan}.
-import self_host.TypedModuleSyntax.{FunctionPayload, MethodPayload}.
+import self_host.SelfHostIrSyntax.{IrParameter, IrStructField, IrStructLayout}.
+import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan, SemanticFunctionPlan, SemanticInstructionPlan, SemanticModulePlan, SemanticRegionPlan, SemanticTerminatorPlan, SemanticTryRegionPlan}.
+import self_host.TypedModuleSyntax.{FunctionPayload, MethodPayload, StructPayload}.
 import self_host.{BackendSyntax, FunctionSyntax, MethodSyntax, ParameterSyntax, ProjectedBodySyntax, ProjectedEmbeddedControlIrPlan, ProjectedExpressionSupportIrPlan, ProjectedExpressionSyntax, ProjectedFrontendSyntax, ProjectedLocalSemanticSyntax, ProjectedNestedControlIrPlan, ProjectedTypeConstraintSyntax, SelfHostIrSyntax, SelfHostSemanticIrSyntax, TypedModuleSyntax}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.{Bool, Int, String}.
+
+resolved_callable_at(
+    byte_offset: Int,
+    name: String,
+    values: List[ResolvedCallableUse],
+): Option[CallableDeclaration] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.source.byte_offset == byte_offset and value.source.name == name -> value.declaration;
+            true -> resolved_callable_at(byte_offset, name, rest)
+        }
+    }.
+
+normalize_expression_children(
+    values: List[ProjectedExpressionNode],
+    module_name: String,
+    callables: List[ResolvedCallableUse],
+): List[ProjectedExpressionNode] ->
+    case values {
+        [] -> List.new[ProjectedExpressionNode]();
+        [value | rest] -> [normalize_expression(value, module_name, callables)
+            | normalize_expression_children(rest, module_name, callables)]
+    }.
+
+constructor_result_type(declaration: CallableDeclaration): String ->
+    case declaration.return_type {
+        Some(value) -> value;
+        None -> declaration.name
+    }.
+
+resolved_call_kind(
+    declaration: CallableDeclaration,
+    module_name: String,
+    method_call: Bool,
+): String ->
+    if {
+        declaration.module_name == module_name and method_call and declaration.receiver_mutable ->
+            "resolved-local-mut-method";
+        declaration.module_name == module_name and method_call -> "resolved-local-method";
+        declaration.module_name == module_name -> "resolved-local-call";
+        method_call and declaration.receiver_mutable -> String.append("resolved-import-mut-method:", declaration.module_name);
+        method_call -> String.append("resolved-import-method:", declaration.module_name);
+        true -> String.append("resolved-import:", declaration.module_name)
+    }.
+
+normalize_resolved_callee(
+    callee: ProjectedExpressionNode,
+    declaration: CallableDeclaration,
+    module_name: String,
+): ProjectedExpressionNode ->
+    ProjectedExpressionNode(
+        resolved_call_kind(declaration, module_name, declaration.callable_kind == "method" and instance_callee(callee)),
+        declaration.name,
+        callee.start_byte,
+        callee.end_byte,
+        callee.children,
+    ).
+
+normalized_call_target(callee: ProjectedExpressionNode): ProjectedExpressionNode ->
+    case callee.children {
+        [base, argument] where callee.kind == "index" and argument.kind == "binding" -> base;
+        _ -> callee
+    }.
+
+upper_name(value: String): Bool ->
+    if {
+        value == "" -> false;
+        true -> let byte = value.utf8_byte_at(0); byte >= 65 and byte <= 90
+    }.
+
+instance_callee(callee: ProjectedExpressionNode): Bool ->
+    let target = normalized_call_target(callee);
+    case target.children {
+        [base | _] -> target.kind == "field" and not upper_name(base.text);
+        [] -> false
+    }.
+
+syntactic_constructor(callee: ProjectedExpressionNode): Bool ->
+    let target = normalized_call_target(callee);
+    target.kind == "constructor" or (target.kind == "field" and upper_name(target.text)).
+
+normalize_syntactic_constructor_call(node: ProjectedExpressionNode): ProjectedExpressionNode ->
+    case node.children {
+        [callee | arguments] ->
+            let target = normalized_call_target(callee);
+            let constructor_node = ProjectedExpressionNode(
+                callee.kind,
+                target.text,
+                callee.start_byte,
+                callee.end_byte,
+                callee.children,
+            );
+            ProjectedExpressionNode(
+                "resolved-constructor-call",
+                target.text,
+                node.start_byte,
+                node.end_byte,
+                [constructor_node | arguments],
+            );
+        [] -> node
+    }.
+
+normalize_generic_import_callee(callee: ProjectedExpressionNode): Option[ProjectedExpressionNode] ->
+    case callee.children {
+        [target | _] where callee.kind == "index" -> case target.children {
+            [base | _]
+                where target.kind == "field"
+                    and upper_name(base.text) -> Some(ProjectedExpressionNode(
+                        String.append("resolved-import:", base.text),
+                        target.text,
+                        callee.start_byte,
+                        callee.end_byte,
+                        callee.children,
+                    ));
+            _ -> None
+        };
+        _ -> None
+    }.
+
+normalize_generic_import_call(
+    node: ProjectedExpressionNode,
+    callee: ProjectedExpressionNode,
+    arguments: List[ProjectedExpressionNode],
+): ProjectedExpressionNode ->
+    case normalize_generic_import_callee(callee) {
+        Some(resolved_callee) -> ProjectedExpressionNode(
+            node.kind,
+            node.text,
+            node.start_byte,
+            node.end_byte,
+            [resolved_callee | arguments],
+        );
+        None -> if {
+            syntactic_constructor(callee) -> normalize_syntactic_constructor_call(node);
+            true -> node
+        }
+    }.
+
+normalize_unresolved_call(node: ProjectedExpressionNode): ProjectedExpressionNode ->
+    case node.children {
+        [callee | arguments] -> normalize_generic_import_call(node, callee, arguments);
+        [] -> node
+    }.
+
+normalize_resolved_call_children(
+    node: ProjectedExpressionNode,
+    declaration: CallableDeclaration,
+    module_name: String,
+): ProjectedExpressionNode ->
+    case node.children {
+        [callee | arguments] ->
+            let resolved_callee = normalize_resolved_callee(callee, declaration, module_name);
+            if {
+                declaration.callable_kind == "constructor" ->
+                    let result_type = constructor_result_type(declaration);
+                    let constructor_callee = if {
+                        result_type == declaration.name
+                            or result_type.ends_with(String.concat([".", declaration.name])) -> ProjectedExpressionNode(
+                            resolved_callee.kind,
+                            String.concat([declaration.module_name, ".", declaration.name]),
+                            resolved_callee.start_byte,
+                            resolved_callee.end_byte,
+                            resolved_callee.children,
+                        );
+                        true -> resolved_callee
+                    };
+                    ProjectedExpressionNode(
+                        "resolved-constructor-call",
+                        result_type,
+                        node.start_byte,
+                        node.end_byte,
+                        [constructor_callee | arguments],
+                    );
+                true -> ProjectedExpressionNode(
+                    node.kind,
+                    node.text,
+                    node.start_byte,
+                    node.end_byte,
+                    [resolved_callee | arguments],
+                )
+            };
+        [] -> node
+    }.
+
+normalize_resolved_call(
+    node: ProjectedExpressionNode,
+    module_name: String,
+    callables: List[ResolvedCallableUse],
+): ProjectedExpressionNode ->
+    case node.children {
+        [callee | _] -> normalize_resolved_call_at(
+            node,
+            normalized_call_target(callee).text,
+            module_name,
+            callables,
+        );
+        [] -> node
+    }.
+
+normalize_resolved_call_at(
+    node: ProjectedExpressionNode,
+    name: String,
+    module_name: String,
+    callables: List[ResolvedCallableUse],
+): ProjectedExpressionNode ->
+    case resolved_callable_at(node.start_byte, name, callables) {
+        Some(declaration) -> normalize_resolved_call_children(node, declaration, module_name);
+        None -> normalize_unresolved_call(node)
+    }.
+
+normalize_expression(
+    node: ProjectedExpressionNode,
+    module_name: String,
+    callables: List[ResolvedCallableUse],
+): ProjectedExpressionNode ->
+    let normalized = ProjectedExpressionNode(
+        node.kind,
+        node.text,
+        node.start_byte,
+        node.end_byte,
+        normalize_expression_children(node.children, module_name, callables),
+    );
+    if {
+        normalized.kind == "call" -> normalize_resolved_call(normalized, module_name, callables);
+        true -> normalized
+    }.
+
+normalize_expression_result(
+    value: ProjectedExpressionResult,
+    module_name: String,
+    callables: List[ResolvedCallableUse],
+): ProjectedExpressionResult ->
+    case value.node {
+        Some(node) -> ProjectedExpressionResult(
+            value.valid,
+            Some(normalize_expression(node, module_name, callables)),
+            value.rest,
+            value.message,
+        );
+        None -> value
+    }.
+
+normalize_bodies(
+    values: List[ProjectedBody],
+    module_name: String,
+    callables: List[ResolvedCallableUse],
+): List[ProjectedBody] ->
+    case values {
+        [] -> List.new[ProjectedBody]();
+        [value | rest] -> [ProjectedBody(
+            value.declaration_head,
+            value.span,
+            normalize_expression_result(value.expression, module_name, callables),
+        ) | normalize_bodies(rest, module_name, callables)]
+    }.
 
 root_case_one_direct(
     node: ProjectedExpressionNode,
@@ -101,13 +362,15 @@ root_case_one_direct_bound(
     let clause_id = node_id + 1 + node_size(subject);
     let body_id = clause_id + 1 + node_size(pattern);
     let body_plan = lower_expression(body, body_id, facts, parameters);
-    Some(root_case_one_blocks(entry_instructions, subject_plan, pattern, body_plan)).
+    Some(root_case_one_blocks(entry_instructions, subject_plan, pattern, body_plan, facts, parameters)).
 
 root_case_one_blocks(
     entry_instructions: List[SemanticInstructionPlan],
     subject_plan: ExpressionPlan,
     pattern: ProjectedExpressionNode,
     body_plan: ExpressionPlan,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
 ): List[SemanticBlockPlan] ->
     let environment = "%root_case_environment_0";
     let matched = "%root_case_match_0";
@@ -142,7 +405,7 @@ root_case_one_blocks(
         SemanticBlockPlan(
             "root_case_body_0",
             concat_instructions(
-                shallow_pattern_bindings(pattern, environment),
+                shallow_pattern_bindings(pattern, environment, facts, parameters),
                 body_plan.instructions,
             ),
             SemanticTerminatorPlan("return", [body_plan.result], List.new[String]()),
@@ -176,7 +439,7 @@ root_case_one_let_at(
     case expression_node_triple(node.children) {
         Some(parts) ->
             root_case_one_let_parts(
-                parts.first.kind == "binding-pattern",
+                ProjectedExpressionSupportIrPlan.binding_pattern(parts.first),
                 parts.first,
                 parts.second,
                 parts.third,
@@ -496,8 +759,8 @@ root_case_two_prepare(
             shallow_pattern_operands(subject_plan.result, second_pattern),
             some_string("PatternMatch"),
         );
-    let first_bindings = shallow_pattern_bindings(first_pattern, first_environment);
-    let second_bindings = shallow_pattern_bindings(second_pattern, second_environment);
+    let first_bindings = shallow_pattern_bindings(first_pattern, first_environment, facts, parameters);
+    let second_bindings = shallow_pattern_bindings(second_pattern, second_environment, facts, parameters);
     let first_embedded =
         embedded_case_or_if_at(
             first_body,
@@ -1044,7 +1307,7 @@ root_case_two_let_at(
     case expression_node_triple(node.children) {
         Some(parts) ->
             root_case_two_let_parts(
-                parts.first.kind == "binding-pattern",
+                ProjectedExpressionSupportIrPlan.binding_pattern(parts.first),
                 parts.first,
                 parts.second,
                 parts.third,
@@ -1168,7 +1431,7 @@ has_annotation(
 
 native_declaration(declaration: BackendDeclaration, node: ProjectedExpressionNode): Bool ->
     has_annotation(declaration.annotations, "compiler.intrinsic")
-        or node.kind == "primary" and node.text == "native".
+        or node.text == "native".
 
 symbol_base_at(value: String, index: Int): String ->
     if {
@@ -1257,7 +1520,7 @@ function_plan_for_function(
     Some(
         SemanticFunctionPlan(
             module_name = module_name,
-            name = declaration.symbol_name,
+            name = symbol_base(declaration.symbol_name),
             arity = parameter_count(params),
             parameters = params,
             resolved_return_type = resolved_return_type,
@@ -1295,7 +1558,7 @@ function_plan_for_method(
     Some(
         SemanticFunctionPlan(
             module_name = module_name,
-            name = declaration.symbol_name,
+            name = symbol_base(declaration.symbol_name),
             arity = parameter_count(params),
             parameters = params,
             resolved_return_type = resolved_return_type,
@@ -1317,7 +1580,494 @@ projected_linear_blocks(expression: ExpressionPlan): List[SemanticBlockPlan] ->
         ),
     ].
 
-projected_function_blocks(
+try_type_name(value: Option[String]): String ->
+    case value {
+        Some(name) -> name;
+        None -> ""
+    }.
+
+returned_result(blocks: List[SemanticBlockPlan], fallback: String): String ->
+    case blocks {
+        [] -> fallback;
+        [block | rest] -> if {
+            block.terminator.opcode == "return" -> case block.terminator.operands {
+                [result | _] -> result;
+                [] -> returned_result(rest, fallback)
+            };
+            true -> returned_result(rest, fallback)
+        }
+    }.
+
+try_case(
+    container: ProjectedExpressionNode,
+    parameter: IrParameter,
+): ProjectedExpressionNode ->
+    let subject = ProjectedExpressionNode(
+        "identifier",
+        parameter.name,
+        container.start_byte,
+        container.start_byte,
+        List.new[ProjectedExpressionNode](),
+    );
+    ProjectedExpressionNode(
+        "case",
+        "case",
+        container.start_byte,
+        container.end_byte,
+        [subject | container.children],
+    ).
+
+handler_region(
+    label: String,
+    prefix: String,
+    container: ProjectedExpressionNode,
+    node_id: Int,
+    parameter: IrParameter,
+    result_type: Option[String],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[SemanticRegionPlan] ->
+    let return_label = prefix + "return";
+    let case_node = try_case(container, parameter);
+    case embedded_case_at(
+        case_node,
+        node_id,
+        "entry",
+        prefix,
+        List.new[SemanticInstructionPlan](),
+        return_label,
+        facts,
+        append_ir_parameters(parameters, [parameter]),
+    ) {
+        None -> None;
+        Some(embedded) ->
+            let region_parameters = append_ir_parameters(parameters, [parameter]);
+            Some(SemanticRegionPlan(
+                label,
+                [parameter],
+                concat_blocks(
+                    lift_try_blocks(
+                        case_node,
+                        node_id,
+                        embedded.blocks,
+                        facts,
+                        region_parameters,
+                    ),
+                    [SemanticBlockPlan(
+                        return_label,
+                        List.new[SemanticInstructionPlan](),
+                        SemanticTerminatorPlan(
+                            "return",
+                            [embedded.result],
+                            List.new[String](),
+                        ),
+                    )],
+                ),
+                embedded.result,
+                result_type,
+            ))
+    }.
+
+success_region(
+    container: ProjectedExpressionNode,
+    node_id: Int,
+    protected_type: String,
+    result_type: Option[String],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[SemanticRegionPlan] ->
+    let parameter = IrParameter("%try_success_value", protected_type);
+    if {
+        container.children == [] -> Some(SemanticRegionPlan(
+            "success",
+            [parameter],
+            [SemanticBlockPlan(
+                "entry",
+                List.new[SemanticInstructionPlan](),
+                SemanticTerminatorPlan("return", [parameter.name], List.new[String]()),
+            )],
+            parameter.name,
+            result_type,
+        ));
+        true -> handler_region(
+            "success",
+            "try_success_case_",
+            container,
+            node_id,
+            parameter,
+            result_type,
+            facts,
+            parameters,
+        )
+    }.
+
+failure_region(
+    container: ProjectedExpressionNode,
+    node_id: Int,
+    result_type: Option[String],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[SemanticRegionPlan] ->
+    handler_region(
+        "failure",
+        "try_failure_case_",
+        container,
+        node_id,
+        IrParameter("%try_failure_status", "Int"),
+        result_type,
+        facts,
+        parameters,
+    ).
+
+redirect_region_returns(
+    blocks: List[SemanticBlockPlan],
+    target: String,
+): List[SemanticBlockPlan] ->
+    case blocks {
+        [] -> List.new[SemanticBlockPlan]();
+        [block | rest] -> [SemanticBlockPlan(
+            block.label,
+            block.instructions,
+            if {
+                block.terminator.opcode == "return" -> SemanticTerminatorPlan(
+                    "branch",
+                    List.new[String](),
+                    [target],
+                );
+                true -> block.terminator
+            },
+        ) | redirect_region_returns(rest, target)]
+    }.
+
+last_try_node(
+    values: List[ProjectedExpressionNode],
+    fallback: ProjectedExpressionNode,
+): ProjectedExpressionNode ->
+    case values {
+        [] -> fallback;
+        [value | rest] -> last_try_node(rest, value)
+    }.
+
+cleanup_regions(
+    values: List[ProjectedExpressionNode],
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[SemanticRegionPlan] ->
+    case values {
+        [] -> List.new[SemanticRegionPlan]();
+        [container | _] ->
+            let cleanup = last_try_node(container.children, container);
+            let plan = lower_expression(cleanup, node_id, facts, parameters);
+            let return_label = "try_cleanup_return";
+            let unit = "%try_cleanup_unit_" + Int.to_string(node_id);
+            let blocks = projected_function_blocks(
+                cleanup,
+                "Unit",
+                projected_linear_blocks(plan),
+                facts,
+                parameters,
+            );
+            [SemanticRegionPlan(
+                "cleanup",
+                List.new[IrParameter](),
+                concat_blocks(
+                    redirect_region_returns(blocks, return_label),
+                    [SemanticBlockPlan(
+                        return_label,
+                        [SemanticInstructionPlan(
+                            "load-literal",
+                            Some(unit),
+                            ["Unit"],
+                            Some("Unit"),
+                        )],
+                        SemanticTerminatorPlan("return", [unit], List.new[String]()),
+                    )],
+                ),
+                unit,
+                Some("Unit"),
+            )]
+    }.
+
+try_blocks_with_handlers(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    body: ProjectedExpressionNode,
+    success: ProjectedExpressionNode,
+    catches: ProjectedExpressionNode,
+    cleanup: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    let body_id = node_id + 1;
+    let success_id = body_id + node_size(body);
+    let catch_id = success_id + node_size(success);
+    let cleanup_id = catch_id + node_size(catches);
+    let body_plan = lower_expression(body, body_id, facts, parameters);
+    let body_blocks = projected_function_blocks(
+        body,
+        try_type_name(body_plan.result_type),
+        projected_linear_blocks(body_plan),
+        facts,
+        parameters,
+    );
+    let protected = SemanticRegionPlan(
+        "protected",
+        List.new[IrParameter](),
+        body_blocks,
+        returned_result(body_blocks, body_plan.result),
+        body_plan.result_type,
+    );
+    let result_type = expression_type(node, facts, parameters);
+    case success_region(
+        success,
+        success_id,
+        try_type_name(body_plan.result_type),
+        result_type,
+        facts,
+        parameters,
+    ) {
+        None -> None;
+        Some(success_plan) -> case failure_region(
+            catches,
+            catch_id,
+            result_type,
+            facts,
+            parameters,
+        ) {
+            None -> None;
+            Some(failure_plan) ->
+                let result = register(node_id);
+                Some([SemanticBlockPlan(
+                    "entry",
+                    [SemanticInstructionPlan(
+                        "try-region",
+                        Some(result),
+                        List.new[String](),
+                        List.new[Option[String]](),
+                        result_type,
+                        None,
+                        Some(SemanticTryRegionPlan(
+                            protected,
+                            success_plan,
+                            failure_plan,
+                            cleanup_regions(cleanup, cleanup_id, facts, parameters),
+                        )),
+                    )],
+                    SemanticTerminatorPlan("return", [result], List.new[String]()),
+                )])
+        }
+    }.
+
+/** Lowers a function-root try through structured ABI-1.6 regions. */
+pub root_try_blocks(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    if {
+        node.kind != "try" -> None;
+        true -> case node.children {
+            [body | [success | [catches | cleanup]]] -> try_blocks_with_handlers(
+                node,
+                0,
+                body,
+                success,
+                catches,
+                cleanup,
+                facts,
+                parameters,
+            );
+            _ -> None
+        }
+    }.
+
+struct TryInstructionLift {
+    start_id: Int,
+    end_id: Int,
+    instruction: SemanticInstructionPlan,
+}.
+
+constructor TryInstructionLift {
+    (
+        start_id: Int,
+        end_id: Int,
+        instruction: SemanticInstructionPlan,
+    ): TryInstructionLift -> TryInstructionLift {
+        start_id: start_id,
+        end_id: end_id,
+        instruction: instruction,
+    }
+}.
+
+concat_try_lifts(
+    left: List[TryInstructionLift],
+    right: List[TryInstructionLift],
+): List[TryInstructionLift] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | concat_try_lifts(rest, right)]
+    }.
+
+first_try_instruction(
+    blocks: List[SemanticBlockPlan],
+): Option[SemanticInstructionPlan] ->
+    case blocks {
+        [] -> None;
+        [block | rest] -> case block.instructions {
+            [] -> first_try_instruction(rest);
+            [instruction | _] -> if {
+                instruction.opcode == "try-region" -> Some(instruction);
+                true -> first_try_instruction(rest)
+            }
+        }
+    }.
+
+try_instruction_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[SemanticInstructionPlan] ->
+    if {
+        node.kind != "try" -> None;
+        true -> case node.children {
+            [body | [success | [catches | cleanup]]] -> first_try_instruction(
+                case try_blocks_with_handlers(
+                    node,
+                    node_id,
+                    body,
+                    success,
+                    catches,
+                    cleanup,
+                    facts,
+                    parameters,
+                ) {
+                    Some(blocks) -> blocks;
+                    None -> List.new[SemanticBlockPlan]()
+                },
+            );
+            _ -> None
+        }
+    }.
+
+top_level_try_lifts(
+    values: List[ProjectedExpressionNode],
+    next_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[TryInstructionLift] ->
+    case values {
+        [] -> List.new[TryInstructionLift]();
+        [value | rest] ->
+            let size = node_size(value);
+            let current = if {
+                value.kind == "try" -> case try_instruction_at(
+                    value,
+                    next_id,
+                    facts,
+                    parameters,
+                ) {
+                    Some(instruction) -> [TryInstructionLift(
+                        next_id,
+                        next_id + size,
+                        instruction,
+                    )];
+                    None -> List.new[TryInstructionLift]()
+                };
+                true -> top_level_try_lifts(
+                    value.children,
+                    next_id + 1,
+                    facts,
+                    parameters,
+                )
+            };
+            concat_try_lifts(
+                current,
+                top_level_try_lifts(rest, next_id + size, facts, parameters),
+            )
+    }.
+
+lift_for_start(
+    result: String,
+    values: List[TryInstructionLift],
+): Option[SemanticInstructionPlan] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            result == register(value.start_id) -> Some(value.instruction);
+            true -> lift_for_start(result, rest)
+        }
+    }.
+
+register_in_interval(
+    result: String,
+    current: Int,
+    end: Int,
+): Bool ->
+    if {
+        current >= end -> false;
+        result == register(current) -> true;
+        true -> register_in_interval(result, current + 1, end)
+    }.
+
+covered_by_try_lift(
+    result: String,
+    values: List[TryInstructionLift],
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> register_in_interval(
+            result,
+            value.start_id,
+            value.end_id,
+        ) or covered_by_try_lift(result, rest)
+    }.
+
+lift_try_instructions(
+    instructions: List[SemanticInstructionPlan],
+    lifts: List[TryInstructionLift],
+): List[SemanticInstructionPlan] ->
+    case instructions {
+        [] -> List.new[SemanticInstructionPlan]();
+        [instruction | rest] -> case instruction.result {
+            None -> [instruction | lift_try_instructions(rest, lifts)];
+            Some(result) -> case lift_for_start(result, lifts) {
+                Some(replacement) -> [replacement | lift_try_instructions(rest, lifts)];
+                None -> if {
+                    covered_by_try_lift(result, lifts) -> lift_try_instructions(rest, lifts);
+                    true -> [instruction | lift_try_instructions(rest, lifts)]
+                }
+            }
+        }
+    }.
+
+lift_try_block_list(
+    blocks: List[SemanticBlockPlan],
+    lifts: List[TryInstructionLift],
+): List[SemanticBlockPlan] ->
+    case blocks {
+        [] -> List.new[SemanticBlockPlan]();
+        [block | rest] -> [SemanticBlockPlan(
+            block.label,
+            lift_try_instructions(block.instructions, lifts),
+            block.terminator,
+        ) | lift_try_block_list(rest, lifts)]
+    }.
+
+lift_try_blocks(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    blocks: List[SemanticBlockPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[SemanticBlockPlan] ->
+    lift_try_block_list(
+        blocks,
+        top_level_try_lifts(node.children, node_id + 1, facts, parameters),
+    ).
+
+projected_function_blocks_without_root_try(
     node: ProjectedExpressionNode,
     return_name: String,
     linear_blocks: List[SemanticBlockPlan],
@@ -1330,9 +2080,54 @@ projected_function_blocks(
             case nested_let_if_blocks(node, facts, parameters) {
                 Some(blocks) -> blocks;
                 None ->
-                    projected_embedded_or_case_blocks(node, return_name, linear_blocks, facts, parameters)
+                    projected_embedded_or_case_blocks(
+                        node,
+                        return_name,
+                        linear_blocks,
+                        facts,
+                        parameters,
+                    )
             }
     }.
+
+projected_function_blocks(
+    node: ProjectedExpressionNode,
+    return_name: String,
+    linear_blocks: List[SemanticBlockPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[SemanticBlockPlan] ->
+    case root_try_blocks(node, facts, parameters) {
+        Some(blocks) -> blocks;
+        None -> lift_try_blocks(
+            node,
+            0,
+            projected_function_blocks_without_root_try(
+                node,
+                return_name,
+                linear_blocks,
+                facts,
+                parameters,
+            ),
+            facts,
+            parameters,
+        )
+    }.
+
+/** Lowers one expression to function-shaped blocks with nested structured tries lifted. */
+pub expression_blocks_with_try(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[SemanticBlockPlan] ->
+    let expression = lower_expression(node, 0, facts, parameters);
+    projected_function_blocks(
+        node,
+        try_type_name(expression.result_type),
+        projected_linear_blocks(expression),
+        facts,
+        parameters,
+    ).
 
 projected_embedded_or_case_blocks(
     node: ProjectedExpressionNode,
@@ -1348,6 +2143,18 @@ projected_embedded_or_case_blocks(
     }.
 
 projected_case_blocks(
+    node: ProjectedExpressionNode,
+    return_name: String,
+    linear_blocks: List[SemanticBlockPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[SemanticBlockPlan] ->
+    case root_embedded_case_blocks(node, facts, parameters) {
+        Some(blocks) -> blocks;
+        None -> projected_legacy_case_blocks(node, return_name, linear_blocks, facts, parameters)
+    }.
+
+projected_legacy_case_blocks(
     node: ProjectedExpressionNode,
     return_name: String,
     linear_blocks: List[SemanticBlockPlan],
@@ -1536,7 +2343,8 @@ root_case_three_direct(
     parameters: List[IrParameter],
 ): Option[List[SemanticBlockPlan]] ->
     if {
-        shallow_pattern_supported(first_pattern)
+        return_name != ""
+            and shallow_pattern_supported(first_pattern)
             and shallow_pattern_supported(second_pattern)
             and shallow_pattern_supported(third_pattern) -> let subject_plan = lower_expression(subject, 1, facts, parameters);
         let first_id = 1 + node_size(subject);
@@ -1558,16 +2366,15 @@ root_case_three_direct(
                 third_pattern,
                 third_body_plan,
                 projected_phi_type(return_name),
+                facts,
+                parameters,
             ),
         );
         true -> None
     }.
 
 projected_phi_type(return_name: String): String ->
-    if {
-        return_name == "" -> "Dynamic";
-        true -> return_name
-    }.
+    return_name.
 
 root_case_three_blocks(
     subject_plan: ExpressionPlan,
@@ -1578,6 +2385,8 @@ root_case_three_blocks(
     third_pattern: ProjectedExpressionNode,
     third_body_plan: ExpressionPlan,
     phi_type: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
 ): List[SemanticBlockPlan] ->
     let first_environment = "%case_environment_0";
     let second_environment = "%case_environment_1";
@@ -1628,7 +2437,7 @@ root_case_three_blocks(
         SemanticBlockPlan(
             "case_body_0",
             concat_instructions(
-                shallow_pattern_bindings(first_pattern, first_environment),
+                shallow_pattern_bindings(first_pattern, first_environment, facts, parameters),
                 first_body_plan.instructions,
             ),
             SemanticTerminatorPlan("jump", List.new[String](), ["case_join"]),
@@ -1649,7 +2458,7 @@ root_case_three_blocks(
         SemanticBlockPlan(
             "case_body_1",
             concat_instructions(
-                shallow_pattern_bindings(second_pattern, second_environment),
+                shallow_pattern_bindings(second_pattern, second_environment, facts, parameters),
                 second_body_plan.instructions,
             ),
             SemanticTerminatorPlan("jump", List.new[String](), ["case_join"]),
@@ -1670,7 +2479,7 @@ root_case_three_blocks(
         SemanticBlockPlan(
             "case_body_2",
             concat_instructions(
-                shallow_pattern_bindings(third_pattern, third_environment),
+                shallow_pattern_bindings(third_pattern, third_environment, facts, parameters),
                 third_body_plan.instructions,
             ),
             SemanticTerminatorPlan("jump", List.new[String](), ["case_join"]),
@@ -1780,6 +2589,9 @@ lambda_function_plan(
                 module_name = module_name,
                 name = lambda_symbol(node),
                 arity = parameter_count(parameters),
+                capture_count = parameter_count(captures),
+                receiver_mutable = false,
+                receiver_command = false,
                 parameters = parameters,
                 resolved_return_type = resolved_or_dynamic(expression.result_type),
                 blocks = projected_function_blocks(
@@ -1883,13 +2695,42 @@ declaration_lambda_plans(
         None -> List.new[SemanticFunctionPlan]()
     }.
 
+struct_fields(values: List[StructFieldSyntax]): List[IrStructField] ->
+    case values {
+        [] -> List.new[IrStructField]();
+        [value | rest] -> [IrStructField(
+            value.name,
+            if { value.annotation.valid -> value.annotation.syntax.text; true -> "" },
+        ) | struct_fields(rest)]
+    }.
+
+struct_layouts(module_name: String, values: List[BackendDeclaration]): List[IrStructLayout] ->
+    case values {
+        [] -> List.new[IrStructLayout]();
+        [value | rest] -> case value.payload {
+            StructPayload(layout) -> [IrStructLayout(
+                name = String.concat([module_name, ".", layout.name]),
+                fields = struct_fields(layout.fields),
+            ) | struct_layouts(module_name, rest)];
+            _ -> struct_layouts(module_name, rest)
+        }
+    }.
+
 pub lower(frontend: ProjectedFrontendModule, semantics: LocalSemanticResult): SemanticModulePlan ->
     SemanticModulePlan(
         name = frontend.backend.module_name,
+        structs = struct_layouts(frontend.backend.module_name, frontend.backend.declarations),
         functions = plans(
             frontend.backend.module_name,
             frontend.backend.declarations,
-            frontend.bodies.values,
+            normalize_bodies(
+                ProjectedComprehensionDesugar.bodies_with_facts(
+                    frontend.bodies,
+                    semantics.types.facts,
+                ).values,
+                frontend.backend.module_name,
+                semantics.callables.uses,
+            ),
             semantics.types.facts,
         ),
     ).

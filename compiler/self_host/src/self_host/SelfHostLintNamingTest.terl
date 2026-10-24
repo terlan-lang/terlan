@@ -1,0 +1,48 @@
+/** Positive and negative naming-lint authority contracts. */
+module self_host.SelfHostLintNamingTest.
+
+import self_host.SelfHostLintNaming.
+
+@test
+pub accepts_lower_snake_function_names(): Bool ->
+    SelfHostLintNaming.lower_snake_case("binary_search")
+        and SelfHostLintNaming.lower_snake_case("sha256_value").
+
+@test
+pub rejects_noncanonical_function_names(): Bool ->
+    not SelfHostLintNaming.lower_snake_case("binarySearch")
+        and not SelfHostLintNaming.lower_snake_case("_binary_search")
+        and not SelfHostLintNaming.lower_snake_case("binary__search")
+        and not SelfHostLintNaming.lower_snake_case("binary_search_").
+
+@test
+pub accepts_upper_camel_type_names(): Bool ->
+    SelfHostLintNaming.upper_camel_case("UserProfile")
+        and SelfHostLintNaming.upper_camel_case("Sha256Digest").
+
+@test
+pub rejects_noncanonical_type_names(): Bool ->
+    not SelfHostLintNaming.upper_camel_case("userProfile")
+        and not SelfHostLintNaming.upper_camel_case("User_Profile")
+        and not SelfHostLintNaming.upper_camel_case("").
+
+@test
+pub binding_names_allow_one_unused_prefix(): Bool ->
+    SelfHostLintNaming.lower_snake_binding("user_name")
+        and SelfHostLintNaming.lower_snake_binding("_unused_value")
+        and not SelfHostLintNaming.lower_snake_binding("__unused_value")
+        and not SelfHostLintNaming.lower_snake_binding("_").
+
+@test
+pub reports_only_later_case_underscore_collisions(): Bool ->
+    SelfHostLintNaming.collision_names([
+        "user_id",
+        "userId",
+        "account_id",
+        "USER_ID",
+        "account_id",
+    ]) == ["userId", "USER_ID"].
+
+@test
+pub accepts_distinct_declaration_names(): Bool ->
+    SelfHostLintNaming.collision_names(["user_id", "account_id"]) == [].

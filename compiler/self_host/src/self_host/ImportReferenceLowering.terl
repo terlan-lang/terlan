@@ -1,6 +1,8 @@
 /** Lowers canonical module and selective import source into semantic references. */
 module self_host.ImportReferenceLowering.
 
+import std.core.String.
+
 import self_host.BackendSyntax.{BackendDeclaration}.
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.ImportReferenceSyntax.{ImportReference}.

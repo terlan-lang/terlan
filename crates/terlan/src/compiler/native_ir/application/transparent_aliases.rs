@@ -14,14 +14,31 @@ mod tests;
 #[derive(Clone)]
 struct Alias {
     module: String,
+    imports: Vec<String>,
     params: Vec<String>,
     body: CoreType,
+    recursive: bool,
 }
 
 pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
-    let aliases = cores
+    expand_aliases(cores, true);
+}
+
+/// Expands aliases introduced after the initial application-wide pass without
+/// unrolling recursive storage aliases by another structural layer.
+pub(super) fn expand_generated_transparent_aliases(cores: &mut [CoreModule]) {
+    expand_aliases(cores, false);
+}
+
+fn expand_aliases(cores: &mut [CoreModule], expand_recursive: bool) {
+    let mut aliases = cores
         .iter()
         .flat_map(|core| {
+            let imports = core
+                .imports
+                .iter()
+                .map(|import| import.module.clone())
+                .collect::<Vec<_>>();
             core.types.iter().filter_map(move |declaration| {
                 let canonical = format!("{}.{}", core.module, declaration.name);
                 let task =
@@ -40,14 +57,17 @@ pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
                     canonical,
                     Alias {
                         module: core.module.clone(),
+                        imports: imports.clone(),
                         params: declaration.params.clone(),
                         body,
+                        recursive: false,
                     },
                 ))
             })
         })
         .collect::<HashMap<_, _>>();
-    for core in cores {
+    mark_recursive_aliases(&mut aliases);
+    for core in cores.iter_mut() {
         let module = core.module.clone();
         let imports = core
             .imports
@@ -60,28 +80,63 @@ pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
             // operands so result inference can use the canonical type instead.
             if module == "std.core.Effect" && declaration.name == "Effect" {
                 if let Some(body) = &mut declaration.core_body {
-                    *body = resolve(body, &module, &imports, &aliases, &mut HashSet::new());
+                    *body = resolve(
+                        body,
+                        &module,
+                        &imports,
+                        &aliases,
+                        &mut HashSet::new(),
+                        expand_recursive,
+                    );
                 }
             }
             if let Some(CoreType::Struct { fields, .. }) = &mut declaration.core_body {
                 for field in fields {
-                    field.ty = resolve(&field.ty, &module, &imports, &aliases, &mut HashSet::new());
+                    field.ty = resolve(
+                        &field.ty,
+                        &module,
+                        &imports,
+                        &aliases,
+                        &mut HashSet::new(),
+                        expand_recursive,
+                    );
                 }
             }
         }
         for constructor in &mut core.constructors {
             for parameter in &mut constructor.params {
                 if let Some(ty) = &mut parameter.core_ty {
-                    *ty = resolve(ty, &module, &imports, &aliases, &mut HashSet::new());
+                    *ty = resolve(
+                        ty,
+                        &module,
+                        &imports,
+                        &aliases,
+                        &mut HashSet::new(),
+                        expand_recursive,
+                    );
                 }
             }
             if let Some(parameter) = &mut constructor.vararg {
                 if let Some(ty) = &mut parameter.core_ty {
-                    *ty = resolve(ty, &module, &imports, &aliases, &mut HashSet::new());
+                    *ty = resolve(
+                        ty,
+                        &module,
+                        &imports,
+                        &aliases,
+                        &mut HashSet::new(),
+                        expand_recursive,
+                    );
                 }
             }
             if let Some(ty) = &mut constructor.core_return_type {
-                *ty = resolve(ty, &module, &imports, &aliases, &mut HashSet::new());
+                *ty = resolve(
+                    ty,
+                    &module,
+                    &imports,
+                    &aliases,
+                    &mut HashSet::new(),
+                    expand_recursive,
+                );
             }
         }
         for function in &mut core.functions {
@@ -90,14 +145,28 @@ pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
                     parameter.core_ty = core_type_from_source_text(&parameter.ty);
                 }
                 if let Some(ty) = &mut parameter.core_ty {
-                    *ty = resolve(ty, &module, &imports, &aliases, &mut HashSet::new());
+                    *ty = resolve(
+                        ty,
+                        &module,
+                        &imports,
+                        &aliases,
+                        &mut HashSet::new(),
+                        expand_recursive,
+                    );
                 }
             }
             if function.core_return_type.is_none() {
                 function.core_return_type = core_type_from_source_text(&function.return_type);
             }
             if let Some(ty) = &mut function.core_return_type {
-                *ty = resolve(ty, &module, &imports, &aliases, &mut HashSet::new());
+                *ty = resolve(
+                    ty,
+                    &module,
+                    &imports,
+                    &aliases,
+                    &mut HashSet::new(),
+                    expand_recursive,
+                );
             }
             for clause in &mut function.clauses {
                 for pattern in clause.core_patterns.iter_mut().flatten() {
@@ -108,13 +177,127 @@ pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
                     .as_mut()
                     .and_then(|summary| summary.core_expr.as_mut())
                 {
-                    resolve_expr(guard, &module, &imports, &aliases);
+                    resolve_expr(guard, &module, &imports, &aliases, expand_recursive);
                 }
                 if let Some(body) = clause.body.core_expr.as_mut() {
-                    resolve_expr(body, &module, &imports, &aliases);
+                    resolve_expr(body, &module, &imports, &aliases, expand_recursive);
                 }
             }
         }
+    }
+}
+
+fn mark_recursive_aliases(aliases: &mut HashMap<String, Alias>) {
+    let graph = aliases
+        .iter()
+        .map(|(key, alias)| {
+            let mut references = HashSet::new();
+            collect_alias_references(
+                &alias.body,
+                &alias.module,
+                &alias.imports,
+                aliases,
+                &mut references,
+            );
+            (key.clone(), references)
+        })
+        .collect::<HashMap<_, _>>();
+    let recursive = graph
+        .keys()
+        .filter(|start| {
+            let mut pending = graph[*start].iter().collect::<Vec<_>>();
+            let mut visited = HashSet::new();
+            while let Some(candidate) = pending.pop() {
+                if candidate == *start {
+                    return true;
+                }
+                if visited.insert(candidate) {
+                    pending.extend(graph.get(candidate).into_iter().flatten());
+                }
+            }
+            false
+        })
+        .cloned()
+        .collect::<HashSet<_>>();
+    for key in recursive {
+        if let Some(alias) = aliases.get_mut(&key) {
+            alias.recursive = true;
+        }
+    }
+}
+
+fn collect_alias_references(
+    ty: &CoreType,
+    module: &str,
+    imports: &[String],
+    aliases: &HashMap<String, Alias>,
+    references: &mut HashSet<String>,
+) {
+    match ty {
+        CoreType::Named(name) => {
+            if let Some((key, _)) = find_alias(name, module, imports, aliases) {
+                references.insert(key);
+            }
+        }
+        CoreType::Apply { constructor, args } => {
+            if let Some((key, _)) = find_alias(constructor, module, imports, aliases) {
+                references.insert(key);
+            }
+            for arg in args {
+                collect_alias_references(arg, module, imports, aliases, references);
+            }
+        }
+        CoreType::List(element) => {
+            collect_alias_references(element, module, imports, aliases, references);
+        }
+        CoreType::Tuple(elements) => {
+            for element in elements {
+                collect_alias_references(
+                    match element {
+                        CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => ty,
+                    },
+                    module,
+                    imports,
+                    aliases,
+                    references,
+                );
+            }
+        }
+        CoreType::Struct { fields, .. } => {
+            for field in fields {
+                collect_alias_references(&field.ty, module, imports, aliases, references);
+            }
+        }
+        CoreType::Map(fields) => {
+            for field in fields {
+                collect_alias_references(&field.value, module, imports, aliases, references);
+            }
+        }
+        CoreType::Arrow {
+            params,
+            return_type,
+        } => {
+            for param in params {
+                collect_alias_references(param, module, imports, aliases, references);
+            }
+            collect_alias_references(return_type, module, imports, aliases, references);
+        }
+        CoreType::Union(types) => {
+            for ty in types {
+                collect_alias_references(ty, module, imports, aliases, references);
+            }
+        }
+        CoreType::Int
+        | CoreType::Float
+        | CoreType::Number
+        | CoreType::String
+        | CoreType::Binary
+        | CoreType::Atom
+        | CoreType::Bool
+        | CoreType::Term
+        | CoreType::Dynamic
+        | CoreType::Never
+        | CoreType::AtomLiteral(_) => {}
     }
 }
 
@@ -190,6 +373,7 @@ fn resolve(
     imports: &[String],
     aliases: &HashMap<String, Alias>,
     visiting: &mut HashSet<String>,
+    expand_recursive: bool,
 ) -> CoreType {
     let rebuilt = match ty {
         // Unit's public alias and source sentinel share one native storage type,
@@ -198,7 +382,7 @@ fn resolve(
         CoreType::Apply { constructor, args } => {
             let args = args
                 .iter()
-                .map(|arg| resolve(arg, module, imports, aliases, visiting))
+                .map(|arg| resolve(arg, module, imports, aliases, visiting, expand_recursive))
                 .collect::<Vec<_>>();
             // The standard opaque List owns the builtin list representation.
             // Qualification must not introduce a second managed identity, and
@@ -207,6 +391,12 @@ fn resolve(
                 return CoreType::List(Box::new(args[0].clone()));
             }
             if let Some((key, alias)) = find_alias(constructor, module, imports, aliases) {
+                if alias.recursive && !expand_recursive {
+                    return CoreType::Apply {
+                        constructor: key,
+                        args,
+                    };
+                }
                 // Nominal struct applications keep their type arguments in
                 // their managed identity; only transparent aliases erase them.
                 if matches!(alias.body, CoreType::Struct { .. }) && !alias.params.is_empty() {
@@ -223,7 +413,14 @@ fn resolve(
                         .zip(args)
                         .collect::<HashMap<_, _>>();
                     let substituted = substitute(&alias.body, &values);
-                    let resolved = resolve(&substituted, &alias.module, imports, aliases, visiting);
+                    let resolved = resolve(
+                        &substituted,
+                        &alias.module,
+                        &alias.imports,
+                        aliases,
+                        visiting,
+                        expand_recursive,
+                    );
                     visiting.remove(&key);
                     return resolved;
                 }
@@ -235,8 +432,18 @@ fn resolve(
         }
         CoreType::Named(name) => {
             if let Some((key, alias)) = find_alias(name, module, imports, aliases) {
+                if alias.recursive && !expand_recursive {
+                    return CoreType::Named(key);
+                }
                 if alias.params.is_empty() && visiting.insert(key.clone()) {
-                    let resolved = resolve(&alias.body, &alias.module, imports, aliases, visiting);
+                    let resolved = resolve(
+                        &alias.body,
+                        &alias.module,
+                        &alias.imports,
+                        aliases,
+                        visiting,
+                        expand_recursive,
+                    );
                     visiting.remove(&key);
                     return resolved;
                 }
@@ -244,18 +451,28 @@ fn resolve(
             ty.clone()
         }
         CoreType::List(element) => CoreType::List(Box::new(resolve(
-            element, module, imports, aliases, visiting,
+            element,
+            module,
+            imports,
+            aliases,
+            visiting,
+            expand_recursive,
         ))),
         CoreType::Tuple(elements) => CoreType::Tuple(
             elements
                 .iter()
                 .map(|element| match element {
-                    CoreTupleTypeElem::Type(ty) => {
-                        CoreTupleTypeElem::Type(resolve(ty, module, imports, aliases, visiting))
-                    }
+                    CoreTupleTypeElem::Type(ty) => CoreTupleTypeElem::Type(resolve(
+                        ty,
+                        module,
+                        imports,
+                        aliases,
+                        visiting,
+                        expand_recursive,
+                    )),
                     CoreTupleTypeElem::Field { name, ty } => CoreTupleTypeElem::Field {
                         name: name.clone(),
-                        ty: resolve(ty, module, imports, aliases, visiting),
+                        ty: resolve(ty, module, imports, aliases, visiting, expand_recursive),
                     },
                 })
                 .collect(),
@@ -266,7 +483,14 @@ fn resolve(
                 .iter()
                 .cloned()
                 .map(|mut field| {
-                    field.ty = resolve(&field.ty, module, imports, aliases, visiting);
+                    field.ty = resolve(
+                        &field.ty,
+                        module,
+                        imports,
+                        aliases,
+                        visiting,
+                        expand_recursive,
+                    );
                     field
                 })
                 .collect(),
@@ -276,7 +500,14 @@ fn resolve(
                 .iter()
                 .cloned()
                 .map(|mut field| {
-                    field.value = resolve(&field.value, module, imports, aliases, visiting);
+                    field.value = resolve(
+                        &field.value,
+                        module,
+                        imports,
+                        aliases,
+                        visiting,
+                        expand_recursive,
+                    );
                     field
                 })
                 .collect(),
@@ -287,15 +518,22 @@ fn resolve(
         } => CoreType::Arrow {
             params: params
                 .iter()
-                .map(|ty| resolve(ty, module, imports, aliases, visiting))
+                .map(|ty| resolve(ty, module, imports, aliases, visiting, expand_recursive))
                 .collect(),
-            return_type: Box::new(resolve(return_type, module, imports, aliases, visiting)),
+            return_type: Box::new(resolve(
+                return_type,
+                module,
+                imports,
+                aliases,
+                visiting,
+                expand_recursive,
+            )),
         },
         CoreType::Union(types) => {
             CoreType::Union(super::super::structured_case::canonical_atom_union(
                 types
                     .iter()
-                    .map(|ty| resolve(ty, module, imports, aliases, visiting))
+                    .map(|ty| resolve(ty, module, imports, aliases, visiting, expand_recursive))
                     .collect(),
             ))
         }
@@ -394,9 +632,17 @@ fn resolve_expr(
     module: &str,
     imports: &[String],
     aliases: &HashMap<String, Alias>,
+    expand_recursive: bool,
 ) {
     let mut resolve_type = |ty: &mut CoreType| {
-        *ty = resolve(ty, module, imports, aliases, &mut HashSet::new());
+        *ty = resolve(
+            ty,
+            module,
+            imports,
+            aliases,
+            &mut HashSet::new(),
+            expand_recursive,
+        );
     };
     match expr {
         CoreExpr::Cast { expr, target_type } => {
@@ -410,7 +656,7 @@ fn resolve_expr(
             {
                 type_args.iter_mut().for_each(&mut resolve_type);
                 for arg in args.iter_mut() {
-                    resolve_expr(arg, module, imports, aliases);
+                    resolve_expr(arg, module, imports, aliases, expand_recursive);
                 }
                 let identity = constructor_identity.as_deref().unwrap_or(constructor);
                 if transparent_alias_constructor_tag(identity, args.len(), module, imports, aliases)
@@ -419,11 +665,11 @@ fn resolve_expr(
                     return;
                 }
             }
-            resolve_expr(expr, module, imports, aliases);
+            resolve_expr(expr, module, imports, aliases, expand_recursive);
         }
         CoreExpr::Intrinsic(call) => {
             for arg in &mut call.args {
-                resolve_expr(arg, module, imports, aliases);
+                resolve_expr(arg, module, imports, aliases, expand_recursive);
             }
             resolve_type(&mut call.return_type);
             match &mut call.id {
@@ -448,10 +694,10 @@ fn resolve_expr(
                 | CoreIntrinsicId::VmEffectFail => {}
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items
                 .iter_mut()
-                .for_each(|item| resolve_expr(item, module, imports, aliases));
+                .for_each(|item| resolve_expr(item, module, imports, aliases, expand_recursive));
         }
         CoreExpr::ListCons { head, tail }
         | CoreExpr::Index {
@@ -463,8 +709,8 @@ fn resolve_expr(
             right: tail,
             ..
         } => {
-            resolve_expr(head, module, imports, aliases);
-            resolve_expr(tail, module, imports, aliases);
+            resolve_expr(head, module, imports, aliases, expand_recursive);
+            resolve_expr(tail, module, imports, aliases, expand_recursive);
         }
         CoreExpr::ListComprehension {
             expr,
@@ -472,36 +718,48 @@ fn resolve_expr(
             guards,
             ..
         } => {
-            resolve_expr(expr, module, imports, aliases);
+            resolve_expr(expr, module, imports, aliases, expand_recursive);
             for generator in generators {
                 resolve_pattern(&mut generator.pattern, module, imports, aliases);
-                resolve_expr(&mut generator.source, module, imports, aliases);
+                resolve_expr(
+                    &mut generator.source,
+                    module,
+                    imports,
+                    aliases,
+                    expand_recursive,
+                );
             }
             for guard in guards {
-                resolve_expr(guard, module, imports, aliases);
+                resolve_expr(guard, module, imports, aliases, expand_recursive);
             }
         }
         CoreExpr::Let { bindings, body } => {
             for binding in bindings {
                 resolve_pattern(&mut binding.pattern, module, imports, aliases);
-                resolve_expr(&mut binding.value, module, imports, aliases);
+                resolve_expr(
+                    &mut binding.value,
+                    module,
+                    imports,
+                    aliases,
+                    expand_recursive,
+                );
             }
-            resolve_expr(body, module, imports, aliases);
+            resolve_expr(body, module, imports, aliases, expand_recursive);
         }
         CoreExpr::Map(fields) => {
             for field in fields {
-                resolve_expr(&mut field.value, module, imports, aliases);
+                resolve_expr(&mut field.value, module, imports, aliases, expand_recursive);
             }
         }
         CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
             for field in fields {
-                resolve_expr(&mut field.value, module, imports, aliases);
+                resolve_expr(&mut field.value, module, imports, aliases, expand_recursive);
             }
         }
         CoreExpr::RecordUpdate { base, fields, .. } => {
-            resolve_expr(base, module, imports, aliases);
+            resolve_expr(base, module, imports, aliases, expand_recursive);
             for field in fields {
-                resolve_expr(&mut field.value, module, imports, aliases);
+                resolve_expr(&mut field.value, module, imports, aliases, expand_recursive);
             }
         }
         CoreExpr::ConstructorCall {
@@ -512,12 +770,18 @@ fn resolve_expr(
         } => {
             type_args.iter_mut().for_each(&mut resolve_type);
             for arg in args.iter_mut() {
-                resolve_expr(arg, module, imports, aliases);
+                resolve_expr(arg, module, imports, aliases, expand_recursive);
             }
             let identity = constructor_identity.as_deref().unwrap_or(constructor);
-            if let Some(record) =
-                explicit_struct_constructor(identity, type_args, args, module, imports, aliases)
-            {
+            if let Some(record) = explicit_struct_constructor(
+                identity,
+                type_args,
+                args,
+                module,
+                imports,
+                aliases,
+                expand_recursive,
+            ) {
                 *expr = record;
                 return;
             }
@@ -532,9 +796,10 @@ fn resolve_expr(
                     let target_type = resolve(
                         &alias.body,
                         &alias.module,
-                        imports,
+                        &alias.imports,
                         aliases,
                         &mut HashSet::new(),
+                        expand_recursive,
                     );
                     let tag = if canonical == "std.core.Effect.Mapped" {
                         "mapped"
@@ -563,6 +828,7 @@ fn resolve_expr(
                         imports,
                         aliases,
                         &mut HashSet::new(),
+                        expand_recursive,
                     )
                 });
                 let mut items = Vec::with_capacity(args.len().saturating_add(1));
@@ -585,10 +851,17 @@ fn resolve_expr(
             type_args, args, ..
         } => {
             for ty in type_args {
-                *ty = resolve(ty, module, imports, aliases, &mut HashSet::new());
+                *ty = resolve(
+                    ty,
+                    module,
+                    imports,
+                    aliases,
+                    &mut HashSet::new(),
+                    expand_recursive,
+                );
             }
             for arg in args {
-                resolve_expr(arg, module, imports, aliases);
+                resolve_expr(arg, module, imports, aliases, expand_recursive);
             }
         }
         CoreExpr::ConstructorChain {
@@ -599,25 +872,27 @@ fn resolve_expr(
         } => {
             type_args.iter_mut().for_each(&mut resolve_type);
             for arg in args {
-                resolve_expr(arg, module, imports, aliases);
+                resolve_expr(arg, module, imports, aliases, expand_recursive);
             }
-            resolve_expr(record, module, imports, aliases);
+            resolve_expr(record, module, imports, aliases, expand_recursive);
         }
         CoreExpr::MutableReceiverCall { receiver, args, .. } => {
-            resolve_expr(receiver, module, imports, aliases);
+            resolve_expr(receiver, module, imports, aliases, expand_recursive);
             for arg in args {
-                resolve_expr(arg, module, imports, aliases);
+                resolve_expr(arg, module, imports, aliases, expand_recursive);
             }
         }
         CoreExpr::FunctionCall { callee, args } => {
-            resolve_expr(callee, module, imports, aliases);
+            resolve_expr(callee, module, imports, aliases, expand_recursive);
             for arg in args {
-                resolve_expr(arg, module, imports, aliases);
+                resolve_expr(arg, module, imports, aliases, expand_recursive);
             }
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
-        | CoreExpr::UnaryOp { operand: base, .. } => resolve_expr(base, module, imports, aliases),
+        | CoreExpr::UnaryOp { operand: base, .. } => {
+            resolve_expr(base, module, imports, aliases, expand_recursive)
+        }
         CoreExpr::Lam {
             params,
             parameter_types,
@@ -630,16 +905,16 @@ fn resolve_expr(
                 .iter_mut()
                 .flatten()
                 .for_each(&mut resolve_type);
-            resolve_expr(body, module, imports, aliases);
+            resolve_expr(body, module, imports, aliases, expand_recursive);
         }
         CoreExpr::Case { scrutinee, clauses } => {
-            resolve_expr(scrutinee, module, imports, aliases);
+            resolve_expr(scrutinee, module, imports, aliases, expand_recursive);
             for clause in clauses {
                 resolve_pattern(&mut clause.pattern, module, imports, aliases);
                 if let Some(guard) = &mut clause.guard {
-                    resolve_expr(guard, module, imports, aliases);
+                    resolve_expr(guard, module, imports, aliases, expand_recursive);
                 }
-                resolve_expr(&mut clause.body, module, imports, aliases);
+                resolve_expr(&mut clause.body, module, imports, aliases, expand_recursive);
             }
         }
         CoreExpr::Try {
@@ -648,23 +923,35 @@ fn resolve_expr(
             catch_clauses,
             after_clause,
         } => {
-            resolve_expr(body, module, imports, aliases);
+            resolve_expr(body, module, imports, aliases, expand_recursive);
             for clause in of_clauses.iter_mut().chain(catch_clauses) {
                 resolve_pattern(&mut clause.pattern, module, imports, aliases);
                 if let Some(guard) = &mut clause.guard {
-                    resolve_expr(guard, module, imports, aliases);
+                    resolve_expr(guard, module, imports, aliases, expand_recursive);
                 }
-                resolve_expr(&mut clause.body, module, imports, aliases);
+                resolve_expr(&mut clause.body, module, imports, aliases, expand_recursive);
             }
             if let Some(after) = after_clause {
-                resolve_expr(&mut after.trigger, module, imports, aliases);
-                resolve_expr(&mut after.body, module, imports, aliases);
+                resolve_expr(
+                    &mut after.trigger,
+                    module,
+                    imports,
+                    aliases,
+                    expand_recursive,
+                );
+                resolve_expr(&mut after.body, module, imports, aliases, expand_recursive);
             }
         }
         CoreExpr::If { clauses } => {
             for clause in clauses {
-                resolve_expr(&mut clause.condition, module, imports, aliases);
-                resolve_expr(&mut clause.body, module, imports, aliases);
+                resolve_expr(
+                    &mut clause.condition,
+                    module,
+                    imports,
+                    aliases,
+                    expand_recursive,
+                );
+                resolve_expr(&mut clause.body, module, imports, aliases, expand_recursive);
             }
         }
         CoreExpr::SqlQuery {
@@ -674,7 +961,7 @@ fn resolve_expr(
         } => {
             resolve_type(result_core_type);
             for parameter in parameters {
-                resolve_expr(parameter, module, imports, aliases);
+                resolve_expr(parameter, module, imports, aliases, expand_recursive);
             }
         }
         CoreExpr::Int(_)
@@ -695,6 +982,7 @@ fn explicit_struct_constructor(
     module: &str,
     imports: &[String],
     aliases: &HashMap<String, Alias>,
+    expand_recursive: bool,
 ) -> Option<CoreExpr> {
     if type_args.is_empty() {
         return None;
@@ -723,9 +1011,10 @@ fn explicit_struct_constructor(
                 target_type: resolve(
                     &substitute(&field.ty, &values),
                     &alias.module,
-                    imports,
+                    &alias.imports,
                     aliases,
                     &mut HashSet::new(),
+                    expand_recursive,
                 ),
             },
         })

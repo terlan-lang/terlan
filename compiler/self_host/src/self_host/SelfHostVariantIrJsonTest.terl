@@ -1,0 +1,37 @@
+/** Canonical variant-layout JSON contracts. */
+module self_host.SelfHostVariantIrJsonTest.
+
+import self_host.SelfHostIrSyntax.{IrVariantLayout}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.test.Test.{assert}.
+import self_host.SelfHostVariantIrJson.
+
+
+@test
+canonical_document_retains_runtime_authority(): Bool ->
+    let encoded = SelfHostVariantIrJson.encode_layouts([
+        IrVariantLayout("Option", "None", 0, ["T"], List.new[Option[String]]()),
+        IrVariantLayout("Option", "Some", 1, ["T"], [Some("T")]),
+    ]);
+    case encoded {
+        Ok(text) -> assert(
+            String.contains(text, "terlan.self-host.variant-layout/v1")
+                and String.contains(text, "\"discriminant\":1")
+                and String.contains(text, "\"payload_types\":[{\"known\":true,\"name\":\"T\"}]")
+        );
+        Err(_) -> assert(false)
+    }.
+
+
+@test
+unknown_payload_type_is_explicit(): Bool ->
+    case SelfHostVariantIrJson.encode_layouts([
+        IrVariantLayout("Dynamic", "Value", 0, List.new[String](), [None]),
+    ]) {
+        Ok(text) -> assert(String.contains(text, "\"known\":false"));
+        Err(_) -> assert(false)
+    }.

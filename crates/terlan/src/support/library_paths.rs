@@ -4,6 +4,9 @@ use std::path::{Path, PathBuf};
 
 /// Locates an installed or source-tree standard-library summary.
 pub(crate) fn imported_std_summary_path(module: &str, active_path: &Path) -> Option<PathBuf> {
+    if let Some(summary) = super::js_binding_registry::summary_path(module) {
+        return Some(summary);
+    }
     if !module.starts_with("std.") {
         return None;
     }

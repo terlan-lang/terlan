@@ -1,0 +1,6 @@
+//! Shared CSS keyword flat. Generated; do not edit.
+
+module std.css.keywords.Flat.
+
+pub type Flat =
+    Atom["flat"].

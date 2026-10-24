@@ -1,0 +1,18 @@
+module self_host.ProjectedPatternPayloadTypesTest.
+
+import self_host.ProjectedPatternAuthority.{PatternConstructorContract}.
+import self_host.ProjectedPatternPayloadTypes.{instantiate}.
+import std.core.Option.{Some}.
+
+@test
+pub imported_generic_constructor_payloads_are_substituted_recursively(): Bool ->
+    let contract = PatternConstructorContract(
+        "Some",
+        2,
+        ["T", "E"],
+        [Some("List[T]"), Some("Result[T, E]")],
+    );
+    instantiate(contract, "Option[String, Int]") == [
+        Some("List[String]"),
+        Some("Result[String, Int]"),
+    ].

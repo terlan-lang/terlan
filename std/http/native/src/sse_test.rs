@@ -1,4 +1,5 @@
 use super::*;
+use terlan_runtime_abi::NativeValue;
 
 #[test]
 fn codec_body_must_be_ready_valid_utf8_and_error_free() {

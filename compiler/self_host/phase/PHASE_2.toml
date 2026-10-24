@@ -95,7 +95,7 @@ required = [
 ]
 keyed_container_expression_nodes = true
 nominal_keyed_expression_nodes = true
-fixed_array_expression_nodes = true
+array_expression_nodes = true
 atom_literal_expression_nodes = true
 record_access_and_update_nodes = true
 dynamic_call_expression_nodes = true

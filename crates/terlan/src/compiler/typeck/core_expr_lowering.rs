@@ -43,9 +43,7 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         SyntaxExprKind::Tuple => core_exprs_from_syntax_children(expr).map(CoreExpr::Tuple),
         SyntaxExprKind::List => core_exprs_from_syntax_children(expr).map(CoreExpr::List),
         SyntaxExprKind::ListCons => core_list_cons_expr_from_syntax(expr),
-        SyntaxExprKind::FixedArray => {
-            core_exprs_from_syntax_children(expr).map(CoreExpr::FixedArray)
-        }
+        SyntaxExprKind::Array => core_exprs_from_syntax_children(expr).map(CoreExpr::Array),
         SyntaxExprKind::Index => core_index_expr_from_syntax(expr),
         SyntaxExprKind::IndexAssign => core_index_assign_expr_from_syntax(expr),
         SyntaxExprKind::ListComprehension => core_list_comprehension_expr_from_syntax(expr),

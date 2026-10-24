@@ -1,9 +1,11 @@
 module=std.css.properties.MathShift
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17604503504278349727
-interface_hash=6255628543703284128
-interface_doc_hash=674507789283513043
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=12584351630790607904
+interface_hash=7072870149754686444
+interface_doc_hash=13675644647755556815
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Compact=14644387308080718204
+std.css.keywords.Normal=15467599898019431818

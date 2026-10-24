@@ -16,6 +16,18 @@ pub(crate) fn with_source_exports<R>(
     functions: &[&str],
     project: impl FnOnce(&str, &[ReplValue], &[TvmExportDescriptor]) -> Result<R, String>,
 ) -> Result<R, String> {
+    with_typed_source_exports(source, workspace, functions, |module, values, exports, _| {
+        project(module, values, exports)
+    })
+}
+
+/// Retains checked type interfaces for consumers whose projection depends on field types.
+pub(crate) fn with_typed_source_exports<R>(
+    source: &Path,
+    workspace: &Path,
+    functions: &[&str],
+    project: impl FnOnce(&str, &[ReplValue], &[TvmExportDescriptor], &[crate::terlan_hir::ModuleInterface]) -> Result<R, String>,
+) -> Result<R, String> {
     let source = source.canonicalize().map_err(|error| {
         format!(
             "error[source_eval]: cannot read {}: {error}",
@@ -82,7 +94,7 @@ pub(crate) fn with_source_exports<R>(
             };
         }
     }
-    project(&module, &values, &inspection.descriptor.exports)
+    project(&module, &values, &inspection.descriptor.exports, &compiled.interfaces)
 }
 
 #[cfg(test)]

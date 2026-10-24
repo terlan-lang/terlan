@@ -7,6 +7,9 @@ POLICY_CARGO_TEST = bash scripts/run_exact_cargo_test.sh
 TERLAN_BOOTSTRAP_COMPILER := target/debug/terlc
 TERLAN_BOOTSTRAP_COMPILER_BUILD := $(TERLAN_BOOTSTRAP_COMPILER) build --incremental
 TERLAN_BOOTSTRAP_VM := target/debug/terlan-vm
+TERLAN_VALIDATION_VM := target/release/terlan-vm
+TERLAN_SELF_HOST_IMAGE ?= target/quality/self-host-bootstrap-current-40/bin/terlan-self-host
+TERLAN_SELF_HOST_PHASE2_EVIDENCE ?= target/quality/self-host-phase2-current
 TERLAN_BUILD_CACHE := target/debug/terlan-build-cache
 TERLAN_SERVE_RUNTIME_PROFILE := serve-runtime
 TERLAN_SERVE_RUNTIME_BIN := $(CURDIR)/target/$(TERLAN_SERVE_RUNTIME_PROFILE)/terlan-serve-runtime
@@ -22,7 +25,8 @@ TERLAN_BUILD_MINIMUM_FREE_BYTES ?= 8589934592
 TERLAN_TYPED_VALIDATOR_BUILD := bash scripts/build_typed_validator.sh
 TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT := target/self-validation/typed-validator-common.inputs.sha256
 TERLAN_TYPED_VALIDATOR_COMMON_INPUTS := $(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT)
-TERLAN_SELF_VALIDATION_IMAGE := _build/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm
+TERLAN_SELF_VALIDATION_DIR := target/self-validation/build-artifact-budget
+TERLAN_SELF_VALIDATION_IMAGE := $(TERLAN_SELF_VALIDATION_DIR)/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm
 TERLAN_MAKE_RECIPE_DIR := target/self-validation/make-recipe-thinness
 TERLAN_MAKE_RECIPE_IMAGE := $(TERLAN_MAKE_RECIPE_DIR)/vm/scripts_self_validation_MakeRecipeThinness.tvm
 TERLAN_PROOF_RELEASE_DIR := target/self-validation/proof-release-evidence
@@ -44,7 +48,7 @@ TERLAN_TVM_PLATFORM_MATRIX_IMAGE := $(TERLAN_TVM_PLATFORM_MATRIX_DIR)/vm/scripts
 TERLAN_TVM_PLATFORM_MATRIX := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_TVM_PLATFORM_MATRIX_IMAGE) --script-eval --
 TERLAN_RUST_QUALITY_DIR := target/self-validation/rust-quality
 TERLAN_RUST_QUALITY_IMAGE := $(TERLAN_RUST_QUALITY_DIR)/vm/scripts_RustQuality.tvm
-TERLAN_RUST_QUALITY := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_RUST_QUALITY_IMAGE) --script-eval --
+TERLAN_RUST_QUALITY := $(CURDIR)/$(TERLAN_VALIDATION_VM) run $(CURDIR)/$(TERLAN_RUST_QUALITY_IMAGE) --script-eval --
 TERLAN_RELEASE_PROMOTION_DIR := target/self-validation/release-promotion
 TERLAN_RELEASE_PROMOTION_IMAGE := $(TERLAN_RELEASE_PROMOTION_DIR)/vm/scripts_ReleasePromotion.tvm
 TERLAN_RELEASE_PROMOTION := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_RELEASE_PROMOTION_IMAGE) --script-eval --
@@ -104,11 +108,12 @@ TERLAN_REPOSITORY_VALIDATION_DIR := target/self-validation/repository-validation
 TERLAN_REPOSITORY_VALIDATION_IMAGE := $(TERLAN_REPOSITORY_VALIDATION_DIR)/vm/scripts_self_validation_RepositoryValidation.tvm
 TERLAN_REPOSITORY_VALIDATION := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_REPOSITORY_VALIDATION_IMAGE) --script-eval --
 TERLAN_RUST_QUALITY_TIMEOUT_SECONDS := 300
-TERLAN_RUST_QUALITY_VIRTUAL_MEMORY_KIB := 131072
+# Account for executable mappings and image admission; managed heap stays at 64 MiB.
+TERLAN_RUST_QUALITY_VIRTUAL_MEMORY_KIB := 196608
 TERLAN_RUST_QUALITY_MALLOC_ARENA_MAX := 1
 TERLAN_TVM_PLATFORM_REPORT_ROOT ?= target/quality/tvm-aot-platform-input
 TERLAN_SHARED_HELPER_TIMEOUT_SECONDS := 300
-TERLAN_SHARED_HELPER_VIRTUAL_MEMORY_KIB := 131072
+TERLAN_SHARED_HELPER_VIRTUAL_MEMORY_KIB := 196608
 TERLAN_VALIDATOR_BUILD_JOBS ?= 2
 ifeq ($(filter 1 2,$(TERLAN_VALIDATOR_BUILD_JOBS)),)
 $(error TERLAN_VALIDATOR_BUILD_JOBS must be 1 or 2)
@@ -671,7 +676,7 @@ ifeq ($(filter 1,$(TERLAN_VALIDATION_BOOTSTRAPPED) $(TERLAN_ARTIFACT_MEASUREMENT
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SELF_VALIDATION_IMAGE) \
 		$(TERLAN_BOOTSTRAP_COMPILER) std scripts/self_validation/BuildArtifactBudgetTest.terl -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
-		scripts/self_validation/BuildArtifactBudgetTest.terl --out-dir _build
+		scripts/self_validation/BuildArtifactBudgetTest.terl --out-dir $(TERLAN_SELF_VALIDATION_DIR)
 	test -s $(TERLAN_SELF_VALIDATION_IMAGE)
 endif
 
@@ -705,7 +710,7 @@ ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_EBNF_VALIDATOR_IMAGE)
 endif
 
-terlan-shared-helper-bootstrap: terlan-compiler-bootstrap
+terlan-shared-helper-bootstrap: terlan-compiler-bootstrap terlan-validation-vm-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SHARED_HELPER_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/SharedHelperCheck.terls -- \
@@ -745,7 +750,16 @@ ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
 endif
 
-terlan-rust-quality-bootstrap: terlan-compiler-bootstrap
+.PHONY: terlan-validation-vm-bootstrap
+terlan-validation-vm-bootstrap: terlan-compiler-bootstrap
+ifeq ($(filter 1,$(TERLAN_VALIDATION_BOOTSTRAPPED) $(TERLAN_BUILD_ARTIFACTS_PREBUILT) $(TERLAN_RELEASE_BINARIES_PREBUILT)),)
+	$(TERLAN_BOOTSTRAP_LOCK) \
+		$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- \
+		$(CARGO) build --release -p terlan --bin terlan-vm
+endif
+	test -x $(TERLAN_VALIDATION_VM)
+
+terlan-rust-quality-bootstrap: terlan-compiler-bootstrap terlan-validation-vm-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_RUST_QUALITY_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/rust_quality -- \
@@ -1392,11 +1406,11 @@ target-inference-default-vm-check:
 
 shared-helper-check: rust-boundary-audit-report terlan-shared-helper-bootstrap
 	TERLAN_SHARED_HELPER_ROOT="$(CURDIR)" \
-		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SHARED_HELPER_IMAGE) --script-eval -- --self-test
+		$(TERLAN_VALIDATION_VM) run $(TERLAN_SHARED_HELPER_IMAGE) --script-eval -- --self-test
 	@ulimit -v $(TERLAN_SHARED_HELPER_VIRTUAL_MEMORY_KIB); \
 		timeout $(TERLAN_SHARED_HELPER_TIMEOUT_SECONDS)s env \
 			TERLAN_SHARED_HELPER_ROOT="$(CURDIR)" \
-			$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SHARED_HELPER_IMAGE) --script-eval
+			$(TERLAN_VALIDATION_VM) run $(TERLAN_SHARED_HELPER_IMAGE) --script-eval
 
 release-code-hygiene-check: \
 	rust-warnings-check \
@@ -5519,6 +5533,7 @@ web-service-foundation-pruning-check: terlan-compiler-bootstrap
 
 web-service-foundation-check: web-service-foundation-contract-check web-service-foundation-runtime-check web-service-foundation-adapter-check web-service-foundation-pruning-check
 	target/debug/terlc run scripts/self_validation/WebServiceFoundation.terls -- report
+
 
 .PHONY: typed-css-check
 typed-css-check:

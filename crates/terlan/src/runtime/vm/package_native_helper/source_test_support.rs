@@ -4,7 +4,7 @@ use super::*;
 use crate::support::test_fs::TestDirectory;
 use crate::{CliCommand, CliState};
 
-pub(super) fn assert_source_checks(module: &str, contents: &str, entries: &[&str]) {
+pub(crate) fn assert_source_checks(module: &str, contents: &str, entries: &[&str]) {
     let directory = TestDirectory::new("package-source", module);
     let source = directory.join(&format!("{module}.terl"));
     std::fs::write(&source, contents).unwrap();

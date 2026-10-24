@@ -1,0 +1,41 @@
+/** Positive, negative, and convergence contracts for the self-hosted formatter. */
+module self_host.SelfHostFormatterTest.
+
+import std.core.String.
+
+import self_host.SelfHostFormatter.
+
+
+@test
+pub formats_admitted_source_with_canonical_token_spacing(): Bool ->
+    let result = SelfHostFormatter.format(
+        "module sample.Format.\npub identity( value : Int ): Int -> value.\n",
+    );
+    result.valid
+        and result.changed
+        and String.contains(result.source, "module sample.Format.")
+        and String.contains(result.source, "pub identity(value: Int): Int -> value.").
+
+@test
+pub preserves_comments_and_literal_text(): Bool ->
+    let result = SelfHostFormatter.format(
+        "//! Formatter sample.\nmodule sample.Format.\n/** Returns text. */\npub text(): String -> \"a  b\".\n",
+    );
+    result.valid
+        and String.contains(result.source, "//! Formatter sample.")
+        and String.contains(result.source, "/** Returns text. */")
+        and String.contains(result.source, "\"a  b\"").
+
+@test
+pub formatting_reaches_a_fixed_point(): Bool ->
+    let first = SelfHostFormatter.format(
+        "module sample.Format.\npub choose(value:Int):Int -> if{value>0->value;true->0}.\n",
+    );
+    let second = SelfHostFormatter.format(first.source);
+    first.valid and second.valid and first.source == second.source.
+
+@test
+pub rejected_source_is_returned_unchanged(): Bool ->
+    let source = "module sample.Format.\npub broken(: Int -> 1.\n";
+    let result = SelfHostFormatter.format(source);
+    not result.valid and not result.changed and result.source == source.

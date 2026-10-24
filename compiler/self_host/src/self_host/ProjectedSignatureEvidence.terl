@@ -1,6 +1,8 @@
 /** Stable signature/type declaration evidence for parser parity. */
 module self_host.ProjectedSignatureEvidence.
 
+import std.core.String.
+
 import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedSignatureDocument, ProjectedTypeDeclarationTree}.
 
 import std.collections.List.

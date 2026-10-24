@@ -1,0 +1,6 @@
+//! Shared CSS keyword allow-end. Generated; do not edit.
+
+module std.css.keywords.AllowEnd.
+
+pub type AllowEnd =
+    Atom["allow-end"].

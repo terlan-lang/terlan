@@ -1,0 +1,6 @@
+//! Shared CSS keyword space-evenly. Generated; do not edit.
+
+module std.css.keywords.SpaceEvenly.
+
+pub type SpaceEvenly =
+    Atom["space-evenly"].

@@ -6,6 +6,7 @@ use terlan::self_host_ir::{
     backend_digest, compare_bootstrap_artifacts, decode_and_validate, stable_digest,
     BootstrapArtifact,
 };
+use terlan::self_host_backend::lower_backend_program;
 
 fn main() -> ExitCode {
     match run(env::args().skip(1).collect()) {
@@ -39,6 +40,8 @@ fn run(arguments: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
                 .map_err(|error| format!("cannot read {input}: {error}"))?;
             let envelope = decode_and_validate(&source)
                 .map_err(|error| format!("cannot accept {input}: {error}"))?;
+            lower_backend_program(envelope.clone())
+                .map_err(|error| format!("cannot adapt {input}: {error}"))?;
             let encoded = serde_json::to_vec(&envelope)
                 .map_err(|error| format!("cannot encode canonical envelope: {error}"))?;
             Ok(fs::write(output, encoded)
@@ -66,6 +69,8 @@ fn run(arguments: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
                 .map_err(|error| format!("cannot read {envelope}: {error}"))?;
             let checked = decode_and_validate(&envelope_source)
                 .map_err(|error| format!("cannot accept {envelope}: {error}"))?;
+            lower_backend_program(checked.clone())
+                .map_err(|error| format!("cannot adapt {envelope}: {error}"))?;
             if checked.module.name != *module {
                 return Err((format!(
                     "envelope module {:?} does not match requested module {module:?}",

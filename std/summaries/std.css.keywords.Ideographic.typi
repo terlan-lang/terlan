@@ -1,0 +1,6 @@
+//! Shared CSS keyword ideographic. Generated; do not edit.
+
+module std.css.keywords.Ideographic.
+
+pub type Ideographic =
+    Atom["ideographic"].

@@ -4,9 +4,9 @@ use crate::runtime::vm::ReplValue;
 
 use super::types::{WebPackageResponseHeader, WebPackageStaticResponse};
 
-pub(crate) use terlan_http_native::admitted_response::{
-    AdmittedResponse as HandlerResponse, ResponseBody as HandlerBody,
-};
+pub(crate) use terlan_http_native::admitted_response::AdmittedResponse as HandlerResponse;
+#[cfg(test)]
+use terlan_http_native::admitted_response::ResponseBody as HandlerBody;
 
 /// Supplies host capabilities while source admission remains package-owned.
 pub(crate) fn decode_owned_response(
@@ -16,6 +16,7 @@ pub(crate) fn decode_owned_response(
     source_response::decode(response, Some(package_root))
 }
 
+#[cfg(test)]
 pub(crate) fn decode_response(
     response: &ReplValue,
     package_root: &Path,

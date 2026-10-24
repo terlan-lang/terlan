@@ -1,9 +1,11 @@
 module=std.css.properties.TableLayout
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16628891578514785781
-interface_hash=14697084825307696028
-interface_doc_hash=252000453941673882
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4156154002035885033
+interface_hash=1955709920262870248
+interface_doc_hash=5404556572639301676
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722
+std.css.keywords.Fixed=2398942837349121612

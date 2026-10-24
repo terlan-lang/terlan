@@ -1,0 +1,197 @@
+/** Actor-aware backend publication layered over the ordinary interface catalog. */
+module self_host.ProjectedActorInterfaceCatalog.
+
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, String}.
+import std.io.File.
+import self_host.CanonicalLexer.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.ProjectedBackendCompile.
+import self_host.ProjectedFrontend.
+import self_host.ProjectedInterfaceCatalog.
+import self_host.SelfHostActorBackendCompile.{ActorBackendCompilation, ActorFunctionCompileEvidence}.
+import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
+import self_host.SelfHostActorDynamicEvidenceCatalog.
+import self_host.SelfHostActorProfileCatalog.
+
+@pure
+non_empty_paths(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> if {
+            String.trim(value) == "" -> non_empty_paths(rest);
+            true -> [String.trim(value) | non_empty_paths(rest)]
+        }
+    }.
+
+@pure
+diagnostics_text(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([value, "\n", diagnostics_text(rest)])
+    }.
+
+write_failure(diagnostics_output: String, message: String): Bool ->
+    case File.write_text(diagnostics_output, String.concat([message, "\n"])) {
+        Err(_error) -> false;
+        Ok(_unit) -> false
+    }.
+
+write_backend_diagnostics(diagnostics_output: String, diagnostic_text: String): Bool ->
+    case File.write_text(diagnostics_output, diagnostic_text) {
+        Err(_error) -> false;
+        Ok(_unit) -> false
+    }.
+
+read_actor_profiles(manifest: String): Result[List[ActorSuspensionProfile], String] ->
+    case File.read_text(manifest) {
+        Err(_) -> Err("cannot read actor profile manifest");
+        Ok(paths) -> SelfHostActorProfileCatalog.read_all(
+            non_empty_paths(String.split(paths, "\n")),
+        )
+    }.
+
+read_actor_evidence(manifest: String): Result[List[ActorFunctionCompileEvidence], String] ->
+    case File.read_text(manifest) {
+        Err(_) -> Err("cannot read actor dynamic evidence manifest");
+        Ok(paths) -> SelfHostActorDynamicEvidenceCatalog.read_all(
+            non_empty_paths(String.split(paths, "\n")),
+        )
+    }.
+
+write_actor_payloads(
+    core_json: String,
+    variant_json: String,
+    actor_json: String,
+    core_output: String,
+    variant_output: String,
+    actor_output: String,
+    diagnostics_output: String,
+    completion_marker: String,
+): Bool ->
+    case File.write_text(core_output, core_json) {
+        Err(_) -> write_failure(diagnostics_output, "cannot write actor Core IR envelope");
+        Ok(_) -> case File.write_text(variant_output, variant_json) {
+            Err(_) -> write_failure(diagnostics_output, "cannot write actor variant IR sidecar");
+            Ok(_) -> case File.write_text(actor_output, actor_json) {
+                Err(_) -> write_failure(diagnostics_output, "cannot write actor continuation IR sidecar");
+                Ok(_) -> case File.write_text(diagnostics_output, "") {
+                    Err(_) -> false;
+                    Ok(_) -> case File.write_text(completion_marker, "complete\n") {
+                        Err(_) -> false;
+                        Ok(_) -> true
+                    }
+                }
+            }
+        }
+    }.
+
+write_actor_compilation(
+    compilation: ActorBackendCompilation,
+    core_output: String,
+    variant_output: String,
+    actor_output: String,
+    diagnostics_output: String,
+    completion_marker: String,
+): Bool ->
+    if {
+        not List.is_empty(compilation.diagnostics) ->
+            write_backend_diagnostics(
+                diagnostics_output,
+                diagnostics_text(compilation.diagnostics),
+            );
+        true -> case compilation.backend_json {
+            Some(core_json) -> case compilation.variant_json {
+                Some(variant_json) -> case compilation.actor_json {
+                    Some(actor_json) -> write_actor_payloads(
+                        core_json,
+                        variant_json,
+                        actor_json,
+                        core_output,
+                        variant_output,
+                        actor_output,
+                        diagnostics_output,
+                        completion_marker,
+                    );
+                    _ -> write_failure(diagnostics_output, "actor backend emitted an incomplete artifact set")
+                };
+                _ -> write_failure(diagnostics_output, "actor backend emitted an incomplete artifact set")
+            };
+            _ -> write_failure(diagnostics_output, "actor backend emitted an incomplete artifact set")
+        }
+    }.
+
+write_actor_source(
+    source: String,
+    interfaces: List[ModuleInterface],
+    profiles: List[ActorSuspensionProfile],
+    function_evidence: List[ActorFunctionCompileEvidence],
+    core_output: String,
+    variant_output: String,
+    actor_output: String,
+    diagnostics_output: String,
+    completion_marker: String,
+): Bool ->
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    if {
+        not lexed.valid -> write_failure(diagnostics_output, "canonical lexer rejected actor backend source");
+        not frontend.valid -> write_failure(
+            diagnostics_output,
+            String.concat(["projected frontend rejected actor backend source: ", frontend.message]),
+        );
+        true -> write_actor_compilation(
+            ProjectedBackendCompile.compile_actor_with_evidence(
+                frontend,
+                interfaces,
+                profiles,
+                function_evidence,
+                "terlan-vm",
+            ),
+            core_output,
+            variant_output,
+            actor_output,
+            diagnostics_output,
+            completion_marker,
+        )
+    }.
+
+/** Compiles and publishes one actor-aware unit behind a last-written marker. */
+pub write_actor_backend(
+    source_path: String,
+    interface_manifest: String,
+    actor_profile_manifest: String,
+    actor_dynamic_evidence_manifest: String,
+    core_output: String,
+    variant_output: String,
+    actor_output: String,
+    diagnostics_output: String,
+    completion_marker: String,
+): Bool ->
+    let _removed = File.delete(completion_marker);
+    let interfaces = ProjectedInterfaceCatalog.load(interface_manifest);
+    if {
+        not interfaces.valid -> write_failure(diagnostics_output, interfaces.message);
+        true -> case read_actor_profiles(actor_profile_manifest) {
+            Err(reason) -> write_failure(diagnostics_output, reason);
+            Ok(profiles) -> case read_actor_evidence(actor_dynamic_evidence_manifest) {
+                Err(reason) -> write_failure(diagnostics_output, reason);
+                Ok(function_evidence) -> case File.read_text(source_path) {
+                    Err(_) -> write_failure(diagnostics_output, "cannot read actor backend source");
+                    Ok(source) -> write_actor_source(
+                        source,
+                        interfaces.interfaces,
+                        profiles,
+                        function_evidence,
+                        core_output,
+                        variant_output,
+                        actor_output,
+                        diagnostics_output,
+                        completion_marker,
+                    )
+                }
+            }
+        }
+    }.

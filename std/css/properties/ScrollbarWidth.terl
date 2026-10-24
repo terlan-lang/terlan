@@ -1,81 +1,33 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scrollbars-1/#propdef-scrollbar-width
+ * The `scrollbar-width` property allows the author to set the desired thickness of an element's
+ * scrollbars when they are shown.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: The default scrollbar width for the platform.
+ * - none: No scrollbar shown, however the element will still be scrollable.
+ * - thin: A thin scrollbar width variant on platforms that provide that option, or a thinner
+ * scrollbar than the default platform scrollbar width.
+ *
  * Grammar: auto | thin | none
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scrollbars-1/#propdef-scrollbar-width
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scrollbar-width
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollbarWidth.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, None, Thin}.
 
-/**
- * A nominal, specification-constrained scrollbar-width value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    scrollbar_width: Value,
+    scrollbar_width: Auto | Thin | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    scrollbar_width: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "scrollbar-width", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "scrollbar-width", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scrollbar-width", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "scrollbar-width", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scrollbar-width", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scrollbar-width", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword thin.
- */
-pub thin(): Value ->
-    Value(Token {property: "scrollbar-width", css: "thin"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scrollbar-width", css: "unset"}).

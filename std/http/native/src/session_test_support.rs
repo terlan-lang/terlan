@@ -34,9 +34,9 @@ impl SessionStorage for Probe {
         self.record(&["lookup", identity])?;
         Ok(self.live.then(|| identity.into()))
     }
-    fn create(&mut self, identity: &str, ttl_seconds: u64) -> Result<String, BoundaryError> {
-        self.record(&["create", identity, &ttl_seconds.to_string()])?;
-        Ok("issued".into())
+    fn try_create(&mut self, identity: &str, ttl_seconds: u64) -> Result<bool, BoundaryError> {
+        self.record(&["try_create", identity, &ttl_seconds.to_string()])?;
+        Ok(true)
     }
     fn get(&mut self, identity: &str, key: &str) -> Result<Option<String>, BoundaryError> {
         self.record(&["get", identity, key])?;
@@ -48,9 +48,19 @@ impl SessionStorage for Probe {
     fn delete(&mut self, identity: &str, key: &str) -> Result<(), BoundaryError> {
         self.record(&["delete", identity, key])
     }
-    fn rotate(&mut self, identity: &str, ttl_seconds: u64) -> Result<String, BoundaryError> {
-        self.record(&["rotate", identity, &ttl_seconds.to_string()])?;
-        Ok("rotated".into())
+    fn try_rotate(
+        &mut self,
+        identity: &str,
+        replacement: &str,
+        ttl_seconds: u64,
+    ) -> Result<bool, BoundaryError> {
+        self.record(&[
+            "try_rotate",
+            identity,
+            replacement,
+            &ttl_seconds.to_string(),
+        ])?;
+        Ok(true)
     }
     fn expire(&mut self, identity: &str) -> Result<(), BoundaryError> {
         self.record(&["expire", identity])

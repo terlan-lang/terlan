@@ -1,0 +1,51 @@
+/** Positive and fail-closed optimizer authority evidence contracts. */
+module self_host.SelfHostCoreOptimizeEvidenceTest.
+
+import std.core.String.
+
+import self_host.SelfHostCoreOptimizeEvidence.
+
+
+ready_evidence(): self_host.SelfHostCoreOptimizeEvidence.CoreOptimizeEvidence ->
+    SelfHostCoreOptimizeEvidence.evaluate(
+        "complete\n",
+        "complete\n",
+        "optimized-json",
+        "optimized-json",
+        "optimized-json",
+        "diagnostics",
+        "diagnostics",
+        "runtime-results",
+        "runtime-results",
+        "complete\n",
+    ).
+
+@test
+pub complete_equivalence_artifacts_grant_optimizer_authority(): Bool ->
+    let evidence = ready_evidence();
+    evidence.ready
+        and String.contains(
+            SelfHostCoreOptimizeEvidence.render(evidence),
+            "target-independent-optimizer-authority\tpass\n",
+        ).
+
+@test
+pub runtime_difference_denies_authority_with_positive_companion(): Bool ->
+    let evidence = SelfHostCoreOptimizeEvidence.evaluate(
+        "complete\n",
+        "complete\n",
+        "optimized-json",
+        "optimized-json",
+        "optimized-json",
+        "diagnostics",
+        "diagnostics",
+        "before",
+        "after",
+        "complete\n",
+    );
+    complete_equivalence_artifacts_grant_optimizer_authority()
+        and not evidence.ready
+        and String.contains(
+            SelfHostCoreOptimizeEvidence.render(evidence),
+            "runtime-equivalence\tfail\n",
+        ).

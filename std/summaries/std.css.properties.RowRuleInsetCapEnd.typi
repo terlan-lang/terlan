@@ -1,56 +1,22 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-cap-end
+//! The `row-rule-inset-cap-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property can
+//! be used to offset the end of row rule segment [cap endpoints](#understanding_cap_end).
+//!
+//! Keyword effects:
+//! - overlap-join: Resolves to `0`.
+//!
 //! Grammar: <inset-value>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-cap-end
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/row-rule-inset-cap-end
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RowRuleInsetCapEnd.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    row_rule_inset_cap_end: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    row_rule_inset_cap_end: Value
+    row_rule_inset_cap_end: OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained row-rule-inset-cap-end value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a row-rule-inset-cap-end value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Returns the CSS keyword overlap-join.
-
-pub overlap_join(): Value.
-
-/// Constructs a row-rule-inset-cap-end value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

@@ -1,6 +1,8 @@
 /** Byte-exact canonical lexer for the self-hosted frontend. */
 module self_host.CanonicalLexer.
 
+import std.core.String.
+
 import self_host.CanonicalToken.{BinaryToken, CanonicalLexError, CanonicalLexOutput, CanonicalToken, CommentToken, ContextualKeywordToken, DocCommentToken, EndToken, FloatToken, IntegerToken, KeywordToken, LowerIdentifierToken, ModuleDocCommentToken, OperatorToken, PunctuationToken, StringToken, TokenCategory, UpperIdentifierToken}.
 
 import std.collections.List.
@@ -75,23 +77,36 @@ is_identifier_continue(byte: Int): Bool -> is_identifier_start(byte) or is_digit
 
 @pure
 line_end(source: String, index: Int): Int ->
-    if { index == source.byte_size() or source.utf8_byte_at(index) == 10 -> index; true -> line_end(source, index + 1) }.
+    if {
+        index == source.byte_size() -> index;
+        source.utf8_byte_at(index) == 10 -> index;
+        true -> line_end(source, index + 1)
+    }.
 
 @pure
 identifier_end(source: String, index: Int): Int ->
     if {
-        index == source.byte_size() or not is_identifier_continue(source.utf8_byte_at(index)) -> index;
+        index == source.byte_size() -> index;
+        not is_identifier_continue(source.utf8_byte_at(index)) -> index;
         true -> identifier_end(source, index + 1)
     }.
 
 @pure
 digits_end(source: String, index: Int): Int ->
-    if { index == source.byte_size() or not is_digit(source.utf8_byte_at(index)) -> index; true -> digits_end(source, index + 1) }.
+    if {
+        index == source.byte_size() -> index;
+        not is_digit(source.utf8_byte_at(index)) -> index;
+        true -> digits_end(source, index + 1)
+    }.
+
+@pure
+is_alphanumeric(byte: Int): Bool -> is_alpha(byte) or is_digit(byte).
 
 @pure
 alphanumeric_end(source: String, index: Int): Int ->
     if {
-        index == source.byte_size() or not (is_alpha(source.utf8_byte_at(index)) or is_digit(source.utf8_byte_at(index))) -> index;
+        index == source.byte_size() -> index;
+        not is_alphanumeric(source.utf8_byte_at(index)) -> index;
         true -> alphanumeric_end(source, index + 1)
     }.
 
@@ -210,18 +225,18 @@ identifier_terminal(text: String): String ->
 @pure
 number_fraction_end(source: String, integer_end: Int): Int ->
     if {
-        integer_end + 1 < source.byte_size()
-            and source.utf8_byte_at(integer_end) == 46
-            and source.utf8_byte_at(integer_end + 1) != 46
-            and is_digit(source.utf8_byte_at(integer_end + 1)) -> digits_end(source, integer_end + 2);
+        integer_end + 1 >= source.byte_size() -> integer_end;
+        source.utf8_byte_at(integer_end) != 46 -> integer_end;
+        source.utf8_byte_at(integer_end + 1) == 46 -> integer_end;
+        is_digit(source.utf8_byte_at(integer_end + 1)) -> digits_end(source, integer_end + 2);
         true -> integer_end
     }.
 
 @pure
 number_sign_end(source: String, fraction_end: Int): Int ->
     if {
-        fraction_end + 1 < source.byte_size()
-            and (source.utf8_byte_at(fraction_end + 1) == 43 or source.utf8_byte_at(fraction_end + 1) == 45) -> fraction_end + 2;
+        fraction_end + 1 >= source.byte_size() -> fraction_end + 1;
+        source.utf8_byte_at(fraction_end + 1) == 43 or source.utf8_byte_at(fraction_end + 1) == 45 -> fraction_end + 2;
         true -> fraction_end + 1
     }.
 
@@ -236,8 +251,8 @@ number_exponent_end(source: String, fraction_end: Int, sign_end: Int): Int ->
 @pure
 number_after_fraction(source: String, fraction_end: Int): Int ->
     if {
-        fraction_end < source.byte_size()
-            and (source.utf8_byte_at(fraction_end) == 101 or source.utf8_byte_at(fraction_end) == 69) ->
+        fraction_end >= source.byte_size() -> fraction_end;
+        source.utf8_byte_at(fraction_end) == 101 or source.utf8_byte_at(fraction_end) == 69 ->
                 number_exponent_end(source, fraction_end, number_sign_end(source, fraction_end));
         true -> fraction_end
     }.
@@ -250,9 +265,9 @@ decimal_number_end(source: String, start: Int): Int ->
 @pure
 number_end(source: String, start: Int): Int ->
     if {
-        start + 2 < source.byte_size()
-            and source.utf8_byte_at(start) == 48
-            and (source.utf8_byte_at(start + 1) == 98 or source.utf8_byte_at(start + 1) == 111 or source.utf8_byte_at(start + 1) == 120) ->
+        start + 2 >= source.byte_size() -> decimal_number_end(source, start);
+        source.utf8_byte_at(start) != 48 -> decimal_number_end(source, start);
+        source.utf8_byte_at(start + 1) == 98 or source.utf8_byte_at(start + 1) == 111 or source.utf8_byte_at(start + 1) == 120 ->
                 alphanumeric_end(source, start + 2);
         true -> decimal_number_end(source, start)
     }.

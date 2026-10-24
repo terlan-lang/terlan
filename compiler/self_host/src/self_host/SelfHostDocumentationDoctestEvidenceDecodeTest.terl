@@ -1,0 +1,53 @@
+/** Positive and negative documentation doctest evidence decoder contracts. */
+module self_host.SelfHostDocumentationDoctestEvidenceDecodeTest.
+
+import self_host.SelfHostDocumentationDoctest.
+import self_host.SelfHostDocumentationDoctestEvidence.
+import self_host.SelfHostDocumentationDoctestEvidenceDecode.
+import std.core.String.
+
+evidence(): String ->
+    SelfHostDocumentationDoctestEvidence.render(
+        SelfHostDocumentationDoctest.extract(
+            "```terlan\nmodule decoded_example.\n```",
+        ),
+    ).
+
+@test
+pub valid_evidence_decodes_exact_source(): Bool ->
+    let decoded = SelfHostDocumentationDoctestEvidenceDecode.decode(evidence());
+    decoded.valid and decoded.blocks == ["module decoded_example.\n"].
+
+@test
+pub tampered_source_hash_is_rejected(): Bool ->
+    let tampered = String.replace(evidence(), "decoded_example", "changed_example");
+    let decoded = SelfHostDocumentationDoctestEvidenceDecode.decode(tampered);
+    not decoded.valid
+        and decoded.message == "documentation doctest block hash mismatch".
+
+@test
+pub wrong_schema_is_rejected(): Bool ->
+    let changed = String.replace(
+        evidence(),
+        "documentation-doctest/v1",
+        "documentation-doctest/v0",
+    );
+    let decoded = SelfHostDocumentationDoctestEvidenceDecode.decode(changed);
+    not decoded.valid
+        and decoded.message == "unsupported documentation doctest schema".
+
+@test
+pub trailing_evidence_is_rejected(): Bool ->
+    let decoded = SelfHostDocumentationDoctestEvidenceDecode.decode(
+        String.concat([evidence(), "trailing"]),
+    );
+    not decoded.valid
+        and decoded.message == "trailing documentation doctest evidence".
+
+@test
+pub truncated_evidence_is_rejected(): Bool ->
+    let decoded = SelfHostDocumentationDoctestEvidenceDecode.decode(
+        "schema\tterlan.self-host.documentation-doctest/v1\ncount\t1\nblock\t0\t10\tdeadbeef\nshort",
+    );
+    not decoded.valid
+        and decoded.message == "truncated documentation doctest block".

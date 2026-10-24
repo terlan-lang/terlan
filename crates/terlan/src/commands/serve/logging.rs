@@ -1,10 +1,6 @@
 use std::path::Path;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use super::handler::{HandlerLogIdentity, WebPackageSourceSpan};
-
-/// Local request id counter for `terlc serve`.
-static REQUEST_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 /// Complete observability record for a manifest-backed static or file route.
 pub(super) struct RouteLogEvent<'a> {
@@ -20,21 +16,6 @@ pub(super) struct RouteLogEvent<'a> {
     pub(super) duration_ms: u128,
 }
 
-/// Allocates the next local request id.
-///
-/// Inputs:
-/// - No explicit input; uses the process-local atomic counter.
-///
-/// Output:
-/// - Monotonically increasing request id for this `terlc serve` process.
-///
-/// Transformation:
-/// - Increments an atomic counter with relaxed ordering because ids only need
-///   uniqueness for local log correlation, not memory synchronization.
-pub(super) fn next_request_id() -> u64 {
-    REQUEST_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
-}
-
 /// Derives the local connection id for one request log.
 ///
 /// Inputs:
@@ -48,41 +29,6 @@ pub(super) fn next_request_id() -> u64 {
 ///   connection handles are threaded through the local serve adapter.
 pub(super) fn connection_id_for_request(request_id: u64) -> u64 {
     request_id
-}
-
-/// Writes one dynamic-handler request log line.
-///
-/// Inputs:
-/// - Request id, concrete request method/path, matched handler identity,
-///   response status, and elapsed handler duration.
-///
-/// Output:
-/// - One line written to stderr.
-///
-/// Transformation:
-/// - Delegates formatting to `render_handler_log_line` so the log contract
-///   remains testable without binding sockets or capturing stderr.
-pub(super) fn log_handler_result(
-    request_id: u64,
-    build_id: &str,
-    request_method: &str,
-    request_path: &str,
-    identity: &HandlerLogIdentity<'_>,
-    status: u16,
-    duration_ms: u128,
-) {
-    eprintln!(
-        "{}",
-        render_handler_log_line(
-            request_id,
-            build_id,
-            request_method,
-            request_path,
-            identity,
-            status,
-            duration_ms,
-        )
-    );
 }
 
 /// Renders one local dynamic-handler log line.
@@ -119,74 +65,6 @@ pub(super) fn render_handler_log_line(
     );
     append_source_span(&mut line, identity.source);
     line
-}
-
-/// Writes one static-file request log line.
-///
-/// Inputs:
-/// - Request id, concrete request method/path, selected filesystem response
-///   path, response status, and elapsed duration.
-///
-/// Output:
-/// - One line written to stderr.
-///
-/// Transformation:
-/// - Delegates formatting to `render_static_log_line` so static response logs
-///   share the source-aware local development contract without coupling tests
-///   to stderr.
-pub(super) fn log_static_result(
-    request_id: u64,
-    build_id: &str,
-    request_method: &str,
-    request_path: &str,
-    response_path: &Path,
-    status: u16,
-    duration_ms: u128,
-) {
-    eprintln!(
-        "{}",
-        render_static_log_line(
-            request_id,
-            build_id,
-            request_method,
-            request_path,
-            response_path,
-            status,
-            duration_ms,
-        )
-    );
-}
-
-/// Writes one static-route response log line.
-///
-/// Inputs:
-/// - Request id, build id, concrete request method/path, matched route method
-///   and pattern, response status, and elapsed duration.
-///
-/// Output:
-/// - One line written to stderr.
-///
-/// Transformation:
-/// - Keeps manifest-cached static responses visible in local logs without
-///   pretending they were served from a filesystem asset path.
-pub(super) fn log_static_route_result(event: RouteLogEvent<'_>) {
-    eprintln!("{}", render_static_route_log_line(&event));
-}
-
-/// Writes one file-route response log line.
-///
-/// Inputs:
-/// - Request id, build id, concrete request method/path, matched route method
-///   and pattern, selected package file, response status, and elapsed duration.
-///
-/// Output:
-/// - One line written to stderr.
-///
-/// Transformation:
-/// - Keeps route-backed file responses distinct from generic static-file
-///   fallback logs while preserving source-aware route metadata.
-pub(super) fn log_file_route_result(event: RouteLogEvent<'_>) {
-    eprintln!("{}", render_file_route_log_line(&event));
 }
 
 /// Renders one local static-file log line.

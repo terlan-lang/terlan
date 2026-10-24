@@ -1,0 +1,6 @@
+//! Shared CSS keyword linearRGB. Generated; do not edit.
+
+module std.css.keywords.LinearRGB.
+
+pub type LinearRGB =
+    Atom["linearRGB"].

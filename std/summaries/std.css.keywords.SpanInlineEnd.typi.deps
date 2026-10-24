@@ -1,0 +1,8 @@
+module=std.css.keywords.SpanInlineEnd
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=1786580548391475290
+interface_hash=3095307979893582168
+interface_doc_hash=9500484643131357601
+deps=0

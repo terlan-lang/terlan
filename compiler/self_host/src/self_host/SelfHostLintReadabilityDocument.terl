@@ -1,0 +1,115 @@
+/** Tooling-document projection for structural readability rules. */
+module self_host.SelfHostLintReadabilityDocument.
+
+import std.core.Option.{None, Some}.
+import self_host.ProjectedBodySyntax.ProjectedBody.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.SelfHostLintReadability.
+import self_host.SelfHostToolingDocument.ToolingDocument.
+
+first_children(
+    values: List[ProjectedExpressionNode],
+    depth: Int,
+): Option[{Int, Int}] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            case first_deep(value, depth) {
+                Some(found) -> Some(found);
+                None -> first_children(rest, depth)
+            }
+    }.
+
+skip_pattern_child(
+    values: List[ProjectedExpressionNode],
+    depth: Int,
+): Option[{Int, Int}] ->
+    case values {
+        [] -> None;
+        [_pattern | expressions] -> first_children(expressions, depth)
+    }.
+
+lambda_body(
+    values: List[ProjectedExpressionNode],
+    depth: Int,
+): Option[{Int, Int}] ->
+    case values {
+        [_parameters, body] -> first_deep(body, depth);
+        _ -> None
+    }.
+
+let_children(
+    values: List[ProjectedExpressionNode],
+    depth: Int,
+): Option[{Int, Int}] ->
+    case values {
+        [_pattern, bound, continuation] ->
+            case first_deep(bound, depth) {
+                Some(found) -> Some(found);
+                None -> first_deep(continuation, depth)
+            };
+        _ -> first_children(values, depth)
+    }.
+
+/** Finds the first expression deeper than the native threshold of eight. */
+first_deep(
+    value: ProjectedExpressionNode,
+    depth: Int,
+): Option[{Int, Int}] ->
+    if {
+        value.kind == "clause"
+            or value.kind == "binding" ->
+            skip_pattern_child(value.children, depth);
+        value.kind == "named-argument" ->
+            first_children(value.children, depth);
+        value.kind == "parameters"
+            or value.kind == "parameter"
+            or value.kind == "patterns"
+            or value.kind == "pattern" -> None;
+        depth > 8 -> Some({value.start_byte, depth});
+        value.kind == "lambda" -> lambda_body(value.children, depth + 1);
+        value.kind == "let" -> let_children(value.children, depth + 1);
+        true -> first_children(value.children, depth + 1)
+    }.
+
+body_fact(value: ProjectedBody): Option[{Int, Int}] ->
+    case value.expression.node {
+        None -> None;
+        Some(expression) -> first_deep(expression, 1)
+    }.
+
+body_facts(values: List[ProjectedBody]): List[{Int, Int}] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            case body_fact(value) {
+                None -> body_facts(rest);
+                Some(found) -> [found | body_facts(rest)]
+            }
+    }.
+
+/** Produces at most one depth finding for each callable body. */
+pub deep_expression_facts(value: ToolingDocument): List[{Int, Int}] ->
+    if {
+        value.valid and value.frontend.bodies.valid ->
+            body_facts(value.frontend.bodies.values);
+        true -> []
+    }.
+
+/** Runs TL0002 from the Terlan-owned tooling document. */
+@pure
+pub diagnostics(
+    path: String,
+    value: ToolingDocument,
+): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
+    SelfHostLintReadability.diagnostics(
+        path,
+        value.source,
+        deep_expression_facts(value),
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    ).

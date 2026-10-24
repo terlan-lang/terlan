@@ -1,72 +1,46 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-color
+//! The `border-color` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets the color of an element's border.
+//!
+//! Initial: border-top-color: currentcolor; border-right-color: currentcolor; border-bottom-color:
+//! currentcolor; border-left-color: currentcolor. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: [ <color> | <image-1D> ]{1,4}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-color
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-color
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderColor.
 
-/// A single non-global border-color shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
-
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    border_color: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    std.css.Values.Color
+  | std.css.Values.Transparent
+  | std.css.Values.CurrentColor.
 
 pub struct Property {
-    border_color: Value
+    border_color: std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained border-color value.
+/// First sets top/bottom; second sets left/right.
 
-pub opaque type Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Constructs a border-color value from a typed color.
+/// Sets top, right, bottom, and left in that order.
 
-pub color(value: std.css.Values.Color): Value.
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
-/// Constructs a border-color value from a typed color.
+/// Applies to all four sides.
 
-pub component_color(value: std.css.Values.Color): Component.
+pub single(first: Component): Checked.
 
-/// Returns the CSS keyword inherit.
+/// First sets top; second sets left/right; third sets bottom.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Combines 4 typed components in specification order.
-
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Combines 3 typed components in specification order.
-
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub triple(first: Component, second: Component, third: Component): Checked.

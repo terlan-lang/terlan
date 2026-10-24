@@ -66,6 +66,7 @@ pub(super) fn infer_syntax_record_construct(
                 requested_private,
                 ctx.struct_field_visibility,
                 ctx.imported_type_names,
+                ctx.current_module,
             ) {
                 errors.push(message);
             }
@@ -89,15 +90,18 @@ pub(super) fn infer_syntax_record_construct(
         }
     }
 
-    if let Some(imported) = ctx
-        .imported_type_names
-        .get(&name)
-        .filter(|ty| ty.module.is_some())
-    {
-        errors.push(format!(
-            "cannot raw-construct imported struct {} outside defining module; use an exported constructor",
-            crate::terlan_hir::public_type_path(imported.module.as_deref().unwrap_or_default(), &imported.name)
-        ));
+    if let Some(imported) = ctx.imported_type_names.get(&name) {
+        if imported.module != ctx.current_module {
+            errors.push(format!(
+                "cannot raw-construct imported struct {}.{} outside defining module; use an exported constructor",
+                imported.module, imported.name
+            ));
+        }
+        return Type::Named {
+            module: Some(imported.module.clone()),
+            name: imported.name.clone(),
+            args: Vec::new(),
+        };
     }
 
     Type::Named {
@@ -315,6 +319,7 @@ pub(super) fn infer_syntax_field_access(
                             requested_private,
                             ctx.struct_field_visibility,
                             ctx.imported_type_names,
+                            ctx.current_module,
                         ) {
                             errors.push(message);
                         }
@@ -336,6 +341,7 @@ pub(super) fn infer_syntax_field_access(
                         requested_private,
                         ctx.struct_field_visibility,
                         ctx.imported_type_names,
+                        ctx.current_module,
                     ) {
                         errors.push(message);
                     }
@@ -411,14 +417,21 @@ fn infer_qualified_interface_struct_field(
         return Some(Type::Dynamic);
     };
 
-    if field_signature.is_private {
+    if field_signature.is_private && module != ctx.current_module {
         errors.push(format!(
             "private field {} on imported struct {} cannot be accessed outside defining module",
             field, qualified_name
         ));
         return Some(Type::Dynamic);
     }
-    if requested_private {
+    if field_signature.is_private && !requested_private {
+        errors.push(format!(
+            "private field {} on struct {} must be accessed as #{}",
+            field, qualified_name, field
+        ));
+        return Some(Type::Dynamic);
+    }
+    if requested_private && !field_signature.is_private {
         errors.push(format!(
             "field {} on struct {} is not declared private",
             field, qualified_name
@@ -746,6 +759,7 @@ pub(super) fn infer_syntax_record_update(
                         requested_private,
                         ctx.struct_field_visibility,
                         ctx.imported_type_names,
+                        ctx.current_module,
                     ) {
                         errors.push(message);
                     }
@@ -810,7 +824,9 @@ pub(super) fn infer_syntax_template_instantiation(
             continue;
         };
 
-        let expected = expand_type_aliases(&prop.ty, ctx.aliases);
+        let expected = qualify_type_names(&prop.ty, ctx.imported_type_names);
+        let actual = qualify_type_names(&actual, ctx.imported_type_names);
+        let expected = expand_type_aliases(&expected, ctx.aliases);
         let actual = expand_type_aliases(&actual, ctx.aliases);
         if let Err(message) = unify(&expected, &actual, subst) {
             errors.push(format!(
@@ -834,7 +850,9 @@ pub(super) fn infer_syntax_template_instantiation(
         };
 
         let actual = infer_syntax_expr(default, locals, ctx, subst, errors);
-        let expected = expand_type_aliases(&prop.ty, ctx.aliases);
+        let expected = qualify_type_names(&prop.ty, ctx.imported_type_names);
+        let actual = qualify_type_names(&actual, ctx.imported_type_names);
+        let expected = expand_type_aliases(&expected, ctx.aliases);
         let actual = expand_type_aliases(&actual, ctx.aliases);
         if let Err(message) = unify(&expected, &actual, subst) {
             errors.push(format!(

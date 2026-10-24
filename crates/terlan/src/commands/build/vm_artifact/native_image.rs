@@ -91,18 +91,170 @@ struct NativeApplicationCompileRequest<'a> {
     vm_dir: &'a Path,
     native_cache_root: &'a Path,
     image_stem: &'a str,
-    cores: &'a [&'a CoreModule],
-    debug_inputs: &'a [NativeDebugInput<'a>],
+    cores: NativeApplicationCores<'a>,
+    debug_inputs: &'a [NativeDebugInput],
     policy: NativeCodegenPolicy,
     incremental: bool,
     application_identity: Option<&'a str>,
 }
 
+enum NativeApplicationCores<'a> {
+    Borrowed(&'a [&'a CoreModule]),
+    Owned(Vec<CoreModule>),
+}
+
 pub(super) struct RootedNativeApplicationInput<'a> {
     pub(super) roots: &'a [(String, String, usize)],
-    pub(super) debug_inputs: &'a [NativeDebugInput<'a>],
+    pub(super) debug_inputs: &'a [NativeDebugInput],
     pub(super) policy: NativeCodegenPolicy,
     pub(super) incremental: bool,
+}
+
+/// Publishes an admitted self-hosted ABI closure as a sealed VM native image.
+///
+/// This deliberately shares the ordinary native-image descriptor, linker,
+/// sealing, and admission path. The self-hosted compiler replaces only the
+/// source-to-NativeIR producer; it does not define a second executable format.
+#[cfg(feature = "native-codegen")]
+pub(crate) fn publish_self_hosted_application_image(
+    output: &Path,
+    envelopes: &[crate::self_host_ir::BackendEnvelope],
+) -> Result<(), String> {
+    let natives = crate::compiler::native_ir::lower_self_hosted_application(envelopes)?;
+    publish_self_hosted_native_modules(output, natives)
+}
+
+/// Publishes an actor-aware typed self-hosted closure as a sealed VM native image.
+#[cfg(feature = "native-codegen")]
+pub(crate) fn publish_self_hosted_typed_actor_application_image(
+    output: &Path,
+    envelopes: &[crate::self_host_ir::BackendEnvelope],
+    plans: Vec<crate::self_host_actor_ir::RuntimeActorPlan>,
+    variants: crate::self_host_variant_ir::VariantCatalog,
+) -> Result<(), String> {
+    let natives = crate::compiler::native_ir::lower_self_hosted_typed_actor_application(
+        envelopes, plans, variants,
+    )?;
+    publish_self_hosted_native_modules(output, natives)
+}
+
+#[cfg(feature = "native-codegen")]
+fn publish_self_hosted_native_modules(
+    output: &Path,
+    natives: Vec<NativeModule>,
+) -> Result<(), String> {
+    if natives.is_empty() {
+        return Err("error[self-host.native-image.empty]: no modules were provided".to_string());
+    }
+    validate_export_id_uniqueness(&natives).map_err(|error| error.to_string())?;
+
+    let parent = output.parent().unwrap_or_else(|| Path::new("."));
+    fs::create_dir_all(parent).map_err(|error| {
+        format!(
+            "error[self-host.native-image.output]: cannot create `{}`: {error}",
+            parent.display()
+        )
+    })?;
+    let target = host_tvm_target().map_err(|error| error.to_string())?;
+    let linker_policy = native_linker_policy().map_err(|error| error.to_string())?;
+    let package = natives[0]
+        .name
+        .split('.')
+        .next()
+        .unwrap_or(&natives[0].name)
+        .to_string();
+    let application_identity = if natives.len() == 1 {
+        natives[0].name.clone()
+    } else {
+        format!("{package}.application")
+    };
+    let fingerprint = natives
+        .iter()
+        .map(NativeModule::fingerprint_sha256)
+        .collect::<Vec<_>>()
+        .join("\0");
+    let input_sha256 = native_cache::sha256_hex(
+        format!(
+            "self-host-abi1\0{}\0{}\0{}\0{}\0{}",
+            env!("CARGO_PKG_VERSION"),
+            DIRECT_AOT_CODEGEN_REVISION,
+            target.triple,
+            application_identity,
+            fingerprint
+        )
+        .as_bytes(),
+    );
+    let stem = output
+        .file_name()
+        .and_then(OsStr::to_str)
+        .unwrap_or("self-host-image");
+    let temporary_stem = format!(
+        ".{stem}.self-host-{}.{}",
+        std::process::id(),
+        &input_sha256[..16]
+    );
+    let object_suffix = if cfg!(target_os = "windows") {
+        "obj"
+    } else {
+        "o"
+    };
+    let object_path = parent.join(format!("{temporary_stem}.native.{object_suffix}"));
+    let descriptor_path = parent.join(format!("{temporary_stem}.descriptor.{object_suffix}"));
+    let linked_path = parent.join(format!("{temporary_stem}.tvm"));
+
+    let result = (|| {
+        let object = emit_native_application_object_with_policy(
+            &application_identity,
+            &natives,
+            NativeCodegenPolicy::Development,
+        )
+        .map_err(|error| error.to_string())?;
+        fs::write(&object_path, &object).map_err(|error| {
+            format!(
+                "error[self-host.native-image.object]: cannot write `{}`: {error}",
+                object_path.display()
+            )
+        })?;
+        let descriptor = native_application_image_descriptor(
+            &application_identity,
+            &package,
+            &natives,
+            &input_sha256,
+        )
+        .map_err(|error| error.to_string())?;
+        let descriptor_object = descriptor_object_for_native_with_debug(&object, &descriptor, &[])
+            .map_err(|error| error.to_string())?;
+        fs::write(&descriptor_path, descriptor_object).map_err(|error| {
+            format!(
+                "error[self-host.native-image.descriptor]: cannot write `{}`: {error}",
+                descriptor_path.display()
+            )
+        })?;
+        link_native_image(
+            &[],
+            &object_path,
+            &descriptor_path,
+            &linked_path,
+            &linker_policy,
+            NativeCodegenPolicy::Development,
+            &input_sha256,
+        )
+        .map_err(|error| error.to_string())?;
+        let mut image = fs::read(&linked_path).map_err(|error| {
+            format!(
+                "error[self-host.native-image.read]: cannot read `{}`: {error}",
+                linked_path.display()
+            )
+        })?;
+        let sealed = seal_tvm_image(&mut image, &descriptor).map_err(|error| error.to_string())?;
+        inspect_tvm_image(&image, &sealed.target.triple).map_err(|error| error.to_string())?;
+        native_cache::publish_file(output, &image).map_err(|error| error.to_string())
+    })();
+
+    let _ = fs::remove_file(object_path);
+    let _ = fs::remove_file(descriptor_path);
+    let _ = fs::remove_file(linked_path);
+    result
 }
 
 /// Compiles all supported CoreIR modules into one cached application image.
@@ -111,7 +263,7 @@ pub(super) fn compile_native_application_image(
     native_cache_root: &Path,
     image_stem: &str,
     cores: &[&CoreModule],
-    debug_inputs: &[NativeDebugInput<'_>],
+    debug_inputs: &[NativeDebugInput],
     policy: NativeCodegenPolicy,
     incremental: bool,
 ) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
@@ -119,7 +271,7 @@ pub(super) fn compile_native_application_image(
         vm_dir,
         native_cache_root,
         image_stem,
-        cores,
+        cores: NativeApplicationCores::Borrowed(cores),
         debug_inputs,
         policy,
         incremental,
@@ -140,7 +292,11 @@ fn compile_native_application_image_with_identity(
         incremental,
         application_identity,
     } = request;
-    let mut natives = NativeModule::lower_application(cores).map_err(BuildOneError::Message)?;
+    let mut natives = match cores {
+        NativeApplicationCores::Borrowed(cores) => NativeModule::lower_application(cores),
+        NativeApplicationCores::Owned(cores) => NativeModule::lower_owned_application(cores),
+    }
+    .map_err(BuildOneError::Message)?;
     if natives.is_empty() {
         output_cleanup::remove_stale_tvm_images(vm_dir, None)?;
         return Ok(None);
@@ -361,7 +517,51 @@ pub(super) fn compile_rooted_native_application_image(
         vm_dir,
         native_cache_root,
         image_stem,
-        cores: &rooted,
+        cores: NativeApplicationCores::Borrowed(&rooted),
+        debug_inputs,
+        policy,
+        incremental,
+        application_identity: Some(application_identity),
+    })
+}
+
+/// Compiles an owned CoreIR closure after pruning it in place to executable roots.
+///
+/// Compiler-sized package builds use this path so rooted lowering never keeps
+/// both the checked Core closure and a near-identical rooted clone alive.
+pub(super) fn compile_owned_rooted_native_application_image(
+    vm_dir: &Path,
+    native_cache_root: &Path,
+    image_stem: &str,
+    mut cores: Vec<CoreModule>,
+    input: RootedNativeApplicationInput<'_>,
+) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
+    let RootedNativeApplicationInput {
+        roots,
+        debug_inputs,
+        policy,
+        incremental,
+    } = input;
+    crate::compiler::native_ir::prune_application_to_function_roots(&mut cores, roots)
+        .map_err(|error| BuildOneError::Message(error.to_string()))?;
+    crate::compiler::native_ir::resolve_typed_mutable_receiver_calls(&mut cores)
+        .map_err(|error| BuildOneError::Message(error.to_string()))?;
+    crate::compiler::native_ir::prune_application_to_function_roots(&mut cores, roots)
+        .map_err(|error| BuildOneError::Message(error.to_string()))?;
+    let application_identity = roots
+        .first()
+        .map(|(module, _, _)| module.as_str())
+        .ok_or_else(|| {
+            BuildOneError::Message(
+                "error[native_ir.root]: rooted native application requires an executable root"
+                    .to_string(),
+            )
+        })?;
+    compile_native_application_image_with_identity(NativeApplicationCompileRequest {
+        vm_dir,
+        native_cache_root,
+        image_stem,
+        cores: NativeApplicationCores::Owned(cores),
         debug_inputs,
         policy,
         incremental,
@@ -382,12 +582,12 @@ pub(crate) fn compile_repl_native_image(
     fs::create_dir_all(&vm_dir)
         .map_err(|error| format!("cannot create REPL AOT output directory: {error}"))?;
     let native_cache_root = workspace.join(".terlan").join("native-aot");
-    let debug_inputs = [NativeDebugInput {
+    let debug_inputs = [NativeDebugInput::capture(
         source_path,
         source_text,
         core,
         syntax,
-    }];
+    )];
     compile_native_application_image(
         &vm_dir,
         &native_cache_root,
@@ -414,7 +614,7 @@ pub(super) fn compile_serve_native_application_image_with_metadata(
     module_stem: &str,
     cores: &[&CoreModule],
     roots: &[(String, String, usize)],
-    debug_inputs: &[NativeDebugInput<'_>],
+    debug_inputs: &[NativeDebugInput],
 ) -> Result<Option<CompiledServeNativeImage>, String> {
     let workspace = web_root.join(".terlan").join("serve-aot");
     let vm_dir = workspace.join("vm");
@@ -449,7 +649,7 @@ pub(crate) fn compile_test_native_image(
     module_stem: &str,
     cores: &[&CoreModule],
     roots: &[(String, String, usize)],
-    debug_inputs: &[NativeDebugInput<'_>],
+    debug_inputs: &[NativeDebugInput],
     incremental: bool,
 ) -> Result<Option<PathBuf>, String> {
     let vm_dir = workspace.join("vm");

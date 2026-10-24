@@ -1,9 +1,9 @@
 module=std.css.properties.All
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6859780074537996919
-interface_hash=15092505118780284098
-interface_doc_hash=698236028156748158
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1604820049131090916
+interface_hash=10313610331957032379
+interface_doc_hash=12007923951221575772
 deps=1
-std.core.Option=11539230284316612175
+std.css.Values=330909209718432688

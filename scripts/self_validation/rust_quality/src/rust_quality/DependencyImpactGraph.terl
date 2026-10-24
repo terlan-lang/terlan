@@ -13,20 +13,14 @@ import type rust_quality.DependencyImpactSource.{DomainMetric, Edge}.
 import type std.core.Option.
 
 pub struct Cycle {
-    /**
-     * Ordered dependency path forming the cycle.
-     */
+    /** Ordered dependency path forming the cycle. */
     path: List[String],
 }.
 
 pub struct BlastRadius {
-    /**
-     * Domain whose downstream dependencies are being measured.
-     */
+    /** Domain whose downstream dependencies are being measured. */
     domain: String,
-    /**
-     * Domains transitively depending on this domain.
-     */
+    /** Domains transitively depending on this domain. */
     dependents: List[String],
 }.
 

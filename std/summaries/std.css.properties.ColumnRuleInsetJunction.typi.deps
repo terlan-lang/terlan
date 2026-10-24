@@ -1,10 +1,10 @@
 module=std.css.properties.ColumnRuleInsetJunction
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=4650013852394616457
-interface_hash=16330024961337493283
-interface_doc_hash=17480597770494629204
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=17103853010356797885
+interface_hash=4255495330452089085
+interface_doc_hash=9083928001832432258
 deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.OverlapJoin=9675458474359427514

@@ -1,22 +1,21 @@
 //! Session argument contracts, independent of VM heaps and storage internals.
 
-use terlan_runtime_abi::{
-    BoundaryError, ErrorDomain, FromNativeValue, NativeContextBinding, NativeValue,
-};
+use terlan_runtime_abi::{native_binding, BoundaryError, ErrorDomain, NativeContextBinding};
 
 /// Storage supplied by the application host. Identities and keys are exact,
 /// source-selected strings, not cookies or serialized session records.
 pub trait SessionStorage {
     fn lookup(&mut self, identity: &str) -> Result<Option<String>, BoundaryError>;
-    fn create(
-        &mut self,
-        excluded_identity: &str,
-        ttl_seconds: u64,
-    ) -> Result<String, BoundaryError>;
+    fn try_create(&mut self, identity: &str, ttl_seconds: u64) -> Result<bool, BoundaryError>;
     fn get(&mut self, identity: &str, key: &str) -> Result<Option<String>, BoundaryError>;
     fn set(&mut self, identity: &str, key: &str, value: &str) -> Result<(), BoundaryError>;
     fn delete(&mut self, identity: &str, key: &str) -> Result<(), BoundaryError>;
-    fn rotate(&mut self, identity: &str, ttl_seconds: u64) -> Result<String, BoundaryError>;
+    fn try_rotate(
+        &mut self,
+        identity: &str,
+        replacement: &str,
+        ttl_seconds: u64,
+    ) -> Result<bool, BoundaryError>;
     fn expire(&mut self, identity: &str) -> Result<(), BoundaryError>;
     fn is_live(&mut self, identity: &str) -> Result<bool, BoundaryError>;
 }
@@ -25,61 +24,34 @@ pub trait SessionStorage {
 /// Each callback checks every argument type before touching storage.
 pub fn bindings<S: SessionStorage + ?Sized>() -> [NativeContextBinding<S>; 8] {
     [
-        NativeContextBinding::new("std.http.session.lookup", 1, |storage: &mut S, args| {
-            storage
-                .lookup(<&str>::from_native(&args[0])?)
-                .map(Into::into)
+        native_binding!("std.http.session.lookup", |storage: &mut S; identity: &str| {
+            storage.lookup(identity)
         }),
-        NativeContextBinding::new("std.http.session.create", 2, |storage: &mut S, args| {
-            storage
-                .create(<&str>::from_native(&args[0])?, lifetime(&args[1])?)
-                .map(Into::into)
+        native_binding!("std.http.session.try_create", |storage: &mut S; identity: &str, seconds: i64| {
+            storage.try_create(identity, lifetime(seconds)?)
         }),
-        NativeContextBinding::new("std.http.session.get", 2, |storage: &mut S, args| {
-            storage
-                .get(
-                    <&str>::from_native(&args[0])?,
-                    <&str>::from_native(&args[1])?,
-                )
-                .map(Into::into)
+        native_binding!("std.http.session.get", |storage: &mut S; identity: &str, key: &str| {
+            storage.get(identity, key)
         }),
-        NativeContextBinding::new("std.http.session.set", 3, |storage: &mut S, args| {
-            storage
-                .set(
-                    <&str>::from_native(&args[0])?,
-                    <&str>::from_native(&args[1])?,
-                    <&str>::from_native(&args[2])?,
-                )
-                .map(|()| NativeValue::Unit)
+        native_binding!("std.http.session.set", |storage: &mut S; identity: &str, key: &str, value: &str| {
+            storage.set(identity, key, value)
         }),
-        NativeContextBinding::new("std.http.session.delete", 2, |storage: &mut S, args| {
-            storage
-                .delete(
-                    <&str>::from_native(&args[0])?,
-                    <&str>::from_native(&args[1])?,
-                )
-                .map(|()| NativeValue::Unit)
+        native_binding!("std.http.session.delete", |storage: &mut S; identity: &str, key: &str| {
+            storage.delete(identity, key)
         }),
-        NativeContextBinding::new("std.http.session.rotate", 2, |storage: &mut S, args| {
-            storage
-                .rotate(<&str>::from_native(&args[0])?, lifetime(&args[1])?)
-                .map(Into::into)
+        native_binding!("std.http.session.try_rotate", |storage: &mut S; identity: &str, replacement: &str, seconds: i64| {
+            storage.try_rotate(identity, replacement, lifetime(seconds)?)
         }),
-        NativeContextBinding::new("std.http.session.expire", 1, |storage: &mut S, args| {
-            storage
-                .expire(<&str>::from_native(&args[0])?)
-                .map(|()| NativeValue::Unit)
+        native_binding!("std.http.session.expire", |storage: &mut S; identity: &str| {
+            storage.expire(identity)
         }),
-        NativeContextBinding::new("std.http.session.is_live", 1, |storage: &mut S, args| {
-            storage
-                .is_live(<&str>::from_native(&args[0])?)
-                .map(Into::into)
+        native_binding!("std.http.session.is_live", |storage: &mut S; identity: &str| {
+            storage.is_live(identity)
         }),
     ]
 }
 
-fn lifetime(value: &NativeValue) -> Result<u64, BoundaryError> {
-    let seconds = i64::from_native(value)?;
+fn lifetime(seconds: i64) -> Result<u64, BoundaryError> {
     u64::try_from(seconds)
         .ok()
         .filter(|seconds| *seconds > 0)

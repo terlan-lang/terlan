@@ -1,0 +1,6 @@
+//! Shared CSS keyword proportional-nums. Generated; do not edit.
+
+module std.css.keywords.ProportionalNums.
+
+pub type ProportionalNums =
+    Atom["proportional-nums"].

@@ -228,6 +228,10 @@ fn expanded_interface(
     if !diagnostics.is_empty() {
         return Err(diagnostics);
     }
+    let diagnostics = crate::terlan_typeck::check_public_atom_aliases(&expanded, interfaces);
+    if !diagnostics.is_empty() {
+        return Err(diagnostics);
+    }
     Ok(syntax_module_output_to_interface(&expanded))
 }
 

@@ -1,152 +1,60 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-box-4/#propdef-margin
+ * The `margin` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) shorthand property sets the
+ * [margin
+ * area](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Box_model/Introduction#margin_area)
+ * on all four sides of an element.
+ *
+ * Initial: margin-bottom: 0; margin-left: 0; margin-right: 0; margin-top: 0. Inherited: no.
+ * Percentages: refer to the width of the containing block.
+ *
+ * Keyword effects:
+ * - auto: The browser selects a suitable margin to use. For example, in certain cases this value
+ * can be used to center an element.
+ *
  * Grammar: <'margin-top'>{1,4}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-box-4/#propdef-margin
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Margin.
 
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css}.
+import std.css.keywords.Auto.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained margin value.
- */
-pub opaque type Value = Token.
+pub type Component = Auto | Length | Percentage.
 
-/**
- * A single non-global margin shorthand component.
- */
-pub opaque type Component = Token.
+pub opaque type Checked = {Atom["css_parts"], List[Component]}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    margin: Value,
+    margin: Auto | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Applies to all four sides.
  */
-pub struct OptionalProperty {
-    margin: std.core.Option[Value],
-}.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Returns the CSS keyword auto.
+ * First sets top/bottom; second sets left/right.
  */
-pub auto(): Value ->
-    Value(Token {property: "margin", css: "auto"}).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).
 
 /**
- * Returns the CSS keyword inherit.
+ * First sets top; second sets left/right; third sets bottom.
  */
-pub inherit(): Value ->
-    Value(Token {property: "margin", css: "inherit"}).
+pub triple(first: Component, second: Component, third: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third]}).
 
 /**
- * Returns the CSS keyword initial.
+ * Sets top, right, bottom, and left in that order.
  */
-pub initial(): Value ->
-    Value(Token {property: "margin", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "margin", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "margin", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "margin", css: "unset"}).
-
-/**
- * Constructs a margin value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "margin", css: length_css(value)}).
-
-/**
- * Constructs a margin value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "margin", css: percentage_css(value)}).
-
-/**
- * Constructs one margin shorthand component.
- */
-pub component_auto(): Component ->
-    Component(Token {property: "margin", css: "auto"}).
-
-/**
- * Constructs a margin value from a typed length.
- */
-pub component_length(value: Length): Component ->
-    Component(Token {property: "margin", css: length_css(value)}).
-
-/**
- * Constructs a margin value from a typed percentage.
- */
-pub component_percentage(value: Percentage): Component ->
-    Component(Token {property: "margin", css: percentage_css(value)}).
-
-/**
- * Serializes a library-owned shorthand component.
- */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
-
-/**
- * Combines 1 typed components in specification order.
- */
-pub single(first: Component): Value ->
-    Value(Token {property: "margin", css: component_css(first)}).
-
-/**
- * Combines 2 typed components in specification order.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(Token {property: "margin", css: component_css(first) + " " + component_css(second)}).
-
-/**
- * Combines 3 typed components in specification order.
- */
-pub triple(first: Component, second: Component, third: Component): Value ->
-    Value(
-        Token {
-            property: "margin",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third),
-        },
-    ).
-
-/**
- * Combines 4 typed components in specification order.
- */
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value ->
-    Value(
-        Token {
-            property: "margin",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third) + " " + component_css(fourth),
-        },
-    ).
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third, fourth]}).

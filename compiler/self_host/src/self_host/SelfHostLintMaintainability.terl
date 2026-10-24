@@ -1,0 +1,198 @@
+/** Maintainability lint authority for TL0904 and TL0907. */
+module self_host.SelfHostLintMaintainability.
+
+import std.core.String.
+
+pub struct MaintainabilityDiagnostic {
+    path: String,
+    line: Int,
+    column: Int,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+    fix_available: Bool,
+}.
+
+pub constructor MaintainabilityDiagnostic {
+    (path: String, line: Int, column: Int, rule_id: String, rule_name: String, severity: String, message: String, fix_available: Bool): MaintainabilityDiagnostic ->
+        MaintainabilityDiagnostic {
+            path: path,
+            line: line,
+            column: column,
+            rule_id: rule_id,
+            rule_name: rule_name,
+            severity: severity,
+            message: message,
+            fix_available: fix_available,
+        }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+path_has_test_component(parts: List[String]): Bool ->
+    case parts {
+        [] -> false;
+        [part | rest] ->
+            if { part == "test" or part == "tests" -> true; true -> path_has_test_component(rest) }
+    }.
+
+last(values: List[String], value: String): String ->
+    case values {
+        [] -> value;
+        [next | rest] -> last(rest, next)
+    }.
+
+/** Returns whether debug helpers are allowed for this source path. */
+@pure
+pub test_source_path(path: String): Bool ->
+    let parts = String.split(path, "/");
+    let filename = last(parts, "");
+    path_has_test_component(parts)
+        or String.ends_with(filename, "Test.terl")
+        or String.ends_with(filename, "Test.terli").
+
+ascii_name_byte(value: Int): Bool ->
+    (value >= 48 and value <= 57)
+        or (value >= 65 and value <= 90)
+        or (value >= 97 and value <= 122)
+        or value == 95
+        or value == 46.
+
+name_start_at(line: String, offset: Int): Int ->
+    if {
+        offset < 0 -> 0;
+        ascii_name_byte(String.utf8_byte_at(line, offset)) -> name_start_at(line, offset - 1);
+        true -> offset + 1
+    }.
+
+call_name(line: String, open_paren: Int): String ->
+    let prefix = String.trim_end(String.utf8_slice(line, 0, open_paren));
+    let end = String.byte_size(prefix);
+    if {
+        end <= 0 -> "";
+        true ->
+            let start = name_start_at(prefix, end - 1);
+            String.utf8_slice(prefix, start, end - start)
+    }.
+
+unstructured_debug(name: String): Bool ->
+    if {
+        String.starts_with(name, "Logger.") or String.starts_with(name, "Log.") -> false;
+        true ->
+            let final_name = last(String.split(name, "."), "");
+            final_name == "debug"
+                or final_name == "dbg"
+                or final_name == "dump"
+                or final_name == "inspect"
+    }.
+
+debug_column_at(
+    line: String,
+    offset: Int,
+    in_string: Bool,
+    escaped: Bool,
+): Int ->
+    if {
+        offset >= String.byte_size(line) -> -1;
+        in_string and escaped -> debug_column_at(line, offset + 1, true, false);
+        in_string and String.utf8_byte_at(line, offset) == 92 ->
+            debug_column_at(line, offset + 1, true, true);
+        in_string and String.utf8_byte_at(line, offset) == 34 ->
+            debug_column_at(line, offset + 1, false, false);
+        in_string -> debug_column_at(line, offset + 1, true, false);
+        String.utf8_byte_at(line, offset) == 34 ->
+            debug_column_at(line, offset + 1, true, false);
+        String.utf8_byte_at(line, offset) == 47
+            and offset + 1 < String.byte_size(line)
+            and String.utf8_byte_at(line, offset + 1) == 47 -> -1;
+        String.utf8_byte_at(line, offset) == 40 ->
+            let name = call_name(line, offset);
+            if {
+                unstructured_debug(name) ->
+                    String.byte_size(String.trim_end(String.utf8_slice(line, 0, offset)))
+                        - String.byte_size(name)
+                        + 1;
+                true -> debug_column_at(line, offset + 1, false, false)
+            };
+        true -> debug_column_at(line, offset + 1, false, false)
+    }.
+
+debug_at(
+    lines: List[String],
+    path: String,
+    line_number: Int,
+): List[MaintainabilityDiagnostic] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            let remaining = debug_at(rest, path, line_number + 1);
+            let column = debug_column_at(line, 0, false, false);
+            if {
+                column < 0 -> remaining;
+                true -> [MaintainabilityDiagnostic(
+                    path,
+                    line_number,
+                    column,
+                    "TL0904",
+                    "maintainability.debug-call",
+                    "warning",
+                    "debug-style calls in production source need structured logging or diagnostic intent",
+                    false,
+                ) | remaining]
+            }
+    }.
+
+/** Reports the first unstructured debug call on each production-source line. */
+@pure
+pub debug_calls(path: String, source: String): List[MaintainabilityDiagnostic] ->
+    if {
+        test_source_path(path) -> [];
+        true -> debug_at(String.split(source, "\n"), path, 1)
+    }.
+
+sql_at(
+    lines: List[String],
+    path: String,
+    line_number: Int,
+    in_sql: Bool,
+): List[MaintainabilityDiagnostic] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            let active = in_sql or (
+                String.contains(trimmed, "sql[") and String.contains(trimmed, "{")
+            );
+            let remaining = sql_at(
+                rest,
+                path,
+                line_number + 1,
+                active and not String.starts_with(trimmed, "}"),
+            );
+            if {
+                active and String.length(line) > 100 -> [MaintainabilityDiagnostic(
+                    path,
+                    line_number,
+                    101,
+                    "TL0907",
+                    "maintainability.sql-line-width",
+                    "error",
+                    "embedded SQL lines must be wrapped to at most 100 columns",
+                    false,
+                ) | remaining];
+                true -> remaining
+            }
+    }.
+
+/** Reports embedded SQL lines wider than 100 Unicode scalar columns. */
+@pure
+pub sql_line_width(path: String, source: String): List[MaintainabilityDiagnostic] ->
+    sql_at(String.split(source, "\n"), path, 1, false).
+
+pub diagnostics(path: String, source: String): List[MaintainabilityDiagnostic] ->
+    append(debug_calls(path, source), sql_line_width(path, source)).

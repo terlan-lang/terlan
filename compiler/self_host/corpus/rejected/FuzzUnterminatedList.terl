@@ -1,0 +1,3 @@
+module corpus.FuzzUnterminatedList.
+
+pub value(): List[Int] -> [1, 2, 3.

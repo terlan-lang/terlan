@@ -1,52 +1,33 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-box-4/#propdef-padding-left
+//! The `padding-left` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! width of the [padding
+//! area](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Box_model/Introduction#padding_area)
+//! to the left of an element.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: refer to the width of the containing block.
+//!
 //! Grammar: <length-percentage [0,∞]>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-box-4/#propdef-padding-left
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/padding-left
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PaddingLeft.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    padding_left: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    padding_left: Value
+    padding_left: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained padding-left value.
+/// Checks the padding-left length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Returns the CSS keyword inherit.
+/// Checks the padding-left percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a padding-left value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Checks the specification range and constructs a padding-left value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

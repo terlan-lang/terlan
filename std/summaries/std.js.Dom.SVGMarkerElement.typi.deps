@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGMarkerElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=84474458568856787
-interface_hash=2808797039065889779
-interface_doc_hash=2808797039065889779
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=6347511994810261646
+interface_hash=3958416464386074125
+interface_doc_hash=3958416464386074125
 deps=0

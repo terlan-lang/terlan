@@ -1,93 +1,37 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-synthesis
+ * The `font-synthesis` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property lets you specify whether or not the browser may synthesize the bold, italic, small-caps,
+ * and/or subscript and superscript typefaces when they are missing in the specified font-family.
+ *
+ * Initial: weight style small-caps position . Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - none: Indicates that no bold, italic, or small-caps typeface may be synthesized by the browser.
+ * - position: Indicates that the subscript and superscript typeface may be synthesized by the
+ * browser, if needed, when using `font-variant-position`.
+ * - small-caps: Indicates that the small-caps typeface may be synthesized by the browser if needed.
+ * - style: Indicates that the italic typeface may be synthesized by the browser if needed.
+ * - weight: Indicates that the missing bold typeface may be synthesized by the browser if needed.
+ *
  * Grammar: none | [ weight || style || small-caps || position]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-synthesis
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-synthesis
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontSynthesis.
 
-import type std.core.Option.
+import std.css.keywords.{None, Position, SmallCaps, Style, Weight}.
 
-/**
- * A nominal, specification-constrained font-synthesis value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    font_synthesis: Value,
+    font_synthesis: None | Weight | Style | SmallCaps | Position | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    font_synthesis: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-synthesis", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-synthesis", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "font-synthesis", css: "none"}).
-
-/**
- * Returns the CSS keyword position.
- */
-pub position(): Value ->
-    Value(Token {property: "font-synthesis", css: "position"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-synthesis", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-synthesis", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword small-caps.
- */
-pub small_caps(): Value ->
-    Value(Token {property: "font-synthesis", css: "small-caps"}).
-
-/**
- * Returns the CSS keyword style.
- */
-pub style(): Value ->
-    Value(Token {property: "font-synthesis", css: "style"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-synthesis", css: "unset"}).
-
-/**
- * Returns the CSS keyword weight.
- */
-pub weight(): Value ->
-    Value(Token {property: "font-synthesis", css: "weight"}).

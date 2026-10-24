@@ -1,99 +1,42 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-justify
+ * The `text-justify` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets what
+ * type of justification should be applied to text when `text-align: justify;` is set on an element.
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: The browser chooses the best type of justification for the current situation based on a
+ * balance between performance and quality, but also on what is most appropriate for the language of
+ * the text (e.g., English, CJK languages, etc.). This is the default justification used if
+ * `text-justify` is not set at all.
+ * - inter-character: The text is justified by adding space between characters (effectively varying
+ * `letter-spacing`), which is most appropriate for languages like Japanese.
+ * - inter-word: The text is justified by adding space between words (effectively varying
+ * `word-spacing`), which is most appropriate for languages that separate words using spaces, like
+ * English or Korean.
+ * - none: The text justification is turned off. This has the same effect as not setting
+ * `text-align` at all, although it is useful if you need to turn justification on and off for some
+ * reason.
+ *
  * Grammar: [ auto | none | inter-word | inter-character | ruby ] || no-compress
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-justify
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-justify
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextJustify.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, InterCharacter, InterWord, None}.
 
-/**
- * A nominal, specification-constrained text-justify value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_justify: Value,
+    text_justify: Auto | None | InterWord | InterCharacter | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    text_justify: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "text-justify", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-justify", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-justify", css: "initial"}).
-
-/**
- * Returns the CSS keyword inter-character.
- */
-pub inter_character(): Value ->
-    Value(Token {property: "text-justify", css: "inter-character"}).
-
-/**
- * Returns the CSS keyword inter-word.
- */
-pub inter_word(): Value ->
-    Value(Token {property: "text-justify", css: "inter-word"}).
-
-/**
- * Returns the CSS keyword no-compress.
- */
-pub no_compress(): Value ->
-    Value(Token {property: "text-justify", css: "no-compress"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "text-justify", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-justify", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-justify", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword ruby.
- */
-pub ruby(): Value ->
-    Value(Token {property: "text-justify", css: "ruby"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-justify", css: "unset"}).

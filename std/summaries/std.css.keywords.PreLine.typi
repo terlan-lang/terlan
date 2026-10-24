@@ -1,0 +1,6 @@
+//! Shared CSS keyword pre-line. Generated; do not edit.
+
+module std.css.keywords.PreLine.
+
+pub type PreLine =
+    Atom["pre-line"].

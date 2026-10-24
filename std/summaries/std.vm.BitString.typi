@@ -39,6 +39,7 @@ pub from_uint_be(value: Int, bit_width: Int): BitString.
 
 /// Encodes one unsigned integer in little-endian wire order.
 
+@pure
 pub from_uint_le(value: Int, bit_width: Int): BitString.
 
 /// Reports whether the logical value ends on a byte boundary.
@@ -51,6 +52,7 @@ pub (bits: BitString) slice(start: Int, bit_length: Int): BitString.
 
 /// Converts an aligned bitstring to Bytes and rejects partial final bytes.
 
+@pure
 pub (bits: BitString) to_bytes(): Bytes.
 
 /// Decodes the exact bitstring as a signed big-endian integer.

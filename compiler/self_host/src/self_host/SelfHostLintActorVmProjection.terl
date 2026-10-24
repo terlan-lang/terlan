@@ -1,0 +1,237 @@
+/** Tooling-document projection for TL0905 and TL0906 actor rules. */
+module self_host.SelfHostLintActorVmProjection.
+
+import std.core.Option.{None, Some}.
+import std.core.String.
+import self_host.ProjectedBodySyntax.ProjectedBody.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree}.
+import self_host.SelfHostLintActorVm.{ActorFunction, ActorParameter, TagEquality, TagOperand}.
+import self_host.SelfHostLintActorVm.
+import self_host.SelfHostToolingDocument.{ToolingDocument, ToolingToken}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+source_slice(source: String, start_byte: Int, end_byte: Int): String ->
+    String.utf8_slice(source, start_byte, end_byte - start_byte).
+
+identifier_token(value: ToolingToken): Bool ->
+    value.terminal == "var" or value.terminal == "upper-ident".
+
+next_depth(value: ToolingToken, depth: Int): Int ->
+    if {
+        value.text == "(" -> depth + 1;
+        value.text == ")" -> depth - 1;
+        true -> depth
+    }.
+
+callable_name_at(
+    values: List[ToolingToken],
+    start_byte: Int,
+    end_byte: Int,
+    depth: Int,
+): String ->
+    case values {
+        [] -> "";
+        [value | rest] ->
+            if {
+                value.end_byte <= start_byte ->
+                    callable_name_at(rest, start_byte, end_byte, depth);
+                value.start_byte >= end_byte -> "";
+                depth == 0 and identifier_token(value) -> value.text;
+                true -> callable_name_at(
+                    rest,
+                    start_byte,
+                    end_byte,
+                    next_depth(value, depth),
+                )
+            }
+    }.
+
+token_at(values: List[ToolingToken], start_byte: Int): Option[ToolingToken] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.start_byte == start_byte -> Some(value);
+                value.start_byte > start_byte -> None;
+                true -> token_at(rest, start_byte)
+            }
+    }.
+
+direct_parameter_name(
+    value: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): Option[{String, Int}] ->
+    if {
+        value.kind == "pattern-token" -> case token_at(tokens, value.start_byte) {
+            Some(token) where token.terminal == "var" and value.text != "_" ->
+                Some({value.text, value.start_byte});
+            _ -> None
+        };
+        value.kind == "pattern" -> case value.children {
+            [single] -> direct_parameter_name(single, tokens);
+            _ -> None
+        };
+        true -> None
+    }.
+
+parameter(
+    value: ProjectedParameterTree,
+    source: String,
+    tokens: List[ToolingToken],
+): Option[ActorParameter] ->
+    case {value.pattern, value.annotation} {
+        {Some(pattern), Some(annotation)} -> case direct_parameter_name(pattern, tokens) {
+            Some({name, start_byte}) -> Some(ActorParameter(
+                name,
+                source_slice(source, annotation.start_byte, annotation.end_byte),
+                start_byte,
+            ));
+            None -> None
+        };
+        _ -> None
+    }.
+
+parameters(
+    values: List[ProjectedParameterTree],
+    source: String,
+    tokens: List[ToolingToken],
+): List[ActorParameter] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case parameter(value, source, tokens) {
+            None -> parameters(rest, source, tokens);
+            Some(found) -> [found | parameters(rest, source, tokens)]
+        }
+    }.
+
+operand(value: ProjectedExpressionNode, source: String): TagOperand ->
+    if {
+        value.kind == "field" -> case value.children {
+            [receiver] where receiver.kind == "identifier" -> TagOperand(
+                "field-access",
+                source_slice(source, value.start_byte, value.end_byte),
+                receiver.text,
+                value.text,
+            );
+            _ -> TagOperand(
+                value.kind,
+                source_slice(source, value.start_byte, value.end_byte),
+                "",
+                "",
+            )
+        };
+        value.kind == "string" -> TagOperand(
+            "binary",
+            source_slice(source, value.start_byte, value.end_byte),
+            "",
+            "",
+        );
+        value.kind == "atom" or value.kind == "atom-literal" -> TagOperand(
+            "atom",
+            source_slice(source, value.start_byte, value.end_byte),
+            "",
+            "",
+        );
+        value.kind == "identifier" or value.kind == "constructor" -> TagOperand(
+            "var",
+            value.text,
+            "",
+            "",
+        );
+        true -> TagOperand(
+            value.kind,
+            source_slice(source, value.start_byte, value.end_byte),
+            "",
+            "",
+        )
+    }.
+
+node_equalities(
+    value: ProjectedExpressionNode,
+    source: String,
+): List[TagEquality] ->
+    let nested = nodes_equalities(value.children, source);
+    if {
+        value.kind == "binary" and value.text == "==" -> case value.children {
+            [left, right] -> [TagEquality(
+                operand(left, source),
+                operand(right, source),
+                value.start_byte,
+            ) | nested];
+            _ -> nested
+        };
+        true -> nested
+    }.
+
+nodes_equalities(
+    values: List[ProjectedExpressionNode],
+    source: String,
+): List[TagEquality] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            node_equalities(value, source),
+            nodes_equalities(rest, source),
+        )
+    }.
+
+find_body(head: String, values: List[ProjectedBody]): Option[ProjectedExpressionNode] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.declaration_head != head -> find_body(head, rest);
+                true -> value.expression.node
+            }
+    }.
+
+functions(
+    signatures: List[ProjectedCallableSignature],
+    bodies: List[ProjectedBody],
+    source: String,
+    tokens: List[ToolingToken],
+): List[ActorFunction] ->
+    case signatures {
+        [] -> [];
+        [value | rest] ->
+            let name = callable_name_at(
+                tokens,
+                value.span.start_byte,
+                value.span.end_byte,
+                0,
+            );
+            let equalities = case find_body(value.declaration_head, bodies) {
+                None -> [];
+                Some(body) -> node_equalities(body, source)
+            };
+            [ActorFunction(
+                name,
+                parameters(value.parameters, source, tokens),
+                equalities,
+            ) | functions(rest, bodies, source, tokens)]
+    }.
+
+/** Projects actor-relevant callable facts in declaration order. */
+pub facts(value: ToolingDocument): List[ActorFunction] ->
+    if {
+        value.valid
+            and value.frontend.signatures.valid
+            and value.frontend.bodies.valid -> functions(
+                value.frontend.signatures.callables,
+                value.frontend.bodies.values,
+                value.source,
+                value.tokens,
+            );
+        true -> []
+    }.
+
+/** Runs TL0905 and TL0906 without native AST projection. */
+@pure
+pub diagnostics(
+    path: String,
+    value: ToolingDocument,
+): List[SelfHostLintActorVm.ActorVmDiagnostic] ->
+    SelfHostLintActorVm.diagnostics(path, value.source, facts(value)).

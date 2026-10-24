@@ -1,0 +1,63 @@
+/** Canonical text rendering for self-hosted compiler and tooling diagnostics. */
+module self_host.SelfHostDiagnosticRendering.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+@pure
+single_line(value: String): String ->
+    String.replace(
+        String.replace(String.replace(value, "\t", " "), "\r", " "),
+        "\n",
+        " ",
+    ).
+
+@pure
+render_messages_at(
+    origin: String,
+    values: List[String],
+    ordinal: Int,
+): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> "diagnostic\t"
+            + single_line(origin)
+            + "\t"
+            + ordinal.to_string()
+            + "\t"
+            + single_line(value)
+            + "\n"
+            + render_messages_at(origin, rest, ordinal + 1)
+    }.
+
+/** Renders ordered stage messages without host-dependent formatting. */
+@pure
+pub render_messages(origin: String, values: List[String]): String ->
+    "terlan.self-host.diagnostics/v1\n"
+        + "kind\torigin\tordinal\tmessage\n"
+        + render_messages_at(origin, values, 1).
+
+/** Renders one source-located diagnostic in the public command format. */
+@pure
+pub render_location(
+    path: String,
+    line: Int,
+    column: Int,
+    severity: String,
+    code: String,
+    message: String,
+): String ->
+    single_line(path)
+        + ":"
+        + line.to_string()
+        + ":"
+        + column.to_string()
+        + ": "
+        + single_line(severity)
+        + "["
+        + single_line(code)
+        + "]: "
+        + single_line(message).

@@ -1,4 +1,4 @@
-//! Preserve renamed singleton type values before import aliases leave the typed boundary.
+//! Preserve imported singleton values before their type aliases leave the typed boundary.
 
 use super::*;
 use crate::terlan_syntax::{SyntaxPatternKind, SyntaxPatternOutput};
@@ -8,14 +8,15 @@ use crate::terlan_syntax::{SyntaxPatternKind, SyntaxPatternOutput};
 mod tests;
 
 pub(super) fn canonicalize(module: &mut SyntaxModuleOutput, resolved: &ResolvedModule) {
-    let aliases = imported_type_aliases(resolved);
-    let atoms = resolved
+    let mut aliases = imported_type_aliases(resolved);
+    aliases.extend(collect_qualified_syntax_type_aliases(
+        module,
+        &imported_type_names(resolved),
+    ));
+    let mut atoms = resolved
         .imported_types
         .iter()
         .filter_map(|(local, imported)| {
-            if local == &imported.source_name {
-                return None;
-            }
             let alias = aliases.get(local)?;
             if alias.is_opaque || !alias.params.is_empty() {
                 return None;
@@ -29,6 +30,22 @@ pub(super) fn canonicalize(module: &mut SyntaxModuleOutput, resolved: &ResolvedM
             Some((local.clone(), atom))
         })
         .collect::<HashMap<_, _>>();
+    for (local, alias) in &aliases {
+        if local.contains('.')
+            || alias.is_opaque
+            || !alias.params.is_empty()
+            || matches!(alias.body, Type::LiteralAtom(_))
+        {
+            continue;
+        }
+        if let Type::LiteralAtom(atom) = expand_type_aliases(&alias.body, &aliases) {
+            atoms.insert(
+                local.clone(),
+                if atom == "unit" { "Unit".into() } else { atom },
+            );
+        }
+    }
+
     if atoms.is_empty() {
         return;
     }

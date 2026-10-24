@@ -3,6 +3,7 @@ use crate::channel_plan::{SseEndpointPlan, WebSocketEndpointPlan};
 use crate::routing::Fallback;
 
 /// Package-owned route declarations with host-admitted callable values.
+#[derive(Clone)]
 pub struct Router<C> {
     pub routes: Vec<Route<C>>,
     pub fallback: Option<Fallback<C>>,
@@ -65,6 +66,7 @@ impl<C: DescriptorValue + Clone> Router<C> {
 }
 
 /// One flattened route with complete source-composed middleware ordering.
+#[derive(Clone)]
 pub struct Route<C> {
     pub method: String,
     pub path: String,
@@ -74,6 +76,7 @@ pub struct Route<C> {
 }
 
 /// HTTP or long-lived channel endpoint produced by source code.
+#[derive(Clone)]
 pub enum RouteTarget<C> {
     Handler(C),
     Sse(SseEndpointPlan<C>),

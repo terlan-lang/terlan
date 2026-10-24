@@ -153,7 +153,10 @@ run_ok(repository: String, program: String, arguments: List[String], timeout_ms:
         Some(output) ->
             if {
                 output.status == 0 -> true;
-                true -> failure("process.status", String.concat([program, " failed: ", output.stderr]))
+                true -> failure(
+                    "process.status",
+                    String.concat([program, " failed: ", output.stderr]),
+                )
             };
         None -> false
     }.
@@ -775,7 +778,11 @@ workflow_contract(files: List[TextFile]): Bool ->
         [] -> true;
         [file | rest] ->
             if {
-                String.ends_with(file.path, ".yml") and not jobs_have_timeouts(file.contents) -> failure("workflow.timeout", String.append("job missing timeout in ", file.path));
+                String.ends_with(file.path, ".yml")
+                    and not jobs_have_timeouts(file.contents) -> failure(
+                    "workflow.timeout",
+                    String.append("job missing timeout in ", file.path),
+                );
                 true -> workflow_contract(rest)
             }
     }.

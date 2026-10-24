@@ -9,7 +9,7 @@ import std.test.Test.{assert_equal}.
 import type std.collections.List.
 import type std.core.Result.
 
-pub type Problem.
+type Problem.
 
 pub increment(value: Int): Int ->
     value + 1.

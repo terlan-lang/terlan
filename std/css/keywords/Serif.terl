@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword serif. Generated; do not edit.
+ */
+module std.css.keywords.Serif.
+
+pub type Serif.

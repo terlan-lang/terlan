@@ -1,56 +1,29 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-inline-start
+//! The `margin-inline-start` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! defines the logical inline start margin of an element, which maps to a physical margin depending
+//! on the element's writing mode, directionality, and text orientation. It corresponds to the
+//! `margin-top`, `margin-right`, `margin-bottom`, or `margin-left` property depending on the values
+//! defined for `writing-mode`, `direction`, and `text-orientation`.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: depends on layout model.
+//!
+//! Keyword effects:
+//! - auto: The browser selects a suitable value to use. See `margin`. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-top
+//!
 //! Grammar: <'margin-top'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-inline-start
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-inline-start
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MarginInlineStart.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    margin_inline_start: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    margin_inline_start: Value
+    margin_inline_start: Auto | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained margin-inline-start value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a margin-inline-start value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Constructs a margin-inline-start value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

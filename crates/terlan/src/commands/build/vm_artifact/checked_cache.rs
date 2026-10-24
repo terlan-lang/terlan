@@ -146,6 +146,19 @@ fn decode_checked_entry(
     {
         return None;
     }
+    if std::env::var_os("TERLAN_BUILD_LOW_MEMORY").is_some() {
+        if !low_memory_dependencies_are_current(&manifest, cache_dir) {
+            return None;
+        }
+        cached.core.interface =
+            load_low_memory_interface(&manifest, &cached.syntax_output, cache_dir)?;
+        cached.core.source.source_path = Some(path.to_string());
+        return Some(CheckedSyntaxModuleArtifacts {
+            syntax_output: cached.syntax_output,
+            interfaces: Default::default(),
+            core: cached.core,
+        });
+    }
     let interface = syntax_module_output_to_interface(&cached.syntax_output);
     let mut interfaces = crate::formal_pipeline::load_external_interfaces_for_module(
         path,
@@ -218,6 +231,65 @@ fn decode_checked_entry(
         interfaces,
         core: cached.core,
     })
+}
+
+/// Validates a prepared build dependency set without expanding every interface.
+fn low_memory_dependencies_are_current(manifest: &DependencyManifest, cache_dir: &Path) -> bool {
+    manifest.dependencies.iter().all(|(dependency, expected)| {
+        if let Some(path) = dependency
+            .strip_prefix("file:")
+            .or_else(|| dependency.strip_prefix("template:"))
+        {
+            return fs::read(path)
+                .ok()
+                .is_some_and(|bytes| fingerprint(&bytes) == *expected);
+        }
+        fs::read_to_string(cache_dir.join(format!("{dependency}.typi.hash")))
+            .ok()
+            .and_then(|hash| hash.trim().parse::<u64>().ok())
+            .is_some_and(|current| current == *expected)
+            || read_manifest(&dependency_manifest_path(cache_dir, dependency)).is_some_and(
+                |current| {
+                    current.module == *dependency
+                        && current.interface_hash == *expected
+                        && syntax_contract_identity_matches_current(
+                            &current.syntax_contract_identity,
+                        )
+                        .unwrap_or(false)
+                },
+            )
+    })
+}
+
+/// Reconstructs the checked local interface without loading dependency graphs.
+fn load_low_memory_interface(
+    manifest: &DependencyManifest,
+    syntax: &crate::terlan_syntax::SyntaxModuleOutput,
+    cache_dir: &Path,
+) -> Option<crate::terlan_hir::ModuleInterface> {
+    let interface = syntax_module_output_to_interface(syntax);
+    if interface_matches_manifest(&interface, manifest) {
+        return Some(interface);
+    }
+
+    // Explicit interface declarations can restrict an implementation surface.
+    // The prepared artifact is the authoritative fallback for those modules.
+    let source = fs::read_to_string(cache_dir.join(format!("{}.typi", manifest.module))).ok()?;
+    let prepared = crate::terlan_syntax::parse_interface_module_as_syntax_output(&source).ok()?;
+    if prepared.module_name != manifest.module {
+        return None;
+    }
+    let interface = syntax_module_output_to_interface(&prepared);
+    interface_matches_manifest(&interface, manifest).then_some(interface)
+}
+
+fn interface_matches_manifest(
+    interface: &crate::terlan_hir::ModuleInterface,
+    manifest: &DependencyManifest,
+) -> bool {
+    manifest.interface_hash == fingerprint(interface.to_terlan_interface_type_text().as_bytes())
+        && manifest.interface_doc_hash
+            == fingerprint(interface.to_terlan_interface_doc_text().as_bytes())
 }
 
 /// Publishes one complete checked implementation and dependency manifest.

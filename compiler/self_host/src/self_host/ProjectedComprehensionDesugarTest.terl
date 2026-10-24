@@ -1,0 +1,63 @@
+/** Semantic list-comprehension desugaring contracts. */
+module self_host.ProjectedComprehensionDesugarTest.
+
+import std.collections.List.
+import self_host.ProjectedComprehensionDesugar.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+
+node(kind: String, text: String, children: List[ProjectedExpressionNode]): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, 10, 40, children).
+
+@test
+pub generator_patterns_and_filters_become_ordinary_control_flow(): Bool ->
+    let value = node("list-comprehension", "|", [
+        node("identifier", "rendered", []),
+        node("generator", "<-", [
+            node("constructor-pattern", "Some", [node("binding-pattern", "item", [])]),
+            node("identifier", "items", []),
+        ]),
+        node("filter", "", [node("identifier", "visible", [])]),
+    ]);
+    let projected = ProjectedComprehensionDesugar.expression(value);
+    case projected.children {
+        [source, callback] ->
+            projected.kind == "list-flat-map"
+                and source.text == "items"
+                and case callback.children {
+                    [_parameters, matching] -> case matching.children {
+                        [_subject, accepted, rejected] ->
+                            accepted.kind == "clause"
+                                and rejected.kind == "clause"
+                                and case accepted.children {
+                                    [_pattern, filtered] -> filtered.kind == "if";
+                                    _ -> false
+                                };
+                        _ -> false
+                    };
+                    _ -> false
+                };
+        _ -> false
+    }.
+
+@test
+pub multiple_generators_nest_flat_map_nodes_in_source_order(): Bool ->
+    let value = node("list-comprehension", "|", [
+        node("identifier", "pair", []),
+        node("generator", "<-", [node("binding-pattern", "left", []), node("identifier", "lefts", [])]),
+        node("generator", "<-", [node("binding-pattern", "right", []), node("identifier", "rights", [])]),
+    ]);
+    let projected = ProjectedComprehensionDesugar.expression(value);
+    case projected.children {
+        [_source, callback] -> projected.kind == "list-flat-map"
+            and case callback.children {
+                [_parameters, matching] -> case matching.children {
+                    [_subject, accepted, _rejected] -> case accepted.children {
+                        [_pattern, nested] -> nested.kind == "list-flat-map";
+                        _ -> false
+                    };
+                    _ -> false
+                };
+                _ -> false
+            };
+        _ -> false
+    }.

@@ -1,0 +1,49 @@
+/** Positive and negative target compatibility contracts. */
+module self_host.SelfHostLintTargetsTest.
+
+import std.core.String.
+
+import self_host.SelfHostLintTargets.
+
+@test
+pub parses_plain_type_selected_and_aliased_import_modules(): Bool ->
+    SelfHostLintTargets.import_module("import std.js.Promise.") == "std.js.Promise"
+        and SelfHostLintTargets.import_module("import type std.vm.Task.") == "std.vm.Task"
+        and SelfHostLintTargets.import_module("import std.wasm.Memory.{load}.") == "std.wasm.Memory"
+        and SelfHostLintTargets.import_module("import std.native.Api as Api.") == "std.native.Api".
+
+@test
+pub reports_first_incompatible_target_import(): Bool ->
+    case SelfHostLintTargets.diagnostics(
+        "Sample.terl",
+        "module sample.\nimport std.js.Promise.\n    import std.vm.Task.\nimport std.wasm.Memory.\n",
+    ) {
+        [value] ->
+            value.rule_id == "TL0702"
+                and value.rule_name == "targets.incompatible-std"
+                and value.severity == "warning"
+                and value.line == 3
+                and value.column == 5;
+        _ -> false
+    }.
+
+@test
+pub accepts_vm_and_native_imports_together(): Bool ->
+    SelfHostLintTargets.diagnostics(
+        "Sample.terl",
+        "import std.native.collections.Vector.\nimport std.vm.Task.\n",
+    ) == [].
+
+@test
+pub ignores_target_imports_inside_comments(): Bool ->
+    SelfHostLintTargets.diagnostics(
+        "Sample.terl",
+        "/**\n * import std.js.Promise.\n * import std.vm.Task.\n */\nimport std.vm.Task.\n",
+    ) == [].
+
+@test
+pub accepts_repeated_and_non_target_imports(): Bool ->
+    SelfHostLintTargets.diagnostics(
+        "Sample.terl",
+        "import std.js.Promise.\nimport std.js.Console.\nimport std.core.String.\n",
+    ) == [].

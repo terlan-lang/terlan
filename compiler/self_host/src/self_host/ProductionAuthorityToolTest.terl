@@ -1,0 +1,25 @@
+/** Deterministic production-authority publication contracts. */
+module self_host.ProductionAuthorityToolTest.
+
+import self_host.ProductionAuthority.{ProductionDecision}.
+import self_host.ProductionAuthorityTool.
+import std.core.String.
+
+@test
+pub transferable_decision_rendering_is_canonical(): Bool ->
+    ProductionAuthorityTool.render(ProductionDecision(true, true, [])) ==
+        "schema\tterlan.self-host.production-authority-decision/v1\ntransferable\tpass\nretain-terlc0\tpass\n".
+
+@test
+pub denied_decision_preserves_ordered_failures(): Bool ->
+    ProductionAuthorityTool.render(ProductionDecision(
+        false,
+        true,
+        ["tooling-authority", "post-cleanup-converged"],
+    )) == String.concat([
+        "schema\tterlan.self-host.production-authority-decision/v1\n",
+        "transferable\tfail\n",
+        "retain-terlc0\tpass\n",
+        "failure\ttooling-authority\n",
+        "failure\tpost-cleanup-converged\n",
+    ]).

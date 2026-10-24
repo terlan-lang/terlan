@@ -1,84 +1,34 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-animation-range
+ * The `animation-range` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property is used to set the start and end of an animation's attachment range along its timeline,
+ * i.e., where along the timeline an animation will start and end.
+ *
+ * Initial: animation-range-start: normal; animation-range-end: normal. Inherited: no.
+ * Percentages: Relative to the specified named timeline range if specified, otherwise relative to
+ * the entire timeline.
+ *
+ * Keyword effects:
+ * - normal: Represents the start of the timeline. This is the default value. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-range-start
+ *
  * Grammar: [ <'animation-range-start'> <'animation-range-end'>? ]#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-animation-range
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-range
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.AnimationRange.
 
-import std.css.Values.
+import std.css.keywords.Normal.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained animation-range value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    animation_range: Value,
+    animation_range: Normal | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    animation_range: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "animation-range", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "animation-range", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "animation-range", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "animation-range", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "animation-range", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "animation-range", css: "unset"}).
-
-/**
- * Constructs a animation-range value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "animation-range", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a animation-range value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "animation-range", css: std.css.Values.percentage_css(value)}).

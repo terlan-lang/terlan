@@ -22,11 +22,23 @@ positive_method(): Bool ->
     }.
 
 @pure
+positive_generic_method_name(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.User.\npub (user: User) convert[T](value: T)[Convertible[T]]: T -> value.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let method = MethodLowering.lower(declaration);
+            method.name == "convert" and List.length(method.constraints) == 1;
+        _ -> false
+    }.
+
+@pure
 negative_method(): Bool ->
     let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
         "module demo.User.\npub (user User) display(): String -> user.name.\n",
     ));
     case lowered_module.declarations { [declaration] -> not MethodLowering.lower(declaration).valid; _ -> false }.
 
-pub self_test(): Bool -> positive_method() and negative_method().
+pub self_test(): Bool -> positive_method() and positive_generic_method_name() and negative_method().
 

@@ -1,125 +1,50 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-thickness
+ * The `text-decoration-thickness` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * sets the stroke thickness of the decoration line that is used on text in an element, such as a
+ * line-through, underline, or overline.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: refer to the font size of the element itself.
+ *
+ * Keyword effects:
+ * - auto: The browser chooses an appropriate width for the text decoration line.
+ * - from-font: If the font file includes information about a preferred thickness, use that value.
+ * If the font file doesn't include this information, behave as if `auto` was set, with the browser
+ * choosing an appropriate thickness.
+ *
  * Grammar: auto | from-font | <length-percentage> | <line-width>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-thickness
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-thickness
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextDecorationThickness.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
-import std.css.Values.{length_amount, length_css, percentage_css}.
+import std.css.Values.{length_amount, length_css, serialize}.
+import std.css.keywords.{Auto, FromFont}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained text-decoration-thickness value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_decoration_thickness: Value,
+    text_decoration_thickness: Auto | FromFont | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the text-decoration-thickness length range. Returns Some when amount >= 0; otherwise
+ * returns None.
  */
-pub struct OptionalProperty {
-    text_decoration_thickness: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "text-decoration-thickness", css: "auto"}).
-
-/**
- * Returns the CSS keyword from-font.
- */
-pub from_font(): Value ->
-    Value(Token {property: "text-decoration-thickness", css: "from-font"}).
-
-/**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "text-decoration-thickness", css: "hairline"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-decoration-thickness", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-decoration-thickness", css: "initial"}).
-
-/**
- * Returns the CSS keyword medium.
- */
-pub medium(): Value ->
-    Value(Token {property: "text-decoration-thickness", css: "medium"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-decoration-thickness", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-decoration-thickness", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword thick.
- */
-pub thick(): Value ->
-    Value(Token {property: "text-decoration-thickness", css: "thick"}).
-
-/**
- * Returns the CSS keyword thin.
- */
-pub thin(): Value ->
-    Value(Token {property: "text-decoration-thickness", css: "thin"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-decoration-thickness", css: "unset"}).
-
-/**
- * Constructs a text-decoration-thickness value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "text-decoration-thickness", css: length_css(value)}).
-
-/**
- * Constructs a text-decoration-thickness value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "text-decoration-thickness", css: percentage_css(value)}).
-
-/**
- * Checks the specification range and constructs a text-decoration-thickness value.
- */
-pub length_2(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "text-decoration-thickness", css: length_css(value)}));
-        false -> None
+        true -> Some(Checked(serialize("text-decoration-thickness", length_css(value))));
+        false -> Absent
     }.

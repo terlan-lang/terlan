@@ -1,0 +1,132 @@
+/** Executes all production evidence jobs before final authority publication. */
+module self_host.ProductionEvidencePipeline.
+
+import self_host.ProductionArtifactIdentity.
+import self_host.ProductionAuthorityCatalog.
+import self_host.ProductionAuthorityPipeline.
+import self_host.ProductionGateMarker.
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.File.
+
+@pure
+contains(key: String, keys: List[String]): Bool ->
+    case keys {
+        [] -> false;
+        [key | _rest] -> true;
+        [_value | rest] -> contains(key, rest)
+    }.
+
+/** Returns whether a plan job kind is valid for its authority key. */
+@pure
+pub valid_job(kind: String, key: String): Bool ->
+    if {
+        kind == "parity" -> ProductionAuthorityCatalog.gate_key(key);
+        kind == "identity" -> ProductionAuthorityCatalog.identity_key(key);
+        true -> false
+    }.
+
+parity_job(
+    rest: List[String],
+    seen: List[String],
+    key: String,
+    reference: String,
+    candidate: String,
+    marker: String,
+): Bool ->
+    if {
+        not valid_job("parity", key) or contains(key, seen) -> false;
+        true ->
+            case ProductionGateMarker.run(reference, candidate, marker) {
+                false -> false;
+                true -> run_rows(rest, [key | seen])
+            }
+    }.
+
+identity_job(
+    rest: List[String],
+    seen: List[String],
+    key: String,
+    artifact: String,
+    output: String,
+): Bool ->
+    if {
+        not valid_job("identity", key) or contains(key, seen) -> false;
+        true ->
+            case ProductionArtifactIdentity.write(artifact, output) {
+                false -> false;
+                true -> run_rows(rest, [key | seen])
+            }
+    }.
+
+run_row(rest: List[String], seen: List[String], row: String): Bool ->
+    case String.split(row, "\t") {
+        ["parity", key, reference, candidate, marker] ->
+            parity_job(rest, seen, key, reference, candidate, marker);
+        ["identity", key, artifact, output] ->
+            identity_job(rest, seen, key, artifact, output);
+        _ -> false
+    }.
+
+run_rows(lines: List[String], seen: List[String]): Bool ->
+    case lines {
+        [] -> true;
+        [line | rest] ->
+            let normalized = String.trim(line);
+            if {
+                normalized == "" -> run_rows(rest, seen);
+                true -> run_row(rest, seen, normalized)
+            }
+    }.
+
+run_source(source: String): Bool ->
+    case String.split(source, "\n") {
+        [header | rest] ->
+            if {
+                String.trim(header) == "schema\tterlan.self-host.production-evidence-plan/v1" ->
+                    run_rows(rest, []);
+                true -> false
+            };
+        _ -> false
+    }.
+
+run_plan(
+    plan: String,
+    source_manifest: String,
+    catalog_output: String,
+    decision_output: String,
+    complete_marker: String,
+): Bool ->
+    case File.read_text(plan) {
+        Err(_reason) -> false;
+        Ok(source) ->
+            case run_source(source) {
+                false -> false;
+                true -> ProductionAuthorityPipeline.run(
+                    source_manifest,
+                    catalog_output,
+                    decision_output,
+                    complete_marker,
+                )
+            }
+    }.
+
+/** Invalidates prior authority, executes evidence jobs, then evaluates production authority. */
+pub run(
+    plan: String,
+    source_manifest: String,
+    catalog_output: String,
+    decision_output: String,
+    complete_marker: String,
+): Bool ->
+    case File.write_text(complete_marker, "pending\n") {
+        Err(_reason) -> false;
+        Ok(_unit) -> run_plan(
+            plan,
+            source_manifest,
+            catalog_output,
+            decision_output,
+            complete_marker,
+        )
+    }.

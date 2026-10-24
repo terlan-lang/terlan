@@ -1,0 +1,324 @@
+/** Closed-struct evidence for generic structural implications. */
+module self_host.ProjectedStructuralImplication.
+
+import std.core.String.
+
+import self_host.DeclarationPayloadSyntax.{StructFieldSyntax}.
+import self_host.StructuralImplication.{StructuralField, StructuralImplicationSyntax}.
+import self_host.TypedModuleSyntax.{StructPayload, TypedDeclaration, TypedModule}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, String}.
+import self_host.Delimited.
+import self_host.StructuralImplication.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+
+pub struct ClosedStructShape {
+    name: String,
+    fields: List[StructuralField],
+}.
+
+pub constructor ClosedStructShape {
+    (name: String, fields: List[StructuralField]): ClosedStructShape ->
+        ClosedStructShape { name: name, fields: fields }
+}.
+
+
+pub struct ImplicationProof {
+    valid: Bool,
+    message: String,
+}.
+
+pub constructor ImplicationProof {
+    (valid: Bool, message: String): ImplicationProof ->
+        ImplicationProof { valid: valid, message: message }
+}.
+
+
+pub struct GenericTypeBinding {
+    name: String,
+    concrete_type: String,
+}.
+
+pub constructor GenericTypeBinding {
+    (name: String, concrete_type: String): GenericTypeBinding ->
+        GenericTypeBinding { name: name, concrete_type: concrete_type }
+}.
+
+
+pub struct ImplicationConstraintSet {
+    valid: Bool,
+    constraints: List[StructuralImplicationSyntax],
+    message: String,
+}.
+
+pub constructor ImplicationConstraintSet {
+    (valid: Bool, constraints: List[StructuralImplicationSyntax], message: String): ImplicationConstraintSet ->
+        ImplicationConstraintSet { valid: valid, constraints: constraints, message: message }
+}.
+
+
+@pure
+constraint_subject_present(subject: String, values: List[StructuralImplicationSyntax]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.subject == subject or constraint_subject_present(subject, rest)
+    }.
+
+@pure
+parse_parameter_constraints(
+    values: List[String],
+    output: List[StructuralImplicationSyntax],
+): ImplicationConstraintSet ->
+    case values {
+        [] -> ImplicationConstraintSet(true, output, "");
+        [value | rest] -> if {
+            Delimited.top_level_pair(value, 61, 62) < 0 -> parse_parameter_constraints(rest, output);
+            true ->
+                let parsed = StructuralImplication.parse(value);
+                if {
+                    not parsed.valid -> ImplicationConstraintSet(false, output, parsed.message);
+                    constraint_subject_present(parsed.subject, output) -> ImplicationConstraintSet(
+                        false,
+                        output,
+                        String.concat(["duplicate structural implication for `", parsed.subject, "`"]),
+                    );
+                    true -> parse_parameter_constraints(rest, [parsed | output])
+                }
+        }
+    }.
+
+/** Parses implications only from already-delimited generic parameter entries. */
+@pure
+pub constraints(generic_parameters: List[String]): ImplicationConstraintSet ->
+    parse_parameter_constraints(generic_parameters, List.new[StructuralImplicationSyntax]()).
+
+
+@pure
+visible_fields(values: List[StructFieldSyntax]): List[StructuralField] ->
+    case values {
+        [] -> List.new[StructuralField]();
+        [value | rest] -> if {
+            value.is_private or not value.valid or not value.annotation.valid -> visible_fields(rest);
+            true -> [StructuralField(value.name, value.annotation.syntax.text) | visible_fields(rest)]
+        }
+    }.
+
+@pure
+shape_from_declaration(value: TypedDeclaration): List[ClosedStructShape] ->
+    case value.payload {
+        StructPayload(structure) where value.valid and structure.valid ->
+            [ClosedStructShape(structure.name, visible_fields(structure.fields))];
+        _ -> List.new[ClosedStructShape]()
+    }.
+
+@pure
+shapes_from_declarations(values: List[TypedDeclaration]): List[ClosedStructShape] ->
+    case values {
+        [] -> List.new[ClosedStructShape]();
+        [value | rest] -> append(
+            shape_from_declaration(value),
+            shapes_from_declarations(rest),
+        )
+    }.
+
+/** Collects the closed, visible field evidence supplied by a typed module. */
+@pure
+pub catalog(typed_module: TypedModule): List[ClosedStructShape] ->
+    shapes_from_declarations(typed_module.declarations).
+
+@pure
+find_shape(type_name: String, values: List[ClosedStructShape]): ClosedStructShape ->
+    case values {
+        [] -> ClosedStructShape("", List.new[StructuralField]());
+        [value | rest] -> if {
+            value.name == type_name or type_name.ends_with(String.concat([".", value.name])) -> value;
+            true -> find_shape(type_name, rest)
+        }
+    }.
+
+@pure
+find_field(name: String, values: List[StructuralField]): StructuralField ->
+    case values {
+        [] -> StructuralField("", "");
+        [value | rest] -> if { value.name == name -> value; true -> find_field(name, rest) }
+    }.
+
+@pure
+is_shape_type(type_text: String): Bool ->
+    let value = String.trim(type_text);
+    value.starts_with("{") and value.ends_with("}").
+
+@pure
+shape_requirement(type_text: String): StructuralImplicationSyntax ->
+    StructuralImplication.parse(String.concat(["Evidence => ", String.trim(type_text)])).
+
+@pure
+path_message(path: String, message: String): String ->
+    if {
+        path == "" -> message;
+        true -> String.concat(["structural field `", path, "`: ", message])
+    }.
+
+@pure
+field_path(prefix: String, name: String): String ->
+    if { prefix == "" -> name; true -> String.concat([prefix, ".", name]) }.
+
+@pure
+prove_fields(
+    available: List[StructuralField],
+    required: List[StructuralField],
+    shapes: List[ClosedStructShape],
+    path: String,
+): ImplicationProof ->
+    case required {
+        [] -> ImplicationProof(true, "");
+        [requirement | rest] ->
+            let actual = find_field(requirement.name, available);
+            let current_path = field_path(path, requirement.name);
+            if {
+                actual.name == "" -> ImplicationProof(
+                    false,
+                    path_message(current_path, "required field is absent or not visible"),
+                );
+                actual.type_text == "" or actual.type_text == "Dynamic" -> ImplicationProof(
+                    false,
+                    path_message(current_path, "field type does not provide closed evidence"),
+                );
+                is_shape_type(requirement.type_text) ->
+                    let nested_requirement = shape_requirement(requirement.type_text);
+                    let nested_shape = find_shape(actual.type_text, shapes);
+                    if {
+                        not nested_requirement.valid -> ImplicationProof(false, nested_requirement.message);
+                        nested_shape.name == "" -> ImplicationProof(
+                            false,
+                            path_message(current_path, String.concat([
+                                "type `",
+                                actual.type_text,
+                                "` has no visible closed-struct evidence",
+                            ])),
+                        );
+                        true ->
+                            let nested = prove_fields(
+                                nested_shape.fields,
+                                nested_requirement.fields,
+                                shapes,
+                                current_path,
+                            );
+                            if {
+                                not nested.valid -> nested;
+                                true -> prove_fields(available, rest, shapes, path)
+                            }
+                    };
+                actual.type_text != requirement.type_text -> ImplicationProof(
+                    false,
+                    path_message(current_path, String.concat([
+                        "expected ",
+                        requirement.type_text,
+                        ", found ",
+                        actual.type_text,
+                    ])),
+                );
+                true -> prove_fields(available, rest, shapes, path)
+            }
+    }.
+
+/**
+ * Proves that a concrete closed struct satisfies a parsed generic implication.
+ * Dynamic, unknown, and private-field evidence fail closed.
+ */
+@pure
+pub prove(
+    concrete_type: String,
+    requirement: StructuralImplicationSyntax,
+    shapes: List[ClosedStructShape],
+): ImplicationProof ->
+    let shape = find_shape(String.trim(concrete_type), shapes);
+    if {
+        not requirement.valid -> ImplicationProof(false, requirement.message);
+        concrete_type == "" or concrete_type == "Dynamic" -> ImplicationProof(
+            false,
+            "structural implication requires a concrete closed-struct type",
+        );
+        shape.name == "" -> ImplicationProof(
+            false,
+            String.concat(["type `", concrete_type, "` has no visible closed-struct evidence"]),
+        );
+        true -> prove_fields(shape.fields, requirement.fields, shapes, "")
+    }.
+
+@pure
+find_binding(name: String, values: List[GenericTypeBinding]): GenericTypeBinding ->
+    case values {
+        [] -> GenericTypeBinding("", "");
+        [value | rest] -> if { value.name == name -> value; true -> find_binding(name, rest) }
+    }.
+
+@pure
+prove_bindings(
+    requirements: List[StructuralImplicationSyntax],
+    bindings: List[GenericTypeBinding],
+    shapes: List[ClosedStructShape],
+): ImplicationProof ->
+    case requirements {
+        [] -> ImplicationProof(true, "");
+        [requirement | rest] ->
+            let binding = find_binding(requirement.subject, bindings);
+            if {
+                binding.name == "" -> ImplicationProof(
+                    false,
+                    String.concat(["structural implication has no inferred binding for `", requirement.subject, "`"]),
+                );
+                true ->
+                    let proof = prove(binding.concrete_type, requirement, shapes);
+                    if {
+                        not proof.valid -> proof;
+                        true -> prove_bindings(rest, bindings, shapes)
+                    }
+            }
+    }.
+
+/** Admits inferred generic bindings only when every structural constraint is proven. */
+@pure
+pub admit_bindings(
+    parsed: ImplicationConstraintSet,
+    bindings: List[GenericTypeBinding],
+    shapes: List[ClosedStructShape],
+): ImplicationProof ->
+    if {
+        not parsed.valid -> ImplicationProof(false, parsed.message);
+        true -> prove_bindings(parsed.constraints, bindings, shapes)
+    }.
+
+@pure
+find_constraint(subject: String, values: List[StructuralImplicationSyntax]): Option[StructuralImplicationSyntax] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.subject == subject -> Some(value);
+            true -> find_constraint(subject, rest)
+        }
+    }.
+
+/** Resolves field access on a generic parameter only within its implication scope. */
+@pure
+pub constrained_field_type(
+    subject: String,
+    field_name: String,
+    parsed: ImplicationConstraintSet,
+): Option[String] ->
+    if {
+        not parsed.valid -> None;
+        true -> case find_constraint(subject, parsed.constraints) {
+            None -> None;
+            Some(requirement) ->
+                let field = find_field(field_name, requirement.fields);
+                if { field.name == "" -> None; true -> Some(field.type_text) }
+        }
+    }.

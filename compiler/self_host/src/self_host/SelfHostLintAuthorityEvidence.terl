@@ -1,0 +1,172 @@
+/** Strict external parity evidence for self-hosted lint authority. */
+module self_host.SelfHostLintAuthorityEvidence.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import type std.core.Result.
+import self_host.SelfHostLintAuthority.LintAuthorityEvidence.
+
+parse_flag(value: String): Result[Bool, String] ->
+    if {
+        value == "pass" -> Ok(true);
+        value == "fail" -> Ok(false);
+        true -> Err("lint parity values must be `pass` or `fail`")
+    }.
+
+parse_line(line: String, expected_key: String): Result[Bool, String] ->
+    case String.split_once(line, "\t") {
+        None -> Err("lint parity rows must contain one tab");
+        Some({key, value}) ->
+            if {
+                key != expected_key -> Err(
+                    "expected lint parity key `" + expected_key + "`",
+                );
+                String.contains(value, "\t") -> Err(
+                    "lint parity rows must contain exactly two fields",
+                );
+                true -> parse_flag(value)
+            }
+    }.
+
+decode_bootstrap(
+    registry_artifact: String,
+    native: Bool,
+    order: Bool,
+    fixes: Bool,
+    corpus: Bool,
+    line: String,
+): Result[LintAuthorityEvidence, String] ->
+    case parse_line(line, "bootstrap_compiled") {
+        Err(reason) -> Err(reason);
+        Ok(bootstrap) -> Ok(LintAuthorityEvidence(
+            registry_artifact,
+            native,
+            order,
+            fixes,
+            corpus,
+            bootstrap,
+        ))
+    }.
+
+decode_corpus(
+    registry_artifact: String,
+    native: Bool,
+    order: Bool,
+    fixes: Bool,
+    corpus_line: String,
+    bootstrap_line: String,
+): Result[LintAuthorityEvidence, String] ->
+    case parse_line(corpus_line, "corpus_parity") {
+        Err(reason) -> Err(reason);
+        Ok(corpus) -> decode_bootstrap(
+            registry_artifact,
+            native,
+            order,
+            fixes,
+            corpus,
+            bootstrap_line,
+        )
+    }.
+
+decode_fixes(
+    registry_artifact: String,
+    native: Bool,
+    order: Bool,
+    fixes_line: String,
+    corpus_line: String,
+    bootstrap_line: String,
+): Result[LintAuthorityEvidence, String] ->
+    case parse_line(fixes_line, "fix_parity") {
+        Err(reason) -> Err(reason);
+        Ok(fixes) -> decode_corpus(
+            registry_artifact,
+            native,
+            order,
+            fixes,
+            corpus_line,
+            bootstrap_line,
+        )
+    }.
+
+decode_order(
+    registry_artifact: String,
+    native: Bool,
+    order_line: String,
+    fixes_line: String,
+    corpus_line: String,
+    bootstrap_line: String,
+): Result[LintAuthorityEvidence, String] ->
+    case parse_line(order_line, "diagnostic_order_parity") {
+        Err(reason) -> Err(reason);
+        Ok(order) -> decode_fixes(
+            registry_artifact,
+            native,
+            order,
+            fixes_line,
+            corpus_line,
+            bootstrap_line,
+        )
+    }.
+
+decode_native(
+    registry_artifact: String,
+    native_line: String,
+    order_line: String,
+    fixes_line: String,
+    corpus_line: String,
+    bootstrap_line: String,
+): Result[LintAuthorityEvidence, String] ->
+    case parse_line(native_line, "native_parity") {
+        Err(reason) -> Err(reason);
+        Ok(native) -> decode_order(
+            registry_artifact,
+            native,
+            order_line,
+            fixes_line,
+            corpus_line,
+            bootstrap_line,
+        )
+    }.
+
+/** Decodes an exact, ordered, closed-world parity artifact. */
+pub decode(
+    body: String,
+    registry_artifact: String,
+): Result[LintAuthorityEvidence, String] ->
+    case String.split(body, "\n") {
+        [
+            "terlan.self-host.lint-parity/v1",
+            native,
+            order,
+            fixes,
+            corpus,
+            bootstrap,
+            ""
+        ] -> decode_native(
+            registry_artifact,
+            native,
+            order,
+            fixes,
+            corpus,
+            bootstrap,
+        );
+        _ -> Err("lint parity artifact has an invalid schema or row count")
+    }.
+
+flag(value: Bool): String -> if { value -> "pass"; true -> "fail" }.
+
+/** Canonical producer format for parity executors. */
+pub render(
+    native: Bool,
+    order: Bool,
+    fixes: Bool,
+    corpus: Bool,
+    bootstrap: Bool,
+): String ->
+    "terlan.self-host.lint-parity/v1\n"
+        + "native_parity\t" + flag(native) + "\n"
+        + "diagnostic_order_parity\t" + flag(order) + "\n"
+        + "fix_parity\t" + flag(fixes) + "\n"
+        + "corpus_parity\t" + flag(corpus) + "\n"
+        + "bootstrap_compiled\t" + flag(bootstrap) + "\n".

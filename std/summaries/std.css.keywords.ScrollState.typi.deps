@@ -1,0 +1,8 @@
+module=std.css.keywords.ScrollState
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=16807862892106353331
+interface_hash=4859118578263549447
+interface_doc_hash=8165947679834309312
+deps=0

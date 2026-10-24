@@ -1,81 +1,34 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-position
+ * The `font-variant-position` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * controls the use of alternate, smaller glyphs that are positioned as superscript or subscript.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - normal: Deactivates alternate superscript and subscript glyphs.
+ * - sub: Activates subscript alternate glyphs. If, in a given run, one such glyph is not available
+ * for a character, all the characters in the run are rendered using synthesized glyphs.
+ * - super: Activates superscript alternate glyphs. If, in a given run, one such glyph is not
+ * available for a character, all the characters in the run are rendered using synthesized glyphs.
+ *
  * Grammar: normal | sub | super
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-position
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-variant-position
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontVariantPosition.
 
-import type std.core.Option.
+import std.css.keywords.{Normal, Sub, Super}.
 
-/**
- * A nominal, specification-constrained font-variant-position value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    font_variant_position: Value,
+    font_variant_position: Normal | Sub | Super | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    font_variant_position: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-variant-position", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-variant-position", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "font-variant-position", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-variant-position", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-variant-position", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword sub.
- */
-pub sub(): Value ->
-    Value(Token {property: "font-variant-position", css: "sub"}).
-
-/**
- * Returns the CSS keyword super.
- */
-pub super(): Value ->
-    Value(Token {property: "font-variant-position", css: "super"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-variant-position", css: "unset"}).

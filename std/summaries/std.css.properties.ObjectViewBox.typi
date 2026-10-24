@@ -1,48 +1,26 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-images-5/#propdef-object-view-box
+//! The `object-view-box` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines a
+//! rectangle as a viewable area (viewbox) within a `replaced element`, enabling the content of the
+//! replaced element to be zoomed or panned. It works similarly to the SVG `viewBox` attribute.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - none: The element does not have a view box. This is the default.
+//!
 //! Grammar: none | <basic-shape-rect>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-images-5/#propdef-object-view-box
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/object-view-box
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ObjectViewBox.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    object_view_box: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    object_view_box: Value
+    object_view_box: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained object-view-box value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

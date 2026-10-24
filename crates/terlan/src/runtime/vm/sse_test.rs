@@ -25,27 +25,58 @@ fn vm_sse_event_encodes_typed_metadata_and_multiline_data() {
 
 #[test]
 fn vm_sse_event_rejects_invalid_metadata_and_retry() {
+    for bad in ["bad\nevent", "bad\revent", "bad\0id"] {
+        for event in [
+            VmSseEvent::data("ok").with_event(bad),
+            VmSseEvent::data("ok").with_id(bad),
+        ] {
+            let VmSseError::Codec(error) = event.encode().unwrap_err() else {
+                panic!("metadata rejection must come from the package codec");
+            };
+            assert!(error.contains("http.sse.invalid_metadata"), "{error}");
+        }
+    }
+    let VmSseError::Codec(error) = VmSseEvent::data("ok")
+        .with_retry_ms(0)
+        .encode()
+        .unwrap_err()
+    else {
+        panic!("retry rejection must come from the package codec");
+    };
+    assert!(error.contains("http.sse.invalid_retry"), "{error}");
     assert_eq!(
         VmSseEvent::data("ok")
-            .with_event("bad\nevent")
+            .with_retry_ms(u64::MAX)
             .encode()
-            .expect_err("newline event should fail"),
-        VmSseError::InvalidEventName
-    );
-    assert_eq!(
-        VmSseEvent::data("ok")
-            .with_id("bad\0id")
-            .encode()
-            .expect_err("nul id should fail"),
-        VmSseError::InvalidEventName
-    );
-    assert_eq!(
-        VmSseEvent::data("ok")
-            .with_retry_ms(0)
-            .encode()
-            .expect_err("zero retry should fail"),
+            .unwrap_err(),
         VmSseError::InvalidRetry
     );
+}
+
+#[test]
+fn vm_sse_fixtures_use_package_framing_for_empty_and_multiline_payloads() {
+    for (data, expected) in [
+        ("", "\n"),
+        ("\n", "data: \ndata: \n\n"),
+        ("one\n\n", "data: one\ndata: \ndata: \n\n"),
+        ("\0", "data: \0\n\n"),
+        ("\u{20ac}", "data: \u{20ac}\n\n"),
+    ] {
+        assert_eq!(
+            VmSseEvent::data(data).encode().unwrap(),
+            expected.as_bytes()
+        );
+        let mut stream = VmSseStream::new(1, expected.len()).unwrap();
+        stream.enqueue(VmSseEvent::data(data)).unwrap();
+        assert_eq!(stream.flush_next().unwrap(), expected.as_bytes());
+    }
+    // CR normalization is source policy in Sse.terl, not a second VM codec.
+    for data in ["\r", "\r\n", "one\rtwo"] {
+        let VmSseError::Codec(error) = VmSseEvent::data(data).encode().unwrap_err() else {
+            panic!("expected source-normalization diagnostic");
+        };
+        assert!(error.contains("http.sse.unnormalized_data"), "{error}");
+    }
 }
 
 #[test]
@@ -56,15 +87,9 @@ fn vm_sse_stream_preserves_order_and_reports_inspection_state() {
     stream.enqueue(VmSseEvent::data("two")).expect("two");
 
     assert_eq!(stream.inspect().pending_events, 2);
-    assert_eq!(
-        stream.flush_next().expect("flush one"),
-        Some(b"data: one\n\n".to_vec())
-    );
-    assert_eq!(
-        stream.flush_next().expect("flush two"),
-        Some(b"data: two\n\n".to_vec())
-    );
-    assert_eq!(stream.flush_next().expect("empty"), None);
+    assert_eq!(stream.flush_next(), Some(b"data: one\n\n".to_vec()));
+    assert_eq!(stream.flush_next(), Some(b"data: two\n\n".to_vec()));
+    assert_eq!(stream.flush_next(), None);
     assert_eq!(stream.inspect().emitted_events, 2);
 }
 
@@ -103,10 +128,7 @@ fn vm_sse_stream_close_rejects_new_events_but_flushes_pending() {
             .expect_err("closed"),
         VmSseError::Closed
     );
-    assert_eq!(
-        stream.flush_next().expect("flush queued"),
-        Some(b"data: queued\n\n".to_vec())
-    );
+    assert_eq!(stream.flush_next(), Some(b"data: queued\n\n".to_vec()));
 }
 
 #[test]
@@ -148,6 +170,73 @@ fn vm_accounted_sse_stream_rejects_pressure_before_queue_mutation() {
     assert_eq!(processes.get(owner).expect("owner").heap_bytes, 0);
     assert_eq!(scheduler.memory_reductions(owner), 6);
     assert_eq!(scheduler.total_memory_reductions(), 6);
+}
+
+#[test]
+fn vm_accounted_sse_uses_package_validation_before_charging_memory() {
+    let mut processes = VmProcessTable::default();
+    let owner = processes.spawn_root(VmProcessSource::new("app.Http", "sse", 0));
+    let mut memory = VmMemoryAccountant::new(VmMemoryLimits::new(64, 128).unwrap());
+    let mut scheduler = VmScheduler::default();
+    let mut stream = VmAccountedSseStream::new(owner, 1, 16).unwrap();
+    for event in [
+        VmSseEvent::data("bad\rdata"),
+        VmSseEvent::data("ok").with_id("bad\n"),
+        VmSseEvent::data("too-long-for-frame"),
+    ] {
+        assert!(matches!(
+            stream.enqueue(&mut memory, &mut scheduler, &mut processes, event),
+            Err(VmAccountedSseError::Stream(_))
+        ));
+        assert_eq!(stream.inspect().pending_events, 0);
+        assert_eq!(processes.get(owner).unwrap().heap_bytes, 0);
+        assert_eq!(scheduler.memory_reductions(owner), 0);
+    }
+    stream
+        .enqueue(
+            &mut memory,
+            &mut scheduler,
+            &mut processes,
+            VmSseEvent::data("\u{20ac}"),
+        )
+        .unwrap();
+    let charged = scheduler.memory_reductions(owner);
+    assert_eq!(
+        processes.get(owner).unwrap().heap_bytes,
+        "data: \u{20ac}\n\n".len()
+    );
+    assert_eq!(
+        stream.enqueue(
+            &mut memory,
+            &mut scheduler,
+            &mut processes,
+            VmSseEvent::data("full")
+        ),
+        Err(VmAccountedSseError::Stream(
+            VmSseError::BackpressureExceeded
+        ))
+    );
+    assert_eq!(scheduler.memory_reductions(owner), charged);
+    assert_eq!(
+        stream
+            .cancel(&mut memory, &mut scheduler, &mut processes)
+            .unwrap(),
+        1
+    );
+    assert_eq!(stream.inspect().emitted_events, 0);
+    assert_eq!(processes.get(owner).unwrap().heap_bytes, 0);
+    assert_eq!(
+        stream
+            .cancel(&mut memory, &mut scheduler, &mut processes)
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        stream
+            .flush_next(&mut memory, &mut scheduler, &mut processes)
+            .unwrap(),
+        None
+    );
 }
 
 #[test]

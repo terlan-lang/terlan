@@ -568,7 +568,7 @@ pub(super) fn syntax_output_preserves_release_traversal_contracts() {
         method.name == "iterator"
             && method.params.len() == 1
             && method.params[0].annotation.text == "C"
-            && method.return_type.text == "std.collections.Iterator.Iterator[T]"
+            && method.return_type.text == "std.collections.Iterator[T]"
     }));
 }
 

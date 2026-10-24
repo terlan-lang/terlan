@@ -1,0 +1,18 @@
+/**
+ * Compile-time consumers for opaque JavaScript constructor binding types.
+ */
+module tests.js.JsConstructorTypesTest.
+
+import type std.js.{MapConstructor, SetConstructor, WeakMapConstructor, WeakSetConstructor}.
+
+pub accepts_map_constructor(value: MapConstructor): MapConstructor ->
+    value.
+
+pub accepts_set_constructor(value: SetConstructor): SetConstructor ->
+    value.
+
+pub accepts_weak_map_constructor(value: WeakMapConstructor): WeakMapConstructor ->
+    value.
+
+pub accepts_weak_set_constructor(value: WeakSetConstructor): WeakSetConstructor ->
+    value.

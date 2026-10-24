@@ -12,7 +12,8 @@
  */
 module std.js.Dom.UnderlyingByteSourceTest.
 
-import type std.core.{Option}.
+import type std.core.Option.{Option}.
+import type std.core.Unit.{Unit}.
 import type std.js.Dom.UnderlyingByteSource.
 
 pub auto_allocate_chunk_size_typechecks(
@@ -24,3 +25,8 @@ pub cancel_typechecks(
     receiver: UnderlyingByteSource,
 ): Option[std.js.Dom.UnderlyingSourceCancelCallback] ->
     receiver.cancel().
+
+pub pull_typechecks(
+    receiver: UnderlyingByteSource,
+): Option[(std.js.Dom.ReadableByteStreamController) -> std.js.PromiseLike[Unit] | Unit] ->
+    receiver.pull().

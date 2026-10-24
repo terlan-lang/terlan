@@ -1,64 +1,41 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-writing-mode
+//! The `writing-mode` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether
+//! lines of text are laid out horizontally or vertically, as well as the direction in which text
+//! flows.
+//!
+//! Initial: horizontal-tb. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - horizontal-tb: For `ltr` scripts, content flows horizontally from left to right. For `rtl`
+//! scripts, content flows horizontally from right to left. The next horizontal line is positioned
+//! below the previous line.
+//! - sideways-lr: For `ltr` scripts, content flows vertically from bottom to top. For `rtl` scripts,
+//! content flows vertically from top to bottom. All the glyphs, even those in vertical scripts, are
+//! set sideways toward the left.
+//! - sideways-rl: For `ltr` scripts, content flows vertically from top to bottom. For `rtl` scripts,
+//! content flows vertically from bottom to top. All the glyphs, even those in vertical scripts, are
+//! set sideways toward the right.
+//! - vertical-lr: For `ltr` scripts, content flows vertically from top to bottom, and the next
+//! vertical line is positioned to the right of the previous line. For `rtl` scripts, content flows
+//! vertically from bottom to top, and the next vertical line is positioned to the right of the
+//! previous line.
+//! - vertical-rl: For `ltr` scripts, content flows vertically from top to bottom, and the next
+//! vertical line is positioned to the left of the previous line. For `rtl` scripts, content flows
+//! vertically from bottom to top, and the next vertical line is positioned to the left of the
+//! previous line.
+//!
 //! Grammar: horizontal-tb | vertical-rl | vertical-lr | sideways-rl | sideways-lr
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-writing-mode
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/writing-mode
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WritingMode.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    writing_mode: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    writing_mode: Value
+    writing_mode: HorizontalTb | VerticalRl | VerticalLr | SidewaysRl | SidewaysLr | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained writing-mode value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword horizontal-tb.
-
-pub horizontal_tb(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword sideways-lr.
-
-pub sideways_lr(): Value.
-
-/// Returns the CSS keyword sideways-rl.
-
-pub sideways_rl(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword vertical-lr.
-
-pub vertical_lr(): Value.
-
-/// Returns the CSS keyword vertical-rl.
-
-pub vertical_rl(): Value.
-
-export type Token.

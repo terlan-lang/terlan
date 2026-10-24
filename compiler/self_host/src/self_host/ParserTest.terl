@@ -1,6 +1,8 @@
 /** Positive and negative contracts for the self-hosted surface parser. */
 module self_host.ParserTest.
 
+import std.core.String.
+
 import self_host.Syntax.{FunctionDeclaration, ImportDeclaration, ShapeDeclaration}.
 
 import std.collections.List.
@@ -37,8 +39,16 @@ positive_multiline_function_signature(): Bool ->
     let parsed = Parser.parse_surface("module demo.Multiline.\npub combine(\n    left: Int,\n    right: Int,\n): Int ->\n    left + right.\n");
     parsed.valid and declaration_classes(parsed.declarations) == [FunctionDeclaration].
 
+@pure
+positive_native_function_signature(): Bool ->
+    let parsed = Parser.parse_surface(
+        "module demo.Native.\n@compiler.native {demo.native.read}\npub read(value: String): Int.\n",
+    );
+    parsed.valid and declaration_classes(parsed.declarations) == [FunctionDeclaration].
+
 pub self_test(): Bool ->
     positive_surface()
         and positive_multiline_function_signature()
+        and positive_native_function_signature()
         and negative_missing_module()
         and negative_unterminated_declaration().

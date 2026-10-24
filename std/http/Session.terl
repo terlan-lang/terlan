@@ -4,13 +4,15 @@
  * `std.http.Session` exposes actor-backed session helpers used by Terlan HTTP
  * handlers. The HTTP server binds request cookies to VM session actor
  * identity; source code owns the private session record and explicit response
- * threading and lifetime policy. Native operations receive the selected identity
- * and, for allocation and renewal, the source-selected lifetime.
+ * threading, identity retry, and lifetime policy. Native operations supply
+ * entropy and atomically reserve or replace source-selected identities.
  */
 module std.http.Session.
 
 import std.core.Option.{None, Some}.
-import std.core.{String, Unit}.
+import std.core.{Effect, String, Unit}.
+import std.crypto.Entropy.
+import std.encoding.Base64.
 import std.http.Cookies.{delete_header, set_header_with_options}.
 import std.http.{Request, Response}.
 
@@ -62,8 +64,40 @@ pub current(request: Request): Session ->
 @compiler.native
 lookup(identity: String): Option[String].
 
+create(excluded_identity: String, ttl_seconds: Int): String ->
+    allocate(excluded_identity, ttl_seconds, false, 16).
+
+/**
+ * Shares bounded identity selection between allocation and rotation. Only
+ * explicit collisions retry; entropy and storage failures propagate. The
+ * excluded cookie or old identity is never submitted as its replacement.
+ */
+allocate(excluded_identity: String, ttl_seconds: Int, rotating: Bool, attempts: Int): String ->
+    if {
+        attempts == 0 -> Effect.run(identity_failure());
+        true -> let identity = candidate(32);
+        let accepted =
+            if {
+                identity == excluded_identity -> false;
+                rotating -> try_rotate(excluded_identity, identity, ttl_seconds);
+                true -> try_create(identity, ttl_seconds)
+            };
+        if {
+            accepted -> identity;
+            true -> allocate(excluded_identity, ttl_seconds, rotating, attempts - 1)
+        }
+    }.
+
+identity_failure(): Effect[String] ->
+    Effect.fail(
+        "error[http.session.identity_collision]: could not allocate a distinct session identity",
+    ).
+
+candidate(byte_count: Int): String ->
+    Base64.encode_url_unpadded_bytes(Entropy.bytes(byte_count)).
+
 @compiler.native
-create(excluded_identity: String, ttl_seconds: Int): String.
+try_create(identity: String, ttl_seconds: Int): Bool.
 
 /**
  * Reads one session value.
@@ -119,8 +153,11 @@ pub (mut session: Session) rotate(): Session ->
     let identity = renew(session.#identity, session.#ttl_seconds);
     Session {#identity: identity, #pending_identity: identity, #ttl_seconds: session.#ttl_seconds}.
 
-@compiler.native {std.http.session.rotate}
-renew(identity: String, ttl_seconds: Int): String.
+renew(identity: String, ttl_seconds: Int): String ->
+    allocate(identity, ttl_seconds, true, 16).
+
+@compiler.native
+try_rotate(identity: String, replacement: String, ttl_seconds: Int): Bool.
 
 /**
  * Expires the session.

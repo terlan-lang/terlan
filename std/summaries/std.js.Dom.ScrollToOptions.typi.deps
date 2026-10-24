@@ -1,8 +1,8 @@
 module=std.js.Dom.ScrollToOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16578862911942126898
-interface_hash=15641499658512725021
-interface_doc_hash=15641499658512725021
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4994338126765266318
+interface_hash=7181957564077885535
+interface_doc_hash=7181957564077885535
 deps=0

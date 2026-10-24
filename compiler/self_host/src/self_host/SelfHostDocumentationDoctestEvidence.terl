@@ -1,0 +1,54 @@
+/** Canonical handoff artifact for backend documentation-example execution. */
+module self_host.SelfHostDocumentationDoctestEvidence.
+
+import self_host.SelfHostDocumentationDoctest.{DoctestExtraction}.
+import self_host.SelfHostDocumentationDoctestCompile.
+import std.core.Int.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.io.File.
+
+render_blocks(blocks: List[String], index: Int, output: String): String ->
+    case blocks {
+        [] -> output;
+        [source | rest] -> render_blocks(
+            rest,
+            index + 1,
+            String.concat([
+                output,
+                "block\t", Int.to_string(index),
+                "\t", Int.to_string(String.byte_size(source)),
+                "\t", Hash.sha256(source),
+                "\n", source,
+                "\n",
+            ]),
+        )
+    }.
+
+/** Renders admitted examples, or an empty artifact when frontend admission fails. */
+pub render(extraction: DoctestExtraction): String ->
+    let admitted = SelfHostDocumentationDoctestCompile.admit(extraction);
+    if {
+        not admitted.valid -> "";
+        true -> render_blocks(
+            extraction.blocks,
+            0,
+            String.concat([
+                "schema\tterlan.self-host.documentation-doctest/v1\n",
+                "count\t", Int.to_string(admitted.count), "\n",
+            ]),
+        )
+    }.
+
+/** Writes a canonical backend handoff only for frontend-admitted examples. */
+pub write(extraction: DoctestExtraction, output: String): Bool ->
+    let evidence = render(extraction);
+    if {
+        evidence == "" -> false;
+        true ->
+            case File.write_text(output, evidence) {
+                Err(_reason) -> false;
+                Ok(_unit) -> true
+            }
+    }.

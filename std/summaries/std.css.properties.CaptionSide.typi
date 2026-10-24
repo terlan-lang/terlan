@@ -1,52 +1,26 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-tables-3/#propdef-caption-side
+//! The `caption-side` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property puts the
+//! content of a table's `caption` on the specified side. The values are relative to the
+//! `writing-mode` of the table.
+//!
+//! Initial: top. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - bottom: The caption box should be positioned at the block end side of the table.
+//! - top: The caption box should be positioned at the block start side of the table.
+//!
 //! Grammar: top | bottom
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-tables-3/#propdef-caption-side
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/caption-side
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.CaptionSide.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    caption_side: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    caption_side: Value
+    caption_side: Top | Bottom | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained caption-side value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword bottom.
-
-pub bottom(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword top.
-
-pub top(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

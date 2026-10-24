@@ -1,0 +1,40 @@
+/** Positive and negative documentation doctest extraction contracts. */
+module self_host.SelfHostDocumentationDoctestTest.
+
+import self_host.SelfHostDocumentationDoctest.
+
+@test
+pub extracts_terlan_fences(): Bool ->
+    let result = SelfHostDocumentationDoctest.extract(
+        "before\n``` terlan\nmodule example.\n```\nafter",
+    );
+    result.valid and result.blocks == ["module example.\n"].
+
+@test
+pub preserves_multiple_terlan_fences_in_order(): Bool ->
+    let result = SelfHostDocumentationDoctest.extract(
+        "```terlan\nmodule first.\n```\ntext\n```terlan\nmodule second.\n```",
+    );
+    result.valid
+        and result.blocks == ["module first.\n", "module second.\n"].
+
+@test
+pub ignores_non_terlan_fences(): Bool ->
+    let result = SelfHostDocumentationDoctest.extract(
+        "```text\nnot executable\n```",
+    );
+    result.valid and result.blocks == [].
+
+@test
+pub rejects_unclosed_terlan_fence(): Bool ->
+    let result = SelfHostDocumentationDoctest.extract(
+        "```terlan\nmodule incomplete.",
+    );
+    not result.valid
+        and result.blocks == []
+        and result.message == "unclosed doc code fence".
+
+@test
+pub rejects_unclosed_ignored_fence(): Bool ->
+    let result = SelfHostDocumentationDoctest.extract("```text\nnot executable");
+    not result.valid and result.message == "unclosed doc code fence".

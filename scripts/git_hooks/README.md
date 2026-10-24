@@ -32,6 +32,27 @@ Install the pinned auditor with `cargo install cargo-audit --version 0.22.2 --lo
 Missing tools, database download failures, and audit findings stop the commit
 before compiler builds begin.
 
+Every nonempty commit also generates fresh proof-lane and semantic-kernel reports
+and checks the proof release baseline with the staged compiler before Terlan
+formatting, browser tests, and the selected test lanes. The baseline binds
+dependency inputs such as `Cargo.lock` as well as proof slices.
+Changes require a reviewed baseline update; the hook never refreshes it.
+
+A Make bootstrap regression checks that the artifact-budget validator survives
+cleanup of disposable `_build` output before its later release gate runs.
+
+Every nonempty commit builds the four canonical debug and release executables
+and checks their combined sizes against `docs/quality/BUILD_ARTIFACT_BUDGET.json`.
+The check uses the staged source and the hook's Cargo cache, rejects missing or
+empty executables, and shares the release gate's size-budget calculation.
+The full clean-build timing and artifact-footprint measurement remains a release gate.
+After this size check, Terlan compilation, formatting, summary checks, and browser
+fixture generation use the optimized compiler already built from the same staged
+sources. Rust tests and semantic runtime oracles retain their debug builds.
+
+The standard-library release manifest is checked against the staged sources,
+including typed consumers for JavaScript bindings and opaque constructor types.
+
 Every nonempty commit checks Rust formatting, builds the staged compiler, VM,
 and service runtime, and tests the hook policy and snapshot isolation. It also
 builds all JavaScript binding consumers with Terlan and executes the complete
@@ -53,9 +74,11 @@ npm --prefix tests/js ci --ignore-scripts
 The browser matrix runs for every nonempty commit, including documentation-only
 commits. Its compiler, sources, and generated artifacts come from the staged
 snapshot. Reports and failure traces are under the snapshot's
-`target/js-browser/` directory. Set `TERLAN_JS_TEST_PORT` to an unused port when
-validating another checkout concurrently; the default is 4197. The server and
-Playwright share this setting, and each run starts its own server.
+`target/js-browser/` directory.
+Selected source and report checks run before the browser matrix, so stale
+generated reports fail before recompiling the browser fixture corpus.
+The browser server selects a free port by default. Set `TERLAN_JS_TEST_PORT`
+to request a specific port; `0` selects an available port automatically.
 
 Typed CSS changes also regenerate-check all 752 specification-derived bindings,
 check their types in bounded batches, execute native value tests and negative
@@ -106,3 +129,6 @@ the hook clears `TERLAN_UPDATE_PHASE_GOLDEN` and never accepts automatic repairs
 After a killed validation process, remove `target/git-hooks/lock` only after
 confirming no other check is running. Concurrent invocations fail without
 touching the active snapshot. Filenames containing newlines are rejected.
+
+Rust report checks compile the staged validator once with the canonical optimized
+compiler, then execute every report check with its paired VM.

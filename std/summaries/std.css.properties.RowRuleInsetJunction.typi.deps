@@ -1,10 +1,10 @@
 module=std.css.properties.RowRuleInsetJunction
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6523526222041975525
-interface_hash=8063212709238163241
-interface_doc_hash=17775134063888262027
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5499502900799893676
+interface_hash=5897505484633988640
+interface_doc_hash=1041449227810002762
 deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.OverlapJoin=9675458474359427514

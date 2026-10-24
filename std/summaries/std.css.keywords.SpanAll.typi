@@ -1,0 +1,6 @@
+//! Shared CSS keyword span-all. Generated; do not edit.
+
+module std.css.keywords.SpanAll.
+
+pub type SpanAll =
+    Atom["span-all"].

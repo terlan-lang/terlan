@@ -1,7 +1,7 @@
 /** Evaluates all mandatory parity and fixed-point gates for authority transfer. */
 module self_host.AuthorityTransfer.
 
-import self_host.AuthoritySyntax.{AcceptedParserParityGate, AuthorityDecision, AuthorityEvidence, AuthorityGate, BackendContractParityGate, BootstrapFixedPointGate, RejectedParserParityGate, SemanticParityGate, TokenParityGate}.
+import self_host.AuthoritySyntax.{AcceptedParserParityGate, ActorBackendAdapterGate, ActorIrParityGate, ActorNativeConsumerGate, ActorProfileCatalogGate, ActorProfileFixedPointGate, AuthorityDecision, AuthorityEvidence, AuthorityGate, BackendContractParityGate, BootstrapFixedPointGate, NativeImageConsumerGate, RejectedParserParityGate, SemanticParityGate, TokenParityGate, TypedBackendAdapterGate}.
 
 import std.collections.List.
 
@@ -37,16 +37,25 @@ reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
 @pure
 pub evaluate(evidence: AuthorityEvidence): AuthorityDecision ->
     let fixed_point = evidence.stage0_artifact_hash != ""
-        and evidence.stage0_artifact_hash == evidence.stage1_artifact_hash;
+        and evidence.stage0_artifact_hash == evidence.stage1_artifact_hash
+        and evidence.stage0_actor_hash != ""
+        and evidence.stage0_actor_hash == evidence.stage1_actor_hash;
     let state0 = GateState(passed = List.new[AuthorityGate](), failed = List.new[AuthorityGate]());
     let state1 = record(state0, TokenParityGate, evidence.token_parity);
     let state2 = record(state1, AcceptedParserParityGate, evidence.accepted_parser_parity);
     let state3 = record(state2, RejectedParserParityGate, evidence.rejected_parser_parity);
     let state4 = record(state3, SemanticParityGate, evidence.semantic_parity);
     let state5 = record(state4, BackendContractParityGate, evidence.backend_contract_parity);
-    let state6 = record(state5, BootstrapFixedPointGate, fixed_point);
-    let transferable = state6.failed == [];
-    AuthorityDecision(transferable, reverse(state6.passed), reverse(state6.failed), not transferable, if {
-            transferable -> "self-hosted frontend may become authoritative";
+    let state6 = record(state5, TypedBackendAdapterGate, evidence.typed_backend_adapter);
+    let state7 = record(state6, NativeImageConsumerGate, evidence.native_image_consumer);
+    let state8 = record(state7, ActorIrParityGate, evidence.actor_ir_parity);
+    let state9 = record(state8, ActorBackendAdapterGate, evidence.actor_backend_adapter);
+    let state10 = record(state9, ActorNativeConsumerGate, evidence.actor_native_consumer);
+    let state11 = record(state10, ActorProfileCatalogGate, evidence.actor_profile_catalog);
+    let state12 = record(state11, ActorProfileFixedPointGate, evidence.actor_profile_fixed_point);
+    let state13 = record(state12, BootstrapFixedPointGate, fixed_point);
+    let transferable = state13.failed == [];
+    AuthorityDecision(transferable, reverse(state13.passed), reverse(state13.failed), not transferable, if {
+            transferable -> "self-hosted compiler may become authoritative";
             true -> "authority transfer denied: one or more mandatory gates failed"
         }).

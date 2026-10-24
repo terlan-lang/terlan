@@ -802,26 +802,5 @@ pub(super) fn escape_cargo_directive(value: &str) -> String {
 }
 
 #[cfg(test)]
-mod primary_type_tests {
-    use super::terlan_type_matches;
-
-    #[test]
-    fn canonical_binding_types_preserve_provider_ownership() {
-        assert!(terlan_type_matches(
-            "pytorch.Tensor",
-            "pytorch.Tensor.Tensor"
-        ));
-        assert!(terlan_type_matches(
-            "pytorch.Tensor.Tensor",
-            "pytorch.Tensor"
-        ));
-        assert!(!terlan_type_matches(
-            "pytorch.Tensor",
-            "other.Tensor.Tensor"
-        ));
-        assert!(!terlan_type_matches(
-            "polars.DataFrame",
-            "polars.DataFrame.Series"
-        ));
-    }
-}
+#[path = "bridge_rendering_test.rs"]
+mod primary_type_tests;

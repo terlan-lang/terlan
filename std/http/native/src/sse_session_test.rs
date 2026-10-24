@@ -2,6 +2,82 @@ use super::*;
 use crate::channel_plan::SseCallbacks;
 
 #[test]
+fn resource_admission_runs_once_after_validation_and_before_publication() {
+    let mut session = SseSession::open(SseEndpointPlan::<()>::new(1, 32).unwrap());
+    let before = session.inspect();
+    let mut calls = 0;
+    for accepted in [false, true] {
+        let result = session.enqueue_with(Some("id"), None, None, "payload", |bytes| {
+            calls += 1;
+            assert_eq!(bytes, b"id: id\ndata: payload\n\n".len());
+            if accepted {
+                Ok(())
+            } else {
+                Err(SseError::Codec("resource rejected".into()))
+            }
+        });
+        if accepted {
+            result.unwrap();
+        } else {
+            assert_eq!(result, Err(SseError::Codec("resource rejected".into())));
+            assert_eq!(session.inspect(), before);
+        }
+    }
+    assert_eq!(calls, 2);
+    assert_eq!(session.inspect().pending_events, 1);
+    assert_eq!(session.flush_next().unwrap(), b"id: id\ndata: payload\n\n");
+}
+
+#[test]
+fn invalid_full_or_closed_streams_never_reserve_resources() {
+    let mut session = SseSession::open(SseEndpointPlan::<()>::new(1, 16).unwrap());
+    for (id, data) in [
+        (Some("bad\n"), "ok"),
+        (None, "\r"),
+        (None, "payload-too-large"),
+    ] {
+        assert!(session
+            .enqueue_with::<SseError>(id, None, None, data, |_| panic!(
+                "invalid frame reserved resources"
+            ))
+            .is_err());
+        assert_eq!(session.inspect().pending_events, 0);
+    }
+    session.enqueue(None, None, None, "ok").unwrap();
+    assert_eq!(
+        session.enqueue_with(None, None, None, "ok", |_| -> Result<(), SseError> {
+            panic!("full queue reserved resources")
+        }),
+        Err(SseError::BackpressureExceeded)
+    );
+    session.close();
+    assert_eq!(
+        session.enqueue_with(None, None, None, "ok", |_| -> Result<(), SseError> {
+            panic!("closed queue reserved resources")
+        }),
+        Err(SseError::Closed)
+    );
+}
+
+#[test]
+fn discard_closes_without_counting_dropped_frames_as_emitted() {
+    let mut session = SseSession::open(SseEndpointPlan::<()>::new(2, 32).unwrap());
+    session.enqueue(None, None, None, "sent").unwrap();
+    session.enqueue(None, None, None, "discarded").unwrap();
+    assert!(session.flush_next().is_some());
+    session.discard_pending();
+    session.discard_pending();
+    assert_eq!(session.inspect().emitted_events, 1);
+    assert_eq!(session.inspect().pending_events, 0);
+    assert_eq!(session.flush_next(), None);
+    assert!(!session.is_open());
+    assert_eq!(
+        session.enqueue(None, None, None, "late"),
+        Err(SseError::Closed)
+    );
+}
+
+#[test]
 fn session_retains_source_policy_and_callbacks_without_invoking_them() {
     let callbacks = SseCallbacks {
         open: "open",

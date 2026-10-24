@@ -8,27 +8,41 @@ struct State {
     fail: &'static str,
 }
 
+impl SessionStore<State> {
+    fn allocate(&mut self, ttl: u64) -> Result<String, BoundaryError> {
+        let identity = format!("candidate-{}", self.resources.next);
+        assert!(self.try_create(&identity, ttl)?);
+        Ok(identity)
+    }
+
+    fn renew(&mut self, identity: &str, ttl: u64) -> Result<String, BoundaryError> {
+        let replacement = format!("{identity}-rotated");
+        assert!(self.try_rotate(identity, &replacement, ttl)?);
+        Ok(replacement)
+    }
+}
+
 #[test]
 fn source_selected_lifetimes_are_independent_and_invalid_renewal_cannot_mutate_state() {
     let mut store = SessionStore::new(State::default(), RecoveryPolicy::CreateLocalReplacement);
     assert!(store
-        .create("", 0)
+        .allocate(0)
         .unwrap_err()
         .to_string()
         .contains("TTL must be greater than 0"));
     assert!(store.is_empty());
     assert_eq!(store.resources.next, 0);
-    let short = store.create("", 2).unwrap();
-    let long = store.create("", 20).unwrap();
+    let short = store.allocate(2).unwrap();
+    let long = store.allocate(20).unwrap();
     store.set(&short, "key", "kept").unwrap();
     store.registry.advance_ticks(1);
     let before = store.registry.entries()[&short].clone();
-    assert!(store.rotate(&short, 0).is_err());
+    assert!(store.renew(&short, 0).is_err());
     assert_eq!(store.registry.entries()[&short], before);
     assert_eq!(store.resources.next, 2);
     assert_eq!(store.lookup(&long).unwrap(), Some(long.clone()));
     assert_eq!(store.registry.entries()[&long].expires_at_tick, 20);
-    let renewed = store.rotate(&short, 4).unwrap();
+    let renewed = store.renew(&short, 4).unwrap();
     assert_eq!(store.registry.entries()[&renewed].expires_at_tick, 5);
     assert_eq!(store.get(&renewed, "key").unwrap(), Some("kept".into()));
     assert!(!store.is_live(&short).unwrap());
@@ -101,8 +115,8 @@ impl ActorStateStore<String> for State {
 fn session_store_executes_all_storage_policy_over_host_actor_state() {
     let mut store = SessionStore::new(State::default(), RecoveryPolicy::CreateLocalReplacement);
     assert!(store.is_empty());
-    let first = store.create("", 1).unwrap();
-    let second = store.create("", 1).unwrap();
+    let first = store.allocate(1).unwrap();
+    let second = store.allocate(1).unwrap();
     assert_ne!(first, second);
     assert_eq!(store.lookup(&first).unwrap(), Some(first.clone()));
     assert_eq!(store.get(&first, "").unwrap(), None);
@@ -110,7 +124,7 @@ fn session_store_executes_all_storage_policy_over_host_actor_state() {
     store.set(&first, " key\0 ", " value\u{2003} ").unwrap();
     assert_eq!(store.get(&first, "").unwrap(), Some("".into()));
     assert_eq!(store.get(&second, "").unwrap(), None);
-    let rotated = store.rotate(&first, 1).unwrap();
+    let rotated = store.renew(&first, 1).unwrap();
     assert_ne!(rotated, first);
     assert_eq!(
         store.get(&rotated, " key\0 ").unwrap(),
@@ -120,7 +134,7 @@ fn session_store_executes_all_storage_policy_over_host_actor_state() {
     assert!(store.get(&first, "").is_err());
     assert!(store.set(&first, "", "").is_err());
     assert!(store.delete(&first, "").is_err());
-    assert!(store.rotate(&first, 1).is_err());
+    assert!(store.renew(&first, 1).is_err());
     assert!(store.expire(&first).is_err());
     store.delete(&rotated, "").unwrap();
     store.delete(&rotated, "").unwrap();
@@ -135,10 +149,10 @@ fn session_store_executes_all_storage_policy_over_host_actor_state() {
 fn session_store_retains_failed_cleanup_and_never_replays_failed_writes() {
     let mut store = SessionStore::new(State::default(), RecoveryPolicy::CreateLocalReplacement);
     store.resources.fail = "create";
-    assert!(store.create("", 1).is_err());
+    assert!(store.allocate(1).is_err());
     assert!(store.is_empty());
     store.resources.fail = "";
-    let identity = store.create("", 1).unwrap();
+    let identity = store.allocate(1).unwrap();
     store.resources.fail = "read";
     assert_eq!(store.get(&identity, "key"), Err(failure()));
     store.resources.fail = "write";
@@ -161,7 +175,7 @@ fn session_store_reclaims_dead_actors_and_obeys_fail_closed_recovery() {
         RecoveryPolicy::FailClosed,
     ] {
         let mut store = SessionStore::new(State::default(), recovery);
-        let identity = store.create("", 1).unwrap();
+        let identity = store.allocate(1).unwrap();
         store.resources.values.clear();
         assert!(!store.is_live(&identity).unwrap());
         assert!(store.get(&identity, "").is_err());
@@ -178,8 +192,8 @@ fn session_store_reclaims_dead_actors_and_obeys_fail_closed_recovery() {
 fn session_store_clock_and_bounded_expiry_preserve_cleanup_retry() {
     let mut store = SessionStore::new(State::default(), RecoveryPolicy::FailClosed);
     store.start_clock().unwrap();
-    let identity = store.create("", 1).unwrap();
-    store.create("", 1).unwrap();
+    let identity = store.allocate(1).unwrap();
+    store.allocate(1).unwrap();
     store.registry.advance_ticks(1);
     assert!(!store.is_live(&identity).unwrap());
     store.maintain(0).unwrap();
@@ -196,15 +210,96 @@ fn session_store_clock_and_bounded_expiry_preserve_cleanup_retry() {
 }
 
 #[test]
+fn candidate_collisions_preserve_actors_values_and_expiration() {
+    let mut store = SessionStore::for_application(State::default());
+    assert!(!store.try_create("", 10).unwrap());
+    assert!(store.is_empty());
+    assert!(store.try_create("first", 10).unwrap());
+    assert!(store.try_create("second", 20).unwrap());
+    store.set("first", "key", "original").unwrap();
+    store.set("second", "key", "other").unwrap();
+    store.registry.advance_ticks(1);
+    let before = store.registry.entries().clone();
+    for candidate in ["", "first", "second"] {
+        assert!(!store.try_create(candidate, 90).unwrap());
+        assert!(!store.try_rotate("first", candidate, 90).unwrap());
+        assert_eq!(store.registry.entries(), &before);
+        assert_eq!(store.resources.next, 2);
+        assert_eq!(store.get("first", "key").unwrap(), Some("original".into()));
+        assert_eq!(store.get("second", "key").unwrap(), Some("other".into()));
+    }
+    assert!(store.try_rotate("first", "replacement", 30).unwrap());
+    assert_eq!(
+        store.registry.entries()["replacement"].value,
+        before["first"].value
+    );
+    assert_eq!(store.registry.entries()["replacement"].expires_at_tick, 31);
+    assert_eq!(store.registry.entries()["second"], before["second"]);
+    assert!(!store.is_live("first").unwrap());
+    assert_eq!(store.resources.next, 2);
+    assert!(store.try_rotate("first", "unused", 1).is_err());
+    store.registry.advance_ticks(30);
+    assert!(!store.try_create("replacement", 10).unwrap());
+    store.resources.fail = "release";
+    assert!(store.try_rotate("replacement", "unused", 10).is_err());
+    assert!(store.registry.entries().contains_key("replacement"));
+    store.resources.fail = "";
+    assert!(store.try_rotate("replacement", "unused", 10).is_err());
+    assert!(!store.registry.entries().contains_key("replacement"));
+    assert!(!store.registry.entries().contains_key("unused"));
+    store.maintain(10).unwrap();
+    assert!(store.is_empty());
+    assert!(store.resources.values.is_empty());
+}
+
+#[test]
+fn concurrent_candidate_reservations_allocate_exactly_one_actor() {
+    use crate::session_service::SessionService;
+    use std::sync::{Arc, Barrier};
+    let service = SessionService::new(SessionStore::for_application(State::default()));
+    let barrier = Arc::new(Barrier::new(8));
+    let workers: Vec<_> = (0..8)
+        .map(|_| {
+            let services = service.native_services().unwrap();
+            let barrier = Arc::clone(&barrier);
+            std::thread::spawn(move || {
+                barrier.wait();
+                services
+                    .call(
+                        "std.http.session.try_create",
+                        &["same".into(), 10_i64.into()],
+                    )
+                    .unwrap()
+            })
+        })
+        .collect();
+    let accepted = workers
+        .into_iter()
+        .map(|worker| worker.join().unwrap())
+        .filter(|value| *value == terlan_runtime_abi::NativeValue::Bool(true))
+        .count();
+    assert_eq!(accepted, 1);
+    service
+        .with_storage(|store| {
+            assert_eq!(store.resources.next, 1);
+            assert_eq!(store.registry.entries().len(), 1);
+            store.registry.advance_ticks(10);
+            store.maintain(8).unwrap();
+            assert!(store.is_empty());
+            assert!(store.resources.values.is_empty());
+        })
+        .unwrap();
+}
+
+#[test]
 fn lookup_never_allocates_and_cleanup_failure_cannot_become_absence() {
-    let mut store = SessionStore::new(State::default(), RecoveryPolicy::CreateLocalReplacement);
+    let mut store = SessionStore::for_application(State::default());
     for identity in ["", "missing", " \u{2003} "] {
         assert_eq!(store.lookup(identity).unwrap(), None);
         assert!(store.is_empty());
         assert_eq!(store.resources.next, 0);
     }
-    let identity = store.create("untrusted identity", 1).unwrap();
-    assert_ne!(identity, "untrusted identity");
+    let identity = store.allocate(1).unwrap();
     assert_eq!(store.lookup(&identity).unwrap(), Some(identity.clone()));
     store.registry.advance_ticks(1);
     store.resources.fail = "release";
@@ -215,7 +310,7 @@ fn lookup_never_allocates_and_cleanup_failure_cannot_become_absence() {
     assert_eq!(store.lookup(&identity).unwrap(), None);
     assert!(store.is_empty());
     assert_eq!(store.resources.next, 1);
-    let replacement = store.create(&identity, 1).unwrap();
+    let replacement = store.allocate(1).unwrap();
     assert_ne!(replacement, identity);
     assert_eq!(store.resources.next, 2);
 }

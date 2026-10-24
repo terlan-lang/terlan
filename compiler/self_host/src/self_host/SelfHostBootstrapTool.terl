@@ -1,21 +1,21 @@
-/**
- * Filesystem and JSON adapter for self-hosted bootstrap fixed-point comparison.
- */
+/** Filesystem and JSON adapter for self-hosted bootstrap fixed-point comparison. */
 module self_host.SelfHostBootstrapTool.
+
+
 
 import self_host.SelfHostBootstrapParity.
 import self_host.SelfHostBootstrapParity.{BootstrapArtifact}.
 import std.core.Option.{None, Option, Some}.
-import std.core.Result.{Err, Ok, Result}.
+import std.core.Result.{Err, Ok}.
 import std.core.{String}.
 import std.data.Json.
 import std.io.File.
 
-import type std.data.Json.
+import type std.data.Json.Json.
 
 string_value(value: Json): Option[String] ->
     case value.as_string() {
-        Ok(text) -> Some(text);
+        Ok(text) -> if { text == "" -> None; true -> Some(text) };
         Err(_reason) -> None
     }.
 
@@ -25,44 +25,25 @@ string_field(document: Json, name: String): Option[String] ->
         Ok(value) -> string_value(value)
     }.
 
-decode_backend(
-    document: Json,
-    module_name: String,
-    token_digest: String,
-    syntax_digest: String,
-    semantic_digest: String,
-): Option[BootstrapArtifact] ->
+decode_backend(document: Json, module_name: String, token_digest: String, syntax_digest: String, semantic_digest: String, actor_digest: String): Option[BootstrapArtifact] ->
     case string_field(document, "backend_digest") {
-        Some(backend_digest) ->
-            Some(
-                BootstrapArtifact(
-                    module_name,
-                    token_digest,
-                    syntax_digest,
-                    semantic_digest,
-                    backend_digest,
-                ),
-            );
+        Some(backend_digest) -> Some(BootstrapArtifact(module_name, token_digest, syntax_digest, semantic_digest, actor_digest, backend_digest));
         None -> None
     }.
 
-decode_semantic(
-    document: Json,
-    module_name: String,
-    token_digest: String,
-    syntax_digest: String,
-): Option[BootstrapArtifact] ->
+decode_actor(document: Json, module_name: String, token_digest: String, syntax_digest: String, semantic_digest: String): Option[BootstrapArtifact] ->
+    case string_field(document, "actor_digest") {
+        Some(actor_digest) -> decode_backend(document, module_name, token_digest, syntax_digest, semantic_digest, actor_digest);
+        None -> None
+    }.
+
+decode_semantic(document: Json, module_name: String, token_digest: String, syntax_digest: String): Option[BootstrapArtifact] ->
     case string_field(document, "semantic_digest") {
-        Some(semantic_digest) ->
-            decode_backend(document, module_name, token_digest, syntax_digest, semantic_digest);
+        Some(semantic_digest) -> decode_actor(document, module_name, token_digest, syntax_digest, semantic_digest);
         None -> None
     }.
 
-decode_syntax(
-    document: Json,
-    module_name: String,
-    token_digest: String,
-): Option[BootstrapArtifact] ->
+decode_syntax(document: Json, module_name: String, token_digest: String): Option[BootstrapArtifact] ->
     case string_field(document, "syntax_digest") {
         Some(syntax_digest) -> decode_semantic(document, module_name, token_digest, syntax_digest);
         None -> None
@@ -93,10 +74,7 @@ read(path: String): Option[BootstrapArtifact] ->
     }.
 
 marker_text(fixed_point: Bool): String ->
-    if {
-        fixed_point -> "fixed-point\n";
-        true -> "not-fixed-point\n"
-    }.
+    if { fixed_point -> "fixed-point\n"; true -> "not-fixed-point\n" }.
 
 write_marker(marker: String, fixed_point: Bool): Bool ->
     case File.write_text(marker, marker_text(fixed_point)) {
@@ -104,26 +82,48 @@ write_marker(marker: String, fixed_point: Bool): Bool ->
         Err(_reason) -> false
     }.
 
-compare_candidate(
-    left: BootstrapArtifact,
-    candidate: Option[BootstrapArtifact],
-    marker: String,
-): Bool ->
+compare_candidate(left: BootstrapArtifact, candidate: Option[BootstrapArtifact], marker: String): Bool ->
     case candidate {
-        Some(right) ->
-            let parity = SelfHostBootstrapParity.compare(left, right);
+        Some(right) -> let parity = SelfHostBootstrapParity.compare(left, right);
             write_marker(marker, parity.fixed_point);
-        None -> false
+        None -> write_marker(marker, false)
     }.
 
 compare_reference(left: Option[BootstrapArtifact], candidate: String, marker: String): Bool ->
     case left {
         Some(value) -> compare_candidate(value, read(candidate), marker);
-        None -> false
+        None -> write_marker(marker, false)
     }.
 
-/**
- * Writes an exact marker only when every bootstrap stage digest is equal.
- */
+/** Writes an exact marker only when every bootstrap stage digest is equal. */
 pub compare_files(reference: String, candidate: String, marker: String): Bool ->
     compare_reference(read(reference), candidate, marker).
+
+compare_generation_candidate(stage0: BootstrapArtifact, stage1: BootstrapArtifact, stage2: Option[BootstrapArtifact], marker: String): Bool ->
+    case stage2 {
+        Some(value) -> write_marker(marker, converged(stage0, stage1, value));
+        None -> write_marker(marker, false)
+    }.
+
+/** Returns true only when both consecutive bootstrap transitions are stable. */
+@pure
+pub converged(stage0: BootstrapArtifact, stage1: BootstrapArtifact, stage2: BootstrapArtifact): Bool ->
+    let first = SelfHostBootstrapParity.compare(stage0, stage1);
+    let second = SelfHostBootstrapParity.compare(stage1, stage2);
+    first.fixed_point and second.fixed_point.
+
+compare_generation_stage1(stage0: BootstrapArtifact, stage1: Option[BootstrapArtifact], stage2: String, marker: String): Bool ->
+    case stage1 {
+        Some(value) -> compare_generation_candidate(stage0, value, read(stage2), marker);
+        None -> write_marker(marker, false)
+    }.
+
+compare_generation_stage0(stage0: Option[BootstrapArtifact], stage1: String, stage2: String, marker: String): Bool ->
+    case stage0 {
+        Some(value) -> compare_generation_stage1(value, read(stage1), stage2, marker);
+        None -> write_marker(marker, false)
+    }.
+
+/** Requires two consecutive normalized bootstrap transitions to be stable. */
+pub compare_generations(stage0: String, stage1: String, stage2: String, marker: String): Bool ->
+    compare_generation_stage0(read(stage0), stage1, stage2, marker).

@@ -1,6 +1,8 @@
 /** Positive and negative contracts for composed canonical parsing. */
 module self_host.CanonicalParserTest.
 
+import std.core.String.
+
 import std.collections.List.
 import self_host.CanonicalParser.
 

@@ -1,9 +1,16 @@
 //! Application-lifetime session contexts, independent of compiler and VM types.
 
 use std::sync::{Arc, Mutex, TryLockError};
+use std::time::Duration;
 use terlan_runtime_abi::{BoundaryError, ErrorDomain, NativeServices};
 
 use crate::session_bindings::{bindings, SessionStorage};
+
+mod applications;
+pub use applications::ApplicationSessions;
+
+/// Idle reclamation cadence selected by the HTTP package, not the VM scheduler.
+pub const SESSION_MAINTENANCE_INTERVAL: Duration = Duration::from_secs(1);
 
 /// Resource hosts provide clock attachment and bounded reclamation in addition
 /// to storage. Cleanup must be nonblocking once the context lock is acquired.
@@ -52,6 +59,11 @@ impl<S: SessionHost + 'static> SessionService<S> {
             Err(TryLockError::WouldBlock) => Ok(()),
             Err(TryLockError::Poisoned(_)) => Err(lock_error()),
         }
+    }
+
+    /// One bounded application cleanup pass, including when requests are idle.
+    pub fn maintain_application(&self) -> Result<(), BoundaryError> {
+        self.maintain(64)
     }
 
     /// Host inspection and setup share the same synchronization as native calls.

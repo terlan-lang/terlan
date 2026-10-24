@@ -1,0 +1,53 @@
+/** Strict decoding and coverage contracts for the regression corpus inventory. */
+module self_host.SelfHostRegressionCorpusTest.
+
+import std.core.String.
+
+import std.core.Option.{None, Some}.
+import self_host.SelfHostRegressionCorpus.
+
+
+complete_manifest(): String ->
+    "frontend\taccept\ta.terl\n"
+        + "frontend\treject\tb.terl\n"
+        + "semantic\taccept\tc.terl\n"
+        + "semantic\treject\td.terl\n"
+        + "backend\tequivalent\te.terl\n"
+        + "fragment-expression\tproject\tf.terl\n"
+        + "fragment-pattern\tproject\tg.terl\n"
+        + "fragment-type\tproject\th.terl\n".
+
+@test
+pub complete_strict_inventory_is_admitted(): Bool ->
+    case SelfHostRegressionCorpus.decode(complete_manifest()) {
+        None -> false;
+        Some(values) -> SelfHostRegressionCorpus.complete(values)
+            and String.contains(
+                SelfHostRegressionCorpus.render(values),
+                "backend\tequivalent\t1\n",
+            )
+    }.
+
+@test
+pub unknown_stage_or_expectation_is_rejected(): Bool ->
+    SelfHostRegressionCorpus.decode("runtime\taccept\ta.terl\n") == None
+        and SelfHostRegressionCorpus.decode("backend\taccept\ta.terl\n") == None.
+
+@test
+pub duplicate_and_escaping_paths_are_rejected(): Bool ->
+    SelfHostRegressionCorpus.decode(
+        "frontend\taccept\ta.terl\nfrontend\treject\ta.terl\n",
+    ) == None
+        and SelfHostRegressionCorpus.decode(
+            "frontend\taccept\ta.terl\nfrontend\taccept\ta.terl\n",
+        ) == None
+        and SelfHostRegressionCorpus.decode(
+            "frontend\taccept\t../outside.terl\n",
+        ) == None.
+
+@test
+pub missing_required_surface_is_incomplete(): Bool ->
+    case SelfHostRegressionCorpus.decode("frontend\taccept\ta.terl\n") {
+        None -> false;
+        Some(values) -> not SelfHostRegressionCorpus.complete(values)
+    }.

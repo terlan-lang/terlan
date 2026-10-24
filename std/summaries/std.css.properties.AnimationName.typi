@@ -1,48 +1,29 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-name
+//! The `animation-name` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+//! the names of one or more `@keyframes` at-rules that describe the animation to apply to an
+//! element. Multiple `@keyframes` at-rules are specified as a comma-separated list of names. If the
+//! specified name does not match any `@keyframes` at-rule, no properties are animated.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - none: A special keyword denoting no keyframes. It can be used to deactivate an animation
+//! without changing the ordering of the other identifiers, or to deactivate animations coming from
+//! the cascade.
+//!
 //! Grammar: [ none | <keyframes-name> ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-name
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-name
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.AnimationName.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    animation_name: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    animation_name: Value
+    animation_name: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained animation-name value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

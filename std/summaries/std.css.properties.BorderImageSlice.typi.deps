@@ -1,11 +1,11 @@
 module=std.css.properties.BorderImageSlice
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=8031686363650064518
-interface_hash=17739927492148320834
-interface_doc_hash=15092725017701958180
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4772614451557338882
+interface_hash=13069835875352689950
+interface_doc_hash=18359594850852051676
 deps=3
 std.core.Float=3784534907681217377
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword dot. Generated; do not edit.
+ */
+module std.css.keywords.Dot.
+
+pub type Dot.

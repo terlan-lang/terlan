@@ -1,0 +1,34 @@
+/** Exact projected type-constraint identity contracts. */
+module self_host.ProjectedTypeConstraintResolutionTest.
+
+import self_host.ProjectedTypeConstraintResolution.
+import self_host.ProjectedTypeConstraintSyntax.{TypeConstraintEvent}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+
+custom_type_propagates(): Bool ->
+    let resolved = ProjectedTypeConstraintResolution.resolve([
+        TypeConstraintEvent("known", 1, 0, 0, "Widget", 10),
+        TypeConstraintEvent("propagate", 2, 1, 0, "", 20),
+        TypeConstraintEvent("same", 3, 1, 2, "", 30),
+    ]);
+    case resolved.facts {
+        [_first, second, third] -> second.type_name == Some("Widget")
+            and third.type_name == Some("Widget")
+            and resolved.diagnostics == [];
+        _ -> false
+    }.
+
+custom_type_mismatch_is_rejected(): Bool ->
+    let resolved = ProjectedTypeConstraintResolution.resolve([
+        TypeConstraintEvent("known", 1, 0, 0, "Widget", 10),
+        TypeConstraintEvent("known", 2, 0, 0, "String", 20),
+        TypeConstraintEvent("same", 3, 1, 2, "", 30),
+    ]);
+    case resolved.facts {
+        [_first, _second, third] -> third.type_name == None
+            and List.length(resolved.diagnostics) == 1;
+        _ -> false
+    }.
+
+pub self_test(): Bool -> custom_type_propagates() and custom_type_mismatch_is_rejected().

@@ -170,7 +170,12 @@ run_generator(root: String, compiler: String, output: String): Bool ->
     let command = generator_command(root, compiler, output);
     case Process.run(command) {
         Err(reason) ->
-            finish(output, false, 0, String.append("generation failed: ", reason.message));
+            finish(
+                output,
+                false,
+                0,
+                String.append("generation failed: ", reason.message),
+            );
         Ok(result) ->
             if {
                 result.status == 0 -> discover_generated(root, output);

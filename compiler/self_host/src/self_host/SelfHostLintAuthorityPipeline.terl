@@ -1,0 +1,52 @@
+/** Evidence-to-artifact pipeline for self-hosted lint authority. */
+module self_host.SelfHostLintAuthorityPipeline.
+
+import std.core.Result.{Err, Ok}.
+import type std.core.Result.
+import std.io.File.
+import self_host.SelfHostLintAuthorityEvidence.
+import self_host.SelfHostLintAuthorityTool.{LintAuthorityArtifact, LintAuthorityWritePlan}.
+import self_host.SelfHostLintAuthorityTool.
+
+/** Rejects malformed evidence before constructing any filesystem plan. */
+pub prepare(
+    parity_artifact: String,
+    registry_artifact: String,
+): Result[LintAuthorityWritePlan, String] ->
+    case SelfHostLintAuthorityEvidence.decode(parity_artifact, registry_artifact) {
+        Err(reason) -> Err(reason);
+        Ok(evidence) -> Ok(SelfHostLintAuthorityTool.plan(evidence))
+    }.
+
+remove_all(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] -> let _removed = File.delete(path);
+        remove_all(rest)
+    }.
+
+write_all(values: List[LintAuthorityArtifact]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> case File.write_text(value.path, value.contents) {
+            Err(_) -> false;
+            Ok(_) -> write_all(rest)
+        }
+    }.
+
+execute(value: LintAuthorityWritePlan): Bool ->
+    remove_all(value.remove_before_write) and write_all(value.writes).
+
+/** Reads evidence and executes its stale-safe authority plan. */
+pub write(parity_path: String, registry_path: String): Bool ->
+    let _removed = File.delete(SelfHostLintAuthorityTool.complete_marker_path());
+    case File.read_text(parity_path) {
+        Err(_) -> false;
+        Ok(parity_artifact) -> case File.read_text(registry_path) {
+            Err(_) -> false;
+            Ok(registry_artifact) -> case prepare(parity_artifact, registry_artifact) {
+                Err(_) -> false;
+                Ok(plan) -> execute(plan)
+            }
+        }
+    }.

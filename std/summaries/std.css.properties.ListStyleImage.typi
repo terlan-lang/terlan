@@ -1,48 +1,26 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-lists-3/#propdef-list-style-image
+//! The `list-style-image` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets an
+//! image to be used as the list item marker.
+//!
+//! Initial: none. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - none: Specifies that no image is used as the marker. If this value is set, the marker defined
+//! in will be used instead. This is the default value for `list-style`.
+//!
 //! Grammar: <image> | none
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-lists-3/#propdef-list-style-image
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/list-style-image
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ListStyleImage.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    list_style_image: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    list_style_image: Value
+    list_style_image: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained list-style-image value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

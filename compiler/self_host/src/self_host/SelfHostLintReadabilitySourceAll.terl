@@ -1,0 +1,23 @@
+/** Unified Terlan-owned source projection for TL0005-TL0008. */
+module self_host.SelfHostLintReadabilitySourceAll.
+
+import self_host.SelfHostLintPublicDocsSource.
+import self_host.SelfHostLintReadability.
+import self_host.SelfHostLintReadabilitySource.
+
+/** Emits source-owned readability diagnostics in canonical rule order. */
+pub diagnostics(
+    path: String,
+    source: String,
+): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
+    SelfHostLintReadability.diagnostics(
+        path,
+        source,
+        [],
+        [],
+        [],
+        SelfHostLintReadabilitySource.lines(source),
+        SelfHostLintPublicDocsSource.subjects(source),
+        [],
+        [],
+    ).

@@ -1,0 +1,212 @@
+/** Terlan source-fact projection for line-oriented readability rules. */
+module self_host.SelfHostLintReadabilitySource.
+
+import std.core.Option.{None, Some}.
+import std.core.String.
+import self_host.SelfHostLintReadability.ReadabilityLine.
+import self_host.SelfHostLintReadability.
+
+whitespace(value: String): Bool ->
+    value == " " or value == "\t" or value == "\r" or value == "\n".
+
+collapse_whitespace(
+    characters: List[String],
+    output: String,
+    pending_space: Bool,
+): String ->
+    case characters {
+        [] -> output;
+        [value | rest] ->
+            if {
+                whitespace(value) -> collapse_whitespace(rest, output, true);
+                pending_space and output != "" ->
+                    collapse_whitespace(rest, output + " " + value, false);
+                true -> collapse_whitespace(rest, output + value, false)
+            }
+    }.
+
+strip_terminal_punctuation(value: String): String ->
+    let trimmed = String.trim_end(value);
+    let size = String.byte_size(trimmed);
+    if {
+        size == 0 -> trimmed;
+        String.utf8_byte_at(trimmed, size - 1) == 46
+            or String.utf8_byte_at(trimmed, size - 1) == 59 ->
+            strip_terminal_punctuation(String.utf8_slice(trimmed, 0, size - 1));
+        true -> trimmed
+    }.
+
+/** Mirrors the native conservative comment-restatement normalization. */
+pub normalize_restatement(value: String): String ->
+    collapse_whitespace(
+        String.characters(strip_terminal_punctuation(String.trim(value))),
+        "",
+        false,
+    ).
+
+drop_comment_prefix(value: String): String ->
+    if {
+        String.starts_with(value, "//") ->
+            drop_comment_prefix(
+                String.utf8_slice(value, 2, String.byte_size(value) - 2),
+            );
+        true -> String.trim(value)
+    }.
+
+plain_comment(value: String): Bool ->
+    String.starts_with(value, "//")
+        and not String.starts_with(value, "///")
+        and not String.starts_with(value, "//!").
+
+comment_exempt(value: String): Bool ->
+    let lower = String.lowercase(drop_comment_prefix(value));
+    String.starts_with(lower, "todo")
+        or String.starts_with(lower, "fixme")
+        or String.starts_with(lower, "safety")
+        or String.starts_with(lower, "why").
+
+next_code_line(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] ->
+            let trimmed = String.trim(value);
+            if {
+                trimmed == "" or String.starts_with(trimmed, "//") ->
+                    next_code_line(rest);
+                true -> trimmed
+            }
+    }.
+
+ascii_word_character(value: String): Bool ->
+    if {
+        String.byte_size(value) != 1 -> false;
+        true ->
+            let byte = String.utf8_byte_at(value, 0);
+            byte == 95
+                or (byte >= 48 and byte <= 57)
+                or (byte >= 65 and byte <= 90)
+                or (byte >= 97 and byte <= 122)
+    }.
+
+add_boolean_word(word: String, count: Int): Int ->
+    if { word == "and" or word == "or" -> count + 1; true -> count }.
+
+boolean_words(
+    characters: List[String],
+    word: String,
+    count: Int,
+): Int ->
+    case characters {
+        [] -> add_boolean_word(word, count);
+        [value | rest] ->
+            if {
+                ascii_word_character(value) -> boolean_words(rest, word + value, count);
+                true -> boolean_words(rest, "", add_boolean_word(word, count))
+            }
+    }.
+
+remove_if_prefix(value: String): String ->
+    if {
+        String.starts_with(value, "if {") ->
+            String.trim(
+                String.utf8_slice(value, 4, String.byte_size(value) - 4),
+            );
+        true -> value
+    }.
+
+branch_boolean_operators(line: String): Int ->
+    case String.split_once(line, "->") {
+        None -> 0;
+        Some({left, _}) ->
+            let condition = remove_if_prefix(String.trim(left));
+            if {
+                condition == "" or condition == "_" -> 0;
+                true -> boolean_words(String.characters(condition), "", 0)
+            }
+    }.
+
+bad_doc_spacing(trimmed: String, in_doc_block: Bool): Bool ->
+    in_doc_block
+        and not String.starts_with(trimmed, "/**")
+        and String.starts_with(trimmed, "*")
+        and not String.starts_with(trimmed, "*/")
+        and trimmed != "*"
+        and not String.starts_with(trimmed, "* ").
+
+next_doc_state(trimmed: String, in_doc_block: Bool): Bool ->
+    if {
+        String.starts_with(trimmed, "/**") -> true;
+        not in_doc_block -> false;
+        String.contains(trimmed, "*/") -> false;
+        true -> true
+    }.
+
+branch_operators(trimmed: String, in_block_comment: Bool): Int ->
+    if {
+        trimmed == "" or String.starts_with(trimmed, "//") -> 0;
+        in_block_comment -> 0;
+        String.starts_with(trimmed, "/*") -> 0;
+        true -> branch_boolean_operators(trimmed)
+    }.
+
+next_block_state(trimmed: String, in_block_comment: Bool): Bool ->
+    if {
+        trimmed == "" or String.starts_with(trimmed, "//") -> in_block_comment;
+        in_block_comment and String.contains(trimmed, "*/") -> false;
+        in_block_comment -> true;
+        String.starts_with(trimmed, "/*") and not String.contains(trimmed, "*/") -> true;
+        true -> false
+    }.
+
+project_lines(
+    values: List[String],
+    line_number: Int,
+    in_doc_block: Bool,
+    in_block_comment: Bool,
+): List[ReadabilityLine] ->
+    case values {
+        [] -> [];
+        [line | rest] ->
+            let trimmed_start = String.trim_start(line);
+            let trimmed = String.trim(line);
+            let is_plain_comment = plain_comment(trimmed_start);
+            let next_code = next_code_line(rest);
+            let restates = is_plain_comment
+                and next_code != ""
+                and normalize_restatement(drop_comment_prefix(trimmed_start))
+                    == normalize_restatement(next_code);
+            let value = ReadabilityLine(
+                line_number,
+                String.byte_size(line) - String.byte_size(trimmed_start) + 1,
+                is_plain_comment,
+                is_plain_comment and comment_exempt(trimmed_start),
+                restates,
+                bad_doc_spacing(trimmed_start, in_doc_block),
+                branch_operators(trimmed, in_block_comment),
+            );
+            [value | project_lines(
+                rest,
+                line_number + 1,
+                next_doc_state(trimmed_start, in_doc_block),
+                next_block_state(trimmed, in_block_comment),
+            )]
+    }.
+
+/** Projects line facts without a native parser or host string adapter. */
+pub lines(source: String): List[ReadabilityLine] ->
+    project_lines(String.split(source, "\n"), 1, false, false).
+
+/** Runs all source-owned readability diagnostics. */
+@pure
+pub diagnostics(path: String, source: String): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
+    SelfHostLintReadability.diagnostics(
+        path,
+        source,
+        [],
+        [],
+        [],
+        lines(source),
+        [],
+        [],
+        [],
+    ).

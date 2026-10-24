@@ -1,0 +1,434 @@
+/** Source-owned TL0608 and TL0609 import recommendations. */
+module self_host.SelfHostLintImportRecommendations.
+
+import std.core.Option.{None, Some}.
+import std.core.String.
+import std.collections.List.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedParserSyntax.ProjectedSurfaceDeclaration.
+import self_host.SelfHostLintSyntax.LintDiagnostic.
+import self_host.SelfHostToolingDocument.ToolingDocument.
+import self_host.Syntax.ImportDeclaration.
+
+struct SelectedValueImport {
+    module_name: String,
+    visible_name: String,
+    item_name: String,
+}.
+
+constructor SelectedValueImport {
+    (module_name: String, visible_name: String, item_name: String): SelectedValueImport ->
+        SelectedValueImport {
+            module_name: module_name,
+            visible_name: visible_name,
+            item_name: item_name,
+        }
+}.
+
+struct OrdinaryImport {
+    module_name: String,
+    visible_name: String,
+    aliased: Bool,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+constructor OrdinaryImport {
+    (
+        module_name: String,
+        visible_name: String,
+        aliased: Bool,
+        start_byte: Int,
+        end_byte: Int,
+    ): OrdinaryImport -> OrdinaryImport {
+        module_name: module_name,
+        visible_name: visible_name,
+        aliased: aliased,
+        start_byte: start_byte,
+        end_byte: end_byte,
+    }
+}.
+
+struct CallSite {
+    remote: String,
+    name: String,
+    constructor_call: Bool,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+constructor CallSite {
+    (
+        remote: String,
+        name: String,
+        constructor_call: Bool,
+        start_byte: Int,
+        end_byte: Int,
+    ): CallSite -> CallSite {
+        remote: remote,
+        name: name,
+        constructor_call: constructor_call,
+        start_byte: start_byte,
+        end_byte: end_byte,
+    }
+}.
+
+struct SourcePosition {
+    line: Int,
+    column: Int,
+}.
+
+constructor SourcePosition {
+    (line: Int, column: Int): SourcePosition ->
+        SourcePosition { line: line, column: column }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+last(values: List[String], value: String): String ->
+    case values { [] -> value; [next | rest] -> last(rest, next) }.
+
+module_visible_name(value: String): String ->
+    last(String.split(value, "."), "").
+
+position_at(source: String, target: Int, offset: Int, line: Int, column: Int): SourcePosition ->
+    if {
+        offset >= target or offset >= String.byte_size(source) -> SourcePosition(line, column);
+        String.utf8_byte_at(source, offset) == 10 ->
+            position_at(source, target, offset + 1, line + 1, 1);
+        true -> position_at(source, target, offset + 1, line, column + 1)
+    }.
+
+strip_terminal_period(value: String): String ->
+    let trimmed = String.trim(value);
+    let size = String.byte_size(trimmed);
+    if {
+        size > 0 and String.ends_with(trimmed, ".") ->
+            String.trim_end(String.utf8_slice(trimmed, 0, size - 1));
+        true -> trimmed
+    }.
+
+import_body(value: String): String ->
+    let trimmed = strip_terminal_period(value);
+    if {
+        String.starts_with(trimmed, "import ") -> String.trim(
+            String.utf8_slice(trimmed, 7, String.byte_size(trimmed) - 7),
+        );
+        true -> ""
+    }.
+
+selected_source_name(value: String): String ->
+    case String.split_once(String.trim(value), " as ") {
+        Some({name, _alias}) -> String.trim(name);
+        None -> String.trim(value)
+    }.
+
+upper_camel(value: String): Bool ->
+    String.byte_size(value) > 0
+        and String.utf8_byte_at(value, 0) >= 65
+        and String.utf8_byte_at(value, 0) <= 90.
+
+selected_items(
+    values: List[String],
+    module_name: String,
+): List[SelectedValueImport] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let name = selected_source_name(value);
+            if {
+                name == "" or upper_camel(name) -> selected_items(rest, module_name);
+                true -> [SelectedValueImport(
+                    module_name,
+                    module_visible_name(module_name),
+                    name,
+                ) | selected_items(rest, module_name)]
+            }
+    }.
+
+selected_import(value: String): List[SelectedValueImport] ->
+    let body = import_body(value);
+    if {
+        body == "" or String.starts_with(body, "type ") -> [];
+        true -> case String.split_once(body, ".{") {
+            None -> [];
+            Some({module_name, selected}) ->
+                let selected_size = String.byte_size(selected);
+                if {
+                    selected_size == 0 or not String.ends_with(selected, "}") -> [];
+                    true -> selected_items(
+                        String.split(
+                            String.utf8_slice(selected, 0, selected_size - 1),
+                            ",",
+                        ),
+                        String.trim(module_name),
+                    )
+                }
+        }
+    }.
+
+ordinary_import(
+    value: ProjectedSurfaceDeclaration,
+    source: String,
+): Option[OrdinaryImport] ->
+    let text = String.utf8_slice(
+        source,
+        value.span.start_byte,
+        value.span.end_byte - value.span.start_byte,
+    );
+    let body = import_body(text);
+    if {
+        body == ""
+            or String.starts_with(body, "type ")
+            or String.contains(body, "{") -> None;
+        true -> case String.split_once(body, " as ") {
+            Some({module_name, alias}) -> Some(OrdinaryImport(
+                String.trim(module_name),
+                String.trim(alias),
+                true,
+                value.span.start_byte,
+                value.span.end_byte,
+            ));
+            None -> Some(OrdinaryImport(
+                body,
+                module_visible_name(body),
+                false,
+                value.span.start_byte,
+                value.span.end_byte,
+            ))
+        }
+    }.
+
+selected_imports(
+    values: List[ProjectedSurfaceDeclaration],
+    source: String,
+): List[SelectedValueImport] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.class {
+            ImportDeclaration -> append(
+                selected_import(String.utf8_slice(
+                    source,
+                    value.span.start_byte,
+                    value.span.end_byte - value.span.start_byte,
+                )),
+                selected_imports(rest, source),
+            );
+            _ -> selected_imports(rest, source)
+        }
+    }.
+
+ordinary_imports(
+    values: List[ProjectedSurfaceDeclaration],
+    source: String,
+): List[OrdinaryImport] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.class {
+            ImportDeclaration -> case ordinary_import(value, source) {
+                Some(found) -> [found | ordinary_imports(rest, source)];
+                None -> ordinary_imports(rest, source)
+            };
+            _ -> ordinary_imports(rest, source)
+        }
+    }.
+
+remote_text(value: ProjectedExpressionNode): String ->
+    if {
+        value.kind == "identifier" or value.kind == "constructor" -> value.text;
+        value.kind == "field" -> case value.children {
+            [receiver] ->
+                let prefix = remote_text(receiver);
+                if { prefix == "" -> ""; true -> prefix + "." + value.text };
+            _ -> ""
+        };
+        true -> ""
+    }.
+
+call_site(value: ProjectedExpressionNode): Option[CallSite] ->
+    if {
+        value.kind != "call" -> None;
+        true -> case value.children {
+            [callee, _arguments] where callee.kind == "constructor" -> Some(CallSite(
+                "", callee.text, true, value.start_byte, value.end_byte,
+            ));
+            [callee, _arguments] where callee.kind == "identifier" -> Some(CallSite(
+                "", callee.text, false, value.start_byte, value.end_byte,
+            ));
+            [callee, _arguments] where callee.kind == "field" -> case callee.children {
+                [receiver] -> Some(CallSite(
+                    remote_text(receiver),
+                    callee.text,
+                    false,
+                    value.start_byte,
+                    value.end_byte,
+                ));
+                _ -> None
+            };
+            _ -> None
+        }
+    }.
+
+node_calls(value: ProjectedExpressionNode): List[CallSite] ->
+    let nested = nodes_calls(value.children);
+    case call_site(value) {
+        Some(found) -> [found | nested];
+        None -> nested
+    }.
+
+nodes_calls(values: List[ProjectedExpressionNode]): List[CallSite] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(node_calls(value), nodes_calls(rest))
+    }.
+
+body_calls(values: List[self_host.ProjectedBodySyntax.ProjectedBody]): List[CallSite] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.expression.node {
+            Some(body) -> append(node_calls(body), body_calls(rest));
+            None -> body_calls(rest)
+        }
+    }.
+
+selected_match(value: CallSite, imports: List[SelectedValueImport]): Bool ->
+    case imports {
+        [] -> false;
+        [import_value | rest] ->
+            (
+                value.name == import_value.item_name
+                    and (
+                        value.remote == import_value.module_name
+                            or value.remote == import_value.visible_name
+                    )
+            ) or selected_match(value, rest)
+    }.
+
+contains_int(value: Int, values: List[Int]): Bool ->
+    case values { [] -> false; [current | rest] -> current == value or contains_int(value, rest) }.
+
+redundant_diagnostics(
+    calls: List[CallSite],
+    imports: List[SelectedValueImport],
+    seen_lines: List[Int],
+    path: String,
+    source: String,
+): List[LintDiagnostic] ->
+    case calls {
+        [] -> [];
+        [value | rest] ->
+            let position = position_at(source, value.start_byte, 0, 1, 1);
+            if {
+                selected_match(value, imports) and not contains_int(position.line, seen_lines) -> [LintDiagnostic(
+                    path,
+                    position.line,
+                    position.column,
+                    value.start_byte,
+                    value.end_byte,
+                    "TL0608",
+                    "imports.redundant-qualifier",
+                    "suggestion",
+                    "selected import already makes this call unambiguous; use the selected name",
+                    false,
+                ) | redundant_diagnostics(
+                    rest,
+                    imports,
+                    [position.line | seen_lines],
+                    path,
+                    source,
+                )];
+                true -> redundant_diagnostics(rest, imports, seen_lines, path, source)
+            }
+    }.
+
+constructor_call(name: String, calls: List[CallSite]): Bool ->
+    case calls {
+        [] -> false;
+        [value | rest] ->
+            (value.constructor_call and value.remote == "" and value.name == name)
+                or constructor_call(name, rest)
+    }.
+
+lower_name(value: String): Bool ->
+    String.byte_size(value) > 0
+        and String.utf8_byte_at(value, 0) >= 97
+        and String.utf8_byte_at(value, 0) <= 122.
+
+contains_string(value: String, values: List[String]): Bool ->
+    case values { [] -> false; [current | rest] -> current == value or contains_string(value, rest) }.
+
+member_names(
+    import_value: OrdinaryImport,
+    calls: List[CallSite],
+    output: List[String],
+): List[String] ->
+    case calls {
+        [] -> output;
+        [value | rest] ->
+            if {
+                lower_name(value.name)
+                    and (
+                        value.remote == import_value.visible_name
+                            or value.remote == import_value.module_name
+                    )
+                    and not contains_string(value.name, output) ->
+                    member_names(import_value, rest, [value.name | output]);
+                true -> member_names(import_value, rest, output)
+            }
+    }.
+
+default_diagnostics(
+    imports: List[OrdinaryImport],
+    calls: List[CallSite],
+    path: String,
+    source: String,
+): List[LintDiagnostic] ->
+    case imports {
+        [] -> [];
+        [value | rest] ->
+            let members = member_names(value, calls, []);
+            if {
+                not value.aliased
+                    and not constructor_call(value.visible_name, calls)
+                    and List.length(members) == 1 ->
+                    let position = position_at(source, value.start_byte, 0, 1, 1);
+                    [LintDiagnostic(
+                        path,
+                        position.line,
+                        position.column,
+                        value.start_byte,
+                        value.end_byte,
+                        "TL0609",
+                        "imports.default-could-be-selected",
+                        "suggestion",
+                        "module import is used for one member; prefer a selected import",
+                        false,
+                    ) | default_diagnostics(rest, calls, path, source)];
+                true -> default_diagnostics(rest, calls, path, source)
+            }
+    }.
+
+/** Emits TL0608 followed by TL0609, matching native dispatch order. */
+@pure
+pub lint(path: String, value: ToolingDocument): List[LintDiagnostic] ->
+    if {
+        not value.valid or not value.frontend.surface.valid or not value.frontend.bodies.valid -> [];
+        true ->
+            let calls = body_calls(value.frontend.bodies.values);
+            append(
+                redundant_diagnostics(
+                    calls,
+                    selected_imports(value.frontend.surface.declarations, value.source),
+                    [],
+                    path,
+                    value.source,
+                ),
+                default_diagnostics(
+                    ordinary_imports(value.frontend.surface.declarations, value.source),
+                    calls,
+                    path,
+                    value.source,
+                ),
+            )
+    }.

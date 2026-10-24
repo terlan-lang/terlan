@@ -19,13 +19,20 @@ impl RequestFieldProjection {
     pub const PARAMS: usize = 3;
     pub const BODY: usize = 4;
     pub const QUERY_STRING: usize = 5;
-    pub const QUERY: usize = 6;
-    pub const HEADERS: usize = 7;
-    pub const COOKIES: usize = 8;
-    pub const BODY_FILE_PATH: usize = 9;
+    pub const HEADERS: usize = 6;
+    pub const COOKIES: usize = 7;
+    pub const BODY_FILE_PATH: usize = 8;
 
     pub const fn empty() -> Self {
         Self::Fields(0)
+    }
+
+    /// File-only ingress is safe only for a proven projection that cannot
+    /// observe the text body. Complete requests retain the text boundary.
+    pub const fn requires_file_body(self) -> bool {
+        matches!(self, Self::Fields(_))
+            && self.requires(Self::BODY_FILE_PATH)
+            && !self.requires(Self::BODY)
     }
 
     /// Maps zero-based source record positions to ingress slots. Slot zero is

@@ -1,0 +1,251 @@
+/** Bounded fixed-point comparison and replacement for local actor profiles. */
+module self_host.SelfHostActorProfileConvergence.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Bool, String}.
+
+import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
+import self_host.SelfHostActorCallPlan.{ActorCalleeEntry}.
+import self_host.SelfHostActorEffects.{ActorCallableEffect, ActorCallableIdentity}.
+import self_host.SelfHostIrSyntax.{IrFunction}.
+import self_host.SelfHostActorEffects.
+import self_host.SelfHostActorIdentity.
+
+
+@pure
+same_identity(left: ActorSuspensionProfile, right: ActorSuspensionProfile): Bool ->
+    left.module_name == right.module_name
+        and left.callable_name == right.callable_name
+        and left.arity == right.arity.
+
+@pure
+same_entry(left: ActorCalleeEntry, right: ActorCalleeEntry): Bool ->
+    left.export_identity == right.export_identity
+        and left.continuation_identity == right.continuation_identity
+        and left.capture_count == right.capture_count.
+
+@pure
+entry_present(value: ActorCalleeEntry, values: List[ActorCalleeEntry]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same_entry(value, current) or entry_present(value, rest)
+    }.
+
+@pure
+same_size[T, U](left: List[T], right: List[U]): Bool ->
+    case left {
+        [] -> case right { [] -> true; _ -> false };
+        [_ | left_rest] -> case right {
+            [_ | right_rest] -> same_size(left_rest, right_rest);
+            _ -> false
+        }
+    }.
+
+@pure
+entries_present(values: List[ActorCalleeEntry], candidates: List[ActorCalleeEntry]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> entry_present(value, candidates)
+            and entries_present(rest, candidates)
+    }.
+
+@pure
+equivalent(left: ActorSuspensionProfile, right: ActorSuspensionProfile): Bool ->
+    same_identity(left, right)
+        and left.runtime_owned == right.runtime_owned
+        and same_size(left.entries, right.entries)
+        and entries_present(left.entries, right.entries)
+        and entries_present(right.entries, left.entries).
+
+@pure
+profile_for(value: ActorSuspensionProfile, values: List[ActorSuspensionProfile]): Option[ActorSuspensionProfile] ->
+    case values {
+        [] -> None;
+        [current | rest] -> if {
+            same_identity(value, current) -> Some(current);
+            true -> profile_for(value, rest)
+        }
+    }.
+
+@pure
+native_function(value: ActorSuspensionProfile, functions: List[IrFunction]): Bool ->
+    case functions {
+        [] -> false;
+        [function | rest] -> if {
+            function.module_name == value.module_name
+                and function.name == value.callable_name
+                and function.arity == value.arity -> case function.native_symbol {
+                    None -> false;
+                    Some(_) -> true
+                };
+            true -> native_function(value, rest)
+        }
+    }.
+
+@pure
+generated_match_seed(
+    generated: List[ActorSuspensionProfile],
+    seed: List[ActorSuspensionProfile],
+): Bool ->
+    case generated {
+        [] -> true;
+        [value | rest] -> case profile_for(value, seed) {
+            None -> false;
+            Some(found) -> equivalent(value, found) and generated_match_seed(rest, seed)
+        }
+    }.
+
+@pure
+seed_entries_valid(
+    seed: List[ActorSuspensionProfile],
+    generated: List[ActorSuspensionProfile],
+    module_name: String,
+    functions: List[IrFunction],
+): Bool ->
+    case seed {
+        [] -> true;
+        [value | rest] -> if {
+            value.module_name != module_name -> seed_entries_valid(rest, generated, module_name, functions);
+            native_function(value, functions) -> seed_entries_valid(rest, generated, module_name, functions);
+            true -> case profile_for(value, generated) {
+                None -> false;
+                Some(found) -> equivalent(value, found)
+                    and seed_entries_valid(rest, generated, module_name, functions)
+            }
+        }
+    }.
+
+/** True only when inferred local profiles equal seeds and extras are native ABI profiles. */
+@pure
+pub stable(
+    seed: List[ActorSuspensionProfile],
+    generated: List[ActorSuspensionProfile],
+    module_name: String,
+    functions: List[IrFunction],
+): Bool ->
+    generated_match_seed(generated, seed)
+        and seed_entries_valid(seed, generated, module_name, functions).
+
+@pure
+preserved(
+    seed: List[ActorSuspensionProfile],
+    module_name: String,
+    functions: List[IrFunction],
+): List[ActorSuspensionProfile] ->
+    case seed {
+        [] -> List.new[ActorSuspensionProfile]();
+        [value | rest] -> if {
+            value.module_name != module_name or native_function(value, functions) ->
+                [value | preserved(rest, module_name, functions)];
+            true -> preserved(rest, module_name, functions)
+        }
+    }.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+/** Replaces inferred local seeds while retaining imported and native ABI profiles. */
+@pure
+pub next(
+    seed: List[ActorSuspensionProfile],
+    generated: List[ActorSuspensionProfile],
+    module_name: String,
+    functions: List[IrFunction],
+): List[ActorSuspensionProfile] ->
+    append(preserved(seed, module_name, functions), generated).
+
+/** Selects explicit runtime-owned profiles exported by this native module. */
+@pure
+pub runtime_profiles(
+    values: List[ActorSuspensionProfile],
+    module_name: String,
+): List[ActorSuspensionProfile] ->
+    case values {
+        [] -> List.new[ActorSuspensionProfile]();
+        [value | rest] -> if {
+            value.module_name == module_name and value.runtime_owned ->
+                [value | runtime_profiles(rest, module_name)];
+            true -> runtime_profiles(rest, module_name)
+        }
+    }.
+
+@pure
+identity_profile(
+    value: ActorCallableIdentity,
+    profiles: List[ActorSuspensionProfile],
+): Bool ->
+    case profiles {
+        [] -> false;
+        [profile | rest] -> (profile.module_name == value.module_name
+            and profile.callable_name == value.function_name
+            and profile.arity == value.arity)
+            or identity_profile(value, rest)
+    }.
+
+@pure
+native_identity(value: ActorCallableIdentity, functions: List[IrFunction]): Bool ->
+    case functions {
+        [] -> false;
+        [function | rest] -> if {
+            function.module_name == value.module_name
+                and function.name == value.function_name
+                and function.arity == value.arity -> case function.native_symbol {
+                    None -> false;
+                    Some(_) -> true
+                };
+            true -> native_identity(value, rest)
+        }
+    }.
+
+@pure
+seed_identities(
+    values: List[ActorCallableIdentity],
+    profiles: List[ActorSuspensionProfile],
+    module_name: String,
+    functions: List[IrFunction],
+): List[ActorSuspensionProfile] ->
+    case values {
+        [] -> profiles;
+        [value | rest] -> if {
+            value.module_name != module_name
+                or native_identity(value, functions)
+                or identity_profile(value, profiles) ->
+                    seed_identities(rest, profiles, module_name, functions);
+            true -> seed_identities(
+                rest,
+                append(profiles, [ActorSuspensionProfile(
+                    value.module_name,
+                    value.function_name,
+                    value.arity,
+                    [ActorCalleeEntry(
+                        None,
+                        SelfHostActorIdentity.reduction_continuation(
+                            value.module_name,
+                            value.function_name,
+                            value.arity,
+                        ),
+                        0,
+                    )],
+                )]),
+                module_name,
+                functions,
+            )
+        }
+    }.
+
+/** Adds deterministic provisional profiles only for missing local non-native effects. */
+@pure
+pub complete_seed(
+    profiles: List[ActorSuspensionProfile],
+    effects: List[ActorCallableEffect],
+    imported_suspending: List[ActorCallableIdentity],
+    module_name: String,
+    functions: List[IrFunction],
+): List[ActorSuspensionProfile] ->
+    let catalog = SelfHostActorEffects.catalog(effects, imported_suspending);
+    seed_identities(catalog.identities, profiles, module_name, functions).

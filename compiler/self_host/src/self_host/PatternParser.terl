@@ -1,6 +1,8 @@
 /** Grammar-aligned classifier and validator for complete Terlan patterns. */
 module self_host.PatternParser.
 
+import std.core.String.
+
 import self_host.PatternSyntax.{BinaryLayoutPattern, ConstructorPattern, FloatPattern, GroupedPattern, IntegerPattern, InvalidPattern, ListConsPattern, ListPattern, MapPattern, NamePattern, NominalKeyedPattern, PatternClass, PatternParse, PatternSyntax, QualifiedNamePattern, StringPattern, TuplePattern, TypedStringPattern, WildcardPattern}.
 
 import std.collections.List.
@@ -36,7 +38,10 @@ inner(source: String): String ->
 
 @pure
 starts_digit(source: String): Bool ->
-    source != "" and source.utf8_byte_at(0) >= 48 and source.utf8_byte_at(0) <= 57.
+    if {
+        source == "" -> false;
+        true -> let byte = source.utf8_byte_at(0); byte >= 48 and byte <= 57
+    }.
 
 @pure
 parts_after_collection(source: String, class: PatternClass): List[String] ->

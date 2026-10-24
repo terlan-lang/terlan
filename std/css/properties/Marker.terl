@@ -1,69 +1,34 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#MarkerProperty
+ * The `marker` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property points to a marker
+ * that will be drawn on the first, middle, and last vertices of the element's path; that is, at all
+ * of its vertices. The marker must have been defined using an SVG `marker` element, and can only be
+ * referenced with a `<url>` value. The value of the CSS property overrides any values of the
+ * `marker-start`, `marker`, and `marker-end` attributes in the SVG.
+ *
+ * Initial: marker-start: none; marker-mid: none; marker-end: none. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - none: This means no marker will be drawn at each vertex of the element's path.
+ *
  * Grammar: none | <marker-ref>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#MarkerProperty
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/marker
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Marker.
 
-import type std.core.Option.
+import std.css.keywords.None.
 
-/**
- * A nominal, specification-constrained marker value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    marker: Value,
+    marker: None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    marker: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "marker", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "marker", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "marker", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "marker", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "marker", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "marker", css: "unset"}).

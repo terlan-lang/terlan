@@ -352,7 +352,9 @@ pub fn validate_websocket(websocket: &WebSocketRoute) -> Result<(), ServiceError
             .into());
         }
     }
-    if websocket.protocol.trim().is_empty() || websocket.protocol.contains(char::is_whitespace) {
+    if (websocket.protocol.is_empty() && websocket.module.is_empty())
+        || websocket.protocol.contains(char::is_whitespace)
+    {
         return Err(format!(
             "error[serve_package]: websocket `{}` has invalid protocol `{}`",
             websocket.route, websocket.protocol

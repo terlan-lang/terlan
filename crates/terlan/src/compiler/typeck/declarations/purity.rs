@@ -32,7 +32,7 @@ pub(super) fn collect_effectful_local_calls(
     module: &SyntaxModuleOutput,
     function_signatures: &HashMap<(String, usize), Vec<FunctionScheme>>,
     aliases: &HashMap<String, TypeAlias>,
-    templates: &HashMap<String, TemplateScheme>,
+    expr_ctx: &ExprInferContext<'_>,
     imported_effects: &ImportedEffectFacts,
 ) -> HashSet<(String, usize)> {
     let no_effectful_locals = HashSet::new();
@@ -60,12 +60,15 @@ pub(super) fn collect_effectful_local_calls(
             }
             let function_values =
                 function_value_param_names(params, function_signatures.get(&identity), aliases);
+            let scheme = function_signatures.get(&identity).and_then(|values| values.first());
             clauses
                 .iter()
                 .any(|clause| {
                     clause_has_effects(
                         clause,
-                        templates,
+                        scheme,
+                        aliases,
+                        expr_ctx,
                         &no_effectful_locals,
                         &function_values,
                         imported_effects,
@@ -93,10 +96,13 @@ pub(super) fn collect_effectful_local_calls(
             }
             let function_values =
                 function_value_param_names(params, function_signatures.get(&identity), aliases);
+            let scheme = function_signatures.get(&identity).and_then(|values| values.first());
             if clauses.iter().any(|clause| {
                 clause_has_effects(
                     clause,
-                    templates,
+                    scheme,
+                    aliases,
+                    expr_ctx,
                     &effectful,
                     &function_values,
                     imported_effects,
@@ -113,18 +119,55 @@ pub(super) fn collect_effectful_local_calls(
 
 fn clause_has_effects(
     clause: &SyntaxFunctionClauseOutput,
-    templates: &HashMap<String, TemplateScheme>,
+    scheme: Option<&FunctionScheme>,
+    aliases: &HashMap<String, TypeAlias>,
+    expr_ctx: &ExprInferContext<'_>,
     effectful_local_calls: &HashSet<(String, usize)>,
     function_values: &HashSet<String>,
     imported_effects: &ImportedEffectFacts,
 ) -> bool {
     let mut facts = effectful_call_facts(effectful_local_calls, imported_effects);
     facts.function_values = Some(function_values);
+    let mut proven_pure_receiver_calls = Vec::new();
+    if let Some(scheme) = scheme {
+        let instantiated = instantiate_function_scheme(scheme);
+        let mut locals = HashMap::new();
+        let mut subst = HashMap::new();
+        for (pattern, parameter) in clause.patterns.iter().zip(instantiated.params.iter()) {
+            let _ = check_syntax_pattern(
+                pattern,
+                &expand_type_aliases(parameter, aliases),
+                aliases,
+                Some(expr_ctx),
+                &mut locals,
+                &mut subst,
+            );
+        }
+        if let Some(guard) = clause.guard.as_ref() {
+            collect_proven_pure_receiver_calls(
+                guard,
+                &locals,
+                expr_ctx,
+                &subst,
+                &mut proven_pure_receiver_calls,
+            );
+        }
+        collect_proven_pure_receiver_calls(
+            &clause.body,
+            &locals,
+            expr_ctx,
+            &subst,
+            &mut proven_pure_receiver_calls,
+        );
+        facts.proven_pure_receiver_calls = Some(&proven_pure_receiver_calls);
+    }
     clause
         .guard
         .as_ref()
-        .is_some_and(|guard| expression_has_effects_with_call_facts(guard, templates, &facts))
-        || expression_has_effects_with_call_facts(&clause.body, templates, &facts)
+        .is_some_and(|guard| {
+            expression_has_effects_with_call_facts(guard, expr_ctx.templates, &facts)
+        })
+        || expression_has_effects_with_call_facts(&clause.body, expr_ctx.templates, &facts)
 }
 
 /// Collects parameters whose declared type is an invokable function value.

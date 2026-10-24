@@ -1,0 +1,16 @@
+/** Positive and negative production parity-marker contracts. */
+module self_host.ProductionGateMarkerTest.
+
+import self_host.ProductionGateMarker.
+
+@test
+pub identical_non_empty_evidence_is_equivalent(): Bool ->
+    ProductionGateMarker.equivalent("canonical\n", "canonical\n").
+
+@test
+pub empty_evidence_is_not_authoritative(): Bool ->
+    not ProductionGateMarker.equivalent("", "").
+
+@test
+pub differing_evidence_is_not_authoritative(): Bool ->
+    not ProductionGateMarker.equivalent("reference", "candidate").

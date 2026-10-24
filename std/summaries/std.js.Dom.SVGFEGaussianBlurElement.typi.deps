@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGFEGaussianBlurElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=1794617434658394337
-interface_hash=17771328561029700223
-interface_doc_hash=17771328561029700223
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5606494152549189015
+interface_hash=4304533854628679254
+interface_doc_hash=4304533854628679254
 deps=0

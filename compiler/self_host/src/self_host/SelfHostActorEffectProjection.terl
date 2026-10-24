@@ -1,0 +1,188 @@
+/** Builds fixed-point suspension inputs from canonical static actor call edges. */
+module self_host.SelfHostActorEffectProjection.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, Int, String}.
+
+import self_host.SelfHostActorCallFacts.{ActorStaticCallEdge}.
+import self_host.SelfHostActorEffects.{ActorCallableEffect, ActorCallableIdentity}.
+import self_host.SelfHostIrSyntax.{IrFunction}.
+
+
+/** Non-call seed facts retained by typed semantic analysis for one callable. */
+pub struct ActorCallableSeed {
+    identity: ActorCallableIdentity,
+    dynamic_suspends: Bool,
+}.
+
+pub constructor ActorCallableSeed {
+    (identity: ActorCallableIdentity, dynamic_suspends: Bool): ActorCallableSeed ->
+        ActorCallableSeed {
+            identity: identity,
+            dynamic_suspends: dynamic_suspends,
+        }
+}.
+
+
+@pure
+same(left: ActorCallableIdentity, right: ActorCallableIdentity): Bool ->
+    left.module_name == right.module_name
+        and left.function_name == right.function_name
+        and left.arity == right.arity.
+
+@pure
+caller(edge: ActorStaticCallEdge): ActorCallableIdentity ->
+    ActorCallableIdentity(edge.caller_module, edge.caller_name, edge.caller_arity).
+
+@pure
+callee(edge: ActorStaticCallEdge): ActorCallableIdentity ->
+    ActorCallableIdentity(edge.callee_module, edge.callee_name, edge.callee_arity).
+
+@pure
+seed_count(value: ActorCallableIdentity, seeds: List[ActorCallableSeed]): Int ->
+    case seeds {
+        [] -> 0;
+        [current | rest] -> if {
+            same(value, current.identity) -> 1 + seed_count(value, rest);
+            true -> seed_count(value, rest)
+        }
+    }.
+
+@pure
+seeds_unique(values: List[ActorCallableSeed], all: List[ActorCallableSeed]): Bool ->
+    case values {
+        [] -> true;
+        [current | rest] -> seed_count(current.identity, all) == 1
+            and seeds_unique(rest, all)
+    }.
+
+@pure
+seed_exists(value: ActorCallableIdentity, seeds: List[ActorCallableSeed]): Bool ->
+    seed_count(value, seeds) == 1.
+
+@pure
+function_identity(value: IrFunction): ActorCallableIdentity ->
+    ActorCallableIdentity(value.module_name, value.name, value.arity).
+
+@pure
+functions_covered(values: List[IrFunction], seeds: List[ActorCallableSeed]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> seed_exists(function_identity(value), seeds)
+            and functions_covered(rest, seeds)
+    }.
+
+@pure
+function_exists(value: ActorCallableIdentity, functions: List[IrFunction]): Bool ->
+    case functions {
+        [] -> false;
+        [function | rest] -> same(value, function_identity(function))
+            or function_exists(value, rest)
+    }.
+
+@pure
+seeds_belong(values: List[ActorCallableSeed], functions: List[IrFunction]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> function_exists(value.identity, functions)
+            and seeds_belong(rest, functions)
+    }.
+
+@pure
+edge_callers_declared(edges: List[ActorStaticCallEdge], seeds: List[ActorCallableSeed]): Bool ->
+    case edges {
+        [] -> true;
+        [edge | rest] -> seed_exists(caller(edge), seeds)
+            and edge_callers_declared(rest, seeds)
+    }.
+
+@pure
+append_unique(
+    value: ActorCallableIdentity,
+    values: List[ActorCallableIdentity],
+): List[ActorCallableIdentity] ->
+    case values {
+        [] -> [value];
+        [current | rest] -> if {
+            same(value, current) -> values;
+            true -> [current | append_unique(value, rest)]
+        }
+    }.
+
+@pure
+callees(
+    identity: ActorCallableIdentity,
+    edges: List[ActorStaticCallEdge],
+    output: List[ActorCallableIdentity],
+): List[ActorCallableIdentity] ->
+    case edges {
+        [] -> output;
+        [edge | rest] -> if {
+            same(identity, caller(edge)) -> callees(identity, rest, append_unique(callee(edge), output));
+            true -> callees(identity, rest, output)
+        }
+    }.
+
+@pure
+recursive(identity: ActorCallableIdentity, calls: List[ActorCallableIdentity]): Bool ->
+    case calls {
+        [] -> false;
+        [value | rest] -> same(identity, value) or recursive(identity, rest)
+    }.
+
+@pure
+native_operation(identity: ActorCallableIdentity, functions: List[IrFunction]): Bool ->
+    case functions {
+        [] -> false;
+        [value | rest] -> if {
+            not same(identity, function_identity(value)) -> native_operation(identity, rest);
+            true -> case value.native_symbol {
+                None -> false;
+                Some(_) -> true
+            }
+        }
+    }.
+
+@pure
+effects(
+    seeds: List[ActorCallableSeed],
+    edges: List[ActorStaticCallEdge],
+    functions: List[IrFunction],
+): List[ActorCallableEffect] ->
+    case seeds {
+        [] -> List.new[ActorCallableEffect]();
+        [seed | rest] -> let calls = callees(
+            seed.identity,
+            edges,
+            List.new[ActorCallableIdentity](),
+        );
+        [ActorCallableEffect(
+            seed.identity,
+            recursive(seed.identity, calls),
+            native_operation(seed.identity, functions),
+            false,
+            seed.dynamic_suspends,
+            calls,
+        ) | effects(rest, edges, functions)]
+    }.
+
+/** Projects effects only when seeds exactly cover the compiled Core functions. */
+@pure
+pub project_module(
+    seeds: List[ActorCallableSeed],
+    edges: List[ActorStaticCallEdge],
+    functions: List[IrFunction],
+): Result[List[ActorCallableEffect], String] ->
+    if {
+        not functions_covered(functions, seeds) ->
+            Err("actor effect projection is missing a compiled callable seed");
+        not seeds_belong(seeds, functions) ->
+            Err("actor effect projection has a seed outside the compiled module");
+        not seeds_unique(seeds, seeds) ->
+            Err("actor effect projection has duplicate callable seeds");
+        not edge_callers_declared(edges, seeds) ->
+            Err("actor effect projection has an undeclared call-edge owner");
+        true -> Ok(effects(seeds, edges, functions))
+    }.

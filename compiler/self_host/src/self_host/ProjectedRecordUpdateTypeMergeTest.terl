@@ -1,0 +1,77 @@
+/** Declaration-authoritative immutable record update typing contracts. */
+module self_host.ProjectedRecordUpdateTypeMergeTest.
+
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedRecordAccessTypeMerge.{RecordFieldType, RecordLayoutType}.
+import self_host.ProjectedRecordUpdateTypeMerge.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import std.core.Option.{None, Some}.
+
+expression(): ProjectedExpressionNode -> ProjectedExpressionNode(
+    "record-update",
+    "Point",
+    10,
+    32,
+    [
+        ProjectedExpressionNode("identifier", "point", 10, 15, []),
+        ProjectedExpressionNode("identifier", "Point", 16, 21, []),
+        ProjectedExpressionNode(
+            "keyed-field",
+            "x",
+            23,
+            28,
+            [ProjectedExpressionNode("string", "bad", 27, 30, [])],
+        ),
+    ],
+).
+
+@test
+pub update_result_is_typed_and_replacement_is_checked(): Bool ->
+    let merged = ProjectedRecordUpdateTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(0, None, 10),
+                InferredTypeFact(1, Some("Point"), 10),
+                InferredTypeFact(4, Some("String"), 27),
+            ],
+            [TypeConstraintDiagnostic(
+                "unknown-type-constraint",
+                "deferred",
+                10,
+            )],
+        ),
+        expression(),
+        [RecordLayoutType(
+            "Point",
+            "sample.Geometry.Point",
+            [RecordFieldType("x", Some("Int"))],
+        )],
+    );
+    case {merged.facts, merged.diagnostics} {
+        {[result | _rest], [diagnostic]} -> result.type_name == Some("Point")
+            and diagnostic.code == "record-update-type-mismatch";
+        _ -> false
+    }.
+
+@test
+pub update_receiver_must_match_the_explicit_record_type(): Bool ->
+    let merged = ProjectedRecordUpdateTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(0, None, 10),
+                InferredTypeFact(1, Some("Other"), 10),
+                InferredTypeFact(4, Some("Int"), 27),
+            ],
+            [],
+        ),
+        expression(),
+        [RecordLayoutType(
+            "Point",
+            "sample.Geometry.Point",
+            [RecordFieldType("x", Some("Int"))],
+        )],
+    );
+    case merged.diagnostics {
+        [diagnostic] -> diagnostic.code == "record-update-source-type-mismatch";
+        _ -> false
+    }.

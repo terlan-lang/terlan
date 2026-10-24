@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword break-word. Generated; do not edit.
+ */
+module std.css.keywords.BreakWord.
+
+pub type BreakWord = Atom["break-word"].

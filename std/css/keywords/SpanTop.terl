@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword span-top. Generated; do not edit.
+ */
+module std.css.keywords.SpanTop.
+
+pub type SpanTop = Atom["span-top"].

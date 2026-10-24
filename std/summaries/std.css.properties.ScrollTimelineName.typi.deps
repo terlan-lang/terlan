@@ -1,9 +1,10 @@
 module=std.css.properties.ScrollTimelineName
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=1383414921353612330
-interface_hash=12779577310352767288
-interface_doc_hash=12839905603667805206
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=18160137302317019235
+interface_hash=14819981214435536876
+interface_doc_hash=6922655934424111381
+deps=2
+std.css.Values=330909209718432688
+std.css.keywords.None=3400229744369726074

@@ -1,109 +1,64 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-size
+ * The `background-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * size of the element's background image. The image can be left to its natural size, stretched, or
+ * constrained to fit the available space.
+ *
+ * Initial: auto auto. Inherited: no.
+ * Percentages: relative to the background positioning area.
+ *
+ * Keyword effects:
+ * - auto: Scales the background image in the corresponding direction such that its intrinsic
+ * proportions are maintained.
+ * - contain: Scales the image as large as possible within its container without cropping or
+ * stretching the image. If the container is larger than the image, this will result in image
+ * tiling, unless the `background-repeat` property is set to `no-repeat`.
+ * - cover: Scales the image (while preserving its ratio) to the smallest possible size to fill the
+ * container (that is: both its height and width completely _cover_ the container), leaving no empty
+ * space. If the proportions of the background differ from the element, the image is cropped either
+ * vertically or horizontally.
+ *
  * Grammar: <bg-size>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-size
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/background-size
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BackgroundSize.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
+import std.css.keywords.{Auto, Contain, Cover}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained background-size value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    background_size: Value,
+    background_size: Auto | Cover | Contain | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the background-size length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub struct OptionalProperty {
-    background_size: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "background-size", css: "auto"}).
-
-/**
- * Returns the CSS keyword contain.
- */
-pub contain(): Value ->
-    Value(Token {property: "background-size", css: "contain"}).
-
-/**
- * Returns the CSS keyword cover.
- */
-pub cover(): Value ->
-    Value(Token {property: "background-size", css: "cover"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "background-size", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "background-size", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "background-size", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "background-size", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "background-size", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a background-size value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "background-size", css: std.css.Values.length_css(value)}));
-        false -> None
+pub length(value: Length): Option[Checked] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Checked(serialize("background-size", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a background-size value.
+ * Checks the background-size percentage range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(
-                    Token {property: "background-size", css: std.css.Values.percentage_css(value)},
-                ),
-            );
-        false -> None
+pub percentage(value: Percentage): Option[Checked] ->
+    case percentage_amount(value) >= 0 {
+        true -> Some(Checked(serialize("background-size", percentage_css(value))));
+        false -> Absent
     }.

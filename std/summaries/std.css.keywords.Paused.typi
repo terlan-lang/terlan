@@ -1,0 +1,6 @@
+//! Shared CSS keyword paused. Generated; do not edit.
+
+module std.css.keywords.Paused.
+
+pub type Paused =
+    Atom["paused"].

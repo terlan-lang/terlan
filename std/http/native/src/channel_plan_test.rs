@@ -161,7 +161,7 @@ fn paired_restoration_roundtrips_without_a_vm_callback_type() {
 
 #[test]
 fn deserialization_cannot_bypass_positive_limits_or_keep_alive() {
-    let sse = json!({"max_pending_events": 1, "max_event_bytes": 1024});
+    let sse = json!({"max_pending_events": 1, "max_event_bytes": 1024, "response_headers": []});
     let ws = json!({"max_pending_frames": 1, "max_frame_bytes": 1024, "binary_payload_policy": "Reject"});
     for bad in [json!(0), json!(-1), json!("1"), Value::Null, json!(1.5)] {
         for key in ["max_pending_events", "max_event_bytes"] {
@@ -223,7 +223,7 @@ fn deserialization_rejects_conflicting_or_incomplete_callbacks_and_unknown_polic
 #[test]
 fn optional_fields_preserve_legacy_wire_defaults() {
     let plan: SseEndpointPlan<Callback> = serde_json::from_value(json!({
-        "max_pending_events": 1, "max_event_bytes": 1024,
+        "max_pending_events": 1, "max_event_bytes": 1024, "response_headers": [],
     }))
     .unwrap();
     assert_eq!(plan, SseEndpointPlan::new(1, 1024).unwrap());
@@ -238,6 +238,39 @@ fn optional_fields_preserve_legacy_wire_defaults() {
         serde_json::from_value::<WebSocketPairing<Callback>>(pair).unwrap(),
         pairing()
     );
+}
+
+#[test]
+fn sse_persisted_headers_are_revalidated_without_implicit_policy_defaults() {
+    let plan = SseEndpointPlan::<Callback>::new(1, 1024)
+        .unwrap()
+        .with_response_headers(vec![
+            ("Cache-Control".into(), "private".into()),
+            ("X-Source".into(), "".into()),
+        ])
+        .unwrap();
+    let value = serde_json::to_value(&plan).unwrap();
+    assert_eq!(
+        serde_json::from_value::<SseEndpointPlan<Callback>>(value.clone()).unwrap(),
+        plan
+    );
+    let mut missing = value.clone();
+    missing.as_object_mut().unwrap().remove("response_headers");
+    reject::<SseEndpointPlan<Callback>>(missing);
+    for (name, value_text) in [
+        ("Content-Length", "1"),
+        ("Connection", "close"),
+        ("bad name", "value"),
+        ("X-Source", "bad\nvalue"),
+    ] {
+        assert!(plan
+            .clone()
+            .with_response_headers(vec![(name.into(), value_text.into())])
+            .is_err());
+        let mut invalid = value.clone();
+        invalid["response_headers"] = serde_json::json!([[name, value_text]]);
+        reject::<SseEndpointPlan<Callback>>(invalid);
+    }
 }
 
 #[test]

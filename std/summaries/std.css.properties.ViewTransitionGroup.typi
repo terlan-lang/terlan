@@ -1,56 +1,22 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-group
+//! Controls nesting of named view-transition groups. Use containment to preserve ancestor effects
+//! such as clipping during a transition; this has no effect when view-transition-name is none.
+//!
+//! Keyword effects:
+//! - contain: Establishes a container for descendant transition groups.
+//! - nearest: Nests inside the nearest ancestor transition group, even without explicit containment.
+//! - normal: Nests inside the nearest ancestor group that establishes containment, or the transition
+//! root.
+//!
 //! Grammar: normal | contain | nearest | <custom-ident>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-group
+//!
+//! Author guide: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-group
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ViewTransitionGroup.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    view_transition_group: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    view_transition_group: Value
+    view_transition_group: Normal | Contain | Nearest | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained view-transition-group value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword contain.
-
-pub contain(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword nearest.
-
-pub nearest(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

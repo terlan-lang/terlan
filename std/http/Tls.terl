@@ -21,7 +21,7 @@ import type std.core.Option.
  * Transformation: gives configuration code a stable typed mode without
  * exposing ACME provider internals.
  */
-pub type Auto.
+pub type Auto = std.core.Atom.Auto.
 
 /**
  * Manual represents explicit certificate and key file configuration.
@@ -31,7 +31,7 @@ pub type Auto.
  * Transformation: gives configuration code a stable typed mode for
  * user-managed certificate files.
  */
-pub type Manual.
+pub type Manual = std.core.Atom.Manual.
 
 /**
  * Internal represents local/internal development certificate management.

@@ -20,6 +20,13 @@ struct Budget {
 
 impl Default for Budget {
     fn default() -> Self {
+        if std::env::var_os("TERLAN_BUILD_LOW_MEMORY").is_some() {
+            return Self {
+                entries: 512,
+                source_bytes: 8 * 1024 * 1024,
+                idle: Duration::from_secs(900),
+            };
+        }
         Self {
             entries: 4096,
             source_bytes: 32 * 1024 * 1024,
@@ -135,6 +142,11 @@ fn remove(resident: &mut Resident, key: &str) {
 /// Paths and timestamps are deliberately not validity evidence; callers reread
 /// files, and each changed byte sequence has a distinct cache entry.
 pub(crate) fn parse_interface_text(source: &str) -> Parsed {
+    if std::env::var_os("TERLAN_BUILD_LOW_MEMORY").is_some() {
+        let parsed = crate::terlan_syntax::parse_interface_module_as_syntax_output(source).ok()?;
+        let module = parsed.module_name.clone();
+        return Some((module, super::syntax_module_output_to_interface(&parsed)));
+    }
     CACHE
         .get_or_init(|| InterfaceCache::new(Budget::default()))
         .parse_at(source, Instant::now(), |source| {
@@ -154,6 +166,20 @@ pub(crate) fn interface_parse_counts() -> (u64, u64) {
             cache.attempts.load(Ordering::Relaxed),
         )
     })
+}
+
+/// Evicts expanded interface objects at an explicit bounded-memory boundary.
+///
+/// Compiler-sized package builds trade reparsing for a strict live-memory
+/// bound. The resident lock makes eviction safe even when another frontend
+/// worker is consulting a cache stripe.
+pub(crate) fn clear_interface_parse_cache() {
+    let Some(cache) = CACHE.get() else {
+        return;
+    };
+    let mut resident = cache.resident.lock().expect("interface cache inventory");
+    resident.entries.clear();
+    resident.source_bytes = 0;
 }
 
 #[cfg(test)]

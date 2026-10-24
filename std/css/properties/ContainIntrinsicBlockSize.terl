@@ -1,90 +1,50 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-sizing-4/#propdef-contain-intrinsic-block-size
+ * The `contain-intrinsic-block-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [logical
+ * property](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Logical_properties_and_values)
+ * defines the block size of an element that a browser can use for layout when the element is
+ * subject to [size
+ * containment](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Using#size_containment).
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - none: The element has no intrinsic block size.
+ *
  * Grammar: auto? [ none | <length [0,∞]> ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-sizing-4/#propdef-contain-intrinsic-block-size
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/contain-intrinsic-block-size
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ContainIntrinsicBlockSize.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, serialize}.
+import std.css.keywords.None.
 
 import type std.core.Option.
-import type std.css.Values.{Length}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained contain-intrinsic-block-size value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    contain_intrinsic_block_size: Value,
+    contain_intrinsic_block_size: None | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the contain-intrinsic-block-size length range. Returns Some when amount >= 0; otherwise
+ * returns None.
  */
-pub struct OptionalProperty {
-    contain_intrinsic_block_size: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "contain-intrinsic-block-size", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "contain-intrinsic-block-size", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "contain-intrinsic-block-size", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "contain-intrinsic-block-size", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "contain-intrinsic-block-size", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "contain-intrinsic-block-size", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a contain-intrinsic-block-size value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(
-                    Token {
-                        property: "contain-intrinsic-block-size",
-                        css: std.css.Values.length_css(value),
-                    },
-                ),
-            );
-        false -> None
+pub length(value: Length): Option[Checked] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Checked(serialize("contain-intrinsic-block-size", length_css(value))));
+        false -> Absent
     }.

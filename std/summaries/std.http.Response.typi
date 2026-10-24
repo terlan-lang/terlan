@@ -125,6 +125,11 @@ pub (mut response: Response) cookie(name: String, value: String, path: String = 
 
 pub (mut response: Response) cookie_with_options(name: String, value: String, path: String = "/", domain: String = "", max_age: Int = 0, include_max_age: Bool = false, expires: String = "", http_only: Bool = false, secure: Bool = false, same_site: String = ""): Unit.
 
+/// Streams a CSS file with its standard content type and an optional status.
+
+@pure
+pub css_file(path: String, status: Int = 200): Response.
+
 /// Returns the conservative development security-header policy.
 ///
 /// Input: no value input.
@@ -188,6 +193,21 @@ pub html(value: String, status: Int = 200): Response.
 
 pub html(value: std.template.Template.Html, status: Int = 200): Response.
 
+/// Streams a HTML file with its standard content type and an optional status.
+
+@pure
+pub html_file(path: String, status: Int = 200): Response.
+
+/// Streams a javascript file with its standard content type and an optional status.
+
+@pure
+pub javascript_file(path: String, status: Int = 200): Response.
+
+/// Streams a JPEG file with its standard content type and an optional status.
+
+@pure
+pub jpeg_file(path: String, status: Int = 200): Response.
+
 /// Creates a JSON response.
 ///
 /// Input: one `Json` value and an optional HTTP status code.
@@ -197,6 +217,11 @@ pub html(value: std.template.Template.Html, status: Int = 200): Response.
 /// response builder without inspecting the JSON resource representation.
 
 pub json(value: Json, status: Int = 200): Response.
+
+/// Streams a JSON file with its standard content type and an optional status.
+
+@pure
+pub json_file(path: String, status: Int = 200): Response.
 
 /// Creates a JSON response from already serialized JSON text.
 ///
@@ -212,6 +237,16 @@ pub json_text(value: String, status: Int = 200): Response.
 pub (mut response: Response) optional_content_type_options_header(enabled: Bool): Response.
 
 pub (mut response: Response) optional_hsts_header(max_age: Int, include_subdomains: Bool): Response.
+
+/// Streams a PDF file with its standard content type and an optional status.
+
+@pure
+pub pdf_file(path: String, status: Int = 200): Response.
+
+/// Streams a PNG file with its standard content type and an optional status.
+
+@pure
+pub png_file(path: String, status: Int = 200): Response.
 
 /// Returns the production security-header policy.
 ///
@@ -286,6 +321,11 @@ pub stream(chunks: List[String]): Response.
 @pure
 pub stream(chunks: List[String], status: Int, content_type: String, chunk_size: Int, max_pending_writes: Int): Response.
 
+/// Streams a SVG file with its standard content type and an optional status.
+
+@pure
+pub svg_file(path: String, status: Int = 200): Response.
+
 /// Creates a text response.
 ///
 /// Input: one UTF-8 `String` value and an optional HTTP status code.
@@ -295,6 +335,11 @@ pub stream(chunks: List[String], status: Int, content_type: String, chunk_size: 
 
 @pure
 pub text(value: String, status: Int = 200): Response.
+
+/// Streams a text file with its standard content type and an optional status.
+
+@pure
+pub text_file(path: String, status: Int = 200): Response.
 
 /// Returns a response after adding a validated `Set-Cookie` header.
 ///

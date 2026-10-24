@@ -2,7 +2,7 @@
 # Every commit executes the complete browser matrix against staged Terlan code.
 set -euo pipefail
 unset TERLAN_JS_MODULES
-export TERLC="$CARGO_TARGET_DIR/debug/terlc"
+export TERLC="$CARGO_TARGET_DIR/release/terlc"
 export CI=1
 npm --prefix tests/js ci --ignore-scripts
 node --test tests/js/*.test.mjs

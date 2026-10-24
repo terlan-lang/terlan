@@ -6,7 +6,7 @@ use super::NativeType;
 pub(super) fn managed_aggregate_constructor(constructor: &str) -> bool {
     matches!(
         constructor.rsplit('.').next(),
-        Some("Option" | "Result" | "Array" | "FixedArray" | "Iterator" | "List" | "Map" | "Set")
+        Some("Option" | "Result" | "Array" | "Iterator" | "List" | "Map" | "Set")
     )
 }
 

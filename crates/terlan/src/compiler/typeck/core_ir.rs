@@ -328,7 +328,7 @@ pub enum CoreExpr {
         head: Box<CoreExpr>,
         tail: Box<CoreExpr>,
     },
-    FixedArray(Vec<CoreExpr>),
+    Array(Vec<CoreExpr>),
     Index {
         base: Box<CoreExpr>,
         index: Box<CoreExpr>,

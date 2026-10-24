@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCPeerConnectionIceEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=18209995316075116508
-interface_hash=14748304771254967599
-interface_doc_hash=14748304771254967599
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=10996178245214798451
+interface_hash=3632894936459831621
+interface_doc_hash=3632894936459831621
 deps=0

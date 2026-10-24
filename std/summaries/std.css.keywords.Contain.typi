@@ -1,0 +1,6 @@
+//! Shared CSS keyword contain. Generated; do not edit.
+
+module std.css.keywords.Contain.
+
+pub type Contain =
+    Atom["contain"].

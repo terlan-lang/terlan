@@ -22,6 +22,7 @@ pub check(): Bool ->
                 include_str!("../../../../../std/collections/Enumerable.terl"),
                 include_str!("../../../../../std/collections/List.terl"),
                 include_str!("../../../../../std/collections/Iterator.terl"),
+                include_str!("../../../../../std/core/Atom.terl"),
             ]);
         }
     }
@@ -36,8 +37,9 @@ fn cookie_jar_construction_executes_source_under_both_module_names() {
             let provider = provider
                 .replace("module std.http.Cookies.", &format!("module {module}."))
                 .replace("#pending: []", &format!("#pending: {pending}"));
-            check_sources(&[&format!(
-                r#"{provider}
+            check_sources(&[
+                &format!(
+                    r#"{provider}
 pub check(): Bool ->
     let incoming = Map({{"key", "before"}}, {{"empty", ""}});
     let jar = from_map(incoming);
@@ -46,7 +48,9 @@ pub check(): Bool ->
         and jar.get("missing") == None and jar.headers() == {pending}
         and from_map(Map.new[String, String]()).get("key") == None.
 "#
-            )]);
+                ),
+                include_str!("../../../../../std/core/Atom.terl"),
+            ]);
         }
     }
 }
@@ -74,15 +78,18 @@ fn cookie_defaults_and_deletion_policy_execute_actual_source() {
             let provider = provider
                 .replace("module std.http.Cookies.", &format!("module {module}."))
                 .replace("Thu, 01 Jan 1970 00:00:00 GMT", expiry);
-            check_sources(&[&format!(
-                r#"{provider}
+            check_sources(&[
+                &format!(
+                    r#"{provider}
 pub check(): Bool ->
     set_header("sid", "value") == "sid:value:/:public:plain"
         and set_header("sid", "value", "/private", true, true) == "sid:value:/private:private:tls"
         and delete_header("sid") == "sid:/:{expiry}"
         and delete_header("sid", "/private") == "sid:/private:{expiry}".
 "#
-            )]);
+                ),
+                include_str!("../../../../../std/core/Atom.terl"),
+            ]);
         }
     }
 }

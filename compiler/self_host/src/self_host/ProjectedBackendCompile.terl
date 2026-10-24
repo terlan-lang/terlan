@@ -4,23 +4,183 @@
 module self_host.ProjectedBackendCompile.
 
 import std.collections.List.
+import std.core.Option.{None}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
 import self_host.ModuleInterfaceSyntax.
-import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
 import self_host.ProjectedFrontendSyntax.
 import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
 import self_host.ProjectedLocalSemantic.
+import self_host.ProjectedSemanticAnalysis.
+import self_host.ProjectedCanonicalIrPlan.
+import self_host.ProjectedCoreBackendCompile.
+import self_host.ProjectedTypedOperandPlan.
+import self_host.ProjectedExpressionTypecheckSyntax.{ProjectedExpressionTypeDiagnostic}.
+import self_host.ProjectedSemanticIrCoverage.
+import self_host.ProjectedSemanticIrCapability.
+import self_host.ProjectedSemanticSyntax.{ProjectedSemanticModule}.
 import self_host.ProjectedSemanticIrPlan.
 import self_host.SelfHostBackendCompile.
+import self_host.SelfHostActorBackendCompile.
+import self_host.SelfHostActorBackendCompile.{ActorBackendCompilation, ActorBackendRequest, ActorFunctionCompileEvidence}.
+import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
 import self_host.SelfHostSemanticIrSyntax.
+import self_host.ProjectedDeclarationLowering.
+import self_host.TypedModuleLowering.
+import self_host.Syntax.{OpaqueTypeDeclaration, StructDeclaration, TraitDeclaration, TypeDeclaration}.
 
 import self_host.SelfHostSemanticIrSyntax.{BackendCompilation}.
+import self_host.ProjectedTypeConstraintSyntax.TypeConstraintDiagnostic.
+
+type_diagnostic_messages(values: List[TypeConstraintDiagnostic]): List[String] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [String.concat([value.code, ": ", value.message])
+            | type_diagnostic_messages(rest)]
+    }.
+
+expression_diagnostic_messages(
+    values: List[ProjectedExpressionTypeDiagnostic],
+): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.message | expression_diagnostic_messages(rest)]
+    }.
+
+type_symbol(value: ExportedSymbol): Bool ->
+    value.class == TypeDeclaration
+        or value.class == OpaqueTypeDeclaration
+        or value.class == StructDeclaration
+        or value.class == TraitDeclaration.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+interface_types(value: ModuleInterface, symbols: List[ExportedSymbol]): List[String] ->
+    case symbols {
+        [] -> List.new[String]();
+        [symbol | rest] where type_symbol(symbol) -> [
+            symbol.name
+            | [
+                String.concat([value.module_name, ".", symbol.name])
+                | interface_types(value, rest)
+            ]
+        ];
+        [_symbol | rest] -> interface_types(value, rest)
+    }.
+
+external_types(values: List[ModuleInterface]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(
+            interface_types(value, value.symbols),
+            external_types(rest),
+        )
+    }.
+
+semantic_messages(semantics: ProjectedSemanticModule): List[String] ->
+    append(
+        if {
+            semantics.type_resolution.valid -> List.new[String]();
+            true -> ["projected-type-resolution-failed"]
+        },
+        append(
+            if {
+                semantics.expression_typecheck.valid -> List.new[String]();
+                true -> append(
+                    ["projected-expression-typecheck-failed"],
+                    expression_diagnostic_messages(semantics.expression_typecheck.diagnostics),
+                )
+            },
+            if {
+                semantics.pattern_semantics.valid -> List.new[String]();
+                true -> ["projected-pattern-semantics-failed"]
+            },
+        ),
+    ).
+
+semantic_failure(semantics: ProjectedSemanticModule): BackendCompilation ->
+    BackendCompilation(
+        envelope = None,
+        json = None,
+        diagnostics = semantic_messages(semantics),
+    ).
+
+backend_failure(diagnostics: List[String]): BackendCompilation ->
+    BackendCompilation(envelope = None, json = None, diagnostics = diagnostics).
+
+actor_failure(diagnostics: List[String]): ActorBackendCompilation ->
+    ActorBackendCompilation(None, None, None, diagnostics).
+
 pub compile(
     frontend: ProjectedFrontendModule,
     imported_interfaces: List[ModuleInterface],
     target: String,
 ): BackendCompilation ->
-    let semantics = ProjectedLocalSemantic.analyze_frontend(frontend, imported_interfaces);
-    SelfHostBackendCompile.compile(
-        ProjectedSemanticIrPlan.lower(frontend, semantics),
+    ProjectedCoreBackendCompile.compile(frontend, imported_interfaces, target).
+
+/** Runs the same projected authority pipeline and emits Core, variant, and actor IR. */
+pub compile_actor_with_evidence(
+    frontend: ProjectedFrontendModule,
+    imported_interfaces: List[ModuleInterface],
+    imported_profiles: List[ActorSuspensionProfile],
+    function_evidence: List[ActorFunctionCompileEvidence],
+    target: String,
+): ActorBackendCompilation ->
+    let checked = ProjectedSemanticAnalysis.analyze_with_interfaces(
+        frontend,
+        external_types(imported_interfaces),
+        imported_interfaces,
+    );
+    if {
+        not checked.valid -> actor_failure(semantic_messages(checked));
+        true ->
+            let semantics = ProjectedLocalSemantic.analyze_frontend(frontend, imported_interfaces);
+            if {
+                semantics.types.diagnostics != [] ->
+                    actor_failure(type_diagnostic_messages(semantics.types.diagnostics));
+                true ->
+                    let plan = ProjectedSemanticIrPlan.lower(frontend, semantics);
+                    case ProjectedCanonicalIrPlan.canonicalize(plan, checked.type_resolution) {
+                        Err(message) -> actor_failure([message]);
+                        Ok(canonical_plan) ->
+                            let typed_plan = ProjectedTypedOperandPlan.annotate(canonical_plan);
+                            let coverage = ProjectedSemanticIrCoverage.check(
+                                frontend.backend.module_name,
+                                frontend.backend.declarations,
+                                frontend.bodies.values,
+                                typed_plan,
+                            );
+                            let capabilities = ProjectedSemanticIrCapability.check(typed_plan);
+                            if {
+                                coverage != [] -> actor_failure(coverage);
+                                capabilities != [] -> actor_failure(capabilities);
+                                true -> SelfHostActorBackendCompile.compile(ActorBackendRequest(
+                                    TypedModuleLowering.lower(
+                                        ProjectedDeclarationLowering.lower(frontend.surface),
+                                    ),
+                                    typed_plan,
+                                    target,
+                                    imported_profiles,
+                                    function_evidence,
+                                ))
+                            }
+                    }
+            }
+    }.
+
+/** Compatibility entry point for modules whose dynamic calls are fully inferred. */
+pub compile_actor(
+    frontend: ProjectedFrontendModule,
+    imported_interfaces: List[ModuleInterface],
+    imported_profiles: List[ActorSuspensionProfile],
+    target: String,
+): ActorBackendCompilation ->
+    compile_actor_with_evidence(
+        frontend,
+        imported_interfaces,
+        imported_profiles,
+        List.new[ActorFunctionCompileEvidence](),
         target,
     ).

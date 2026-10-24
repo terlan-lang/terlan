@@ -1,168 +1,108 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `display` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether an
+//! element is treated as a [block or inline
+//! box](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Display/Flow_layout) and the layout
+//! used for its children, such as [flow
+//! layout](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Display/Flow_layout),
+//! [grid](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout) or
+//! [flex](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout).
+//!
+//! Initial: inline. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - block: The element generates a block-level box
+//! - contents: The element itself does not generate any boxes, but its children and pseudo-elements
+//! still generate boxes as normal.
+//! - flex: The element generates a principal flex container box and establishes a flex formatting
+//! context.
+//! - flow: The element lays out its contents using flow layout (block-and-inline layout). See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-inside
+//! - flow-root: The element generates a block box that establishes a new [block formatting
+//! context](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Display/Block_formatting_context),
+//! defining where the formatting root lies. - `table` - : These elements behave like HTML `table`
+//! elements. It defines a block-level box. - `flex` - : The element behaves like a block-level
+//! element and lays out its content according to the [flexbox
+//! model](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout). - `grid` - :
+//! The element behaves like a block-level element and lays out its content according to the [grid
+//! model](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Basic_concepts). -
+//! `grid-lanes` - : The element behaves like a block-level element and lays out its content using
+//! grid lanes layout. Columns are defined by `grid-template-columns` and behave like a strict grid,
+//! while items are packed in the block direction to fill gaps between items of different sizes. See
+//! [Grid lanes
+//! layout](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Grid_lanes) for
+//! details. - `ruby` - : The element behaves like an inline-level element and lays out its content
+//! according to the ruby formatting model. It behaves like the corresponding HTML `ruby` elements.
+//! - grid: The element generates a principal grid container box, and establishes a grid formatting
+//! context.
+//! - inline: The element generates an inline-level box.
+//! - inline-block: A block box, which itself is flowed as a single inline box, similar to a replaced
+//! element. The inside of an inline-block is formatted as a block box, and the box itself is
+//! formatted as an inline box.
+//! - inline-flex: The element behaves like an inline-level element and lays out its content
+//! according to the flexbox model.
+//! - inline-grid: The element behaves like an inline-level element and lays out its content
+//! according to the grid model.
+//! - inline-grid-lanes: The element behaves like an inline-level element and lays out its content
+//! using grid lanes layout. Rows are defined by `grid-template-rows` and behave like a strict grid,
+//! while items are packed in the inline direction to fill gaps between items of different sizes. See
+//! [Grid lanes
+//! layout](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Grid_lanes) for
+//! details.
+//! - inline-table: The `inline-table` value does not have a direct mapping in HTML. It behaves like
+//! an HTML `table` element, but as an inline box, rather than a block-level box. Inside the table
+//! box is a block-level context.
+//! - list-item: One or more block boxes and one marker box.
+//! - none: Turns off the display of an element so that it has no effect on layout (the document is
+//! rendered as though the element did not exist). All descendant elements also have their display
+//! turned off. To have an element take up the space that it would normally take, but without
+//! actually rendering anything, use the `visibility` property instead.
+//! - ruby: The element generates a principal ruby container box, and establishes a ruby formatting
+//! context.
+//! - ruby-base: These elements behave like `rb` HTML elements. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//! - ruby-base-container: These elements are generated as anonymous boxes. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//! - ruby-text: These elements behave like `rt` HTML elements. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//! - ruby-text-container: These elements behave like `rtc` HTML elements. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//! - run-in: The element generates a run-in box. Run-in elements act like inlines or blocks,
+//! depending on the surrounding elements.
+//! - table: The element generates a principal table wrapper box containing an additionally-generated
+//! table box, and establishes a table formatting context.
+//! - table-caption: These elements behave like `caption` HTML elements. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//! - table-cell: These elements behave like `td` HTML elements. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//! - table-column: These elements behave like `col` HTML elements. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//! - table-column-group: These elements behave like `colgroup` HTML elements. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//! - table-footer-group: These elements behave like `tfoot` HTML elements. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//! - table-header-group: These elements behave like `thead` HTML elements. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//! - table-row: These elements behave like `tr` HTML elements. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//! - table-row-group: These elements behave like `tbody` HTML elements. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+//!
+//! Grammar: [ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> |
+//! <display-box> | <display-legacy> | grid-lanes | inline-grid-lanes | <display-outside> || [
+//! <display-inside> | math ]
+//!
 //! Specification: https://drafts.csswg.org/css-display-4/#propdef-display
-//! Grammar: [ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> | <display-box> | <display-legacy> | grid-lanes | inline-grid-lanes | <display-outside> || [ <display-inside> | math ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/display
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Display.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    display: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    display: Value
+    display: Block | Inline | RunIn | Flow | FlowRoot | Table | Flex | Grid | Ruby | ListItem | TableRowGroup | TableHeaderGroup | TableFooterGroup | TableRow | TableCell | TableColumnGroup | TableColumn | TableCaption | RubyBase | RubyText | RubyBaseContainer | RubyTextContainer | Contents | None | InlineBlock | InlineTable | InlineFlex | InlineGrid | GridLanes | InlineGridLanes | Math | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained display value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword block.
-
-pub block(): Value.
-
-/// Returns the CSS keyword contents.
-
-pub contents(): Value.
-
-/// Returns the CSS keyword flex.
-
-pub flex(): Value.
-
-/// Returns the CSS keyword flow.
-
-pub flow(): Value.
-
-/// Returns the CSS keyword flow-root.
-
-pub flow_root(): Value.
-
-/// Returns the CSS keyword grid.
-
-pub grid(): Value.
-
-/// Returns the CSS keyword grid-lanes.
-
-pub grid_lanes(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inline.
-
-pub inline(): Value.
-
-/// Returns the CSS keyword inline-block.
-
-pub inline_block(): Value.
-
-/// Returns the CSS keyword inline-flex.
-
-pub inline_flex(): Value.
-
-/// Returns the CSS keyword inline-grid.
-
-pub inline_grid(): Value.
-
-/// Returns the CSS keyword inline-grid-lanes.
-
-pub inline_grid_lanes(): Value.
-
-/// Returns the CSS keyword inline-table.
-
-pub inline_table(): Value.
-
-/// Returns the CSS keyword list-item.
-
-pub list_item(): Value.
-
-/// Returns the CSS keyword math.
-
-pub math(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword ruby.
-
-pub ruby(): Value.
-
-/// Returns the CSS keyword ruby-base.
-
-pub ruby_base(): Value.
-
-/// Returns the CSS keyword ruby-base-container.
-
-pub ruby_base_container(): Value.
-
-/// Returns the CSS keyword ruby-text.
-
-pub ruby_text(): Value.
-
-/// Returns the CSS keyword ruby-text-container.
-
-pub ruby_text_container(): Value.
-
-/// Returns the CSS keyword run-in.
-
-pub run_in(): Value.
-
-/// Returns the CSS keyword table.
-
-pub table(): Value.
-
-/// Returns the CSS keyword table-caption.
-
-pub table_caption(): Value.
-
-/// Returns the CSS keyword table-cell.
-
-pub table_cell(): Value.
-
-/// Returns the CSS keyword table-column.
-
-pub table_column(): Value.
-
-/// Returns the CSS keyword table-column-group.
-
-pub table_column_group(): Value.
-
-/// Returns the CSS keyword table-footer-group.
-
-pub table_footer_group(): Value.
-
-/// Returns the CSS keyword table-header-group.
-
-pub table_header_group(): Value.
-
-/// Returns the CSS keyword table-row.
-
-pub table_row(): Value.
-
-/// Returns the CSS keyword table-row-group.
-
-pub table_row_group(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

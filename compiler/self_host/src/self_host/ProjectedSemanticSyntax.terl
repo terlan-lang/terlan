@@ -3,6 +3,7 @@ module self_host.ProjectedSemanticSyntax.
 
 import self_host.ProjectedExpressionTypecheckSyntax.{ProjectedExpressionTypecheck}.
 import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectedPatternSemanticSyntax.{ProjectedPatternSemanticCheck}.
 import self_host.ProjectedTypeResolutionSyntax.{ProjectedTypeResolution}.
 
 
@@ -11,15 +12,17 @@ pub struct ProjectedSemanticModule {
     frontend: ProjectedFrontendModule,
     type_resolution: ProjectedTypeResolution,
     expression_typecheck: ProjectedExpressionTypecheck,
+    pattern_semantics: ProjectedPatternSemanticCheck,
 }.
 
 pub constructor ProjectedSemanticModule {
-    (valid: Bool, frontend: ProjectedFrontendModule, type_resolution: ProjectedTypeResolution, expression_typecheck: ProjectedExpressionTypecheck): ProjectedSemanticModule ->
+    (valid: Bool, frontend: ProjectedFrontendModule, type_resolution: ProjectedTypeResolution, expression_typecheck: ProjectedExpressionTypecheck, pattern_semantics: ProjectedPatternSemanticCheck): ProjectedSemanticModule ->
         ProjectedSemanticModule {
             valid: valid,
             frontend: frontend,
             type_resolution: type_resolution,
             expression_typecheck: expression_typecheck,
+            pattern_semantics: pattern_semantics,
         }
 }.
 

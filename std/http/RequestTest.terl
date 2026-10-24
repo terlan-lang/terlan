@@ -1,5 +1,7 @@
 module std.http.RequestTest.
 
+import std.core.Option.{Some}.
+
 import type std.core.{Error, Option, Result}.
 import type std.data.Json.
 import type std.http.Cookies.Jar.
@@ -41,5 +43,14 @@ pub sample_body_file_path(request: Request): String ->
 pub sample_body_json(request: Request): Result[Json, Error] ->
     request.body_json().
 
-@test
-pub request_accessors_typecheck(): Bool -> true.
+/**
+ * Called by the HTTP integration fixture with an actual parsed request.
+ */
+pub request_accessors_report_expected_values(request: Request): Bool ->
+    sample_method(request) == "POST"
+        and sample_path(request) == "/items/42"
+        and sample_param(request) == Some("42")
+        and sample_query(request) == Some("2")
+        and sample_header(request) == Some("application/json")
+        and sample_cookie(request) == Some("test-session")
+        and sample_body_text(request) == "{\"item\":42}".

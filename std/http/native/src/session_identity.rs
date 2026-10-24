@@ -6,16 +6,19 @@ use terlan_runtime_abi::NativeAdapterError;
 const IDENTITY_BYTES: usize = 32;
 const MAX_ATTEMPTS: usize = 16;
 
+fn fill_entropy(bytes: &mut [u8]) -> Result<(), NativeAdapterError> {
+    getrandom::fill(bytes)
+        .map_err(|error| NativeAdapterError::new("http.session.entropy", error.to_string(), 0))
+}
+
+/// Historical VM model helper, not the source-serving allocation path.
 /// Issues an OS-random identity distinct from the supplied and occupied identities.
 /// The caller must retain exclusive registry access until insertion.
 pub fn issue(
     excluded: &str,
     mut occupied: impl FnMut(&str) -> bool,
 ) -> Result<String, NativeAdapterError> {
-    issue_with(excluded, &mut occupied, |bytes| {
-        getrandom::fill(bytes)
-            .map_err(|error| NativeAdapterError::new("http.session.entropy", error.to_string(), 0))
-    })
+    issue_with(excluded, &mut occupied, fill_entropy)
 }
 
 fn issue_with(

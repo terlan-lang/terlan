@@ -1,0 +1,397 @@
+/** Validates implementations of imported trait contracts. */
+module self_host.ProjectedImportedTraitConformance.
+
+import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
+import self_host.FunctionSyntax.{FunctionSyntax}.
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
+import self_host.ProjectedExpressionTypecheckSyntax.{ProjectedExpressionTypeDiagnostic}.
+import self_host.ProjectedImportedTypeCatalog.
+import self_host.Delimited.
+import self_host.Syntax.{ConstantDeclaration, MethodDeclaration, TraitDeclaration}.
+import self_host.TraitImplSyntax.{ImplConstantSyntax, TraitImplSyntax}.
+import self_host.TypedModuleSyntax.{TraitImplPayload, TraitPayload}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Int.
+import std.core.String.
+
+struct ImportedTraitContract {
+    module_name: String,
+    name: String,
+    type_parameters: List[String],
+    members: List[ExportedSymbol],
+}.
+
+constructor ImportedTraitContract {
+    (module_name: String, name: String, type_parameters: List[String], members: List[ExportedSymbol]): ImportedTraitContract ->
+        ImportedTraitContract { module_name: module_name, name: name, type_parameters: type_parameters, members: members }
+}.
+
+@pure
+base_name(value: String): String ->
+    case String.split(value, "[") { [name | _rest] -> name; [] -> value }.
+
+@pure
+without_closing_bracket(value: String): String ->
+    if { String.ends_with(value, "]") -> String.utf8_slice(value, 0, value.byte_size() - 1); true -> value }.
+
+@pure
+trimmed(values: List[String]): List[String] ->
+    case values { [] -> List.new[String](); [value | rest] -> [String.trim(value) | trimmed(rest)] }.
+
+@pure
+type_arguments(value: String): List[String] ->
+    case String.split(value, "[") {
+        [_name, tail] -> trimmed(Delimited.split_top_level(without_closing_bracket(tail), 44));
+        _ -> List.new[String]()
+    }.
+
+@pure
+last(values: List[String], fallback: String): String ->
+    case values { [] -> fallback; [value | rest] -> last(rest, value) }.
+
+@pure
+module_alias(value: String): String -> last(String.split(value, "."), value).
+
+@pure
+trait_identity_matches(requested: String, module_name: String, name: String): Bool ->
+    requested == name
+        or requested == String.concat([module_name, ".", name])
+        or requested == String.concat([module_alias(module_name), ".", name]).
+
+@pure
+contains(values: List[String], target: String): Bool ->
+    case values { [] -> false; [value | rest] -> value == target or contains(rest, target) }.
+
+@pure
+trait_visible(name: String, module_name: String, visible: List[String]): Bool ->
+    contains(visible, name)
+        or contains(visible, String.concat([module_name, ".", name]))
+        or contains(visible, String.concat([module_alias(module_name), ".", name])).
+
+@pure
+owned_members(owner: String, values: List[ExportedSymbol]): List[ExportedSymbol] ->
+    case values {
+        [] -> List.new[ExportedSymbol]();
+        [value | rest] -> case value.owner {
+            Some(name) where name == owner -> [value | owned_members(owner, rest)];
+            _ -> owned_members(owner, rest)
+        }
+    }.
+
+@pure
+interface_contracts(
+    requested: String,
+    interface: ModuleInterface,
+    visible: List[String],
+): List[ImportedTraitContract] ->
+    case interface.symbols {
+        [] -> List.new[ImportedTraitContract]();
+        [value | rest] -> if {
+            value.owner == None
+                and value.class == TraitDeclaration
+                and trait_identity_matches(requested, interface.module_name, value.name)
+                and trait_visible(value.name, interface.module_name, visible) -> [ImportedTraitContract(
+                    interface.module_name,
+                    value.name,
+                    value.type_parameters,
+                    owned_members(value.name, interface.symbols),
+                )];
+            true -> interface_contracts(
+                requested,
+                ModuleInterface(interface.schema, interface.module_name, rest),
+                visible,
+            )
+        }
+    }.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+contracts(
+    requested: String,
+    interfaces: List[ModuleInterface],
+    visible: List[String],
+): List[ImportedTraitContract] ->
+    case interfaces {
+        [] -> List.new[ImportedTraitContract]();
+        [value | rest] -> append(
+            interface_contracts(requested, value, visible),
+            contracts(requested, rest, visible),
+        )
+    }.
+
+@pure
+local_trait(name: String, values: List[BackendDeclaration]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> case value.payload {
+            TraitPayload(contract) -> base_name(contract.name) == base_name(name) or local_trait(name, rest);
+            _ -> local_trait(name, rest)
+        }
+    }.
+
+@pure
+parameter_type(value: ParameterSyntax): Option[String] ->
+    if { value.has_annotation and value.annotation.valid -> Some(value.annotation.syntax.text); true -> None }.
+
+@pure
+parameter_types(values: List[ParameterSyntax]): List[Option[String]] ->
+    case values { [] -> List.new[Option[String]](); [value | rest] -> [parameter_type(value) | parameter_types(rest)] }.
+
+@pure
+method_matches(
+    contract: ExportedSymbol,
+    method: FunctionSyntax,
+    type_parameters: List[String],
+    type_arguments: List[String],
+): Bool ->
+    contract.name == method.name
+        and contract.arity == method.typed_parameters.length()
+        and substitute_parameters(contract.parameter_types, type_parameters, type_arguments) == parameter_types(method.typed_parameters)
+        and substitute_optional(contract.return_type, type_parameters, type_arguments) == if {
+            method.return_type.valid -> Some(method.return_type.syntax.text);
+            true -> None
+        }.
+
+@pure
+has_method(
+    contract: ExportedSymbol,
+    values: List[FunctionSyntax],
+    type_parameters: List[String],
+    type_arguments: List[String],
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> method_matches(contract, value, type_parameters, type_arguments)
+            or has_method(contract, rest, type_parameters, type_arguments)
+    }.
+
+@pure
+has_constant(contract: ExportedSymbol, values: List[ImplConstantSyntax]): Bool ->
+    case values { [] -> false; [value | rest] -> value.name == contract.name or has_constant(contract, rest) }.
+
+@pure
+member_declared(name: String, class: self_host.Syntax.DeclarationClass, values: List[ExportedSymbol]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> (value.name == name and value.class == class) or member_declared(name, class, rest)
+    }.
+
+@pure
+method_contract(name: String, values: List[ExportedSymbol]): Option[ExportedSymbol] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.name == name and value.class == MethodDeclaration -> Some(value);
+            true -> method_contract(name, rest)
+        }
+    }.
+
+@pure
+diagnostic(trait_name: String, expected: String, actual: String, message: String): ProjectedExpressionTypeDiagnostic ->
+    ProjectedExpressionTypeDiagnostic(String.concat(["impl ", trait_name]), expected, actual, message).
+
+@pure
+substitution(name: String, parameters: List[String], arguments: List[String]): Option[String] ->
+    case {parameters, arguments} {
+        {[parameter | parameter_rest], [argument | argument_rest]} -> if {
+            name == parameter -> Some(argument);
+            true -> substitution(name, parameter_rest, argument_rest)
+        };
+        _ -> None
+    }.
+
+@pure
+substitute_type(value: String, parameters: List[String], arguments: List[String]): String ->
+    case substitution(value, parameters, arguments) {
+        Some(replacement) -> replacement;
+        None -> substitute_nested(value, parameters, arguments)
+    }.
+
+@pure
+substitute_nested(value: String, parameters: List[String], arguments: List[String]): String ->
+    case {parameters, arguments} {
+        {[parameter | parameter_rest], [argument | argument_rest]} -> substitute_nested(
+            String.replace(value, parameter, argument),
+            parameter_rest,
+            argument_rest,
+        );
+        _ -> value
+    }.
+
+@pure
+substitute_optional(value: Option[String], parameters: List[String], arguments: List[String]): Option[String] ->
+    case value { Some(name) -> Some(substitute_type(name, parameters, arguments)); None -> None }.
+
+@pure
+substitute_parameters(values: List[Option[String]], parameters: List[String], arguments: List[String]): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> [substitute_optional(value, parameters, arguments) | substitute_parameters(rest, parameters, arguments)]
+    }.
+
+@pure
+required_member_diagnostics(
+    trait_name: String,
+    values: List[ExportedSymbol],
+    implementation: TraitImplSyntax,
+    type_parameters: List[String],
+    type_arguments: List[String],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedExpressionTypeDiagnostic]();
+        [value | rest] -> if {
+            value.has_default -> required_member_diagnostics(trait_name, rest, implementation, type_parameters, type_arguments);
+            value.class == MethodDeclaration and not has_method(value, implementation.methods, type_parameters, type_arguments) -> [diagnostic(
+                trait_name,
+                value.name,
+                "missing",
+                String.concat(["trait implementation is missing required method: ", value.name]),
+            ) | required_member_diagnostics(trait_name, rest, implementation, type_parameters, type_arguments)];
+            value.class == ConstantDeclaration and not has_constant(value, implementation.constants) -> [diagnostic(
+                trait_name,
+                value.name,
+                "missing",
+                String.concat(["trait implementation is missing required constant: ", value.name]),
+            ) | required_member_diagnostics(trait_name, rest, implementation, type_parameters, type_arguments)];
+            true -> required_member_diagnostics(trait_name, rest, implementation, type_parameters, type_arguments)
+        }
+    }.
+
+@pure
+extra_method_diagnostics(
+    trait_name: String,
+    values: List[FunctionSyntax],
+    members: List[ExportedSymbol],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedExpressionTypeDiagnostic]();
+        [value | rest] -> if {
+            member_declared(value.name, MethodDeclaration, members) -> extra_method_diagnostics(trait_name, rest, members);
+            true -> [diagnostic(trait_name, "declared trait method", value.name, String.concat([
+                "trait implementation defines undeclared method: ", value.name,
+            ])) | extra_method_diagnostics(trait_name, rest, members)]
+        }
+    }.
+
+@pure
+extra_constant_diagnostics(
+    trait_name: String,
+    values: List[ImplConstantSyntax],
+    members: List[ExportedSymbol],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedExpressionTypeDiagnostic]();
+        [value | rest] -> if {
+            member_declared(value.name, ConstantDeclaration, members) -> extra_constant_diagnostics(trait_name, rest, members);
+            true -> [diagnostic(trait_name, "declared trait constant", value.name, String.concat([
+                "trait implementation defines undeclared constant: ", value.name,
+            ])) | extra_constant_diagnostics(trait_name, rest, members)]
+        }
+    }.
+
+@pure
+method_signature_diagnostics(
+    trait_name: String,
+    values: List[FunctionSyntax],
+    members: List[ExportedSymbol],
+    type_parameters: List[String],
+    type_arguments: List[String],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedExpressionTypeDiagnostic]();
+        [value | rest] -> case method_contract(value.name, members) {
+            None -> method_signature_diagnostics(trait_name, rest, members, type_parameters, type_arguments);
+            Some(contract) -> if {
+                method_matches(contract, value, type_parameters, type_arguments) -> method_signature_diagnostics(trait_name, rest, members, type_parameters, type_arguments);
+                true -> [diagnostic(
+                    trait_name,
+                    String.concat([contract.name, "/", Int.to_string(contract.arity)]),
+                    String.concat([value.name, "/", Int.to_string(value.typed_parameters.length())]),
+                    String.concat(["trait implementation method signature does not match: ", value.name]),
+                ) | method_signature_diagnostics(trait_name, rest, members, type_parameters, type_arguments)]
+            }
+        }
+    }.
+
+@pure
+contract_diagnostics(
+    contract: ImportedTraitContract,
+    implementation: TraitImplSyntax,
+    arguments: List[String],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    if {
+        implementation.is_negative -> List.new[ProjectedExpressionTypeDiagnostic]();
+        true -> append(
+            required_member_diagnostics(contract.name, contract.members, implementation, contract.type_parameters, arguments),
+            append(
+                extra_method_diagnostics(contract.name, implementation.methods, contract.members),
+                append(
+                    extra_constant_diagnostics(contract.name, implementation.constants, contract.members),
+                    method_signature_diagnostics(contract.name, implementation.methods, contract.members, contract.type_parameters, arguments),
+                ),
+            ),
+        )
+    }.
+
+@pure
+implementation_diagnostics(
+    implementation: TraitImplSyntax,
+    source: BackendModule,
+    interfaces: List[ModuleInterface],
+    visible: List[String],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    let requested = base_name(implementation.trait_type.syntax.text);
+    let arguments = type_arguments(implementation.trait_type.syntax.text);
+    if {
+        local_trait(requested, source.declarations) -> List.new[ProjectedExpressionTypeDiagnostic]();
+        true -> case contracts(requested, interfaces, visible) {
+            [] -> [diagnostic(requested, "visible trait", "missing", String.concat([
+                "trait implementation references an unknown or unimported trait: ", requested,
+            ]))];
+            [contract] -> if {
+                contract.type_parameters.length() == arguments.length() -> contract_diagnostics(contract, implementation, arguments);
+                true -> [diagnostic(
+                    requested,
+                    Int.to_string(contract.type_parameters.length()),
+                    Int.to_string(arguments.length()),
+                    "trait implementation uses the wrong number of trait type arguments",
+                )]
+            };
+            _ -> [diagnostic(requested, "one visible trait", "ambiguous", String.concat([
+                "trait implementation is ambiguous: ", requested,
+            ]))]
+        }
+    }.
+
+@pure
+declaration_diagnostics(
+    values: List[BackendDeclaration],
+    source: BackendModule,
+    interfaces: List[ModuleInterface],
+    visible: List[String],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedExpressionTypeDiagnostic]();
+        [value | rest] -> case value.payload {
+            TraitImplPayload(implementation) -> append(
+                implementation_diagnostics(implementation, source, interfaces, visible),
+                declaration_diagnostics(rest, source, interfaces, visible),
+            );
+            _ -> declaration_diagnostics(rest, source, interfaces, visible)
+        }
+    }.
+
+/** Checks every local implementation against visible imported trait contracts. */
+@pure
+pub check(source: BackendModule, interfaces: List[ModuleInterface]): List[ProjectedExpressionTypeDiagnostic] ->
+    declaration_diagnostics(
+        source.declarations,
+        source,
+        interfaces,
+        ProjectedImportedTypeCatalog.build(source, interfaces),
+    ).

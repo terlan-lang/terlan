@@ -9,33 +9,19 @@ import std.core.String.
 import type std.core.Option.
 
 pub struct Platform {
-    /**
-     * Operating system targeted by this release artifact.
-     */
+    /** Operating system targeted by this release artifact. */
     operating_system: String,
-    /**
-     * Processor architecture targeted by this release artifact.
-     */
+    /** Processor architecture targeted by this release artifact. */
     architecture: String,
-    /**
-     * Published release archive filename.
-     */
+    /** Published release archive filename. */
     artifact: String,
-    /**
-     * Compiler executable filename.
-     */
+    /** Compiler executable filename. */
     compiler: String,
-    /**
-     * Virtual machine executable filename.
-     */
+    /** Virtual machine executable filename. */
     vm: String,
-    /**
-     * Native worker executable filename.
-     */
+    /** Native worker executable filename. */
     native_worker: String,
-    /**
-     * Language server executable filename.
-     */
+    /** Language server executable filename. */
     lsp: String,
 }.
 

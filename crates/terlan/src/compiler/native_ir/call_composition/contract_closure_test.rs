@@ -51,7 +51,7 @@ fn synchronous_completion_can_reach_the_first_suspension() {
     ] {
         let profile = ComposedCallProfile::new(&body, &continuations, &HashMap::new())
             .expect("synchronous completion reaches a suspension");
-        assert_eq!(profile.entries, [91]);
+        assert_eq!(profile.entries.as_slice(), [91]);
         assert_eq!(profile.continuations.len(), 2);
         assert!(
             profile
@@ -95,15 +95,15 @@ fn profile() -> DynamicCallProfiles {
             export_id: 20,
             source: "app.Callback.apply/1".into(),
             profile: ComposedCallProfile {
-                entries: vec![30],
-                continuations: vec![ComposedContinuationProfile {
+                entries: std::sync::Arc::new(vec![30]),
+                continuations: std::sync::Arc::new(vec![ComposedContinuationProfile {
                     id: 30,
                     source_span: None,
                     params: vec![NativeType::Int, NativeType::Bool],
                     body: NativeExpr::Bool(true),
                     completion_result: false,
-                }],
-                tail_entries: HashMap::new(),
+                }]),
+                tail_entries: std::sync::Arc::new(HashMap::new()),
             },
         }],
     )])

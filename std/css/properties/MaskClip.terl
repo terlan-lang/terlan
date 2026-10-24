@@ -1,105 +1,40 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-clip
+ * The `mask-clip` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property determines the
+ * area which is affected by a mask. The painted content of an element must be restricted to this
+ * area.
+ *
+ * Initial: border-box. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - border-box: The painted content is clipped to the border box.
+ * - content-box: The painted content is clipped to the content box.
+ * - fill-box: The painted content is clipped to the object bounding box.
+ * - no-clip: The painted content is not clipped.
+ * - padding-box: The painted content is clipped to the padding box.
+ * - stroke-box: The painted content is clipped to the stroke bounding box.
+ * - view-box: Uses the nearest SVG viewport as reference box. If a
+ * [`viewBox`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/viewBox)
+ * attribute is specified for the element creating the SVG viewport, the reference box is positioned
+ * at the origin of the coordinate system established by the `viewBox` attribute and the dimension
+ * of the reference box is set to the width and height values of the `viewBox` attribute.
+ *
  * Grammar: [ <coord-box> | no-clip ]#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-clip
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-clip
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskClip.
 
-import type std.core.Option.
+import std.css.keywords.{BorderBox, ContentBox, FillBox, NoClip, PaddingBox, StrokeBox, ViewBox}.
 
-/**
- * A nominal, specification-constrained mask-clip value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    mask_clip: Value,
+    mask_clip: ContentBox | PaddingBox | BorderBox | FillBox | StrokeBox | ViewBox | NoClip | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    mask_clip: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword border-box.
- */
-pub border_box(): Value ->
-    Value(Token {property: "mask-clip", css: "border-box"}).
-
-/**
- * Returns the CSS keyword content-box.
- */
-pub content_box(): Value ->
-    Value(Token {property: "mask-clip", css: "content-box"}).
-
-/**
- * Returns the CSS keyword fill-box.
- */
-pub fill_box(): Value ->
-    Value(Token {property: "mask-clip", css: "fill-box"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "mask-clip", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask-clip", css: "initial"}).
-
-/**
- * Returns the CSS keyword no-clip.
- */
-pub no_clip(): Value ->
-    Value(Token {property: "mask-clip", css: "no-clip"}).
-
-/**
- * Returns the CSS keyword padding-box.
- */
-pub padding_box(): Value ->
-    Value(Token {property: "mask-clip", css: "padding-box"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-clip", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-clip", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword stroke-box.
- */
-pub stroke_box(): Value ->
-    Value(Token {property: "mask-clip", css: "stroke-box"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-clip", css: "unset"}).
-
-/**
- * Returns the CSS keyword view-box.
- */
-pub view_box(): Value ->
-    Value(Token {property: "mask-clip", css: "view-box"}).

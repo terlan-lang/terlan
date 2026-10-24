@@ -11,9 +11,6 @@ struct KindDiagnosticEnvironment<'a> {
 }
 use crate::terlan_syntax::TokenKind;
 
-mod constructors;
-use constructors::{type_constructor_arities, type_constructor_variances};
-
 #[path = "syntax/macro_decls.rs"]
 mod macro_decls;
 pub(crate) use macro_decls::check_syntax_macro_decl_signatures;
@@ -495,6 +492,97 @@ fn collect_type_application_arity_diagnostic(
     });
 }
 
+/// Collects visible type-constructor arities from the module and aliases.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing local type declarations.
+/// - `aliases`: visible type aliases, including imported aliases.
+///
+/// Output:
+/// - Map from source-visible type name to constructor arity.
+///
+/// Transformation:
+/// - Starts with built-in generic type constructors, adds visible aliases, and
+///   overlays local type declarations using their declared parameter count.
+fn type_constructor_arities(
+    module: &SyntaxModuleOutput,
+    aliases: &HashMap<String, TypeAlias>,
+) -> HashMap<String, usize> {
+    let mut arities = HashMap::from([
+        ("List".to_string(), 1usize),
+        ("Map".to_string(), 2usize),
+        ("Array".to_string(), 2usize),
+    ]);
+
+    for (name, alias) in aliases {
+        arities.insert(name.clone(), alias.params.len());
+        if let Some(last) = name.rsplit('.').next() {
+            arities
+                .entry(last.to_string())
+                .or_insert(alias.params.len());
+        }
+    }
+
+    for declaration in &module.declarations {
+        match &declaration.payload {
+            SyntaxDeclarationPayload::Type { name, params, .. }
+            | SyntaxDeclarationPayload::Constructor { name, params, .. } => {
+                arities.insert(name.clone(), params.len());
+            }
+            _ => {}
+        }
+    }
+
+    arities
+}
+
+/// Collects visible type-constructor parameter variances.
+///
+/// Inputs:
+/// - `module`: syntax-output module containing local type declarations.
+/// - `aliases`: visible type aliases, including imported aliases.
+///
+/// Output:
+/// - Map from source-visible type constructor name to parameter variances.
+///
+/// Transformation:
+/// - Starts with built-in collection defaults, imports alias variance metadata,
+///   and overlays local type declarations using their source parameter markers.
+fn type_constructor_variances(
+    module: &SyntaxModuleOutput,
+    aliases: &HashMap<String, TypeAlias>,
+) -> HashMap<String, Vec<Variance>> {
+    let mut variances = HashMap::from([
+        ("List".to_string(), vec![Variance::Covariant]),
+        (
+            "Map".to_string(),
+            vec![Variance::Covariant, Variance::Covariant],
+        ),
+        ("Array".to_string(), vec![Variance::Covariant]),
+    ]);
+
+    for (name, alias) in aliases {
+        variances.insert(name.clone(), alias.param_variance.clone());
+        if let Some(last) = name.rsplit('.').next() {
+            variances
+                .entry(last.to_string())
+                .or_insert_with(|| alias.param_variance.clone());
+        }
+    }
+
+    for declaration in &module.declarations {
+        match &declaration.payload {
+            SyntaxDeclarationPayload::Type { name, params, .. }
+            | SyntaxDeclarationPayload::Constructor { name, params, .. } => {
+                variances.insert(name.clone(), type_param_variances(params));
+            }
+            _ => {}
+        }
+    }
+
+    variances
+}
+
 /// Builds a kind-arity map from type parameter declarations.
 ///
 /// Inputs:
@@ -694,18 +782,9 @@ fn kind_arity_display(arity: usize) -> String {
         .join(" -> ")
 }
 
-/// Extracts type applications from source type text.
-///
-/// Inputs:
-/// - `text`: source type-expression text.
-///
-/// Output:
-/// - Parsed trait-instance-like applications found in the text.
-///
-/// Transformation:
-/// - Uses the canonical lexer, then scans for name tokens followed by balanced
-///   brackets. Each balanced slice is parsed by the existing trait-instance
-///   parser so nested argument commas remain source-compatible.
+/// Extracts type applications with their qualified constructor names.
+/// Uses canonical tokens and balanced brackets so nested arguments retain
+/// their source spelling and comma grouping.
 fn type_applications_in_text(text: &str) -> Vec<ParsedTraitInstance> {
     let Ok(tokens) = crate::terlan_syntax::lexer::lex(text) else {
         return Vec::new();
@@ -734,8 +813,17 @@ fn type_applications_in_text(text: &str) -> Vec<ParsedTraitInstance> {
             end += 1;
         }
         if depth == 0 {
+            // Keep a qualified head intact so std.js.Array.Array[T] is
+            // checked against its imported arity, rather than built-in Array.
+            let mut start = index;
+            while start >= 2
+                && tokens[start - 1].kind == TokenKind::Dot
+                && matches!(tokens[start - 2].kind, TokenKind::Atom | TokenKind::Var)
+            {
+                start -= 2;
+            }
             if let Some(instance) = parse_trait_instance_from_text(
-                &tokens[index..end]
+                &tokens[start..end]
                     .iter()
                     .map(|token| token.text.as_str())
                     .collect::<Vec<_>>()
@@ -865,7 +953,7 @@ fn first_private_local_type_name(
             .iter()
             .chain(std::iter::once(ret.as_ref()))
             .find_map(|item| first_private_local_type_name(item, local_type_names)),
-        Type::FixedArray { elem, .. } => first_private_local_type_name(elem, local_type_names),
+        Type::Array { elem, .. } => first_private_local_type_name(elem, local_type_names),
         Type::Int
         | Type::Float
         | Type::Number

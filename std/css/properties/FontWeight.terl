@@ -1,99 +1,55 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
+ * The `font-weight` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * weight (or boldness) of the font. The weights available depend on the `font-family` that is
+ * currently set.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - bold: Bold font weight. Same as `700`.
+ * - bolder: One relative font weight heavier than the parent element. Note that only four font
+ * weights are considered for relative weight calculation; see the [Meaning of relative
+ * weights](#meaning_of_relative_weights) section below.
+ * - lighter: One relative font weight lighter than the parent element. Note that only four font
+ * weights are considered for relative weight calculation; see the [Meaning of relative
+ * weights](#meaning_of_relative_weights) section below.
+ * - normal: Normal font weight. Same as `400`.
+ *
  * Grammar: <font-weight-absolute> | bolder | lighter
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-weight
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontWeight.
 
 import std.core.Float.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
+import std.css.Values.{serialize}.
+import std.css.keywords.{Bold, Bolder, Lighter, Normal}.
 
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained font-weight value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    font_weight: Value,
+    font_weight: Normal | Bold | Bolder | Lighter | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the font-weight number range. Returns Some when amount >= 1 and amount <= 1000; otherwise
+ * returns None.
  */
-pub struct OptionalProperty {
-    font_weight: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword bold.
- */
-pub bold(): Value ->
-    Value(Token {property: "font-weight", css: "bold"}).
-
-/**
- * Returns the CSS keyword bolder.
- */
-pub bolder(): Value ->
-    Value(Token {property: "font-weight", css: "bolder"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-weight", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-weight", css: "initial"}).
-
-/**
- * Returns the CSS keyword lighter.
- */
-pub lighter(): Value ->
-    Value(Token {property: "font-weight", css: "lighter"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "font-weight", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-weight", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-weight", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-weight", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a font-weight value.
- */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 1 and value <= 1000 {
-        true -> Some(Value(Token {property: "font-weight", css: std.core.Float.to_string(value)}));
-        false -> None
+        true -> Some(Checked(serialize("font-weight", std.core.Float.to_string(value))));
+        false -> Absent
     }.

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword inter-character. Generated; do not edit.
+ */
+module std.css.keywords.InterCharacter.
+
+pub type InterCharacter = Atom["inter-character"].

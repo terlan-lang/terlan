@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCCertificate
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6759198246743385200
-interface_hash=17143196509653474973
-interface_doc_hash=17143196509653474973
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5558596101357140223
+interface_hash=16953453545800031655
+interface_doc_hash=16953453545800031655
 deps=0

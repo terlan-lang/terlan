@@ -1,0 +1,55 @@
+/** Positive and negative contracts for canonical import lint rules. */
+module self_host.SelfHostLintImportsTest.
+
+import self_host.SelfHostLint.
+import self_host.SelfHostLintSyntax.
+
+
+@pure
+has_rule(rule_id: String, values: List[self_host.SelfHostLintSyntax.LintDiagnostic]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.rule_id == rule_id or has_rule(rule_id, rest)
+    }.
+
+@test
+pub canonical_imports_have_no_import_diagnostics(): Bool ->
+    let report = SelfHostLint.lint(
+        "Sample.terl",
+        "module sample.\nimport std.collections.List.\nimport std.io.Console.{print, println}.\npub main(items: List[Int]): Unit -> print(items.length()); println(\"ok\").\n",
+    );
+    report.valid_source and report.diagnostics == [].
+
+@test
+pub duplicate_and_unsorted_imports_have_stable_rule_ids(): Bool ->
+    let report = SelfHostLint.lint(
+        "Sample.terl",
+        "module sample.\nimport std.io.Console.{println, print, print}.\nimport std.collections.List.\nimport std.collections.List.\npub main(): Unit -> println(\"ok\").\n",
+    );
+    report.valid_source
+        and has_rule("TL0601", report.diagnostics)
+        and has_rule("TL0602", report.diagnostics)
+        and has_rule("TL0603", report.diagnostics)
+        and has_rule("TL0604", report.diagnostics).
+
+@test
+pub grouped_and_used_imports_have_no_usage_diagnostics(): Bool ->
+    let report = SelfHostLint.lint(
+        "Sample.terl",
+        "module sample.\nimport std.io.Console.{print, println}.\npub main(): Unit -> print(\"a\"); println(\"b\").\n",
+    );
+    report.valid_source
+        and not has_rule("TL0605", report.diagnostics)
+        and not has_rule("TL0606", report.diagnostics)
+        and not has_rule("TL0607", report.diagnostics).
+
+@test
+pub split_and_unused_imports_have_stable_rule_ids(): Bool ->
+    let report = SelfHostLint.lint(
+        "Sample.terl",
+        "module sample.\nimport std.io.Console.{print}.\nimport std.io.Console.{println}.\nimport std.collections.List.\npub main(): Int -> 1.\n",
+    );
+    report.valid_source
+        and has_rule("TL0605", report.diagnostics)
+        and has_rule("TL0606", report.diagnostics)
+        and has_rule("TL0607", report.diagnostics).

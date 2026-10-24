@@ -40,6 +40,12 @@ impl From<bool> for NativeValue {
     }
 }
 
+impl From<()> for NativeValue {
+    fn from((): ()) -> Self {
+        Self::Unit
+    }
+}
+
 impl From<i64> for NativeValue {
     fn from(value: i64) -> Self {
         Self::Int(value)
@@ -104,7 +110,8 @@ impl<T: Into<NativeValue>, E: Into<NativeValue>> From<Result<T, E>> for NativeVa
 }
 
 /// One package-owned operation. Callbacks validate their argument contract and
-/// must not perform blocking I/O or retain actor memory.
+/// cannot retain actor memory. Hosts must honor the package catalog's worker-only
+/// designation before invoking a potentially blocking callback.
 pub struct NativeBinding {
     pub operation: &'static str,
     pub arity: usize,
@@ -112,6 +119,15 @@ pub struct NativeBinding {
 }
 
 impl NativeBinding {
+    /// Checks a generated signature's arity before exposing its fixed argument list.
+    pub fn arguments<'a, const N: usize>(
+        operation: &str,
+        args: &'a [NativeValue],
+    ) -> Result<&'a [NativeValue; N], BoundaryError> {
+        args.try_into()
+            .map_err(|_| native_arity_error(operation, N, args.len()))
+    }
+
     /// Rejects wrong arity before argument conversion or package execution.
     pub fn validate_arity(&self, received: usize) -> Result<(), BoundaryError> {
         validate_native_arity(self.operation, self.arity, received)
@@ -126,13 +142,17 @@ pub(crate) fn validate_native_arity(
     if received == expected {
         return Ok(());
     }
-    Err(BoundaryError::message(
+    Err(native_arity_error(operation, expected, received))
+}
+
+fn native_arity_error(operation: &str, expected: usize, received: usize) -> BoundaryError {
+    BoundaryError::message(
         ErrorDomain::NativeBoundary,
         "native package arguments",
         format!(
             "error[native_package.arguments]: operation `{operation}` expects {expected} arguments, received {received}"
         ),
-    ))
+    )
 }
 
 #[cfg(test)]

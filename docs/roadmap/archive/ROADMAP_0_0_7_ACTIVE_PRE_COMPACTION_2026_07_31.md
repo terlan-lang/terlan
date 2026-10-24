@@ -4793,7 +4793,7 @@ do not block 0.0.7 until explicitly promoted into this active roadmap.
 - [ ] Slice 66: validate a nontrivial reference application suite on the VM
   default runtime.
   - Requirement: define a release reference-app suite separate from tiny examples
-    and template smoke tests: battleship, a multi-module CLI app, a VM HTTP app,
+    and template smoke tests: a multi-module CLI app, a VM HTTP app,
     a typed-template app, a package-import app, a std collections/map-heavy app,
     and a data-style app that exercises external package boundaries when
     available.

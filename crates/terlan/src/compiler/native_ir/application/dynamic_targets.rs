@@ -376,7 +376,7 @@ pub(in crate::compiler::native_ir) fn walk_expressions(
             args.iter()
                 .for_each(|argument| walk_expressions(argument, visit));
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items.iter().for_each(|item| walk_expressions(item, visit));
         }
         CoreExpr::ListCons { head, tail }

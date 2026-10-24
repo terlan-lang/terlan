@@ -1,72 +1,39 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-gap
+//! The `gap` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets the gaps (also called `gutters`) between rows and columns on
+//! [multi-column](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Multicol_layout),
+//! [flex](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout), and
+//! [grid](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout) containers.
+//!
+//! Initial: row-gap: normal; column-gap: normal. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - normal: Sets the gap to `1em` in multi-column layouts and to `0` in all other contexts. This is
+//! the default value.
+//!
 //! Grammar: <'row-gap'> <'column-gap'>?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-gap
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/gap
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Gap.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    gap: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    gap: Value
+    gap: Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained gap value.
+/// Checks the gap length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Returns the CSS keyword hairline.
+/// Checks the gap percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub hairline(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a gap value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Returns the CSS keyword medium.
-
-pub medium(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Checks the specification range and constructs a gap value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword thick.
-
-pub thick(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

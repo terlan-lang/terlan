@@ -90,7 +90,7 @@ pub(super) fn annotate(expr: &mut CoreExpr, resolver: &HashMap<(String, usize), 
                 }
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items.iter_mut().for_each(|item| annotate(item, resolver));
         }
         CoreExpr::ListCons { head, tail }

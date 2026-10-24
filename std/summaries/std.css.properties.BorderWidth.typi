@@ -1,104 +1,65 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-width
+//! The `border-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets the width of an element's border.
+//!
+//! Initial: border-top-width: medium; border-right-width: medium; border-bottom-width: medium;
+//! border-left-width: medium. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - medium: Same as `3px`. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-top-width
+//! - thick: Same as `5px`. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-top-width
+//! - thin: Same as `1px`. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-top-width
+//!
 //! Grammar: <'border-top-width'>{1,4}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-width
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-width
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderWidth.
 
-/// A single non-global border-width shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
+pub opaque type CheckedComponent.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    border_width: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    Thin
+  | Medium
+  | Thick
+  | CheckedComponent.
 
 pub struct Property {
-    border_width: Value
+    border_width: Thin | Medium | Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained border-width value.
+/// Checks the border-width length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-/// Constructs one border-width shorthand component.
+/// Checks the border-width length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub component_hairline(): Component.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Checks the specification range and constructs a border-width value.
+/// First sets top/bottom; second sets left/right.
 
-pub component_length(value: std.css.Values.Length): Option[Component].
+pub pair(first: Component, second: Component): Checked.
 
-/// Constructs one border-width shorthand component.
+/// Sets top, right, bottom, and left in that order.
 
-pub component_medium(): Component.
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
-/// Constructs one border-width shorthand component.
+/// Applies to all four sides.
 
-pub component_thick(): Component.
+pub single(first: Component): Checked.
 
-/// Constructs one border-width shorthand component.
+/// First sets top; second sets left/right; third sets bottom.
 
-pub component_thin(): Component.
-
-/// Returns the CSS keyword hairline.
-
-pub hairline(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a border-width value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Returns the CSS keyword medium.
-
-pub medium(): Value.
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Combines 4 typed components in specification order.
-
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Returns the CSS keyword thick.
-
-pub thick(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
-
-/// Combines 3 typed components in specification order.
-
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub triple(first: Component, second: Component, third: Component): Checked.

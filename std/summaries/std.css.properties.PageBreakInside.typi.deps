@@ -1,9 +1,11 @@
 module=std.css.properties.PageBreakInside
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=18276747557050194699
-interface_hash=17591503385910590902
-interface_doc_hash=6389837627477314294
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=14202371119452712498
+interface_hash=8237576681205676237
+interface_doc_hash=16333917060849091799
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722
+std.css.keywords.Avoid=6005920284609121177

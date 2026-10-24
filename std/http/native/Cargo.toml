@@ -15,7 +15,7 @@ instant-acme = { workspace = true, optional = true }
 axum.workspace = true
 base64.workspace = true
 getrandom.workspace = true
-futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
 http-body-util.workspace = true
 bytes.workspace = true
 toml.workspace = true

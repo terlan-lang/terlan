@@ -1,0 +1,90 @@
+/** Finite-sum pattern authority contracts. */
+module self_host.ProjectedPatternAuthorityTest.
+
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedPatternAuthority.{FiniteSumContract, PatternAuthorityCatalog, PatternConstructorContract}.
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.Syntax.{ParseError, SyntaxSpan, TypeDeclaration}.
+import self_host.TypedModuleSyntax.{TypedDeclaration, TypedModule}.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.test.Test.{assert}.
+import self_host.ProjectedPatternAuthority.
+
+
+@pure
+node(kind: String, text: String, children: List[ProjectedExpressionNode]): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, 0, 0, children).
+
+@pure
+clause(pattern: ProjectedExpressionNode, guarded: Bool): ProjectedExpressionNode ->
+    node("clause", if { guarded -> "where"; true -> "" }, [pattern]).
+
+@pure
+constructor_node(name: String, children: List[ProjectedExpressionNode]): ProjectedExpressionNode ->
+    node("constructor-pattern", name, children).
+
+
+@test
+finite_sum_requires_every_unguarded_member(): Bool ->
+    let catalog = PatternAuthorityCatalog(
+        [PatternConstructorContract("None", 0), PatternConstructorContract("Some", 1)],
+        [FiniteSumContract("Option", ["None", "Some"])],
+    );
+    let value = node("case", "case", [
+        node("subject", "value", List.new[ProjectedExpressionNode]()),
+        clause(constructor_node("Some", [node("binding-pattern", "value", List.new[ProjectedExpressionNode]())]), false),
+    ]);
+    assert(ProjectedPatternAuthority.case_diagnostics(value, catalog, "sample") != []).
+
+
+@test
+constructor_payload_arity_is_enforced(): Bool ->
+    let catalog = PatternAuthorityCatalog(
+        [PatternConstructorContract("Some", 1)],
+        [FiniteSumContract("Option", ["Some"])],
+    );
+    let value = node("case", "case", [
+        node("subject", "value", List.new[ProjectedExpressionNode]()),
+        clause(constructor_node("Some", List.new[ProjectedExpressionNode]()), false),
+    ]);
+    assert(ProjectedPatternAuthority.case_diagnostics(value, catalog, "sample") != []).
+
+
+@test
+visible_interface_supplies_finite_sum_contract(): Bool ->
+    let interface = ModuleInterface(
+        "terlan.self-host.interface/v4",
+        "std.core.Option",
+        [
+            ExportedSymbol("None", 0, TypeDeclaration, Some("Option"), false, false, List.new[String](), List.new[Option[String]](), Some("Option"), SyntaxSpan(0, 0)),
+            ExportedSymbol("Some", 1, TypeDeclaration, Some("Option"), false, false, ["T"], [Some("T")], Some("Option"), SyntaxSpan(0, 0)),
+        ],
+    );
+    let typed_module = TypedModule(
+        true,
+        "sample",
+        List.new[TypedDeclaration](),
+        List.new[ParseError](),
+    );
+    let catalog = ProjectedPatternAuthority.catalog_from_visible_interfaces(typed_module, [interface]);
+    let value = node("case", "case", [
+        node("subject", "value", List.new[ProjectedExpressionNode]()),
+        clause(constructor_node("Some", [node("binding-pattern", "value", List.new[ProjectedExpressionNode]())]), false),
+        clause(constructor_node("None", List.new[ProjectedExpressionNode]()), false),
+    ]);
+    assert(ProjectedPatternAuthority.case_diagnostics(value, catalog, "sample") == []).
+
+
+@test
+closed_subject_rejects_incompatible_literal_pattern(): Bool ->
+    let value = node("case", "case", [
+        node("integer", "42", List.new[ProjectedExpressionNode]()),
+        clause(node("literal-pattern", "\"forty-two\"", List.new[ProjectedExpressionNode]()), false),
+    ]);
+    assert(ProjectedPatternAuthority.case_diagnostics(
+        value,
+        PatternAuthorityCatalog(List.new[PatternConstructorContract](), List.new[FiniteSumContract]()),
+        "sample",
+    ) != []).

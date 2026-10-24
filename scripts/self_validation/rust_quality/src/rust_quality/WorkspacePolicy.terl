@@ -192,7 +192,11 @@ parse_manifests(root: String, files: List[TextFile], output: List[Manifest]): Ma
 load_manifests(root: String, members: List[String]): ManifestLoad ->
     case File.read_text_many(manifest_paths(root, members)) {
         Err(reason) ->
-            ManifestLoad(valid = false, manifests = List.new[Manifest](), message = reason.message);
+            ManifestLoad(
+                valid = false,
+                manifests = List.new[Manifest](),
+                message = reason.message,
+            );
         Ok(files) -> parse_manifests(root, files, List.new[Manifest]())
     }.
 
@@ -733,7 +737,10 @@ pub check(root: String): Bool ->
                     let _printed =
                         eprintln(
                             String.concat(
-                                ["[rust-workspace-policy] failure: Cargo.toml: ", reason.message],
+                                [
+                                    "[rust-workspace-policy] failure: Cargo.toml: ",
+                                    reason.message,
+                                ],
                             ),
                         );
                     false;

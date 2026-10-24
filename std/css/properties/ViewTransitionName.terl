@@ -1,69 +1,36 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-name
+ * The `view-transition-name` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies the [view
+ * transition](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API) snapshot that
+ * selected elements will participate in. This enables you to animate those elements separately from
+ * the rest of the page, which uses the default cross-fade animation during a view transition. You
+ * can then define custom animation styles for these elements.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - none: The selected element will not participate in a separate snapshot, unless it has a parent
+ * element with a `view-transition-name` set, in which case it will be snapshotted as part of that
+ * element.
+ *
  * Grammar: none | <custom-ident>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-name
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/view-transition-name
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ViewTransitionName.
 
-import type std.core.Option.
+import std.css.keywords.None.
 
-/**
- * A nominal, specification-constrained view-transition-name value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    view_transition_name: Value,
+    view_transition_name: None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    view_transition_name: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "view-transition-name", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "view-transition-name", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "view-transition-name", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "view-transition-name", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "view-transition-name", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "view-transition-name", css: "unset"}).

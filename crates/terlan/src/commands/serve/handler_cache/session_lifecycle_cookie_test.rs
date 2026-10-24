@@ -62,7 +62,7 @@ pub handle(request: Request, rotate: Bool): Response ->
                             || value.to_string(),
                             |identity| value.replace(value.trim(), identity),
                         );
-                        vec![("terlan_session".into(), actual)]
+                        vec![format!("terlan_session={actual}")]
                     })
                     .unwrap_or_default(),
                 ..Default::default()
@@ -81,8 +81,22 @@ pub handle(request: Request, rotate: Bool): Response ->
                 ],
             )
             .unwrap();
+        if incoming.is_some() {
+            step =
+                super::super::handler_cache_test_support::resume_cookie_decode(step, &mut helpers);
+        }
         let mut expected = Vec::new();
         if let Some(label) = replacement {
+            for operation in [
+                "std.crypto.entropy.bytes",
+                "std.encoding.base64.encode_url_unpadded_bytes",
+            ] {
+                step = super::super::handler_cache_test_support::resume_value_codec(
+                    step,
+                    &mut helpers,
+                    operation,
+                );
+            }
             let AotHandlerInvocationStep::CapabilityWaiting(invocation) = step else {
                 panic!("new or rotated identity must suspend for source cookie encoding");
             };

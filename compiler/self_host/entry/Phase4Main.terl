@@ -1,0 +1,168 @@
+/** Minimal executable root for Phase 4 interface and semantic authority. */
+module self_host.Main.
+
+import self_host.ProjectedInterfaceCatalog.
+import self_host.CanonicalToken.{CanonicalToken}.
+import self_host.ProjectedParser.{ProjectedSegment}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.
+import std.io.File.
+import std.system.Arguments.
+import self_host.CanonicalLexer.
+import self_host.ProjectedParser.
+import self_host.ProjectionAdapter.
+
+parent(path: String): String ->
+    parent_parts(String.split(path, "/"), "").
+
+parent_parts(parts: List[String], output: String): String ->
+    case parts {
+        [] -> output;
+        [_file] -> output;
+        [part | rest] -> parent_parts(rest, append_parent_part(output, part))
+    }.
+
+append_parent_part(output: String, part: String): String ->
+    if {
+        output == "" -> part;
+        true -> String.concat([output, "/", part])
+    }.
+
+ensure_directory(path: String): Bool ->
+    if {
+        path == "" -> true;
+        true -> case Directory.create_all(path) {
+            Ok(_unit) -> true;
+            Err(reason) -> report_false(reason.message)
+        }
+    }.
+
+report_false(message: String): Bool ->
+    let _reported = eprintln(message);
+    false.
+
+report_unit(message: String): Unit ->
+    let _reported = eprintln(message);
+    Unit.
+
+pub main(): Unit ->
+    case Arguments.get(0) {
+        Some("interface-unit") -> main_interface_unit();
+        Some("interface-diagnostics") -> main_interface_diagnostics();
+        Some("interface-diagnostics-manifest") -> main_interface_diagnostics_manifest();
+        Some("token-diagnostics") -> main_token_diagnostics();
+        Some("segment-diagnostics") -> main_segment_diagnostics();
+        _ -> report_unit(
+            "usage: terlan-self-host interface-unit <source.terl> <interface> | interface-diagnostics <source.terl> | interface-diagnostics-manifest <paths.manifest> | token-diagnostics <source.terl> | segment-diagnostics <source.terl>",
+        )
+    }.
+
+main_interface_unit(): Unit ->
+    let Some(input) <- Arguments.get(1) else {
+        None -> report_unit("usage: terlan-self-host interface-unit <source.terl> <interface>")
+    };
+    let Some(output) <- Arguments.get(2) else {
+        None -> report_unit("usage: terlan-self-host interface-unit <source.terl> <interface>")
+    };
+    let _completed = ensure_directory(parent(output))
+        and ProjectedInterfaceCatalog.write_interface(input, output);
+    Unit.
+
+main_interface_diagnostics(): Unit ->
+    let Some(input) <- Arguments.get(1) else {
+        None -> report_unit("usage: terlan-self-host interface-diagnostics <source.terl>")
+    };
+    let _reported = println(ProjectedInterfaceCatalog.canonical_diagnostic(input));
+    Unit.
+
+report_invalid_interface(path: String, diagnostic: String, invalid: Int): Int ->
+    let _reported = println(String.concat([path, "\t", diagnostic]));
+    invalid + 1.
+
+manifest_diagnostics_at(paths: List[String], invalid: Int): Int ->
+    case paths {
+        [] -> invalid;
+        [path | rest] ->
+            let normalized = String.trim(path);
+            if {
+                normalized == "" -> manifest_diagnostics_at(rest, invalid);
+                true ->
+                    let diagnostic = ProjectedInterfaceCatalog.canonical_diagnostic(normalized);
+                    let next = if {
+                        diagnostic == "valid" -> invalid;
+                        true -> report_invalid_interface(normalized, diagnostic, invalid)
+                    };
+                    manifest_diagnostics_at(rest, next)
+            }
+    }.
+
+main_interface_diagnostics_manifest(): Unit ->
+    let Some(input) <- Arguments.get(1) else {
+        None -> report_unit("usage: terlan-self-host interface-diagnostics-manifest <paths.manifest>")
+    };
+    case File.read_text(input) {
+        Err(reason) -> report_unit(reason.message);
+        Ok(source) ->
+            let invalid = manifest_diagnostics_at(String.split(source, "\n"), 0);
+            let _reported = println(String.concat(["invalid-count\t", Int.to_string(invalid)]));
+            Unit
+    }.
+
+print_tokens(values: List[CanonicalToken]): Unit ->
+    case values {
+        [] -> Unit;
+        [value | rest] ->
+            let _reported = println(String.concat([
+                value.terminal,
+                "\t",
+                value.text,
+                "\t",
+                Int.to_string(value.start_byte),
+                "\t",
+                Int.to_string(value.end_byte),
+            ]));
+            print_tokens(rest)
+    }.
+
+main_token_diagnostics(): Unit ->
+    let Some(input) <- Arguments.get(1) else {
+        None -> report_unit("usage: terlan-self-host token-diagnostics <source.terl>")
+    };
+    case File.read_text(input) {
+        Err(reason) -> report_unit(reason.message);
+        Ok(source) -> print_tokens(CanonicalLexer.lex(source).tokens)
+    }.
+
+print_segments(source: String, values: List[ProjectedSegment]): Unit ->
+    case values {
+        [] -> Unit;
+        [value | rest] ->
+            let _reported = println(String.concat([
+                Int.to_string(value.start_byte),
+                "\t",
+                Int.to_string(value.end_byte),
+                "\t",
+                if { value.terminated -> "terminated"; true -> "unterminated" },
+                "\t",
+                source.utf8_slice(value.start_byte, value.end_byte - value.start_byte),
+            ]));
+            print_segments(source, rest)
+    }.
+
+main_segment_diagnostics(): Unit ->
+    let Some(input) <- Arguments.get(1) else {
+        None -> report_unit("usage: terlan-self-host segment-diagnostics <source.terl>")
+    };
+    case File.read_text(input) {
+        Err(reason) -> report_unit(reason.message);
+        Ok(source) ->
+            let lexed = CanonicalLexer.lex(source);
+            print_segments(
+                source,
+                ProjectedParser.segments(ProjectionAdapter.rewrite(source, lexed.tokens)),
+            )
+    }.

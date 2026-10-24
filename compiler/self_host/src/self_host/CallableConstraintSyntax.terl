@@ -1,0 +1,23 @@
+/** Typed callable constraints written between parameters and the return type. */
+module self_host.CallableConstraintSyntax.
+
+import self_host.TypeSyntax.{TypeParse}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct CallableConstraints {
+    valid: Bool,
+    values: List[TypeParse],
+    message: String,
+}.
+
+pub constructor CallableConstraints {
+    (valid: Bool, values: List[TypeParse], message: String): CallableConstraints ->
+        CallableConstraints {
+            valid: valid,
+            values: values,
+            message: message,
+        }
+}.

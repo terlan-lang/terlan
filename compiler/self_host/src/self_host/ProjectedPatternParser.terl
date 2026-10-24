@@ -1,6 +1,8 @@
 /** Recursive projected-token parser for canonical pattern families. */
 module self_host.ProjectedPatternParser.
 
+import std.core.String.
+
 
 import std.core.Option.{None, Option, Some}.
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode, ProjectedExpressionResult}.
@@ -361,7 +363,7 @@ literal_pattern_kind(value: ProjectedCanonicalToken): String ->
 
 @pure
 binding_pattern_kind(value: ProjectedCanonicalToken): String ->
-    if { value.terminal == "var" or value.terminal == "atom" -> "binding-pattern"; true -> literal_pattern_kind(value) }.
+    if { value.terminal == "var" or value.terminal == "atom" or value.text == "function" -> "binding-pattern"; true -> literal_pattern_kind(value) }.
 
 @pure
 capture_pattern_kind(value: ProjectedCanonicalToken): String ->
@@ -376,9 +378,161 @@ single_pattern_kind(value: ProjectedCanonicalToken): String ->
     if { value.terminal == "typed-lambda-pattern" -> "typed-pattern"; true -> wildcard_pattern_kind(value) }.
 
 @pure
+find_string_capture(value: String, index: Int): Int ->
+    if {
+        index + 1 >= value.byte_size() -> -1;
+        value.utf8_byte_at(index) == 36 and value.utf8_byte_at(index + 1) == 123 -> index;
+        true -> find_string_capture(value, index + 1)
+    }.
+
+@pure
+find_string_capture_close(value: String, index: Int): Int ->
+    if {
+        index >= value.byte_size() -> -1;
+        value.utf8_byte_at(index) == 125 -> index;
+        true -> find_string_capture_close(value, index + 1)
+    }.
+
+struct StringPatternSegments {
+    valid: Bool,
+    values: List[ProjectedExpressionNode],
+    message: String,
+}.
+
+constructor StringPatternSegments {
+    (valid: Bool, values: List[ProjectedExpressionNode], message: String): StringPatternSegments ->
+        StringPatternSegments { valid: valid, values: values, message: message }
+}.
+
+@pure
+string_literal_segment(body: String, start: Int, end: Int, source_start: Int): ProjectedExpressionNode ->
+    node(
+        "string-literal-segment",
+        body.utf8_slice(start, end - start),
+        source_start + start,
+        source_start + end,
+        List.new[ProjectedExpressionNode](),
+    ).
+
+@pure
+string_capture_segment(body: String, opening: Int, closing: Int, source_start: Int): ProjectedExpressionNode ->
+    node(
+        "string-capture-segment",
+        String.trim(body.utf8_slice(opening + 2, closing - opening - 2)),
+        source_start + opening,
+        source_start + closing + 1,
+        List.new[ProjectedExpressionNode](),
+    ).
+
+@pure
+previous_string_capture(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [value | _rest] -> value.kind == "string-capture-segment";
+        [] -> false
+    }.
+
+@pure
+string_segments_tail(body: String, cursor: Int, source_start: Int, output: List[ProjectedExpressionNode]): StringPatternSegments ->
+    if {
+        cursor >= body.byte_size() -> StringPatternSegments(true, reverse(output), "");
+        true -> StringPatternSegments(
+            true,
+            reverse([string_literal_segment(body, cursor, body.byte_size(), source_start) | output]),
+            "",
+        )
+    }.
+
+@pure
+string_segments_closed_capture(
+    body: String,
+    cursor: Int,
+    opening: Int,
+    closing: Int,
+    source_start: Int,
+    output: List[ProjectedExpressionNode],
+): StringPatternSegments ->
+    let capture = string_capture_segment(body, opening, closing, source_start);
+    if {
+        capture.text == "" -> StringPatternSegments(false, List.new[ProjectedExpressionNode](), "string capture pattern is empty");
+        opening == cursor and previous_string_capture(output) -> StringPatternSegments(false, List.new[ProjectedExpressionNode](), "adjacent string captures require a literal separator");
+        opening == cursor -> string_segments_at(body, closing + 1, source_start, [capture | output]);
+        true -> string_segments_at(
+            body,
+            closing + 1,
+            source_start,
+            [capture | [string_literal_segment(body, cursor, opening, source_start) | output]],
+        )
+    }.
+
+@pure
+string_segments_capture(
+    body: String,
+    cursor: Int,
+    opening: Int,
+    closing: Int,
+    source_start: Int,
+    output: List[ProjectedExpressionNode],
+): StringPatternSegments ->
+    if {
+        closing < 0 -> StringPatternSegments(false, List.new[ProjectedExpressionNode](), "string capture pattern is unterminated");
+        true -> string_segments_closed_capture(body, cursor, opening, closing, source_start, output)
+    }.
+
+@pure
+string_segments_at(
+    body: String,
+    cursor: Int,
+    source_start: Int,
+    output: List[ProjectedExpressionNode],
+): StringPatternSegments ->
+    let opening = find_string_capture(body, cursor);
+    if {
+        opening < 0 -> string_segments_tail(body, cursor, source_start, output);
+        true -> string_segments_capture(
+            body,
+            cursor,
+            opening,
+            find_string_capture_close(body, opening + 2),
+            source_start,
+            output,
+        )
+    }.
+
+@pure
+string_pattern_result(value: ProjectedCanonicalToken, parsed: StringPatternSegments): ProjectedExpressionResult ->
+    if {
+        parsed.valid -> ProjectedExpressionResult(
+            true,
+            Some(node("string-capture-pattern", value.text, value.start_byte, value.end_byte, parsed.values)),
+            List.new[ProjectedCanonicalToken](),
+            "",
+        );
+        true -> ProjectedExpressionResult(false, None, List.new[ProjectedCanonicalToken](), parsed.message)
+    }.
+
+@pure
+string_pattern(value: ProjectedCanonicalToken): ProjectedExpressionResult ->
+    let size = value.text.byte_size();
+    let quoted = size >= 2
+        and value.text.utf8_byte_at(0) == 34
+        and value.text.utf8_byte_at(size - 1) == 34;
+    if {
+        not quoted -> ProjectedExpressionResult(false, None, List.new[ProjectedCanonicalToken](), "string capture pattern must be quoted");
+        true -> let body = value.text.utf8_slice(1, size - 2);
+            string_pattern_result(
+                value,
+                string_segments_at(body, 0, value.start_byte + 1, List.new[ProjectedExpressionNode]()),
+            )
+    }.
+
+@pure
 single_pattern(value: ProjectedCanonicalToken): ProjectedExpressionResult ->
-    let value_node = node(single_pattern_kind(value), value.text, value.start_byte, value.end_byte, List.new[ProjectedExpressionNode]());
-    ProjectedExpressionResult(true, Some(value_node), List.new[ProjectedCanonicalToken](), "").
+    let kind = single_pattern_kind(value);
+    if {
+        kind == "string-capture-pattern" -> string_pattern(value);
+        true -> let value_node = node(kind, value.text, value.start_byte, value.end_byte, List.new[ProjectedExpressionNode]());
+            ProjectedExpressionResult(true, Some(value_node), List.new[ProjectedCanonicalToken](), "")
+    }.
 
 @pure
 trailing_pattern_message(parsed: ProjectedExpressionResult): String ->

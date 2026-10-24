@@ -1,17 +1,10 @@
 //! Compile the public endpoint builder and invoke its captured source reconnect policy.
 
 use super::*;
-use crate::runtime::vm::protocol_task_executor::{
-    next_protocol_task_route, with_protocol_task_for_test,
-};
 use crate::runtime::vm::pure_native::PureNativeExecutionImage;
-use crate::runtime::vm::scheduler_topology::VmSchedulerTopology;
 use crate::support::test_fs::TestDirectory;
 use crate::{CliCommand, CliState};
-use std::future::Future;
 use std::process::ExitCode;
-use std::task::{Context, Poll, Waker};
-use std::time::{Duration, Instant};
 
 fn open_endpoint(name: &str) -> (TestDirectory, AotWebSocketCallbackSession) {
     open_endpoint_with_policy(name, false)
@@ -31,17 +24,21 @@ import type std.http.WebSocket.Endpoint.
 import std.core.Unit.
 import std.core.Int.
 import std.vm.Process.
+pub waiting(): String -> Process.sleep(Process.timer(1)); "waiting".
+pub peer_left(): String -> Process.sleep(Process.timer(1)); "left".
 pub endpoint(): Endpoint ->
     WebSocket.endpoint(4, 1024).restorable_stateful_paired_callbacks(
-        () -> "waiting", () -> "left", "room", "player", "room-", "first", "second",
+        waiting, peer_left, "room", "player", "room-", "first", "second",
         1000, 4,
         (room: String, role: Int, first: String, second: String) ->
+            Process.sleep(Process.timer(1));
             if {
                 first == "park1" and role == 1 -> Process.receive_string();
                 first == "park2" and role == 2 -> Process.receive_string();
                 true -> room + ":" + Int.to_string(role)
             },
-        (room: String, state: String, role: Int, first: String, second: String) -> state,
+        (room: String, state: String, role: Int, first: String, second: String) ->
+            Process.sleep(Process.timer(1)); state,
         (state: String, role: Int, data: String, first: String, second: String) -> {state, first, second},
         (reason: String) -> Unit
     ).
@@ -58,10 +55,13 @@ pub endpoint(): Endpoint ->
         std::fs::write(
             directory.join("app/RoomPolicy.terl"),
             policy
-                .replace("module std.http.WebSocket.", "module app.RoomPolicy.")
+                .replace(
+                    "module std.http.WebSocket.",
+                    "module app.RoomPolicy.\nimport std.vm.Process.",
+                )
                 .replace(
                     "room_prefix + Int.to_string(sequence)",
-                    "Int.to_string(sequence) + room_prefix",
+                    "(Process.sleep(Process.timer(1)); Int.to_string(sequence) + room_prefix)",
                 )
                 .replace(
                     "matched(room, 1, first, second)",
@@ -141,16 +141,20 @@ fn compiled_websocket_room_naming_follows_source_even_in_a_renamed_module() {
                 format!("room-{sequence}")
             };
             assert_eq!(
-                session
-                    .dispatch_pair_room_identity_output(sequence)
-                    .unwrap(),
+                super::super::protocol_test_support::complete(
+                    session.dispatch_pair_room_identity_output(sequence)
+                )
+                .unwrap(),
                 expected
             );
         }
         assert_eq!(
-            session
-                .dispatch_pair_matched_output("room".into(), "first".into(), "second".into())
-                .unwrap(),
+            super::super::protocol_test_support::complete(session.dispatch_pair_matched_output(
+                "room".into(),
+                "first".into(),
+                "second".into()
+            ))
+            .unwrap(),
             if renamed {
                 ("room:11".into(), "room:22".into())
             } else {
@@ -158,7 +162,10 @@ fn compiled_websocket_room_naming_follows_source_even_in_a_renamed_module() {
             }
         );
         session.enqueue_inbound("early".into()).unwrap();
-        let (dispatched, value) = session.dispatch_next_paired_inbound_output(None).unwrap();
+        let (dispatched, value) = super::super::protocol_test_support::complete(
+            session.dispatch_next_paired_inbound_output(None),
+        )
+        .unwrap();
         assert!(dispatched);
         let error =
             terlan_http_native::source_descriptor::paired_callback_transition(value.unwrap())
@@ -171,19 +178,37 @@ fn compiled_websocket_room_naming_follows_source_even_in_a_renamed_module() {
                 "error[serve.websocket.pairing]: inbound frame arrived before a peer joined"
             }
         );
-        session.close().unwrap();
+        super::super::protocol_test_support::complete(session.close_suspendable()).unwrap();
     }
 }
 
 #[test]
-fn suspended_first_or_second_match_payload_never_publishes_partial_output() {
+fn unsupported_first_or_second_match_wait_never_publishes_partial_output() {
     use terlan_http_native::websocket::hub::WebSocketHub;
     for target in ["park1", "park2"] {
         let (_directory, mut session) = open_endpoint(target);
         let hub = Arc::new(WebSocketHub::default());
         let mut pairing = session.plan().pairing().unwrap().clone();
-        pairing.waiting = session.dispatch_pair_waiting_output().unwrap();
-        pairing.peer_left = session.dispatch_pair_peer_left_output().unwrap();
+        pairing.waiting =
+            super::super::protocol_test_support::complete(session.dispatch_pair_waiting_output())
+                .unwrap();
+        pairing.peer_left =
+            super::super::protocol_test_support::complete(session.dispatch_pair_peer_left_output())
+                .unwrap();
+        for event in [
+            AotWebSocketCallbackEvent::PairWaiting,
+            AotWebSocketCallbackEvent::PairPeerLeft,
+        ] {
+            assert_eq!(
+                session
+                    .executor()
+                    .completed_events()
+                    .iter()
+                    .filter(|seen| **seen == event)
+                    .count(),
+                1
+            );
+        }
         let first = hub
             .join("/ws".into(), target.into(), 4, &pairing, None)
             .unwrap();
@@ -191,14 +216,19 @@ fn suspended_first_or_second_match_payload_never_publishes_partial_output() {
         let mut second = hub
             .join("/ws".into(), "second".into(), 4, &pairing, None)
             .unwrap();
-        let error = second.dispatch_admission(&mut session).unwrap_err();
+        let error =
+            super::super::protocol_test_support::complete(second.dispatch_admission(&mut session))
+                .unwrap_err();
         assert!(
             error
                 .to_string()
-                .contains("suspended without producing payloads"),
+                .contains("without a protocol operation adapter"),
             "{error}"
         );
-        assert!(session.is_waiting());
+        assert!(
+            !session.is_waiting(),
+            "unsupported waits are cancelled immediately"
+        );
         assert!(first.outbound.try_recv().is_err());
         assert!(second.outbound.try_recv().is_err());
         assert!(hub
@@ -261,7 +291,7 @@ fn source_websocket_identity_resolves_encoded_duplicate_and_invalid_queries() {
         resolve(&mut session, "/ws?room=after&player=second").unwrap(),
         Some(("after".into(), 2))
     );
-    session.close().unwrap();
+    super::super::protocol_test_support::complete(session.close_suspendable()).unwrap();
 }
 
 #[test]
@@ -269,14 +299,15 @@ fn source_websocket_delivery_adapts_captured_callback_output() {
     let (_directory, mut session) = open_endpoint("source_websocket_delivery");
     for (first, second) in [("", ""), ("view", ""), ("", "view"), (" ", "view")] {
         session.enqueue_inbound("frame".into()).unwrap();
-        let (dispatched, output) = session
-            .dispatch_next_paired_inbound_output(Some((
+        let (dispatched, output) = super::super::protocol_test_support::complete(
+            session.dispatch_next_paired_inbound_output(Some((
                 "retained".into(),
                 2,
                 first.into(),
                 second.into(),
-            )))
-            .unwrap();
+            ))),
+        )
+        .unwrap();
         assert!(dispatched);
         let actual =
             terlan_http_native::source_descriptor::paired_callback_transition(output.unwrap())
@@ -290,32 +321,15 @@ fn source_websocket_delivery_adapts_captured_callback_output() {
             )
         );
     }
-    session.close().unwrap();
+    super::super::protocol_test_support::complete(session.close_suspendable()).unwrap();
 }
 
 fn resolve(
     session: &mut AotWebSocketCallbackSession,
     target: impl Into<String>,
 ) -> Result<Option<(String, i64)>, String> {
-    let scheduler = VmSchedulerTopology::new(1)
-        .unwrap()
-        .schedulers()
-        .next()
-        .unwrap();
-    let route = next_protocol_task_route(scheduler).unwrap();
-    let mut future = Box::pin(session.dispatch_pair_identity_output(target.into()));
-    let mut context = Context::from_waker(Waker::noop());
-    let deadline = Instant::now() + Duration::from_secs(10);
-    loop {
-        match with_protocol_task_for_test(route, || future.as_mut().poll(&mut context)) {
-            Poll::Ready(value) => return value.map_err(String::from),
-            Poll::Pending => {
-                if Instant::now() >= deadline {
-                    with_protocol_task_for_test(route, || drop(future));
-                    panic!("source reconnect callback did not finish");
-                }
-                std::thread::sleep(Duration::from_millis(5));
-            }
-        }
-    }
+    super::super::protocol_test_support::complete(
+        session.dispatch_pair_identity_output(target.into()),
+    )
+    .map_err(String::from)
 }

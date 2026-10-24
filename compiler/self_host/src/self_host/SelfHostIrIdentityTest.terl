@@ -1,0 +1,19 @@
+/** Contracts for canonical self-hosted Core IR identity. */
+module self_host.SelfHostIrIdentityTest.
+
+import self_host.SelfHostIrIdentity.
+
+@test
+pub identical_canonical_ir_has_identical_identity(): Bool ->
+    SelfHostIrIdentity.canonical_hash("{\"abi\":\"1.4\",\"module\":\"demo\"}")
+        == SelfHostIrIdentity.canonical_hash("{\"abi\":\"1.4\",\"module\":\"demo\"}").
+
+@test
+pub canonical_ir_identity_preserves_field_boundaries(): Bool ->
+    SelfHostIrIdentity.canonical_hash("{\"module\":\"ab\",\"name\":\"c\"}")
+        != SelfHostIrIdentity.canonical_hash("{\"module\":\"a\",\"name\":\"bc\"}").
+
+@test
+pub canonical_ir_identity_is_domain_separated(): Bool ->
+    SelfHostIrIdentity.canonical_hash("abc")
+        != "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad".

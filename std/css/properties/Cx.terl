@@ -1,78 +1,25 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/geometry.html#CxProperty
+ * The `cx` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the x-axis
+ * center point of an SVG `circle` or `ellipse` element. If present, it overrides the element's `cx`
+ * attribute.
+ *
+ * Initial: 0. Inherited: no.
+ * Percentages: refer to the width of the current SVG viewport.
+ *
  * Grammar: <length-percentage>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/geometry.html#CxProperty
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/cx
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Cx.
 
-import std.css.Values.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
-
-/**
- * A nominal, specification-constrained cx value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    cx: Value,
+    cx: Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    cx: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "cx", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "cx", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "cx", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "cx", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "cx", css: "unset"}).
-
-/**
- * Constructs a cx value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "cx", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a cx value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "cx", css: std.css.Values.percentage_css(value)}).

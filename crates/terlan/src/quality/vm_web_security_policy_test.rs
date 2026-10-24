@@ -87,13 +87,13 @@ sample_cookie_with_options sample_delete_cookie sample_redirect
         self.write(
             "std/http/Session.terl",
             "set_header_with_options(\n\
-             @compiler.native {std.http.session.rotate}\nrenew(identity: String, ttl_seconds: Int): String.\n\
+             @compiler.native\ntry_rotate(identity: String, replacement: String, ttl_seconds: Int): Bool.\n\
              @compiler.native {std.http.session.expire}\ninvalidate(identity: String): Unit.",
         )?;
         self.write(
             "std/http/native/src/session_store.rs",
             r#"
-.rotate(identity, ttl_seconds, &mut Resources(&mut self.resources))
+.try_rotate(
 .expire(identity, &mut Resources(&mut self.resources))
 "#,
         )?;
@@ -274,7 +274,7 @@ fn vm_web_security_policy_rejects_legacy_session_and_parser_evidence() {
         (
             "std/http/native/src/session_store.rs",
             "crates/terlan/src/runtime/vm/http_session/state/commands.rs",
-            ".rotate(identity, ttl_seconds, &mut Resources(&mut self.resources))",
+            ".try_rotate(",
         ),
         (
             "std/http/SessionTest.terl",

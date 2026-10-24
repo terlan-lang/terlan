@@ -32,6 +32,7 @@ module channels.
 import std.core.Int.
 import std.core.Unit.
 import std.vm.Process.
+import std.io.File.
 import std.core.Result.{Err, Ok}.
 import std.core.Option.{None, Some}.
 import type std.core.{Option, Result}.
@@ -43,6 +44,7 @@ type Restored = (String, String, Int, String, String) -> String.
 type Inbound = (Option[{String, Int, String, String}], String) -> Result[{String, Option[String], Option[String]}, String].
 type Identity = (String) -> Result[Option[{String, Int}], String].
 type RoomIdentity = (Int) -> String.
+type Streaming = (String) -> String.
 pub room_identity(prefix: String): RoomIdentity -> (sequence: Int) -> prefix + Int.to_string(sequence).
 pub identity(prefix: String): Identity -> (target: String) -> Ok(Some({prefix + target, 2})).
 checked(value: String): Unit ->
@@ -54,6 +56,15 @@ pub idle(prefix: String): Idle -> () -> checked(prefix).
 pub event(prefix: String): Event -> (_value: String) -> checked(prefix).
 pub waiting(prefix: String): Event ->
     (_value: String) -> let wake = Process.receive_string(); checked(prefix + wake).
+pub streaming(prefix: String): Streaming ->
+    (frame: String) ->
+        let _started = Process.sleep(Process.timer(if { frame == "drop" -> 60000; true -> 1 }));
+        let present = File.exists(".");
+        let first = Process.receive_string();
+        let _resumed = Process.sleep(Process.timer(if { first == "drop" -> 60000; true -> 1 }));
+        let second = Process.receive_string();
+        let _finished = Process.sleep(Process.timer(1));
+        if { present -> prefix + frame + first + second; true -> "missing" }.
 pub text(prefix: String): TextCallback -> () -> prefix.
 pub matched(prefix: String): Matched ->
     (room: String, first: String, second: String) ->
@@ -96,6 +107,7 @@ pub inbound(prefix: String): Inbound ->
     let idle = make("idle");
     let event = make("event");
     let waiting = make("waiting");
+    let streaming = make("streaming");
     let text = make("text");
     let matched = make("matched");
     let restored = make("restored");
@@ -107,6 +119,7 @@ pub inbound(prefix: String): Inbound ->
     let runtime = Arc::new(AotHandlerRuntime::load("channels".into(), &path, None).unwrap());
     exercise_sse(&runtime, &idle, &event, &waiting);
     exercise_websocket(&runtime, &idle, &event, &waiting);
+    super::super::protocol_test_support::with_owner(|| exercise_streaming(&runtime, &streaming));
     exercise_recovery(
         &runtime,
         event,
@@ -117,6 +130,61 @@ pub inbound(prefix: String): Inbound ->
         (identity, room_identity),
     );
     reject_invalid_callbacks(runtime, &text, &waiting);
+}
+
+fn exercise_streaming(runtime: &Arc<AotHandlerRuntime>, callback: &ReplValue) {
+    use super::super::protocol_test_support::{cancel_after_pending, complete};
+    use terlan_runtime_abi::{CallbackInvocation, NativeValue};
+
+    let mut invocation =
+        AotChannelInvocation::new("channel", Arc::clone(runtime), "channels".into());
+    for _ in 0..2 {
+        cancel_after_pending(invocation.invoke_streaming(
+            0,
+            Some(callback),
+            vec![NativeValue::String("drop".into())],
+        ));
+        assert!(!invocation.is_waiting());
+    }
+    for cancel_resume in [true, false] {
+        let AotChannelCallbackState::Waiting(first) = complete(invocation.invoke_streaming(
+            1,
+            Some(callback),
+            vec![NativeValue::String("frame:".into())],
+        ))
+        .unwrap() else {
+            panic!("timer and native work must finish before retaining the text wait");
+        };
+        assert!(
+            complete(invocation.invoke_streaming(2, Some(callback), vec![]))
+                .unwrap_err()
+                .contains("callback_busy")
+        );
+        if cancel_resume {
+            cancel_after_pending(
+                invocation.resume_streaming(first.wake(ReplValue::String("drop".into()))),
+            );
+            assert!(!invocation.is_waiting());
+            continue;
+        }
+        let AotChannelCallbackState::Waiting(second) =
+            complete(invocation.resume_streaming(first.wake(ReplValue::String("first:".into()))))
+                .unwrap()
+        else {
+            panic!("resumed callback must retain its second text wait");
+        };
+        let AotChannelCallbackState::Complete(value) =
+            complete(invocation.resume_streaming(second.wake(ReplValue::String("second".into()))))
+                .unwrap()
+        else {
+            panic!("second frame completes the original callback");
+        };
+        assert_eq!(
+            value,
+            ReplValue::String("captured:frame:first:second".into())
+        );
+    }
+    assert_eq!(invocation.completed_events(), &[1]);
 }
 
 fn exercise_sse(
@@ -206,7 +274,7 @@ fn exercise_websocket(
             .unwrap(),
     );
     completed(session.writable().unwrap());
-    completed(session.close().unwrap());
+    super::super::protocol_test_support::complete(session.close_suspendable()).unwrap();
     assert!(!session.is_open());
     let mut session = crate::commands::serve::handler::websocket_invocation::open(
         Arc::clone(runtime),
@@ -258,9 +326,16 @@ fn exercise_recovery(
         Session::open(paired.clone()),
     )
     .unwrap();
-    assert_eq!(session.dispatch_pair_waiting_output().unwrap(), "captured:");
     assert_eq!(
-        session.dispatch_pair_room_identity_output(42).unwrap(),
+        super::super::protocol_test_support::complete(session.dispatch_pair_waiting_output())
+            .unwrap(),
+        "captured:"
+    );
+    assert_eq!(
+        super::super::protocol_test_support::complete(
+            session.dispatch_pair_room_identity_output(42)
+        )
+        .unwrap(),
         "captured:42"
     );
     assert_eq!(
@@ -272,38 +347,38 @@ fn exercise_recovery(
         std::task::Poll::Ready(Some(("captured:target".into(), 2)))
     );
     assert_eq!(
-        session.dispatch_pair_peer_left_output().unwrap(),
+        super::super::protocol_test_support::complete(session.dispatch_pair_peer_left_output())
+            .unwrap(),
         "captured:"
     );
     assert_eq!(
-        session
-            .dispatch_pair_matched_output("room".into(), "first".into(), "second".into())
-            .unwrap(),
+        super::super::protocol_test_support::complete(session.dispatch_pair_matched_output(
+            "room".into(),
+            "first".into(),
+            "second".into()
+        ))
+        .unwrap(),
         (
             "captured:roomfirstsecond".into(),
             "captured:roomfirstsecond".into()
         )
     );
     assert_eq!(
-        session
-            .dispatch_pair_restored_output(
-                "room".into(),
-                "state".into(),
-                2,
-                "first".into(),
-                "second".into()
-            )
-            .unwrap(),
+        super::super::protocol_test_support::complete(session.dispatch_pair_restored_output(
+            "room".into(),
+            "state".into(),
+            2,
+            "first".into(),
+            "second".into()
+        ))
+        .unwrap(),
         "captured:roomstatefirstsecond"
     );
     session.enqueue_inbound("data".into()).unwrap();
-    let (_, value) = session
-        .dispatch_next_paired_inbound_output(Some((
-            "state".into(),
-            1,
-            "first".into(),
-            "second".into(),
-        )))
+    let (_, value) =
+        super::super::protocol_test_support::complete(session.dispatch_next_paired_inbound_output(
+            Some(("state".into(), 1, "first".into(), "second".into())),
+        ))
         .unwrap();
     assert_eq!(
         terlan_http_native::source_descriptor::paired_callback_transition(value.unwrap()).unwrap(),
@@ -332,7 +407,7 @@ fn exercise_package_hub(
     let mut second = hub
         .join("/ws".into(), "second".into(), 4, pairing, None)
         .unwrap();
-    second.dispatch_admission(session).unwrap();
+    super::super::protocol_test_support::complete(second.dispatch_admission(session)).unwrap();
     assert_eq!(
         first.outbound.try_recv().unwrap(),
         "captured:captured:1firstsecond"
@@ -342,16 +417,15 @@ fn exercise_package_hub(
         "captured:captured:1firstsecond"
     );
     session.enqueue_inbound("data".into()).unwrap();
-    first
-        .transition(|context| {
-            let (dispatched, output) = session.dispatch_next_paired_inbound_output(context)?;
-            assert!(dispatched);
-            Ok(
-                terlan_http_native::source_descriptor::paired_callback_transition(output.unwrap())
-                    .unwrap(),
-            )
-        })
-        .unwrap();
+    super::super::protocol_test_support::complete(first.transition(|context| async {
+        let (dispatched, output) = session.dispatch_next_paired_inbound_output(context).await?;
+        assert!(dispatched);
+        Ok(
+            terlan_http_native::source_descriptor::paired_callback_transition(output.unwrap())
+                .unwrap(),
+        )
+    }))
+    .unwrap();
     assert_eq!(first.outbound.try_recv().unwrap(), "first");
     assert_eq!(second.outbound.try_recv().unwrap(), "second");
     drop(second);
@@ -365,7 +439,7 @@ fn exercise_package_hub(
             Some(("captured:1".into(), 2)),
         )
         .unwrap();
-    restored.dispatch_admission(session).unwrap();
+    super::super::protocol_test_support::complete(restored.dispatch_admission(session)).unwrap();
     assert_eq!(
         restored.outbound.try_recv().unwrap(),
         "captured:captured:1captured:datafirstsecond"

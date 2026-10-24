@@ -85,7 +85,6 @@ impl SourceInterfaceGraph {
             let required = declarations
                 .values()
                 .flat_map(super::interface_loading::source_dependency_modules)
-                .filter(|module| module.starts_with("std."))
                 .collect();
             super::interface_loading::load_required_standard_interfaces(
                 &path.to_string_lossy(),

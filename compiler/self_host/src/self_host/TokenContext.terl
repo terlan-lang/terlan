@@ -25,6 +25,10 @@ is_name(category: TokenCategory): Bool ->
         or category == ContextualKeywordToken.
 
 @pure
+is_name_token(value: CanonicalToken): Bool ->
+    is_name(value.category) or value.text == "template".
+
+@pure
 next_significant(tokens: List[CanonicalToken]): Option[CanonicalToken] ->
     case tokens {
         [] -> none_token();
@@ -50,7 +54,7 @@ next_is_category(next: Option[CanonicalToken], category: TokenCategory): Bool ->
 @pure
 tight_name_after(token: CanonicalToken, next: Option[CanonicalToken]): Bool ->
     case next {
-        Some(value) -> token.end_byte == value.start_byte and (is_name(value.category) or value.terminal == "#");
+        Some(value) -> token.end_byte == value.start_byte and (is_name_token(value) or value.terminal == "#");
         None -> false
     }.
 
@@ -133,7 +137,7 @@ balanced_followed_by(
 @pure
 previous_is_tight_name(previous: Option[CanonicalToken], token: CanonicalToken): Bool ->
     case previous {
-        Some(value) -> is_name(value.category) and value.end_byte == token.start_byte;
+        Some(value) -> is_name_token(value) and value.end_byte == token.start_byte;
         None -> false
     }.
 
@@ -346,6 +350,13 @@ contextualize_after_raw(
     }.
 
 @pure
+raw_quoted_text(token: CanonicalToken): Bool ->
+    if {
+        token.category == StringToken -> token.text.utf8_byte_at(0) == 39;
+        true -> false
+    }.
+
+@pure
 contextualize_one(
     token: CanonicalToken,
     previous: Option[CanonicalToken],
@@ -353,7 +364,7 @@ contextualize_one(
     rest: List[CanonicalToken],
 ): CanonicalToken ->
     if {
-        token.category == StringToken and token.text.utf8_byte_at(0) == 39 ->
+        raw_quoted_text(token) ->
             with_terminal(token, "raw-quoted-text");
         true -> contextualize_after_raw(token, previous, next, rest)
     }.

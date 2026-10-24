@@ -1,75 +1,40 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-break-4/#propdef-box-decoration-break
+ * The `box-decoration-break` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies how an element's
+ * [fragments](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Fragmentation) should be
+ * rendered when broken across multiple lines, columns, or pages.
+ *
+ * Initial: slice. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - clone: Each box fragment is rendered independently with the specified border, padding, and
+ * margin wrapping each fragment. The , , and are applied to each fragment independently. The
+ * background is also drawn independently for each fragment, which means that a background image
+ * with may nevertheless repeat multiple times.
+ * - slice: The element is initially rendered as if its box were not fragmented, after which the
+ * rendering for this hypothetical box is sliced into pieces for each line/column/page. Note that
+ * the hypothetical box can be different for each fragment since it uses its own height if the break
+ * occurs in the inline direction, and its own width if the break occurs in the block direction. See
+ * the CSS specification for details.
+ *
  * Grammar: slice | clone
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-break-4/#propdef-box-decoration-break
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/box-decoration-break
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BoxDecorationBreak.
 
-import type std.core.Option.
+import std.css.keywords.{Clone, Slice}.
 
-/**
- * A nominal, specification-constrained box-decoration-break value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    box_decoration_break: Value,
+    box_decoration_break: Slice | Clone | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    box_decoration_break: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword clone.
- */
-pub clone(): Value ->
-    Value(Token {property: "box-decoration-break", css: "clone"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "box-decoration-break", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "box-decoration-break", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "box-decoration-break", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "box-decoration-break", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword slice.
- */
-pub slice(): Value ->
-    Value(Token {property: "box-decoration-break", css: "slice"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "box-decoration-break", css: "unset"}).

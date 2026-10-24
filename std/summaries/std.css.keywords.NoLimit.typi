@@ -1,0 +1,6 @@
+//! Shared CSS keyword no-limit. Generated; do not edit.
+
+module std.css.keywords.NoLimit.
+
+pub type NoLimit =
+    Atom["no-limit"].

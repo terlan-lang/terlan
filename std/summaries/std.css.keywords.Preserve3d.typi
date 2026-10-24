@@ -1,0 +1,6 @@
+//! Shared CSS keyword preserve-3d. Generated; do not edit.
+
+module std.css.keywords.Preserve3d.
+
+pub type Preserve3d =
+    Atom["preserve-3d"].

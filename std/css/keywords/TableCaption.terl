@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword table-caption. Generated; do not edit.
+ */
+module std.css.keywords.TableCaption.
+
+pub type TableCaption = Atom["table-caption"].

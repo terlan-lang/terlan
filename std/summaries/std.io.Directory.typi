@@ -18,13 +18,13 @@ pub type DirectoryErrorCode =
   | Unknown.
 
 pub type InvalidPath =
-    Atom["invalid_path"].
+    std.io.File.InvalidPath.
 
 pub type NotFound =
-    Atom["not_found"].
+    std.io.File.NotFound.
 
 pub type PermissionDenied =
-    Atom["permission_denied"].
+    std.io.File.PermissionDenied.
 
 /// Deterministic storage usage for one directory tree.
 ///
@@ -42,7 +42,7 @@ pub struct TreeUsage {
 }.
 
 pub type Unknown =
-    Atom["unknown"].
+    std.io.File.Unknown.
 
 /// Copies one directory tree into a destination that does not yet exist.
 /// Exact entry basenames in `excluded_entry_names` are pruned, symbolic links

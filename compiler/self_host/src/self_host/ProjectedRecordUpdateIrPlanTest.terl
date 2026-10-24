@@ -1,0 +1,55 @@
+/** Typed Core lowering contracts for immutable record updates. */
+module self_host.ProjectedRecordUpdateIrPlanTest.
+
+import self_host.ProjectedExpressionIrPlan.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedTypeConstraintSyntax.InferredTypeFact.
+import self_host.SelfHostIrSyntax.IrParameter.
+import self_host.SelfHostSemanticIrSyntax.SemanticInstructionPlan.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+
+last_instruction(
+    values: List[SemanticInstructionPlan],
+    current: Option[SemanticInstructionPlan],
+): Option[SemanticInstructionPlan] ->
+    case values {
+        [] -> current;
+        [value | rest] -> last_instruction(rest, Some(value))
+    }.
+
+@test
+pub record_update_emits_checked_immutable_field_replacement(): Bool ->
+    let expression = ProjectedExpressionNode(
+        "record-update",
+        "Point",
+        10,
+        32,
+        [
+            ProjectedExpressionNode("identifier", "point", 10, 15, []),
+            ProjectedExpressionNode("identifier", "Point", 16, 21, []),
+            ProjectedExpressionNode(
+                "keyed-field",
+                "x",
+                23,
+                28,
+                [ProjectedExpressionNode("integer", "2", 27, 28, [])],
+            ),
+        ],
+    );
+    let plan = ProjectedExpressionIrPlan.lower_expression(
+        expression,
+        0,
+        [
+            InferredTypeFact(0, Some("Point"), 10),
+            InferredTypeFact(4, Some("Int"), 27),
+        ],
+        [IrParameter("point", "Point")],
+    );
+    case last_instruction(plan.instructions, None) {
+        None -> false;
+        Some(instruction) -> instruction.opcode == "update-struct-field"
+            and instruction.operands == ["point", "x", "%4"]
+            and instruction.operand_types == [Some("Point"), Some("String"), Some("Int")]
+            and instruction.resolved_type == Some("Point")
+    }.

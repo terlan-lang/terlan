@@ -20,7 +20,7 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 assert.equal(process.env.TERLAN_JS_MODULES, undefined);
 assert.equal(process.env.CI, '1');
-assert.equal(process.env.TERLC, process.env.CARGO_TARGET_DIR + '/debug/terlc');
+assert.equal(process.env.TERLC, process.env.CARGO_TARGET_DIR + '/release/terlc');
 const args = process.argv.slice(2);
 const names = ['chromium', 'firefox', 'webkit'];
 const report = {
@@ -50,7 +50,7 @@ else {
   }
 }
 
-test('browser hook clears filters and requires every browser with the staged compiler', async () => {
+test('browser hook clears filters and requires every browser with the staged release compiler', async () => {
   const result = await run('complete');
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.match(result.stdout, /Complete Playwright matrix passed: 3 cases/);

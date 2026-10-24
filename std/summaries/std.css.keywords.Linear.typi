@@ -1,0 +1,6 @@
+//! Shared CSS keyword linear. Generated; do not edit.
+
+module std.css.keywords.Linear.
+
+pub type Linear =
+    Atom["linear"].

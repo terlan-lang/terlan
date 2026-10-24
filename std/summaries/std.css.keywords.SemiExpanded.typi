@@ -1,0 +1,6 @@
+//! Shared CSS keyword semi-expanded. Generated; do not edit.
+
+module std.css.keywords.SemiExpanded.
+
+pub type SemiExpanded =
+    Atom["semi-expanded"].

@@ -1,0 +1,8 @@
+module=std.css.keywords.TrimEnd
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=2829342703797131427
+interface_hash=9580191086098197589
+interface_doc_hash=2755384368579462706
+deps=0

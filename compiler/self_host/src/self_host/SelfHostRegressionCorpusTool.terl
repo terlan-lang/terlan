@@ -1,0 +1,42 @@
+/** Fail-closed corpus inventory and file-presence evidence producer. */
+module self_host.SelfHostRegressionCorpusTool.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, String}.
+import std.io.File.
+
+import self_host.SelfHostRegressionCorpus.{RegressionCorpusEntry}.
+import self_host.SelfHostRegressionCorpus.
+
+
+files_exist(values: List[RegressionCorpusEntry], root: String): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> case File.read_text(root + "/" + value.path) {
+            Err(_) -> false;
+            Ok(_) -> files_exist(rest, root)
+        }
+    }.
+
+/** Publishes canonical coverage only for a strict, complete, materialized inventory. */
+pub write(manifest_path: String, corpus_root: String, output_path: String): Bool ->
+    let _removed = File.delete(output_path);
+    case File.read_text(manifest_path) {
+        Err(_) -> false;
+        Ok(manifest) -> case SelfHostRegressionCorpus.decode(manifest) {
+            None -> false;
+            Some(values) -> if {
+                not SelfHostRegressionCorpus.complete(values) -> false;
+                not files_exist(values, corpus_root) -> false;
+                true -> case File.write_text(
+                    output_path,
+                    SelfHostRegressionCorpus.render(values),
+                ) {
+                    Err(_) -> false;
+                    Ok(_) -> true
+                }
+            }
+        }
+    }.

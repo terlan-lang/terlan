@@ -1,52 +1,27 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-forms-1/#propdef-field-sizing
+//! The `field-sizing` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property enables you
+//! to control the sizing behavior of elements that are given a default preferred size, such as form
+//! control elements. This property enables you to override the default sizing behavior, allowing
+//! form controls to adjust in size to fit their contents.
+//!
+//! Initial: fixed. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - content: Allows the element to adjust its size to fit its contents.
+//! - fixed: Sets a fixed size for the element. This is the default value.
+//!
 //! Grammar: fixed | content
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-forms-1/#propdef-field-sizing
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/field-sizing
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FieldSizing.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    field_sizing: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    field_sizing: Value
+    field_sizing: Fixed | Content | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained field-sizing value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword content.
-
-pub content(): Value.
-
-/// Returns the CSS keyword fixed.
-
-pub fixed(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

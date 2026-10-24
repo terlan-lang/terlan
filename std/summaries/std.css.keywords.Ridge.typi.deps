@@ -1,0 +1,8 @@
+module=std.css.keywords.Ridge
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=12993561250431999197
+interface_hash=16378994580052154184
+interface_doc_hash=7157430284135996798
+deps=0

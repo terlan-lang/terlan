@@ -1,10 +1,9 @@
 module=std.css.properties.BorderInlineStartColor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=3610403843831636103
-interface_hash=5595760361648137898
-interface_doc_hash=10892978605420902357
-deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=12808411184443130575
+interface_hash=7714100887475285084
+interface_doc_hash=3112025695632680621
+deps=1
+std.css.Values=330909209718432688

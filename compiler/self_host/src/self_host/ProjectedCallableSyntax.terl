@@ -11,17 +11,35 @@ pub struct CallableDeclaration {
     name: String,
     arity: Int,
     callable_kind: String,
+    receiver_mutable: Bool,
+    type_parameters: List[String],
+    parameter_types: List[Option[String]],
     return_type: Option[String],
     byte_offset: Int,
 }.
 
 pub constructor CallableDeclaration {
-    (module_name: String, name: String, arity: Int, callable_kind: String, return_type: Option[String], byte_offset: Int): CallableDeclaration ->
+    (module_name: String, name: String, arity: Int, callable_kind: String, type_parameters: List[String], parameter_types: List[Option[String]], return_type: Option[String], byte_offset: Int): CallableDeclaration ->
         CallableDeclaration {
             module_name: module_name,
             name: name,
             arity: arity,
             callable_kind: callable_kind,
+            receiver_mutable: false,
+            type_parameters: type_parameters,
+            parameter_types: parameter_types,
+            return_type: return_type,
+            byte_offset: byte_offset,
+        };
+    (module_name: String, name: String, arity: Int, callable_kind: String, receiver_mutable: Bool, type_parameters: List[String], parameter_types: List[Option[String]], return_type: Option[String], byte_offset: Int): CallableDeclaration ->
+        CallableDeclaration {
+            module_name: module_name,
+            name: name,
+            arity: arity,
+            callable_kind: callable_kind,
+            receiver_mutable: receiver_mutable,
+            type_parameters: type_parameters,
+            parameter_types: parameter_types,
             return_type: return_type,
             byte_offset: byte_offset,
         }
@@ -32,15 +50,17 @@ pub struct CallableUse {
     module_name: Option[String],
     name: String,
     arity: Int,
+    argument_offsets: List[Int],
     byte_offset: Int,
 }.
 
 pub constructor CallableUse {
-    (module_name: Option[String], name: String, arity: Int, byte_offset: Int): CallableUse ->
+    (module_name: Option[String], name: String, arity: Int, argument_offsets: List[Int], byte_offset: Int): CallableUse ->
         CallableUse {
             module_name: module_name,
             name: name,
             arity: arity,
+            argument_offsets: argument_offsets,
             byte_offset: byte_offset,
         }
 }.

@@ -1,0 +1,103 @@
+/** Positive and negative source-order consistency lint contracts. */
+module self_host.SelfHostLintConsistencyTest.
+
+import self_host.SelfHostLintConsistency.
+
+@test
+pub reports_import_before_module(): Bool ->
+    case SelfHostLintConsistency.module_order(
+        "Sample.terl",
+        "\nimport std.io.Console.\nmodule sample.\n",
+    ) {
+        [value] -> value.rule_id == "TL0501" and value.line == 2 and value.column == 1;
+        _ -> false
+    }.
+
+@test
+pub accepts_docs_before_module_and_scripts_without_modules(): Bool ->
+    SelfHostLintConsistency.module_order(
+        "Sample.terl",
+        "/**\n * Docs.\n */\nmodule sample.\n",
+    ) == []
+        and SelfHostLintConsistency.module_order("script.terls", "println(\"ok\").") == [].
+
+@test
+pub reports_import_after_declaration(): Bool ->
+    case SelfHostLintConsistency.import_order(
+        "Sample.terl",
+        "module sample.\npub value(): Int -> 1.\nimport std.io.Console.\n",
+    ) {
+        [value] -> value.rule_id == "TL0502" and value.line == 3;
+        _ -> false
+    }.
+
+@test
+pub accepts_import_block_before_declarations(): Bool ->
+    SelfHostLintConsistency.import_order(
+        "Sample.terl",
+        "module sample.\nimport std.io.Console.\npub value(): Int -> 1.\n",
+    ) == [].
+
+@test
+pub reports_each_module_after_the_first(): Bool ->
+    case SelfHostLintConsistency.single_module(
+        "Sample.terl",
+        "module sample.\nmodule other.\nmodule third.\n",
+    ) {
+        [second, third] -> second.rule_id == "TL0503" and second.line == 2 and third.line == 3;
+        _ -> false
+    }.
+
+@test
+pub reports_noncanonical_declaration_blocks(): Bool ->
+    case SelfHostLintConsistency.declaration_order(
+        "Sample.terl",
+        "module sample.\npub value(): Int -> 1.\nimpl Show[Count].\npub type Count -> Int.\n",
+    ) {
+        [implementation, type_value] ->
+            implementation.rule_id == "TL0504"
+                and implementation.severity == "warning"
+                and type_value.rule_id == "TL0504";
+        _ -> false
+    }.
+
+@test
+pub accepts_canonical_declaration_blocks_and_indented_methods(): Bool ->
+    SelfHostLintConsistency.declaration_order(
+        "Sample.terl",
+        "module sample.\npub type Count -> Int.\nimpl Show[Count].\n    show(value: Count): String -> \"count\".\npub value(): Int -> 1.\n",
+    ) == [].
+
+@test
+pub derives_canonical_std_module_paths(): Bool ->
+    SelfHostLintConsistency.expected_std_module("/workspace/std/core/Bool.terl") ==
+        "std.core.Bool"
+        and SelfHostLintConsistency.expected_std_module("std/io/File.terli") ==
+            "std.io.File"
+        and SelfHostLintConsistency.expected_std_module("compiler/Main.terl") == "".
+
+@test
+pub reports_std_module_path_mismatch(): Bool ->
+    case SelfHostLintConsistency.std_module_path(
+        "std/core/Bool.terl",
+        "\nmodule std.core.Boolean.\n",
+    ) {
+        [value] ->
+            value.rule_id == "TL0505"
+                and value.rule_name == "consistency.std-module-path"
+                and value.severity == "error"
+                and value.line == 2
+                and value.column == 1;
+        _ -> false
+    }.
+
+@test
+pub accepts_matching_std_module_and_non_std_paths(): Bool ->
+    SelfHostLintConsistency.std_module_path(
+        "std/core/Bool.terl",
+        "/** module std.core.Boolean. */\nmodule std.core.Bool.\n",
+    ) == []
+        and SelfHostLintConsistency.std_module_path(
+            "Sample.terl",
+            "module different.\n",
+        ) == [].

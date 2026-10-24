@@ -132,46 +132,46 @@ fn normalize_application_calls(cores: &mut [CoreModule], phase: RemoteCallPhase)
             }
         }
     }
-    let visible_functions = cores
-        .iter()
-        .map(|caller| {
-            let mut visible = functions.clone();
-            let mut imported = HashMap::<(String, usize), Option<String>>::new();
-            let mut seen = HashSet::<(String, String, usize)>::new();
-            for import in caller
-                .imports
-                .iter()
-                .filter(|import| import.kind == CoreImportKind::Module)
+    for core in cores.iter_mut() {
+        let mut visible = functions.clone();
+        let mut imported = HashMap::<(String, usize), Option<String>>::new();
+        let mut seen = HashSet::<(String, String, usize)>::new();
+        for import in core
+            .imports
+            .iter()
+            .filter(|import| import.kind == CoreImportKind::Module)
+        {
+            for (provider, name, arity, qualified) in
+                public_by_import.get(&import.module).into_iter().flatten()
             {
-                for (provider, name, arity, qualified) in
-                    public_by_import.get(&import.module).into_iter().flatten()
+                if provider == &core.module
+                    || !seen.insert((provider.clone(), name.clone(), *arity))
                 {
-                    if provider == &caller.module
-                        || !seen.insert((provider.clone(), name.clone(), *arity))
-                    {
-                        continue;
-                    }
-                    let identity = (name.clone(), *arity);
-                    imported
-                        .entry(identity)
-                        .and_modify(|target| *target = None)
-                        .or_insert_with(|| Some(qualified.clone()));
+                    continue;
                 }
+                let identity = (name.clone(), *arity);
+                imported
+                    .entry(identity)
+                    .and_modify(|target| *target = None)
+                    .or_insert_with(|| Some(qualified.clone()));
             }
-            visible.extend(imported);
-            visible
-        })
-        .collect::<Vec<_>>();
-    for (core, visible) in cores.iter_mut().zip(&visible_functions) {
-        normalize_remote_calls(core, phase, visible);
+        }
+        visible.extend(imported);
+        normalize_remote_calls(core, phase, &visible);
     }
 }
 
 impl NativeModule {
     /// Lowers one checked CoreIR closure against one application-wide symbol table.
     pub(crate) fn lower_application(cores: &[&CoreModule]) -> Result<Vec<Self>, String> {
+        Self::lower_owned_application(cores.iter().map(|core| (*core).clone()).collect())
+    }
+
+    /// Lowers an owned checked CoreIR closure without cloning its function bodies.
+    pub(crate) fn lower_owned_application(
+        mut normalized_cores: Vec<CoreModule>,
+    ) -> Result<Vec<Self>, String> {
         let mut timings = ApplicationLoweringTimings::begin();
-        let mut normalized_cores = cores.iter().map(|core| (*core).clone()).collect::<Vec<_>>();
         normalized_cores.sort_by(|left, right| left.module.cmp(&right.module));
         if let Some(duplicate) = normalized_cores
             .windows(2)
@@ -183,6 +183,7 @@ impl NativeModule {
         }
         overloads::resolve_selected_imports(&mut normalized_cores)?;
         super::application_admission::reject_ambiguous_source_import_calls(&normalized_cores)?;
+        timings.mark("selected-imports-and-admission");
         // Expose constructor-chain bases before resolving executable bodies or
         // expanding transparent aliases, just as for direct constructor calls.
         normalized_cores
@@ -194,18 +195,22 @@ impl NativeModule {
                 function.source = Some(function.source_declaration(&core.module));
             }
         }
+        timings.mark("source-constructors");
         super::nominal_identity::qualify_application_nominal_types(&mut normalized_cores);
         super::atom_alias_values::lower_atom_alias_values(&mut normalized_cores);
+        timings.mark("nominal-and-atom-identities");
         // Resolve source receiver names before overloads rename their declarations.
         // Otherwise a method sharing a name with a free function loses its target.
         normalize_application_remote_calls(&mut normalized_cores, true);
         mutable_receivers::resolve_typed_mutable_receiver_calls(&mut normalized_cores)?;
         overloads::resolve_typed_overloads(&mut normalized_cores)?;
+        timings.mark("early-calls-receivers-and-overloads");
         let native_aliases = native_package_aliases(&normalized_cores);
         for core in &mut normalized_cores {
             lower_compiler_native_declarations(core)?;
         }
         canonicalize_native_package_types(&mut normalized_cores, &native_aliases, false)?;
+        timings.mark("native-package-canonicalization");
         normalized_cores.iter_mut().for_each(
             super::collection_intrinsic_specialization::annotate_function_result_constructors,
         );
@@ -213,16 +218,19 @@ impl NativeModule {
         super::collection_intrinsic_specialization::specialize_collection_intrinsic_results(
             &mut normalized_cores,
         );
+        timings.mark("early-alias-and-collection-specialization");
         let mut specialization_budget =
             super::specialization_budget::SpecializationBudget::default();
         for core in &mut normalized_cores {
             super::list_comprehension::lower_list_comprehensions(core)?;
             super::template_values::lower_template_values(core)?;
         }
+        timings.mark("list-and-template-lowering");
         // Generated deferred collectors introduce checked Effect applications.
         // Resolve those new witnesses before result-only generic inference;
         // otherwise a no-argument producer can be specialized with an open T.
-        transparent_aliases::expand_transparent_aliases(&mut normalized_cores);
+        transparent_aliases::expand_generated_transparent_aliases(&mut normalized_cores);
+        timings.mark("generated-alias-expansion");
         normalize_application_calls(&mut normalized_cores, RemoteCallPhase::BeforeSpecialization);
         timings.mark("pre-specialization");
         // Monomorphization must observe typed constructor patterns before
@@ -236,7 +244,7 @@ impl NativeModule {
         // signatures and intrinsic payloads after the first alias pass. Run
         // the idempotent resolver again so every generated mailbox boundary
         // and continuation uses the same concrete structural identity.
-        transparent_aliases::expand_transparent_aliases(&mut normalized_cores);
+        transparent_aliases::expand_generated_transparent_aliases(&mut normalized_cores);
         // Concrete producer signatures are available only after specialization;
         // refresh dependent run results before choosing an Effect runner ABI.
         super::collection_intrinsic_specialization::specialize_collection_intrinsic_results(
@@ -311,7 +319,7 @@ impl NativeModule {
         // Late receiver specialization and contextual constructor annotations
         // introduce fresh Option/collection aliases after generic expansion.
         // Close those generated types before admitting managed image layouts.
-        transparent_aliases::expand_transparent_aliases(&mut normalized_cores);
+        transparent_aliases::expand_generated_transparent_aliases(&mut normalized_cores);
         super::open_std_pruning::prune_unreachable_open_std_functions(&mut normalized_cores);
         for core in &mut normalized_cores {
             // Specialization may clone a typed constructor-chain expression

@@ -1,0 +1,18 @@
+/**
+ * OS entropy through a maintained native provider. These bytes are independent
+ * of seeded random generators; failure never falls back to predictable data.
+ */
+module std.crypto.Entropy.
+
+import type std.vm.Bytes.
+
+/**
+ * Acquires fresh entropy from the operating system.
+ *
+ * Input: a byte count from 1 through 4096, inclusive.
+ * Output: exactly that many opaque bytes, or a native boundary failure.
+ * Transformation: requests OS randomness once without encoding, retrying, or
+ * exposing partially filled output when the provider fails.
+ */
+@compiler.native
+pub bytes(count: Int): Bytes.

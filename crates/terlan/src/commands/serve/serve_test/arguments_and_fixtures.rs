@@ -460,7 +460,6 @@ pub(super) fn hyper_request_handler_serves_static_get_response() {
             typed_request("GET", "/index.html", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -489,7 +488,6 @@ pub(super) fn hyper_request_handler_serves_static_file_with_query_string() {
             typed_request("GET", "/assets/hello.txt?cache=1", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -529,7 +527,6 @@ pub(super) fn hyper_request_handler_rejects_non_get_websocket_route_before_stati
             typed_request("POST", "/ws", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -594,7 +591,6 @@ pub(super) fn hyper_request_handler_heads_non_get_websocket_route_without_body()
             typed_request("HEAD", "/ws", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -643,7 +639,6 @@ pub(super) fn hyper_request_handler_reports_websocket_upgrade_required_before_st
             typed_request("GET", "/ws", ""),
             web_root.clone(),
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 
@@ -693,13 +688,8 @@ pub(super) fn hyper_request_handler_rejects_malformed_websocket_upgrade_before_s
             .header("sec-websocket-key", "dGhlIHNhbXBsZSBub25jZQ==")
             .body(Full::new(Bytes::new()))
             .expect("websocket request");
-        let response = handle_hyper_request(
-            request,
-            web_root.clone(),
-            Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
-        )
-        .await;
+        let response =
+            handle_hyper_request(request, web_root.clone(), Arc::new(Mutex::new(Vec::new()))).await;
 
         assert_eq!(response.status(), http::StatusCode::BAD_REQUEST);
         let body = serve_response_text(response).await;
@@ -744,13 +734,8 @@ pub(super) fn hyper_request_handler_returns_websocket_upgrade_handshake() {
             .header("sec-websocket-version", "13")
             .body(Full::new(Bytes::new()))
             .expect("websocket request");
-        let response = handle_hyper_request(
-            request,
-            web_root.clone(),
-            Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
-        )
-        .await;
+        let response =
+            handle_hyper_request(request, web_root.clone(), Arc::new(Mutex::new(Vec::new()))).await;
 
         assert_eq!(response.status(), http::StatusCode::SWITCHING_PROTOCOLS);
         assert_eq!(
@@ -829,7 +814,6 @@ pub(super) fn hyper_request_handler_serves_manifest_declared_static_assets_from_
             typed_request("GET", "/assets/nested/logo.txt?cache=1", ""),
             web_root,
             Arc::new(Mutex::new(Vec::new())),
-            websocket_hub(),
         )
         .await;
 

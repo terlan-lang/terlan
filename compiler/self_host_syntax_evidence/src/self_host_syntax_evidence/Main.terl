@@ -6,7 +6,7 @@ import std.core.Result.{Err, Ok}.
 import std.core.{Bool, Int, String}.
 import std.io.Console.{eprintln}.
 import std.io.File.{read_text, write_text}.
-import std.system.Arguments.{get}.
+import std.system.Arguments.{count, get}.
 import self_host.CanonicalLexer.
 import self_host.ConcreteSyntaxParser.
 import self_host.ConcreteSyntaxEvidence.
@@ -61,23 +61,47 @@ render(mode: String, source: String): Option[String] ->
         true -> None
     }.
 
+render_path(mode: String, source_path: String, output_path: String): Bool ->
+    case read_text(source_path) {
+        Err(_reason) -> fail("self-host syntax evidence could not read source");
+        Ok(source) -> let rendered = render(mode, source);
+            case rendered {
+            None -> fail("self-host syntax evidence generation failed");
+            Some(text) -> case write_text(output_path, text) {
+                Err(_reason) -> fail("self-host syntax evidence could not write artifact");
+                Ok(_written) -> true
+            }
+        }
+    }.
+
+render_batch(mode: String, index: Int, argument_count: Int): Bool ->
+    if {
+        index == argument_count -> true;
+        index + 1 >= argument_count -> fail("batch mode requires source/output pairs");
+        render_path(mode, argument(index), argument(index + 1)) ->
+            render_batch(mode, index + 2, argument_count);
+        true -> false
+    }.
+
+render_fragment_batch(index: Int, argument_count: Int): Bool ->
+    if {
+        index == argument_count -> true;
+        index + 2 >= argument_count -> fail("fragments-batch requires mode/source/output triples");
+        render_path(argument(index), argument(index + 1), argument(index + 2)) ->
+            render_fragment_batch(index + 3, argument_count);
+        true -> false
+    }.
+
 /** Reads one source path and writes its implementation-neutral syntax artifact. */
 pub main(): Bool ->
     let mode = argument(0);
     let source_path = argument(1);
     let output_path = argument(2);
     if {
+        mode == "errors-batch" -> render_batch("errors", 1, count());
+        mode == "parity-batch" -> render_batch("parity", 1, count());
+        mode == "fragments-batch" -> render_fragment_batch(1, count());
         mode == "" or source_path == "" or output_path == "" ->
             fail("usage: syntax-evidence <mode> <source.terl> <output>");
-        true -> case read_text(source_path) {
-            Err(_reason) -> fail("self-host syntax evidence could not read source");
-            Ok(source) -> let rendered = render(mode, source);
-                case rendered {
-                None -> fail("self-host syntax evidence generation failed");
-                Some(text) -> case write_text(output_path, text) {
-                    Err(_reason) -> fail("self-host syntax evidence could not write artifact");
-                    Ok(_written) -> true
-                }
-            }
-        }
+        true -> render_path(mode, source_path, output_path)
     }.

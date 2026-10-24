@@ -1,48 +1,28 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-image
+//! The `mask-image` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the image
+//! that is used as the mask layer for an element, hiding sections of the element on which the
+//! masking image is set based on the alpha channel of the mask image and, depending on the
+//! `mask-mode` property value, the luminance of the mask image's colors.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - none: This keyword is interpreted as a transparent black image layer.
+//!
 //! Grammar: <mask-reference>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-image
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-image
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MaskImage.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    mask_image: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    mask_image: Value
+    mask_image: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained mask-image value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

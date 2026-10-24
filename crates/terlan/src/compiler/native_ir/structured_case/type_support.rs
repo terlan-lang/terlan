@@ -7,7 +7,7 @@ use crate::terlan_typeck::{
     CoreTupleTypeElem, CoreType,
 };
 
-use super::super::{native_type, NativeExpr, NativeType};
+use super::super::{native_type, NativeConstructorLayouts, NativeExpr, NativeType};
 
 /// Shared grouped-let fallbacks span different closed unions and scalar guards.
 /// Disjoint arms must not project fields or lower unreachable bindings. Unknown
@@ -221,6 +221,41 @@ pub(super) fn core_expr_type(
         _ => None,
     };
     inferred.map(normalize_inferred_type)
+}
+
+/// Recovers fields projected from recursive nominal struct anchors. Alias
+/// expansion deliberately retains those anchors to keep recursive Core types
+/// finite; constructor metadata owns the corresponding one-layer declaration.
+pub(super) fn core_expr_type_with_constructors(
+    expr: &CoreExpr,
+    types: &HashMap<String, CoreType>,
+    functions: &HashMap<(String, usize), CoreType>,
+    constructors: &NativeConstructorLayouts,
+) -> Option<CoreType> {
+    if let Some(ty) = core_expr_type(expr, types, functions) {
+        return Some(ty);
+    }
+    let (CoreExpr::FieldAccess { base, field }
+    | CoreExpr::RecordAccess {
+        base, field, ..
+    }) = expr
+    else {
+        return None;
+    };
+    let base = core_expr_type_with_constructors(base, types, functions, constructors)?;
+    let canonical = super::super::expression::managed_semantic_contract(&base);
+    constructors
+        .values()
+        .filter_map(|layout| layout.result_core_type.as_ref())
+        .find_map(|candidate| {
+            let CoreType::Struct { fields, .. } = candidate else {
+                return None;
+            };
+            (super::super::expression::managed_semantic_contract(candidate) == canonical)
+                .then(|| fields.iter().find(|candidate| candidate.name == *field))
+                .flatten()
+                .map(|candidate| candidate.ty.clone())
+        })
 }
 
 /// Recovers a case result while adding the variables introduced by each
@@ -598,7 +633,10 @@ pub(super) fn list_variant_type(
                 _ => Err("error[native_ir.list_pattern_type]: structural union must contain exactly one List variant".into()),
             }
         }
-        _ => Err("error[native_ir.list_pattern_type]: concrete List type is unavailable".into()),
+        _ => Err(format!(
+            "error[native_ir.list_pattern_type]: concrete List type is unavailable from {core_type:?}"
+        )
+        .into()),
     }
 }
 

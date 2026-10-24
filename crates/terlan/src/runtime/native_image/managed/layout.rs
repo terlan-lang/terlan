@@ -20,6 +20,30 @@ impl SemanticTypeId {
         if canonical.is_empty() {
             return Err(ManagedMemoryError::EmptySemanticIdentity);
         }
+        if let Some(encoded) = canonical.strip_prefix("$semantic:") {
+            // Collection profiles derive leaf/node identities from a compact
+            // root token. Validate that root before hashing a separate role;
+            // it must never be mistaken for the root's raw 32 hex digits.
+            if let Some((identity, role)) = encoded.split_once('#') {
+                if role.is_empty() {
+                    return Err(ManagedMemoryError::InvalidAggregateAbi);
+                }
+                let root = Self::from_canonical(&format!("$semantic:{identity}"))?;
+                return Self::from_canonical(&format!(
+                    "derived({}#{role})",
+                    root.canonical_token()
+                ));
+            }
+            if encoded.len() != 32 {
+                return Err(ManagedMemoryError::InvalidAggregateAbi);
+            }
+            let mut identity = [0_u8; 16];
+            for (index, byte) in identity.iter_mut().enumerate() {
+                *byte = u8::from_str_radix(&encoded[index * 2..index * 2 + 2], 16)
+                    .map_err(|_| ManagedMemoryError::InvalidAggregateAbi)?;
+            }
+            return Ok(Self(identity));
+        }
         let digest = Sha256::digest(canonical.as_bytes());
         let mut identity = [0_u8; 16];
         identity.copy_from_slice(&digest[..16]);
@@ -29,6 +53,18 @@ impl SemanticTypeId {
     /// Returns the canonical identity bytes used in descriptors and cache keys.
     pub fn bytes(self) -> [u8; 16] {
         self.0
+    }
+
+    /// Returns a compact compiler-owned canonical spelling of this identity.
+    /// `$` cannot begin a source type name, so the token cannot alias user text.
+    pub(crate) fn canonical_token(self) -> String {
+        let mut token = String::with_capacity(42);
+        token.push_str("$semantic:");
+        for byte in self.0 {
+            use std::fmt::Write;
+            write!(&mut token, "{byte:02x}").expect("writing to String cannot fail");
+        }
+        token
     }
 
     /// Reconstructs an identity carried by a validated internal ABI descriptor.

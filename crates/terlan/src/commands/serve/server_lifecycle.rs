@@ -1,3 +1,4 @@
+use super::request_dispatch::reserved_stream_response;
 use super::response_rendering::*;
 use super::*;
 
@@ -23,11 +24,9 @@ pub(super) struct SuspendableRouteDecision {
     suspending: bool,
 }
 
-use terlan_http_native::request_ingress::RequestBodyFile;
-
 /// Boxed body type used by the Hyper development server.
 #[cfg(test)]
-pub(super) type ServeBody = BoxBody<Bytes, Infallible>;
+pub(super) type ServeBody = UnsyncBoxBody<Bytes, terlan_http_native::ServiceError>;
 
 /// Test-only streaming SSE body backed by the standard reload hub channel.
 ///
@@ -459,37 +458,6 @@ pub(crate) fn prewarm_dynamic_handler_sources(web_root: &Path) -> Result<(), Str
     Ok(())
 }
 
-/// Executes one dynamic handler through a cached VM module.
-///
-/// Inputs:
-/// - `web_root`: generated browser package root.
-/// - `matched`: manifest route handler and decoded route parameters.
-/// - `request`: native HTTP request snapshot.
-///
-/// Output:
-/// - Handler response converted for the serve-layer HTTP writer.
-/// - Stable runtime diagnostic when source metadata, compilation, loading, or
-///   VM execution fails.
-///
-/// Transformation:
-/// - Resolves compiler-generated source metadata relative to the adjacent
-///   project root, reuses the cached loaded VM module when possible, and
-///   dispatches the matched handler.
-#[cfg(test)]
-pub(super) fn execute_dynamic_vm_handler(
-    web_root: &Path,
-    matched: &MatchedWebPackageHandler,
-    request: terlan_http_native::Request,
-) -> Result<handler::HandlerResponse, String> {
-    let runtime = cached_vm_handler_runtime_for_request(web_root, &matched.handler)?;
-    let projection = runtime.vm().request_projection(
-        &matched.handler.module,
-        &matched.handler.function,
-        matched.handler.arity,
-    );
-    execute_dynamic_vm_handler_with_runtime(runtime.vm(), web_root, matched, request, projection)
-}
-
 /// Executes through the exact generation whose projection was used to build
 /// the Request boundary value, preventing reload races between proof and use.
 pub(super) fn execute_dynamic_vm_handler_with_runtime(
@@ -524,6 +492,9 @@ pub(super) async fn handle_suspendable_vm_stream_request(
 ) -> Result<Option<::http::Response<Bytes>>, String> {
     let method = request.method().as_str();
     let request_path = request.uri().path();
+    if let Some(response) = reserved_stream_response(web_root, method, request_path)? {
+        return Ok(Some(response));
+    }
     let epoch = handler_cache_epoch();
     if SUSPENDABLE_ROUTE_DECISION.with(|decision| {
         decision.borrow().as_ref().is_some_and(|decision| {
@@ -536,7 +507,6 @@ pub(super) async fn handle_suspendable_vm_stream_request(
     }) {
         return Ok(None);
     }
-    let request_query = request.uri().query().unwrap_or_default();
     let Some(MatchedWebPackageRoute::Handler(matched)) =
         manifest_route_for_request(web_root, method, request_path)
     else {
@@ -573,40 +543,8 @@ pub(super) async fn handle_suspendable_vm_stream_request(
             matched.handler.arity,
         )
     };
-    let native_request = terlan_http_native::Request::from_parts_with_raw_query_metadata(
-        if projection.requires(terlan_http_native::RequestFieldProjection::METHOD) {
-            method.to_owned()
-        } else {
-            Default::default()
-        },
-        if projection.requires(terlan_http_native::RequestFieldProjection::PATH) {
-            request_path.to_owned()
-        } else {
-            Default::default()
-        },
-        if projection.requires(terlan_http_native::RequestFieldProjection::BODY) {
-            request.body().clone()
-        } else {
-            Default::default()
-        },
-        terlan_http_native::RequestMetadata::from_http(
-            projection,
-            &matched.params,
-            request_query,
-            request.headers(),
-        ),
-    )
-    .with_body_file_path(
-        if projection.requires(terlan_http_native::RequestFieldProjection::BODY_FILE_PATH) {
-            request
-                .extensions()
-                .get::<RequestBodyFile>()
-                .map(|file| file.path().to_owned())
-                .unwrap_or_default()
-        } else {
-            String::new()
-        },
-    );
+    let native_request =
+        terlan_http_native::Request::from_http(request, &matched.params, projection);
     let response = if source_router {
         handler::execute_suspendable_router(runtime.vm(), &matched, native_request, web_root)
             .await?
@@ -630,6 +568,9 @@ pub(super) fn request_requires_file_body(
     method: &str,
     path: &str,
 ) -> Result<bool, String> {
+    if path == RELOAD_ENDPOINT {
+        return Ok(false);
+    }
     let Some(MatchedWebPackageRoute::Handler(matched)) =
         manifest_route_for_request(web_root, method, path)
     else {
@@ -650,11 +591,7 @@ pub(super) fn request_requires_file_body(
         &matched.handler.function,
         matched.handler.arity,
     );
-    Ok(matches!(
-        projection,
-        terlan_http_native::RequestFieldProjection::Fields(_)
-    ) && projection.requires(terlan_http_native::RequestFieldProjection::BODY_FILE_PATH)
-        && !projection.requires(terlan_http_native::RequestFieldProjection::BODY))
+    Ok(projection.requires_file_body())
 }
 
 /// Executes middleware for a compiler-folded static route through its source router.

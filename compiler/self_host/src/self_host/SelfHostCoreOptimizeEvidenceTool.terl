@@ -1,0 +1,86 @@
+/** Stale-safe artifact adapter for Core optimizer authority evidence. */
+module self_host.SelfHostCoreOptimizeEvidenceTool.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, String}.
+import std.io.File.
+
+import self_host.SelfHostCoreOptimizeEvidence.
+
+
+path(root: String, name: String): String -> root + "/" + name.
+
+read_all(values: List[String]): Result[List[String], String] ->
+    case values {
+        [] -> Ok([]);
+        [value | rest] -> case File.read_text(value) {
+            Err(_) -> Err("cannot read optimizer evidence artifact: " + value);
+            Ok(contents) -> case read_all(rest) {
+                Err(reason) -> Err(reason);
+                Ok(remaining) -> Ok([contents | remaining])
+            }
+        }
+    }.
+
+write_marker(marker_path: String, ready: Bool): Bool ->
+    case File.write_text(marker_path, if { ready -> "complete\n"; true -> "invalid\n" }) {
+        Err(_) -> false;
+        Ok(_) -> ready
+    }.
+
+write_evidence(
+    evidence_path: String,
+    marker_path: String,
+    value: self_host.SelfHostCoreOptimizeEvidence.CoreOptimizeEvidence,
+): Bool ->
+    case File.write_text(evidence_path, SelfHostCoreOptimizeEvidence.render(value)) {
+        Err(_) -> false;
+        Ok(_) -> write_marker(marker_path, value.ready)
+    }.
+
+/** Reads the fixed optimizer corpus artifact set and publishes its decision last. */
+pub write(root: String, evidence_path: String, marker_path: String): Bool ->
+    let _removed = File.delete(marker_path);
+    case read_all([
+        path(root, "validation-before.marker"),
+        path(root, "validation-after.marker"),
+        path(root, "optimized-once.json"),
+        path(root, "optimized-twice.json"),
+        path(root, "optimized-regenerated.json"),
+        path(root, "diagnostics-before.txt"),
+        path(root, "diagnostics-after.txt"),
+        path(root, "runtime-before.tsv"),
+        path(root, "runtime-after.tsv"),
+        path(root, "cross-target.marker"),
+    ]) {
+        Err(_) -> false;
+        Ok([
+            validation_before,
+            validation_after,
+            optimized_once,
+            optimized_twice,
+            optimized_regenerated,
+            diagnostics_before,
+            diagnostics_after,
+            runtime_before,
+            runtime_after,
+            cross_target_marker
+        ]) -> write_evidence(
+            evidence_path,
+            marker_path,
+            SelfHostCoreOptimizeEvidence.evaluate(
+                validation_before,
+                validation_after,
+                optimized_once,
+                optimized_twice,
+                optimized_regenerated,
+                diagnostics_before,
+                diagnostics_after,
+                runtime_before,
+                runtime_after,
+                cross_target_marker,
+            ),
+        );
+        Ok(_) -> false
+    }.

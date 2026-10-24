@@ -1,0 +1,268 @@
+/** Tooling-document projection for TL0301-TL0304 naming subjects. */
+module self_host.SelfHostLintNamingProjection.
+
+import std.core.Option.{None, Some}.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedParserSyntax.ProjectedSurfaceDeclaration.
+import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree}.
+import self_host.SelfHostLintNamingDiagnostics.NamingSubject.
+import self_host.SelfHostLintNamingDiagnostics.
+import self_host.SelfHostToolingDocument.{ToolingDocument, ToolingToken}.
+import self_host.Syntax.{ConstructorDeclaration, OpaqueTypeDeclaration, StructDeclaration, TraitDeclaration, TypeDeclaration}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+identifier_token(value: ToolingToken): Bool ->
+    value.terminal == "var" or value.terminal == "upper-ident".
+
+next_depth(value: ToolingToken, depth: Int): Int ->
+    if {
+        value.text == "(" -> depth + 1;
+        value.text == ")" -> depth - 1;
+        true -> depth
+    }.
+
+callable_name_at(
+    values: List[ToolingToken],
+    start_byte: Int,
+    end_byte: Int,
+    depth: Int,
+): Option[ToolingToken] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.end_byte <= start_byte ->
+                    callable_name_at(rest, start_byte, end_byte, depth);
+                value.start_byte >= end_byte -> None;
+                depth == 0 and identifier_token(value) -> Some(value);
+                true -> callable_name_at(
+                    rest,
+                    start_byte,
+                    end_byte,
+                    next_depth(value, depth),
+                )
+            }
+    }.
+
+name_after_keyword_at(
+    values: List[ToolingToken],
+    start_byte: Int,
+    end_byte: Int,
+    keyword: String,
+    found_keyword: Bool,
+): Option[ToolingToken] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.end_byte <= start_byte -> name_after_keyword_at(
+                    rest, start_byte, end_byte, keyword, found_keyword,
+                );
+                value.start_byte >= end_byte -> None;
+                found_keyword and identifier_token(value) -> Some(value);
+                true -> name_after_keyword_at(
+                    rest,
+                    start_byte,
+                    end_byte,
+                    keyword,
+                    found_keyword or value.text == keyword,
+                )
+            }
+    }.
+
+name_after_keyword(
+    values: List[ToolingToken],
+    value: ProjectedSurfaceDeclaration,
+    keyword: String,
+): Option[ToolingToken] ->
+    name_after_keyword_at(
+        values,
+        value.span.start_byte,
+        value.span.end_byte,
+        keyword,
+        false,
+    ).
+
+surface_kind(value: ProjectedSurfaceDeclaration): String ->
+    case value.class {
+        TypeDeclaration -> "type";
+        OpaqueTypeDeclaration -> "type";
+        StructDeclaration -> "struct";
+        ConstructorDeclaration -> "constructor";
+        TraitDeclaration -> "trait";
+        _ -> ""
+    }.
+
+surface_keyword(value: ProjectedSurfaceDeclaration): String ->
+    case value.class {
+        TypeDeclaration -> "type";
+        OpaqueTypeDeclaration -> "type";
+        StructDeclaration -> "struct";
+        ConstructorDeclaration -> "constructor";
+        TraitDeclaration -> "trait";
+        _ -> ""
+    }.
+
+surface_subjects(
+    values: List[ProjectedSurfaceDeclaration],
+    tokens: List[ToolingToken],
+): List[NamingSubject] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let kind = surface_kind(value);
+            let following = surface_subjects(rest, tokens);
+            if {
+                kind == "" -> following;
+                true -> case name_after_keyword(tokens, value, surface_keyword(value)) {
+                    Some(name) -> [NamingSubject(
+                        kind,
+                        name.text,
+                        name.start_byte,
+                    ) | following];
+                    None -> following
+                }
+            }
+    }.
+
+token_at(values: List[ToolingToken], start_byte: Int): Option[ToolingToken] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.start_byte == start_byte -> Some(value);
+                value.start_byte > start_byte -> None;
+                true -> token_at(rest, start_byte)
+            }
+    }.
+
+pattern_subjects(
+    value: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): List[NamingSubject] ->
+    if {
+        value.kind == "pattern-token" -> case token_at(tokens, value.start_byte) {
+            Some(token) where token.terminal == "var" and value.text != "_" -> [NamingSubject(
+                "binding",
+                value.text,
+                value.start_byte,
+            )];
+            _ -> []
+        };
+        true -> pattern_subjects_at(value.children, tokens)
+    }.
+
+pattern_subjects_at(
+    values: List[ProjectedExpressionNode],
+    tokens: List[ToolingToken],
+): List[NamingSubject] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            pattern_subjects(value, tokens),
+            pattern_subjects_at(rest, tokens),
+        )
+    }.
+
+parameter_subjects(
+    values: List[ProjectedParameterTree],
+    tokens: List[ToolingToken],
+): List[NamingSubject] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.pattern {
+            None -> parameter_subjects(rest, tokens);
+            Some(pattern) -> append(
+                pattern_subjects(pattern, tokens),
+                parameter_subjects(rest, tokens),
+            )
+        }
+    }.
+
+callable_subjects(
+    values: List[ProjectedCallableSignature],
+    tokens: List[ToolingToken],
+): List[NamingSubject] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let parameters = parameter_subjects(value.parameters, tokens);
+            let following = callable_subjects(rest, tokens);
+            case callable_name_at(
+                tokens,
+                value.span.start_byte,
+                value.span.end_byte,
+                0,
+            ) {
+                None -> append(parameters, following);
+                Some(name) -> [NamingSubject(
+                    "function",
+                    name.text,
+                    name.start_byte,
+                ) | append(parameters, following)]
+            }
+    }.
+
+body_subjects(
+    values: List[self_host.ProjectedBodySyntax.ProjectedBody],
+    tokens: List[ToolingToken],
+): List[NamingSubject] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.expression.node {
+            None -> body_subjects(rest, tokens);
+            Some(expression) -> append(
+                pattern_subjects(expression, tokens),
+                body_subjects(rest, tokens),
+            )
+        }
+    }.
+
+insert(value: NamingSubject, values: List[NamingSubject]): List[NamingSubject] ->
+    case values {
+        [] -> [value];
+        [first | rest] ->
+            if {
+                value.start_byte <= first.start_byte -> [value | [first | rest]];
+                true -> [first | insert(value, rest)]
+            }
+    }.
+
+sort(values: List[NamingSubject], output: List[NamingSubject]): List[NamingSubject] ->
+    case values {
+        [] -> output;
+        [value | rest] -> sort(rest, insert(value, output))
+    }.
+
+/** Projects declaration and binding names in stable source order. */
+pub subjects(value: ToolingDocument): List[NamingSubject] ->
+    if {
+        value.valid
+            and value.frontend.surface.valid
+            and value.frontend.signatures.valid
+            and value.frontend.bodies.valid -> sort(
+                append(
+                    surface_subjects(value.frontend.surface.declarations, value.tokens),
+                    append(
+                        callable_subjects(value.frontend.signatures.callables, value.tokens),
+                        body_subjects(value.frontend.bodies.values, value.tokens),
+                    ),
+                ),
+                [],
+            );
+        true -> []
+    }.
+
+/** Runs TL0301-TL0304 without native syntax projection. */
+@pure
+pub diagnostics(
+    path: String,
+    value: ToolingDocument,
+): List[SelfHostLintNamingDiagnostics.NamingDiagnostic] ->
+    SelfHostLintNamingDiagnostics.diagnostics(
+        value.source,
+        path,
+        subjects(value),
+    ).

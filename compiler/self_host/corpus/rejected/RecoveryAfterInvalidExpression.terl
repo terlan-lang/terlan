@@ -1,0 +1,10 @@
+module corpus.RecoveryAfterInvalidPattern.
+
+pub before(): Int -> 1.
+
+pub broken(): Int -> case 0 {
+    0 0;
+    _ -> 1
+}.
+
+pub recovered(): Int -> 2.

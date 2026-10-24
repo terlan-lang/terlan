@@ -1,0 +1,68 @@
+/** Unified positive and negative documentation admission contracts. */
+module self_host.SelfHostDocumentationAdmissionTest.
+
+import self_host.SelfHostDocumentation.{DocumentationItem, DocumentationModule}.
+import self_host.SelfHostDocumentationAdmission.
+
+@test
+pub valid_documentation_without_examples_is_admitted(): Bool ->
+    let documentation = DocumentationModule(
+        true,
+        "example",
+        "Module documentation.",
+        [],
+        "",
+    );
+    let admitted = SelfHostDocumentationAdmission.admit(documentation);
+    admitted.valid and admitted.doctest_count == 0.
+
+@test
+pub valid_documentation_example_is_frontend_admitted(): Bool ->
+    let documentation = DocumentationModule(
+        true,
+        "example",
+        "```terlan\nmodule documented_example.\n```",
+        [],
+        "",
+    );
+    let admitted = SelfHostDocumentationAdmission.admit(documentation);
+    admitted.valid and admitted.doctest_count == 1.
+
+@test
+pub broken_local_link_denies_admission(): Bool ->
+    let documentation = DocumentationModule(
+        true,
+        "example",
+        "See [missing](#missing).",
+        [],
+        "",
+    );
+    let admitted = SelfHostDocumentationAdmission.admit(documentation);
+    not admitted.valid and admitted.message == "broken intra-doc link".
+
+@test
+pub callable_arity_anchor_is_admitted(): Bool ->
+    let item = DocumentationItem(
+        "function",
+        "run",
+        "pub run(value: String): Bool",
+        "Runs one value.",
+        0,
+        1,
+    );
+    let documentation = DocumentationModule(
+        true,
+        "example",
+        "See [run](#run/1).",
+        [item],
+        "",
+    );
+    SelfHostDocumentationAdmission.admit(documentation).valid.
+
+@test
+pub invalid_model_denies_admission_before_doctests(): Bool ->
+    let documentation = DocumentationModule(false, "", "", [], "invalid documentation model");
+    let admitted = SelfHostDocumentationAdmission.admit(documentation);
+    not admitted.valid
+        and admitted.doctest_count == 0
+        and admitted.message == "invalid documentation model".

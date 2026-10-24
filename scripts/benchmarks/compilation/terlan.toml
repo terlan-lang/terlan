@@ -1,0 +1,6 @@
+[package]
+name = "compilation-benchmark"
+version = "0.0.9"
+[build]
+source_roots = ["src"]
+artifact = "library"

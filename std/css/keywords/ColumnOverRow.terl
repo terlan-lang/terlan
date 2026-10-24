@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword column-over-row. Generated; do not edit.
+ */
+module std.css.keywords.ColumnOverRow.
+
+pub type ColumnOverRow = Atom["column-over-row"].

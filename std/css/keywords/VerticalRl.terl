@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword vertical-rl. Generated; do not edit.
+ */
+module std.css.keywords.VerticalRl.
+
+pub type VerticalRl = Atom["vertical-rl"].

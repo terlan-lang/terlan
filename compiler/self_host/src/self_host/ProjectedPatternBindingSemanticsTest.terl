@@ -1,0 +1,49 @@
+/** Pattern semantic binding names match typed Core canonicalization. */
+module self_host.ProjectedPatternBindingSemanticsTest.
+
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedExpressionSupportIrPlan.
+import self_host.ProjectedPatternSemantics.
+import std.core.Option.{Some}.
+
+node(kind: String, text: String): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, 0, text.byte_size(), []).
+
+@test
+pub typed_and_capture_binders_use_names_without_annotations(): Bool ->
+    let pattern = ProjectedExpressionNode("tuple-pattern", "{}", 0, 20, [
+        node("typed-pattern", "value: Int"),
+        node("string-capture-segment", "name: String"),
+    ]);
+    ProjectedPatternSemantics.binding_names(pattern) == ["value", "name"].
+
+@test
+pub ignored_capture_does_not_create_a_semantic_binding(): Bool ->
+    ProjectedPatternSemantics.binding_names(
+        node("string-capture-segment", "_: Int"),
+    ) == [].
+
+@test
+pub duplicate_typed_and_plain_names_remain_visible_to_duplicate_analysis(): Bool ->
+    let pattern = ProjectedExpressionNode("tuple-pattern", "{}", 0, 20, [
+        node("typed-pattern", "value: Int"),
+        node("binding-pattern", "value"),
+    ]);
+    ProjectedPatternSemantics.binding_names(pattern) == ["value", "value"].
+
+@test
+pub list_cons_bindings_inherit_subject_types(): Bool ->
+    let pattern = ProjectedExpressionNode("list-cons-pattern", "|", 0, 15, [
+        node("binding-pattern", "head"),
+        node("binding-pattern", "tail"),
+    ]);
+    let parameters = ProjectedExpressionSupportIrPlan.pattern_parameters(
+        pattern,
+        Some("List[Int]"),
+        [],
+        [],
+    );
+    case parameters {
+        [head, tail] -> head.type_name == "Int" and tail.type_name == "List[Int]";
+        _ -> false
+    }.

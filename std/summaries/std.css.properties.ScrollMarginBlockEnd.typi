@@ -1,48 +1,25 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-block-end
+//! The `scroll-margin-block-end` property defines the margin of the scroll snap area at the end of
+//! the block dimension that is used for snapping this box to the
+//! [snapport](https://developer.mozilla.org/en-US/docs/Glossary/Scroll_snap#snapport). The scroll
+//! snap area is determined by taking the transformed border box, finding its rectangular bounding
+//! box (axis-aligned in the scroll container's coordinate space), then adding the specified outsets.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <length>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-block-end
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-margin-block-end
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollMarginBlockEnd.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    scroll_margin_block_end: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    scroll_margin_block_end: Value
+    scroll_margin_block_end: std.css.Values.Length | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained scroll-margin-block-end value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a scroll-margin-block-end value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

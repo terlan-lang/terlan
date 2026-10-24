@@ -16,3 +16,5 @@ module std.js.Dom.UnderlyingDefaultSource.
 pub opaque type UnderlyingDefaultSource[R].
 
 pub (receiver: UnderlyingDefaultSource[R]) cancel(): std.core.Option[std.js.Dom.UnderlyingSourceCancelCallback].
+
+pub (receiver: UnderlyingDefaultSource[R]) pull(): std.core.Option[(std.js.Dom.ReadableStreamDefaultController[R]) -> std.js.PromiseLike[std.core.Unit] | std.core.Unit].

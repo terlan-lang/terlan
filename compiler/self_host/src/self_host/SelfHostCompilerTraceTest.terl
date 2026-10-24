@@ -1,0 +1,37 @@
+/** Positive, negative, and determinism contracts for compiler tracing. */
+module self_host.SelfHostCompilerTraceTest.
+
+import std.core.String.
+
+import self_host.SelfHostCompilerTrace.
+
+
+@test
+pub traces_every_frontend_stage_in_order(): Bool ->
+    let trace = SelfHostCompilerTrace.build(
+        "module sample.Trace.\npub value(): Int -> 1.\n",
+    );
+    let rendered = SelfHostCompilerTrace.render(trace);
+    trace.valid
+        and String.contains(rendered, "lexical\taccepted")
+        and String.contains(rendered, "concrete-syntax\taccepted")
+        and String.contains(rendered, "projected-syntax\taccepted")
+        and String.contains(rendered, "signatures\taccepted")
+        and String.contains(rendered, "bodies\taccepted")
+        and String.contains(rendered, "frontend\taccepted").
+
+@test
+pub rejected_source_still_produces_a_complete_trace(): Bool ->
+    let trace = SelfHostCompilerTrace.build(
+        "module sample.Trace.\npub broken(: Int -> 1.\n",
+    );
+    let rendered = SelfHostCompilerTrace.render(trace);
+    not trace.valid
+        and String.contains(rendered, "status\trejected")
+        and String.contains(rendered, "\trejected\t").
+
+@test
+pub trace_output_is_deterministic(): Bool ->
+    let source = "module sample.Trace.\npub value(): Int -> 1.\n";
+    SelfHostCompilerTrace.render(SelfHostCompilerTrace.build(source))
+        == SelfHostCompilerTrace.render(SelfHostCompilerTrace.build(source)).

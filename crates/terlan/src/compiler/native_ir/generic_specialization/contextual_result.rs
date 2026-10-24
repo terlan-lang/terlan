@@ -13,6 +13,49 @@ pub(super) fn seed(
     module: &str,
 ) {
     match value {
+        CoreExpr::RecordConstruct { name, fields } => {
+            let signature = match expected {
+                CoreType::Struct { .. } => Some(expected.clone()),
+                CoreType::Named(_) | CoreType::Apply { .. } => {
+                    let candidates = callable_templates(templates, module, name, fields.len());
+                    let mut records = candidates.into_iter().flatten().filter(|candidate| {
+                        candidate.clauses.is_empty()
+                            && matches!(candidate.core_return_type, Some(CoreType::Struct { .. }))
+                    });
+                    records.next().and_then(|record| {
+                        if records.next().is_some() {
+                            return None;
+                        }
+                        let values = match expected {
+                            CoreType::Apply { args, .. } => record
+                                .generic_params
+                                .iter()
+                                .cloned()
+                                .zip(args.iter().cloned())
+                                .collect(),
+                            _ => HashMap::new(),
+                        };
+                        Some(substitute(
+                            record.core_return_type.as_ref()?,
+                            &record.generic_params,
+                            &values,
+                        ))
+                    })
+                }
+                _ => None,
+            };
+            if let Some(CoreType::Struct {
+                fields: signature, ..
+            }) = signature
+            {
+                for field in fields {
+                    if let Some(expected) = signature.iter().find(|item| item.name == field.key) {
+                        apply_contextual_argument_type(&mut field.value, &expected.ty);
+                        seed(&mut field.value, &expected.ty, variables, templates, module);
+                    }
+                }
+            }
+        }
         CoreExpr::Call {
             function,
             args,
@@ -67,6 +110,7 @@ pub(super) fn seed(
             } = expected
             {
                 if params.len() == expected_params.len() {
+                    *parameter_types = expected_params.iter().cloned().map(Some).collect();
                     let mut locals = lambda_type_scope(params, parameter_types, variables);
                     for (pattern, ty) in params.iter().zip(expected_params) {
                         bind_pattern_types(pattern, ty, &mut locals);

@@ -1,0 +1,504 @@
+/** Self-hosted readability policy authority for TL0002-TL0010. */
+module self_host.SelfHostLintReadability.
+
+import std.core.String.
+
+pub struct ReadabilityDiagnostic {
+    path: String,
+    line: Int,
+    column: Int,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+    fix_available: Bool,
+}.
+
+pub constructor ReadabilityDiagnostic {
+    (path: String, line: Int, column: Int, rule_id: String, rule_name: String, severity: String, message: String): ReadabilityDiagnostic ->
+        ReadabilityDiagnostic {
+            path: path,
+            line: line,
+            column: column,
+            rule_id: rule_id,
+            rule_name: rule_name,
+            severity: severity,
+            message: message,
+            fix_available: false,
+        }
+}.
+
+/** One variable introduced below a destructuring pattern. */
+pub struct DestructureBinding {
+    name: String,
+    used: Bool,
+}.
+
+pub constructor DestructureBinding {
+    (name: String, used: Bool): DestructureBinding ->
+        DestructureBinding { name: name, used: used }
+}.
+
+/** Frontend-neutral facts needed to recognize a forwarding lambda. */
+pub struct ForwardingLambda {
+    start_byte: Int,
+    clause_count: Int,
+    has_guard: Bool,
+    has_parameter_types: Bool,
+    body_is_call: Bool,
+    has_type_arguments: Bool,
+    has_named_arguments: Bool,
+    callee_is_variable: Bool,
+    patterns_are_variables: Bool,
+    parameter_names: List[String],
+    argument_names: List[String],
+}.
+
+pub constructor ForwardingLambda {
+    (
+        start_byte: Int,
+        clause_count: Int,
+        has_guard: Bool,
+        has_parameter_types: Bool,
+        body_is_call: Bool,
+        has_type_arguments: Bool,
+        has_named_arguments: Bool,
+        callee_is_variable: Bool,
+        patterns_are_variables: Bool,
+        parameter_names: List[String],
+        argument_names: List[String],
+    ): ForwardingLambda -> ForwardingLambda {
+        start_byte: start_byte,
+        clause_count: clause_count,
+        has_guard: has_guard,
+        has_parameter_types: has_parameter_types,
+        body_is_call: body_is_call,
+        has_type_arguments: has_type_arguments,
+        has_named_arguments: has_named_arguments,
+        callee_is_variable: callee_is_variable,
+        patterns_are_variables: patterns_are_variables,
+        parameter_names: parameter_names,
+        argument_names: argument_names,
+    }
+}.
+
+/** Frontend-neutral facts needed to recognize repeated-fallback nested cases. */
+pub struct GroupedBindingCandidate {
+    start_byte: Int,
+    outer_clause_count: Int,
+    nested_clause_count: Int,
+    guards_absent: Bool,
+    repeated_fallback: Bool,
+    fallback_reads_nested_binding: Bool,
+}.
+
+pub constructor GroupedBindingCandidate {
+    (
+        start_byte: Int,
+        outer_clause_count: Int,
+        nested_clause_count: Int,
+        guards_absent: Bool,
+        repeated_fallback: Bool,
+        fallback_reads_nested_binding: Bool,
+    ): GroupedBindingCandidate -> GroupedBindingCandidate {
+        start_byte: start_byte,
+        outer_clause_count: outer_clause_count,
+        nested_clause_count: nested_clause_count,
+        guards_absent: guards_absent,
+        repeated_fallback: repeated_fallback,
+        fallback_reads_nested_binding: fallback_reads_nested_binding,
+    }
+}.
+
+/** One public declaration or public trait method. */
+pub struct PublicApiSubject {
+    start_byte: Int,
+    is_public: Bool,
+    has_docs: Bool,
+}.
+
+pub constructor PublicApiSubject {
+    (start_byte: Int, is_public: Bool, has_docs: Bool): PublicApiSubject ->
+        PublicApiSubject { start_byte: start_byte, is_public: is_public, has_docs: has_docs }
+}.
+
+/** One line-oriented source fact projected without policy decisions. */
+pub struct ReadabilityLine {
+    line: Int,
+    column: Int,
+    plain_comment: Bool,
+    comment_exempt: Bool,
+    comment_restates_next_code: Bool,
+    malformed_doc_star_spacing: Bool,
+    branch_boolean_operators: Int,
+}.
+
+pub constructor ReadabilityLine {
+    (
+        line: Int,
+        column: Int,
+        plain_comment: Bool,
+        comment_exempt: Bool,
+        comment_restates_next_code: Bool,
+        malformed_doc_star_spacing: Bool,
+        branch_boolean_operators: Int,
+    ): ReadabilityLine -> ReadabilityLine {
+        line: line,
+        column: column,
+        plain_comment: plain_comment,
+        comment_exempt: comment_exempt,
+        comment_restates_next_code: comment_restates_next_code,
+        malformed_doc_star_spacing: malformed_doc_star_spacing,
+        branch_boolean_operators: branch_boolean_operators,
+    }
+}.
+
+struct SourcePosition {
+    line: Int,
+    column: Int,
+}.
+
+constructor SourcePosition {
+    (line: Int, column: Int): SourcePosition ->
+        SourcePosition { line: line, column: column }
+}.
+
+position_at(source: String, target: Int, offset: Int, line: Int, column: Int): SourcePosition ->
+    if {
+        offset >= target or offset >= String.byte_size(source) -> SourcePosition(line, column);
+        String.utf8_byte_at(source, offset) == 10 ->
+            position_at(source, target, offset + 1, line + 1, 1);
+        true -> position_at(source, target, offset + 1, line, column + 1)
+    }.
+
+at_offset(
+    source: String,
+    path: String,
+    offset: Int,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+): ReadabilityDiagnostic ->
+    let position = position_at(source, offset, 0, 1, 1);
+    ReadabilityDiagnostic(path, position.line, position.column, rule_id, rule_name, severity, message).
+
+at_line(
+    path: String,
+    value: ReadabilityLine,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+): ReadabilityDiagnostic ->
+    ReadabilityDiagnostic(path, value.line, value.column, rule_id, rule_name, severity, message).
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+last(values: List[String], value: String): String ->
+    case values { [] -> value; [next | rest] -> last(rest, next) }.
+
+filename(path: String): String -> last(String.split(path, "/"), "").
+
+pub test_source_path(path: String): Bool ->
+    let name = filename(path);
+    String.ends_with(name, "Test.terl") or String.ends_with(name, "Test.terli").
+
+pub property_test_source_path(path: String): Bool ->
+    let name = filename(path);
+    String.ends_with(name, "PropertyTest.terl")
+        or String.ends_with(name, "PropertyTest.terli").
+
+pub weak_callback_name(name: String): Bool ->
+    let size = String.byte_size(name);
+    if {
+        name == "arg" or name == "it" or name == "tmp" or name == "val" -> true;
+        name == "_arg" or name == "_it" or name == "_tmp" or name == "_val" -> true;
+        size == 1 ->
+            String.utf8_byte_at(name, 0) >= 97 and String.utf8_byte_at(name, 0) <= 122;
+        size == 2 and String.utf8_byte_at(name, 0) == 95 ->
+            String.utf8_byte_at(name, 1) >= 97 and String.utf8_byte_at(name, 1) <= 122;
+        true -> false
+    }.
+
+pub intentionally_unused_name(name: String): Bool ->
+    name == "_" or String.starts_with(name, "_").
+
+pub forwarding_lambda(value: ForwardingLambda): Bool ->
+    value.clause_count == 1
+        and not value.has_guard
+        and not value.has_parameter_types
+        and value.body_is_call
+        and not value.has_type_arguments
+        and not value.has_named_arguments
+        and value.callee_is_variable
+        and value.patterns_are_variables
+        and value.parameter_names == value.argument_names.
+
+pub grouped_binding_candidate(value: GroupedBindingCandidate): Bool ->
+    value.outer_clause_count == 2
+        and value.nested_clause_count == 2
+        and value.guards_absent
+        and value.repeated_fallback
+        and not value.fallback_reads_nested_binding.
+
+callback_diagnostics(
+    source: String,
+    path: String,
+    start_byte: Int,
+    multi_expression: Bool,
+    names: List[String],
+): List[ReadabilityDiagnostic] ->
+    case names {
+        [] -> [];
+        [name | rest] ->
+            if {
+                multi_expression and weak_callback_name(name) -> [at_offset(
+                    source,
+                    path,
+                    start_byte,
+                    "TL0003",
+                    "readability.callback-name",
+                    "warning",
+                    "multi-expression callbacks should use meaningful parameter names",
+                ) | callback_diagnostics(source, path, start_byte, multi_expression, rest)];
+                true -> callback_diagnostics(source, path, start_byte, multi_expression, rest)
+            }
+    }.
+
+binding_diagnostics(
+    source: String,
+    path: String,
+    start_byte: Int,
+    destructured: Bool,
+    bindings: List[DestructureBinding],
+): List[ReadabilityDiagnostic] ->
+    case bindings {
+        [] -> [];
+        [binding | rest] ->
+            if {
+                destructured and not binding.used and not intentionally_unused_name(binding.name) -> [at_offset(
+                    source,
+                    path,
+                    start_byte,
+                    "TL0004",
+                    "readability.unused-destructure-binding",
+                    "warning",
+                    "unused destructured bindings should use `_` or a meaningful used name",
+                ) | binding_diagnostics(source, path, start_byte, destructured, rest)];
+                true -> binding_diagnostics(source, path, start_byte, destructured, rest)
+            }
+    }.
+
+deep_diagnostics(
+    source: String,
+    path: String,
+    expressions: List[{Int, Int}],
+): List[ReadabilityDiagnostic] ->
+    case expressions {
+        [] -> [];
+        [{start_byte, depth} | rest] ->
+            if {
+                depth > 8 and not property_test_source_path(path) -> [at_offset(
+                    source,
+                    path,
+                    start_byte,
+                    "TL0002",
+                    "readability.deep-expression",
+                    "warning",
+                    "deep expression tree should be split with let bindings, a pipe, or a named helper",
+                ) | deep_diagnostics(source, path, rest)];
+                true -> deep_diagnostics(source, path, rest)
+            }
+    }.
+
+grouped_diagnostics(
+    source: String,
+    path: String,
+    values: List[GroupedBindingCandidate],
+): List[ReadabilityDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            if {
+                grouped_binding_candidate(value) -> [at_offset(
+                    source,
+                    path,
+                    value.start_byte,
+                    "TL0009",
+                    "readability.grouped-binding",
+                    "error",
+                    "linear nested cases with one repeated fallback should use grouped `let { ... } else { ... }` bindings",
+                ) | grouped_diagnostics(source, path, rest)];
+                true -> grouped_diagnostics(source, path, rest)
+            }
+    }.
+
+reference_diagnostics(
+    source: String,
+    path: String,
+    values: List[ForwardingLambda],
+): List[ReadabilityDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            if {
+                forwarding_lambda(value) -> [at_offset(
+                    source,
+                    path,
+                    value.start_byte,
+                    "TL0010",
+                    "readability.function-reference",
+                    "error",
+                    "a lambda that only forwards its parameters should be a direct function reference",
+                ) | reference_diagnostics(source, path, rest)];
+                true -> reference_diagnostics(source, path, rest)
+            }
+    }.
+
+public_diagnostics(
+    source: String,
+    path: String,
+    values: List[PublicApiSubject],
+): List[ReadabilityDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            if {
+                value.is_public
+                    and not value.has_docs
+                    and not test_source_path(path)
+                    and not String.ends_with(path, ".terls") -> [at_offset(
+                        source,
+                        path,
+                        value.start_byte,
+                        "TL0006",
+                        "readability.public-docs",
+                        "warning",
+                        "public API declarations should have documentation",
+                    ) | public_diagnostics(source, path, rest)];
+                true -> public_diagnostics(source, path, rest)
+            }
+    }.
+
+line_diagnostics_for(
+    path: String,
+    values: List[ReadabilityLine],
+    rule_number: Int,
+): List[ReadabilityDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let comment = if {
+                rule_number == 5
+                    and value.plain_comment
+                    and not value.comment_exempt
+                    and value.comment_restates_next_code -> [at_line(
+                    path,
+                    value,
+                    "TL0005",
+                    "readability.redundant-comment",
+                    "warning",
+                    "comments should explain intent instead of restating the next expression",
+                )];
+                true -> []
+            };
+            let docs = if {
+                rule_number == 7 and value.malformed_doc_star_spacing -> [at_line(
+                    path,
+                    value,
+                    "TL0007",
+                    "readability.doc-comment-spacing",
+                    "warning",
+                    "block doc lines should use ` * ` spacing",
+                )];
+                true -> []
+            };
+            let branch = if {
+                rule_number == 8 and value.branch_boolean_operators > 1 -> [at_line(
+                    path,
+                    value,
+                    "TL0008",
+                    "readability.boolean-heavy-branch",
+                    "warning",
+                    "boolean-heavy branch condition should use case, guards, or a named predicate",
+                )];
+                true -> []
+            };
+            append(
+                comment,
+                append(docs, append(branch, line_diagnostics_for(path, rest, rule_number))),
+            )
+    }.
+
+/** Applies all readability policies in stable TL0002-TL0010 order. */
+@pure
+pub diagnostics(
+    path: String,
+    source: String,
+    deep_expressions: List[{Int, Int}],
+    callbacks: List[{Int, Bool, List[String]}],
+    destructures: List[{Int, Bool, List[DestructureBinding]}],
+    lines: List[ReadabilityLine],
+    public_api: List[PublicApiSubject],
+    grouped_bindings: List[GroupedBindingCandidate],
+    forwarding_lambdas: List[ForwardingLambda],
+): List[ReadabilityDiagnostic] ->
+    let callback_values = callback_list(source, path, callbacks);
+    let binding_values = binding_list(source, path, destructures);
+    let comment_values = line_diagnostics_for(path, lines, 5);
+    let public_values = public_diagnostics(source, path, public_api);
+    let spacing_values = line_diagnostics_for(path, lines, 7);
+    let branch_values = line_diagnostics_for(path, lines, 8);
+    append(
+        deep_diagnostics(source, path, deep_expressions),
+        append(
+            callback_values,
+            append(
+                binding_values,
+                append(
+                    comment_values,
+                    append(
+                        public_values,
+                        append(
+                            spacing_values,
+                            append(
+                                branch_values,
+                                append(
+                                    grouped_diagnostics(source, path, grouped_bindings),
+                                    reference_diagnostics(source, path, forwarding_lambdas),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ).
+
+callback_list(
+    source: String,
+    path: String,
+    values: List[{Int, Bool, List[String]}],
+): List[ReadabilityDiagnostic] ->
+    case values {
+        [] -> [];
+        [{start_byte, multi_expression, names} | rest] -> append(
+            callback_diagnostics(source, path, start_byte, multi_expression, names),
+            callback_list(source, path, rest),
+        )
+    }.
+
+binding_list(
+    source: String,
+    path: String,
+    values: List[{Int, Bool, List[DestructureBinding]}],
+): List[ReadabilityDiagnostic] ->
+    case values {
+        [] -> [];
+        [{start_byte, destructured, bindings} | rest] -> append(
+            binding_diagnostics(source, path, start_byte, destructured, bindings),
+            binding_list(source, path, rest),
+        )
+    }.

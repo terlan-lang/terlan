@@ -1,6 +1,8 @@
 /** Self-hosted lowering for canonical configuration declaration headers. */
 module self_host.ConfigLowering.
 
+import std.core.String.
+
 import self_host.ConfigSyntax.{ConfigKind, ConfigSyntax, MachineConfig, RawConfig, StaticConfig, TargetConfig}.
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.Syntax.{ConfigDeclaration}.

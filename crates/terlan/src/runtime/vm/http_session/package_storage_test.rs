@@ -12,13 +12,24 @@ fn session_acquisition_preserves_exact_identity_and_expiration_through_package_b
         if let Some(identity) = Option::<String>::from_native(&value).unwrap() {
             return identity;
         }
+        let entropy =
+            crate::std_native_packages::value_binding("std.crypto.entropy.bytes").unwrap();
+        let encode = crate::std_native_packages::value_binding(
+            "std.encoding.base64.encode_url_unpadded_bytes",
+        )
+        .unwrap();
+        let bytes = (entropy.invoke)(&[32_i64.into()]).unwrap();
+        let value = (encode.invoke)(&[bytes]).unwrap();
+        let candidate = String::from_native(&value).unwrap();
+        assert_ne!(candidate, identity);
         let value = services
             .call(
-                "std.http.session.create",
-                &[identity.into(), 100_i64.into()],
+                "std.http.session.try_create",
+                &[candidate.clone().into(), 100_i64.into()],
             )
             .unwrap();
-        String::from_native(&value).unwrap()
+        assert!(bool::from_native(&value).unwrap());
+        candidate
     };
     let identity = acquire("");
     assert_eq!(identity.len(), 43);
@@ -73,7 +84,10 @@ fn session_package_rejects_invalid_arguments_before_storage_mutation() {
     ];
     for (name, args) in [
         ("lookup", vec![session.managed_id().into()]),
-        ("create", vec![session.managed_id().into(), 100_i64.into()]),
+        (
+            "try_create",
+            vec![session.managed_id().into(), 100_i64.into()],
+        ),
         ("get", vec![session.managed_id().into(), "key".into()]),
         (
             "set",
@@ -84,7 +98,14 @@ fn session_package_rejects_invalid_arguments_before_storage_mutation() {
             ],
         ),
         ("delete", vec![session.managed_id().into(), "key".into()]),
-        ("rotate", vec![session.managed_id().into(), 100_i64.into()]),
+        (
+            "try_rotate",
+            vec![
+                session.managed_id().into(),
+                "replacement".into(),
+                100_i64.into(),
+            ],
+        ),
         ("expire", vec![session.managed_id().into()]),
         ("is_live", vec![session.managed_id().into()]),
     ] {

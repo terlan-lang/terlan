@@ -1,0 +1,6 @@
+//! Shared CSS keyword double. Generated; do not edit.
+
+module std.css.keywords.Double.
+
+pub type Double =
+    Atom["double"].

@@ -1,108 +1,60 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `white-space` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets how `white space` inside an element is handled.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - break-spaces: The behavior is identical to `preserve`, except that: - Any sequence of preserved
+//! white space always takes up space, including at the end of the line. - A line-breaking
+//! opportunity exists after every preserved white space character, including between white space
+//! characters. - Preserved spaces take up space and do not hang, thus affecting the box's intrinsic
+//! sizes (`min-content` size and `max-content` size). See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space-collapse
+//! - collapse: White space sequences are
+//! [collapsed](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#collapsing_and_transformation).
+//! See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space-collapse
+//! - normal: Sequences of white space are
+//! [collapsed](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#collapsing_and_transformation).
+//! Newline characters in the source are handled the same as other white spaces. Lines are broken as
+//! necessary to fill line boxes. Equivalent to `collapse wrap`.
+//! - nowrap: Text does not wrap across lines. It will overflow its containing element rather than
+//! breaking onto a new line. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-wrap-mode
+//! - pre: Sequences of white space are preserved. Lines are only broken at newline characters in the
+//! source and at `br` elements. Equivalent to `preserve nowrap`.
+//! - pre-line: Sequences of white space are
+//! [collapsed](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#collapsing_and_transformation).
+//! Lines are broken at newline characters, at `br`, and as necessary to fill line boxes. Equivalent
+//! to `preserve-breaks wrap`.
+//! - pre-wrap: Sequences of white space are preserved. Lines are broken at newline characters, at
+//! `br`, and as necessary to fill line boxes. Equivalent to `preserve wrap`.
+//! - preserve: White space sequences and segment break characters are preserved. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space-collapse
+//! - preserve-breaks: White space sequences are collapsed, while segment break characters are
+//! preserved. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space-collapse
+//! - preserve-spaces: White space sequences are preserved, while tabs and segment break characters
+//! are converted to spaces. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space-collapse
+//! - wrap: Text is wrapped across lines at appropriate characters (for example spaces, in languages
+//! like English that use space separators) to minimize overflow. This is the default value. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-wrap-mode
+//!
+//! Grammar: normal | pre | pre-wrap | pre-line | <'white-space-collapse'> || <'text-wrap-mode'> ||
+//! <'white-space-trim'>
+//!
 //! Specification: https://drafts.csswg.org/css-text-4/#propdef-white-space
-//! Grammar: normal | pre | pre-wrap | pre-line | <'white-space-collapse'> || <'text-wrap-mode'> || <'white-space-trim'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WhiteSpace.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    white_space: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    white_space: Value
+    white_space: Normal | Pre | PreWrap | PreLine | Collapse | Preserve | PreserveBreaks | PreserveSpaces | BreakSpaces | Wrap | Nowrap | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained white-space value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword break-spaces.
-
-pub break_spaces(): Value.
-
-/// Returns the CSS keyword collapse.
-
-pub collapse(): Value.
-
-/// Returns the CSS keyword discard.
-
-pub discard(): Value.
-
-/// Returns the CSS keyword discard-after.
-
-pub discard_after(): Value.
-
-/// Returns the CSS keyword discard-before.
-
-pub discard_before(): Value.
-
-/// Returns the CSS keyword discard-inner.
-
-pub discard_inner(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword nowrap.
-
-pub nowrap(): Value.
-
-/// Returns the CSS keyword pre.
-
-pub pre(): Value.
-
-/// Returns the CSS keyword pre-line.
-
-pub pre_line(): Value.
-
-/// Returns the CSS keyword pre-wrap.
-
-pub pre_wrap(): Value.
-
-/// Returns the CSS keyword preserve.
-
-pub preserve(): Value.
-
-/// Returns the CSS keyword preserve-breaks.
-
-pub preserve_breaks(): Value.
-
-/// Returns the CSS keyword preserve-spaces.
-
-pub preserve_spaces(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword wrap.
-
-pub wrap(): Value.
-
-export type Token.

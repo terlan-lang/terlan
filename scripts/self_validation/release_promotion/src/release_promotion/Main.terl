@@ -256,7 +256,10 @@ read_candidate(root: String): DocumentResult ->
             case Json.parse(source) {
                 Err(reason) ->
                     document_failure(
-                        String.append("candidate manifest is invalid JSON: ", reason.message),
+                        String.append(
+                            "candidate manifest is invalid JSON: ",
+                            reason.message,
+                        ),
                     );
                 Ok(document) -> DocumentResult(valid = true, document = document, message = "")
             }

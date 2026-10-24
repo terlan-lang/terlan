@@ -1,0 +1,6 @@
+module corpus.FuzzMissingCaseArrow.
+
+pub value(input: Int): Int -> case input {
+    0 0;
+    _ -> 1
+}.

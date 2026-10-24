@@ -2,6 +2,9 @@
 module self_host.TypedModuleLowering.
 
 import self_host.DeclarationSyntax.{DeclarationSyntax, ModuleSyntax}.
+import self_host.FunctionSyntax.{FunctionSyntax}.
+import self_host.MethodSyntax.{MethodSyntax}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
 import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, ExportDeclaration, FunctionDeclaration, ImportDeclaration, MethodDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration}.
 import self_host.TypedModuleSyntax.{AnnotationSchemaPayload, ConfigPayload, ConstantPayload, ConstructorPayload, ExportPayload, FunctionPayload, ImportPayload, MethodPayload, NativePayload, ShapePayload, StructPayload, TemplatePayload, TraitImplPayload, TraitPayload, TypePayload, TypedDeclaration, TypedDeclarationPayload, TypedModule, UnsupportedPayload, ValuedUnionPayload}.
 
@@ -150,9 +153,64 @@ symbol_shape(source: DeclarationSyntax, head: String): String ->
     }.
 
 @pure
-semantic_identity(source: DeclarationSyntax): String ->
+parameter_annotation(value: ParameterSyntax): String ->
+    if {
+        value.has_annotation -> value.annotation.syntax.text;
+        true -> ""
+    }.
+
+@pure
+parameter_shape(value: ParameterSyntax): String ->
+    String.concat([
+        if { value.is_mutable -> "mut:"; true -> "value:" },
+        parameter_annotation(value),
+    ]).
+
+@pure
+parameter_shapes(values: List[ParameterSyntax]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [parameter_shape(value) | parameter_shapes(rest)]
+    }.
+
+@pure
+function_identity(value: FunctionSyntax): String ->
+    String.concat([
+        "function:",
+        value.name,
+        "(",
+        String.join(parameter_shapes(value.typed_parameters), ","),
+        ")->",
+        value.return_type.syntax.text,
+    ]).
+
+@pure
+method_parameters(value: MethodSyntax): List[ParameterSyntax] ->
+    [value.receiver | value.parameters].
+
+@pure
+method_identity(value: MethodSyntax): String ->
+    String.concat([
+        "method:",
+        value.name,
+        "(",
+        String.join(parameter_shapes(method_parameters(value)), ","),
+        ")->",
+        value.return_type.syntax.text,
+    ]).
+
+@pure
+semantic_identity(source: DeclarationSyntax, payload: TypedDeclarationPayload): String ->
     if {
         symbol_name(source) == "" -> "";
+        source.class == FunctionDeclaration -> case payload {
+            FunctionPayload(value) -> function_identity(value);
+            _ -> String.trim(source.header)
+        };
+        source.class == MethodDeclaration -> case payload {
+            MethodPayload(value) -> method_identity(value);
+            _ -> String.trim(source.header)
+        };
         true -> String.trim(source.header)
     }.
 
@@ -431,7 +489,7 @@ declarations_at(values: List[DeclarationSyntax]): List[TypedDeclaration] ->
         [value | rest] ->
             let prepared = DeclarationMetadataLowering.prepare(value);
             let lowered = payload(prepared.declaration);
-            [TypedDeclaration(payload_valid(lowered), lowered, value.class, symbol_name(value), semantic_identity(value), value.is_public, value.body, prepared.metadata.annotations, prepared.metadata.docs, value.span, payload_message(lowered)) | declarations_at(rest)]
+            [TypedDeclaration(payload_valid(lowered), lowered, value.class, symbol_name(value), semantic_identity(value, lowered), value.is_public, value.body, prepared.metadata.annotations, prepared.metadata.docs, value.span, payload_message(lowered)) | declarations_at(rest)]
     }.
 
 @pure

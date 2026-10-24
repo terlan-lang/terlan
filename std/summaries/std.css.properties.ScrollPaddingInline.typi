@@ -1,80 +1,63 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-inline
+//! The `scroll-padding-inline` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets the scroll padding of an element in the inline dimension.
+//!
+//! Initial: scroll-padding-inline-start: auto; scroll-padding-inline-end: auto. Inherited: no.
+//! Percentages: relative to the scroll container's scrollport.
+//!
+//! Keyword effects:
+//! - auto: The offset is determined by the user agent. This will generally be 0px, but a user agent
+//! is able to detect and do something else if a non-zero value is more appropriate.
+//!
 //! Grammar: [ auto | <length-percentage [0,∞]> ]{1,2}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-inline
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-padding-inline
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollPaddingInline.
 
-/// A single non-global scroll-padding-inline shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
+pub opaque type CheckedComponent.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    scroll_padding_inline: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    Auto
+  | CheckedComponent.
 
 pub struct Property {
-    scroll_padding_inline: Value
+    scroll_padding_inline: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained scroll-padding-inline value.
+/// Checks the scroll-padding-inline length range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub opaque type Value.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-/// Returns the CSS keyword auto.
+/// Checks the scroll-padding-inline percentage range. Returns Some when amount >= 0; otherwise
+/// returns None.
 
-pub auto(): Value.
+pub component_percentage(value: std.css.Values.Percentage): Option[CheckedComponent].
 
-/// Constructs one scroll-padding-inline shorthand component.
+/// Checks the scroll-padding-inline length range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub component_auto(): Component.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Checks the specification range and constructs a scroll-padding-inline value.
+/// Supplies 2 components in grammar order.
 
-pub component_length(value: std.css.Values.Length): Option[Component].
+pub pair(first: Component, second: Component): Checked.
 
-/// Checks the specification range and constructs a scroll-padding-inline value.
+/// Checks the scroll-padding-inline percentage range. Returns Some when amount >= 0; otherwise
+/// returns None.
 
-pub component_percentage(value: std.css.Values.Percentage): Option[Component].
+pub percentage(value: std.css.Values.Percentage): Option[Checked].
 
-/// Returns the CSS keyword inherit.
+/// Supplies 1 components in grammar order.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a scroll-padding-inline value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Checks the specification range and constructs a scroll-padding-inline value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub single(first: Component): Checked.

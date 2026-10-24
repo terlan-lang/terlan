@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGSwitchElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17111063606480527453
-interface_hash=17134890542718506976
-interface_doc_hash=17134890542718506976
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=11144683803667997926
+interface_hash=852010544378030369
+interface_doc_hash=852010544378030369
 deps=0

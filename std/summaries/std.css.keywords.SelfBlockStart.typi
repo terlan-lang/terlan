@@ -1,0 +1,6 @@
+//! Shared CSS keyword self-block-start. Generated; do not edit.
+
+module std.css.keywords.SelfBlockStart.
+
+pub type SelfBlockStart =
+    Atom["self-block-start"].

@@ -1,0 +1,6 @@
+//! Shared CSS keyword s-resize. Generated; do not edit.
+
+module std.css.keywords.SResize.
+
+pub type SResize =
+    Atom["s-resize"].

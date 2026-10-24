@@ -1,69 +1,34 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#MarkerMidProperty
+ * The `marker-mid` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property points to a
+ * marker that will be drawn on the middle vertices of the element's path; that is, at each of its
+ * vertices between the start and end vertices. The marker must have been defined using an SVG
+ * `marker` element, and can only be referenced with a `<url>` value. The value of the CSS property
+ * overrides any values of the `marker-mid` attribute in the SVG.
+ *
+ * Initial: none. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - none: This means no marker will be drawn at each middle vertex of the element's path.
+ *
  * Grammar: none | <marker-ref>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#MarkerMidProperty
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/marker-mid
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MarkerMid.
 
-import type std.core.Option.
+import std.css.keywords.None.
 
-/**
- * A nominal, specification-constrained marker-mid value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    marker_mid: Value,
+    marker_mid: None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    marker_mid: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "marker-mid", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "marker-mid", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "marker-mid", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "marker-mid", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "marker-mid", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "marker-mid", css: "unset"}).

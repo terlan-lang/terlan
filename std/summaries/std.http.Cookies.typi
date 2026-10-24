@@ -37,7 +37,7 @@ pub type Lax =
 /// value without exposing backend header formatting.
 
 pub type None =
-    Atom["none"].
+    std.core.Option.None.
 
 /// Options represents optional `Set-Cookie` metadata.
 ///
@@ -76,7 +76,7 @@ pub type SameSite =
 /// value without exposing backend header formatting.
 
 pub type Strict =
-    Atom["strict"].
+    std.core.Atom.Strict.
 
 /// Records a response cookie deletion.
 ///
@@ -129,6 +129,13 @@ pub (jar: Jar) get(name: String): Option[String].
 
 @pure
 pub (jar: Jar) headers(): List[String].
+
+/// Parses one Cookie header through the maintained package codec.
+///
+/// Malformed pairs are ignored by the codec. Terlan selects the first value
+/// for duplicate names and initializes independent pending response headers.
+
+pub parse(header: String): Jar.
 
 /// Records a response cookie mutation.
 ///

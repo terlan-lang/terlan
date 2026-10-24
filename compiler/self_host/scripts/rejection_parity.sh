@@ -26,18 +26,28 @@ while IFS= read -r -d '' source; do
     projected_output="$artifact_root.projected.surface.json"
     count=$((count + 1))
 
-    if "$rust_oracle" "$source" "$rust_output" >/dev/null 2>&1; then
+    if ! "$rust_oracle" "$source" "$rust_output" >/dev/null 2>&1; then
+        printf '%s\t%s\n' "$relative" 'rust-oracle-failed' >> "$failures"
+        failed=$((failed + 1))
+        continue
+    fi
+    if ! rg -q '"valid"[[:space:]]*:[[:space:]]*false' "$rust_output"; then
         printf '%s\t%s\n' "$relative" 'rust-accepted-rejected-fixture' >> "$failures"
         failed=$((failed + 1))
         continue
     fi
-    if ! "$projected_oracle" parity "$source" "$projected_output"; then
+    if ! "$projected_oracle" errors "$source" "$projected_output"; then
         printf '%s\t%s\n' "$relative" 'projected-oracle-failed' >> "$failures"
         failed=$((failed + 1))
         continue
     fi
     if ! rg -q '"valid"[[:space:]]*:[[:space:]]*false' "$projected_output"; then
         printf '%s\t%s\n' "$relative" 'projected-accepted-rejected-fixture' >> "$failures"
+        failed=$((failed + 1))
+        continue
+    fi
+    if ! cmp -s "$rust_output" "$projected_output"; then
+        printf '%s\t%s\n' "$relative" 'error-class-or-span-mismatch' >> "$failures"
         failed=$((failed + 1))
     fi
 done < <(find "$corpus_root" -type f \( -name '*.terl' -o -name '*.terli' \) -print0 | sort -z)

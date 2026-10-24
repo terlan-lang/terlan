@@ -153,3 +153,50 @@ fn checked_cores(sources: &[&str]) -> Vec<CoreModule> {
         })
         .collect()
 }
+
+#[test]
+fn source_linker_retains_cached_interfaces_for_transitive_project_imports() {
+    let root = tempfile::tempdir().unwrap();
+    let source_dir = root.path().join("src/app");
+    let cache = root.path().join("cache");
+    std::fs::create_dir_all(&source_dir).unwrap();
+    std::fs::create_dir_all(&cache).unwrap();
+    std::fs::write(
+        source_dir.join("Leaf.terl"),
+        "module app.Leaf. pub value(): Int -> 41.",
+    )
+    .unwrap();
+    std::fs::write(
+        source_dir.join("Middle.terl"),
+        "module app.Middle. import app.Leaf. pub value(): Int -> Leaf.value() + 1.",
+    )
+    .unwrap();
+    std::fs::write(
+        cache.join("app.Leaf.typi"),
+        "module app.Leaf. pub value(): Int.",
+    )
+    .unwrap();
+    std::fs::write(
+        cache.join("app.Middle.typi"),
+        "module app.Middle. pub value(): Int.",
+    )
+    .unwrap();
+    let path = source_dir.join("Root.terl");
+    let compiled = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
+        &path.to_string_lossy(),
+        "module app.Root. import app.Middle. pub check(): Bool -> Middle.value() == 42.",
+        crate::DiagnosticFormat::default(),
+        Some(&cache),
+        crate::validation::native_policy::NativePolicy::default(),
+        crate::validation::target_profile::TargetProfile::JsShared,
+    )
+    .expect("compile project consumer");
+    let linked = link_libraries_with_profile(
+        &compiled.core,
+        &path,
+        crate::validation::target_profile::TargetProfile::JsShared,
+        Some(&cache),
+    )
+    .expect("link transitive project sources using the same interfaces");
+    assert_js_check(&linked);
+}

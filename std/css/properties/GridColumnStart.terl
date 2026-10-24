@@ -1,91 +1,62 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-column-start
+ * The `grid-column-start` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies a grid item's start position within the grid column by contributing a line, a span, or
+ * nothing (automatic) to its grid placement. This start position defines the block-start edge of
+ * the `grid area`.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: A keyword indicating that the property contributes nothing to the grid item's placement,
+ * indicating auto-placement, an automatic span, or a default span of `1`.
+ *
  * Grammar: <grid-line>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-column-start
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/grid-column-start
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.GridColumnStart.
 
 import std.core.Int.
 import std.core.Int.{to_string}.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
+import std.css.Values.{serialize}.
+import std.css.keywords.Auto.
 
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained grid-column-start value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    grid_column_start: Value,
+    grid_column_start: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the grid-column-start integer range. Returns Some when amount <= -1; otherwise returns
+ * None.
  */
-pub struct OptionalProperty {
-    grid_column_start: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "grid-column-start", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "grid-column-start", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "grid-column-start", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "grid-column-start", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "grid-column-start", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "grid-column-start", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a grid-column-start value.
- */
-pub integer(value: Int): Option[Value] ->
+pub integer(value: Int): Option[Checked] ->
     case value <= -1 {
-        true -> Some(Value(Token {property: "grid-column-start", css: to_string(value)}));
-        false -> None
+        true -> Some(Checked(serialize("grid-column-start", to_string(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a grid-column-start value.
+ * Checks the grid-column-start integer range. Returns Some when amount >= 1; otherwise returns
+ * None.
  */
-pub integer_1(value: Int): Option[Value] ->
+pub integer(value: Int): Option[Checked] ->
     case value >= 1 {
-        true -> Some(Value(Token {property: "grid-column-start", css: to_string(value)}));
-        false -> None
+        true -> Some(Checked(serialize("grid-column-start", to_string(value))));
+        false -> Absent
     }.

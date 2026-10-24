@@ -1,0 +1,8 @@
+module=std.css.keywords.UiRounded
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=17007866909710521491
+interface_hash=4383484404567174641
+interface_doc_hash=6889467168854548923
+deps=0

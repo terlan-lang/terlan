@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword flex-flow. Generated; do not edit.
+ */
+module std.css.keywords.FlexFlow.
+
+pub type FlexFlow = Atom["flex-flow"].

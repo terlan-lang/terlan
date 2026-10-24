@@ -1,84 +1,33 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-4/#propdef-letter-spacing
+ * The `letter-spacing` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * spacing between text characters. This value is added to the natural spacing between characters
+ * while rendering the text. Positive values of `letter-spacing` spread characters further apart,
+ * while negative values of `letter-spacing` bring characters closer together.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - normal: The normal letter spacing for the current font. Unlike a value of `0`, this keyword
+ * allows the `user agent` to alter the space between characters in order to justify text.
+ *
  * Grammar: normal | <length-percentage>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-letter-spacing
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/letter-spacing
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.LetterSpacing.
 
-import std.css.Values.
+import std.css.keywords.Normal.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained letter-spacing value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    letter_spacing: Value,
+    letter_spacing: Normal | Length | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    letter_spacing: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "letter-spacing", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "letter-spacing", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "letter-spacing", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "letter-spacing", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "letter-spacing", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "letter-spacing", css: "unset"}).
-
-/**
- * Constructs a letter-spacing value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "letter-spacing", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a letter-spacing value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "letter-spacing", css: std.css.Values.percentage_css(value)}).

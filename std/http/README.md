@@ -7,9 +7,34 @@ typed request, response, and error modules rather than backend server values.
 ## Responsibilities
 
 - `native/src/api_contract.rs` owns route identity and minimal deterministic
-  OpenAPI projection, independently of compiler/VM syntax. CLI API/deployment
-  tooling still discovers static router syntax; unlike serving, it does not
-  evaluate Router source. Typed request/response schemas are not yet projected.
+  OpenAPI projection, independently of compiler/VM syntax. `api emit --source`
+  compiles the application and evaluates its public `router/0`, then admits the
+  returned descriptor through the same package validation as serving. Computed
+  paths, groups, imported handlers, and captured closures are supported. Exported
+  handlers retain their names; anonymous handlers use image-local callable IDs,
+  never captured payloads. Source paths must follow normal module layout and pass
+  compilation. This executes trusted application code, not sandboxed inspection;
+  no application native services are granted and resumable transitions are bounded.
+  Channels without schema support fail explicitly. Typed request/response schemas
+  are not yet projected. Semantic deployment plans use this same evaluator for
+  public `router/0` entrypoints, including delegated routers without a direct
+  Router import. Only returned routes enter the plan; discarded builder values
+  do not. Native VM service and browser manifests also project evaluated descriptors, including
+  SSE and WebSocket route declarations. Their rows retain the owning router and
+  its source span, so imported/captured callbacks still pass through its graph,
+  middleware, and recovery. Function labels are diagnostic identities, not direct
+  callback dispatch instructions. Source WebSocket endpoints without an application
+  subprotocol emit an empty protocol field; no protocol is invented or negotiated.
+  Browser assets still use the JS backend; their server route sources compile
+  separately for evaluation. Legacy WebSocket `route()` / `protocol()` metadata
+  also executes compiled source, including computed values and exact imports;
+  the HTTP package validates the returned strings. All discovery uses the same
+  bounded source-export evaluator and denies external service waits.
+  The HTTP package also owns entrypoint discovery from public export names and
+  arities. Handler-only modules are ordinary dependencies, not extra route
+  entrypoints: aliases and transitive imports resolve through the compiler's
+  application closure. A type named `Request` or `Response` does not identify
+  an HTTP module or cause unrelated model code to enter route discovery.
 - Define stable HTTP request and response shapes for Terlan handlers.
 - Keep transport parsing and socket storage behind the server adapter.
 - Expose JSON-capable handler helpers without leaking host JSON values.
@@ -18,14 +43,14 @@ typed request, response, and error modules rather than backend server values.
 
 ## Public Surface
 
-- `std.http.Request`: source-owned managed record with private fields.
-- `std.http.Response`: source-owned managed record with private fields.
-- `std.http.Session`: source-owned record with private identity fields.
+- `std.http.Request.Request`: source-owned managed record with private fields.
+- `std.http.Response.Response`: source-owned managed record with private fields.
+- `std.http.Session.Session`: source-owned record with private identity fields.
 - `std.http.Sse.Event`: source-owned event record with optional metadata.
 - `std.http.Sse.Endpoint`: source-owned limits and callback declarations.
 - `std.http.WebSocket.Frame`: source-owned text, ping, pong, or close intent.
 - `std.http.WebSocket.Endpoint`: source-owned limits, callbacks, and pairing policies.
-- `std.http.Router`: immutable source-owned record with private declarations.
+- `std.http.Router.Router`: immutable source-owned record with private declarations.
 - `std.http.Router.Handler`: typed route handler function shape.
 - `std.http.Error.HttpError`: portable HTTP helper error.
 - `std.http.Cookies.Options`: typed `Set-Cookie` option contract.
@@ -122,26 +147,39 @@ require migration.
 the compiler does not replace these functions or supply a private error layout.
 `std.http.Request` now declares its fields and implements its accessors in
 Terlan. Its body decoder composes `Json.parse` with the portable `Error`
-constructor. Request accessors no longer depend on compiler call substitution
-or native exports. The server adapter materializes the ordinary record.
+constructor. Request accessors no longer depend on compiler call substitution.
+The server adapter materializes the ordinary record; source accessors call
+package codecs through generic native bindings where needed.
 The native request snapshot deliberately has no parameter, query, header, or
-cookie lookup methods: it stores and transfers pairs without a second lookup
+cookie lookup methods: it stores and transfers metadata without a second lookup
 policy. Those semantic tests execute `Request.terl` and `Cookies.terl`, including
 renamed providers, while native tests cover lossless storage and codec conversion.
-Route parameters, query parameters, and headers cross ingress as ordered pairs,
+Route parameters and headers cross ingress as ordered pairs,
 including duplicates and empty values. `Request.terl` selects the last matching
 value with the shared enumerable fold, preserving the earlier map-backed
 behavior without constructing a map on ingress. Header names still come from
 the maintained HTTP parser; source lookup normalizes ASCII names and rejects
-non-ASCII names. Query decoding remains owned by `std.net.Uri`'s maintained
-codec. Tuple-pattern handlers retain their public map-shaped contract.
-Incoming cookie pairs retain their wire order and duplicates in that record.
+non-ASCII names. Query text crosses ingress unchanged, without a second decoded
+pair field. `Request.query` calls `std.net.Uri.query_pairs` only for a nonempty
+query, then selects the last matching pair in Terlan. Raw query reads do not
+invoke a codec. Tuple-pattern handlers retain their public map-shaped contract
+through the explicit native adapter, which still decodes queries eagerly.
+Incoming cookies retain raw header strings in wire order in that record.
+`Request.cookies` selects the first header in Terlan, including an empty or
+invalid first header; it does not fall back to a later header.
 `Cookies.from_pairs` owns case-sensitive first-value selection, including empty
 values; `Request.cookie` and `Request.cookies` share that source implementation.
-The maintained native cookie parser still handles wire syntax and ingress still
-selects the first Cookie header, ignoring it if non-textual. Tuple-pattern
+`Cookies.parse` calls the maintained cookie parser through the package-owned
+`std.http.cookies.decode` binding, then passes the ordered pairs to source
+`from_pairs`. Only the selected header is decoded, and unread or absent cookies
+do not invoke the codec. Non-text headers remain empty strings instead of
+disappearing. Tuple-pattern
 handlers retain their existing map-shaped snapshot through an explicit adapter; that compatibility
-conversion is not used by ordinary Request records.
+conversion still selects the first header and first cookie per name natively;
+it is not used by ordinary Request records. A renamed source Request module
+that selects the second header proves ingress does not preselect for records.
+Serving generations before v30 are rebuilt for the compact raw-query/raw-cookie
+field layout and source-selected session identity capabilities.
 Direct handler ingress selects records or explicit tuples from the admitted
 source parameter type, not handler arity or suspension behavior. Source Request
 handlers can receive typed positional route captures on both immediate and
@@ -183,8 +221,16 @@ The former public
 handler tests inspect the source-selected arguments before serialization and
 exercise cookie, response, and session composition through the same binding.
 
-Session cookie identities are issued by `native/src/session_identity` from 32
-OS-random bytes using `getrandom` and the maintained Base64 URL-safe codec. The
+Cookie and SSE codec entry points use the shared `native_binding!` declaration:
+typed parameter lists generate catalog arity, exact input conversion, and owned
+output conversion. No positional argument indexes or separately maintained
+arity literals remain in these adapters. Optional and nested values are checked
+before calling a codec; codec failures retain their existing diagnostics.
+This is Rust binding generation, not a new Terlan annotation or a substitute
+for source-owned HTTP policy.
+
+Session cookie identities are composed by `Session.terl` from 32 OS-random
+bytes using `std.crypto.Entropy` and the maintained Base64 URL-safe codec. The
 VM no longer generates sequential identities. Issuance fails closed on entropy
 failure and bounds retries against occupied identities. Rotation obtains its
 replacement before removing the old identity. Tests consume actual issued
@@ -211,7 +257,12 @@ state intact. This moves lifetime selection to source, not the remaining session
 registry or actor loop.
 
 `native/src/session_service` owns the application-lifetime shared context and
-its native-service grants. Plain HTTP and TLS serving attach a one-second
+its native-service grants. Its `ApplicationSessions` registry initializes one
+context and clock per host-supplied application key, even when handler images
+load concurrently. Failed clock attachment is not published and can be retried.
+The host canonicalizes application paths and supplies generic actor storage;
+the HTTP package selects the application recovery policy, maintenance interval,
+and release budget. Plain HTTP and TLS serving attach that one-second
 maintenance hook to one existing protocol owner, including while idle; each
 pass releases at most 64 due sessions. A busy context is retried next tick,
 without blocking that owner on a request's lock. Poisoned contexts and resource
@@ -222,7 +273,8 @@ use this same package store. The VM supplies only actor-owned keyed state, with
 host-scoped handles and no HTTP names, identity policy, or cookie interpretation.
 The former HTTP-specific VM runtime is retained only for migration tests.
 Compiled-handler and scheduler benchmark fixtures use the same session-service
-constructor as production. Handler tests exercise cross-image state retention,
+constructor as production. Handler tests exercise canonical-path aliases through
+the production application registry, cross-image state retention,
 rotation invalidation, application isolation, and cookie expiration through
 the package store, not the legacy HTTP runtime.
 These are actor-owned resources, not yet an executing Terlan session actor loop;
@@ -271,15 +323,23 @@ this canonical-path boundary is not a race-proof jail against concurrent host
 filesystem mutation. Reads remain buffered and blocking; asynchronous file
 transport is not claimed by this migration.
 
-Request metadata decoding and projection also live in `native/`. Serving adapters
-use `RequestMetadata::from_http` instead of maintaining separate query, header,
-and cookie extraction rules. Query decoding delegates to the maintained URL codec
-in `std/net/native`; header names come from `http::HeaderMap`, and cookies use
-the maintained cookie codec. Repeated query/header values retain their order
+Request snapshot construction, metadata decoding, and projection live in
+`native/`. Immediate and suspendable serving adapters use `Request::from_http_parts`
+and `Request::from_http` instead of selecting fields and attaching upload paths
+in the host. They share one conversion; owned text bodies transfer without a
+copy and borrowed bodies copy only when observed. The package projection also
+decides whether a proven file-only observation permits binary ingress. The
+original HTTP request or its parts retain the upload lease until dispatch ends;
+source snapshots carry the path, not a second resource owner.
+Query decoding is selected by `Request.terl` and delegates to the maintained URL
+codec through `std.net.Uri`; header names come from `http::HeaderMap`, and cookies use
+the maintained cookie codec. Repeated decoded query/header values retain their order
 within each name. The existing text API decodes non-UTF-8 header values lossily.
-Cookie decoding retains the existing first-header-only policy and ignores a
-nontext first Cookie header; this is a preserved contract, not a claim that
-multiple Cookie headers are merged. Cookie reads and jar construction observe
+Cookie ingress preserves raw header strings; decoding follows source selection.
+Source selection
+retains the existing first-header-only policy and ignores a nontext first Cookie
+header; this is a preserved contract, not a claim that multiple Cookie headers
+are merged. Cookie reads and jar construction observe
 the same incoming-cookie field. Exhaustive projection tests compare early
 ingress filtering with later source-record projection. The package maps
 zero-based source-record observations into transport slots; it does not treat
@@ -319,9 +379,9 @@ adapter supplies route storage requirements and compiled handler execution;
 the package does not import compiler or VM types. Declared overflow is rejected
 before route resolution or body polling, and a handled suspendable invocation
 never falls through to a second invocation. Handler failures cancel any admitted
-channel, preserving both the original error and cancellation failures. Live SSE
-still has no transport adapter and returns 501, but rejection now dispatches
-source cancellation rather than silently dropping the session. Hyper, upload
+channel, preserving both the original error and cancellation failures. Producer
+SSE endpoints hand a pull-driven body to Hyper; callback-only and independent
+heartbeat policies return 501 before opening a session. Hyper, upload
 leases, finite response streams, and the existing WebSocket upgrade owner are
 reused; no protocol parser or executor is introduced.
 
@@ -365,7 +425,12 @@ mismatched keys, and incorrect hostnames. This does not change system trust.
 
 `native/src/acme` owns provider/cache planning, cached-certificate domain and
 validity checks, renewal metadata, key custody checks, and HTTP-01 cache lookup.
-The host supplies project discovery and live issuer scheduling. Account payloads
+`native/src/acme/http01` also owns challenge method/path admission and HTTP
+response construction. GET/HEAD challenges share status and content-length
+policy; other methods and unrelated paths do not invoke project discovery or
+read the cache. Missing, malformed, and unreadable challenges remain distinct
+404, 400, and 500 responses. The host supplies project discovery and live issuer
+scheduling, not a parallel challenge-result/status mapping. Account payloads
 remain opaque Serde values: cache access does not enable the optional ACME client
 feature. Maintained `tempfile` provides unique
 staging files (owner-only on Unix); rustls validates a certificate/key pair before either
@@ -419,6 +484,15 @@ rustls client/server handshakes over in-memory transports without a VM or socket
 host socket integration is a separate gate. Serving policy and session ownership
 are not migrated by this adapter change.
 
+`native/src/server_connection::serve_tls` also owns the dispatch from the
+authenticated ALPN result to the maintained HTTP/1 or HTTP/2 service. Both use
+the same application request callback. Only HTTP/1 grants an upgrade slot;
+HTTP/2 submits opaque stream futures to the supplied host task group. Unknown
+protocols fail before application dispatch. The command no longer branches on
+HTTP protocol selection or constructs a separate HTTP/2 service. Package tests
+exercise real rustls negotiation, HTTP/1 keep-alive, concurrent HTTP/2 requests,
+malformed input, parked-handler cancellation, and transport release.
+
 `native/src/upgrade_io` owns the transfer of Hyper read-ahead into the
 maintained WebSocket codec. The host declares the accepted plain/TLS transport
 types; unexpected transports fail closed. Buffered bytes are consumed exactly
@@ -428,7 +502,8 @@ buffered/finite-stream body adapter, preserving shared byte allocations and
 pull-driven chunk bounds. These are protocol adapters, not new source semantics.
 Package tests perform real in-memory Hyper upgrades and chunked responses with
 partial writes, buffered masked WebSocket frames, cancellation, and foreign
-transport rejection. Live SSE producers and session actors remain separate work.
+transport rejection. Live SSE uses the producer body described below;
+source-owned session actors remain unfinished.
 
 `native/src/plain_io.rs` supplies the plain Hyper adapter over host-registered
 streams. It preserves partial and vectored writes, shutdown, and synchronous
@@ -447,8 +522,8 @@ the host supplies the service and polls the returned future, with no package
 executor or background task. Tests drive fragmented chunked bodies, sequential
 pipeline requests, connection-close boundaries, malformed framing, handler and
 transport errors, cancellation, and upgrade read-ahead through this entrypoint.
-This does not implement the still-missing live SSE producer path or source-owned
-WebSocket room actors.
+This connection builder does not implement source-owned WebSocket session actors
+or independent SSE heartbeat scheduling.
 
 `native/src/http2` now owns the maintained Hyper connection builder, HTTP/2
 limits, and the adapter that submits opaque stream futures to a host. It does
@@ -461,7 +536,7 @@ replaces the HTTP-specific queue scheduler formerly embedded in the command.
 Tests exercise concurrent Hyper client/server streams over fragmented in-memory
 I/O, plus capacity, cancellation, wake replacement, and reentrant cleanup at
 the generic VM boundary. This is protocol/host separation, not source-level
-session actors or completion of the live SSE producer path.
+session actors or independent SSE heartbeat scheduling.
 
 Handler header admission and shared host response construction are package-owned
 as well. Header names and values are validated by the maintained `http` crate,
@@ -507,8 +582,10 @@ package codecs. These tests explicitly deliver scheduler replies; they do not
 claim isolated-worker or socket coverage.
 
 `Cookies.Jar` is a source-owned private record of incoming cookies and pending
-serialized headers. `Cookies.from_map` constructs it in Terlan;
-`Request.cookies()` calls that constructor with the decoded incoming map. Native
+serialized headers. `Cookies.from_map` and `Cookies.from_pairs` construct it in
+Terlan; `Request.cookies()` selects the first raw header and calls `Cookies.parse`.
+The maintained codec preserves pair order; source `from_pairs` keeps the first
+cookie per case-sensitive name. Native
 ingress does not construct jars or retain a duplicate cookie-map field. Every
 call starts with empty pending headers, including calls after another jar was
 mutated. Reads, persistent mutation, and `with_cookies`
@@ -517,9 +594,8 @@ change incoming-cookie reads or earlier jar snapshots. Bound command results
 (`let done = jar.set(...)`) return `Unit` while writing back the receiver through
 generic compiler metadata, not an HTTP-specific rewrite. Compiled-handler tests
 exercise real package codec replies, ordered replay, duplicate incoming-cookie
-lookup, and invalid mutation rejection. The package's host-to-source projection
-keeps the first cookie per name, matching host lookups without changing the
-maintained parser's ordered output.
+lookup, and invalid mutation rejection. The host-to-source record projection
+preserves the maintained parser's ordered groups and pairs for source selection.
 
 `Response.set_cookie_header` is ordinary Terlan composition over `header`;
 there is no duplicate native cookie-header setter. Response mutation calls are
@@ -581,7 +657,11 @@ method slots, and treats WebSocket/SSE routes as GET registrations. Adversarial
 tests cover all route-kind pairs, renamed and typed captures, wildcard aliases,
 method separation, and deterministic diagnostics. Project discovery, file
 existence, manifest caching, and the CLI's live-reload route reservation remain
-host work. Source Router discovery still needs further ownership migration.
+host work. Source Router discovery executes public `router/0` and projects only
+its returned graph. No compiler walker interprets builder names, grouping,
+handler signatures, or route capture parameters. A handler accepts one Request;
+applications adapt extra arguments in ordinary source callbacks using
+`Request.param`, rather than depending on compiler-generated argument binding.
 Build-time inspection no longer reimplements `Router.use`, `map_response`, or
 `error` callback checking using textual type names. Their types are checked by
 ordinary compilation against the package declarations, and serving executes
@@ -594,6 +674,12 @@ unsafe metadata, stream bounds, and ownership transfer; compiled-handler tests
 exercise source builders and the actual transport adapter. Cached manifest
 responses are projected through the package's `cached_response` helper and
 generic `native_record!` machinery, then use the same admission path.
+Consuming response admission uses the corresponding `native_record_fields!`
+ABI projection: field identifiers declare the exact shape, independently of
+incoming order, without cloning text, lists, or opaque values. Missing, extra,
+and duplicate fields fail closed before HTTP interpretation. The generic ABI
+owns shape extraction only; the HTTP package still validates field types,
+status, header safety, body kinds, and stream limits.
 The test runner's response-header fixture also uses package admission before
 looking up a header, so partial records or invalid trailing metadata cannot
 pass session tests while failing the serving boundary.
@@ -647,8 +733,11 @@ there is no HTTP compiler rewrite or session managed opcode. Source-provider
 override tests and a canonical compiled-session test cover command results,
 reads, deletion, rotation, expiration, and stale-handle rejection.
 
-The eight storage operations now use `native/src/session_bindings`: the package
+The eight storage operations use `native/src/session_bindings`: the package
 declares the binding catalog and owns exact argument validation and value conversion.
+Each operation uses the same `native_binding!` machinery with an explicit host
+context separated from its value arguments. All eight signatures derive their
+arity from the declaration; Unit results require no handwritten conversion.
 `NativeContextBinding` takes an explicitly supplied storage context and rejects
 incorrect arity before executing package code; all argument types are checked
 before storage access. It does not acquire locks or grant capabilities.
@@ -669,6 +758,28 @@ Cancelled, foreign, stale, and already-dispatched waits cannot mutate contexts.
 Context access remains serialized, so this does not yet provide asynchronous
 service scheduling. The VM still supplies an actor/table storage adapter.
 This is not yet complete session package ownership.
+
+Session identity selection now executes in `Session.terl`: creation and rotation
+share a 16-attempt policy composing `std.crypto.Entropy.bytes(32)` with
+`std.encoding.Base64.encode_url_unpadded_bytes`. Those shared package bindings
+return raw OS entropy and use the maintained Base64 codec respectively; there
+is no `std.http.session.candidate` native operation or storage-context grant for
+entropy. Source rejects the supplied cookie/previous identity
+and retries only an explicit reservation collision. Entropy and storage failures
+propagate immediately; exhaustion uses the ordinary `Effect` failure boundary.
+The actor retains the typed collision message; its public execution diagnostic
+uses the generic Effect failure code rather than exposing a typed payload.
+The private native `try_create` and `try_rotate` operations reserve under the
+application context lock. A rejected candidate does not allocate an actor,
+overwrite another session, renew a deadline, or drop state. Rotation transfers
+the existing resource only after successful admission. The old `create`/`rotate`
+native capability names are no longer registered. Historical VM session-model
+helpers still retain their issuance path; they are not used by source serving.
+Compiled tests exercise both the canonical module and a renamed copy with changed
+entropy size, encoding mode, and retry bounds, including excluded candidates, occupied candidates,
+exhaustion, and non-retriable failures. Concurrent reservation tests verify that
+the same candidate allocates exactly one actor. This does not yet move the
+application-lifetime registry or expiry service into a source actor.
 
 `Session.current` selects the reserved cookie through `Request.cookie` in Terlan,
 normalizes it with the ordinary String module, and passes an exact string identity
@@ -757,11 +868,22 @@ The HTTP package validates the returned declarations, nested scopes, endpoint
 limits, and callback arities. Computed paths and captured handlers are ordinary
 source values, not compiler-interpreted builder syntax. Static router plans are
 no longer persisted; loading a saved image executes its source router again.
-The old interpreter remains test-only during migration. The HTTP package now
-owns route-table admission and live route dispatch. Serving imports package
+The HTTP package owns route-table admission and live route dispatch. Serving imports package
 types directly and supplies generic VM values/callables; there is no HTTP router
 or HTTP native facade in the production VM. The bounded routing concurrency test
 lives beside the package router and runs without the compiler or VM crate.
+`native/src/router_execution` owns synchronous and suspendable route binding, typed capture
+arguments, response-stage validation, and bounded recovery. Serving supplies
+opaque callable execution, request projection, and authorized response resources;
+it no longer duplicates that orchestration. Both paths defer handler admission
+until source middleware continues, so a rejection can finish without invoking or
+validating the handler. The suspendable path uses the existing host executor;
+dropping its future drops the pending invocation without starting later stages.
+Source middleware composition remains in `Router.terl`. Package tests cover
+short-circuit precedence, stale/folded route identity, malformed callbacks and
+responses, cancellation at every callback stage, and recovery failures without
+replaying completed response stages. A TLS integration regression exercises a
+suspending source rejection before stale manifest binding and subsequent requests.
 Session scheduling still requires
 ownership migration. Lifecycle and overload declarations are decoded but are
 not yet admitted for source routers.
@@ -778,6 +900,15 @@ precedence, `HEAD` fallback to `GET`, last-declaration tie breaking, and positio
 `String`/`Int`/`Bool` argument conversion. It borrows candidate metadata and
 returns only the winning route and decoded captures. The host retains manifest
 caching and VM-value conversion, not a parallel selector or scalar parser.
+`native/src/manifest/selection` combines handler, SSE, static-response, and
+file-response rows through that same matcher. Selection retains the original
+row and endpoint kind instead of cloning the whole manifest into synthetic
+handlers and rediscovering the winner by method/path. Exact WebSocket paths
+reserve handshake admission before asset lookup. The host still resolves asset
+files and caches handler-only matches against the immutable manifest generation.
+Cross-kind tests cover specificity, explicit HEAD priority, typed-capture
+rejection, and original-row identity; host tests cover cache invalidation and
+file confinement. This policy remains package-owned Rust, not Terlan source.
 
 For dynamic HTTP requests, `Router.terl` captures request and response middleware
 in source closures. Those closures order request callbacks, honor short-circuit
@@ -806,9 +937,9 @@ forms. Compiled-source tests invoke a captured `Handler` after its creator shard
 has been destroyed, exercise protocol-owner and dedicated-owner calls, and
 reject stale generations, unknown callables, malformed captures, and incorrect
 arguments. Immediate callback APIs cancel unsupported waits rather than blocking.
-Source-router admission uses this same callable boundary. Manifest route
-selection remains a separate serving input; executing source declarations does
-not yet replace the web-package manifest discovery mechanism.
+Source-router admission and web-package manifest discovery use this same
+callable boundary. Manifest route selection remains a separate serving input,
+but both browser and VM-service route rows are projected from executed source.
 
 Live SSE and WebSocket plans also retain source function values, including
 captures in pairing and restoration callbacks. They enter the same serving
@@ -824,8 +955,10 @@ The retired test-only compiler router interpreter is removed. Router gates now
 execute ordinary package builders and imported callbacks, including computed
 channel paths and restorable pairing. Grouping, fallback expansion, middleware,
 and recovery tests exercise the same source path; no test interpreter removes
-`router/0` or substitutes a static plan. API/browser syntax inspection and legacy
-static-plan transport fixtures remain separate migration work.
+`router/0` or substitutes a static plan. Browser Router syntax inspection is
+also removed, including the legacy WebSocket constant-string interpreter and
+module-suffix guessing. Static-plan transport fixtures remain separate migration
+work.
 
 The main flow is:
 
@@ -865,9 +998,29 @@ Important invariants:
 - `std.http.Tls` is source-visible configuration shape and helper
   constructors only. `terlan.toml` parsing, rustls/ACME integration, and
   certificate cache state remain implementation work.
-- `std.http.Sse` declares bounded live-stream policy, but production live SSE
-  still returns 501. Finite `Sse.response` streams work through maintained Hyper
-  framing; in-memory live-session tests are not production transport support.
+- `std.http.Sse.endpoint(...).producer(next)` streams source-produced events
+  through maintained Hyper transport. `next: () -> Option[Event]` may suspend
+  on VM timers and package workers; `None` ends the stream. Only one producer
+  invocation is active, with no speculative event queue. Terlan normalizes data
+  and invokes the maintained codec; the HTTP package enforces encoded-byte
+  limits before delivery. Dropping the body releases the invocation and cancels
+  the session. HEAD does not open or invoke the producer. Callback-only endpoints
+  and independent keep-alive scheduling still return 501 after middleware.
+  Pull-driven streams await source open callbacks on first body demand before
+  producing events and graceful-drain callbacks before EOF. Both callbacks may
+  suspend on VM timers and package workers. Failure aborts the body; open failure
+  prevents production and cancels the session. Disconnect during open or drain
+  drops its pending invocation before cancellation. Cancellation callbacks must
+  complete synchronously. Finite
+  `Sse.response` remains available for already-produced events.
+  Live endpoint cache/security headers are built in `Sse.terl` and preserved
+  by callback and producer builders. Both GET and body-free HEAD use the
+  admitted source metadata; the native transport supplies only protocol framing.
+  Endpoint admission and cached-plan decoding validate names and values with
+  the maintained HTTP parser and reject transport-owned framing headers.
+  Header omission is explicit, never replaced with native policy defaults.
+  Serving generations before v26 are rebuilt because their SSE descriptors
+  lack this source-owned metadata.
 
 ## Integration Points
 
@@ -966,14 +1119,20 @@ Important invariants:
   new events but preserves already queued frames for graceful drain. The old VM
   live-session wrapper is removed; remaining VM SSE models compile only in tests.
   Queue transfer counters are not socket-delivery acknowledgements. Callback
-  wake/cancellation remains host-owned, and the production Hyper adapter still
-  rejects live SSE with 501 after router middleware but before queue allocation
-  or the source `open` callback. A middleware response remains a normal response.
+  wake/cancellation remains host-owned. `native/src/sse_stream` transfers
+  producer-backed bodies to Hyper using the generic suspendable callback ABI,
+  without adding a reactor or executor. Callback-only or independently timed
+  heartbeat plans are rejected with 501 before allocation or `open`; middleware
+  responses remain normal responses.
   An incompatible typed event wake is rejected without adding a queued frame or
   consuming the waiting callback. Completed-callback histories exist only in
   tests, not in long-lived production channels.
-  In-memory transport tests do not establish live
-  production SSE support or source-owned session scheduling.
+  Live-source evidence includes timer suspension, maintained encoding, TLS
+  socket delivery, malformed/oversized event rejection, suspendable open and
+  graceful drain, terminal callback failure, and subsequent-request recovery.
+  Package tests also cover disconnect before or during open, no callback reentry,
+  rejection of events before open completes, and preservation of cleanup errors.
+  This does not establish source-owned session actors or heartbeat scheduling.
 - `native/src/websocket.rs` owns maintained tungstenite protocol state, upgrade
   response construction, and transport-error classification. The live Hyper
   pump and the in-memory channel integration use this same package codec.
@@ -1012,13 +1171,24 @@ Important invariants:
   Failed upgrades, source errors, queue failures, and protocol errors cancel the
   admitted source session once. Dropping a polled connection future releases
   its transport/room lease and attempts source cancellation; errors from that
-  drop-time callback cannot be returned. Close callback failure still flushes
-  the maintained close reply and does not invoke a second terminal callback.
+  drop-time callback cannot be returned. Graceful source close and the maintained
+  close-reply flush progress together in that same task. Source cleanup can await
+  VM timers/native work without delaying the wire reply. Once graceful close
+  begins, failure or task cancellation releases its pending call and transport
+  without invoking a second terminal callback. Repeated source close is a no-op.
+  Callback failure still permits the close reply to flush; when both fail, the
+  source error takes precedence. Package tests cover simultaneous cleanup and
+  write pressure, cancellation, and resumption without detached cleanup tasks.
+  There is one graceful-close implementation: compiler-side callback and closure
+  tests use the same async package entry as serving, not a synchronous substitute.
+  An absent lifecycle callback must complete immediately; a host that returns a
+  parked result is rejected and its pending work is cancelled.
   Compiled Terlan tests exercise source callback parking, resumption, and error
   cancellation through this package loop. Incompatible typed wakes preserve
   queued frames and the parked callback instead of consuming input first.
-  Room state is still native package state, not a source actor, and stateful
-  callbacks still run under the registry lock. Those ownership gaps remain.
+  Room state is still native package state, not a source actor. Paired source
+  callbacks execute outside the registry lock under a per-room execution permit.
+  Moving room storage and lifecycle policy into source actors remains unfinished.
 - `native/src/server_connection` owns the maintained HTTP/1 service loop and
   WebSocket handoff for both plain and TLS transports. The host supplies compiled
   request execution, diagnostics context, and readiness waits; it does not take
@@ -1027,14 +1197,47 @@ Important invariants:
   with a non-101 response is cancelled and rejected with a closing 500 response,
   rather than waiting for an upgrade that cannot complete. Connection failure
   and cancellation release the pending or active lease exactly once.
+  Rejected upgrade requests retain Hyper's transport handoff until the response
+  is flushed, then poll transport shutdown, including TLS `close_notify`.
+  Shutdown can suspend or fail without losing transport ownership. An already
+  closed TCP write half is terminal only after the TLS flush succeeds; TLS
+  write and flush errors are not suppressed.
 - `native/src/channel_admission` owns WebSocket/SSE selection from the executed
   source router. It runs ordered middleware before checking the declared route
   and endpoint kind, preserving short-circuit responses, decoded captures, and
   response middleware. Missing routes, invalid paths, callback failures, and
   malformed middleware results cannot open a channel. The host executes opaque
   callbacks and materializes responses; it no longer duplicates these checks.
-  Admission does not make live SSE transport available or move session actors
-  into Terlan source.
+  The package also rejects unsupported SSE transport policies and resolves HEAD
+  responses before opening source sessions; the host supplies adapter availability.
+  Production SSE and WebSocket admission use the generic async invocation host for request
+  and short-circuit response middleware, including VM timer and native-worker
+  suspension. Every stage sees captures from the materialized source route;
+  rejection precedes stale binding checks and unsupported transport policies.
+  The package owns finite SSE admission metadata for both transport paths.
+  Pending admission cancellation drops its source call without allocating a
+  session or starting later stages. TLS source tests cover suspending rejection,
+  decoded captures, response decoration, HEAD, callback failure, and recovery
+  on subsequent requests. WebSocket handshake validation precedes source
+  authorization; denied requests cannot emit frames or allocate live sessions.
+  Valid upgrades use the admitted source callbacks for echo and close.
+  Production WebSocket `open` callbacks also await VM timers and native work
+  before HTTP 101 is returned. The package owns the opening lease: cancellation
+  drops the pending source invocation before cancelling the session, and failed
+  initialization retains explicit cleanup errors. No transport or room lease is
+  acquired while initialization is pending. Cancellation notifications retain
+  their synchronous contract. Inbound and writable callbacks also run through
+  the shared timer/native-worker pump rather than executing native work inline.
+  Ordinary callbacks can retain a typed text receive for the next frame, then
+  suspend again on timers, native work, or another text receive without replay.
+  Writable callbacks do not replace a parked invocation. Paired transitions
+  await host work but still require a complete state transition before commit.
+  Dropped connection tasks cancel the active source invocation before releasing
+  transport and room ownership. Real TLS tests cover timer/native work followed
+  by a second-frame receive; compiled closure tests cover repeated receives and
+  cancellation during both initial and resumed timers.
+  Admission does not itself schedule producers or move session actors into
+  Terlan source; the pull-driven SSE body owns production demand.
 - `native/src/websocket/upgrade` owns the admitted source session between the
   HTTP response and transport handoff. Missing adapters, lost upgrade futures,
   and duplicate admissions cancel the rejected session without replacing the
@@ -1073,10 +1276,27 @@ Important invariants:
   failure preserves both the terminal-suspension diagnostic and the cancellation
   error. Package tests cover both channel kinds and both terminal events;
   compiled Terlan tests exercise actual parked callback cleanup.
+  SSE sessions reject event callbacks, heartbeats, enqueues, and stale wakes
+  after drain or cancellation, including when terminal cleanup fails. Transport
+  cancellation can be repeated without replaying source callbacks. Dropping a
+  still-live session cancels parked work and attempts source cancellation once;
+  an explicitly terminated session does not run cleanup again on drop. Failed
+  open callbacks follow the same cleanup path and retain both errors if cleanup
+  also fails. Destructors cannot report cleanup errors; transports should use
+  explicit cancellation when they can propagate a result. The producer body
+  connects this lifecycle to Hyper demand and the generic host wake mechanism.
   The CLI constructs these package sessions with its
   generic execution adapter; it has no parallel WebSocket/SSE dispatch policy.
   This is package-owned Rust protocol integration, not yet source-owned actor
-  lifecycle. Live SSE transport support remains unfinished.
+  lifecycle. Callback-only push and independent heartbeat policies remain
+  unsupported by the live SSE transport.
+  The retained VM SSE accounting tests use the same package queue and maintained
+  event encoder, not a second wire formatter or queue implementation. Queue
+  admission offers a host resource-reservation hook after codec/limit validation
+  and before publication; a failed reservation leaves the queue unchanged.
+  Discarding pending frames closes the queue without counting them as emitted.
+  These tests exercise VM memory charges against actual encoded byte sizes;
+  they do not establish live SSE transport or automatic production accounting.
 - `native/src/websocket/hub` owns the live room registry, bounded cross-connection
   delivery, seat occupancy, retained-room expiry/eviction, and serialized state
   transitions. It depends on neither compiler nor VM value representations.
@@ -1085,6 +1305,17 @@ Important invariants:
   ownership without cloning. Failed queue admission leaves the existing waiter
   intact; exhausted identifiers are rejected rather than reused. Existing room
   tests now run inside the package, alongside concurrent and failure-path tests.
+  Paired handlers use the existing generic suspendable callback path, including
+  VM timers and native workers. The maintained futures mutex serializes execution
+  per room, not across rooms, and creates no executor or detached task. A dropped
+  invocation releases its permit and wakes the queued peer. Callback errors or
+  panics do not mutate stored state or poison the registry. Membership changes
+  invalidate a pending result rather than replaying potentially effectful source
+  code. Match admission and restoration participate in the same revision checks;
+  publication uses bounded nonblocking sends under the short registry lock.
+  Tests cover waiting peers, unrelated rooms, failure, panic, cancellation,
+  departure/reconnect races, exhaustion, and ordered committed output. TLS tests
+  execute timer-waiting Terlan broadcast and stateful handlers over real sockets.
   This registry is still Rust-owned: moving room/session lifecycle policy into
   Terlan actors remains unfinished, and a committed transition is not a promise
   that every peer received its output.
@@ -1104,9 +1335,16 @@ Important invariants:
   role 2, and returns both strings in one tuple. Native code invokes that closure
   once and admits the complete tuple before publishing either payload; it does
   not assign callback roles or repeat the application callback itself. Empty
-  match payloads remain real frames. A malformed result or suspension during
-  either call publishes no match payload or room identity; connection cleanup
-  cancels retained execution and releases the provisional pair.
+  match payloads remain real frames. Naming, matched, and restored callbacks
+  use the generic suspendable invocation path for VM timers and native workers;
+  no registry lock is held across an await. While either match callback waits,
+  no match payload or room identity is published. Failure or task cancellation
+  releases the provisional pair without replaying the callback. Unsupported
+  inbound-text waits still fail closed because admission has no frame adapter.
+  Restoration captures a room revision and validates it before publication. A
+  state transition or peer departure during the wait rejects the stale view and
+  releases the reserved seat, rather than placing it behind newer queued updates.
+  Revision exhaustion rejects work before callback execution and never wraps.
 - `WebSocket.terl` adapts all paired callbacks into source results with explicit
   optional per-peer deliveries. Both ordinary and restorable stateful builders preserve the
   public `{state, first, second}` callback shape: an empty payload means no
@@ -1126,7 +1364,18 @@ Important invariants:
   wire order and last-duplicate-value precedence are preserved. The package
   boundary validates the returned `Result[Option[{String, Int}], String]` before
   the host looks up a room. Reconnect admission uses the existing suspendable
-  callback worker path, outside the hub lock. Room retention, seat occupancy,
+  callback worker path, outside the hub lock. Source `waiting` and `peer_left`
+  payload callbacks also finish asynchronously before joining or restoring a
+  room. They may wait on VM timers or native workers without reserving a seat
+  or holding the hub lock. Failure or task cancellation releases the transport
+  and cancels the source session once, without publishing partial payloads.
+  Package tests cover pending/resumed/failed/dropped callbacks, invalid results,
+  empty payloads, and room admission isolation; compiled source tests exercise
+  real timer waits, including source room naming in a renamed module. A TLS
+  socket regression checks waiting, matched, retained-state restoration,
+  bidirectional delivery, and peer-left payloads through the production server.
+  Suspendable transitions do not replace the hub with a Terlan service actor.
+  Room retention, seat occupancy,
   and serialized state transitions live in the package hub. A room/role pair
   is routing identity, not authentication or proof of authorization.
 - Queued `Sse.response` executes in Terlan and composes `Response.stream` with
@@ -1145,3 +1394,11 @@ Important invariants:
   `crates/terlan/src/commands/serve/*_test.rs`.
 - Release preflight includes exact HTTP handler and installed-runner support
   checks.
+
+File response helpers select common content types without repeating MIME strings:
+`Response.html_file(path)`, `text_file`, `json_file`, `css_file`,
+`javascript_file`, `svg_file`, `png_file`, `jpeg_file`, and `pdf_file`.
+Each accepts an optional `status` (default `200`) and retains normal file
+streaming, cache defaults, and response chaining. Use `Response.file` for an
+explicit content type or extension-based inference. Rendered Terlan templates
+are served with `Response.html(template)`.

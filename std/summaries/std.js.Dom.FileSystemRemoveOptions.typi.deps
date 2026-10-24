@@ -1,8 +1,8 @@
 module=std.js.Dom.FileSystemRemoveOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17197426972611611004
-interface_hash=16072072865615663808
-interface_doc_hash=16072072865615663808
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=17832855052795511970
+interface_hash=614182732547868562
+interface_doc_hash=614182732547868562
 deps=0

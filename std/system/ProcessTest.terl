@@ -43,7 +43,9 @@ pub captures_stdout_and_nonzero_status(): Bool ->
         );
     case Process.run(request) {
         Ok(output) ->
-            output.status == 7 and output.stdout == "hello" and output.stderr == "problem";
+            output.status == 7
+                and output.stdout == "hello"
+                and output.stderr == "problem";
         _ -> false
     }.
 
@@ -146,7 +148,13 @@ pub bounded_batch_preserves_input_order(): Bool ->
     let {
         Ok(batch) <- Process.run_many(Process.batch(List(slow, fast), 2));
         [first, second] <- batch.completions;
-        {Some(first_output), Some(second_output), None, None} <- {first.output, second.output, first.error, second.error}
+        {Some(first_output), Some(second_output), None, None} <-
+            {
+                first.output,
+                second.output,
+                first.error,
+                second.error,
+            }
     } else {
         _ -> false
     };
@@ -175,7 +183,10 @@ pub length_framed_session_sequences_handshake_phases(): Bool ->
     } else {
         _ -> false
     };
-    output.status == 7 and output.stderr == "" and first == "first" and second == "second".
+    output.status == 7
+        and output.stderr == ""
+        and first == "first"
+        and second == "second".
 
 @test
 pub length_framed_session_rejects_missing_length_header(): Bool ->

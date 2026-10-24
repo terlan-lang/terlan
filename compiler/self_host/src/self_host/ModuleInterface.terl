@@ -1,17 +1,23 @@
 /** Derives a deterministic public interface from an analyzed module. */
 module self_host.ModuleInterface.
 
-import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import std.core.String.
+
+import self_host.ModuleInterfaceSyntax.{ExportedStructField, ExportedSymbol, ModuleInterface}.
 import self_host.SemanticSyntax.{InterfaceSource, SemanticModule, SemanticSymbol}.
-import self_host.Syntax.{ExportDeclaration, FunctionDeclaration, MethodDeclaration}.
+import self_host.Syntax.{ConstantDeclaration, ExportDeclaration, FunctionDeclaration, MethodDeclaration, TypeDeclaration}.
 import self_host.ConstructorSyntax.{ConstructorClauseSyntax}.
-import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, MethodPayload, TypedDeclaration, TypedDeclarationPayload}.
+import self_host.DeclarationPayloadSyntax.{TypeDeclarationSyntax}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
+import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, MethodPayload, StructPayload, TraitPayload, TypePayload, TypedDeclaration, TypedDeclarationPayload}.
+import self_host.TraitSyntax.{TraitConstantSyntax, TraitMethodSyntax, TraitSyntax}.
 
 import std.collections.List.
 import std.core.{Bool, Int, String}.
 import std.core.Option.{None, Option, Some}.
 import self_host.CallableArity.{of}.
 import self_host.ExportReferenceLowering.
+import self_host.Delimited.
 
 
 @pure
@@ -106,6 +112,134 @@ declaration_return_type(
     }.
 
 @pure
+parameter_type(value: ParameterSyntax): Option[String] ->
+    if {
+        value.has_annotation and value.annotation.valid -> Some(value.annotation.syntax.text);
+        true -> None
+    }.
+
+@pure
+parameter_types(values: List[ParameterSyntax]): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> [parameter_type(value) | parameter_types(rest)]
+    }.
+
+@pure
+constructor_parameter_types(arity: Int, values: List[ConstructorClauseSyntax]): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> if {
+            value.parameters.length() == arity -> parameter_types(value.parameters);
+            true -> constructor_parameter_types(arity, rest)
+        }
+    }.
+
+@pure
+payload_parameter_types(value: TypedDeclarationPayload, arity: Int): List[Option[String]] ->
+    case value {
+        FunctionPayload(function) -> parameter_types(function.typed_parameters);
+        MethodPayload(method) -> [parameter_type(method.receiver) | parameter_types(method.parameters)];
+        ConstructorPayload(constructor_payload) -> constructor_parameter_types(arity, constructor_payload.clauses);
+        _ -> List.new[Option[String]]()
+    }.
+
+@pure
+declaration_parameter_types(
+    name: String,
+    start_byte: Int,
+    arity: Int,
+    values: List[TypedDeclaration],
+): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> if {
+            value.symbol_name == name and value.span.start_byte == start_byte -> payload_parameter_types(value.payload, arity);
+            true -> declaration_parameter_types(name, start_byte, arity, rest)
+        }
+    }.
+
+@pure
+payload_receiver_mutable(value: TypedDeclarationPayload): Bool ->
+    case value { MethodPayload(method) -> method.receiver.is_mutable; _ -> false }.
+
+@pure
+declaration_receiver_mutable(
+    name: String,
+    start_byte: Int,
+    values: List[TypedDeclaration],
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            value.symbol_name == name and value.span.start_byte == start_byte ->
+                payload_receiver_mutable(value.payload);
+            true -> declaration_receiver_mutable(name, start_byte, rest)
+        }
+    }.
+
+@pure
+trimmed_strings(values: List[String]): List[String] ->
+    case values { [] -> List.new[String](); [value | rest] -> [String.trim(value) | trimmed_strings(rest)] }.
+
+@pure
+generic_tail(value: String): String ->
+    if { String.ends_with(value, "]") -> String.utf8_slice(value, 0, value.byte_size() - 1); true -> value }.
+
+@pure
+symbol_type_parameters(value: String): List[String] ->
+    case String.split(value, "[") {
+        [_head, tail] -> trimmed_strings(String.split(generic_tail(tail), ","));
+        _ -> List.new[String]()
+    }.
+
+@pure
+declaration_type_parameters(
+    name: String,
+    start_byte: Int,
+    values: List[TypedDeclaration],
+): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> if {
+            value.symbol_name == name and value.span.start_byte == start_byte -> symbol_type_parameters(value.symbol_name);
+            true -> declaration_type_parameters(name, start_byte, rest)
+        }
+    }.
+
+@pure
+exported_struct_fields(
+    values: List[self_host.DeclarationPayloadSyntax.StructFieldSyntax],
+): List[self_host.ModuleInterfaceSyntax.ExportedStructField] ->
+    case values {
+        [] -> List.new[self_host.ModuleInterfaceSyntax.ExportedStructField]();
+        [value | rest] -> if {
+            value.is_private -> exported_struct_fields(rest);
+            true -> [ExportedStructField(
+                value.name,
+                if { value.annotation.valid -> Some(value.annotation.syntax.text); true -> None },
+            ) | exported_struct_fields(rest)]
+        }
+    }.
+
+@pure
+declaration_record_fields(
+    name: String,
+    start_byte: Int,
+    values: List[TypedDeclaration],
+): List[self_host.ModuleInterfaceSyntax.ExportedStructField] ->
+    case values {
+        [] -> List.new[self_host.ModuleInterfaceSyntax.ExportedStructField]();
+        [value | rest] -> if {
+            value.symbol_name == name and value.span.start_byte == start_byte -> case value.payload {
+                StructPayload(layout) -> exported_struct_fields(layout.fields);
+                _ -> declaration_record_fields(name, start_byte, rest)
+            };
+            true -> declaration_record_fields(name, start_byte, rest)
+        }
+    }.
+
+@pure
 exported(
     values: List[SemanticSymbol],
     declarations: List[TypedDeclaration],
@@ -116,6 +250,16 @@ exported(
             value.name,
             declaration_arity(value.name, value.span.start_byte, declarations),
             value.class,
+            None,
+            false,
+            declaration_receiver_mutable(value.name, value.span.start_byte, declarations),
+            declaration_type_parameters(value.name, value.span.start_byte, declarations),
+            declaration_parameter_types(
+                value.name,
+                value.span.start_byte,
+                declaration_arity(value.name, value.span.start_byte, declarations),
+                declarations,
+            ),
             declaration_return_type(
                 value.name,
                 value.span.start_byte,
@@ -123,6 +267,7 @@ exported(
                 declarations,
             ),
             value.span,
+            declaration_record_fields(value.name, value.span.start_byte, declarations),
         ) | exported(rest, declarations)];
         [_value | rest] -> exported(rest, declarations)
     }.
@@ -134,7 +279,7 @@ exported_interface_declarations(values: List[SemanticSymbol]): List[ExportedSymb
         [value | rest]
             where value.is_public
                 and value.class != FunctionDeclaration
-                and value.class != MethodDeclaration -> [ExportedSymbol(value.name, -1, value.class, None, value.span) | exported_interface_declarations(rest)];
+                and value.class != MethodDeclaration -> [ExportedSymbol(value.name, -1, value.class, None, false, List.new[String](), List.new[Option[String]](), None, value.span) | exported_interface_declarations(rest)];
         [_value | rest] -> exported_interface_declarations(rest)
     }.
 
@@ -142,7 +287,7 @@ exported_interface_declarations(values: List[SemanticSymbol]): List[ExportedSymb
 exported_reference(value: TypedDeclaration, rest: List[TypedDeclaration]): List[ExportedSymbol] ->
     let reference = ExportReferenceLowering.lower(value);
     if {
-        reference.valid -> [ExportedSymbol(reference.name, reference.arity, value.class, None, value.span) | interface_exports(rest)];
+        reference.valid -> [ExportedSymbol(reference.name, reference.arity, value.class, None, false, List.new[String](), List.new[Option[String]](), None, value.span) | interface_exports(rest)];
         true -> interface_exports(rest)
     }.
 
@@ -156,16 +301,224 @@ interface_exports(values: List[TypedDeclaration]): List[ExportedSymbol] ->
     }.
 
 @pure
+trait_constant_symbols(
+    owner: String,
+    type_parameters: List[String],
+    values: List[TraitConstantSyntax],
+    span: self_host.Syntax.SyntaxSpan,
+): List[ExportedSymbol] ->
+    case values {
+        [] -> List.new[ExportedSymbol]();
+        [value | rest] -> [ExportedSymbol(
+            value.name,
+            0,
+            ConstantDeclaration,
+            Some(owner),
+            value.has_default,
+            type_parameters,
+            List.new[Option[String]](),
+            selected_return_type(value.annotation.valid, value.annotation.syntax.text),
+            span,
+        ) | trait_constant_symbols(owner, type_parameters, rest, span)]
+    }.
+
+@pure
+trait_method_symbols(
+    owner: String,
+    type_parameters: List[String],
+    values: List[TraitMethodSyntax],
+    span: self_host.Syntax.SyntaxSpan,
+): List[ExportedSymbol] ->
+    case values {
+        [] -> List.new[ExportedSymbol]();
+        [value | rest] -> [ExportedSymbol(
+            value.name,
+            value.parameters.length(),
+            MethodDeclaration,
+            Some(owner),
+            value.has_default,
+            type_parameters,
+            parameter_types(value.parameters),
+            selected_return_type(value.return_type.valid, value.return_type.syntax.text),
+            span,
+        ) | trait_method_symbols(owner, type_parameters, rest, span)]
+    }.
+
+@pure
+trait_symbols(value: TraitSyntax, type_parameters: List[String]): List[ExportedSymbol] ->
+    if {
+        not value.is_public -> List.new[ExportedSymbol]();
+        true -> append(
+            trait_constant_symbols(value.name, type_parameters, value.constants, value.span),
+            trait_method_symbols(value.name, type_parameters, value.methods, value.span),
+        )
+    }.
+
+@pure
+exported_trait_members(values: List[TypedDeclaration]): List[ExportedSymbol] ->
+    case values {
+        [] -> List.new[ExportedSymbol]();
+        [value | rest] -> case value.payload {
+            TraitPayload(contract) -> append(
+                trait_symbols(contract, symbol_type_parameters(value.symbol_name)),
+                exported_trait_members(rest),
+            );
+            _ -> exported_trait_members(rest)
+        }
+    }.
+
+@pure
+type_base_at(value: String, index: Int): String ->
+    if {
+        index == value.byte_size() -> value;
+        value.utf8_byte_at(index) == 91 -> value.utf8_slice(0, index);
+        true -> type_base_at(value, index + 1)
+    }.
+
+@pure
+type_base(value: String): String -> type_base_at(String.trim(value), 0).
+
+@pure
+union_member_names(value: TypeDeclarationSyntax): List[String] ->
+    if {
+        not value.has_representation or not value.representation.valid -> List.new[String]();
+        true ->
+            let parts = Delimited.split_top_level(value.representation.syntax.text, 124);
+            if { parts.length() < 2 -> List.new[String](); true -> union_member_bases(parts) }
+    }.
+
+@pure
+union_member_bases(values: List[String]): List[String] ->
+    case values { [] -> List.new[String](); [value | rest] -> [type_base(value) | union_member_bases(rest)] }.
+
+@pure
+payload_parts(value: TypeDeclarationSyntax): List[String] ->
+    if {
+        not value.has_representation or not value.representation.valid -> List.new[String]();
+        true ->
+            let text = String.trim(value.representation.syntax.text);
+            if {
+                not String.starts_with(text, "{") or not String.ends_with(text, "}") -> List.new[String]();
+                true -> Delimited.split_top_level(text.utf8_slice(1, text.byte_size() - 2), 44)
+            }
+    }.
+
+@pure
+payload_part_type(value: String): Option[String] ->
+    let text = String.trim(value);
+    if {
+        text == "" or String.starts_with(text, "Atom[") -> None;
+        true ->
+            let colon = Delimited.top_level_byte(text, 58);
+            if {
+                colon < 0 -> Some(text);
+                true -> Some(String.trim(text.utf8_slice(colon + 1, text.byte_size() - colon - 1)))
+            }
+    }.
+
+@pure
+payload_types(values: List[String]): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> case payload_part_type(value) {
+            None -> payload_types(rest);
+            Some(name) -> [Some(name) | payload_types(rest)]
+        }
+    }.
+
+@pure
+member_declaration(name: String, values: List[TypedDeclaration]): Option[TypedDeclaration] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            type_base(value.symbol_name) == name -> case value.payload {
+                TypePayload(_) -> Some(value);
+                _ -> member_declaration(name, rest)
+            };
+            true -> member_declaration(name, rest)
+        }
+    }.
+
+@pure
+sum_member_symbol(
+    owner: String,
+    name: String,
+    declarations: List[TypedDeclaration],
+    fallback_span: self_host.Syntax.SyntaxSpan,
+): ExportedSymbol ->
+    case member_declaration(name, declarations) {
+        Some(declaration) -> case declaration.payload {
+            TypePayload(member) ->
+                let parameters = payload_types(payload_parts(member));
+                ExportedSymbol(
+                    name,
+                    parameters.length(),
+                    TypeDeclaration,
+                    Some(owner),
+                    false,
+                    false,
+                    symbol_type_parameters(declaration.symbol_name),
+                    parameters,
+                    Some(owner),
+                    declaration.span,
+                );
+            _ -> ExportedSymbol(name, 0, TypeDeclaration, Some(owner), false, false, List.new[String](), List.new[Option[String]](), Some(owner), fallback_span)
+        };
+        None -> ExportedSymbol(name, 0, TypeDeclaration, Some(owner), false, false, List.new[String](), List.new[Option[String]](), Some(owner), fallback_span)
+    }.
+
+@pure
+sum_member_symbols(
+    owner: String,
+    members: List[String],
+    declarations: List[TypedDeclaration],
+    span: self_host.Syntax.SyntaxSpan,
+): List[ExportedSymbol] ->
+    case members {
+        [] -> List.new[ExportedSymbol]();
+        [member | rest] -> [sum_member_symbol(owner, member, declarations, span)
+            | sum_member_symbols(owner, rest, declarations, span)]
+    }.
+
+@pure
+exported_sum_members_at(
+    values: List[TypedDeclaration],
+    declarations: List[TypedDeclaration],
+): List[ExportedSymbol] ->
+    case values {
+        [] -> List.new[ExportedSymbol]();
+        [value | rest] -> case value.payload {
+            TypePayload(declaration) where declaration.valid and declaration.is_public -> append(
+                sum_member_symbols(
+                    declaration.name,
+                    union_member_names(declaration),
+                    declarations,
+                    declaration.span,
+                ),
+                exported_sum_members_at(rest, declarations),
+            );
+            _ -> exported_sum_members_at(rest, declarations)
+        }
+    }.
+
+@pure
+exported_sum_members(values: List[TypedDeclaration]): List[ExportedSymbol] ->
+    exported_sum_members_at(values, values).
+
+@pure
 module_symbols(source: SemanticModule): List[ExportedSymbol] ->
     if {
         source.source_kind == InterfaceSource ->
             append(exported_interface_declarations(source.symbols), interface_exports(source.declarations));
-        true -> exported(source.symbols, source.declarations)
+        true -> append(
+            exported(source.symbols, source.declarations),
+            append(exported_trait_members(source.declarations), exported_sum_members(source.declarations)),
+        )
     }.
 
 @pure
 pub lower(source: SemanticModule): ModuleInterface ->
-    ModuleInterface("terlan.self-host.interface/v2", source.name, module_symbols(source)).
+    ModuleInterface("terlan.self-host.interface/v5", source.name, module_symbols(source)).
 
 @pure
 rendered_arity(arity: Int): String ->
@@ -193,6 +546,6 @@ render_symbols(values: List[ExportedSymbol]): String ->
 @pure
 pub render(source: ModuleInterface): String ->
     String.append(
-        "schema terlan.self-host.interface/v2.\nmodule ",
+        "schema terlan.self-host.interface/v4.\nmodule ",
         String.append(source.module_name, String.append(".\n", render_symbols(source.symbols))),
     ).

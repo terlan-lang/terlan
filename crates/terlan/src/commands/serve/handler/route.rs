@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::Arc;
 
+use terlan_http_native::manifest::{Endpoint, RouteTable};
 use terlan_runtime_abi::BoundaryError;
 
 use crate::runtime::vm::ReplValue;
@@ -19,7 +20,7 @@ use crate::commands::serve::package_relative_path;
 /// A manifest handler selected for one concrete HTTP request.
 ///
 /// Inputs:
-/// - Produced by `select_handler_for_request` after route matching.
+/// - Produced by the package selector after route matching.
 ///
 /// Output:
 /// - Matched handler metadata plus decoded route params.
@@ -86,11 +87,14 @@ fn manifest_route_for_loaded_manifest(
     request_path: &str,
     manifest: &Arc<WebPackageManifest>,
 ) -> Option<MatchedWebPackageRoute> {
-    if let Some(websocket) = manifest
-        .websockets
-        .iter()
-        .find(|websocket| websocket.route == request_path)
-    {
+    let routes = RouteTable {
+        handlers: &manifest.handlers,
+        websockets: &manifest.websockets,
+        sse: &manifest.sse,
+        static_responses: &manifest.static_responses,
+        file_responses: &manifest.file_responses,
+    };
+    if let Some(websocket) = routes.websocket(request_path) {
         return Some(MatchedWebPackageRoute::WebSocket(websocket.clone()));
     }
     if method == "GET" || method == "HEAD" {
@@ -98,11 +102,7 @@ fn manifest_route_for_loaded_manifest(
             return Some(MatchedWebPackageRoute::StaticFile(path));
         }
     }
-    if manifest.websockets.is_empty()
-        && manifest.sse.is_empty()
-        && manifest.static_responses.is_empty()
-        && manifest.file_responses.is_empty()
-    {
+    if routes.is_handler_only() {
         if let Some(matched) = LAST_SIMPLE_HANDLER_ROUTE.with(|cached| {
             let cached = cached.borrow();
             let cached = cached.as_ref()?;
@@ -125,70 +125,26 @@ fn manifest_route_for_loaded_manifest(
         });
         return matched.map(MatchedWebPackageRoute::Handler);
     }
-    let mut candidates = manifest.handlers.clone();
-    candidates.extend(manifest.sse.iter().map(|endpoint| WebPackageHandler {
-        method: "GET".to_string(),
-        route: endpoint.route.clone(),
-        module: endpoint.module.clone(),
-        function: "router".to_string(),
-        arity: 0,
-        source: Some(endpoint.source.clone()),
-    }));
-    candidates.extend(
-        manifest
-            .static_responses
-            .iter()
-            .map(|response| WebPackageHandler {
-                method: response.method.clone(),
-                route: response.route.clone(),
-                module: response.module.clone(),
-                function: response.function.clone(),
-                arity: response.arity,
-                source: response.source.clone(),
-            }),
-    );
-    candidates.extend(
-        manifest
-            .file_responses
-            .iter()
-            .map(|response| WebPackageHandler {
-                method: response.method.clone(),
-                route: response.route.clone(),
-                module: response.module.clone(),
-                function: response.function.clone(),
-                arity: response.arity,
-                source: response.source.clone(),
-            }),
-    );
-    let matched = select_handler_for_request(candidates, method, request_path)?;
-
-    if manifest.handlers.iter().any(|handler| {
-        handler.method == matched.handler.method && handler.route == matched.handler.route
-    }) {
-        return Some(MatchedWebPackageRoute::Handler(Rc::new(matched)));
-    }
-    if let Some(response) = manifest.static_responses.iter().find(|response| {
-        response.method == matched.handler.method && response.route == matched.handler.route
-    }) {
-        return Some(MatchedWebPackageRoute::StaticResponse(response.clone()));
-    }
-    if let Some(endpoint) = manifest
-        .sse
-        .iter()
-        .find(|endpoint| matched.handler.method == "GET" && endpoint.route == matched.handler.route)
-    {
-        return Some(MatchedWebPackageRoute::Sse(endpoint.clone()));
-    }
-    let response = manifest
-        .file_responses
-        .iter()
-        .find(|response| {
-            response.method == matched.handler.method && response.route == matched.handler.route
-        })?
-        .clone();
-    let path = package_relative_path(web_root, &response.path)?;
-    path.is_file()
-        .then_some(MatchedWebPackageRoute::FileResponse(response, path))
+    let matched = routes.select(method, request_path)?;
+    Some(match matched.endpoint {
+        Endpoint::Handler(handler) => {
+            MatchedWebPackageRoute::Handler(Rc::new(MatchedWebPackageHandler {
+                handler: handler.clone(),
+                params: matched.params,
+            }))
+        }
+        Endpoint::StaticResponse(response) => {
+            MatchedWebPackageRoute::StaticResponse(response.clone())
+        }
+        Endpoint::Sse(endpoint) => MatchedWebPackageRoute::Sse(endpoint.clone()),
+        Endpoint::FileResponse(response) => {
+            let path = package_relative_path(web_root, &response.path)?;
+            if !path.is_file() {
+                return None;
+            }
+            MatchedWebPackageRoute::FileResponse(response.clone(), path)
+        }
+    })
 }
 
 /// Selects the best manifest handler for one request.
@@ -205,14 +161,6 @@ fn manifest_route_for_loaded_manifest(
 /// - Applies method filtering first. `HEAD` falls back to `GET` only when no
 ///   explicit `HEAD` handler matches. Route precedence is exact, parameter,
 ///   wildcard, then fallback.
-pub(super) fn select_handler_for_request(
-    handlers: Vec<WebPackageHandler>,
-    method: &str,
-    request_path: &str,
-) -> Option<MatchedWebPackageHandler> {
-    select_handler_for_request_ref(&handlers, method, request_path)
-}
-
 pub(super) fn select_handler_for_request_ref(
     handlers: &[WebPackageHandler],
     method: &str,

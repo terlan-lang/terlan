@@ -83,14 +83,20 @@ bound_parent(root: String): Bool ->
         and path_count(dependencies, "target/quality/tvm-managed-list-profile.json", 0, count) == 1
         and path_count(
     dependencies,
-    String.concat(["target/quality/preparation/", identity.revision, "/managed-list-profile.json"]),
+    String.concat(
+        ["target/quality/preparation/", identity.revision, "/managed-list-profile.json"],
+    ),
     0,
     count,
 ) == 1
         and path_count(
     dependencies,
     String.concat(
-        ["target/quality/preparation/", identity.revision, "/managed-list-profile.native.jsonl"],
+        [
+            "target/quality/preparation/",
+            identity.revision,
+            "/managed-list-profile.native.jsonl",
+        ],
     ),
     0,
     count,

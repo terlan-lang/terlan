@@ -1,96 +1,57 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-overflow-3/#propdef-overflow
+//! The `overflow` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets the desired behavior when content does not fit in the element's padding box
+//! (overflows) in the horizontal and/or vertical direction.
+//!
+//! Initial: visible. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: Overflow content is clipped at the element's padding box. When overflowing, the element
+//! box is a scroll container displaying scroll bars.
+//! - clip: Overflow content is clipped at the element's _overflow clip edge_ defined by the
+//! `overflow-clip-margin` property. The element box is not a scroll container, clipped content is
+//! not visible, and programmatic scrolling is not supported.
+//! - hidden: Overflow content is clipped at the element's padding box, hiding the clipped content.
+//! When overflowing, the element box is a `scroll container` with no scroll bars; scrolling is still
+//! possible via other methods including tabbing to hidden focusable elements, properties such as
+//! `scrollLeft` property, and methods like `scrollTo()`.
+//! - scroll: Overflow content is clipped at the element's padding box. Whether overflowing or not,
+//! the element box is always a scroll container displaying scroll bars.
+//! - visible: Overflow content is not clipped and may be visible outside the element's padding box.
+//! The element box is not a `scroll container`. This is the default value.
+//!
 //! Grammar: <'overflow-block'>{1,2}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-overflow-3/#propdef-overflow
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Overflow.
 
-/// A single non-global overflow shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
-
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    overflow: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    Visible
+  | Hidden
+  | Clip
+  | Scroll
+  | Auto.
 
 pub struct Property {
-    overflow: Value
+    overflow: Visible | Hidden | Clip | Scroll | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained overflow value.
+/// Supplies 2 components in grammar order.
 
-pub opaque type Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Returns the CSS keyword auto.
+/// Supplies 1 components in grammar order.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword clip.
-
-pub clip(): Value.
-
-/// Constructs one overflow shorthand component.
-
-pub component_auto(): Component.
-
-/// Constructs one overflow shorthand component.
-
-pub component_clip(): Component.
-
-/// Constructs one overflow shorthand component.
-
-pub component_hidden(): Component.
-
-/// Constructs one overflow shorthand component.
-
-pub component_scroll(): Component.
-
-/// Constructs one overflow shorthand component.
-
-pub component_visible(): Component.
-
-/// Returns the CSS keyword hidden.
-
-pub hidden(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword scroll.
-
-pub scroll(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword visible.
-
-pub visible(): Value.
-
-export type Token.
+pub single(first: Component): Checked.

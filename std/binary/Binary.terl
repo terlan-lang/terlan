@@ -59,17 +59,11 @@ pub type DescriptorKind = UIntSegment | IntSegment | BytesSegment | BitsSegment 
  * runtime construction and matching remain explicitly unsupported.
  */
 pub struct BinaryDescriptor {
-    /**
-     * Descriptor kind.
-     */
+    /** Descriptor kind. */
     kind: DescriptorKind,
-    /**
-     * Descriptor width.
-     */
+    /** Descriptor width. */
     width: Int,
-    /**
-     * Whether the descriptor is terminal.
-     */
+    /** Whether the descriptor is terminal. */
     terminal: Bool,
 }.
 
@@ -130,13 +124,9 @@ pub type EndianPolicy = BigEndian | LittleEndian.
  * construction or decoding.
  */
 pub struct ProtocolField {
-    /**
-     * Protocol field name.
-     */
+    /** Protocol field name. */
     name: String,
-    /**
-     * Protocol field binary descriptor.
-     */
+    /** Protocol field binary descriptor. */
     descriptor: BinaryDescriptor,
 }.
 
@@ -157,21 +147,13 @@ pub constructor ProtocolField {
  * data until VM binary execution lands.
  */
 pub struct ProtocolShape {
-    /**
-     * Protocol shape name.
-     */
+    /** Protocol shape name. */
     name: String,
-    /**
-     * Protocol shape endian policy.
-     */
+    /** Protocol shape endian policy. */
     endian: EndianPolicy,
-    /**
-     * Protocol shape fields in source order.
-     */
+    /** Protocol shape fields in source order. */
     fields: List[ProtocolField],
-    /**
-     * Whether the protocol shape ends with a terminal rest field.
-     */
+    /** Whether the protocol shape ends with a terminal rest field. */
     terminal_rest: Bool,
 }.
 
@@ -190,13 +172,9 @@ pub constructor ProtocolShape {
  * Alias chains are intentionally rejected so resolution remains deterministic.
  */
 pub struct ProtocolShapeAlias {
-    /**
-     * Protocol shape alias name.
-     */
+    /** Protocol shape alias name. */
     name: String,
-    /**
-     * Direct protocol shape targeted by an alias.
-     */
+    /** Direct protocol shape targeted by an alias. */
     target: String,
 }.
 
@@ -215,17 +193,11 @@ pub constructor ProtocolShapeAlias {
  * entire set before exposing it to protocol decoders or encoders.
  */
 pub struct ProtocolShapeSet {
-    /**
-     * Protocol shape set name.
-     */
+    /** Protocol shape set name. */
     name: String,
-    /**
-     * Direct protocol shapes in declaration order.
-     */
+    /** Direct protocol shapes in declaration order. */
     shapes: List[ProtocolShape],
-    /**
-     * Protocol aliases in declaration order.
-     */
+    /** Protocol aliases in declaration order. */
     aliases: List[ProtocolShapeAlias],
 }.
 
@@ -356,13 +328,19 @@ pub decode_protocol_int_value(fields: List[DecodedField], name: String): Option[
 /**
  * Returns one named exact bitstring field when its runtime tag matches.
  */
-pub decoded_protocol_bits_value(decoded: DecodedProtocol, name: String): Option[std.vm.BitString] ->
+pub decoded_protocol_bits_value(
+    decoded: DecodedProtocol,
+    name: String,
+): Option[std.vm.BitString] ->
     decode_protocol_bits_value(decoded_protocol_fields(decoded), name).
 
 /**
  * Finds one tagged exact bitstring without accepting another managed kind.
  */
-pub decode_protocol_bits_value(fields: List[DecodedField], name: String): Option[std.vm.BitString] ->
+pub decode_protocol_bits_value(
+    fields: List[DecodedField],
+    name: String,
+): Option[std.vm.BitString] ->
     case fields {
         [] -> None;
         [field | rest] ->
@@ -385,7 +363,10 @@ pub decoded_protocol_bytes_value(decoded: DecodedProtocol, name: String): Option
 /**
  * Finds one tagged immutable byte field without accepting another managed kind.
  */
-pub decode_protocol_bytes_value(fields: List[DecodedField], name: String): Option[std.vm.Bytes] ->
+pub decode_protocol_bytes_value(
+    fields: List[DecodedField],
+    name: String,
+): Option[std.vm.Bytes] ->
     case fields {
         [] -> None;
         [field | rest] ->
@@ -587,7 +568,11 @@ pub validate_protocol_shape_set(set: ProtocolShapeSet): Result[ProtocolShapeSet,
         true -> case validate_protocol_shapes(shapes, Map.new[String, Bool]()) {
             Err(reason) -> Err(reason);
             Ok(shape_names) ->
-                case validate_protocol_shape_aliases(set.aliases, shape_names, Map.new[String, Bool]()) {
+                case validate_protocol_shape_aliases(
+                    set.aliases,
+                    shape_names,
+                    Map.new[String, Bool](),
+                ) {
                     Err(reason) -> Err(reason);
                     Ok(_alias_names) -> Ok(set)
                 }
@@ -649,7 +634,12 @@ pub protocol_shape_set_resolve(
         Err(reason) -> Err(reason);
         Ok(validated) ->
             let shapes = validated.shapes;
-            resolve_direct_protocol_shape(shapes, shapes, validated.aliases, name)
+            resolve_direct_protocol_shape(
+                shapes,
+                shapes,
+                validated.aliases,
+                name,
+            )
     }.
 
 /**
@@ -1021,8 +1011,17 @@ pub split_protocol_header_fields(
                         true -> split_header_body(payload, total / 8)
                     };
                 BytesSegment ->
-                    split_protocol_header_fields(next, total + descriptor.width * 8, payload);
-                _ -> split_protocol_header_fields(next, total + descriptor.width, payload)
+                    split_protocol_header_fields(
+                        next,
+                        total + descriptor.width * 8,
+                        payload,
+                    );
+                _ ->
+                    split_protocol_header_fields(
+                        next,
+                        total + descriptor.width,
+                        payload,
+                    )
             }
     }.
 
@@ -1036,7 +1035,8 @@ pub protocol_shape_fixed_bits(fields: List[ProtocolField], total: Int): Int ->
             let descriptor = field.descriptor;
             case descriptor.kind {
                 RestSegment -> total;
-                BytesSegment -> protocol_shape_fixed_bits(next, total + descriptor.width * 8);
+                BytesSegment ->
+                    protocol_shape_fixed_bits(next, total + descriptor.width * 8);
                 _ -> protocol_shape_fixed_bits(next, total + descriptor.width)
             }
     }.
@@ -1379,7 +1379,13 @@ pub encode_protocol(
         Err(reason) -> Err(binary_construct_error(reason));
         Ok(validated) ->
             let empty = BitString.from_bytes(Bytes.from_list([]), 0);
-            encode_protocol_fields(validated.fields, validated.endian, value, empty, include_rest)
+            encode_protocol_fields(
+                validated.fields,
+                validated.endian,
+                value,
+                empty,
+                include_rest,
+            )
     }.
 
 /**
@@ -1399,7 +1405,13 @@ pub encode_protocol_fields(
             let name = field.name;
             case descriptor.kind {
                 UIntSegment ->
-                    case encode_protocol_uint_value(endian, decoded, encoded, name, descriptor.width) {
+                    case encode_protocol_uint_value(
+                        endian,
+                        decoded,
+                        encoded,
+                        name,
+                        descriptor.width,
+                    ) {
                         Err(reason) -> Err(reason);
                         Ok(next_encoded) ->
                             encode_protocol_fields(
@@ -1411,7 +1423,13 @@ pub encode_protocol_fields(
                             )
                     };
                 IntSegment ->
-                    case encode_protocol_int_value(endian, decoded, encoded, name, descriptor.width) {
+                    case encode_protocol_int_value(
+                        endian,
+                        decoded,
+                        encoded,
+                        name,
+                        descriptor.width,
+                    ) {
                         Err(reason) -> Err(reason);
                         Ok(next_encoded) ->
                             encode_protocol_fields(
@@ -1423,7 +1441,12 @@ pub encode_protocol_fields(
                             )
                     };
                 BytesSegment ->
-                    case encode_protocol_bytes_value(decoded, encoded, name, descriptor.width) {
+                    case encode_protocol_bytes_value(
+                        decoded,
+                        encoded,
+                        name,
+                        descriptor.width,
+                    ) {
                         Err(reason) -> Err(reason);
                         Ok(next_encoded) ->
                             encode_protocol_fields(
@@ -1666,7 +1689,9 @@ pub encode_protocol_rest(
 /**
  * Converts a completed byte-aligned bit accumulator to immutable bytes.
  */
-pub finish_protocol_encoding(encoded: std.vm.BitString): Result[std.vm.Bytes, BinaryConstructError] ->
+pub finish_protocol_encoding(
+    encoded: std.vm.BitString,
+): Result[std.vm.Bytes, BinaryConstructError] ->
     if {
         encoded.is_byte_aligned() -> Ok(encoded.to_bytes());
         true -> Err(InvalidAlignment)

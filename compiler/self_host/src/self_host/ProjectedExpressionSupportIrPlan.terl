@@ -3,6 +3,8 @@
  */
 module self_host.ProjectedExpressionSupportIrPlan.
 
+import std.core.String.
+
 import self_host.BackendSyntax.{BackendDeclaration}.
 import self_host.ProjectedBodySyntax.{ProjectedBody}.
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
@@ -12,7 +14,7 @@ import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan, SemanticInstructio
 import self_host.{BackendSyntax, ParameterSyntax, ProjectedBodySyntax, ProjectedExpressionSyntax, ProjectedTypeConstraintSyntax, SelfHostIrSyntax, SelfHostSemanticIrSyntax}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
-import std.core.{Bool, Int, String}.
+import std.core.{Bool, Float, Int, String}.
 
 pub struct ExpressionPlan {
     next_id: Int,
@@ -97,7 +99,7 @@ lambda_pattern_name(pattern: ProjectedExpressionNode): String ->
 lambda_pattern_type(pattern: ProjectedExpressionNode): String ->
     case String.split(pattern.text, ":") {
         [_name, type_name] -> String.trim(type_name);
-        _ -> "Dynamic"
+        _ -> ""
     }.
 
 lambda_parameter(pattern: ProjectedExpressionNode): IrParameter ->
@@ -203,11 +205,117 @@ shallow_pattern_supported_pair(
     }.
 
 pub shallow_pattern_operands(subject: String, pattern: ProjectedExpressionNode): List[String] ->
-    [subject | pattern_operands(pattern)].
+    [subject | ["pattern-v2" | pattern_operands(pattern)]].
+
+pub binding_pattern(pattern: ProjectedExpressionNode): Bool ->
+    pattern.kind == "binding-pattern"
+        or typed_binding_pattern(pattern)
+        or string_capture_binding(pattern)
+        or implicit_binding_pattern(pattern).
+
+string_capture_name(pattern: ProjectedExpressionNode): String ->
+    case String.split(pattern.text, ":") {
+        [name | _rest] -> String.trim(name);
+        [] -> ""
+    }.
+
+string_capture_type(pattern: ProjectedExpressionNode): String ->
+    case String.split(pattern.text, ":") {
+        [_name, type_name] -> String.trim(type_name);
+        [_name] -> "String";
+        _ -> ""
+    }.
+
+string_capture_binding(pattern: ProjectedExpressionNode): Bool ->
+    pattern.kind == "string-capture-segment"
+        and string_capture_name(pattern) != ""
+        and string_capture_name(pattern) != "_"
+        and string_capture_type(pattern) != ""
+        and binding_initial(string_capture_name(pattern).utf8_byte_at(0)).
+
+typed_binding_pattern(pattern: ProjectedExpressionNode): Bool ->
+    pattern.kind == "typed-pattern"
+        and lambda_pattern_name(pattern) != ""
+        and lambda_pattern_name(pattern) != "_"
+        and lambda_pattern_type(pattern) != ""
+        and binding_initial(lambda_pattern_name(pattern).utf8_byte_at(0)).
+
+typed_wildcard_pattern(pattern: ProjectedExpressionNode): Bool ->
+    pattern.kind == "typed-pattern"
+        and lambda_pattern_name(pattern) == "_"
+        and lambda_pattern_type(pattern) != "".
+
+implicit_binding_pattern(pattern: ProjectedExpressionNode): Bool ->
+    if {
+        pattern.kind != "literal-pattern" -> false;
+        pattern.text == "true" or pattern.text == "false" or pattern.text == "" -> false;
+        true -> binding_initial(pattern.text.utf8_byte_at(0))
+    }.
+
+binding_initial(value: Int): Bool ->
+    value == 95 or (value >= 97 and value <= 122).
+
+pattern_ir_kind(pattern: ProjectedExpressionNode): String ->
+    if {
+        pattern.kind == "string-capture-segment" -> pattern.kind;
+        binding_pattern(pattern) -> "binding-pattern";
+        typed_wildcard_pattern(pattern) -> "wildcard-pattern";
+        true -> pattern.kind
+    }.
+
+pattern_ir_text(pattern: ProjectedExpressionNode): String ->
+    if {
+        typed_binding_pattern(pattern) or typed_wildcard_pattern(pattern) ->
+            lambda_pattern_name(pattern);
+        true -> pattern.text
+    }.
+
+pattern_binding_name(pattern: ProjectedExpressionNode): String ->
+    if {
+        pattern.kind == "string-capture-segment" -> string_capture_name(pattern);
+        true -> pattern_ir_text(pattern)
+    }.
+
+pattern_binding_type(
+    pattern: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[String] ->
+    if {
+        pattern.kind == "string-capture-segment" -> Some(string_capture_type(pattern));
+        pattern.kind == "typed-pattern" and lambda_pattern_type(pattern) != "" -> Some(lambda_pattern_type(pattern));
+        true -> expression_type(pattern, facts, parameters)
+    }.
+
+list_element_type(value: String): String ->
+    if {
+        String.starts_with(value, "List[") and String.ends_with(value, "]") ->
+            value.utf8_slice(5, value.byte_size() - 6);
+        true -> "Dynamic"
+    }.
+
+pattern_child_source_type(kind: String, index: Int, source_type: String): String ->
+    if {
+        kind == "list-cons-pattern" and index == 0 -> list_element_type(source_type);
+        kind == "list-cons-pattern" and index == 1 -> source_type;
+        kind == "list-pattern" -> list_element_type(source_type);
+        true -> "Dynamic"
+    }.
+
+resolved_pattern_binding_type(
+    pattern: ProjectedExpressionNode,
+    source_type: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[String] ->
+    case pattern_binding_type(pattern, facts, parameters) {
+        Some(type_name) -> Some(type_name);
+        None -> Some(source_type)
+    }.
 
 pattern_operands(pattern: ProjectedExpressionNode): List[String] ->
     concat(
-        [pattern.kind, pattern.text, Int.to_string(pattern.children.length())],
+        [pattern_ir_kind(pattern), pattern_ir_text(pattern), Int.to_string(pattern.children.length())],
         pattern_children_operands(pattern.children),
     ).
 
@@ -254,37 +362,238 @@ shallow_pattern_operand_pair(
 shallow_binding(
     value: ProjectedExpressionNode,
     environment: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
 ): List[SemanticInstructionPlan] ->
     if {
-        value.kind == "binding-pattern" -> [
+        binding_pattern(value) -> [
             SemanticInstructionPlan(
                 "get-pattern-binding",
-                some_string(value.text),
+                some_string(pattern_binding_name(value)),
                 [environment, Int.to_string(value.start_byte)],
-                some_string("Dynamic"),
+                pattern_binding_type(value, facts, parameters),
             ),
         ];
         true -> List.new[SemanticInstructionPlan]()
     }.
 
+struct IndexedPatternBindings {
+    instructions: List[SemanticInstructionPlan],
+    next_index: Int,
+}.
+
+constructor IndexedPatternBindings {
+    (
+        instructions: List[SemanticInstructionPlan],
+        next_index: Int,
+    ): IndexedPatternBindings -> IndexedPatternBindings {
+        instructions: instructions,
+        next_index: next_index,
+    }
+}.
+
+indexed_binding(
+    value: ProjectedExpressionNode,
+    environment: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    index: Int,
+    source_type: String,
+    pattern_metadata: List[String],
+): IndexedPatternBindings ->
+    if {
+        binding_pattern(value) -> IndexedPatternBindings(
+            [SemanticInstructionPlan(
+                "get-pattern-binding",
+                some_string(pattern_binding_name(value)),
+                concat(
+                    [environment, Int.to_string(index), source_type],
+                    pattern_metadata,
+                ),
+                resolved_pattern_binding_type(value, source_type, facts, parameters),
+            )],
+            index + 1,
+        );
+        true -> IndexedPatternBindings(List.new[SemanticInstructionPlan](), index)
+    }.
+
+indexed_pattern_bindings(
+    pattern: ProjectedExpressionNode,
+    environment: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    index: Int,
+    source_type: String,
+    pattern_metadata: List[String],
+): IndexedPatternBindings ->
+    let root = indexed_binding(
+        pattern, environment, facts, parameters, index, source_type, pattern_metadata,
+    );
+    let children = indexed_pattern_children(
+        pattern.children,
+        pattern.kind,
+        environment,
+        facts,
+        parameters,
+        root.next_index,
+        0,
+        source_type,
+        pattern_metadata,
+    );
+    IndexedPatternBindings(
+        concat_instructions(root.instructions, children.instructions),
+        children.next_index,
+    ).
+
+indexed_pattern_children(
+    values: List[ProjectedExpressionNode],
+    parent_kind: String,
+    environment: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    index: Int,
+    child_index: Int,
+    source_type: String,
+    pattern_metadata: List[String],
+): IndexedPatternBindings ->
+    case values {
+        [] -> IndexedPatternBindings(List.new[SemanticInstructionPlan](), index);
+        [value | rest] ->
+            let first = indexed_pattern_bindings(
+                value,
+                environment,
+                facts,
+                parameters,
+                index,
+                pattern_child_source_type(parent_kind, child_index, source_type),
+                pattern_metadata,
+            );
+            let remaining = indexed_pattern_children(
+                rest,
+                parent_kind,
+                environment,
+                facts,
+                parameters,
+                first.next_index,
+                child_index + 1,
+                source_type,
+                pattern_metadata,
+            );
+            IndexedPatternBindings(
+                concat_instructions(first.instructions, remaining.instructions),
+                remaining.next_index,
+            )
+    }.
+
 pub shallow_pattern_bindings(
     pattern: ProjectedExpressionNode,
     environment: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
 ): List[SemanticInstructionPlan] ->
-    concat_instructions(
-        shallow_binding(pattern, environment),
-        pattern_children_bindings(pattern.children, environment),
+    indexed_pattern_bindings(
+        pattern,
+        environment,
+        facts,
+        parameters,
+        0,
+        case expression_type(pattern, facts, parameters) {
+            Some(name) -> name;
+            None -> "Dynamic"
+        },
+        pattern_operands(pattern),
+    ).instructions.
+
+pub shallow_pattern_bindings_with_source(
+    pattern: ProjectedExpressionNode,
+    environment: String,
+    source_type: Option[String],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[SemanticInstructionPlan] ->
+    indexed_pattern_bindings(
+        pattern,
+        environment,
+        facts,
+        parameters,
+        0,
+        case source_type { Some(name) -> name; None -> "Dynamic" },
+        pattern_operands(pattern),
+    ).instructions.
+
+pattern_parameters_at(
+    pattern: ProjectedExpressionNode,
+    source_type: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[IrParameter] ->
+    if {
+        binding_pattern(pattern) -> case resolved_pattern_binding_type(pattern, source_type, facts, parameters) {
+            Some(type_name) -> [IrParameter(pattern_binding_name(pattern), type_name)];
+            None -> List.new[IrParameter]()
+        };
+        true -> pattern_child_parameters(
+            pattern.children,
+            pattern.kind,
+            0,
+            source_type,
+            facts,
+            parameters,
+        )
+    }.
+
+pattern_child_parameters(
+    values: List[ProjectedExpressionNode],
+    parent_kind: String,
+    child_index: Int,
+    source_type: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[IrParameter] ->
+    case values {
+        [] -> List.new[IrParameter]();
+        [value | rest] -> append_ir_parameters(
+            pattern_parameters_at(
+                value,
+                pattern_child_source_type(parent_kind, child_index, source_type),
+                facts,
+                parameters,
+            ),
+            pattern_child_parameters(
+                rest,
+                parent_kind,
+                child_index + 1,
+                source_type,
+                facts,
+                parameters,
+            ),
+        )
+    }.
+
+pub pattern_parameters(
+    pattern: ProjectedExpressionNode,
+    source_type: Option[String],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[IrParameter] ->
+    pattern_parameters_at(
+        pattern,
+        case source_type { Some(name) -> name; None -> "Dynamic" },
+        facts,
+        parameters,
     ).
 
 pattern_children_bindings(
     values: List[ProjectedExpressionNode],
     environment: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
 ): List[SemanticInstructionPlan] ->
     case values {
         [] -> List.new[SemanticInstructionPlan]();
         [value | rest] -> concat_instructions(
-            shallow_pattern_bindings(value, environment),
-            pattern_children_bindings(rest, environment),
+            shallow_pattern_bindings(value, environment, facts, parameters),
+            pattern_children_bindings(rest, environment, facts, parameters),
         )
     }.
 
@@ -344,7 +653,10 @@ select_fact_type(
     rest: List[InferredTypeFact],
 ): Option[String] ->
     if {
-        value.byte_offset == byte_offset -> value.type_name;
+        value.byte_offset == byte_offset -> case value.type_name {
+            Some(name) -> Some(name);
+            None -> fact_type(byte_offset, rest)
+        };
         true -> fact_type(byte_offset, rest)
     }.
 
@@ -367,10 +679,7 @@ pub none_string(): Option[String] ->
     None.
 
 pub resolved_or_dynamic(value: Option[String]): Option[String] ->
-    case value {
-        Some(name) -> some_string(name);
-        None -> some_string("Dynamic")
-    }.
+    value.
 
 last_expression_type(
     values: List[ProjectedExpressionNode],
@@ -388,9 +697,23 @@ pub expression_type(
     facts: List[InferredTypeFact],
     parameters: List[IrParameter],
 ): Option[String] ->
-    case fact_type(node.start_byte, facts) {
-        Some(name) -> some_string(name);
-        None -> expression_type_without_fact(node, facts, parameters)
+    if {
+        String.starts_with(node.text, "$type:") -> Some(String.utf8_slice(
+            node.text,
+            6,
+            String.byte_size(node.text) - 6,
+        ));
+        node.kind == "identifier" or node.kind == "atom" or node.kind == "binding" or node.kind == "primary" -> case parameter_type(node.text, parameters) {
+            Some(name) -> Some(name);
+            None -> case fact_type(node.start_byte, facts) {
+                Some(name) -> Some(name);
+                None -> expression_type_without_fact(node, facts, parameters)
+            }
+        };
+        true -> case fact_type(node.start_byte, facts) {
+            Some(name) -> some_string(name);
+            None -> expression_type_without_fact(node, facts, parameters)
+        }
     }.
 
 expression_type_without_fact(
@@ -399,14 +722,14 @@ expression_type_without_fact(
     parameters: List[IrParameter],
 ): Option[String] ->
     if {
-        node.kind == "identifier" or node.kind == "atom" -> expression_identifier_type(node.text, parameters);
+        node.kind == "identifier" or node.kind == "atom" or node.kind == "binding" -> expression_identifier_type(node.text, parameters);
         true -> expression_type_after_identifier(node, facts, parameters)
     }.
 
 expression_identifier_type(text: String, parameters: List[IrParameter]): Option[String] ->
     case parameter_type(text, parameters) {
         Some(name) -> some_string(name);
-        None -> some_string("Dynamic")
+        None -> none_string()
     }.
 
 expression_type_after_identifier(
@@ -466,6 +789,9 @@ expression_type_after_constructor(
 ): Option[String] ->
     if {
         node.kind == "primary" and (node.text == "true" or node.text == "false") -> some_string("Bool");
+        node.kind == "primary" and String.starts_with(node.text, "\"") -> some_string("String");
+        node.kind == "primary" and Int.from_string(node.text) != None -> some_string("Int");
+        node.kind == "primary" and Float.from_string(node.text) != None -> some_string("Float");
         true -> expression_type_after_boolean(node, facts, parameters)
     }.
 
@@ -475,7 +801,7 @@ expression_type_after_boolean(
     parameters: List[IrParameter],
 ): Option[String] ->
     if {
-        node.kind == "primary" -> some_string("Dynamic");
+        node.kind == "primary" -> none_string();
         true -> expression_type_after_primary(node, facts, parameters)
     }.
 
@@ -485,7 +811,7 @@ expression_type_after_primary(
     parameters: List[IrParameter],
 ): Option[String] ->
     if {
-        node.kind == "call" or node.kind == "field" or node.kind == "index" -> some_string("Dynamic");
+        node.kind == "call" or node.kind == "field" or node.kind == "index" -> none_string();
         true -> expression_type_after_dynamic(node, facts, parameters)
     }.
 
@@ -550,7 +876,56 @@ expression_type_after_cast(
             or node.kind == "named-argument"
             or node.kind == "let"
             or node.kind == "let-refutable" -> last_expression_type(node.children, facts, parameters);
+        node.kind == "if" -> branch_expression_types(node.children, facts, parameters, None);
+        node.kind == "case" -> case_expression_type(node.children, facts, parameters);
         true -> expression_type_after_structural(node, facts, parameters)
+    }.
+
+clause_expression_type(
+    value: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[String] ->
+    if {
+        value.kind == "clause" -> last_expression_type(value.children, facts, parameters);
+        true -> expression_type(value, facts, parameters)
+    }.
+
+merge_expression_type(current: Option[String], next: Option[String]): Option[String] ->
+    case current {
+        None -> next;
+        Some(current_name) -> case next {
+            Some(next_name) where current_name == next_name -> Some(current_name);
+            Some(next_name) where String.starts_with(current_name, String.append(next_name, "[")) -> Some(current_name);
+            Some(next_name) where String.starts_with(next_name, String.append(current_name, "[")) -> Some(next_name);
+            _ -> None
+        }
+    }.
+
+branch_expression_types(
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    current: Option[String],
+): Option[String] ->
+    case values {
+        [] -> current;
+        [value | rest] -> branch_expression_types(
+            rest,
+            facts,
+            parameters,
+            merge_expression_type(current, clause_expression_type(value, facts, parameters)),
+        )
+    }.
+
+case_expression_type(
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[String] ->
+    case values {
+        [] -> None;
+        [_subject | clauses] -> branch_expression_types(clauses, facts, parameters, None)
     }.
 
 expression_type_after_structural(
@@ -597,7 +972,7 @@ binary_expression_type(
                 facts,
                 parameters,
             );
-        _ -> some_string("Dynamic")
+        _ -> none_string()
     }.
 
 binary_expression_type_from_left(
@@ -609,13 +984,13 @@ binary_expression_type_from_left(
     case left_type {
         Some(left_name) ->
             matching_expression_type(left_name, expression_type(right, facts, parameters));
-        None -> some_string("Dynamic")
+        None -> none_string()
     }.
 
 matching_expression_type(left_name: String, right_type: Option[String]): Option[String] ->
     case right_type {
         Some(right_name) where left_name == right_name -> some_string(left_name);
-        _ -> some_string("Dynamic")
+        _ -> none_string()
     }.
 
 expression_type_after_binary(
@@ -645,7 +1020,7 @@ unary_expression_type(
 ): Option[String] ->
     case children {
         [operand] -> expression_type(operand, facts, parameters);
-        _ -> some_string("Dynamic")
+        _ -> none_string()
     }.
 
 pub last_string(values: List[String]): String ->
@@ -704,13 +1079,14 @@ pub node_opcode(node: ProjectedExpressionNode): String ->
             or node.kind == "string"
             or node.kind == "atom-literal"
             or node.kind == "constructor"
-            or node.kind == "primary" -> "load-literal";
+            or node.kind == "primary" and (node.text == "true" or node.text == "false") ->
+            "load-literal";
         true -> move_node_opcode(node)
     }.
 
 move_node_opcode(node: ProjectedExpressionNode): String ->
     if {
-        node.kind == "identifier" or node.kind == "atom" -> "move";
+        node.kind == "identifier" or node.kind == "atom" or node.kind == "binding" or node.kind == "primary" -> "move";
         true -> binary_node_opcode(node)
     }.
 
@@ -778,7 +1154,7 @@ pub literal_operands(node: ProjectedExpressionNode): List[String] ->
 
 identifier_operands(node: ProjectedExpressionNode): List[String] ->
     if {
-        node.kind == "identifier" -> [node.text];
+        node.kind == "identifier" or node.kind == "binding" -> [node.text];
         true -> field_operands(node)
     }.
 
@@ -794,7 +1170,7 @@ pub parameter(value: ParameterSyntax): IrParameter ->
 parameter_annotation_type(value: ParameterSyntax): String ->
     if {
         value.has_annotation and value.annotation.valid -> value.annotation.syntax.text;
-        true -> "Dynamic"
+        true -> ""
     }.
 
 pub resolved_return(declared: String, inferred: Option[String]): Option[String] ->

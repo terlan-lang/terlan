@@ -1,0 +1,349 @@
+/** Compile-time expansion of projected reusable shape patterns. */
+module self_host.ProjectedShapeExpansion.
+
+import std.core.String.
+
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedPatternSemantics.{ProjectedPatternClause}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+import self_host.ProjectedPatternSemantics.
+
+
+pub struct ProjectedShapeDefinition {
+    name: String,
+    parameters: List[String],
+    body: ProjectedExpressionNode,
+    has_guard: Bool,
+    guard: ProjectedExpressionNode,
+}.
+
+pub constructor ProjectedShapeDefinition {
+    (name: String, parameters: List[String], body: ProjectedExpressionNode, has_guard: Bool, guard: ProjectedExpressionNode): ProjectedShapeDefinition ->
+        ProjectedShapeDefinition {
+            name: name,
+            parameters: parameters,
+            body: body,
+            has_guard: has_guard,
+            guard: guard,
+        }
+}.
+
+
+pub struct ProjectedShapeExpansionResult {
+    valid: Bool,
+    pattern: ProjectedExpressionNode,
+    guards: List[ProjectedExpressionNode],
+    message: String,
+}.
+
+pub constructor ProjectedShapeExpansionResult {
+    (valid: Bool, pattern: ProjectedExpressionNode, guards: List[ProjectedExpressionNode], message: String): ProjectedShapeExpansionResult ->
+        ProjectedShapeExpansionResult {
+            valid: valid,
+            pattern: pattern,
+            guards: guards,
+            message: message,
+        }
+}.
+
+
+struct ShapeBinding {
+    name: String,
+    pattern: ProjectedExpressionNode,
+}.
+
+constructor ShapeBinding {
+    (name: String, pattern: ProjectedExpressionNode): ShapeBinding ->
+        ShapeBinding { name: name, pattern: pattern }
+}.
+
+
+struct ExpandedChildren {
+    valid: Bool,
+    children: List[ProjectedExpressionNode],
+    guards: List[ProjectedExpressionNode],
+    message: String,
+}.
+
+constructor ExpandedChildren {
+    (valid: Bool, children: List[ProjectedExpressionNode], guards: List[ProjectedExpressionNode], message: String): ExpandedChildren ->
+        ExpandedChildren {
+            valid: valid,
+            children: children,
+            guards: guards,
+            message: message,
+        }
+}.
+
+
+@pure
+empty_node(): ProjectedExpressionNode ->
+    ProjectedExpressionNode("invalid-pattern", "", 0, 0, List.new[ProjectedExpressionNode]()).
+
+@pure
+failure(message: String): ProjectedShapeExpansionResult ->
+    ProjectedShapeExpansionResult(false, empty_node(), List.new[ProjectedExpressionNode](), message).
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+@pure
+find_definition(
+    values: List[ProjectedShapeDefinition],
+    name: String,
+): Option[ProjectedShapeDefinition] ->
+    case values {
+        [] -> None;
+        [value | _rest] where value.name == name -> Some(value);
+        [_value | rest] -> find_definition(rest, name)
+    }.
+
+@pure
+find_binding(values: List[ShapeBinding], name: String): Option[ProjectedExpressionNode] ->
+    case values {
+        [] -> None;
+        [value | _rest] where value.name == name -> Some(value.pattern);
+        [_value | rest] -> find_binding(rest, name)
+    }.
+
+@pure
+bind_arguments(
+    parameters: List[String],
+    arguments: List[ProjectedExpressionNode],
+): List[ShapeBinding] ->
+    case parameters {
+        [] -> List.new[ShapeBinding]();
+        [parameter | parameter_rest] -> case arguments {
+            [] -> List.new[ShapeBinding]();
+            [argument | argument_rest] -> [
+                ShapeBinding(parameter, argument)
+                | bind_arguments(parameter_rest, argument_rest)
+            ]
+        }
+    }.
+
+@pure
+substitute_pattern_children(
+    values: List[ProjectedExpressionNode],
+    bindings: List[ShapeBinding],
+): List[ProjectedExpressionNode] ->
+    case values {
+        [] -> List.new[ProjectedExpressionNode]();
+        [value | rest] -> [substitute_pattern(value, bindings) | substitute_pattern_children(rest, bindings)]
+    }.
+
+@pure
+substitute_pattern(
+    value: ProjectedExpressionNode,
+    bindings: List[ShapeBinding],
+): ProjectedExpressionNode ->
+    if {
+        value.kind == "binding-pattern" -> case find_binding(bindings, value.text) {
+            Some(replacement) -> replacement;
+            None -> value
+        };
+        true -> ProjectedExpressionNode(
+            value.kind,
+            value.text,
+            value.start_byte,
+            value.end_byte,
+            substitute_pattern_children(value.children, bindings),
+        )
+    }.
+
+@pure
+pattern_as_expression_children(values: List[ProjectedExpressionNode]): List[ProjectedExpressionNode] ->
+    case values {
+        [] -> List.new[ProjectedExpressionNode]();
+        [value | rest] -> [pattern_as_expression(value) | pattern_as_expression_children(rest)]
+    }.
+
+@pure
+pattern_expression_kind(kind: String): String ->
+    if {
+        kind == "binding-pattern" -> "name";
+        kind == "literal-pattern" -> "literal";
+        kind == "constructor-pattern" -> "call";
+        true -> "pattern-value"
+    }.
+
+@pure
+pattern_as_expression(value: ProjectedExpressionNode): ProjectedExpressionNode ->
+    ProjectedExpressionNode(
+        pattern_expression_kind(value.kind),
+        value.text,
+        value.start_byte,
+        value.end_byte,
+        pattern_as_expression_children(value.children),
+    ).
+
+@pure
+guard_reference(kind: String): Bool ->
+    kind == "name" or kind == "var" or kind == "binding".
+
+@pure
+substitute_guard_children(
+    values: List[ProjectedExpressionNode],
+    bindings: List[ShapeBinding],
+): List[ProjectedExpressionNode] ->
+    case values {
+        [] -> List.new[ProjectedExpressionNode]();
+        [value | rest] -> [substitute_guard(value, bindings) | substitute_guard_children(rest, bindings)]
+    }.
+
+@pure
+substitute_guard(
+    value: ProjectedExpressionNode,
+    bindings: List[ShapeBinding],
+): ProjectedExpressionNode ->
+    if {
+        guard_reference(value.kind) -> case find_binding(bindings, value.text) {
+            Some(replacement) -> pattern_as_expression(replacement);
+            None -> value
+        };
+        true -> ProjectedExpressionNode(
+            value.kind,
+            value.text,
+            value.start_byte,
+            value.end_byte,
+            substitute_guard_children(value.children, bindings),
+        )
+    }.
+
+@pure
+finish_regular_expansion(
+    value: ProjectedExpressionNode,
+    children: ExpandedChildren,
+): ProjectedShapeExpansionResult ->
+    ProjectedShapeExpansionResult(
+        children.valid,
+        ProjectedExpressionNode(
+            value.kind,
+            value.text,
+            value.start_byte,
+            value.end_byte,
+            children.children,
+        ),
+        children.guards,
+        children.message,
+    ).
+
+@pure
+expand_children(
+    values: List[ProjectedExpressionNode],
+    definitions: List[ProjectedShapeDefinition],
+    stack: List[String],
+): ExpandedChildren ->
+    case values {
+        [] -> ExpandedChildren(true, List.new[ProjectedExpressionNode](), List.new[ProjectedExpressionNode](), "");
+        [value | rest] ->
+            let current = expand_at(value, definitions, stack);
+            if {
+                not current.valid -> ExpandedChildren(false, List.new[ProjectedExpressionNode](), List.new[ProjectedExpressionNode](), current.message);
+                true ->
+                    let remaining = expand_children(rest, definitions, stack);
+                    ExpandedChildren(
+                        remaining.valid,
+                        [current.pattern | remaining.children],
+                        append(current.guards, remaining.guards),
+                        remaining.message,
+                    )
+            }
+    }.
+
+@pure
+finish_shape_expansion(
+    definition: ProjectedShapeDefinition,
+    bindings: List[ShapeBinding],
+    nested: ProjectedShapeExpansionResult,
+): ProjectedShapeExpansionResult ->
+    if {
+        not nested.valid -> nested;
+        true ->
+            let own_guards = if {
+                definition.has_guard -> [substitute_guard(definition.guard, bindings)];
+                true -> List.new[ProjectedExpressionNode]()
+            };
+            let duplicate = ProjectedPatternSemantics.analyze(
+                [ProjectedPatternClause(nested.pattern, false)],
+                List.new[String](),
+            ).duplicate_binding;
+            if {
+                duplicate != "" -> failure(String.concat([
+                    "shape `",
+                    definition.name,
+                    "` expansion binds `",
+                    duplicate,
+                    "` more than once; overlapping shape arguments are ambiguous",
+                ]));
+                true -> ProjectedShapeExpansionResult(
+                    true,
+                    nested.pattern,
+                    append(nested.guards, own_guards),
+                    "",
+                )
+            }
+    }.
+
+@pure
+expand_shape_call(
+    value: ProjectedExpressionNode,
+    definition: ProjectedShapeDefinition,
+    definitions: List[ProjectedShapeDefinition],
+    stack: List[String],
+): ProjectedShapeExpansionResult ->
+    if {
+        contains(stack, definition.name) -> failure(String.concat(["recursive shape expansion `", definition.name, "`"]));
+        List.length(value.children) != List.length(definition.parameters) -> failure(String.concat([
+            "shape `",
+            definition.name,
+            "` expects ",
+            Int.to_string(List.length(definition.parameters)),
+            " argument(s), found ",
+            Int.to_string(List.length(value.children)),
+        ]));
+        true ->
+            let bindings = bind_arguments(definition.parameters, value.children);
+            let substituted = substitute_pattern(definition.body, bindings);
+            finish_shape_expansion(
+                definition,
+                bindings,
+                expand_at(substituted, definitions, [definition.name | stack]),
+            )
+    }.
+
+@pure
+expand_at(
+    value: ProjectedExpressionNode,
+    definitions: List[ProjectedShapeDefinition],
+    stack: List[String],
+): ProjectedShapeExpansionResult ->
+    if {
+        value.kind == "constructor-pattern" -> case find_definition(definitions, value.text) {
+            Some(definition) -> expand_shape_call(value, definition, definitions, stack);
+            None -> finish_regular_expansion(value, expand_children(value.children, definitions, stack))
+        };
+        true -> finish_regular_expansion(value, expand_children(value.children, definitions, stack))
+    }.
+
+/** Expands one pattern and returns ordinary pattern plus composed guards. */
+@pure
+pub expand(
+    value: ProjectedExpressionNode,
+    definitions: List[ProjectedShapeDefinition],
+): ProjectedShapeExpansionResult ->
+    expand_at(value, definitions, List.new[String]()).

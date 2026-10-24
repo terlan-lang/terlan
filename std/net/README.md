@@ -39,9 +39,13 @@ The macro is shared Rust binding machinery, not a new Terlan annotation or
 automatic discovery of every method exposed by an upstream crate.
 
 The `Uri.query_pairs` binding delegates form-url-encoded query
-decoding to `url::form_urlencoded`. HTTP request metadata and WebSocket identity
-restoration share this codec. It preserves wire order and duplicate keys;
+decoding to `url::form_urlencoded`. Terlan's `Request.query` accessor and WebSocket
+identity restoration share this codec. Ordinary HTTP ingress retains only raw
+query text; the accessor requests decoding on demand. It preserves wire order and duplicate keys;
 callers own lookup policy.
+Its `native_binding!` declaration derives arity and exact borrowed input
+conversion from the typed signature, then copies results into owned native
+values. It shares this machinery with the HTTP codecs and session bindings.
 
 Important invariants:
 

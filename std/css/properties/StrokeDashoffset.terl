@@ -1,85 +1,29 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-dashoffset
+ * The `stroke-dashoffset` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+ * an offset for the starting point of the rendering of an
+ * [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element's associated [dash
+ * array](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-dasharray).
+ * If present, it overrides the element's `stroke-dashoffset` attribute.
+ *
+ * Initial: 0. Inherited: yes.
+ * Percentages: refer to the normalized diagonal measure of the current SVG viewport's applied
+ * `viewBox`, or of the viewport itself if no viewBox is specified.
+ *
  * Grammar: <length-percentage> | <number>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-dashoffset
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-dashoffset
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.StrokeDashoffset.
 
-import std.core.Float.
-import std.css.Values.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
-
-/**
- * A nominal, specification-constrained stroke-dashoffset value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    stroke_dashoffset: Value,
+    stroke_dashoffset: Length | Percentage | Float | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    stroke_dashoffset: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "stroke-dashoffset", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "stroke-dashoffset", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "stroke-dashoffset", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "stroke-dashoffset", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "stroke-dashoffset", css: "unset"}).
-
-/**
- * Constructs a stroke-dashoffset value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "stroke-dashoffset", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a stroke-dashoffset value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "stroke-dashoffset", css: std.css.Values.percentage_css(value)}).
-
-/**
- * Constructs a stroke-dashoffset value from a typed number.
- */
-pub number(value: Float): Value ->
-    Value(Token {property: "stroke-dashoffset", css: std.core.Float.to_string(value)}).

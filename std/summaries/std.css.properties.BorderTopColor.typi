@@ -1,48 +1,24 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-top-color
+//! The `border-top-color` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! color of an element's top
+//! [border](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border). It can
+//! also be set with the shorthand CSS properties `border-color` or `border-top`.
+//!
+//! Initial: currentcolor. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <color> | <image-1D>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-top-color
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-top-color
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderTopColor.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    border_top_color: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    border_top_color: Value
+    border_top_color: std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained border-top-color value.
-
-pub opaque type Value.
-
-/// Constructs a border-top-color value from a typed color.
-
-pub color(value: std.css.Values.Color): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

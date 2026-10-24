@@ -1,54 +1,54 @@
 //! Package-owned cookie argument contracts and codec entry points.
 
-use terlan_runtime_abi::{BoundaryError, ErrorDomain, FromNativeValue, NativeBinding, NativeValue};
+use terlan_runtime_abi::{native_binding, BoundaryError, ErrorDomain, NativeBinding};
 
 use crate::{CookieOptions, CookieSameSite, HttpError};
 
-/// Serializes the complete optional cookie attribute contract.
-pub const ENCODE_COOKIE: NativeBinding = NativeBinding {
-    operation: "std.http.cookies.encode",
-    arity: 9,
-    invoke: encode,
-};
+/// Decodes one source-selected Cookie header without selecting duplicate values.
+pub const DECODE_COOKIE: NativeBinding = native_binding!(
+    "std.http.cookies.decode",
+    |header: &str| { Ok::<_, BoundaryError>(crate::parse_request_cookie_header(header)) }
+);
 
-fn encode(args: &[NativeValue]) -> Result<NativeValue, BoundaryError> {
-    ENCODE_COOKIE.validate_arity(args.len())?;
-    let name = <&str>::from_native(&args[0])?;
-    let value = <&str>::from_native(&args[1])?;
-    let path = String::from_native(&args[2])?;
-    let domain = Option::<String>::from_native(&args[3])?;
-    let max_age = Option::<i64>::from_native(&args[4])?;
-    let expires = Option::<String>::from_native(&args[5])?;
-    let http_only = bool::from_native(&args[6])?;
-    let secure = bool::from_native(&args[7])?;
-    let same_site = match Option::<&str>::from_native(&args[8])? {
-        None => None,
-        Some("lax") => Some(CookieSameSite::Lax),
-        Some("strict") => Some(CookieSameSite::Strict),
-        Some("none") => Some(CookieSameSite::None),
-        Some(other) => {
-            return Err(BoundaryError::message(
-                ErrorDomain::NativeBoundary,
-                "cookie options",
-                format!(
+/// Serializes the complete optional cookie attribute contract.
+pub const ENCODE_COOKIE: NativeBinding = native_binding!(
+    "std.http.cookies.encode",
+    |name: &str,
+     value: &str,
+     path: String,
+     domain: Option<String>,
+     max_age: Option<i64>,
+     expires: Option<String>,
+     http_only: bool,
+     secure: bool,
+     same_site: Option<&str>| {
+        let same_site = match same_site {
+            None => None,
+            Some("lax") => Some(CookieSameSite::Lax),
+            Some("strict") => Some(CookieSameSite::Strict),
+            Some("none") => Some(CookieSameSite::None),
+            Some(other) => {
+                return Err(BoundaryError::message(
+                    ErrorDomain::NativeBoundary,
+                    "cookie options",
+                    format!(
                     "error[dispatch.http.cookie.invalid_same_site]: unsupported SameSite `{other}`"
                 ),
-            ))
-        }
-    };
-    let options = CookieOptions {
-        path,
-        domain,
-        max_age,
-        expires,
-        http_only,
-        secure,
-        same_site,
-    };
-    crate::set_header_with_options(name, value, &options)
-        .map(NativeValue::from)
-        .map_err(codec_error)
-}
+                ))
+            }
+        };
+        let options = CookieOptions {
+            path,
+            domain,
+            max_age,
+            expires,
+            http_only,
+            secure,
+            same_site,
+        };
+        crate::set_header_with_options(name, value, &options).map_err(codec_error)
+    }
+);
 
 fn codec_error(error: HttpError) -> BoundaryError {
     BoundaryError::message(

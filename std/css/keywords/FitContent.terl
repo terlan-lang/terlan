@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword fit-content. Generated; do not edit.
+ */
+module std.css.keywords.FitContent.
+
+pub type FitContent = Atom["fit-content"].

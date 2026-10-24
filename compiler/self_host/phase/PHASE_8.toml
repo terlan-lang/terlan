@@ -1,0 +1,97 @@
+schema = "terlan.self-host.phase/v1"
+phase = 8
+name = "bootstrap-convergence"
+status = "model-complete-execution-pending"
+
+[comparison]
+versioned_stage_evidence_codec = true
+file_comparator = true
+tokens = true
+syntax = true
+interfaces = true
+diagnostics = true
+typed_syntax = true
+core_ir = true
+actor_ir = true
+managed_layouts = true
+runtime_behavior = true
+normalized_executable_artifacts = true
+earliest_difference_authority = true
+
+[bootstrap]
+stage1_build = false
+stage2_build = false
+semantic_convergence = false
+actor_convergence = false
+actor_native_object_convergence = false
+actor_profile_catalog_convergence = false
+actor_profile_projection_fixed_point = false
+clean_machine = false
+recovery = false
+release_corpus = false
+
+[[gate]]
+id = "self-host-stage1-build-check"
+status = "pending-abi-1.6-regeneration"
+
+[[gate]]
+id = "self-host-stage2-build-check"
+status = "pending"
+
+[[gate]]
+id = "self-host-bootstrap-convergence-check"
+status = "pending"
+
+[[gate]]
+id = "self-host-actor-bootstrap-convergence-check"
+status = "pending-regeneration"
+
+[[gate]]
+id = "self-host-actor-native-object-check"
+status = "pending-validation"
+
+[[gate]]
+id = "self-host-actor-profile-catalog-check"
+status = "pending-regeneration-and-validation"
+
+[[gate]]
+id = "self-host-actor-profile-fixed-point-check"
+status = "implemented-unverified"
+
+[[gate]]
+id = "self-host-clean-machine-bootstrap-check"
+status = "pending"
+
+[[gate]]
+id = "self-host-recovery-bootstrap-check"
+status = "pending"
+
+[[gate]]
+id = "self-host-release-corpus-check"
+status = "pending"
+
+[next]
+implementation = "stage1-stage2-evidence-production"
+reason = "the ten-layer model and actor-aware consumer exist; compiler stages must populate and validate every canonical layer"
+
+[dynamic_call_authority]
+status = "implemented"
+requirements = [
+    "module-wide closure parameter target fixed point",
+    "finite call-value target admission",
+    "dynamic actor effect edges",
+    "profile re-resolution during suspension convergence",
+]
+
+[persisted_dynamic_call_evidence]
+status = "implemented"
+schema = "terlan.self-host.actor-dynamic-evidence/v1"
+driver_argument = "actor-dynamic-evidence.manifest"
+
+[production_identity_evidence]
+status = "implemented-unverified"
+producer = "self_host.ProductionArtifactIdentity.write"
+algorithm = "sha256"
+requires_non_empty_normalized_artifact = true
+compiler_stage_outputs = ["stage1.identity", "stage2.identity"]
+actor_stage_outputs = ["stage1-actor.identity", "stage2-actor.identity"]

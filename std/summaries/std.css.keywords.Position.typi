@@ -1,0 +1,6 @@
+//! Shared CSS keyword position. Generated; do not edit.
+
+module std.css.keywords.Position.
+
+pub type Position =
+    Atom["position"].

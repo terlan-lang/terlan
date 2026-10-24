@@ -1,0 +1,23 @@
+/** Determinism contracts for self-hosted diagnostic rendering. */
+module self_host.SelfHostDiagnosticRenderingTest.
+
+import self_host.SelfHostDiagnosticRendering.
+
+
+@test
+pub ordered_messages_are_numbered_and_single_line(): Bool ->
+    SelfHostDiagnosticRendering.render_messages(
+        "frontend",
+        ["first\nline", "second\tline"],
+    ) == "terlan.self-host.diagnostics/v1\nkind\torigin\tordinal\tmessage\ndiagnostic\tfrontend\t1\tfirst line\ndiagnostic\tfrontend\t2\tsecond line\n".
+
+@test
+pub locations_use_public_command_shape(): Bool ->
+    SelfHostDiagnosticRendering.render_location(
+        "src/Main.terl",
+        4,
+        9,
+        "error",
+        "E100",
+        "invalid\nexpression",
+    ) == "src/Main.terl:4:9: error[E100]: invalid expression".

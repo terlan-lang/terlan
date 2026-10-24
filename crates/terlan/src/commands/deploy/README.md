@@ -33,7 +33,16 @@ The main flow is:
 
 Important invariants:
 
-- Deploy planning is deterministic and filesystem-local.
+- Manifest-only planning is deterministic and filesystem-local. Semantic plans
+  compile and evaluate each public `router/0` using the same source evaluator as
+  API emission. Planning executes trusted application code, not a sandbox;
+  no application native services are granted and external waits are rejected.
+  Router code must be deterministic for reproducible plans. Temporary build
+  products do not enter the source inventory.
+- HTTP route methods, grouping, fallbacks, and returned route selection belong
+  to `std.http`, not a deployment AST interpreter. Imported handler identities
+  remain qualified; anonymous handler labels are image-local identities rather
+  than exported functions. Unsupported channel schemas fail explicitly.
 - Manifest parsing remains owned by the build manifest module.
 - Experimental command output must not imply that Terlan Cloud provisioning is
   implemented in the compiler.

@@ -1,0 +1,115 @@
+/** Strict text codec for measured compiler self-analysis resource observations. */
+module self_host.SelfHostAnalysisResourcesManifest.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Int, String}.
+import self_host.SelfHostAnalysisResources.{AnalysisResourceLimits, AnalysisResourceUsage}.
+
+
+pub struct AnalysisResourceObservation {
+    usage: AnalysisResourceUsage,
+    limits: AnalysisResourceLimits,
+}.
+
+pub constructor AnalysisResourceObservation {
+    (usage: AnalysisResourceUsage, limits: AnalysisResourceLimits): AnalysisResourceObservation ->
+        AnalysisResourceObservation { usage: usage, limits: limits }
+}.
+
+struct MetricObservation {
+    used: Int,
+    limit: Int,
+}.
+
+constructor MetricObservation {
+    (used: Int, limit: Int): MetricObservation ->
+        MetricObservation { used: used, limit: limit }
+}.
+
+@pure
+decimal_at(value: String, index: Int, output: Int): Option[Int] ->
+    if {
+        index == value.byte_size() -> Some(output);
+        true -> let byte = value.utf8_byte_at(index);
+            if {
+                byte < 48 or byte > 57 -> None;
+                true -> decimal_at(value, index + 1, output * 10 + byte - 48)
+            }
+    }.
+
+@pure
+decimal(value: String): Option[Int] ->
+    if {
+        value == "" or value.byte_size() > 18 -> None;
+        true -> decimal_at(value, 0, 0)
+    }.
+
+@pure
+metric(line: String, expected: String): Option[MetricObservation] ->
+    case String.split(line, "\t") {
+        [name, used, limit] where name == expected -> case decimal(used) {
+            None -> None;
+            Some(used_value) -> case decimal(limit) {
+                None -> None;
+                Some(limit_value) -> Some(MetricObservation(used_value, limit_value))
+            }
+        };
+        _ -> None
+    }.
+
+@pure
+meaningful(lines: List[String]): List[String] ->
+    case lines {
+        [] -> [];
+        [line | rest] -> let normalized = String.trim(line);
+            if {
+                normalized == "" or String.starts_with(normalized, "#") -> meaningful(rest);
+                true -> [normalized | meaningful(rest)]
+            }
+    }.
+
+/** Decodes exactly seven ordered metrics; missing, duplicate, signed, or extra rows fail. */
+@pure
+pub decode(source: String): Option[AnalysisResourceObservation] ->
+    case meaningful(String.split(source, "\n")) {
+        [
+            "schema\tterlan.self-host.analysis-resources-observation/v1",
+            modules_line,
+            tokens_line,
+            syntax_nodes_line,
+            type_constraints_line,
+            core_instructions_line,
+            actor_continuations_line,
+            native_bytes_line
+        ] -> let Some(modules) <- metric(modules_line, "modules") else { None -> None };
+            let Some(tokens) <- metric(tokens_line, "tokens") else { None -> None };
+            let Some(syntax_nodes) <- metric(syntax_nodes_line, "syntax-nodes") else { None -> None };
+            let Some(type_constraints) <- metric(type_constraints_line, "type-constraints") else { None -> None };
+            let Some(core_instructions) <- metric(core_instructions_line, "core-instructions") else { None -> None };
+            let Some(actor_continuations) <- metric(actor_continuations_line, "actor-continuations") else { None -> None };
+            let Some(native_bytes) <- metric(native_bytes_line, "native-bytes") else { None -> None };
+            Some(AnalysisResourceObservation(
+                AnalysisResourceUsage(
+                    modules.used,
+                    tokens.used,
+                    syntax_nodes.used,
+                    type_constraints.used,
+                    core_instructions.used,
+                    actor_continuations.used,
+                    native_bytes.used,
+                ),
+                AnalysisResourceLimits(
+                    modules.limit,
+                    tokens.limit,
+                    syntax_nodes.limit,
+                    type_constraints.limit,
+                    core_instructions.limit,
+                    actor_continuations.limit,
+                    native_bytes.limit,
+                ),
+            ));
+        _ -> None
+    }.

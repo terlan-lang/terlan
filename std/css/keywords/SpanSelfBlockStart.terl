@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword span-self-block-start. Generated; do not edit.
+ */
+module std.css.keywords.SpanSelfBlockStart.
+
+pub type SpanSelfBlockStart = Atom["span-self-block-start"].

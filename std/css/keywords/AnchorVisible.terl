@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword anchor-visible. Generated; do not edit.
+ */
+module std.css.keywords.AnchorVisible.
+
+pub type AnchorVisible = Atom["anchor-visible"].

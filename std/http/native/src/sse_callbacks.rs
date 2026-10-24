@@ -7,6 +7,9 @@ use terlan_runtime_abi::{CallbackInvocation, CallbackState, NativeValue};
 use crate::channel_plan::{SseEndpointPlan, SseEvent};
 use crate::sse_session::{SseSession, SseStreamInfo};
 
+#[path = "sse_stream.rs"]
+mod stream;
+
 #[cfg(test)]
 #[path = "sse_callbacks_test.rs"]
 mod tests;
@@ -14,11 +17,34 @@ mod tests;
 /// Transport rejection must terminate an admitted source session explicitly.
 pub trait SseCancellation {
     fn cancel(&mut self, reason: String) -> Result<(), ServiceError>;
+
+    /// Transfers a producer-backed stream to Hyper without creating an executor.
+    fn into_body(mut self) -> Result<crate::response_body::ResponseBody, ServiceError>
+    where
+        Self: Sized,
+    {
+        let reason = "error[serve_http.upgrade_adapter_missing]: maintained async Hyper adapter is required for SSE";
+        match self.cancel(reason.into()) {
+            Ok(()) => Err(reason.into()),
+            Err(cleanup) => Err(format!("{reason}; cancellation failed: {cleanup}").into()),
+        }
+    }
 }
 
-impl<I: CallbackInvocation<SseEvent>> SseCancellation for SseCallbacks<I> {
+impl<I> SseCancellation for SseCallbacks<I>
+where
+    I: CallbackInvocation<SseEvent> + Send + 'static,
+    I::Value: Clone + Send + Sync,
+{
     fn cancel(&mut self, reason: String) -> Result<(), ServiceError> {
+        if !self.is_open() {
+            return Ok(());
+        }
         SseCallbacks::cancel(self, reason).map(|_| ())
+    }
+
+    fn into_body(self) -> Result<crate::response_body::ResponseBody, ServiceError> {
+        self.into_response_body()
     }
 }
 
@@ -27,13 +53,24 @@ impl<I: CallbackInvocation<SseEvent>> SseCancellation for SseCallbacks<I> {
 pub struct SseCallbacks<I: CallbackInvocation<SseEvent>> {
     live: SseSession<I::Value>,
     invocation: I,
+    open_pending: bool,
 }
 
 impl<I: CallbackInvocation<SseEvent>> SseCallbacks<I> {
     /// Admits one live stream and immediately dispatches its open callback.
     pub fn open(invocation: I, live: SseSession<I::Value>) -> Result<Self, ServiceError> {
-        let mut session = Self { live, invocation };
-        session.invoke(SseEvent::Open, Vec::new())?;
+        let mut session = Self {
+            live,
+            invocation,
+            open_pending: false,
+        };
+        session.require_open()?;
+        if let Err(error) = session.invoke(SseEvent::Open, Vec::new()) {
+            return match session.cancel(error.to_string()) {
+                Ok(_) => Err(error),
+                Err(cleanup) => Err(format!("{error}; cancellation failed: {cleanup}").into()),
+            };
+        }
         Ok(session)
     }
 
@@ -67,6 +104,7 @@ impl<I: CallbackInvocation<SseEvent>> SseCallbacks<I> {
         &mut self,
         data: String,
     ) -> Result<CallbackState<I::Value, I::Wait>, ServiceError> {
+        self.require_ready()?;
         let pending = self.invocation.pending_wait()?;
         if let Some(wait) = &pending {
             I::validate_text_wait(wait)
@@ -84,7 +122,11 @@ impl<I: CallbackInvocation<SseEvent>> SseCallbacks<I> {
 
     /// Transfers the oldest encoded event to HTTP stream transport.
     pub fn flush_next_event(&mut self) -> Option<Vec<u8>> {
-        self.live.flush_next()
+        if self.open_pending {
+            None
+        } else {
+            self.live.flush_next()
+        }
     }
 
     /// Dispatches one ready application event through generated code.
@@ -92,16 +134,19 @@ impl<I: CallbackInvocation<SseEvent>> SseCallbacks<I> {
         &mut self,
         data: String,
     ) -> Result<CallbackState<I::Value, I::Wait>, ServiceError> {
+        self.require_ready()?;
         self.invoke(SseEvent::EventReady, vec![NativeValue::String(data)])
     }
 
     /// Dispatches one VM keep-alive notification through generated code.
     pub fn keep_alive(&mut self) -> Result<CallbackState<I::Value, I::Wait>, ServiceError> {
+        self.require_ready()?;
         self.invoke(SseEvent::KeepAlive, Vec::new())
     }
 
     /// Dispatches graceful drain and ends the live-session lease.
     pub fn drain(&mut self) -> Result<CallbackState<I::Value, I::Wait>, ServiceError> {
+        self.require_ready()?;
         self.live.close();
         self.invocation
             .cancel_pending("SSE transport began graceful drain".to_string())?;
@@ -119,6 +164,7 @@ impl<I: CallbackInvocation<SseEvent>> SseCallbacks<I> {
         &mut self,
         reason: String,
     ) -> Result<CallbackState<I::Value, I::Wait>, ServiceError> {
+        self.require_open()?;
         self.live.close();
         self.invocation.cancel_pending(reason.clone())?;
         let state = self.invoke(SseEvent::Cancellation, vec![NativeValue::String(reason)]);
@@ -135,7 +181,25 @@ impl<I: CallbackInvocation<SseEvent>> SseCallbacks<I> {
         &mut self,
         wake: I::Wake,
     ) -> Result<CallbackState<I::Value, I::Wait>, ServiceError> {
+        self.require_ready()?;
         self.invocation.resume(wake).map_err(ServiceError::from)
+    }
+
+    fn require_open(&self) -> Result<(), ServiceError> {
+        if self.is_open() {
+            Ok(())
+        } else {
+            Err("error[serve.sse.closed]: stream is closed".into())
+        }
+    }
+
+    fn require_ready(&self) -> Result<(), ServiceError> {
+        self.require_open()?;
+        if self.open_pending {
+            Err("error[serve.sse.open_pending]: source open callback has not completed".into())
+        } else {
+            Ok(())
+        }
     }
 
     /// Starts one event using its retained source callback.
@@ -147,5 +211,13 @@ impl<I: CallbackInvocation<SseEvent>> SseCallbacks<I> {
         self.invocation
             .invoke(event, self.live.plan().callback(event), args)
             .map_err(ServiceError::from)
+    }
+}
+
+impl<I: CallbackInvocation<SseEvent>> Drop for SseCallbacks<I> {
+    fn drop(&mut self) {
+        if self.is_open() {
+            let _ = self.cancel("SSE session owner dropped".into());
+        }
     }
 }

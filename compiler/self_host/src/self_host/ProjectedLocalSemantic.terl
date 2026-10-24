@@ -3,16 +3,26 @@
  */
 module self_host.ProjectedLocalSemantic.
 
+import self_host.ProjectedMapTypeMerge.
+import self_host.ProjectedTryTypeMerge.
+
 import std.collections.List.
 import self_host.ProjectedBindingResolution.
 import self_host.ProjectedBindingTypeMerge.
+import self_host.ProjectedBindingSyntax.{BindingResolution}.
 import self_host.ProjectedBodySyntax.
 import self_host.ProjectedBodySyntax.{ProjectedBodies}.
 import self_host.ProjectedCallableResolution.
+import self_host.ProjectedCallableArgumentTypecheck.
 import self_host.ProjectedCallableCatalog.
 import self_host.ProjectedCallableSyntax.
-import self_host.ProjectedCallableSyntax.{CallableDeclaration}.
+import self_host.ProjectedCallableSyntax.{CallableDeclaration, CallableResolution}.
 import self_host.ProjectedCallableTypeMerge.
+import self_host.ProjectedDynamicCallTypeMerge.
+import self_host.ProjectedArrayTypeMerge.
+import self_host.ProjectedRecordAccessTypeMerge.
+import self_host.ProjectedRecordConstructTypeMerge.
+import self_host.ProjectedRecordUpdateTypeMerge.
 import self_host.ProjectedFrontendSyntax.
 import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
 import self_host.ProjectedSignatureSyntax.{ProjectedSignatureDocument}.
@@ -20,6 +30,7 @@ import self_host.ProjectedLocalSemanticSyntax.
 import self_host.ProjectedLocalSemanticSyntax.{LocalSemanticInput, LocalSemanticResult}.
 import self_host.ProjectedSemanticEventAdapter.
 import self_host.ProjectedTypeConstraintResolution.
+import self_host.ProjectedTypeConstraintSyntax.{TypeConstraintResolution}.
 import self_host.ModuleInterfaceSyntax.
 
 import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
@@ -29,14 +40,14 @@ pub analyze(input: LocalSemanticInput): LocalSemanticResult ->
         input.callable_uses,
         input.callable_declarations,
     );
-    let types = ProjectedBindingTypeMerge.merge(
+    let types = ProjectedCallableArgumentTypecheck.check(callables, ProjectedBindingTypeMerge.merge(
         ProjectedCallableTypeMerge.merge(
             ProjectedTypeConstraintResolution.resolve(input.type_constraints),
             callables,
         ),
         bindings,
         input.binding_type_links,
-    );
+    ));
     LocalSemanticResult(
         bindings = bindings,
         callables = callables,
@@ -48,21 +59,104 @@ pub analyze_bodies(
     signatures: ProjectedSignatureDocument,
     callable_declarations: List[CallableDeclaration],
 ): LocalSemanticResult ->
-    let events = ProjectedSemanticEventAdapter.adapt(bodies, signatures);
-    analyze(LocalSemanticInput(
-        binding_events = events.binding_events,
-        callable_declarations = callable_declarations,
-        callable_uses = events.callable_uses,
-        type_constraints = events.type_constraints,
-        binding_type_links = events.binding_type_links,
-    )).
+    let bindings = resolve_body_bindings(bodies, signatures);
+    let callables = resolve_body_callables(bodies, callable_declarations);
+    let checked_types = ProjectedCallableArgumentTypecheck.check(callables, merge_body_binding_types(
+        merge_body_callable_types(resolve_body_types(bodies), callables),
+        bindings,
+        bodies,
+    ));
+    let types = ProjectedDynamicCallTypeMerge.merge(checked_types, bodies);
+    LocalSemanticResult(
+        bindings = bindings,
+        callables = callables,
+        types = types,
+    ).
 
+resolve_body_bindings(
+    bodies: ProjectedBodies,
+    signatures: ProjectedSignatureDocument,
+): BindingResolution ->
+    ProjectedBindingResolution.resolve(
+        ProjectedSemanticEventAdapter.adapt_binding_events(bodies, signatures),
+    ).
+
+resolve_body_callables(
+    bodies: ProjectedBodies,
+    callable_declarations: List[CallableDeclaration],
+): CallableResolution ->
+    ProjectedCallableResolution.resolve(
+        ProjectedSemanticEventAdapter.adapt_callable_uses(bodies),
+        callable_declarations,
+    ).
+
+resolve_body_types(bodies: ProjectedBodies): TypeConstraintResolution ->
+    ProjectedTypeConstraintResolution.resolve(
+        ProjectedSemanticEventAdapter.adapt_type_constraints(bodies),
+    ).
+
+merge_body_callable_types(
+    types: TypeConstraintResolution,
+    callables: CallableResolution,
+): TypeConstraintResolution ->
+    ProjectedCallableTypeMerge.merge(types, callables).
+
+merge_body_binding_types(
+    types: TypeConstraintResolution,
+    bindings: BindingResolution,
+    bodies: ProjectedBodies,
+): TypeConstraintResolution ->
+    ProjectedBindingTypeMerge.merge(
+        types,
+        bindings,
+        ProjectedSemanticEventAdapter.adapt_binding_type_links(bodies),
+    ).
+
+analyze_frontend_without_map(
+    frontend: ProjectedFrontendModule,
+    imported_interfaces: List[ModuleInterface],
+): LocalSemanticResult ->
+    ProjectedRecordConstructTypeMerge.merge(
+        frontend,
+        imported_interfaces,
+        ProjectedArrayTypeMerge.merge(
+            frontend.bodies,
+            ProjectedRecordUpdateTypeMerge.merge(
+                frontend,
+                imported_interfaces,
+                ProjectedRecordAccessTypeMerge.merge(
+                    frontend,
+                    analyze_bodies(
+                        frontend.bodies,
+                        frontend.signatures,
+                        ProjectedCallableCatalog.build(frontend.backend, imported_interfaces),
+                    ),
+                    imported_interfaces,
+                ),
+            ),
+        ),
+    ).
+
+/** Runs local semantic authority including standalone keyed-map inference. */
+analyze_frontend_without_try(
+    frontend: ProjectedFrontendModule,
+    imported_interfaces: List[ModuleInterface],
+): LocalSemanticResult ->
+    let local = analyze_frontend_without_map(frontend, imported_interfaces);
+    LocalSemanticResult(
+        local.bindings,
+        local.callables,
+        ProjectedMapTypeMerge.merge(frontend.bodies.values, local.types),
+    ).
+
+/** Runs local semantic authority including structured try result typing. */
 pub analyze_frontend(
     frontend: ProjectedFrontendModule,
     imported_interfaces: List[ModuleInterface],
 ): LocalSemanticResult ->
-    analyze_bodies(
-        frontend.bodies,
-        frontend.signatures,
-        ProjectedCallableCatalog.build(frontend.backend, imported_interfaces),
+    let local = analyze_frontend_without_try(frontend, imported_interfaces);
+    LocalSemanticResult(
+        local.bindings,
+        local.callables,
+        ProjectedTryTypeMerge.merge(frontend.bodies.values, local.types),
     ).

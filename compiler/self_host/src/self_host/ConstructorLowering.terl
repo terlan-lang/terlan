@@ -1,6 +1,8 @@
 /** Self-hosted lowering for constructor clause blocks. */
 module self_host.ConstructorLowering.
 
+import std.core.String.
+
 import self_host.ConstructorSyntax.{ConstructorClauseSyntax, ConstructorSyntax}.
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.ExpressionSyntax.{ExpressionParse}.
@@ -78,7 +80,10 @@ lower_clause(source: String): ConstructorClauseSyntax ->
     let normalized = String.trim(source);
     let colon = Delimited.top_level_byte(normalized, 58);
     let arrow = Delimited.top_level_pair(normalized, 45, 62);
-    let parameters_closed = colon > 0 and normalized.utf8_byte_at(colon - 1) == 41;
+    let parameters_closed = if {
+        colon <= 0 -> false;
+        true -> normalized.utf8_byte_at(colon - 1) == 41
+    };
     let opened = String.starts_with(normalized, "(");
     let parameter_text = clause_parameter_text(normalized, parameters_closed, colon);
     let parameters = ParameterParser.parse_all(parameter_text);
@@ -120,6 +125,50 @@ first_error(values: List[ConstructorClauseSyntax]): String ->
     }.
 
 @pure
+parameter_shape(value: ParameterSyntax): String ->
+    String.concat([
+        if { value.is_mutable -> "mut:"; true -> "value:" },
+        if { value.has_annotation -> value.annotation.syntax.text; true -> "" },
+    ]).
+
+@pure
+parameter_shapes(values: List[ParameterSyntax]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [parameter_shape(value) | parameter_shapes(rest)]
+    }.
+
+@pure
+clause_shape(value: ConstructorClauseSyntax): String ->
+    String.concat([
+        "(",
+        String.join(parameter_shapes(value.parameters), ","),
+        ")->",
+        value.return_type.syntax.text,
+    ]).
+
+@pure
+contains_shape(values: List[String], shape: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == shape or contains_shape(rest, shape)
+    }.
+
+@pure
+has_duplicate_clause_shape(
+    values: List[ConstructorClauseSyntax],
+    seen: List[String],
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> let shape = clause_shape(value);
+            if {
+                contains_shape(seen, shape) -> true;
+                true -> has_duplicate_clause_shape(rest, [shape | seen])
+            }
+    }.
+
+@pure
 constructor_clause_text(source: DeclarationSyntax, open: Int, body_valid: Bool): String ->
     if {
         body_valid -> source.body.utf8_slice(open + 1, source.body.byte_size() - open - 3);
@@ -134,24 +183,37 @@ constructor_clauses(clause_text: String, body_valid: Bool): List[ConstructorClau
     }.
 
 @pure
-constructor_message_after_body(clauses: List[ConstructorClauseSyntax]): String ->
+constructor_message_after_body(
+    clauses: List[ConstructorClauseSyntax],
+    duplicate_clause: Bool,
+): String ->
     if {
         not clauses_valid(clauses) -> first_error(clauses);
+        duplicate_clause -> "duplicate constructor clause shape";
         true -> ""
     }.
 
 @pure
-constructor_message_after_supported(body_valid: Bool, clauses: List[ConstructorClauseSyntax]): String ->
+constructor_message_after_supported(
+    body_valid: Bool,
+    clauses: List[ConstructorClauseSyntax],
+    duplicate_clause: Bool,
+): String ->
     if {
         not body_valid -> "constructor body is incomplete";
-        true -> constructor_message_after_body(clauses)
+        true -> constructor_message_after_body(clauses, duplicate_clause)
     }.
 
 @pure
-constructor_message(supported: Bool, body_valid: Bool, clauses: List[ConstructorClauseSyntax]): String ->
+constructor_message(
+    supported: Bool,
+    body_valid: Bool,
+    clauses: List[ConstructorClauseSyntax],
+    duplicate_clause: Bool,
+): String ->
     if {
         not supported -> "declaration is not a constructor";
-        true -> constructor_message_after_supported(body_valid, clauses)
+        true -> constructor_message_after_supported(body_valid, clauses, duplicate_clause)
     }.
 
 @pure
@@ -161,11 +223,12 @@ pub lower(source: DeclarationSyntax): ConstructorSyntax ->
     let body_valid = open >= 0 and String.ends_with(String.trim(source.body), "}.");
     let clause_text = constructor_clause_text(source, open, body_valid);
     let clauses = constructor_clauses(clause_text, body_valid);
+    let duplicate_clause = has_duplicate_clause_shape(clauses, List.new[String]());
     ConstructorSyntax(
-        supported and body_valid and clauses_valid(clauses),
+        supported and body_valid and clauses_valid(clauses) and not duplicate_clause,
         source.name,
         clauses,
         source.is_public,
         source.span,
-        constructor_message(supported, body_valid, clauses),
+        constructor_message(supported, body_valid, clauses, duplicate_clause),
     ).

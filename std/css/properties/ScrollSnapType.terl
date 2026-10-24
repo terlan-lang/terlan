@@ -1,105 +1,39 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-type
+ * The `scroll-snap-type` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property is set on
+ * a `scroll container`, opting it into scroll snapping by setting the direction and strictness of
+ * snap point enforcement within the [snap
+ * port](https://developer.mozilla.org/en-US/docs/Glossary/Scroll_snap#snapport).
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - block: The scroll container snaps to snap positions in its block axis only.
+ * - both: The scroll container snaps to snap positions in both of its axes independently
+ * (potentially snapping to different elements in each axis).
+ * - inline: The scroll container snaps to snap positions in its inline axis only.
+ * - none: When the visual `viewport` of this scroll container is scrolled, it must ignore snap
+ * points.
+ * - x: The scroll container snaps to snap positions in its horizontal axis only.
+ * - y: The scroll container snaps to snap positions in its vertical axis only.
+ *
  * Grammar: none | [ x | y | block | inline | both | pair ] [ mandatory | proximity ]?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-type
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-snap-type
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollSnapType.
 
-import type std.core.Option.
+import std.css.keywords.{Block, Both, Inline, None, Pair, X, Y}.
 
-/**
- * A nominal, specification-constrained scroll-snap-type value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    scroll_snap_type: Value,
+    scroll_snap_type: None | X | Y | Block | Inline | Both | Pair | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    scroll_snap_type: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword block.
- */
-pub block(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "block"}).
-
-/**
- * Returns the CSS keyword both.
- */
-pub both(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "both"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "initial"}).
-
-/**
- * Returns the CSS keyword inline.
- */
-pub inline(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "inline"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "none"}).
-
-/**
- * Returns the CSS keyword pair.
- */
-pub pair(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "pair"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "unset"}).
-
-/**
- * Returns the CSS keyword x.
- */
-pub x(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "x"}).
-
-/**
- * Returns the CSS keyword y.
- */
-pub y(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "y"}).

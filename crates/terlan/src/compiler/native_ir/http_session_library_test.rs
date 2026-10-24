@@ -8,12 +8,12 @@ fn source_session_lifetime_controls_allocation_and_is_retained_for_rotation() {
             let provider = include_str!("../../../../../std/http/Session.terl")
                 .replace("let ttl_seconds = 86400;", &format!("let ttl_seconds = {seconds};"))
                 .replace("@compiler.native\nlookup(identity: String): Option[String].", "lookup(identity: String): Option[String] -> None.")
-                .replace("@compiler.native\ncreate(excluded_identity: String, ttl_seconds: Int): String.", &format!("create(excluded_identity: String, ttl_seconds: Int): String -> if {{ ttl_seconds == {seconds} -> \"allocated\"; true -> \"wrong allocation lifetime\" }}."))
-                .replace("@compiler.native {std.http.session.rotate}\nrenew(identity: String, ttl_seconds: Int): String.", &format!("renew(identity: String, ttl_seconds: Int): String -> if {{ identity == \"allocated\" and ttl_seconds == {seconds} -> \"rotated\"; true -> \"wrong renewal lifetime\" }}."));
+                .replace("Base64.encode_url_unpadded_bytes(Entropy.bytes(byte_count))", "\"allocated\"")
+                .replace("@compiler.native\ntry_create(identity: String, ttl_seconds: Int): Bool.", &format!("try_create(identity: String, ttl_seconds: Int): Bool -> ttl_seconds == {seconds}."))
+                .replace("renew(identity: String, ttl_seconds: Int): String ->\n    allocate(identity, ttl_seconds, true, 16).", &format!("renew(identity: String, ttl_seconds: Int): String -> if {{ identity == \"allocated\" and ttl_seconds == {seconds} -> \"rotated\"; true -> \"wrong renewal lifetime\" }}."));
             let provider = format!("{provider}\npub check_lifetime(): Bool -> let session = current(Request.new()); let renewed = session.rotate(); renewed.#identity == \"rotated\" and renewed.#pending_identity == \"rotated\" and renewed.#ttl_seconds == {seconds}.")
                 .replace("std.http.Session", owner);
-            assert!(!provider.contains("@compiler.native\ncreate("));
-            assert!(!provider.contains("@compiler.native {std.http.session.rotate}"));
+            assert!(!provider.contains("@compiler.native\ntry_create("));
             let caller = format!("module lifetime_source_authority. import {owner}. pub check(): Bool -> {owner}.check_lifetime().");
             super::super::source_constructor_test::check_sources(&[
                 &caller,
@@ -21,6 +21,7 @@ fn source_session_lifetime_controls_allocation_and_is_retained_for_rotation() {
                 request,
                 include_str!("../../../../../std/core/Option.terl"),
                 include_str!("../../../../../std/core/String.terl"),
+                include_str!("../../../../../std/core/Effect.terl"),
             ]);
         }
     }
@@ -79,15 +80,18 @@ pub (request: Request) cookie(name: String): Option[String] ->
         "@compiler.native\nlookup(identity: String): Option[String].",
         "lookup(identity: String): Option[String] -> if { identity == \"\" or identity == \"missing\" -> None; true -> Some(identity) }.",
     ).replace(
-        "@compiler.native\ncreate(excluded_identity: String, ttl_seconds: Int): String.",
-        "create(excluded_identity: String, ttl_seconds: Int): String -> \"issued\".",
+        "Base64.encode_url_unpadded_bytes(Entropy.bytes(byte_count))",
+        "\"issued\"",
+    ).replace(
+        "@compiler.native\ntry_create(identity: String, ttl_seconds: Int): Bool.",
+        "try_create(identity: String, ttl_seconds: Int): Bool -> true.",
     ) + r#"
 pub inspect(value: Option[String]): String ->
     let session = current(Request.new(value));
     session.#identity + ":" + session.#pending_identity.
 "#;
     assert!(!provider.contains("@compiler.native\nlookup("));
-    assert!(!provider.contains("@compiler.native\ncreate("));
+    assert!(!provider.contains("@compiler.native\ntry_create("));
     let caller = r#"
 module session_cookie_source_policy.
 import std.http.Session.
@@ -105,6 +109,7 @@ pub check(): Int ->
 "#;
     let option = include_str!("../../../../../std/core/Option.terl");
     let string = include_str!("../../../../../std/core/String.terl");
+    let effect = include_str!("../../../../../std/core/Effect.terl");
     for owner in ["std.http.Session", "app.Session"] {
         let caller = caller.replace("std.http.Session", owner);
         let provider = provider.replace("std.http.Session", owner);
@@ -115,6 +120,7 @@ pub check(): Int ->
             request,
             option,
             string,
+            effect,
         ]);
         let untrimmed = caller
             .replace(
@@ -132,6 +138,7 @@ pub check(): Int ->
             request,
             option,
             string,
+            effect,
         ]);
         let changed = provider.replace(
             "None -> create(requested, ttl_seconds)",
@@ -146,6 +153,7 @@ pub check(): Int ->
             request,
             option,
             string,
+            effect,
         ]);
     }
 }
@@ -158,7 +166,7 @@ fn session_native_declarations_suspend_through_generic_capability_frames() {
     for owner in ["std.http.Session", "app.Session"] {
         for (name, args, result) in [
             ("lookup", "identity: String", "Option[String]"),
-            ("create", "identity: String, ttl_seconds: Int", "String"),
+            ("try_create", "identity: String, ttl_seconds: Int", "Bool"),
             ("get", "identity: String, key: String", "Option[String]"),
             (
                 "set",
@@ -166,7 +174,11 @@ fn session_native_declarations_suspend_through_generic_capability_frames() {
                 "Unit",
             ),
             ("delete", "identity: String, key: String", "Unit"),
-            ("rotate", "identity: String, ttl_seconds: Int", "String"),
+            (
+                "try_rotate",
+                "identity: String, replacement: String, ttl_seconds: Int",
+                "Bool",
+            ),
             ("expire", "identity: String", "Unit"),
             ("is_live", "identity: String", "Bool"),
         ] {

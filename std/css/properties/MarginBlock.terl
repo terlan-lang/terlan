@@ -1,130 +1,48 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-block
+ * The `margin-block` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property defines the logical block start and end margins of an element, which maps to physical
+ * margins depending on the element's writing mode, directionality, and text orientation.
+ *
+ * Initial: margin-block-start: 0; margin-block-end: 0. Inherited: no.
+ * Percentages: depends on layout model.
+ *
+ * Keyword effects:
+ * - auto: The browser selects a suitable value to use. See `margin`. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-top
+ *
  * Grammar: <'margin-top'>{1,2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-block
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-block
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MarginBlock.
 
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css}.
+import std.css.keywords.Auto.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained margin-block value.
- */
-pub opaque type Value = Token.
+pub type Component = Auto | Length | Percentage.
 
-/**
- * A single non-global margin-block shorthand component.
- */
-pub opaque type Component = Token.
+pub opaque type Checked = {Atom["css_parts"], List[Component]}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    margin_block: Value,
+    margin_block: Auto | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Supplies 1 components in grammar order.
  */
-pub struct OptionalProperty {
-    margin_block: std.core.Option[Value],
-}.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Returns the CSS keyword auto.
+ * Supplies 2 components in grammar order.
  */
-pub auto(): Value ->
-    Value(Token {property: "margin-block", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "margin-block", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "margin-block", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "margin-block", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "margin-block", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "margin-block", css: "unset"}).
-
-/**
- * Constructs a margin-block value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "margin-block", css: length_css(value)}).
-
-/**
- * Constructs a margin-block value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "margin-block", css: percentage_css(value)}).
-
-/**
- * Constructs one margin-block shorthand component.
- */
-pub component_auto(): Component ->
-    Component(Token {property: "margin-block", css: "auto"}).
-
-/**
- * Constructs a margin-block value from a typed length.
- */
-pub component_length(value: Length): Component ->
-    Component(Token {property: "margin-block", css: length_css(value)}).
-
-/**
- * Constructs a margin-block value from a typed percentage.
- */
-pub component_percentage(value: Percentage): Component ->
-    Component(Token {property: "margin-block", css: percentage_css(value)}).
-
-/**
- * Serializes a library-owned shorthand component.
- */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
-
-/**
- * Combines 1 typed components in specification order.
- */
-pub single(first: Component): Value ->
-    Value(Token {property: "margin-block", css: component_css(first)}).
-
-/**
- * Combines 2 typed components in specification order.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(Token {property: "margin-block", css: component_css(first) + " " + component_css(second)}).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

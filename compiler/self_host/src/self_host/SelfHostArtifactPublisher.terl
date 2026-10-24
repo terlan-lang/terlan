@@ -1,0 +1,132 @@
+/** Fail-closed publication of self-hosted per-module ABI artifacts. */
+module self_host.SelfHostArtifactPublisher.
+
+import std.core.String.
+
+import self_host.ProjectedPackageSyntax.{ProjectedPackageArtifact, ProjectedPackageCompilation}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.io.Directory.
+import std.io.File.
+
+const MANIFEST_DOMAIN: String = "terlan.self-host.artifact-manifest/v1".
+
+pub struct Publication {
+    valid: Bool,
+    artifact_count: Int,
+    manifest_identity: String,
+}.
+
+pub constructor Publication {
+    (valid: Bool, artifact_count: Int, manifest_identity: String): Publication ->
+        Publication {
+            valid: valid,
+            artifact_count: artifact_count,
+            manifest_identity: manifest_identity,
+        }
+}.
+
+@pure
+safe_module_name(name: String): Bool ->
+    name != ""
+        and not String.contains(name, "/")
+        and not String.contains(name, "\\")
+        and not String.contains(name, "..").
+
+@pure
+diagnostic_text(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([value, "\n", diagnostic_text(rest)])
+    }.
+
+@pure
+artifact_manifest_line(value: ProjectedPackageArtifact): Option[String] ->
+    case value.json {
+        Some(json) where safe_module_name(value.module_name) and List.is_empty(value.diagnostics) ->
+            Some(String.concat([
+                value.module_name,
+                "\t",
+                Hash.sha256_domain_framed("terlan.self-host.abi-artifact/v1", List(json)),
+                "\n",
+            ]));
+        _ -> None
+    }.
+
+@pure
+manifest_lines(values: List[ProjectedPackageArtifact]): Option[String] ->
+    case values {
+        [] -> Some("");
+        [value | rest] -> case artifact_manifest_line(value) {
+            None -> None;
+            Some(line) -> case manifest_lines(rest) {
+                None -> None;
+                Some(lines) -> Some(String.append(line, lines))
+            }
+        }
+    }.
+
+/** Renders the exact commit marker without touching the filesystem. */
+@pure
+pub manifest(compilation: ProjectedPackageCompilation): Option[String] ->
+    if {
+        compilation.valid -> manifest_lines(compilation.artifacts);
+        true -> None
+    }.
+
+artifact_path(output: String, module_name: String): String ->
+    String.concat([output, "/modules/", module_name, ".abi1.json"]).
+
+diagnostic_path(output: String, module_name: String): String ->
+    String.concat([output, "/diagnostics/", module_name, ".txt"]).
+
+write_artifact(output: String, value: ProjectedPackageArtifact): Bool ->
+    case value.json {
+        Some(json) where List.is_empty(value.diagnostics) -> case File.write_text(
+            artifact_path(output, value.module_name),
+            json,
+        ) {
+            Ok(_unit) -> true;
+            Err(_reason) -> false
+        };
+        _ -> let _diagnostic = File.write_text(
+            diagnostic_path(output, value.module_name),
+            diagnostic_text(value.diagnostics),
+        );
+            false
+    }.
+
+write_artifacts(output: String, values: List[ProjectedPackageArtifact]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> write_artifact(output, value) and write_artifacts(output, rest)
+    }.
+
+write_manifest(output: String, value: String): Bool ->
+    case File.write_text(String.append(output, "/artifacts.manifest"), value) {
+        Ok(_unit) -> true;
+        Err(_reason) -> false
+    }.
+
+/** Publishes the manifest last; its absence means the package is uncommitted. */
+pub publish(compilation: ProjectedPackageCompilation, output: String): Publication ->
+    case manifest(compilation) {
+        None -> Publication(false, 0, "");
+        Some(value) ->
+            let _root = Directory.create_all(output);
+            let _modules = Directory.create_all(String.append(output, "/modules"));
+            let _diagnostics = Directory.create_all(String.append(output, "/diagnostics"));
+            let _uncommitted = File.delete(String.append(output, "/artifacts.manifest"));
+            let written = write_artifacts(output, compilation.artifacts);
+            let committed = if { written -> write_manifest(output, value); true -> false };
+            Publication(
+                committed,
+                if { committed -> List.length(compilation.artifacts); true -> 0 },
+                if {
+                    committed -> Hash.sha256_domain_framed(MANIFEST_DOMAIN, List(value));
+                    true -> ""
+                },
+            )
+    }.

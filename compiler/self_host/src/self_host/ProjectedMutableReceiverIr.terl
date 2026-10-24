@@ -1,0 +1,229 @@
+/** Threads functional mutable-receiver updates through semantic IR values. */
+module self_host.ProjectedMutableReceiverIr.
+
+import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan, SemanticFunctionPlan, SemanticInstructionPlan, SemanticModulePlan, SemanticTerminatorPlan}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+
+
+struct ReceiverAlias {
+    place: String,
+    value: String,
+}.
+
+constructor ReceiverAlias {
+    (place: String, value: String): ReceiverAlias -> ReceiverAlias { place: place, value: value }
+}.
+
+
+struct InstructionThread {
+    instructions: List[SemanticInstructionPlan],
+    aliases: List[ReceiverAlias],
+}.
+
+
+struct MutableTarget {
+    name: String,
+    arity: Int,
+}.
+
+constructor MutableTarget {
+    (name: String, arity: Int): MutableTarget -> MutableTarget { name: name, arity: arity }
+}.
+
+constructor InstructionThread {
+    (instructions: List[SemanticInstructionPlan], aliases: List[ReceiverAlias]): InstructionThread ->
+        InstructionThread { instructions: instructions, aliases: aliases }
+}.
+
+
+@pure
+alias_value(name: String, values: List[ReceiverAlias]): String ->
+    case values {
+        [] -> name;
+        [value | rest] -> if { value.place == name -> value.value; true -> alias_value(name, rest) }
+    }.
+
+@pure
+rewrite_operands(values: List[String], aliases: List[ReceiverAlias]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [alias_value(value, aliases) | rewrite_operands(rest, aliases)]
+    }.
+
+@pure
+local_mutable_operands(values: List[String], aliases: List[ReceiverAlias]): List[String] ->
+    case values {
+        [callee | [place | rest]] -> [callee | [place | rewrite_operands(rest, aliases)]];
+        _ -> rewrite_operands(values, aliases)
+    }.
+
+@pure
+import_mutable_operands(values: List[String], aliases: List[ReceiverAlias]): List[String] ->
+    case values {
+        [module_name | [callee | [place | rest]]] -> [module_name | [callee | [place | rewrite_operands(rest, aliases)]]];
+        _ -> rewrite_operands(values, aliases)
+    }.
+
+@pure
+normalized_operands(value: SemanticInstructionPlan, aliases: List[ReceiverAlias]): List[String] ->
+    if {
+        value.opcode == "call-local-mut-receiver" -> local_mutable_operands(value.operands, aliases);
+        value.opcode == "call-import-mut-receiver" -> import_mutable_operands(value.operands, aliases);
+        true -> rewrite_operands(value.operands, aliases)
+    }.
+
+@pure
+mutable_place(value: SemanticInstructionPlan): String ->
+    if {
+        value.opcode == "call-local-mut-receiver" -> case value.operands {
+            [_callee | [place | _]] -> place;
+            _ -> ""
+        };
+        value.opcode == "call-import-mut-receiver" -> case value.operands {
+            [_module_name | [_callee | [place | _]]] -> place;
+            _ -> ""
+        };
+        true -> ""
+    }.
+
+@pure
+without_alias(place: String, values: List[ReceiverAlias]): List[ReceiverAlias] ->
+    case values {
+        [] -> List.new[ReceiverAlias]();
+        [value | rest] -> if {
+            value.place == place -> without_alias(place, rest);
+            true -> [value | without_alias(place, rest)]
+        }
+    }.
+
+@pure
+next_aliases(value: SemanticInstructionPlan, aliases: List[ReceiverAlias]): List[ReceiverAlias] ->
+    let place = mutable_place(value);
+    if {
+        place == "" -> aliases;
+        true -> case value.result {
+            Some(result) -> [ReceiverAlias(place, result) | without_alias(place, aliases)];
+            None -> aliases
+        }
+    }.
+
+@pure
+thread_instructions(
+    values: List[SemanticInstructionPlan],
+    aliases: List[ReceiverAlias],
+): InstructionThread ->
+    case values {
+        [] -> InstructionThread(List.new[SemanticInstructionPlan](), aliases);
+        [value | rest] ->
+            let normalized = SemanticInstructionPlan(
+                value.opcode,
+                value.result,
+                normalized_operands(value, aliases),
+                value.operand_types,
+                value.resolved_type,
+                value.continuation_ordinal,
+            );
+            let remaining = thread_instructions(rest, next_aliases(normalized, aliases));
+            InstructionThread([normalized | remaining.instructions], remaining.aliases)
+    }.
+
+@pure
+normalize_block(value: SemanticBlockPlan): SemanticBlockPlan ->
+    let threaded = thread_instructions(value.instructions, List.new[ReceiverAlias]());
+    SemanticBlockPlan(
+        value.label,
+        threaded.instructions,
+        SemanticTerminatorPlan(
+            value.terminator.opcode,
+            rewrite_operands(value.terminator.operands, threaded.aliases),
+            value.terminator.targets,
+        ),
+    ).
+
+@pure
+normalize_blocks(values: List[SemanticBlockPlan]): List[SemanticBlockPlan] ->
+    case values { [] -> List.new[SemanticBlockPlan](); [value | rest] -> [normalize_block(value) | normalize_blocks(rest)] }.
+
+@pure
+instruction_targets(value: SemanticInstructionPlan): List[MutableTarget] ->
+    if {
+        value.opcode != "call-local-mut-receiver" -> List.new[MutableTarget]();
+        true -> case value.operands {
+            [callee | [_place | arguments]] -> [MutableTarget(callee, List.length(arguments))];
+            _ -> List.new[MutableTarget]()
+        }
+    }.
+
+@pure
+instructions_targets(values: List[SemanticInstructionPlan]): List[MutableTarget] ->
+    case values {
+        [] -> List.new[MutableTarget]();
+        [value | rest] -> append_targets(instruction_targets(value), instructions_targets(rest))
+    }.
+
+@pure
+append_targets(left: List[MutableTarget], right: List[MutableTarget]): List[MutableTarget] ->
+    case left { [] -> right; [value | rest] -> [value | append_targets(rest, right)] }.
+
+@pure
+blocks_targets(values: List[SemanticBlockPlan]): List[MutableTarget] ->
+    case values {
+        [] -> List.new[MutableTarget]();
+        [value | rest] -> append_targets(instructions_targets(value.instructions), blocks_targets(rest))
+    }.
+
+@pure
+functions_targets(values: List[SemanticFunctionPlan]): List[MutableTarget] ->
+    case values {
+        [] -> List.new[MutableTarget]();
+        [value | rest] -> append_targets(blocks_targets(value.blocks), functions_targets(rest))
+    }.
+
+@pure
+is_target(value: SemanticFunctionPlan, targets: List[MutableTarget]): Bool ->
+    case targets {
+        [] -> false;
+        [target | rest] ->
+            (target.name == value.name and target.arity == value.arity) or is_target(value, rest)
+    }.
+
+@pure
+first_parameter_type(value: SemanticFunctionPlan): Option[String] ->
+    case value.parameters { [parameter | _] -> Some(parameter.type_name); [] -> None }.
+
+@pure
+source_returns_unit(value: SemanticFunctionPlan): Bool ->
+    case value.resolved_return_type { Some(name) -> name == "Unit"; None -> false }.
+
+@pure
+normalize_function(value: SemanticFunctionPlan, targets: List[MutableTarget]): SemanticFunctionPlan ->
+    let mutable = value.receiver_mutable or is_target(value, targets);
+    let command = mutable and source_returns_unit(value);
+    SemanticFunctionPlan(
+        value.module_name,
+        value.name,
+        value.arity,
+        value.capture_count,
+        mutable,
+        command,
+        value.parameters,
+        if { command -> first_parameter_type(value); true -> value.resolved_return_type },
+        normalize_blocks(value.blocks),
+        value.native_symbol,
+    ).
+
+@pure
+normalize_functions(values: List[SemanticFunctionPlan], targets: List[MutableTarget]): List[SemanticFunctionPlan] ->
+    case values {
+        [] -> List.new[SemanticFunctionPlan]();
+        [value | rest] -> [normalize_function(value, targets) | normalize_functions(rest, targets)]
+    }.
+
+/** Rewrites later lexical receiver reads to the most recent functional update. */
+@pure
+pub normalize(value: SemanticModulePlan): SemanticModulePlan ->
+    let targets = functions_targets(value.functions);
+    SemanticModulePlan(value.name, value.structs, normalize_functions(value.functions, targets)).

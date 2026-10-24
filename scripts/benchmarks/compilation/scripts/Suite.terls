@@ -1,0 +1,23 @@
+#!/usr/bin/env -S terlc run
+import compilation_benchmark.Suite.
+import std.core.Int.
+import std.core.Option.{Some}.
+import std.system.Arguments.{get}.
+
+entry(): Bool ->
+    let {
+        Some(compiler) <- get(0);
+        Some(directory) <- get(1);
+        Some(count_text) <- get(2);
+        Some(width_text) <- get(3);
+        Some(repetitions_text) <- get(4);
+        Some(count) <- Int.from_string(count_text);
+        Some(width) <- Int.from_string(width_text);
+        Some(repetitions) <- Int.from_string(repetitions_text)
+    } else {
+        _ -> false
+    };
+    Suite.run(compiler, directory, count, width, repetitions).
+
+assert(entry());
+Unit.

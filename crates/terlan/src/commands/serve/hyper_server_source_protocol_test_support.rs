@@ -8,6 +8,21 @@ pub(in crate::commands::serve) fn with_source_handler_project(
     handlers: &[(&str, &str, usize)],
     check: impl FnOnce(&Path),
 ) {
+    with_source_manifest_project(
+        source,
+        serde_json::json!({
+            "handlers": handlers.iter().map(|(route, function, arity)| serde_json::json!({"method":"POST","route":route,"module":"app.Api",
+                "function":function,"arity":arity,"source":{"path":"src/app/Api.terl","line":8,"column":5}})).collect::<Vec<_>>()
+        }),
+        check,
+    );
+}
+
+pub(super) fn with_source_manifest_project(
+    source: &str,
+    routes: serde_json::Value,
+    check: impl FnOnce(&Path),
+) {
     let root = temp_web_root();
     let web = root.join("_build/web");
     std::fs::create_dir_all(root.join("src/app")).unwrap();
@@ -19,14 +34,17 @@ pub(in crate::commands::serve) fn with_source_handler_project(
     .unwrap();
     std::fs::write(web.join("index.html"), "").unwrap();
     std::fs::write(root.join("src/app/Api.terl"), source).unwrap();
-    std::fs::write(
-        web.join("manifest.json"),
-        serde_json::to_vec(&serde_json::json!({
+    let mut manifest = serde_json::json!({
         "schema":"terlan-web-build-v1", "target_profile":"js.browser",
         "source_js_manifest":"../js/manifest.json", "index":"index.html", "assets":[],
-        "handlers": handlers.iter().map(|(route, function, arity)| serde_json::json!({"method":"POST","route":route,"module":"app.Api",
-            "function":function,"arity":arity,"source":{"path":"src/app/Api.terl","line":8,"column":5}})).collect::<Vec<_>>()
-    })).unwrap(),
+    });
+    manifest
+        .as_object_mut()
+        .unwrap()
+        .extend(routes.as_object().unwrap().clone());
+    std::fs::write(
+        web.join("manifest.json"),
+        serde_json::to_vec(&manifest).unwrap(),
     )
     .unwrap();
     crate::commands::serve::prewarm_dynamic_handler_sources(&web)
@@ -39,6 +57,21 @@ pub(in crate::commands::serve) fn with_source_handler_project(
 pub(in crate::commands::serve) fn with_source_protocol_server(
     web: PathBuf,
     check: impl FnOnce(&dyn Fn(&str) -> String),
+) {
+    with_source_protocol_connections(web, |connect| {
+        check(&|wire| {
+            let mut stream = connect();
+            std::io::Write::write_all(&mut stream, wire.as_bytes()).unwrap();
+            let mut response = String::new();
+            std::io::Read::read_to_string(&mut stream, &mut response).unwrap();
+            response
+        });
+    });
+}
+
+pub(super) fn with_source_protocol_connections(
+    web: PathBuf,
+    check: impl FnOnce(&dyn Fn() -> StreamOwned<ClientConnection, std::net::TcpStream>),
 ) {
     assert_ne!(
         std::env::var("TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES").as_deref(),
@@ -55,7 +88,7 @@ pub(in crate::commands::serve) fn with_source_protocol_server(
         VmSchedulerTopology::new(1).unwrap(),
     )
     .expect("start source integration protocol owners");
-    let request = |wire: &str| {
+    let connect = || {
         let tcp = std::net::TcpStream::connect(server.local_addr()).unwrap();
         tcp.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
         tcp.set_write_timeout(Some(Duration::from_secs(10)))
@@ -65,13 +98,9 @@ pub(in crate::commands::serve) fn with_source_protocol_server(
             ServerName::try_from("localhost").unwrap(),
         )
         .unwrap();
-        let mut stream = StreamOwned::new(connection, tcp);
-        std::io::Write::write_all(&mut stream, wire.as_bytes()).unwrap();
-        let mut response = String::new();
-        std::io::Read::read_to_string(&mut stream, &mut response).unwrap();
-        response
+        StreamOwned::new(connection, tcp)
     };
-    check(&request);
+    check(&connect);
     server
         .stop()
         .expect("stop source integration protocol owners");

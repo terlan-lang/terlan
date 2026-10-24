@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword trim-end. Generated; do not edit.
+ */
+module std.css.keywords.TrimEnd.
+
+pub type TrimEnd = Atom["trim-end"].

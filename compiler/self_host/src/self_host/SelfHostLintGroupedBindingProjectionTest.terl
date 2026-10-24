@@ -1,0 +1,39 @@
+/** Repeated-fallback grouped binding projection contracts. */
+module self_host.SelfHostLintGroupedBindingProjectionTest.
+
+import self_host.SelfHostLintGroupedBindingProjection.
+import self_host.SelfHostLintReadability.
+import self_host.SelfHostToolingDocument.
+
+diagnostics(source: String): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
+    SelfHostLintGroupedBindingProjection.diagnostics(
+        "Sample.terl",
+        SelfHostToolingDocument.build(source),
+    ).
+
+@test
+pub reports_linear_nested_cases_with_one_repeated_fallback(): Bool ->
+    case diagnostics(
+        "module sample.\nresolve(first: Option[Int], second: Option[Int]): Option[Int] -> case first { None -> None; Some(left) -> case second { None -> None; Some(right) -> Some(left + right) } }.\n",
+    ) {
+        [value] -> value.rule_id == "TL0009";
+        _ -> false
+    }.
+
+@test
+pub accepts_distinct_failure_behavior(): Bool ->
+    diagnostics(
+        "module sample.\nresolve(first: Option[Int], second: Option[Int]): Result[Int, String] -> case first { None -> Err(\"first\"); Some(left) -> case second { None -> Err(\"second\"); Some(right) -> Ok(left + right) } }.\n",
+    ) == [].
+
+@test
+pub accepts_repeated_fallback_that_reads_its_binding(): Bool ->
+    diagnostics(
+        "module sample.\nresolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] -> case first { Err(reason) -> Err(reason); Ok(left) -> case second { Err(reason) -> Err(reason); Ok(right) -> Ok(left + right) } }.\n",
+    ) == [].
+
+@test
+pub accepts_grouped_refutable_bindings(): Bool ->
+    diagnostics(
+        "module sample.\nresolve(first: Option[Int], second: Option[Int]): Option[Int] -> let { Some(left) <- first; Some(right) <- second } else { None -> None }; Some(left + right).\n",
+    ) == [].

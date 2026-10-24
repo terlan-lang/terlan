@@ -1,0 +1,69 @@
+/** Filesystem adapter for the self-hosted lint pipeline. */
+module self_host.SelfHostLintTool.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, String}.
+import std.io.File.
+
+import self_host.SelfHostLint.
+import self_host.SelfHostLintSyntax.
+
+
+write_failure(diagnostics_path: String, marker_path: String, message: String): Bool ->
+    case File.write_text(diagnostics_path, String.concat([message, "\n"])) {
+        Err(_) -> false;
+        Ok(_) -> case File.write_text(marker_path, "invalid\n") {
+            Err(_) -> false;
+            Ok(_) -> false
+        }
+    }.
+
+write_report(
+    diagnostics_path: String,
+    marker_path: String,
+    diagnostics: List[self_host.SelfHostLintSyntax.LintDiagnostic],
+): Bool ->
+    let rendered = SelfHostLintSyntax.render_all(diagnostics);
+    let output = if {
+        rendered == "" -> "";
+        true -> String.concat([rendered, "\n"])
+    };
+    case File.write_text(diagnostics_path, output) {
+        Err(_) -> false;
+        Ok(_) -> case File.write_text(
+            marker_path,
+            if { diagnostics == [] -> "clean\n"; true -> "findings\n" },
+        ) {
+            Err(_) -> false;
+            Ok(_) -> true
+        }
+    }.
+
+/** Writes diagnostics first and a last-written status marker second. */
+pub write(source_path: String, diagnostics_path: String, marker_path: String): Bool ->
+    let _removed = File.delete(marker_path);
+    case File.read_text(source_path) {
+        Err(_) -> write_failure(diagnostics_path, marker_path, "cannot read lint source");
+        Ok(source) -> let report = SelfHostLint.lint(source_path, source);
+        if {
+            not report.valid_source -> write_failure(diagnostics_path, marker_path, report.message);
+            true -> write_report(diagnostics_path, marker_path, report.diagnostics)
+        }
+    }.
+
+/** Writes safe-fixed source first and a last-written completion marker second. */
+pub write_fixed(source_path: String, fixed_path: String, marker_path: String): Bool ->
+    let _removed = File.delete(marker_path);
+    case File.read_text(source_path) {
+        Err(_) -> false;
+        Ok(source) -> case File.write_text(fixed_path, SelfHostLint.fix(source)) {
+            Err(_) -> false;
+            Ok(_) -> case File.write_text(marker_path, "fixed\n") {
+                Err(_) -> false;
+                Ok(_) -> true
+            }
+        }
+    }.

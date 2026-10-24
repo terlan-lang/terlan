@@ -1,6 +1,8 @@
 /** Stable preorder evidence for projected type trees. */
 module self_host.ProjectedTypeEvidence.
 
+import std.core.String.
+
 
 import std.core.Option.{None, Option, Some}.
 import self_host.ProjectedTypeSyntax.{ProjectedTypeNode, ProjectedTypeResult}.

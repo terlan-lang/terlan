@@ -1,0 +1,8 @@
+module=std.css.keywords.StrokeBox
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=3566756426019411484
+interface_hash=8230047273230378503
+interface_doc_hash=6188490657486968816
+deps=0

@@ -4,7 +4,7 @@ use crate::terlan_hir::{ModuleInterface, ResolvedModule};
 use crate::terlan_syntax::{span::Span, SyntaxDeclarationPayload, SyntaxModuleOutput};
 
 use super::{
-    imported_type_names, imported_type_text_refs, interface_qualified_type_names,
+    imported_type_names_for_module, imported_type_text_refs, interface_qualified_type_names,
     interface_type_names, normalize_type_param_name, parse_generic_bounds,
     parse_structural_implication_bounds, parse_type_expr, pretty_type, qualify_type_names,
     substitute_type_vars, syntax_declared_implements, syntax_trait_impl_to_parsed, FunctionBound,
@@ -147,7 +147,8 @@ pub(super) fn collect_syntax_trait_signatures(
     resolved: &ResolvedModule,
 ) -> HashMap<String, ParsedTraitSignature> {
     let mut traits = collect_imported_trait_signatures(resolved);
-    let imported_type_refs = imported_type_text_refs(&imported_type_names(resolved));
+    let imported_type_refs =
+        imported_type_text_refs(&imported_type_names_for_module(module, resolved));
 
     for declaration in &module.declarations {
         let SyntaxDeclarationPayload::Trait {
@@ -367,7 +368,7 @@ pub(super) fn collect_syntax_trait_method_calls(
         &mut methods,
         trait_signatures,
         alias_names,
-        &imported_type_text_refs(&imported_type_names(resolved)),
+        &imported_type_text_refs(&imported_type_names_for_module(module, resolved)),
         &mut inheritance_cache,
     );
     collect_imported_interface_trait_method_calls(
@@ -518,11 +519,11 @@ fn qualify_default_module_type_text(
     let Some(mut parsed) = parse_trait_instance_from_text(text) else {
         return text.to_string();
     };
-    if let Some((module, name)) = parsed.name.rsplit_once('.') {
-        if interfaces.get(module).is_some_and(|interface| {
-            interface.public_types.contains(name) || interface.opaque_types.contains(name)
+    if let Some(interface) = interfaces.get(&parsed.name) {
+        if let Some(default_name) = parsed.name.rsplit('.').next().filter(|name| {
+            interface.public_types.contains(*name) || interface.opaque_types.contains(*name)
         }) {
-            parsed.name = crate::terlan_hir::public_type_path(module, name);
+            parsed.name = format!("{}.{}", parsed.name, default_name);
         }
     }
     parsed.type_args = parsed

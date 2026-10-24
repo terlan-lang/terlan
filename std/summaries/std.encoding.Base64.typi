@@ -97,4 +97,13 @@ pub encode_url(text: String): String.
 
 pub encode_url_bytes(bytes: Bytes): String.
 
+/// Encodes arbitrary bytes using URL-safe Base64 without padding.
+///
+/// Input: one immutable byte payload.
+/// Output: URL-safe Base64 text with no trailing equals signs.
+/// Transformation: delegates the unpadded encoding mode to the maintained
+/// codec, preserving every octet without a UTF-8 conversion.
+
+pub encode_url_unpadded_bytes(bytes: Bytes): String.
+
 export type DecodeFailure, Utf8Failure.

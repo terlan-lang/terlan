@@ -127,8 +127,8 @@ accepted by `core-v0` or deliberately rejected by the profile validator.
 - `target_profile_rejects_float_expr_for_core_v0_profile` exercises that float
   literals remain outside `core-v0` while their proof coverage is
   `proof-model-required`.
-- `target_profile_rejects_fixed_array_expr_for_core_v0_profile` exercises that
-  fixed-array literals remain outside `core-v0` while their proof coverage is
+- `target_profile_rejects_array_expr_for_core_v0_profile` exercises that
+  array literals remain outside `core-v0` while their proof coverage is
   `proof-model-required`.
 - `target_profile_rejects_index_expr_for_core_v0_profile` exercises that index
   expressions remain outside `core-v0` while their proof coverage is
@@ -194,7 +194,7 @@ accepted by `core-v0` or deliberately rejected by the profile validator.
   `run_check_single_file_rejects_record_pattern_for_core_v0_target_profile`,
   `run_check_single_file_rejects_float_pattern_for_core_v0_target_profile`,
   `run_check_single_file_rejects_float_for_core_v0_target_profile`,
-  `run_check_single_file_rejects_fixed_array_for_core_v0_target_profile`,
+  `run_check_single_file_rejects_array_for_core_v0_target_profile`,
   `run_check_single_file_rejects_index_for_core_v0_target_profile`,
   `run_check_single_file_rejects_list_comprehension_for_core_v0_target_profile`,
   `run_check_single_file_rejects_receive_for_core_v0_target_profile`,

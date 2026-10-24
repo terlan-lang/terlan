@@ -1,72 +1,42 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-interest-delay
+//! The `interest-delay` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+//! the delay between the user showing interest in an [interest
+//! invoker](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using_interest_invokers)
+//! element and the `interest` event firing, and the delay between the user losing interest and the
+//! `loseinterest` event firing.
+//!
+//! Initial: interest-delay-start: normal; interest-delay-end: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - normal: Sets the delay to the browser's default delay. This is the initial value.
+//!
 //! Grammar: <'interest-delay-start'>{1,2}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-interest-delay
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/interest-delay
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.InterestDelay.
 
-/// A single non-global interest-delay shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
-
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    interest_delay: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    Normal
+  | std.css.Values.Time.
 
 pub struct Property {
-    interest_delay: Value
+    interest_delay: Normal | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained interest-delay value.
+/// Supplies 2 components in grammar order.
 
-pub opaque type Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Constructs one interest-delay shorthand component.
+/// Supplies 1 components in grammar order.
 
-pub component_normal(): Component.
-
-/// Constructs a interest-delay value from a typed time.
-
-pub component_time(value: std.css.Values.Time): Component.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Constructs a interest-delay value from a typed time.
-
-pub time(value: std.css.Values.Time): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub single(first: Component): Checked.

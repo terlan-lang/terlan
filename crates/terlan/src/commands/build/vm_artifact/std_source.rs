@@ -82,7 +82,7 @@ pub(super) fn compile_imported_std_source_modules(
     Ok(modules)
 }
 
-fn remove_compiler_intrinsic_functions(module: &mut CoreModule) {
+pub(super) fn remove_compiler_intrinsic_functions(module: &mut CoreModule) {
     let module_name = module.module.clone();
     module.functions.retain(|function| {
         core_primitive_intrinsic(&module_name, &function.name, function.arity).is_none()

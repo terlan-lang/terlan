@@ -141,7 +141,9 @@ replacement, and the Python sources have been deleted.
   validation through one prebuilt direct-AOT image. Its indexed UTF-8 scanner
   preserves the Python oracle's accepted and adversarial diagnostics while a
   bounded source inventory holds the repository scan below 300 seconds, a
-  128 MiB virtual-memory cap, and the VM's 64 MiB managed-heap limit. The three
+  192 MiB virtual-memory cap, including executable mappings and image admission,
+  and the VM's unchanged 64 MiB managed-heap limit. Bounded validators use the
+  optimized VM, whose lower runtime overhead keeps scans within the same deadline. The three
   superseded Python programs and their test-hierarchy exemptions are deleted.
 - `rust_quality.LintAllowances` and `rust_quality.WorkspacePolicy` now own the
   exact reviewed-allowance registry and centralized Cargo workspace policy.
@@ -161,7 +163,7 @@ replacement, and the Python sources have been deleted.
   record modes produce byte-identical inventory and budget artifacts.
 - No Python programs or executable Python hooks remain in the checked-out
   repository. The inventory and Make-recipe gates reject source or command
-  regressions, and the former Battleship external-VM contract executes through
+  regressions, and the external-VM contract executes through
   the typed direct-AOT path.
 - Host timing provenance uses `std.system.Platform.current_metrics()`.
   Linux `/proc` and sysfs parsing is a VM implementation detail. Release

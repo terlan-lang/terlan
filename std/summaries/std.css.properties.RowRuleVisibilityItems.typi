@@ -1,60 +1,28 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-visibility-items
+//! The `row-rule-visibility-items` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! defines whether a row-rule segment is painted in gaps adjacent to empty areas.
+//!
+//! Keyword effects:
+//! - all: The row rule should be painted in all gap segments, regardless of whether adjacent areas
+//! contain an item.
+//! - around: The row rule should be painted in a gap segment if at least one of the two adjacent
+//! areas is occupied by an item.
+//! - between: The row rule should be painted in a gap segment if both adjacent areas are occupied by
+//! items.
+//! - normal: Behaves the same as `all`. This is the default.
+//!
 //! Grammar: all | around | between | normal
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-visibility-items
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/row-rule-visibility-items
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RowRuleVisibilityItems.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    row_rule_visibility_items: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    row_rule_visibility_items: Value
+    row_rule_visibility_items: All | Around | Between | Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained row-rule-visibility-items value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword all.
-
-pub all(): Value.
-
-/// Returns the CSS keyword around.
-
-pub around(): Value.
-
-/// Returns the CSS keyword between.
-
-pub between(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

@@ -686,6 +686,11 @@ pub self_test(): Bool ->
         );
     let inline_matches = inline_rationale_matches(inline, "This rationale is intentionally maintained inline.");
     if {
+        not RustAllowances.self_test() -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.scanner]: optimized scan changed lexer results",
+            );
+        false;
         List.length(complete) != 0 -> let _printed =
             eprintln(
                 "error[rust_quality.lint_allowances.self_test.complete]: complete registry rejected",

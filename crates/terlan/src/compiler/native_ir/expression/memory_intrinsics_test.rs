@@ -32,14 +32,14 @@ fn constructors() -> NativeConstructorLayouts {
         .expect("Memory.Layout semantic identity");
     HashMap::from([(
         ("std.core.Memory.Layout".to_string(), 3),
-        NativeConstructorLayout {
+        Arc::new(NativeConstructorLayout {
             parameter_core_types: vec![None; 3],
             parameters: vec![NativeType::Int, NativeType::Int, NativeType::Atom],
             result,
             result_core_type: Some(core_type),
             descriptor,
             encoded_layout,
-        },
+        }),
     )])
 }
 

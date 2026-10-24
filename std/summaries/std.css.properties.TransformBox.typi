@@ -1,64 +1,39 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-transforms-1/#propdef-transform-box
+//! The `transform-box` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! layout box to which the `transform`, individual transform properties `translate`, `scale`, and
+//! `rotate`, and `transform-origin` properties relate.
+//!
+//! Initial: view-box. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - border-box: The border box is used as the reference box. The reference box of a `table` is the
+//! border box of its [table wrapper
+//! box](https://developer.mozilla.org/en-US/docs/Glossary/Table_Wrapper_Box), not its table box.
+//! - content-box: The content box is used as the reference box. The reference box of a `table` is
+//! the border box of its [table wrapper
+//! box](https://developer.mozilla.org/en-US/docs/Glossary/Table_Wrapper_Box), not its table box.
+//! - fill-box: The object bounding box is used as the reference box. For elements with associated
+//! CSS layout box, acts as `content-box`.
+//! - stroke-box: The stroke bounding box is used as the reference box. For elements with associated
+//! CSS layout box, acts as `border-box`.
+//! - view-box: The nearest `SVG` viewport is used as the reference box. If a `viewBox` attribute is
+//! specified for the SVG viewport creating element, the reference box is positioned at the origin of
+//! the coordinate system established by the `viewBox` attribute, and the dimension of the reference
+//! box is set to the width and height values of the `viewBox` attribute. For elements with
+//! associated CSS layout box, acts as `border-box`.
+//!
 //! Grammar: content-box | border-box | fill-box | stroke-box | view-box
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-transforms-1/#propdef-transform-box
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transform-box
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TransformBox.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    transform_box: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    transform_box: Value
+    transform_box: ContentBox | BorderBox | FillBox | StrokeBox | ViewBox | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained transform-box value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword border-box.
-
-pub border_box(): Value.
-
-/// Returns the CSS keyword content-box.
-
-pub content_box(): Value.
-
-/// Returns the CSS keyword fill-box.
-
-pub fill_box(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stroke-box.
-
-pub stroke_box(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword view-box.
-
-pub view_box(): Value.
-
-export type Token.

@@ -1,248 +1,26 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-area
+//! The `position-area` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property enables an
+//! anchor-positioned element to be positioned relative to the edges of its associated anchor element
+//! by placing the positioned element on one or more tiles of an implicit 3x3 grid, where the
+//! anchoring element is the center cell.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - none: No position area is set.
+//!
 //! Grammar: none | <position-area>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-area
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position-area
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PositionArea.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    position_area: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    position_area: Value
+    position_area: None | Left | Center | Right | SpanLeft | SpanRight | XStart | XEnd | SpanXStart | SpanXEnd | SelfXStart | SelfXEnd | SpanSelfXStart | SpanSelfXEnd | SpanAll | Top | Bottom | SpanTop | SpanBottom | YStart | YEnd | SpanYStart | SpanYEnd | SelfYStart | SelfYEnd | SpanSelfYStart | SpanSelfYEnd | BlockStart | BlockEnd | SpanBlockStart | SpanBlockEnd | InlineStart | InlineEnd | SpanInlineStart | SpanInlineEnd | SelfBlockStart | SelfBlockEnd | SpanSelfBlockStart | SpanSelfBlockEnd | SelfInlineStart | SelfInlineEnd | SpanSelfInlineStart | SpanSelfInlineEnd | Start | End | SpanStart | SpanEnd | SelfStart | SelfEnd | SpanSelfStart | SpanSelfEnd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained position-area value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword block-end.
-
-pub block_end(): Value.
-
-/// Returns the CSS keyword block-start.
-
-pub block_start(): Value.
-
-/// Returns the CSS keyword bottom.
-
-pub bottom(): Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword end.
-
-pub end_value(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inline-end.
-
-pub inline_end(): Value.
-
-/// Returns the CSS keyword inline-start.
-
-pub inline_start(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword self-block-end.
-
-pub self_block_end(): Value.
-
-/// Returns the CSS keyword self-block-start.
-
-pub self_block_start(): Value.
-
-/// Returns the CSS keyword self-end.
-
-pub self_end(): Value.
-
-/// Returns the CSS keyword self-inline-end.
-
-pub self_inline_end(): Value.
-
-/// Returns the CSS keyword self-inline-start.
-
-pub self_inline_start(): Value.
-
-/// Returns the CSS keyword self-start.
-
-pub self_start(): Value.
-
-/// Returns the CSS keyword self-x-end.
-
-pub self_x_end(): Value.
-
-/// Returns the CSS keyword self-x-start.
-
-pub self_x_start(): Value.
-
-/// Returns the CSS keyword self-y-end.
-
-pub self_y_end(): Value.
-
-/// Returns the CSS keyword self-y-start.
-
-pub self_y_start(): Value.
-
-/// Returns the CSS keyword span-all.
-
-pub span_all(): Value.
-
-/// Returns the CSS keyword span-block-end.
-
-pub span_block_end(): Value.
-
-/// Returns the CSS keyword span-block-start.
-
-pub span_block_start(): Value.
-
-/// Returns the CSS keyword span-bottom.
-
-pub span_bottom(): Value.
-
-/// Returns the CSS keyword span-end.
-
-pub span_end(): Value.
-
-/// Returns the CSS keyword span-inline-end.
-
-pub span_inline_end(): Value.
-
-/// Returns the CSS keyword span-inline-start.
-
-pub span_inline_start(): Value.
-
-/// Returns the CSS keyword span-left.
-
-pub span_left(): Value.
-
-/// Returns the CSS keyword span-right.
-
-pub span_right(): Value.
-
-/// Returns the CSS keyword span-self-block-end.
-
-pub span_self_block_end(): Value.
-
-/// Returns the CSS keyword span-self-block-start.
-
-pub span_self_block_start(): Value.
-
-/// Returns the CSS keyword span-self-end.
-
-pub span_self_end(): Value.
-
-/// Returns the CSS keyword span-self-inline-end.
-
-pub span_self_inline_end(): Value.
-
-/// Returns the CSS keyword span-self-inline-start.
-
-pub span_self_inline_start(): Value.
-
-/// Returns the CSS keyword span-self-start.
-
-pub span_self_start(): Value.
-
-/// Returns the CSS keyword span-self-x-end.
-
-pub span_self_x_end(): Value.
-
-/// Returns the CSS keyword span-self-x-start.
-
-pub span_self_x_start(): Value.
-
-/// Returns the CSS keyword span-self-y-end.
-
-pub span_self_y_end(): Value.
-
-/// Returns the CSS keyword span-self-y-start.
-
-pub span_self_y_start(): Value.
-
-/// Returns the CSS keyword span-start.
-
-pub span_start(): Value.
-
-/// Returns the CSS keyword span-top.
-
-pub span_top(): Value.
-
-/// Returns the CSS keyword span-x-end.
-
-pub span_x_end(): Value.
-
-/// Returns the CSS keyword span-x-start.
-
-pub span_x_start(): Value.
-
-/// Returns the CSS keyword span-y-end.
-
-pub span_y_end(): Value.
-
-/// Returns the CSS keyword span-y-start.
-
-pub span_y_start(): Value.
-
-/// Returns the CSS keyword start.
-
-pub start(): Value.
-
-/// Returns the CSS keyword top.
-
-pub top(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword x-end.
-
-pub x_end(): Value.
-
-/// Returns the CSS keyword x-start.
-
-pub x_start(): Value.
-
-/// Returns the CSS keyword y-end.
-
-pub y_end(): Value.
-
-/// Returns the CSS keyword y-start.
-
-pub y_start(): Value.
-
-export type Token.

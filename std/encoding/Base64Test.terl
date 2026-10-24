@@ -100,6 +100,18 @@ pub byte_decoders_reject_malformed_input(): Bool ->
     assert(is_err(Base64.decode_bytes("!!!!")) and is_err(Base64.decode_url_bytes("!!!!"))).
 
 @test
+pub unpadded_url_encoding_preserves_padding_boundaries_and_binary_values(): Bool ->
+    assert_equal("", Base64.encode_url_unpadded_bytes(from_list([])));
+    each(
+    [row("one", [255], "_w"), row("two", [255, 254], "__4"), row("three", [251, 255, 239], "-__v")],
+    (current) ->
+        case current {
+            {_name, octets, expected} ->
+                assert_equal(expected, Base64.encode_url_unpadded_bytes(from_list(octets)))
+        },
+).
+
+@test
 pub byte_modes_use_distinct_rfc_4648_alphabets(): Bool ->
     let bytes = from_list([23, 234, 63, 163, 239, 129, 253, 175, 171]);
     assert_equal("F+o/o++B/a+r", Base64.encode_bytes(bytes));

@@ -1,8 +1,8 @@
 module=std.js.Dom.WebSocketEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17214080444718337681
-interface_hash=9064117727652056520
-interface_doc_hash=9064117727652056520
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15939288399223001074
+interface_hash=988956763582232392
+interface_doc_hash=988956763582232392
 deps=0

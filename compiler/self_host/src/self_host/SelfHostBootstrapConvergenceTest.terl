@@ -1,0 +1,25 @@
+/** Three-generation bootstrap convergence contracts. */
+module self_host.SelfHostBootstrapConvergenceTest.
+
+import self_host.SelfHostBootstrapParity.{BootstrapArtifact}.
+import self_host.SelfHostBootstrapTool.
+
+artifact(digest: String): BootstrapArtifact ->
+    BootstrapArtifact("self_host", digest, digest, digest, digest).
+
+@pure
+stable_generations_converge(): Bool ->
+    SelfHostBootstrapTool.converged(artifact("same"), artifact("same"), artifact("same")).
+
+@pure
+first_transition_must_converge(): Bool ->
+    not SelfHostBootstrapTool.converged(artifact("stage0"), artifact("same"), artifact("same")).
+
+@pure
+second_transition_must_converge(): Bool ->
+    not SelfHostBootstrapTool.converged(artifact("same"), artifact("same"), artifact("stage2")).
+
+pub self_test(): Bool ->
+    stable_generations_converge()
+        and first_transition_must_converge()
+        and second_transition_must_converge().

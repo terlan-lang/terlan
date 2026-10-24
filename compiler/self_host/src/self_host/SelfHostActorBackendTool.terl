@@ -1,0 +1,41 @@
+/** Filesystem adapter that compiles with persisted dependency actor profiles. */
+module self_host.SelfHostActorBackendTool.
+
+import std.collections.List.
+import std.core.Option.{None}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String}.
+
+import self_host.SelfHostActorBackendCompile.{ActorBackendCompilation, ActorBackendRequest}.
+import self_host.SelfHostActorBackendCompile.
+import self_host.SelfHostActorProfileCatalog.
+
+
+@pure
+failed(reason: String): ActorBackendCompilation ->
+    ActorBackendCompilation(None, None, None, [reason]).
+
+/**
+ * Reads strict actor-ir/v2 dependency sidecars and invokes actor compilation
+ * with one complete, ambiguity-free local-plus-imported profile catalog.
+ */
+pub compile(
+    request: ActorBackendRequest,
+    dependency_actor_paths: List[String],
+): ActorBackendCompilation ->
+    case SelfHostActorProfileCatalog.read_all(dependency_actor_paths) {
+        Err(reason) -> failed(reason);
+        Ok(imported) -> case SelfHostActorProfileCatalog.merge(
+            request.suspension_profiles,
+            imported,
+        ) {
+            Err(reason) -> failed(reason);
+            Ok(profiles) -> SelfHostActorBackendCompile.compile(ActorBackendRequest(
+                request.source,
+                request.semantic_plan,
+                request.target,
+                profiles,
+                request.function_evidence,
+            ))
+        }
+    }.

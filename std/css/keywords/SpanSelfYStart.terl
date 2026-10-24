@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword span-self-y-start. Generated; do not edit.
+ */
+module std.css.keywords.SpanSelfYStart.
+
+pub type SpanSelfYStart = Atom["span-self-y-start"].

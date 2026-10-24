@@ -1,0 +1,8 @@
+module=std.css.keywords.Dashed
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=11980510582493718333
+interface_hash=9340166761028912318
+interface_doc_hash=1901479781626217469
+deps=0

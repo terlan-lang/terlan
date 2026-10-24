@@ -1,5 +1,15 @@
-# expectation<TAB>feature<TAB>fixture
-accept	module-and-declarations	accepted/Surface.terl
-reject	missing-module	rejected/MissingModule.terl
-reject	unterminated-declaration	rejected/UnterminatedDeclaration.terl
-
+accepted	accepted/Expressions.terl
+accepted	accepted/Minimal.terl
+accepted	accepted/Patterns.terl
+accepted	accepted/Surface.terl
+rejected	rejected/FuzzInvalidType.terl
+rejected	rejected/FuzzMissingCallClose.terl
+rejected	rejected/FuzzMissingCaseArrow.terl
+rejected	rejected/FuzzUnterminatedList.terl
+rejected	rejected/InvalidKeyedField.terl
+rejected	rejected/InvalidNamedArgument.terl
+rejected	rejected/InvalidPattern.terl
+rejected	rejected/InvalidRecordUpdate.terl
+rejected	rejected/MissingModule.terl
+rejected	rejected/RecoveryAfterInvalidExpression.terl
+rejected	rejected/UnterminatedDeclaration.terl

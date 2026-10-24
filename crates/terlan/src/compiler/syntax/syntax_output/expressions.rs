@@ -137,7 +137,7 @@ pub enum SyntaxExprKind {
     Tuple,
     List,
     ListCons,
-    FixedArray,
+    Array,
     Index,
     IndexAssign,
     Map,

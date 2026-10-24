@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword most-block-size. Generated; do not edit.
+ */
+module std.css.keywords.MostBlockSize.
+
+pub type MostBlockSize = Atom["most-block-size"].

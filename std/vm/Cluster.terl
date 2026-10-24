@@ -63,7 +63,7 @@ pub type Active.
 /**
  * Left identifies a node that departed intentionally.
  */
-pub type Left.
+pub type Left = std.core.Atom.Left.
 
 /**
  * Unreachable identifies a node whose heartbeat deadline expired.

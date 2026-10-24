@@ -1,0 +1,40 @@
+/** Stale-safe file adapter for deterministic self-hosted compiler traces. */
+module self_host.SelfHostCompilerTraceTool.
+
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, String}.
+import std.io.File.
+
+import self_host.SelfHostCompilerTrace.
+
+
+write_failure(trace_path: String, marker_path: String, message: String): Bool ->
+    let trace = "terlan.self-host.compiler-trace/v1\nstatus\trejected\nerror\t" + message + "\n";
+    case File.write_text(trace_path, trace) {
+        Err(_) -> false;
+        Ok(_) -> case File.write_text(marker_path, "invalid\n") {
+            Err(_) -> false;
+            Ok(_) -> false
+        }
+    }.
+
+write_success(trace_path: String, marker_path: String, trace: String): Bool ->
+    case File.write_text(trace_path, trace) {
+        Err(_) -> false;
+        Ok(_) -> case File.write_text(marker_path, "complete\n") {
+            Err(_) -> false;
+            Ok(_) -> true
+        }
+    }.
+
+/** Produces a trace for valid or rejected source and publishes completion last. */
+pub write(source_path: String, trace_path: String, marker_path: String): Bool ->
+    let _removed = File.delete(marker_path);
+    case File.read_text(source_path) {
+        Err(_) -> write_failure(trace_path, marker_path, "cannot read compiler trace source");
+        Ok(source) -> write_success(
+            trace_path,
+            marker_path,
+            SelfHostCompilerTrace.render(SelfHostCompilerTrace.build(source)),
+        )
+    }.

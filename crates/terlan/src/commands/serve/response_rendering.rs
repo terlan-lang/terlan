@@ -2,45 +2,6 @@
 use super::server_lifecycle::ReloadSseBody;
 use super::*;
 
-/// Legacy transport tests use the same package file behavior as production.
-#[cfg(test)]
-pub(super) fn static_file_response(
-    method: &str,
-    response_path: &Path,
-) -> (u16, Response<ServeBody>) {
-    boxed_file_response(static_vm_stream_file_response(method, response_path))
-}
-
-#[cfg(test)]
-pub(super) fn manifest_file_response(
-    method: &str,
-    response_path: &Path,
-    response: &WebPackageFileResponse,
-) -> (u16, Response<ServeBody>) {
-    boxed_file_response(manifest_vm_stream_file_response(
-        method,
-        response_path,
-        response,
-    ))
-}
-
-#[cfg(test)]
-fn boxed_file_response(
-    response: Result<::http::Response<Bytes>, String>,
-) -> (u16, Response<ServeBody>) {
-    let response = match response {
-        Ok(mut response) => {
-            response.headers_mut().insert(
-                http::header::CONNECTION,
-                http::HeaderValue::from_static("close"),
-            );
-            response.map(|body| Full::new(body).boxed())
-        }
-        Err(message) => internal_error_response(message),
-    };
-    (response.status().as_u16(), response)
-}
-
 /// File policy belongs to std.http; only local reload injection belongs to CLI.
 pub(super) fn static_vm_stream_file_response(
     method: &str,
@@ -141,7 +102,7 @@ pub(super) fn reload_sse_response(reload_hub: ReloadHub, head_only: bool) -> Res
             .header("x-content-type-options", "nosniff")
             .header(http::header::CONNECTION, "keep-alive")
             .header(http::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-            .body(Full::new(Bytes::new()).boxed())
+            .body(boxed_body(Vec::new()))
             .unwrap_or_else(|err| {
                 internal_error_response(format!("reload response failed: {err}"))
             });
@@ -156,7 +117,8 @@ pub(super) fn reload_sse_response(reload_hub: ReloadHub, head_only: bool) -> Res
         initial_frame_pending: true,
         receiver: Mutex::new(rx),
     }
-    .boxed();
+    .map_err(|never| match never {})
+    .boxed_unsync();
 
     http::Response::builder()
         .status(200)
@@ -167,39 +129,6 @@ pub(super) fn reload_sse_response(reload_hub: ReloadHub, head_only: bool) -> Res
         .header(http::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         .body(body)
         .unwrap_or_else(|err| internal_error_response(format!("reload response failed: {err}")))
-}
-
-/// Builds one Hyper response from validated response metadata.
-///
-/// Inputs:
-/// - `status`: numeric response status.
-/// - `reason`: response reason phrase retained for fallback diagnostics.
-/// - `content_type`: response content type.
-/// - `extra_headers`: validated handler or manifest headers.
-/// - `body`: response body bytes.
-/// - `head_only`: whether to omit emitted body bytes.
-///
-/// Output:
-/// - Hyper response with a boxed body.
-///
-/// Transformation:
-/// - Builds a Rust `http::Response<Vec<u8>>` through the shared response
-///   helper, then converts its body into Hyper's boxed body type.
-#[cfg(test)]
-pub(super) fn serve_response(
-    status: u16,
-    reason: &str,
-    content_type: &str,
-    extra_headers: &[(String, String)],
-    body: &[u8],
-    head_only: bool,
-) -> Response<ServeBody> {
-    match build_http_response(status, content_type, extra_headers, body, head_only) {
-        Ok(response) => response.map(boxed_body),
-        Err(message) => internal_error_response(format!(
-            "response build failed for {status} {reason}: {message}"
-        )),
-    }
 }
 
 /// Wraps bytes in the Hyper body type used by `terlc serve`.
@@ -214,7 +143,9 @@ pub(super) fn serve_response(
 /// - Converts concrete bytes into a single-frame body accepted by Hyper.
 #[cfg(test)]
 pub(super) fn boxed_body(body: Vec<u8>) -> ServeBody {
-    Full::new(Bytes::from(body)).boxed()
+    Full::new(Bytes::from(body))
+        .map_err(|never| match never {})
+        .boxed_unsync()
 }
 
 /// Builds a generic internal error response for protocol-boundary failures.

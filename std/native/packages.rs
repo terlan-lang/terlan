@@ -4,17 +4,20 @@ pub static VALUE_BINDINGS: &[terlan_runtime_abi::NativeBinding] = &[
     terlan_net_native::PARSE,
     terlan_net_native::QUERY_PAIRS,
     terlan_http_native::ENCODE_COOKIE,
+    terlan_http_native::DECODE_COOKIE,
     terlan_http_native::ENCODE_EVENT,
     terlan_encoding_native::ENCODE,
     terlan_encoding_native::ENCODE_URL,
     terlan_encoding_native::ENCODE_BYTES,
     terlan_encoding_native::ENCODE_URL_BYTES,
+    terlan_encoding_native::ENCODE_URL_UNPADDED_BYTES,
     terlan_encoding_native::DECODE_TEXT,
     terlan_encoding_native::DECODE_URL_TEXT,
     terlan_encoding_native::DECODE_BYTES,
     terlan_encoding_native::DECODE_URL_BYTES,
     terlan_encoding_native::MD5,
     terlan_crypto_native::VERIFY_ED25519,
+    terlan_crypto_native::ENTROPY_BYTES,
     terlan_crypto_native::SHA256,
     terlan_crypto_native::SHA256_BYTES,
     terlan_crypto_native::SHA256_FRAMED,
@@ -29,6 +32,14 @@ pub fn value_binding(operation: &str) -> Option<&'static terlan_runtime_abi::Nat
     VALUE_BINDINGS
         .iter()
         .find(|binding| binding.operation == operation)
+}
+
+/// Copied-value operations that may block and must not execute on an actor owner.
+pub const WORKER_VALUE_OPERATIONS: &[&str] = &[terlan_crypto_native::ENTROPY_BYTES.operation];
+
+/// Scheduling requirement, independent of a caller's trusted-host authority.
+pub fn value_operation_requires_worker(operation: &str) -> bool {
+    WORKER_VALUE_OPERATIONS.contains(&operation)
 }
 
 /// Package contracts requiring resource-aware execution, not value transport.

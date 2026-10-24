@@ -1,56 +1,27 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-break
+//! The `row-rule-break` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! behavior for breaking row rules into segments where row rules intersect column gaps.
+//!
+//! Keyword effects:
+//! - intersection: Row rules always break when they intersect column gaps, with row rule segments
+//! starting and ending at container and gap edges.
+//! - none: There are no breaks in row rules when they intersect column gaps; rather, a continuous
+//! row rule is painted the whole width of the container, from edge to edge.
+//! - normal: In grid, flex containers, and multi-col layout, behaves as `none`. This is the default
+//! value.
+//!
 //! Grammar: none | normal | intersection
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-break
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/row-rule-break
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RowRuleBreak.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    row_rule_break: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    row_rule_break: Value
+    row_rule_break: None | Normal | Intersection | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained row-rule-break value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword intersection.
-
-pub intersection(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

@@ -87,9 +87,8 @@ fn install_type(ty: &CoreType, layouts: &mut NativeConstructorLayouts) -> Result
                     format!("error[native_ir.structural_registry_abi]: {error}")
                 })?);
             let key = (format!("$structural.{canonical}.{variant}"), fields.len());
-            layouts
-                .entry(key)
-                .or_insert_with(|| NativeConstructorLayout {
+            layouts.entry(key).or_insert_with(|| {
+                Arc::new(NativeConstructorLayout {
                     parameters,
                     parameter_core_types: fields
                         .iter()
@@ -99,7 +98,8 @@ fn install_type(ty: &CoreType, layouts: &mut NativeConstructorLayouts) -> Result
                     result_core_type: Some(ty.clone()),
                     descriptor,
                     encoded_layout,
-                });
+                })
+            });
         }
     }
     match ty {

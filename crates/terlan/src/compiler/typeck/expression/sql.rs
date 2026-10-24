@@ -359,9 +359,10 @@ fn sql_json_type_is_visible(ty: &Type, ctx: &ExprInferContext) -> bool {
     match module.as_deref() {
         Some("std.data.Json") => true,
         Some(_) => false,
-        None => ctx.imported_type_names.get("Json").is_some_and(|imported| {
-            imported.module.as_deref() == Some("std.data.Json") && imported.name == "Json"
-        }),
+        None => ctx
+            .imported_type_names
+            .get("Json")
+            .is_some_and(|imported| imported.module == "std.data.Json" && imported.name == "Json"),
     }
 }
 
@@ -642,6 +643,6 @@ fn sql_row_type_is_visible(module: Option<&str>, name: &str, ctx: &ExprInferCont
     module.is_some_and(|module| {
         ctx.imported_type_names
             .values()
-            .any(|imported| imported.module.as_deref() == Some(module) && imported.name == name)
+            .any(|imported| imported.module == module && imported.name == name)
     })
 }

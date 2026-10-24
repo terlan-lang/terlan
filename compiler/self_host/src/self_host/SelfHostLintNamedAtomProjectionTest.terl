@@ -1,0 +1,33 @@
+/** Named atom tooling-document projection contracts. */
+module self_host.SelfHostLintNamedAtomProjectionTest.
+
+import self_host.SelfHostLintNamedAtomProjection.
+import self_host.SelfHostToolingDocument.
+
+@test
+pub reports_raw_use_of_a_local_singleton_atom_type(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\ntype Ready = Atom[\"ready\"].\nvalue(): Ready -> Atom[\"ready\"].\n",
+    );
+    case SelfHostLintNamedAtomProjection.diagnostics("Sample.terl", document) {
+        [value] -> value.rule_id == "TL0506" and value.line == 3;
+        _ -> false
+    }.
+
+@test
+pub accepts_named_constructor_and_unrelated_atoms(): Bool ->
+    let named = SelfHostToolingDocument.build(
+        "module sample.\ntype Ready = Atom[\"ready\"].\nvalue(): Ready -> Ready.\n",
+    );
+    let unrelated = SelfHostToolingDocument.build(
+        "module sample.\ntype Ready = Atom[\"ready\"].\nvalue(): Atom[\"other\"] -> Atom[\"other\"].\n",
+    );
+    SelfHostLintNamedAtomProjection.diagnostics("Sample.terl", named) == []
+        and SelfHostLintNamedAtomProjection.diagnostics("Sample.terl", unrelated) == [].
+
+@test
+pub union_atom_types_do_not_claim_singleton_names(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\ntype State = Atom[\"ready\"] | Atom[\"waiting\"].\nvalue(): State -> Atom[\"ready\"].\n",
+    );
+    SelfHostLintNamedAtomProjection.types(document) == [].

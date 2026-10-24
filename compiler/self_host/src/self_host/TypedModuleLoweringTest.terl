@@ -1,6 +1,8 @@
 /** Unified typed-module dispatch contracts. */
 module self_host.TypedModuleLoweringTest.
 
+import std.core.String.
+
 import std.collections.List.
 import self_host.CanonicalSurface.
 import self_host.DeclarationLowering.

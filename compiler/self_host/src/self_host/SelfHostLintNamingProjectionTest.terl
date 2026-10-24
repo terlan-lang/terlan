@@ -1,0 +1,44 @@
+/** Tooling-document naming projection contracts. */
+module self_host.SelfHostLintNamingProjectionTest.
+
+import self_host.SelfHostLintNamingProjection.
+import self_host.SelfHostToolingDocument.
+
+@test
+pub projects_callable_type_and_binding_subjects(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\ntype Value = Int.\nrender(input_value: Value): Value -> let {item_id, label} = input_value; item_id.\n",
+    );
+    case SelfHostLintNamingProjection.subjects(document) {
+        [type_name, function_name, parameter, item_id, label] ->
+            type_name.kind == "type"
+                and type_name.name == "Value"
+                and function_name.kind == "function"
+                and function_name.name == "render"
+                and parameter.kind == "binding"
+                and parameter.name == "input_value"
+                and item_id.name == "item_id"
+                and label.name == "label";
+        _ -> false
+    }.
+
+@test
+pub emits_all_naming_rules_in_family_order(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\ntype bad_type = Int.\ntype FooBar = Int.\nfoo_bar(): Int -> 1.\nbadFunction(input: Int): Int -> let badBinding = input; badBinding.\n",
+    );
+    case SelfHostLintNamingProjection.diagnostics("Sample.terl", document) {
+        [function, type_name, collision, binding] ->
+            function.rule_id == "TL0301"
+                and type_name.rule_id == "TL0302"
+                and collision.rule_id == "TL0303"
+                and binding.rule_id == "TL0304";
+        _ -> false
+    }.
+
+@test
+pub accepts_canonical_names_without_diagnostics(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nstruct RenderValue { item_id: Int }.\nrender_value(input_value: RenderValue): Int -> let item_count = 1; item_count.\n",
+    );
+    SelfHostLintNamingProjection.diagnostics("Sample.terl", document) == [].

@@ -199,7 +199,7 @@ fn rewrite_structural_impl_expr(
                 return true;
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
                 replaced |= rewrite_structural_impl_expr(item, dispatch);
             }

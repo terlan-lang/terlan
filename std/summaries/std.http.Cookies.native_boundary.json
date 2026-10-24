@@ -1,6 +1,11 @@
 {
   "functions": [
     {
+      "arity": 1,
+      "name": "decode",
+      "operation": "std.http.cookies.decode"
+    },
+    {
       "arity": 9,
       "name": "encode",
       "operation": "std.http.cookies.encode"

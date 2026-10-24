@@ -512,7 +512,7 @@ scan_pages(path: String, value: String, state: ScanState, remaining: Int): List[
     }.
 
 @pure
-pub scan_source(path: String, value: String): List[Allowance] ->
+scan_source_unfiltered(path: String, value: String): List[Allowance] ->
     scan_pages(
         path,
         value,
@@ -527,6 +527,16 @@ pub scan_source(path: String, value: String): List[Allowance] ->
         value.byte_size() + 1,
     ).
 
+/**
+ * Every recognized allowance requires the literal keyword `allow`.
+ */
+@pure
+pub scan_source(path: String, value: String): List[Allowance] ->
+    if {
+        not String.contains(value, "allow") -> List.new[Allowance]();
+        true -> scan_source_unfiltered(path, value)
+    }.
+
 @pure
 pub scan_sources(values: List[RustSource]): List[Allowance] ->
     case values {
@@ -535,4 +545,23 @@ pub scan_sources(values: List[RustSource]): List[Allowance] ->
     }.
 
 pub self_test(): Bool ->
-    List.length(scan_source("src/lib.rs", "#[allow(dead_code)]\n")) == 1.
+    List.length(scan_source("src/lib.rs", "#[allow(dead_code)]\n")) == 1
+        and equivalent_sources(
+    [
+        "pub fn plain() -> bool { true }\n",
+        "#![deny(warnings)]\npub fn plain() {}\n",
+        "// allow in a comment\nconst VALUE: &str = \"#[allow(dead_code)]\";\n",
+        "#![allow(dead_code, unused_imports)]\n",
+        "#[allow(\nclippy::all, reason = \"reviewed\"\n)]\n",
+        "const RAW: &str = r##\"#[allow(dead_code)]\"##;\n#[allow(unused_variables)]\n",
+    ],
+).
+
+@pure
+equivalent_sources(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [source | rest] ->
+            scan_source("src/lib.rs", source) == scan_source_unfiltered("src/lib.rs", source)
+                and equivalent_sources(rest)
+    }.

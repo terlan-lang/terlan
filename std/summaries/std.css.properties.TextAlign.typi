@@ -1,76 +1,35 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-align
+//! The `text-align` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! horizontal alignment of the inline-level content inside a block element or table-cell box. This
+//! means it works like `vertical-align` but in the horizontal direction.
+//!
+//! Initial: startOrNamelessValueIfLTRRightIfRTL. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - center: The inline contents are centered within the line box.
+//! - end: The same as `right` if direction is left-to-right and `left` if direction is
+//! right-to-left.
+//! - justify: The inline contents are justified. Spaces out the content to line up its left and
+//! right edges to the left and right edges of the line box, except for the last line.
+//! - left: The inline contents are aligned to the left edge of the line box.
+//! - match-parent: Similar to `inherit`, but the values `start` and `end` are calculated according
+//! to the parent's `direction` and are replaced by the appropriate `left` or `right` value.
+//! - right: The inline contents are aligned to the right edge of the line box.
+//! - start: The same as `left` if direction is left-to-right and `right` if direction is
+//! right-to-left.
+//!
 //! Grammar: start | end | left | right | center | <string> | justify | match-parent | justify-all
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-align
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-align
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextAlign.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    text_align: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    text_align: Value
+    text_align: Start | End | Left | Right | Center | Justify | MatchParent | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained text-align value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword end.
-
-pub end_value(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword justify.
-
-pub justify(): Value.
-
-/// Returns the CSS keyword justify-all.
-
-pub justify_all(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Returns the CSS keyword match-parent.
-
-pub match_parent(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword start.
-
-pub start(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

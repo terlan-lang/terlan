@@ -78,7 +78,8 @@ generated_boundaries_safe(files: List[TextFile]): Bool ->
         [] -> true;
         [file | rest] ->
             if {
-                String.ends_with(file.path, ".native_boundary.rs") -> root_policy_holds(file.path, file.contents) and generated_boundaries_safe(rest);
+                String.ends_with(file.path, ".native_boundary.rs") -> root_policy_holds(file.path, file.contents)
+                    and generated_boundaries_safe(rest);
                 true -> generated_boundaries_safe(rest)
             }
     }.

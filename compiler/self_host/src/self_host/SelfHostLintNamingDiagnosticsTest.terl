@@ -1,0 +1,58 @@
+/** Positive and negative normalized naming diagnostic contracts. */
+module self_host.SelfHostLintNamingDiagnosticsTest.
+
+import std.core.String.
+
+import self_host.SelfHostLintNamingDiagnostics.{NamingSubject}.
+import self_host.SelfHostLintNamingDiagnostics.
+
+@test
+pub emits_exact_rule_metadata_in_family_order(): Bool ->
+    let source = "module sample.\npub binarySearch(userName: String): Int -> 1.\npub type user_profile -> String.\npub user_id(): Int -> 1.\npub userId(): Int -> 2.";
+    let diagnostics = SelfHostLintNamingDiagnostics.diagnostics(
+        source,
+        "Sample.terl",
+        [
+            NamingSubject("function", "binarySearch", 19),
+            NamingSubject("binding", "userName", 32),
+            NamingSubject("type", "user_profile", 67),
+            NamingSubject("function", "user_id", 100),
+            NamingSubject("function", "userId", 125),
+        ],
+    );
+    case diagnostics {
+        [function_name, collision_function_name, type_name, collision, binding] ->
+            function_name.rule_id == "TL0301"
+                and collision_function_name.rule_id == "TL0301"
+                and type_name.rule_id == "TL0302"
+                and collision.rule_id == "TL0303"
+                and binding.rule_id == "TL0304"
+                and function_name.path == "Sample.terl"
+                and function_name.severity == "warning"
+                and not function_name.fix_available;
+        _ -> false
+    }.
+
+@test
+pub reports_byte_based_line_and_column(): Bool ->
+    let diagnostics = SelfHostLintNamingDiagnostics.diagnostics(
+        "module sample.\nxxxx",
+        "Sample.terl",
+        [NamingSubject("function", "badName", 15)],
+    );
+    case diagnostics {
+        [value] -> value.line == 2 and value.column == 1;
+        _ -> false
+    }.
+
+@test
+pub canonical_subjects_emit_no_diagnostics(): Bool ->
+    SelfHostLintNamingDiagnostics.diagnostics(
+        "module sample.",
+        "Sample.terl",
+        [
+            NamingSubject("function", "binary_search", 0),
+            NamingSubject("type", "UserProfile", 0),
+            NamingSubject("binding", "_unused_value", 0),
+        ],
+    ) == [].

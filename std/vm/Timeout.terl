@@ -6,40 +6,44 @@
  */
 module std.vm.Timeout.
 
+import std.core.Option.{None, Some}.
+
+import type std.core.Option.
+
 /**
  * Timeout represents a millisecond timeout value.
  *
  * Input: no runtime input.
- * Output: an opaque runtime timeout value.
- * Transformation: hides the target representation for finite timeouts and
- * infinity-like waits behind a typed value.
+ * Output: an immutable managed timeout value.
+ * Transformation: stores a finite duration or an unbounded wait in a private
+ * field. Constructing and inspecting a timeout does not access the runtime.
  */
-@target.vm {process_mailbox: true}
-pub opaque type Timeout.
+pub struct Timeout {
+    #milliseconds: Option[Int],
+}.
 
 /**
  * Builds a finite timeout in milliseconds.
  *
  * Input: non-negative millisecond count.
  * Output: a finite `Timeout`.
- * Transformation: asks the selected VM runtime to validate and store the
- * millisecond value in the form expected by receive and socket operations.
+ * Transformation: validates the non-negative count in source and stores it.
+ * Negative counts fail the guarded match; they are not clamped or made infinite.
  */
-@target.vm {process_mailbox: true}
 pub milliseconds(value: Int): Timeout ->
-    native.
+    case value {
+        count where count >= 0 -> Timeout {#milliseconds: Some(count)}
+    }.
 
 /**
  * Builds an infinite timeout.
  *
  * Input: no runtime input.
  * Output: a `Timeout` that waits until the target operation completes.
- * Transformation: maps to the selected VM runtime's unbounded wait
- * representation.
+ * Transformation: stores the absence of a finite deadline.
  */
-@target.vm {process_mailbox: true}
 pub forever(): Timeout ->
-    native.
+    Timeout {#milliseconds: None}.
 
 /**
  * Checks whether a timeout would wake after elapsed milliseconds.
@@ -48,8 +52,14 @@ pub forever(): Timeout ->
  * Output: `true` when a finite timeout is due; `false` for `forever` or an
  * elapsed value before the finite deadline.
  * Transformation: exposes deterministic timer wakeup behavior for source-level
- * VM validation without sleeping or delegating to a host runtime.
+ * VM validation without sleeping or delegating to a host runtime. Negative
+ * elapsed counts fail the guarded match, including for unbounded waits.
  */
-@target.vm {process_mailbox: true}
 pub wakes_after(timeout: Timeout, elapsed_ms: Int): Bool ->
-    native.
+    case elapsed_ms {
+        elapsed where elapsed >= 0 ->
+            case timeout.#milliseconds {
+                Some(deadline) -> elapsed >= deadline;
+                None -> false
+            }
+    }.

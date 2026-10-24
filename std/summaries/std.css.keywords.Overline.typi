@@ -1,0 +1,6 @@
+//! Shared CSS keyword overline. Generated; do not edit.
+
+module std.css.keywords.Overline.
+
+pub type Overline =
+    Atom["overline"].

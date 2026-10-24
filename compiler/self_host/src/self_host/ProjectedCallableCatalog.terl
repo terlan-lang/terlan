@@ -3,10 +3,13 @@
  */
 module self_host.ProjectedCallableCatalog.
 
+import std.core.String.
+
 
 
 import std.core.Option.{None, Option, Some}.
 import std.collections.List.
+import std.core.String.{append, byte_size, starts_with, utf8_byte_at, utf8_slice}.
 import self_host.BackendSyntax.
 import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
 import self_host.ConstructorSyntax.
@@ -17,19 +20,36 @@ import self_host.ModuleInterfaceSyntax.
 import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
 import self_host.ProjectedCallableSyntax.
 import self_host.ProjectedCallableSyntax.{CallableDeclaration}.
+import self_host.ImportSyntax.{ImportItemSyntax, ImportSyntax}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
 import self_host.TypedModuleSyntax.
 
-import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, MethodPayload, TypedDeclarationPayload}.
+import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, ImportPayload, MethodPayload, TypedDeclarationPayload}.
 
 some_return_type(value: String): Option[String] -> Some(value).
 
 none_return_type(): Option[String] -> None.
+
+callable_name_at(value: String, index: Int): String ->
+    if {
+        index == value.byte_size() -> value;
+        value.utf8_byte_at(index) == 91
+            or value.utf8_byte_at(index) == 123
+            or value.utf8_byte_at(index) == 32
+            or value.utf8_byte_at(index) == 9 -> value.utf8_slice(0, index);
+        true -> callable_name_at(value, index + 1)
+    }.
+
+callable_name(value: String): String -> callable_name_at(value, 0).
 
 callable(
     module_name: String,
     name: String,
     arity: Int,
     callable_kind: String,
+    receiver_mutable: Bool,
+    type_parameters: List[String],
+    parameter_types: List[Option[String]],
     return_type: Option[String],
     byte_offset: Int,
 ): CallableDeclaration ->
@@ -38,9 +58,42 @@ callable(
         name = name,
         arity = arity,
         callable_kind = callable_kind,
+        receiver_mutable = receiver_mutable,
+        type_parameters = type_parameters,
+        parameter_types = parameter_types,
         return_type = return_type,
         byte_offset = byte_offset,
     ).
+
+trimmed_strings(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [String.trim(value) | trimmed_strings(rest)]
+    }.
+
+generic_tail(value: String): String ->
+    if {
+        String.ends_with(value, "]") -> String.utf8_slice(value, 0, value.byte_size() - 1);
+        true -> value
+    }.
+
+callable_type_parameters(value: String): List[String] ->
+    case String.split(value, "[") {
+        [_head, tail] -> trimmed_strings(String.split(generic_tail(tail), ","));
+        _ -> List.new[String]()
+    }.
+
+parameter_type(value: ParameterSyntax): Option[String] ->
+    if {
+        value.has_annotation and value.annotation.valid -> some_return_type(value.annotation.syntax.text);
+        true -> none_return_type()
+    }.
+
+parameter_types(values: List[ParameterSyntax]): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> [parameter_type(value) | parameter_types(rest)]
+    }.
 
 declaration_offset(value: BackendDeclaration): Int ->
     if {
@@ -71,6 +124,9 @@ constructor_callable(
         name,
         value.parameters.length(),
         "constructor",
+        false,
+        List.new[String](),
+        parameter_types(value.parameters),
         selected_return_type(value.return_type.valid, value.return_type.syntax.text),
         byte_offset,
     ).
@@ -101,9 +157,12 @@ local_function_payload(
     case payload {
         FunctionPayload(function) -> [callable(
             module_name,
-            value.symbol_name,
+            callable_name(value.symbol_name),
             function.typed_parameters.length(),
             function_kind(function.is_const),
+            false,
+            callable_type_parameters(value.symbol_name),
+            parameter_types(function.typed_parameters),
             selected_return_type(function.return_type.valid, function.return_type.syntax.text),
             declaration_offset(value),
         )];
@@ -118,9 +177,12 @@ local_method_payload(
     case payload {
         MethodPayload(method) -> [callable(
             module_name,
-            value.symbol_name,
-            method.parameters.length(),
+            callable_name(value.symbol_name),
+            method.parameters.length() + 1,
             "method",
+            method.receiver.is_mutable,
+            callable_type_parameters(value.symbol_name),
+            [parameter_type(method.receiver) | parameter_types(method.parameters)],
             selected_return_type(method.return_type.valid, method.return_type.syntax.text),
             declaration_offset(value),
         )];
@@ -135,7 +197,7 @@ local_constructor_payload(
     case payload {
         ConstructorPayload(constructor_payload) -> constructor_clauses(
             module_name,
-            value.symbol_name,
+            callable_name(value.symbol_name),
             constructor_payload.clauses,
             declaration_offset(value),
         );
@@ -204,6 +266,9 @@ is_constructor_callable_class(value: DeclarationClass): Bool ->
         _ -> false
     }.
 
+is_callable_symbol(value: ExportedSymbol): Bool ->
+    value.owner == None and is_callable_class(value.class).
+
 class_kind(value: DeclarationClass): String ->
     case value {
         ConstFunctionDeclaration -> "const-function";
@@ -237,7 +302,7 @@ interface_symbol(
     rest: List[ExportedSymbol],
 ): List[CallableDeclaration] ->
     if {
-        is_callable_class(value.class) -> [interface_callable(module_name, value)
+        is_callable_symbol(value) -> [interface_callable(module_name, value)
             | interface_symbols(module_name, rest)];
         true -> interface_symbols(module_name, rest)
     }.
@@ -245,9 +310,12 @@ interface_symbol(
 interface_callable(module_name: String, value: ExportedSymbol): CallableDeclaration ->
     callable(
         module_name,
-        value.name,
+        callable_name(value.name),
         value.arity,
         class_kind(value.class),
+        value.receiver_mutable,
+        value.type_parameters,
+        value.parameter_types,
         value.return_type,
         value.span.start_byte,
     ).
@@ -272,19 +340,107 @@ interface_output(
     output: List[CallableDeclaration],
 ): List[CallableDeclaration] ->
     if {
-        is_callable_class(value.class) -> [interface_callable(module_name, value) | output];
+        is_callable_symbol(value) -> [interface_callable(module_name, value) | output];
         true -> output
+    }.
+
+selected_item(name: String, values: List[ImportItemSyntax]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.name == name or selected_item(name, rest)
+    }.
+
+import_exposes_symbol(value: ImportSyntax, symbol: ExportedSymbol): Bool ->
+    not value.is_selected or selected_item(callable_name(symbol.name), value.items).
+
+selected_submodule(
+    module_name: String,
+    parent: String,
+    values: List[ImportItemSyntax],
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            module_name == append(parent, append(".", value.name)) -> true;
+            true -> selected_submodule(module_name, parent, rest)
+        }
+    }.
+
+direct_import_symbols_at(
+    imported_name: String,
+    module_name: String,
+    values: List[ExportedSymbol],
+    output: List[CallableDeclaration],
+): List[CallableDeclaration] ->
+    case values {
+        [] -> output;
+        [value | rest] -> if {
+            imported_name == append(module_name, append(".", callable_name(value.name)))
+                and is_callable_symbol(value) ->
+                    [interface_callable(module_name, value) | output];
+            true -> direct_import_symbols_at(imported_name, module_name, rest, output)
+        }
+    }.
+
+direct_symbol_import(imported_name: String, module_name: String): Bool ->
+    starts_with(imported_name, append(module_name, ".")).
+
+imported_interface_symbols_at(
+    imported: ImportSyntax,
+    module_name: String,
+    values: List[ExportedSymbol],
+    output: List[CallableDeclaration],
+): List[CallableDeclaration] ->
+    case values {
+        [] -> output;
+        [value | rest] -> if {
+            import_exposes_symbol(imported, value) and is_callable_symbol(value) ->
+                imported_interface_symbols_at(
+                    imported,
+                    module_name,
+                    rest,
+                    [interface_callable(module_name, value) | output],
+                );
+            true -> imported_interface_symbols_at(imported, module_name, rest, output)
+        }
+    }.
+
+interface_import_at(
+    module_name: String,
+    symbols: List[ExportedSymbol],
+    values: List[BackendDeclaration],
+    output: List[CallableDeclaration],
+): List[CallableDeclaration] ->
+    case values {
+        [] -> output;
+        [value | rest] -> case value.payload {
+            ImportPayload(imported) -> if {
+                imported.valid and imported.module_name == module_name ->
+                    imported_interface_symbols_at(imported, module_name, symbols, output);
+                imported.valid and imported.is_selected and selected_submodule(
+                    module_name,
+                    imported.module_name,
+                    imported.items,
+                ) -> interface_symbols_at(module_name, symbols, output);
+                imported.valid and direct_symbol_import(imported.module_name, module_name) ->
+                    direct_import_symbols_at(imported.module_name, module_name, symbols, output);
+                true -> interface_import_at(module_name, symbols, rest, output)
+            };
+            _ -> interface_import_at(module_name, symbols, rest, output)
+        }
     }.
 
 interfaces_at(
     values: List[ModuleInterface],
+    imports: List[BackendDeclaration],
     output: List[CallableDeclaration],
 ): List[CallableDeclaration] ->
     case values {
         [] -> output;
         [value | rest] -> interfaces_at(
             rest,
-            interface_symbols_at(value.module_name, value.symbols, output),
+            imports,
+            interface_import_at(value.module_name, value.symbols, imports, output),
         )
     }.
 
@@ -305,5 +461,9 @@ pub build(
             current_module.declarations,
             List.new[CallableDeclaration](),
         ),
-        reverse(interfaces_at(imported_interfaces, List.new[CallableDeclaration]())),
+        reverse(interfaces_at(
+            imported_interfaces,
+            current_module.declarations,
+            List.new[CallableDeclaration](),
+        )),
     ).

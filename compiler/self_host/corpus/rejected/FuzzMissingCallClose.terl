@@ -1,0 +1,3 @@
+module corpus.FuzzMissingCallClose.
+
+pub value(): Int -> add(1, 2.

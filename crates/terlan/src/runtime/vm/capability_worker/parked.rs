@@ -120,7 +120,11 @@ impl VmCapabilityWorkerClient {
                         Ok(Some(VmCapabilityWorkerCompletion::TransportFailed {
                             worker: self.identity.clone(),
                             error,
-                            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+                            #[cfg(any(
+                                test,
+                                not(feature = "serve-runtime-bin"),
+                                feature = "native-codegen"
+                            ))]
                             cancelled: Vec::new(),
                         }))
                     }
@@ -130,7 +134,11 @@ impl VmCapabilityWorkerClient {
                 self.close_parked_state();
                 Ok(Some(VmCapabilityWorkerCompletion::TransportClosed {
                     worker: self.identity.clone(),
-                    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+                    #[cfg(any(
+                        test,
+                        not(feature = "serve-runtime-bin"),
+                        feature = "native-codegen"
+                    ))]
                     cancelled: Vec::new(),
                 }))
             }
@@ -139,7 +147,11 @@ impl VmCapabilityWorkerClient {
                 Ok(Some(VmCapabilityWorkerCompletion::TransportFailed {
                     worker: self.identity.clone(),
                     error,
-                    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+                    #[cfg(any(
+                        test,
+                        not(feature = "serve-runtime-bin"),
+                        feature = "native-codegen"
+                    ))]
                     cancelled: Vec::new(),
                 }))
             }

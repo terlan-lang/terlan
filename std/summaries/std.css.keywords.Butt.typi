@@ -1,0 +1,6 @@
+//! Shared CSS keyword butt. Generated; do not edit.
+
+module std.css.keywords.Butt.
+
+pub type Butt =
+    Atom["butt"].

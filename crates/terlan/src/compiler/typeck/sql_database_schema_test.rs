@@ -216,5 +216,5 @@ pub query(): Dynamic ->\n\
     sql[UserRow] {SELECT profile FROM users}.\n";
     let diagnostics = check_syntax_output_with_database_schema(unrelated, &codec_schema_snapshot());
     assert!(diagnostics.iter().any(|diagnostic| diagnostic.message
-        == "SQL row type `UserRow` field `profile` has non-decodable type Json; expected Int, Binary, Bool, std.data.Json, or Option of one of these"));
+        == "SQL row type `UserRow` field `profile` has non-decodable type sql_database_json.Json; expected Int, Binary, Bool, std.data.Json.Json, or Option of one of these"), "diagnostics: {diagnostics:?}");
 }

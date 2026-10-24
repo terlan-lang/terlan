@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword non-rotation. Generated; do not edit.
+ */
+module std.css.keywords.NonRotation.
+
+pub type NonRotation = Atom["non-rotation"].

@@ -1,0 +1,49 @@
+/** Contracts for typed Core IR validation. */
+module self_host.SelfHostIrValidationTest.
+
+import self_host.SelfHostIrSyntax.{IrBlock, IrDiagnostic, IrFunction, IrModule, IrParameter, IrStructLayout, IrTerminator}.
+
+import std.collections.List.
+import std.core.Option.{None}.
+import std.core.String.
+import self_host.SelfHostIrValidation.
+
+
+@pure
+contains_code(values: List[IrDiagnostic], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.code == expected or contains_code(rest, expected)
+    }.
+
+@pure
+module_with_parameter_type(type_name: String): IrModule ->
+    IrModule(
+        "demo.Core",
+        List.new[IrStructLayout](),
+        [IrFunction(
+            "demo.Core",
+            "identity",
+            1,
+            [IrParameter("value", type_name)],
+            "Int",
+            [IrBlock(
+                "entry",
+                List.new[self_host.SelfHostIrSyntax.IrInstruction](),
+                IrTerminator("return", ["value"], List.new[String]()),
+            )],
+            None,
+        )],
+    ).
+
+@pure
+unresolved_parameter_is_rejected(): Bool ->
+    let validation = SelfHostIrValidation.validate(module_with_parameter_type(""));
+    not validation.valid and contains_code(validation.diagnostics, "unresolved-parameter-type").
+
+@pure
+explicit_dynamic_parameter_is_typed(): Bool ->
+    SelfHostIrValidation.validate(module_with_parameter_type("Dynamic")).valid.
+
+pub self_test(): Bool ->
+    unresolved_parameter_is_rejected() and explicit_dynamic_parameter_is_typed().

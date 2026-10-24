@@ -1,116 +1,55 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-vertical-align
+//! The `vertical-align` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets the vertical alignment of an inline, inline-block, or table-cell box.
+//!
+//! Initial: baseline. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - alphabetic: Used in writing Latin, Cyrillic, Greek, and many other scripts; matches the box's
+//! alphabetic baseline to that of its parent, corresponding to the bottom of most, but not all
+//! characters. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/alignment-baseline
+//! - baseline: Aligns the baseline of the cell with the baseline of all other cells in the row that
+//! are baseline-aligned.
+//! - bottom: Aligns the bottom padding edge of the cell with the bottom of the row.
+//! - central: Matches the box's central baseline to the central baseline of its parent,
+//! corresponding to the ideographic central baseline, halfway between the ideographic-under and
+//! ideographic-over baselines. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/alignment-baseline
+//! - ideographic: Matches the box's ideographic character face under-side baseline to that of its
+//! parent, with the derived baseline-table constructed using the ideographic baseline-table in the
+//! font. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/alignment-baseline
+//! - mathematical: Matches the box's mathematical baseline to that of its parent, corresponding to
+//! the center baseline around which mathematical characters are designed. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/alignment-baseline
+//! - middle: Centers the padding box of the cell within the row.
+//! - sub: Aligns the baseline of the cell with the baseline of all other cells in the row that are
+//! baseline-aligned.
+//! - super: Aligns the baseline of the cell with the baseline of all other cells in the row that are
+//! baseline-aligned.
+//! - text-bottom: Aligns the baseline of the cell with the baseline of all other cells in the row
+//! that are baseline-aligned.
+//! - text-top: Aligns the baseline of the cell with the baseline of all other cells in the row that
+//! are baseline-aligned.
+//! - top: Aligns the top padding edge of the cell with the top of the row.
+//!
 //! Grammar: [ first | last] || <'alignment-baseline'> || <'baseline-shift'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-vertical-align
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/vertical-align
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.VerticalAlign.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    vertical_align: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    vertical_align: Value
+    vertical_align: First | Last | Baseline | TextBottom | Alphabetic | Ideographic | Middle | Central | Mathematical | Hanging | TextTop | Sub | Super | Top | Center | Bottom | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained vertical-align value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword alphabetic.
-
-pub alphabetic(): Value.
-
-/// Returns the CSS keyword baseline.
-
-pub baseline(): Value.
-
-/// Returns the CSS keyword bottom.
-
-pub bottom(): Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword central.
-
-pub central(): Value.
-
-/// Returns the CSS keyword first.
-
-pub first(): Value.
-
-/// Returns the CSS keyword hanging.
-
-pub hanging(): Value.
-
-/// Returns the CSS keyword ideographic.
-
-pub ideographic(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword last.
-
-pub last(): Value.
-
-/// Constructs a vertical-align value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Returns the CSS keyword mathematical.
-
-pub mathematical(): Value.
-
-/// Returns the CSS keyword middle.
-
-pub middle(): Value.
-
-/// Constructs a vertical-align value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword sub.
-
-pub sub(): Value.
-
-/// Returns the CSS keyword super.
-
-pub super(): Value.
-
-/// Returns the CSS keyword text-bottom.
-
-pub text_bottom(): Value.
-
-/// Returns the CSS keyword text-top.
-
-pub text_top(): Value.
-
-/// Returns the CSS keyword top.
-
-pub top(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

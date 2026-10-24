@@ -805,8 +805,6 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
         | CorePrimitiveIntrinsic::VmBitStringToIntLe => CoreType::Int,
         CorePrimitiveIntrinsic::VmBitStringIsByteAligned => CoreType::Bool,
         CorePrimitiveIntrinsic::VmBitStringToBytes => CoreType::Named("Bytes".to_string()),
-        CorePrimitiveIntrinsic::VmTimeoutMilliseconds
-        | CorePrimitiveIntrinsic::VmTimeoutForever => CoreType::Named("Timeout".to_string()),
         CorePrimitiveIntrinsic::VmTcpListen | CorePrimitiveIntrinsic::VmTcpListenWithBacklog => {
             CoreType::Apply {
                 constructor: "Result".to_string(),

@@ -185,7 +185,7 @@ fn rewrite_calls(
             .args
             .iter_mut()
             .all(|arg| rewrite_calls(arg, candidate, ordinal, call_count)),
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => items
             .iter_mut()
             .all(|item| rewrite_calls(item, candidate, ordinal, call_count)),
         CoreExpr::Map(fields) => fields
@@ -312,7 +312,7 @@ fn is_fixed_aggregate_argument(expr: &CoreExpr) -> bool {
         CoreExpr::ConstructorCall { .. }
         | CoreExpr::RecordConstruct { .. }
         | CoreExpr::Tuple(_)
-        | CoreExpr::FixedArray(_) => true,
+        | CoreExpr::Array(_) => true,
         CoreExpr::Cast { expr, .. } => is_fixed_aggregate_argument(expr),
         _ => false,
     }
@@ -350,7 +350,7 @@ fn expr_uses_callee(expr: &CoreExpr, candidate: &ProjectionCallee) -> bool {
             args.iter().any(|arg| expr_uses_callee(arg, candidate))
         }
         CoreExpr::Intrinsic(call) => call.args.iter().any(|arg| expr_uses_callee(arg, candidate)),
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items.iter().any(|item| expr_uses_callee(item, candidate))
         }
         CoreExpr::Map(fields) => fields

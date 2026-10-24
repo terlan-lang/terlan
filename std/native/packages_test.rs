@@ -1,6 +1,30 @@
 use super::{value_binding, VALUE_BINDINGS};
 
 #[test]
+fn worker_value_policy_is_exact_unique_and_names_registered_bindings() {
+    let mut operations = std::collections::BTreeSet::new();
+    for operation in super::WORKER_VALUE_OPERATIONS {
+        assert!(operations.insert(operation));
+        assert!(value_binding(operation).is_some());
+        assert!(super::value_operation_requires_worker(operation));
+        for lookalike in [
+            format!("{operation}suffix"),
+            format!(" {operation}"),
+            operation.to_uppercase(),
+        ] {
+            assert!(!super::value_operation_requires_worker(&lookalike));
+        }
+    }
+    assert!(super::value_operation_requires_worker(
+        "std.crypto.entropy.bytes"
+    ));
+    assert!(!super::value_operation_requires_worker(
+        "std.encoding.base64.encode_url_unpadded_bytes"
+    ));
+    assert!(!super::value_operation_requires_worker(""));
+}
+
+#[test]
 fn context_catalog_is_exact_and_does_not_grant_execution() {
     use terlan_http_native::session_bindings::{bindings, SessionStorage};
     let services = terlan_runtime_abi::NativeServices::default();
@@ -36,6 +60,7 @@ fn context_catalog_is_exact_and_does_not_grant_execution() {
         "",
         "std.http.session.",
         "std.http.session.current",
+        "std.http.session.candidate",
         "std.http.response.text",
         "app.http.session.get",
     ] {
@@ -95,7 +120,16 @@ fn registration_is_unique_and_lookup_is_exact() {
     assert!(value_binding("").is_none());
     assert!(value_binding("app.uri.parse_parts").is_none());
     assert!(value_binding("std.http.cookies.set_header").is_none());
+    assert!(value_binding("std.http.session.candidate").is_none());
+    assert_eq!(value_binding("std.crypto.entropy.bytes").unwrap().arity, 1);
+    assert_eq!(
+        value_binding("std.encoding.base64.encode_url_unpadded_bytes")
+            .unwrap()
+            .arity,
+        1
+    );
     assert!(value_binding("std.http.cookies.delete_header").is_none());
     assert!(value_binding("std.http.cookies.set_header_with_options").is_none());
     assert_eq!(value_binding("std.http.cookies.encode").unwrap().arity, 9);
+    assert_eq!(value_binding("std.http.cookies.decode").unwrap().arity, 1);
 }

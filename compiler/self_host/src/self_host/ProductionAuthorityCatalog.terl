@@ -1,0 +1,155 @@
+/** Aggregates Phase 4-8 marker and identity files into production evidence. */
+module self_host.ProductionAuthorityCatalog.
+
+import self_host.ProductionAuthorityEvidence.
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.File.
+
+struct CatalogBuild {
+    valid: Bool,
+    keys: List[String],
+    output: String,
+}.
+
+constructor CatalogBuild {
+    (valid: Bool, keys: List[String], output: String): CatalogBuild ->
+        CatalogBuild { valid: valid, keys: keys, output: output }
+}.
+
+@pure
+contains(key: String, keys: List[String]): Bool ->
+    case keys {
+        [] -> false;
+        [key | _rest] -> true;
+        [_value | rest] -> contains(key, rest)
+    }.
+
+@pure
+pub identity_key(key: String): Bool ->
+    case key {
+        "stage1-identity" -> true;
+        "stage2-identity" -> true;
+        "stage1-actor-identity" -> true;
+        "stage2-actor-identity" -> true;
+        _ -> false
+    }.
+
+@pure
+pub gate_key(key: String): Bool ->
+    ProductionAuthorityEvidence.known_key(key)
+        and key != "schema"
+        and not identity_key(key).
+
+@pure
+append_row(state: CatalogBuild, key: String, value: String): CatalogBuild ->
+    CatalogBuild(
+        true,
+        [key | state.keys],
+        String.concat([state.output, key, "\t", value, "\n"]),
+    ).
+
+@pure
+pub marker_passes(actual: String, expected: String): Bool ->
+    String.trim(actual) == expected.
+
+gate_source(
+    rest: List[String],
+    state: CatalogBuild,
+    key: String,
+    path: String,
+    expected: String,
+): CatalogBuild ->
+    if {
+        not gate_key(key) or contains(key, state.keys) -> CatalogBuild(false, state.keys, state.output);
+        true ->
+            case File.read_text(path) {
+                Err(_reason) -> build_rows(rest, append_row(state, key, "fail"));
+                Ok(actual) ->
+                    if {
+                        marker_passes(actual, expected) -> build_rows(rest, append_row(state, key, "pass"));
+                        true -> build_rows(rest, append_row(state, key, "fail"))
+                    }
+            }
+    }.
+
+identity_source(
+    rest: List[String],
+    state: CatalogBuild,
+    key: String,
+    path: String,
+): CatalogBuild ->
+    if {
+        not identity_key(key) or contains(key, state.keys) -> CatalogBuild(false, state.keys, state.output);
+        true ->
+            case File.read_text(path) {
+                Err(_reason) -> CatalogBuild(false, state.keys, state.output);
+                Ok(actual) ->
+                    let value = String.trim(actual);
+                    if {
+                        value == "" -> CatalogBuild(false, state.keys, state.output);
+                        true -> build_rows(rest, append_row(state, key, value))
+                    }
+            }
+    }.
+
+build_row(rest: List[String], state: CatalogBuild, line: String): CatalogBuild ->
+    case String.split(line, "\t") {
+        ["gate", key, path, expected] -> gate_source(rest, state, key, path, expected);
+        ["identity", key, path] -> identity_source(rest, state, key, path);
+        _ -> CatalogBuild(false, state.keys, state.output)
+    }.
+
+build_rows(lines: List[String], state: CatalogBuild): CatalogBuild ->
+    case lines {
+        [] -> state;
+        [line | rest] ->
+            let normalized = String.trim(line);
+            if {
+                normalized == "" -> build_rows(rest, state);
+                true -> build_row(rest, state, normalized)
+            }
+    }.
+
+@pure
+invalid_build(): CatalogBuild -> CatalogBuild(false, [], "").
+
+build(source: String): CatalogBuild ->
+    case String.split(source, "\n") {
+        [header | rest] ->
+            case String.split(String.trim(header), "\t") {
+                ["schema", "terlan.self-host.production-authority-sources/v1"] ->
+                    build_rows(
+                        rest,
+                        CatalogBuild(
+                            true,
+                            [],
+                            "schema\tterlan.self-host.production-authority/v1\n",
+                        ),
+                    );
+                _ -> invalid_build()
+            };
+        _ -> invalid_build()
+    }.
+
+/** Renders an authority catalog, or the empty string for an invalid source manifest. */
+pub render(source: String): String ->
+    let result = build(source);
+    if { result.valid -> result.output; true -> "" }.
+
+/** Writes one catalog assembled from the declared Phase 4-8 artifacts. */
+pub write(source_manifest: String, output: String): Bool ->
+    case File.read_text(source_manifest) {
+        Err(_reason) -> false;
+        Ok(source) ->
+            let rendered = render(source);
+            if {
+                rendered == "" -> false;
+                true ->
+                    case File.write_text(output, rendered) {
+                        Err(_reason) -> false;
+                        Ok(_unit) -> true
+                    }
+            }
+    }.

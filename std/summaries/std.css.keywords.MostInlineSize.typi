@@ -1,0 +1,6 @@
+//! Shared CSS keyword most-inline-size. Generated; do not edit.
+
+module std.css.keywords.MostInlineSize.
+
+pub type MostInlineSize =
+    Atom["most-inline-size"].

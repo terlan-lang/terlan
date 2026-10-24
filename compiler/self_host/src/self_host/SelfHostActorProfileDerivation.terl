@@ -1,0 +1,68 @@
+/** Derives canonical local suspension profiles from emitted outward continuations. */
+module self_host.SelfHostActorProfileDerivation.
+
+import std.collections.List.
+import std.core.Option.{None}.
+
+import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
+import self_host.SelfHostActorCallPlan.{ActorCalleeEntry}.
+import self_host.SelfHostActorIrSyntax.{ActorContinuation, ActorIrPlan}.
+
+
+@pure
+same_owner(value: ActorContinuation, profile: ActorSuspensionProfile): Bool ->
+    value.source_module == profile.module_name
+        and value.source_function == profile.callable_name
+        and value.source_arity == profile.arity.
+
+@pure
+append[T](values: List[T], value: T): List[T] ->
+    case values {
+        [] -> [value];
+        [current | rest] -> [current | append(rest, value)]
+    }.
+
+@pure
+entry(value: ActorContinuation): ActorCalleeEntry ->
+    ActorCalleeEntry(None, value.id, List.length(value.capture_names)).
+
+@pure
+add_to_existing(
+    value: ActorContinuation,
+    profiles: List[ActorSuspensionProfile],
+): List[ActorSuspensionProfile] ->
+    case profiles {
+        [] -> [ActorSuspensionProfile(
+            value.source_module,
+            value.source_function,
+            value.source_arity,
+            [entry(value)],
+        )];
+        [profile | rest] -> if {
+            same_owner(value, profile) -> [ActorSuspensionProfile(
+                profile.module_name,
+                profile.callable_name,
+                profile.arity,
+                append(profile.entries, entry(value)),
+            ) | rest];
+            true -> [profile | add_to_existing(value, rest)]
+        }
+    }.
+
+@pure
+derive_at(
+    values: List[ActorContinuation],
+    profiles: List[ActorSuspensionProfile],
+): List[ActorSuspensionProfile] ->
+    case values {
+        [] -> profiles;
+        [value | rest] -> if {
+            value.outward_entry -> derive_at(rest, add_to_existing(value, profiles));
+            true -> derive_at(rest, profiles)
+        }
+    }.
+
+/** Returns one stable, source-ordered profile per outward-suspending callable. */
+@pure
+pub derive(value: ActorIrPlan): List[ActorSuspensionProfile] ->
+    derive_at(value.continuations, List.new[ActorSuspensionProfile]()).

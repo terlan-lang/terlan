@@ -320,7 +320,36 @@ fn interface_rejects_conflicting_or_unknown_included_fields() {
         let syntax = parse_module_as_syntax_output(source).unwrap();
         let diagnostics = expanded_interface(&syntax, &HashMap::new()).unwrap_err();
         assert!(!diagnostics.is_empty());
-        assert!(diagnostics.iter().all(|diagnostic| matches!(diagnostic.severity, crate::terlan_typeck::DiagSeverity::Error)));
-        assert!(diagnostics.iter().all(|diagnostic| !diagnostic.message.is_empty()));
+        assert!(diagnostics.iter().all(|diagnostic| matches!(
+            diagnostic.severity,
+            crate::terlan_typeck::DiagSeverity::Error
+        )));
+        assert!(
+            diagnostics
+                .iter()
+                .all(|diagnostic| !diagnostic.message.is_empty())
+        );
     }
+}
+
+/// Extraction must reject duplicate atoms before publishing any batch member.
+#[test]
+fn interface_extraction_rejects_duplicate_public_atom_aliases() {
+    let dir = TestDirectory::new("interfaces", "duplicate_atom_aliases");
+    let first = dir.path().join("first.terl");
+    let second = dir.path().join("second.terl");
+    let out = dir.path().join("out");
+    fs::write(
+        &first,
+        r#"module first. pub type FlexEnd = Atom["flex-end"]."#,
+    )
+    .unwrap();
+    fs::write(
+        &second,
+        r#"module second. pub type FlexEnd = Atom["flex-end"]."#,
+    )
+    .unwrap();
+    assert_ne!(generate(&[&first, &second], &out), ExitCode::SUCCESS);
+    assert!(!out.join("first.typi").exists());
+    assert!(!out.join("second.typi").exists());
 }

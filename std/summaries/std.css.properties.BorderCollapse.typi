@@ -1,52 +1,26 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-tables-3/#propdef-border-collapse
+//! The `border-collapse` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! whether cells inside a `table` have shared or separate borders.
+//!
+//! Initial: separate. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - collapse: Adjacent cells have shared borders (the collapsed-border table rendering model).
+//! - separate: Adjacent cells have distinct borders (the separated-border table rendering model).
+//!
 //! Grammar: separate | collapse
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-tables-3/#propdef-border-collapse
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-collapse
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderCollapse.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    border_collapse: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    border_collapse: Value
+    border_collapse: Separate | Collapse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained border-collapse value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword collapse.
-
-pub collapse(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword separate.
-
-pub separate(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

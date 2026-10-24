@@ -1,9 +1,11 @@
 module=std.css.properties.TextWrapMode
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6498154158269838449
-interface_hash=5060154978022736407
-interface_doc_hash=8066601071327082752
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=10632846659044043425
+interface_hash=7903414942921888030
+interface_doc_hash=2202344881278808570
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Nowrap=2814138464360331372
+std.css.keywords.Wrap=12505015740139832697

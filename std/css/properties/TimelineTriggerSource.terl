@@ -1,75 +1,34 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-source
+ * The `timeline-trigger-source` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies the timeline that will trigger a [scroll-triggered
+ * animation](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animation_triggers/Using_scroll-triggered_animations).
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: The element's trigger source is the document's default time-based `DocumentTimeline`.
+ * This is the default value.
+ * - none: The element's trigger does not have a source: it is not associated with any timeline and
+ * the animation does not happen.
+ *
  * Grammar: [ none | auto | [ <dashed-ident> | <scroll()> | <view()> ]+ ]#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-source
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/timeline-trigger-source
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TimelineTriggerSource.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, None}.
 
-/**
- * A nominal, specification-constrained timeline-trigger-source value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    timeline_trigger_source: Value,
+    timeline_trigger_source: None | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    timeline_trigger_source: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "timeline-trigger-source", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "timeline-trigger-source", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "timeline-trigger-source", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "timeline-trigger-source", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "timeline-trigger-source", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "timeline-trigger-source", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "timeline-trigger-source", css: "unset"}).

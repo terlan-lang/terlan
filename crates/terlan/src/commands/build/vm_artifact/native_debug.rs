@@ -1,5 +1,7 @@
 //! Compiler-owned source identities embedded in native TVM images.
 
+use std::collections::BTreeMap;
+
 use crate::compiler::native_ir::coverage_callable_id;
 use crate::compiler::native_ir::NativeModule;
 use crate::runtime::native_image::debug::{
@@ -9,21 +11,100 @@ use crate::runtime::native_image::debug::{
 use crate::terlan_syntax::{SyntaxDeclarationPayload, SyntaxModuleOutput};
 use crate::terlan_typeck::CoreModule;
 
-/// Compiler artifacts required to derive source identities for one module.
-pub(crate) struct NativeDebugInput<'a> {
+/// Compact compiler-owned source identities for one module.
+pub(crate) struct NativeDebugInput {
     /// Stable source path embedded into every function record.
-    pub(crate) source_path: &'a str,
+    source_path: String,
     /// Exact UTF-8 source used to validate declaration spans.
-    pub(crate) source_text: &'a str,
-    /// Checked CoreIR module that produced native functions.
-    pub(crate) core: &'a CoreModule,
-    /// Parsed declarations carrying compiler-owned source spans.
-    pub(crate) syntax: &'a SyntaxModuleOutput,
+    source_text: String,
+    module: String,
+    core_schema: String,
+    proof_readiness: String,
+    function_spans: BTreeMap<(String, usize), (usize, usize)>,
+}
+
+impl NativeDebugInput {
+    /// Captures debug metadata without retaining syntax or CoreIR ownership.
+    pub(crate) fn capture(
+        source_path: &str,
+        source_text: &str,
+        core: &CoreModule,
+        syntax: &SyntaxModuleOutput,
+    ) -> Self {
+        Self::capture_owned(
+            source_path.to_string(),
+            source_text.to_string(),
+            core,
+            syntax,
+        )
+    }
+
+    /// Captures debug metadata while taking ownership of source identity data.
+    pub(crate) fn capture_owned(
+        source_path: String,
+        source_text: String,
+        core: &CoreModule,
+        syntax: &SyntaxModuleOutput,
+    ) -> Self {
+        let function_spans = core
+            .functions
+            .iter()
+            .filter_map(|function| {
+                let (name, arity) = function
+                    .source
+                    .as_ref()
+                    .filter(|source| source.module == core.module)
+                    .map_or((&function.name, function.arity), |source| {
+                        (&source.function, source.arity)
+                    });
+                function_source_span(core, syntax, name, arity)
+                    .map(|span| ((name.clone(), arity), span))
+            })
+            .collect();
+        Self {
+            source_path,
+            source_text,
+            module: core.module.clone(),
+            core_schema: core.schema.clone(),
+            proof_readiness: format!("{:?}", core.metadata.proof_readiness),
+            function_spans,
+        }
+    }
+
+    /// Replaces the embedded source path without rebuilding debug metadata.
+    pub(crate) fn with_source_path(mut self, source_path: String) -> Self {
+        self.source_path = source_path;
+        self
+    }
+
+    /// Returns the exact source bytes represented by this debug projection.
+    pub(crate) fn source_text(&self) -> &str {
+        &self.source_text
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn constructor_debug_spans_use_source_callable_identity() {
+        let workspace = tempfile::tempdir().unwrap();
+        let path = workspace.path().join("app/Cell.terl");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let source = "module app.Cell. pub struct Cell { value: Int }. pub constructor Cell { (value: Int): Cell -> Cell { value: value } }.";
+        std::fs::write(&path, source).unwrap();
+        let compiled = super::super::compile::compile_vm_module(
+            path.to_str().unwrap(),
+            &crate::CliState::default(),
+        )
+        .unwrap();
+        let debug = compiled.native_debug;
+        assert!(debug.function_spans.contains_key(&("Cell".into(), 1)));
+    }
 }
 
 /// Derives and canonically encodes native source records for compiled modules.
 pub(crate) fn encode_native_debug(
-    inputs: &[NativeDebugInput<'_>],
+    inputs: &[NativeDebugInput],
     natives: &[NativeModule],
 ) -> Result<Vec<u8>, String> {
     let mut records = Vec::new();
@@ -31,19 +112,17 @@ pub(crate) fn encode_native_debug(
         for function in &native.functions {
             let input = inputs
                 .iter()
-                .find(|input| input.core.module == function.source_module)
+                .find(|input| input.module == function.source_module)
                 .ok_or_else(|| {
                     format!(
                         "error[tvm.debug.module]: missing source for `{}` (native `{}`)",
                         function.source_module, native.name
                     )
                 })?;
-            let (mut span_start, span_end) =
-                function_source_span(
-                    input,
-                    &function.source_function,
-                    function.source_arity,
-                )
+            let (mut span_start, span_end) = input
+                .function_spans
+                .get(&(function.source_function.clone(), function.source_arity))
+                .copied()
                 .ok_or_else(|| {
                         format!(
                             "error[tvm.debug.function]: `{}` has no declaration for `{}/{}` (native `{}.{}/{}`)",
@@ -124,7 +203,7 @@ pub(crate) fn encode_native_debug(
                     &function.source_function,
                     function.source_arity,
                 ),
-                source_file: input.source_path.to_string(),
+                source_file: input.source_path.clone(),
                 module: native.name.clone(),
                 function: function.name.clone(),
                 arity: function.arity,
@@ -143,8 +222,8 @@ pub(crate) fn encode_native_debug(
                     .map(|continuation| continuation.id)
                     .collect(),
                 continuation_spans,
-                core_schema: input.core.schema.clone(),
-                proof_readiness: format!("{:?}", input.core.metadata.proof_readiness),
+                core_schema: input.core_schema.clone(),
+                proof_readiness: input.proof_readiness.clone(),
             });
         }
     }
@@ -159,17 +238,17 @@ pub(crate) fn encode_native_debug(
 
 /// Finds the combined declaration span for one exact function identity.
 fn function_source_span(
-    input: &NativeDebugInput<'_>,
+    core: &CoreModule,
+    syntax: &SyntaxModuleOutput,
     function_name: &str,
     arity: usize,
 ) -> Option<(usize, usize)> {
-    if let Some(span) = input
-        .core
+    if let Some(span) = core
         .functions
         .iter()
         .filter_map(|function| function.source.as_ref())
         .find(|source| {
-            source.module == input.core.module
+            source.module == core.module
                 && source.function == function_name
                 && source.arity == arity
         })
@@ -177,8 +256,7 @@ fn function_source_span(
     {
         return Some((span.start, span.end));
     }
-    input
-        .syntax
+    syntax
         .declarations
         .iter()
         .filter_map(|declaration| match &declaration.payload {

@@ -1,0 +1,6 @@
+//! Shared CSS keyword pinch-zoom. Generated; do not edit.
+
+module std.css.keywords.PinchZoom.
+
+pub type PinchZoom =
+    Atom["pinch-zoom"].

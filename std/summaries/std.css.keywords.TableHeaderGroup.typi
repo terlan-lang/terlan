@@ -1,0 +1,6 @@
+//! Shared CSS keyword table-header-group. Generated; do not edit.
+
+module std.css.keywords.TableHeaderGroup.
+
+pub type TableHeaderGroup =
+    Atom["table-header-group"].

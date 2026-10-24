@@ -1,0 +1,8 @@
+module=std.css.keywords.SpanBlockStart
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=14526654161819218429
+interface_hash=567627525573877210
+interface_doc_hash=11718338099615794167
+deps=0

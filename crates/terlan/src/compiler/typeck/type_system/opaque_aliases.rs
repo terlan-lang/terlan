@@ -137,7 +137,7 @@ fn reveal_opaque_aliases_inner(
                 active,
             )),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: *size,
             elem: Box::new(reveal_opaque_aliases_inner(
                 elem,

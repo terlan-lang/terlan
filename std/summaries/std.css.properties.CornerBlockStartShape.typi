@@ -1,104 +1,41 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-corner-block-start-shape
+//! The `corner-block-start-shape` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies the shape of both the corners on a box's block-start edge, within their `border-radius`
+//! area.
+//!
+//! Initial: corner-start-start-shape: round; corner-start-end-shape: round. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <'corner-top-left-shape'>{1,2}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-corner-block-start-shape
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/corner-block-start-shape
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.CornerBlockStartShape.
 
-/// A single non-global corner-block-start-shape shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
-
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    corner_block_start_shape: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    Round
+  | Scoop
+  | Bevel
+  | Notch
+  | Square
+  | Squircle.
 
 pub struct Property {
-    corner_block_start_shape: Value
+    corner_block_start_shape: Round | Scoop | Bevel | Notch | Square | Squircle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained corner-block-start-shape value.
+/// Supplies 2 components in grammar order.
 
-pub opaque type Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Returns the CSS keyword bevel.
+/// Supplies 1 components in grammar order.
 
-pub bevel(): Value.
-
-/// Constructs one corner-block-start-shape shorthand component.
-
-pub component_bevel(): Component.
-
-/// Constructs one corner-block-start-shape shorthand component.
-
-pub component_notch(): Component.
-
-/// Constructs one corner-block-start-shape shorthand component.
-
-pub component_round(): Component.
-
-/// Constructs one corner-block-start-shape shorthand component.
-
-pub component_scoop(): Component.
-
-/// Constructs one corner-block-start-shape shorthand component.
-
-pub component_square(): Component.
-
-/// Constructs one corner-block-start-shape shorthand component.
-
-pub component_squircle(): Component.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword notch.
-
-pub notch(): Value.
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword round.
-
-pub round(): Value.
-
-/// Returns the CSS keyword scoop.
-
-pub scoop(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Returns the CSS keyword square.
-
-pub square(): Value.
-
-/// Returns the CSS keyword squircle.
-
-pub squircle(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub single(first: Component): Checked.

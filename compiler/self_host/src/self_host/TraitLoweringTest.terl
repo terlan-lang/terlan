@@ -1,6 +1,8 @@
 /** Positive and negative trait-member lowering contracts. */
 module self_host.TraitLoweringTest.
 
+import std.core.String.
+
 import std.collections.List.
 import self_host.CanonicalSurface.
 import self_host.DeclarationLowering.
@@ -22,10 +24,41 @@ positive_trait(): Bool ->
     }.
 
 @pure
+positive_inherited_trait(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Named.\ntrait Parent { inherited(value: Int): Int. }.\ntrait Child extends Parent { own(value: Int): Int. }.\n",
+    ));
+    case lowered_module.declarations {
+        [_parent, child] ->
+            let lowered_trait = TraitLowering.lower(child);
+            lowered_trait.valid and lowered_trait.parents == ["Parent"];
+        _ -> false
+    }.
+
+@pure
+positive_generic_trait_method(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Mapping.\ntrait Mapping[F[_]] { map[A, B](value: F[A], f: (A) -> B)[Mappable[F]]: F[B]. }.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let lowered_trait = TraitLowering.lower(declaration);
+            case lowered_trait.methods {
+                [method] -> lowered_trait.valid and method.name == "map" and List.length(method.constraints) == 1;
+                _ -> false
+            };
+        _ -> false
+    }.
+
+@pure
 negative_trait(): Bool ->
     let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
         "module demo.Named.\npub trait Named { name(value: User) String. }.\n",
     ));
     case lowered_module.declarations { [declaration] -> not TraitLowering.lower(declaration).valid; _ -> false }.
 
-pub self_test(): Bool -> positive_trait() and negative_trait().
+pub self_test(): Bool ->
+    positive_trait()
+        and positive_inherited_trait()
+        and positive_generic_trait_method()
+        and negative_trait().

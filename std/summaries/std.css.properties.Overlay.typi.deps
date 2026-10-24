@@ -1,9 +1,11 @@
 module=std.css.properties.Overlay
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=1031043425202590513
-interface_hash=15433373988513306645
-interface_doc_hash=18323315353660978675
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4880929547429813087
+interface_hash=4315190513382883930
+interface_doc_hash=1629505267369905151
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722
+std.css.keywords.None=3400229744369726074

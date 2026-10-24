@@ -1,6 +1,8 @@
 /** Framed multi-module token, syntax, and semantic bootstrap evidence. */
 module self_host.ProjectedStageEvidence.
 
+import std.core.String.
+
 
 import std.core.Result.{Err, Ok, Result}.
 import self_host.CanonicalLexer.
@@ -110,6 +112,46 @@ pub write_unit(
     case File.read_text(input) {
         Err(_reason) -> false;
         Ok(source) -> write_unit_source(source, tokens_output, syntax_output, semantics_output)
+    }.
+
+write_complete_source(
+    source: String,
+    tokens_output: String,
+    syntax_output: String,
+    common_output: String,
+    supplemental_output: String,
+): Bool ->
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    case ProjectedSemanticEvidence.common_and_supplemental(frontend) {
+        [common, supplemental] ->
+            write_rendered(tokens_output, ProjectedTokenEvidence.document(frontend.tokens))
+                and write_rendered(
+                    syntax_output,
+                    ProjectedParserEvidence.document(frontend.surface),
+                )
+                and write_rendered(common_output, common)
+                and write_rendered(supplemental_output, supplemental);
+        _ -> false
+    }.
+
+/** Writes every current evidence layer after one shared frontend pass. */
+pub write_complete_unit(
+    input: String,
+    tokens_output: String,
+    syntax_output: String,
+    common_output: String,
+    supplemental_output: String,
+): Bool ->
+    case File.read_text(input) {
+        Err(_reason) -> false;
+        Ok(source) -> write_complete_source(
+            source,
+            tokens_output,
+            syntax_output,
+            common_output,
+            supplemental_output,
+        )
     }.
 
 semantic_layer(source: String, layer: String, lexed: CanonicalLexOutput): String ->

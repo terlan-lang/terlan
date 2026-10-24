@@ -1,81 +1,34 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-multicol-2/#propdef-column-fill
+ * The `column-fill` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property controls how
+ * an element's contents are balanced when broken into columns.
+ *
+ * Initial: balance. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: Columns are filled sequentially. Content takes up only the room it needs, possibly
+ * resulting in some columns remaining empty.
+ * - balance: Content is equally divided between columns. In fragmented contexts, such as [paged
+ * media](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Paged_media), only the last
+ * fragment is balanced. Therefore in paged media, only the last page would be balanced. This is the
+ * default value.
+ *
  * Grammar: auto | balance | balance-all
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-multicol-2/#propdef-column-fill
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-fill
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ColumnFill.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, Balance}.
 
-/**
- * A nominal, specification-constrained column-fill value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    column_fill: Value,
+    column_fill: Auto | Balance | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    column_fill: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "column-fill", css: "auto"}).
-
-/**
- * Returns the CSS keyword balance.
- */
-pub balance(): Value ->
-    Value(Token {property: "column-fill", css: "balance"}).
-
-/**
- * Returns the CSS keyword balance-all.
- */
-pub balance_all(): Value ->
-    Value(Token {property: "column-fill", css: "balance-all"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "column-fill", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "column-fill", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "column-fill", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "column-fill", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "column-fill", css: "unset"}).

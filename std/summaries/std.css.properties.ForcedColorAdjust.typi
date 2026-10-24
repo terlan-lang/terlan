@@ -1,56 +1,36 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-color-adjust-1/#propdef-forced-color-adjust
+//! The `forced-color-adjust` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows
+//! authors to opt certain elements out of forced colors mode. This then restores the control of
+//! those values to CSS.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: The element's colors are adjusted by the `user agent` in forced colors mode. This is the
+//! default value.
+//! - none: The element's colors are not automatically adjusted by the `user agent` in forced colors
+//! mode.
+//! - preserve-parent-color: In forced colors mode, if the `color` property inherits from its parent
+//! (i.e., there is no [cascaded
+//! value](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Introduction) or the
+//! cascaded value is `currentColor`, `inherit`, or another keyword that inherits from the parent),
+//! then it computes to the [used
+//! color](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Property_value_processing#used_value)
+//! of its parent's `color` property. In all other cases, it behaves the same as `none`.
+//!
 //! Grammar: auto | none | preserve-parent-color
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-color-adjust-1/#propdef-forced-color-adjust
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/forced-color-adjust
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ForcedColorAdjust.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    forced_color_adjust: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    forced_color_adjust: Value
+    forced_color_adjust: Auto | None | PreserveParentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained forced-color-adjust value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword preserve-parent-color.
-
-pub preserve_parent_color(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

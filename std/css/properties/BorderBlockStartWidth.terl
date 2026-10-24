@@ -1,108 +1,55 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-block-start-width
+ * The `border-block-start-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * defines the width of the logical block-start border of an element, which maps to a physical
+ * border width depending on the element's writing mode, directionality, and text orientation. It
+ * corresponds to the `border-top-width`, `border-right-width`, `border-bottom-width`, or
+ * `border-left-width` property depending on the values defined for `writing-mode`, `direction`, and
+ * `text-orientation`.
+ *
+ * Initial: medium. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - medium: Same as `3px`. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+ * - thick: Same as `5px`. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+ * - thin: Same as `1px`. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+ *
  * Grammar: <line-width>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-block-start-width
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-block-start-width
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BorderBlockStartWidth.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, serialize}.
+import std.css.keywords.{Medium, Thick, Thin}.
 
 import type std.core.Option.
-import type std.css.Values.{Length}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained border-block-start-width value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    border_block_start_width: Value,
+    border_block_start_width: Thin | Medium | Thick | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the border-block-start-width length range. Returns Some when amount >= 0; otherwise
+ * returns None.
  */
-pub struct OptionalProperty {
-    border_block_start_width: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "border-block-start-width", css: "hairline"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "border-block-start-width", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "border-block-start-width", css: "initial"}).
-
-/**
- * Returns the CSS keyword medium.
- */
-pub medium(): Value ->
-    Value(Token {property: "border-block-start-width", css: "medium"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "border-block-start-width", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "border-block-start-width", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword thick.
- */
-pub thick(): Value ->
-    Value(Token {property: "border-block-start-width", css: "thick"}).
-
-/**
- * Returns the CSS keyword thin.
- */
-pub thin(): Value ->
-    Value(Token {property: "border-block-start-width", css: "thin"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "border-block-start-width", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a border-block-start-width value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(
-                    Token {
-                        property: "border-block-start-width",
-                        css: std.css.Values.length_css(value),
-                    },
-                ),
-            );
-        false -> None
+pub length(value: Length): Option[Checked] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Checked(serialize("border-block-start-width", length_css(value))));
+        false -> Absent
     }.

@@ -1,0 +1,47 @@
+/** Materialized normal-path frontend-retirement evidence producer. */
+module self_host.SelfHostNormalPathAuthorityTool.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, String}.
+import std.io.File.
+
+import self_host.SelfHostNormalPathAuthority.{NormalPathEntry, NormalPathSource}.
+import self_host.SelfHostNormalPathAuthority.
+
+
+read_sources(values: List[NormalPathEntry]): Option[List[NormalPathSource]] ->
+    case values {
+        [] -> Some(List.new[NormalPathSource]());
+        [value | rest] -> case File.read_text(value.path) {
+            Err(_) -> None;
+            Ok(source) -> case read_sources(rest) {
+                None -> None;
+                Some(output) -> Some([NormalPathSource(value, source) | output])
+            }
+        }
+    }.
+
+/** Publishes evidence only after every canonical entry point selects self-hosted authority. */
+pub write(manifest_path: String, output_path: String): Bool ->
+    let _removed = File.delete(output_path);
+    case File.read_text(manifest_path) {
+        Err(_) -> false;
+        Ok(manifest) -> case SelfHostNormalPathAuthority.decode(manifest) {
+            None -> false;
+            Some(entries) -> case read_sources(entries) {
+                None -> false;
+                Some(values) -> if {
+                    not SelfHostNormalPathAuthority.admit(values) -> false;
+                    true -> case File.write_text(
+                        output_path,
+                        SelfHostNormalPathAuthority.render(values),
+                    ) {
+                        Err(_) -> false;
+                        Ok(_) -> true
+                    }
+                }
+            }
+        }
+    }.

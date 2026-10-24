@@ -1,6 +1,5 @@
 //! Hyper body polling preserves package chunk bounds and transport backpressure.
 
-use std::convert::Infallible;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -10,10 +9,11 @@ use hyper::body::{Body, Frame, SizeHint};
 
 use crate::HttpResponseChunks;
 
-/// A buffered response or a package-owned finite pull-driven stream.
+/// Buffered, finite, or live package responses polled by the same Hyper transport.
 pub enum ResponseBody {
     Buffered(Full<Bytes>),
     Stream(HttpResponseChunks),
+    Live(http_body_util::combinators::UnsyncBoxBody<Bytes, crate::ServiceError>),
 }
 
 impl ResponseBody {
@@ -29,17 +29,20 @@ impl ResponseBody {
 
 impl Body for ResponseBody {
     type Data = Bytes;
-    type Error = Infallible;
+    type Error = crate::ServiceError;
 
     fn poll_frame(
         self: Pin<&mut Self>,
         context: &mut Context<'_>,
     ) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
         match self.get_mut() {
-            Self::Buffered(body) => Pin::new(body).poll_frame(context),
+            Self::Buffered(body) => Pin::new(body)
+                .poll_frame(context)
+                .map(|frame| frame.map(|result| result.map_err(|never| match never {}))),
             Self::Stream(stream) => {
                 Poll::Ready(stream.next_chunk().map(|chunk| Ok(Frame::data(chunk))))
             }
+            Self::Live(body) => Pin::new(body).poll_frame(context),
         }
     }
 
@@ -47,13 +50,14 @@ impl Body for ResponseBody {
         match self {
             Self::Buffered(body) => body.is_end_stream(),
             Self::Stream(stream) => stream.is_complete(),
+            Self::Live(body) => body.is_end_stream(),
         }
     }
 
     fn size_hint(&self) -> SizeHint {
         match self {
             Self::Buffered(body) => body.size_hint(),
-            Self::Stream(_) => SizeHint::default(),
+            Self::Stream(_) | Self::Live(_) => SizeHint::default(),
         }
     }
 }

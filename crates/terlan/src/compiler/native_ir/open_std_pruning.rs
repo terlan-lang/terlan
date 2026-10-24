@@ -10,6 +10,74 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use super::QualifiedFunctionIdentity as FunctionKey;
 use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreIntrinsicId, CoreModule};
 
+/// Incremental whole-application call graph for bounded-memory native linking.
+///
+/// Module surfaces are collected before function bodies so call resolution has
+/// the same complete provider inventory as the in-memory linker. Function
+/// edges can then be collected one deserialized module at a time.
+#[derive(Default)]
+pub(crate) struct ApplicationReachabilityGraph {
+    providers: Vec<FunctionKey>,
+    edges: HashMap<FunctionKey, HashSet<FunctionKey>>,
+    reachable: Option<HashSet<FunctionKey>>,
+}
+
+impl ApplicationReachabilityGraph {
+    /// Adds callable, constructor, receiver, and trait-dispatch surfaces.
+    pub(crate) fn add_module_surface(&mut self, core: &CoreModule) {
+        let cores = [core];
+        self.providers.extend(providers(&cores));
+        add_constructor_edges(&cores, &mut self.edges);
+    }
+
+    /// Adds body-derived edges after every application surface is known.
+    pub(crate) fn add_module_calls(&mut self, core: &CoreModule) {
+        for function in &core.functions {
+            let caller = (core.module.clone(), function.name.clone(), function.arity);
+            self.edges
+                .entry(caller)
+                .or_default()
+                .extend(collect_function_calls(function, core, &self.providers));
+        }
+    }
+
+    /// Resolves the transitive callable closure from exact executable roots.
+    pub(crate) fn resolve_roots(
+        &mut self,
+        roots: &[(String, String, usize)],
+    ) -> super::NativeIrResult<()> {
+        for root in roots {
+            if !self.providers.contains(root) {
+                return Err(format!(
+                    "error[native_ir.application_root]: missing executable root `{}.{}/{}`",
+                    root.0, root.1, root.2
+                )
+                .into());
+            }
+        }
+        let mut reachable = roots.iter().cloned().collect::<HashSet<_>>();
+        let mut queue = roots.iter().cloned().collect::<VecDeque<_>>();
+        while let Some(caller) = queue.pop_front() {
+            for callee in self.edges.get(&caller).into_iter().flatten() {
+                if reachable.insert(callee.clone()) {
+                    queue.push_back(callee.clone());
+                }
+            }
+        }
+        self.reachable = Some(reachable);
+        Ok(())
+    }
+
+    /// Removes function bodies outside the previously resolved root closure.
+    pub(crate) fn prune_module(&self, core: &mut CoreModule) {
+        let reachable = self
+            .reachable
+            .as_ref()
+            .expect("application reachability roots must be resolved before pruning");
+        retain_module_function_roots(core, reachable);
+    }
+}
+
 mod trait_methods;
 
 #[cfg(test)]
@@ -130,49 +198,35 @@ fn application_reachable_function_roots(
     cores: &[&CoreModule],
     roots: &[(String, String, usize)],
 ) -> super::NativeIrResult<HashSet<FunctionKey>> {
-    let providers = providers(cores);
-    for root in roots {
-        if !providers.contains(root) {
-            return Err(format!(
-                "error[native_ir.application_root]: missing executable root `{}.{}/{}`",
-                root.0, root.1, root.2
-            )
-            .into());
-        }
+    let mut graph = ApplicationReachabilityGraph::default();
+    for core in cores {
+        graph.add_module_surface(core);
     }
-    let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
-    add_constructor_edges(cores, &mut edges);
-    for core in cores.iter() {
-        for function in &core.functions {
-            let caller = (core.module.clone(), function.name.clone(), function.arity);
-            let calls = collect_function_calls(function, core, &providers);
-            edges.entry(caller).or_default().extend(calls);
-        }
+    for core in cores {
+        graph.add_module_calls(core);
     }
-    let mut reachable = roots.iter().cloned().collect::<HashSet<_>>();
-    let mut queue = roots.iter().cloned().collect::<VecDeque<_>>();
-    while let Some(caller) = queue.pop_front() {
-        for callee in edges.get(&caller).into_iter().flatten() {
-            if reachable.insert(callee.clone()) {
-                queue.push_back(callee.clone());
-            }
-        }
-    }
-    Ok(reachable)
+    graph.resolve_roots(roots)?;
+    Ok(graph
+        .reachable
+        .expect("resolved application graph contains a reachable closure"))
 }
 
 fn retain_application_function_roots(cores: &mut [CoreModule], reachable: &HashSet<FunctionKey>) {
     for core in cores {
-        core.functions.retain(|function| {
-            reachable.contains(&(core.module.clone(), function.name.clone(), function.arity))
-        });
-        core.exports.retain(|export| {
-            let CoreExportKind::Function { arity } = export.kind else {
-                return true;
-            };
-            reachable.contains(&(core.module.clone(), export.name.clone(), arity))
-        });
+        retain_module_function_roots(core, reachable);
     }
+}
+
+fn retain_module_function_roots(core: &mut CoreModule, reachable: &HashSet<FunctionKey>) {
+    core.functions.retain(|function| {
+        reachable.contains(&(core.module.clone(), function.name.clone(), function.arity))
+    });
+    core.exports.retain(|export| {
+        let CoreExportKind::Function { arity } = export.kind else {
+            return true;
+        };
+        reachable.contains(&(core.module.clone(), export.name.clone(), arity))
+    });
 }
 
 /// Removes `std.*` functions that have no path from an executable application
@@ -505,7 +559,7 @@ fn collect_calls(
                 calls.insert(target);
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             collect_many(items, caller, providers, calls)
         }
         CoreExpr::ListCons { head, tail }

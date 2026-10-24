@@ -1,0 +1,6 @@
+//! Shared CSS keyword cursive. Generated; do not edit.
+
+module std.css.keywords.Cursive.
+
+pub type Cursive =
+    Atom["cursive"].

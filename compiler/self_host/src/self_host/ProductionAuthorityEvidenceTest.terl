@@ -1,0 +1,101 @@
+/** Persisted production-authority evidence contracts. */
+module self_host.ProductionAuthorityEvidenceTest.
+
+import self_host.ProductionAuthorityEvidence.
+import std.core.String.
+
+@pure
+complete(schema: String, tooling: String, extra: String): String ->
+    String.concat([
+        "schema\t", schema, "\n",
+        "frontend-authority\tpass\n",
+        "type-system-authority\tpass\n",
+        "core-ir-authority\tpass\n",
+        "actor-ir-authority\tpass\n",
+        "backend-complete\tpass\n",
+        "actor-backend-complete\tpass\n",
+        "driver-authority\tpass\n",
+        "actor-tooling-authority\tpass\n",
+        "actor-profile-catalog-authority\tpass\n",
+        "actor-profile-projection-converged\tpass\n",
+        "bootstrap-converged\tpass\n",
+        "actor-bootstrap-converged\tpass\n",
+        "performance-within-budget\tpass\n",
+        "recovery-bootstrap\tpass\n",
+        "trusted-base-documented\tpass\n",
+        "no-ad-hoc-exclusions\tpass\n",
+        "stage1-identity\tsha256:fixed\n",
+        "stage2-identity\tsha256:fixed\n",
+        "stage1-actor-identity\tsha256:actor-fixed\n",
+        "stage2-actor-identity\tsha256:actor-fixed\n",
+        "pattern-semantics-authority\tpass\n",
+        "backend-language-complete\tpass\n",
+        tooling,
+        "nested-control-flow-complete\tpass\n",
+        "complete-pattern-surface\tpass\n",
+        "bootstrap-workarounds-removed\tpass\n",
+        "idiomatic-source-restored\tpass\n",
+        "pattern-decision-tree-complete\tpass\n",
+        "self-analysis-resource-bounds\tpass\n",
+        "compiler-regression-corpus-complete\tpass\n",
+        "minimal-trusted-base\tpass\n",
+        "rust-frontend-removed-from-normal-paths\tpass\n",
+        "post-cleanup-converged\tpass\n",
+        "dynamic-call-target-authority\tpass\n",
+        "target-independent-optimizer-authority\tpass\n",
+        "bounded-parallel-backend-authority\tpass\n",
+        extra,
+    ]).
+
+@test
+pub complete_catalog_is_transferable(): Bool ->
+    ProductionAuthorityEvidence.evaluate(complete(
+        "terlan.self-host.production-authority/v1",
+        "tooling-authority\tpass\n",
+        "",
+    )).transferable.
+
+@test
+pub missing_gate_fails_closed(): Bool ->
+    let source = complete("terlan.self-host.production-authority/v1", "", "");
+    let decision = ProductionAuthorityEvidence.evaluate(source);
+    not decision.transferable and decision.retain_terlc0.
+
+@test
+pub duplicate_gate_fails_closed(): Bool ->
+    let decision = ProductionAuthorityEvidence.evaluate(
+        complete(
+            "terlan.self-host.production-authority/v1",
+            "tooling-authority\tpass\n",
+            "frontend-authority\tpass\n",
+        ),
+    );
+    not decision.transferable and decision.retain_terlc0.
+
+@test
+pub malformed_row_fails_closed(): Bool ->
+    let decision = ProductionAuthorityEvidence.evaluate(complete(
+        "terlan.self-host.production-authority/v1",
+        "tooling-authority\tpass\n",
+        "malformed\n",
+    ));
+    not decision.transferable and decision.retain_terlc0.
+
+@test
+pub wrong_schema_fails_closed(): Bool ->
+    let source = complete(
+        "terlan.self-host.production-authority/v0",
+        "tooling-authority\tpass\n",
+        "",
+    );
+    let decision = ProductionAuthorityEvidence.evaluate(source);
+    not decision.transferable and decision.retain_terlc0.
+
+@test
+pub unknown_gate_fails_closed(): Bool ->
+    let decision = ProductionAuthorityEvidence.evaluate(complete(
+        "terlan.self-host.production-authority/v1",
+        "tooling-authority\tpass\n",
+        "toolng-authority\tpass\n",
+    ));
+    not decision.transferable and decision.retain_terlc0.

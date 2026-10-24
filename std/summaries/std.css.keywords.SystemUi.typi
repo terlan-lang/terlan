@@ -1,0 +1,6 @@
+//! Shared CSS keyword system-ui. Generated; do not edit.
+
+module std.css.keywords.SystemUi.
+
+pub type SystemUi =
+    Atom["system-ui"].

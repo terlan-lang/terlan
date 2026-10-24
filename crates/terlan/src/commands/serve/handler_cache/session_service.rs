@@ -1,20 +1,22 @@
-//! Application-lifetime VM HTTP session service ownership.
+//! Host application identity and scheduler wiring for package-owned sessions.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{OnceLock, RwLock};
+use std::sync::OnceLock;
 
 use terlan_runtime_abi::{BoundaryError, ErrorDomain};
 
 use crate::runtime::vm::actor_state::VmActorStateStore;
 use crate::runtime::vm::protocol_task_executor::VmProtocolMaintenance;
-use terlan_http_native::session_service::SessionService;
+use terlan_http_native::session_service::{
+    ApplicationSessions, SessionService, SESSION_MAINTENANCE_INTERVAL,
+};
 use terlan_http_native::session_store::SessionStore;
 
 type HttpSessionService = SessionService<SessionStore<VmActorStateStore>>;
 
-static HTTP_SESSION_SERVICES: OnceLock<RwLock<HashMap<PathBuf, HttpSessionService>>> =
-    OnceLock::new();
+static HTTP_SESSION_SERVICES: OnceLock<
+    ApplicationSessions<PathBuf, SessionStore<VmActorStateStore>>,
+> = OnceLock::new();
 
 fn session_error(rendered: impl Into<String>) -> BoundaryError {
     BoundaryError::message(
@@ -24,7 +26,7 @@ fn session_error(rendered: impl Into<String>) -> BoundaryError {
     )
 }
 
-/// Returns the VM-owned session service for one served application.
+/// Returns the package-owned session service for one served application.
 ///
 /// Handler generations are disposable code images: watcher invalidation and
 /// hot reload may replace them at any time. Session actors instead belong to
@@ -38,24 +40,11 @@ pub(super) fn http_session_service_for(
             web_root.display()
         ))
     })?;
-    let services = HTTP_SESSION_SERVICES.get_or_init(|| RwLock::new(HashMap::new()));
-    if let Some(service) = services
-        .read()
-        .map_err(|_| session_error("error[serve.session_cache]: session service lock poisoned"))?
-        .get(&key)
-        .cloned()
-    {
-        return Ok(service);
-    }
-    let service = new_session_service();
-    service.start_clock()?;
-    let mut services = services
-        .write()
-        .map_err(|_| session_error("error[serve.session_cache]: session service lock poisoned"))?;
-    Ok(services
-        .entry(key)
-        .or_insert_with(|| service.clone())
-        .clone())
+    HTTP_SESSION_SERVICES
+        .get_or_init(ApplicationSessions::default)
+        .get_or_create(key, || {
+            SessionStore::for_application(VmActorStateStore::default())
+        })
 }
 
 /// The application keeps its session clock across handler image generations.
@@ -64,15 +53,13 @@ pub(in crate::commands::serve) fn http_session_maintenance_for(
     web_root: &Path,
 ) -> Result<VmProtocolMaintenance, BoundaryError> {
     let service = http_session_service_for(web_root)?;
-    VmProtocolMaintenance::new(std::time::Duration::from_secs(1), move || {
-        service.maintain(64)
+    VmProtocolMaintenance::new(SESSION_MAINTENANCE_INTERVAL, move || {
+        service.maintain_application()
     })
 }
 
 /// Creates an isolated application context; the serving owner attaches its clock.
+#[cfg(test)]
 pub(super) fn new_session_service() -> HttpSessionService {
-    SessionService::new(SessionStore::new(
-        VmActorStateStore::default(),
-        terlan_http_native::session_registry::RecoveryPolicy::CreateLocalReplacement,
-    ))
+    SessionService::new(SessionStore::for_application(VmActorStateStore::default()))
 }

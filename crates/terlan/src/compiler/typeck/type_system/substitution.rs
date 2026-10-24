@@ -85,43 +85,18 @@ fn expand_type_aliases_inner(
             args,
         } => {
             let qualified_name = format!("{}.{}", module, name);
-            // A primary module path names its same-named exported type. Keep
-            // alias table keys and nominal identities stable so global short
-            // name uniqueness and backend ownership do not change.
-            let primary_key = format!("{qualified_name}.{name}");
-            let primary_alias = aliases.get(&primary_key);
-            if !aliases.contains_key(&qualified_name) {
-                if let Some(alias) = primary_alias.filter(|alias| alias.params.len() == args.len())
-                {
-                    let args = args
-                        .iter()
-                        .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
-                        .collect::<Vec<_>>();
-                    if alias.is_opaque {
-                        return Type::Named {
-                            module: Some(qualified_name),
-                            name: name.clone(),
-                            args,
-                        };
-                    }
-                    if !active_aliases.insert(primary_key.clone()) {
-                        return ty.clone();
-                    }
-                    let mapping = alias.params.iter().copied().zip(args).collect();
-                    let expanded = expand_type_aliases_inner(
-                        &substitute_type_vars(&alias.body, &mapping),
-                        aliases,
-                        active_aliases,
-                    );
-                    active_aliases.remove(&primary_key);
-                    return expanded;
-                }
-            }
-            if let Some(alias) = aliases.get(&qualified_name) {
+            let default_type_name = format!("{}.{}", qualified_name, name);
+            if let Some((qualified_name, alias)) = aliases
+                .get_key_value(&qualified_name)
+                .or_else(|| aliases.get_key_value(&default_type_name))
+            {
                 if alias.is_opaque {
+                    let (canonical_module, canonical_name) = qualified_name
+                        .rsplit_once('.')
+                        .expect("qualified alias key has a type segment");
                     return Type::Named {
-                        module: Some(module.clone()),
-                        name: name.clone(),
+                        module: Some(canonical_module.to_string()),
+                        name: canonical_name.to_string(),
                         args: args
                             .iter()
                             .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
@@ -149,7 +124,7 @@ fn expand_type_aliases_inner(
                     aliases,
                     active_aliases,
                 );
-                active_aliases.remove(&qualified_name);
+                active_aliases.remove(qualified_name);
                 expanded
             } else {
                 Type::Named {
@@ -207,7 +182,7 @@ fn expand_type_aliases_inner(
                 .collect(),
             ret: Box::new(expand_type_aliases_inner(ret, aliases, active_aliases)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: *size,
             elem: Box::new(expand_type_aliases_inner(elem, aliases, active_aliases)),
         },
@@ -278,7 +253,7 @@ pub(crate) fn substitute_type_vars(ty: &Type, mapping: &HashMap<TypeVarId, Type>
                 .collect(),
             ret: Box::new(substitute_type_vars(ret, mapping)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: size.substitute(mapping),
             elem: Box::new(substitute_type_vars(elem, mapping)),
         },
@@ -435,7 +410,7 @@ fn rename_type_vars(ty: &Type, mapping: &HashMap<TypeVarId, TypeVarId>) -> Type 
                 .collect(),
             ret: Box::new(rename_type_vars(ret, mapping)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: size.rename(mapping),
             elem: Box::new(rename_type_vars(elem, mapping)),
         },

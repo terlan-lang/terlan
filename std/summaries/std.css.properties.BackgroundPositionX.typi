@@ -1,48 +1,27 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-x
+//! The `background-position-x` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! the initial horizontal position for each background image. The position is relative to the
+//! position layer set by `background-origin`.
+//!
+//! Initial: 0%. Inherited: no.
+//! Percentages: refer to width of background positioning area minus width of background image.
+//!
+//! Keyword effects:
+//! - center: Aligns the center of the background image with the center of the background position
+//! layer.
+//!
 //! Grammar: [ center | [ [ left | right | x-start | x-end ]? <length-percentage>? ]! ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-x
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/background-position-x
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BackgroundPositionX.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    background_position_x: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    background_position_x: Value
+    background_position_x: Center | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained background-position-x value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

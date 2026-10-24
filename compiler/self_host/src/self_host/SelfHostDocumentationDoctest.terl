@@ -1,0 +1,90 @@
+/** Extracts executable Terlan documentation fences for self-hosted doctests. */
+module self_host.SelfHostDocumentationDoctest.
+
+import self_host.SelfHostDocumentation.{DocumentationItem, DocumentationModule}.
+import std.core.String.
+
+pub struct DoctestExtraction {
+    valid: Bool,
+    blocks: List[String],
+    message: String,
+}.
+
+pub constructor DoctestExtraction {
+    (valid: Bool, blocks: List[String], message: String): DoctestExtraction ->
+        DoctestExtraction { valid: valid, blocks: blocks, message: message }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+opening_mode(line: String): Int ->
+    case line {
+        "```terlan" -> 1;
+        "``` terlan" -> 1;
+        _ -> 2
+    }.
+
+scan(
+    lines: List[String],
+    mode: Int,
+    current: String,
+    blocks: List[String],
+): DoctestExtraction ->
+    case lines {
+        [] ->
+            if {
+                mode == 0 -> DoctestExtraction(true, blocks, "");
+                true -> DoctestExtraction(false, [], "unclosed doc code fence")
+            };
+        [line | rest] ->
+            let normalized = String.trim(line);
+            if {
+                mode == 0 and String.starts_with(normalized, "```") ->
+                    scan(rest, opening_mode(normalized), "", blocks);
+                mode == 1 and String.starts_with(normalized, "```") ->
+                    scan(rest, 0, "", append(blocks, [current]));
+                mode == 2 and String.starts_with(normalized, "```") ->
+                    scan(rest, 0, "", blocks);
+                mode == 1 -> scan(
+                    rest,
+                    1,
+                    String.concat([current, line, "\n"]),
+                    blocks,
+                );
+                true -> scan(rest, mode, current, blocks)
+            }
+    }.
+
+/** Extracts executable blocks from one independently validated doc block. */
+pub extract(docs: String): DoctestExtraction ->
+    scan(String.split(docs, "\n"), 0, "", []).
+
+collect_items(
+    items: List[DocumentationItem],
+    blocks: List[String],
+): DoctestExtraction ->
+    case items {
+        [] -> DoctestExtraction(true, blocks, "");
+        [item | rest] ->
+            let extracted = extract(item.docs);
+            if {
+                not extracted.valid -> extracted;
+                true -> collect_items(rest, append(blocks, extracted.blocks))
+            }
+    }.
+
+/** Collects executable fences in stable module-then-declaration order. */
+pub extract_module(documentation: DocumentationModule): DoctestExtraction ->
+    if {
+        not documentation.valid -> DoctestExtraction(false, [], documentation.message);
+        true ->
+            let module_blocks = extract(documentation.module_docs);
+            if {
+                not module_blocks.valid -> module_blocks;
+                true -> collect_items(documentation.items, module_blocks.blocks)
+            }
+    }.

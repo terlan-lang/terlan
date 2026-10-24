@@ -32,6 +32,19 @@ pub(in crate::commands::serve) fn open(
     .map_err(String::from)
 }
 
+pub(in crate::commands::serve) async fn open_suspendable(
+    runtime: Arc<AotHandlerRuntime>,
+    module: String,
+    live: Session<ReplValue>,
+) -> Result<AotWebSocketCallbackSession, String> {
+    AotWebSocketCallbackSession::open_suspendable(
+        AotChannelInvocation::new("websocket", runtime, module),
+        live,
+    )
+    .await
+    .map_err(String::from)
+}
+
 #[cfg(test)]
 #[path = "websocket_invocation_test.rs"]
 #[cfg(test)]
@@ -40,3 +53,7 @@ mod websocket_invocation_test;
 #[cfg(test)]
 #[path = "websocket_identity_test.rs"]
 mod websocket_identity_test;
+
+#[cfg(test)]
+#[path = "websocket_terminal_test.rs"]
+mod websocket_terminal_test;

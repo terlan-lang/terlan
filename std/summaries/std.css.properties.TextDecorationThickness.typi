@@ -1,80 +1,36 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-thickness
+//! The `text-decoration-thickness` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! sets the stroke thickness of the decoration line that is used on text in an element, such as a
+//! line-through, underline, or overline.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: refer to the font size of the element itself.
+//!
+//! Keyword effects:
+//! - auto: The browser chooses an appropriate width for the text decoration line.
+//! - from-font: If the font file includes information about a preferred thickness, use that value.
+//! If the font file doesn't include this information, behave as if `auto` was set, with the browser
+//! choosing an appropriate thickness.
+//!
 //! Grammar: auto | from-font | <length-percentage> | <line-width>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-thickness
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-thickness
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextDecorationThickness.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    text_decoration_thickness: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    text_decoration_thickness: Value
+    text_decoration_thickness: Auto | FromFont | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained text-decoration-thickness value.
+/// Checks the text-decoration-thickness length range. Returns Some when amount >= 0; otherwise
+/// returns None.
 
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword from-font.
-
-pub from_font(): Value.
-
-/// Returns the CSS keyword hairline.
-
-pub hairline(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a text-decoration-thickness value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Checks the specification range and constructs a text-decoration-thickness value.
-
-pub length_2(value: std.css.Values.Length): Option[Value].
-
-/// Returns the CSS keyword medium.
-
-pub medium(): Value.
-
-/// Constructs a text-decoration-thickness value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword thick.
-
-pub thick(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub length(value: std.css.Values.Length): Option[Checked].

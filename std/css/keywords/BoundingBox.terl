@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword bounding-box. Generated; do not edit.
+ */
+module std.css.keywords.BoundingBox.
+
+pub type BoundingBox = Atom["bounding-box"].

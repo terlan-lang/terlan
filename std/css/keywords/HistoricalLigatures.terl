@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword historical-ligatures. Generated; do not edit.
+ */
+module std.css.keywords.HistoricalLigatures.
+
+pub type HistoricalLigatures = Atom["historical-ligatures"].

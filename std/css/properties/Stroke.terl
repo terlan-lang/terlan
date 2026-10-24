@@ -1,75 +1,35 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeProperty
+ * The `stroke` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the color
+ * or SVG paint server used to draw an element's stroke. As such, `stroke` only has an effect on
+ * elements that can be given a stroke (for example, `rect` or `ellipse`); see the page on the SVG
+ * `stroke` attribute for a complete list. When declared, the CSS value overrides any value of the
+ * element's `stroke` SVG attribute.
+ *
+ * Initial: stroke-dasharray: none; stroke-dashoffset: 0; stroke-linecap: butt; stroke-linejoin:
+ * miter; stroke-miterlimit: 4; stroke-opacity: 1; stroke-width: 1px. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - none: No paint is applied in this layer.
+ *
  * Grammar: <paint>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeProperty
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Stroke.
 
-import type std.core.Option.
+import std.css.keywords.None.
 
-/**
- * A nominal, specification-constrained stroke value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    stroke: Value,
+    stroke: None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    stroke: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword child.
- */
-pub child(): Value ->
-    Value(Token {property: "stroke", css: "child"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "stroke", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "stroke", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "stroke", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "stroke", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "stroke", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "stroke", css: "unset"}).

@@ -1,0 +1,6 @@
+//! Shared CSS keyword all-petite-caps. Generated; do not edit.
+
+module std.css.keywords.AllPetiteCaps.
+
+pub type AllPetiteCaps =
+    Atom["all-petite-caps"].

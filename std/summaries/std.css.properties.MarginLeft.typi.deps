@@ -1,10 +1,10 @@
 module=std.css.properties.MarginLeft
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=18430245210819200637
-interface_hash=18362372375477661922
-interface_doc_hash=12365250137724666547
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=14438401315866291523
+interface_hash=3902210426081614474
+interface_doc_hash=11193620890857191577
 deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722

@@ -1,0 +1,70 @@
+/** Typed Core lowering contracts for array literals. */
+module self_host.ProjectedArrayIrPlanTest.
+
+import self_host.ProjectedExpressionIrPlan.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedTypeConstraintSyntax.InferredTypeFact.
+import self_host.SelfHostSemanticIrSyntax.SemanticInstructionPlan.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+
+last_instruction(
+    values: List[SemanticInstructionPlan],
+    current: Option[SemanticInstructionPlan],
+): Option[SemanticInstructionPlan] ->
+    case values {
+        [] -> current;
+        [value | rest] -> last_instruction(rest, Some(value))
+    }.
+
+@test
+pub array_uses_a_homogeneous_managed_constructor(): Bool ->
+    let expression = ProjectedExpressionNode(
+        "array",
+        "#[",
+        10,
+        17,
+        [ProjectedExpressionNode(
+            "sequence",
+            ",",
+            12,
+            16,
+            [
+                ProjectedExpressionNode("integer", "1", 12, 13, []),
+                ProjectedExpressionNode("integer", "2", 15, 16, []),
+            ],
+        )],
+    );
+    let plan = ProjectedExpressionIrPlan.lower_expression(
+        expression,
+        0,
+        [
+            InferredTypeFact(0, Some("Array[2, Int]"), 10),
+            InferredTypeFact(2, Some("Int"), 12),
+            InferredTypeFact(3, Some("Int"), 15),
+        ],
+        [],
+    );
+    case last_instruction(plan.instructions, None) {
+        None -> false;
+        Some(instruction) -> instruction.opcode == "put-array"
+            and instruction.operands == ["%2", "%3"]
+            and instruction.resolved_type == Some("Array[2, Int]")
+    }.
+
+@test
+pub contextual_empty_array_emits_zero_typed_operands(): Bool ->
+    let plan = ProjectedExpressionIrPlan.lower_expression(
+        ProjectedExpressionNode("array", "#[", 20, 22, []),
+        0,
+        [InferredTypeFact(0, Some("Array[0, Int]"), 20)],
+        [],
+    );
+    array_uses_a_homogeneous_managed_constructor()
+        and case last_instruction(plan.instructions, None) {
+            Some(instruction) -> instruction.opcode == "put-array"
+                and instruction.operands == []
+                and instruction.operand_types == []
+                and instruction.resolved_type == Some("Array[0, Int]");
+            None -> false
+        }.

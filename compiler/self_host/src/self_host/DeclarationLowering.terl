@@ -1,6 +1,8 @@
 /** Lowers lossless surface declarations into stable typed identities. */
 module self_host.DeclarationLowering.
 
+import std.core.String.
+
 import self_host.DeclarationSyntax.{DeclarationSyntax, ModuleSyntax}.
 import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, DeclarationClass, ExportDeclaration, FunctionDeclaration, ImportDeclaration, MethodDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, SurfaceDeclaration, SurfaceModule, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration}.
 

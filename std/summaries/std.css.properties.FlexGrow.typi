@@ -1,48 +1,30 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-grow
+//! The `flex-grow` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the flex
+//! grow factor, which specifies how much of the flex container's [positive free
+//! space](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Controlling_flex_item_ratios),
+//! if any, should be assigned to the flex item's [main
+//! size](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Flexbox#the_flex_model).
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <number [0,∞]>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-grow
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-grow
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FlexGrow.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    flex_grow: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    flex_grow: Value
+    flex_grow: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained flex-grow value.
+/// Checks the flex-grow number range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a flex-grow value.
-
-pub number(value: Float): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub number(value: Float): Option[Checked].

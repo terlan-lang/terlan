@@ -1,93 +1,40 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-speech-1/#propdef-speak-as
+ * The `speak-as` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property is used to define
+ * how [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML) content is spoken. The one to three
+ * enumerated key terms determine the manner by which elements and text get rendered by aural
+ * technologies, such as `screen readers` and digital assistants.
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - digits: Numbers are pronounced as individual digits. For example, "31" would be pronounced as
+ * "three one".
+ * - literal-punctuation: Punctuation marks are spelled out literally. For example, "Hello, world!"
+ * would be pronounced as "Hello comma world exclamation mark."
+ * - no-punctuation: Content is pronounced normally without any punctuation. For example, "Hello,
+ * world!" would be pronounced as "Hello" "world".
+ * - normal: Normal pronunciation rules with punctuation replaced by pauses. For example, "Hello,
+ * world!" would be pronounced as "Hello (pause) world (pause)". This is the default value.
+ * - spell-out: Content is spelled out letter by letter. For example, "role" would be pronounced as
+ * "r" "o" "l" "e".
+ *
  * Grammar: normal | spell-out || digits || [ literal-punctuation | no-punctuation ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-speech-1/#propdef-speak-as
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/speak-as
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.SpeakAs.
 
-import type std.core.Option.
+import std.css.keywords.{Digits, LiteralPunctuation, NoPunctuation, Normal, SpellOut}.
 
-/**
- * A nominal, specification-constrained speak-as value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    speak_as: Value,
+    speak_as: Normal | SpellOut | Digits | LiteralPunctuation | NoPunctuation | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    speak_as: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword digits.
- */
-pub digits(): Value ->
-    Value(Token {property: "speak-as", css: "digits"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "speak-as", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "speak-as", css: "initial"}).
-
-/**
- * Returns the CSS keyword literal-punctuation.
- */
-pub literal_punctuation(): Value ->
-    Value(Token {property: "speak-as", css: "literal-punctuation"}).
-
-/**
- * Returns the CSS keyword no-punctuation.
- */
-pub no_punctuation(): Value ->
-    Value(Token {property: "speak-as", css: "no-punctuation"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "speak-as", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "speak-as", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "speak-as", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword spell-out.
- */
-pub spell_out(): Value ->
-    Value(Token {property: "speak-as", css: "spell-out"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "speak-as", css: "unset"}).

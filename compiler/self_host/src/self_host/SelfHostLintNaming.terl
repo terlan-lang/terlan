@@ -1,0 +1,117 @@
+/** Canonical naming predicates for self-hosted lint rules TL0301-TL0304. */
+module self_host.SelfHostLintNaming.
+
+import std.core.String.
+
+ascii_lower(value: Int): Bool -> value >= 97 and value <= 122.
+ascii_upper(value: Int): Bool -> value >= 65 and value <= 90.
+ascii_digit(value: Int): Bool -> value >= 48 and value <= 57.
+ascii_alphanumeric(value: Int): Bool ->
+    ascii_lower(value) or ascii_upper(value) or ascii_digit(value).
+
+lower_snake_at(
+    values: List[Int],
+    index: Int,
+    previous_underscore: Bool,
+    saw_value: Bool,
+): Bool ->
+    case values {
+        [] -> saw_value and not previous_underscore;
+        [value | rest] ->
+            if {
+                value == 95 ->
+                    if {
+                        index == 0 or previous_underscore -> false;
+                        true -> lower_snake_at(rest, index + 1, true, saw_value)
+                    };
+                ascii_lower(value) or ascii_digit(value) ->
+                    lower_snake_at(rest, index + 1, false, true);
+                true -> false
+            }
+    }.
+
+/** Implements TL0301 lower_snake_case exactly over ASCII source names. */
+@pure
+pub lower_snake_case(name: String): Bool ->
+    lower_snake_at(String.codepoints(name), 0, false, false).
+
+/** Implements TL0304, allowing exactly one leading underscore for unused values. */
+@pure
+pub lower_snake_binding(name: String): Bool ->
+    if {
+        String.starts_with(name, "_") ->
+            lower_snake_case(String.utf8_slice(name, 1, String.byte_size(name) - 1));
+        true -> lower_snake_case(name)
+    }.
+
+upper_camel_rest(values: List[Int]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            if { ascii_alphanumeric(value) -> upper_camel_rest(rest); true -> false }
+    }.
+
+/** Implements TL0302 UpperCamelCase exactly over ASCII source names. */
+@pure
+pub upper_camel_case(name: String): Bool ->
+    case String.codepoints(name) {
+        [] -> false;
+        [first | rest] ->
+            if { ascii_upper(first) -> upper_camel_rest(rest); true -> false }
+    }.
+
+/** Normalizes a declaration name for TL0303 collision comparison. */
+@pure
+pub collision_key(name: String): String ->
+    String.replace(String.lowercase(name), "_", "").
+
+struct SeenName {
+    key: String,
+    name: String,
+}.
+
+constructor SeenName {
+    (key: String, name: String): SeenName -> SeenName { key: key, name: name }
+}.
+
+previous_name(key: String, values: List[SeenName]): String ->
+    case values {
+        [] -> "";
+        [value | rest] ->
+            if { value.key == key -> value.name; true -> previous_name(key, rest) }
+    }.
+
+collision_names_at(
+    names: List[String],
+    seen: List[SeenName],
+    collisions: List[String],
+): List[String] ->
+    case names {
+        [] -> collisions;
+        [name | rest] ->
+            let key = collision_key(name);
+            let previous = previous_name(key, seen);
+            if {
+                previous == "" -> collision_names_at(
+                    rest,
+                    [SeenName(key, name) | seen],
+                    collisions,
+                );
+                previous == name -> collision_names_at(rest, seen, collisions);
+                true -> collision_names_at(
+                    rest,
+                    [SeenName(key, name) | seen],
+                    append(collisions, [name]),
+                )
+            }
+    }.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+/** Returns each later declaration that collides after case/underscore erasure. */
+pub collision_names(names: List[String]): List[String] ->
+    collision_names_at(names, [], []).

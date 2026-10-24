@@ -1,105 +1,41 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `text-decoration-line` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * the kind of decoration that is used on text in an element, such as an underline or overline.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - blink: The text blinks (alternates between visible and invisible). Conforming user agents may
+ * not blink the text. This value is deprecated in favor of [CSS
+ * animations](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation).
+ * - grammar-error: Each line of text uses the user agents' method of highlighting grammar mistakes,
+ * which is a dotted green line in most browsers.
+ * - line-through: Each line of text has a decorative line going through its middle.
+ * - none: Produces no text decoration.
+ * - overline: Each line of text has a decorative line above it.
+ * - spelling-error: Each line of text uses the user agents' method of highlighting spelling
+ * mistakes, which is a dotted red line in most browsers.
+ * - underline: Each line of text has a decorative line beneath it.
+ *
+ * Grammar: none | [ underline || overline || line-through || blink ] | spelling-error |
+ * grammar-error
+ *
  * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-line
- * Grammar: none | [ underline || overline || line-through || blink ] | spelling-error | grammar-error
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-line
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextDecorationLine.
 
-import type std.core.Option.
+import std.css.keywords.{Blink, GrammarError, LineThrough, None, Overline, SpellingError, Underline}.
 
-/**
- * A nominal, specification-constrained text-decoration-line value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_decoration_line: Value,
+    text_decoration_line: None | Underline | Overline | LineThrough | Blink | SpellingError | GrammarError | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    text_decoration_line: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword blink.
- */
-pub blink(): Value ->
-    Value(Token {property: "text-decoration-line", css: "blink"}).
-
-/**
- * Returns the CSS keyword grammar-error.
- */
-pub grammar_error(): Value ->
-    Value(Token {property: "text-decoration-line", css: "grammar-error"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-decoration-line", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-decoration-line", css: "initial"}).
-
-/**
- * Returns the CSS keyword line-through.
- */
-pub line_through(): Value ->
-    Value(Token {property: "text-decoration-line", css: "line-through"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "text-decoration-line", css: "none"}).
-
-/**
- * Returns the CSS keyword overline.
- */
-pub overline(): Value ->
-    Value(Token {property: "text-decoration-line", css: "overline"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-decoration-line", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-decoration-line", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword spelling-error.
- */
-pub spelling_error(): Value ->
-    Value(Token {property: "text-decoration-line", css: "spelling-error"}).
-
-/**
- * Returns the CSS keyword underline.
- */
-pub underline(): Value ->
-    Value(Token {property: "text-decoration-line", css: "underline"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-decoration-line", css: "unset"}).

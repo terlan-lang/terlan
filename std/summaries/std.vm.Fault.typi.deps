@@ -1,10 +1,10 @@
 module=std.vm.Fault
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=3960037787398083231
 interface_hash=5699234610220639365
 interface_doc_hash=10978989054579620565
 deps=2
-std.collections.List=11851348535083755949
+std.collections.List=17926552303886713136
 std.core.Option=11539230284316612175

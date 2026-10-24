@@ -1,9 +1,11 @@
 module=std.css.properties.Isolation
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17801496494113164631
-interface_hash=7261866184800872090
-interface_doc_hash=7530594892046710720
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=13977757073680312293
+interface_hash=857006163190248328
+interface_doc_hash=1115186751748859100
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722
+std.css.keywords.Isolate=10891308195373098111

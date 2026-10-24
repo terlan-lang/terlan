@@ -29,6 +29,7 @@ module	std.collections.List	std/collections/List.terl	std/summaries/std.collecti
 module	std.collections.Map	std/collections/Map.terl	std/summaries/std.collections.Map.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Map.html
 module	std.collections.Set	std/collections/Set.terl	std/summaries/std.collections.Set.typi	tests/std/RELEASE_API_TESTS.tsv	std.collections.Set.html
 module	std.crypto.Hash	std/crypto/Hash.terl	std/summaries/std.crypto.Hash.typi	tests/std/RELEASE_API_TESTS.tsv	std.crypto.Hash.html
+module	std.crypto.Entropy	std/crypto/Entropy.terl	std/summaries/std.crypto.Entropy.typi	tests/std/RELEASE_API_TESTS.tsv	std.crypto.Entropy.html
 module	std.crypto.Ed25519	std/crypto/Ed25519.terl	std/summaries/std.crypto.Ed25519.typi	tests/std/RELEASE_API_TESTS.tsv	std.crypto.Ed25519.html
 module	std.data.Json	std/data/Json.terl	std/summaries/std.data.Json.typi	tests/std/RELEASE_API_TESTS.tsv	std.data.Json.html
 module	std.data.Toml	std/data/Toml.terl	std/summaries/std.data.Toml.typi	tests/std/RELEASE_API_TESTS.tsv	std.data.Toml.html

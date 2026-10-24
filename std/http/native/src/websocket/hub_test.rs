@@ -1,5 +1,26 @@
 use super::*;
 
+#[path = "hub_transition_test.rs"]
+mod transition_tests;
+
+fn complete<T>(future: impl Future<Output = T>) -> T {
+    use std::task::{Context, Poll, Waker};
+    let mut future = std::pin::pin!(future);
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        match future
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop()))
+        {
+            Poll::Ready(value) => return value,
+            Poll::Pending => {
+                assert!(Instant::now() < deadline, "transition did not finish");
+                std::thread::yield_now();
+            }
+        }
+    }
+}
+
 fn join(
     hub: &Arc<WebSocketHub>,
     pairing: &WebSocketPairing<()>,
@@ -47,49 +68,45 @@ fn source_controls_unpaired_admission_without_creating_peer_state() {
     let first = join(&hub, &pairing, 4).unwrap();
     first.outbound.try_recv().unwrap();
     assert_eq!(
-        first
-            .transition(|context| {
-                assert!(context.is_none());
-                Err("source requires peer".into())
-            })
-            .unwrap_err()
-            .to_string(),
+        complete(first.transition(|context| async move {
+            assert!(context.is_none());
+            Err("source requires peer".into())
+        }))
+        .unwrap_err()
+        .to_string(),
         "source requires peer"
     );
     assert!(first.outbound.try_recv().is_err());
-    first
-        .transition(|context| {
-            assert!(context.is_none());
-            Ok((
-                "not retained before pairing".into(),
-                Some(String::new()),
-                Some("no recipient".into()),
-            ))
-        })
-        .unwrap();
+    complete(first.transition(|context| async move {
+        assert!(context.is_none());
+        Ok((
+            "not retained before pairing".into(),
+            Some(String::new()),
+            Some("no recipient".into()),
+        ))
+    }))
+    .unwrap();
     assert_eq!(first.outbound.try_recv().unwrap(), "");
     assert!(first.outbound.try_recv().is_err());
     let second = join(&hub, &pairing, 4).unwrap();
     first.outbound.try_recv().unwrap();
     second.outbound.try_recv().unwrap();
-    first
-        .transition(|context| {
-            let (state, role, first, second) = context.unwrap();
-            assert_eq!(
-                (state.as_str(), role, first.as_str(), second.as_str()),
-                ("", 1, "/request", "/request")
-            );
-            Ok(("saved".into(), None, None))
-        })
-        .unwrap();
+    complete(first.transition(|context| async move {
+        let (state, role, first, second) = context.unwrap();
+        assert_eq!(
+            (state.as_str(), role, first.as_str(), second.as_str()),
+            ("", 1, "/request", "/request")
+        );
+        Ok(("saved".into(), None, None))
+    }))
+    .unwrap();
     drop(second);
     first.outbound.try_recv().unwrap();
-    first
-        .transition(|context| {
-            assert!(context.is_none());
-            Ok((String::new(), Some("alone again".into()), None))
-        })
-        .unwrap();
+    complete(first.transition(|context| async move {
+        assert!(context.is_none());
+        Ok((String::new(), Some("alone again".into()), None))
+    }))
+    .unwrap();
     assert_eq!(first.outbound.try_recv().unwrap(), "alone again");
 }
 
@@ -137,33 +154,34 @@ fn disconnected_waiter_rejects_match_without_registering_new_session() {
 }
 
 #[test]
-fn panicking_transition_poison_is_reported_without_further_callback_execution() {
+fn registry_poison_is_reported_without_further_callback_execution() {
     let hub = Arc::new(WebSocketHub::default());
     let pairing = restorable_pairing(1000, 4);
     let first = join(&hub, &pairing, 4).unwrap();
     let second = join(&hub, &pairing, 4).unwrap();
     assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        first
-            .transition(|_| panic!("injected transition panic"))
-            .unwrap();
+        let _guard = hub.state.lock().unwrap();
+        panic!("injected registry panic");
     }))
     .is_err());
     for error in [
         join(&hub, &pairing, 4).err().unwrap(),
-        hub.deliver(first.id, "value".into())
+        hub.complete_restoration(first.id, 0, "value".into())
             .unwrap_err()
             .to_string(),
         hub.complete_match(first.id, "room-1".into(), "first".into(), "second".into())
             .unwrap_err()
             .to_string(),
-        first
-            .transition(|_| Ok(("".into(), Some("value".into()), Some("value".into()))))
-            .unwrap_err()
-            .to_string(),
-        first
-            .transition(|_| panic!("poison must reject before invocation"))
-            .unwrap_err()
-            .to_string(),
+        complete(first.transition(|_| async move {
+            Ok(("".into(), Some("value".into()), Some("value".into())))
+        }))
+        .unwrap_err()
+        .to_string(),
+        complete(
+            first.transition(|_| async move { panic!("poison must reject before invocation") }),
+        )
+        .unwrap_err()
+        .to_string(),
     ] {
         assert!(error.contains("lock poisoned"), "{error}");
     }
@@ -179,10 +197,10 @@ struct Callbacks {
 }
 
 impl AdmissionCallbacks for Callbacks {
-    fn room_identity(&mut self, sequence: i64) -> Result<String, crate::ServiceError> {
+    async fn room_identity(&mut self, sequence: i64) -> Result<String, crate::ServiceError> {
         Ok(format!("room-{sequence}"))
     }
-    fn matched(
+    async fn matched(
         &mut self,
         room: String,
         first: String,
@@ -200,7 +218,7 @@ impl AdmissionCallbacks for Callbacks {
         Ok(("matched-1".into(), "matched-2".into()))
     }
 
-    fn restored(
+    async fn restored(
         &mut self,
         room: String,
         state: String,
@@ -227,9 +245,86 @@ fn admit_pair(first: &WebSocketHubLease, second: &mut WebSocketHubLease) {
         requests: Some((first_request.clone(), second_request.clone())),
         ..Callbacks::default()
     };
-    second.dispatch_admission(&mut callbacks).unwrap();
+    crate::callback_test_support::ready(second.dispatch_admission(&mut callbacks)).unwrap();
     assert_eq!(first.outbound.try_recv().unwrap(), "matched-1");
     assert_eq!(second.outbound.try_recv().unwrap(), "matched-2");
+}
+
+#[test]
+fn restoration_revision_never_wraps_or_replays_a_transition() {
+    let hub = Arc::new(WebSocketHub::default());
+    let pairing = restorable_pairing(300_000, 4);
+    let first = join(&hub, &pairing, 8).unwrap();
+    first.outbound.try_recv().unwrap();
+    let mut second = join(&hub, &pairing, 8).unwrap();
+    admit_pair(&first, &mut second);
+    drop(second);
+    first.outbound.try_recv().unwrap();
+    hub.state
+        .lock()
+        .unwrap()
+        .pairs
+        .get_mut(&first.id)
+        .unwrap()
+        .revision = u64::MAX - 2;
+    let restored = hub
+        .join(
+            "/ws".into(),
+            "/request".into(),
+            8,
+            &pairing,
+            Some(("room-1".into(), 2)),
+        )
+        .unwrap();
+    complete(first.transition(|_| async move { Ok(("last".into(), None, None)) })).unwrap();
+    assert!(hub
+        .complete_restoration(restored.id, u64::MAX - 1, "stale".into())
+        .unwrap_err()
+        .to_string()
+        .contains("room changed"));
+    assert!(restored.outbound.try_recv().is_err());
+    assert!(complete(first.transition(|_| async move {
+        panic!("exhausted revision must reject before source invocation")
+    }))
+    .unwrap_err()
+    .to_string()
+    .contains("revision exhausted"));
+    drop(restored);
+    let state = hub.state.lock().unwrap();
+    let pair = &state.pairs[&first.id];
+    assert_eq!(pair.revision, u64::MAX);
+    assert_eq!(pair.state, "last");
+    assert!(pair.second.is_none());
+    drop(state);
+    assert!(hub
+        .join(
+            "/ws".into(),
+            "/request".into(),
+            8,
+            &pairing,
+            Some(("room-1".into(), 2))
+        )
+        .err()
+        .unwrap()
+        .to_string()
+        .contains("revision exhausted"));
+}
+
+#[test]
+fn restoration_commit_requires_the_same_live_session_and_room() {
+    let hub = Arc::new(WebSocketHub::default());
+    assert!(hub
+        .complete_restoration(1, 0, "late".into())
+        .unwrap_err()
+        .to_string()
+        .contains("no longer registered"));
+    let pairing = restorable_pairing(300_000, 4);
+    let first = join(&hub, &pairing, 8).unwrap();
+    assert!(hub
+        .complete_restoration(first.id, 0, "early".into())
+        .unwrap_err()
+        .to_string()
+        .contains("room state disappeared"));
 }
 
 struct NamingCallbacks<'a> {
@@ -240,7 +335,7 @@ struct NamingCallbacks<'a> {
 }
 
 impl AdmissionCallbacks for NamingCallbacks<'_> {
-    fn room_identity(&mut self, sequence: i64) -> Result<String, crate::ServiceError> {
+    async fn room_identity(&mut self, sequence: i64) -> Result<String, crate::ServiceError> {
         assert!(
             self.hub.state.try_lock().is_ok(),
             "source must run outside registry lock"
@@ -250,7 +345,7 @@ impl AdmissionCallbacks for NamingCallbacks<'_> {
         self.identity.clone().map_err(crate::ServiceError::from)
     }
 
-    fn matched(
+    async fn matched(
         &mut self,
         room: String,
         _: String,
@@ -260,7 +355,7 @@ impl AdmissionCallbacks for NamingCallbacks<'_> {
         Ok((room.clone(), room))
     }
 
-    fn restored(
+    async fn restored(
         &mut self,
         room: String,
         _: String,
@@ -287,19 +382,20 @@ fn source_room_names_are_opaque_unique_and_not_published_before_admission() {
         departing: None,
     };
     assert!(hub.state.lock().unwrap().rooms.is_empty());
-    second.dispatch_admission(&mut callbacks).unwrap();
-    second.dispatch_admission(&mut callbacks).unwrap();
+    crate::callback_test_support::ready(second.dispatch_admission(&mut callbacks)).unwrap();
+    crate::callback_test_support::ready(second.dispatch_admission(&mut callbacks)).unwrap();
     assert_eq!(callbacks.sequences, [1]);
     assert_eq!(first.outbound.try_recv().unwrap(), name);
     assert_eq!(second.outbound.try_recv().unwrap(), name);
     let third = join(&hub, &pairing, 4).unwrap();
     third.outbound.try_recv().unwrap();
     let mut fourth = join(&hub, &pairing, 4).unwrap();
-    assert!(fourth
-        .dispatch_admission(&mut callbacks)
-        .unwrap_err()
-        .to_string()
-        .contains("duplicate room identity"));
+    assert!(
+        crate::callback_test_support::ready(fourth.dispatch_admission(&mut callbacks))
+            .unwrap_err()
+            .to_string()
+            .contains("duplicate room identity")
+    );
     assert_eq!(callbacks.sequences, [1, 2]);
     assert!(third.outbound.try_recv().is_err());
     assert!(fourth.outbound.try_recv().is_err());
@@ -315,7 +411,7 @@ fn source_room_names_are_opaque_unique_and_not_published_before_admission() {
             Some((name.into(), 2)),
         )
         .unwrap();
-    restored.dispatch_admission(&mut callbacks).unwrap();
+    crate::callback_test_support::ready(restored.dispatch_admission(&mut callbacks)).unwrap();
     assert_eq!(restored.outbound.try_recv().unwrap(), name);
     assert_eq!(
         callbacks.sequences,
@@ -350,11 +446,12 @@ fn rejected_room_names_and_departing_peers_leave_no_restorable_state() {
             sequences: vec![],
             departing: if depart { first.take() } else { None },
         };
-        assert!(second
-            .dispatch_admission(&mut callbacks)
-            .unwrap_err()
-            .to_string()
-            .contains(error));
+        assert!(
+            crate::callback_test_support::ready(second.dispatch_admission(&mut callbacks))
+                .unwrap_err()
+                .to_string()
+                .contains(error)
+        );
         assert_eq!(callbacks.sequences, [1]);
         assert!(hub.state.lock().unwrap().rooms.is_empty());
         drop(first);
@@ -406,18 +503,16 @@ fn admissions_invoke_opaque_callbacks_once_and_deliver_to_the_correct_seat() {
     let pairing = restorable_pairing(1000, 4);
     let mut first = join(&hub, &pairing, 4).unwrap();
     let mut callbacks = Callbacks::default();
-    first.dispatch_admission(&mut callbacks).unwrap();
+    crate::callback_test_support::ready(first.dispatch_admission(&mut callbacks)).unwrap();
     assert!(callbacks.calls.is_empty());
     assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
     let mut second = join(&hub, &pairing, 4).unwrap();
-    second.dispatch_admission(&mut callbacks).unwrap();
-    second.dispatch_admission(&mut callbacks).unwrap();
+    crate::callback_test_support::ready(second.dispatch_admission(&mut callbacks)).unwrap();
+    crate::callback_test_support::ready(second.dispatch_admission(&mut callbacks)).unwrap();
     assert_eq!(callbacks.calls, vec![("room-1".into(), 0)]);
     assert_eq!(first.outbound.try_recv().unwrap(), "matched-1");
     assert_eq!(second.outbound.try_recv().unwrap(), "matched-2");
-    first
-        .transition(|_| Ok(("retained".into(), None, None)))
-        .unwrap();
+    complete(first.transition(|_| async move { Ok(("retained".into(), None, None)) })).unwrap();
     drop(second);
     assert_eq!(first.outbound.try_recv().unwrap(), "left");
     let mut restored = hub
@@ -429,7 +524,7 @@ fn admissions_invoke_opaque_callbacks_once_and_deliver_to_the_correct_seat() {
             Some(("room-1".into(), 2)),
         )
         .unwrap();
-    restored.dispatch_admission(&mut callbacks).unwrap();
+    crate::callback_test_support::ready(restored.dispatch_admission(&mut callbacks)).unwrap();
     assert_eq!(restored.outbound.try_recv().unwrap(), "restored-2:retained");
     assert!(first.outbound.try_recv().is_err());
 }
@@ -446,8 +541,7 @@ fn callback_failures_do_not_publish_partial_match_or_mutate_transition_state() {
         ..Callbacks::default()
     };
     assert_eq!(
-        second
-            .dispatch_admission(&mut callbacks)
+        crate::callback_test_support::ready(second.dispatch_admission(&mut callbacks))
             .unwrap_err()
             .to_string(),
         "source callback rejected"
@@ -455,19 +549,17 @@ fn callback_failures_do_not_publish_partial_match_or_mutate_transition_state() {
     assert!(first.outbound.try_recv().is_err());
     assert!(second.outbound.try_recv().is_err());
     assert_eq!(
-        first
-            .transition(|_| Err("rejected".into()))
+        complete(first.transition(|_| async move { Err("rejected".into()) }))
             .unwrap_err()
             .to_string(),
         "rejected"
     );
-    first
-        .transition(|context| {
-            let (state, _, _, _) = context.unwrap();
-            assert!(state.is_empty());
-            Ok(("valid".into(), None, None))
-        })
-        .unwrap();
+    complete(first.transition(|context| async move {
+        let (state, _, _, _) = context.unwrap();
+        assert!(state.is_empty());
+        Ok(("valid".into(), None, None))
+    }))
+    .unwrap();
     drop(second);
     assert_eq!(first.outbound.try_recv().unwrap(), "left");
 }
@@ -484,29 +576,27 @@ fn concurrent_transitions_are_serialized_without_lost_updates() {
         std::thread::spawn(move || {
             barrier.wait();
             for _ in 0..100 {
-                lease
-                    .transition(|context| {
-                        let (state, _, _, _) = context.unwrap();
-                        let count = if state.is_empty() {
-                            0
-                        } else {
-                            state.parse::<usize>().unwrap()
-                        };
-                        Ok(((count + 1).to_string(), None, None))
-                    })
-                    .unwrap();
+                complete(lease.transition(|context| async move {
+                    let (state, _, _, _) = context.unwrap();
+                    let count = if state.is_empty() {
+                        0
+                    } else {
+                        state.parse::<usize>().unwrap()
+                    };
+                    Ok(((count + 1).to_string(), None, None))
+                }))
+                .unwrap();
             }
             lease
         })
     });
     let leases = workers.map(|worker| worker.join().unwrap());
-    leases[0]
-        .transition(|context| {
-            let (state, _, _, _) = context.unwrap();
-            assert_eq!(state, "200");
-            Ok((state, None, None))
-        })
-        .unwrap();
+    complete(leases[0].transition(|context| async move {
+        let (state, _, _, _) = context.unwrap();
+        assert_eq!(state, "200");
+        Ok((state, None, None))
+    }))
+    .unwrap();
 }
 
 fn restorable_pairing(retention_ms: u64, retained_room_capacity: usize) -> WebSocketPairing<()> {
@@ -540,44 +630,42 @@ fn optional_transition_deliveries_preserve_empty_frames_and_state() {
     first.outbound.try_recv().unwrap();
     let mut second = join(&hub, &pairing, 1).unwrap();
     admit_pair(&first, &mut second);
-    first
-        .transition(|_| Ok(("silent".into(), None, None)))
-        .unwrap();
+    complete(first.transition(|_| async move { Ok(("silent".into(), None, None)) })).unwrap();
     assert!(first.outbound.try_recv().is_err());
     assert!(second.outbound.try_recv().is_err());
-    first
-        .transition(|context| {
-            let (state, _, _, _) = context.unwrap();
-            assert_eq!(state, "silent");
-            Ok(("empty-frame".into(), Some(String::new()), None))
-        })
-        .unwrap();
+    complete(first.transition(|context| async move {
+        let (state, _, _, _) = context.unwrap();
+        assert_eq!(state, "silent");
+        Ok(("empty-frame".into(), Some(String::new()), None))
+    }))
+    .unwrap();
     // An absent delivery must not touch even a full queue.
-    second
-        .transition(|context| {
-            let (state, _, _, _) = context.unwrap();
-            assert_eq!(state, "empty-frame");
-            Ok((state, None, Some(String::new())))
-        })
-        .unwrap();
-    assert!(second
-        .transition(|context| Ok((context.unwrap().0, None, Some(String::new()))))
-        .unwrap_err()
-        .to_string()
-        .contains("queue is full"));
+    complete(second.transition(|context| async move {
+        let (state, _, _, _) = context.unwrap();
+        assert_eq!(state, "empty-frame");
+        Ok((state, None, Some(String::new())))
+    }))
+    .unwrap();
+    assert!(complete(
+        second.transition(
+            |context| async move { Ok((context.unwrap().0, None, Some(String::new()))) }
+        )
+    )
+    .unwrap_err()
+    .to_string()
+    .contains("queue is full"));
     assert_eq!(first.outbound.try_recv().unwrap(), "");
     assert_eq!(second.outbound.try_recv().unwrap(), "");
     assert!(first.outbound.try_recv().is_err());
     assert!(second.outbound.try_recv().is_err());
     drop(second);
     first.outbound.try_recv().unwrap();
-    first
-        .transition(|context| {
-            let (state, _, _, _) = context.unwrap();
-            assert_eq!(state, "empty-frame");
-            Ok((state, Some("survivor".into()), Some("disconnected".into())))
-        })
-        .unwrap();
+    complete(first.transition(|context| async move {
+        let (state, _, _, _) = context.unwrap();
+        assert_eq!(state, "empty-frame");
+        Ok((state, Some("survivor".into()), Some("disconnected".into())))
+    }))
+    .unwrap();
     assert_eq!(first.outbound.try_recv().unwrap(), "survivor");
 }
 
@@ -603,15 +691,14 @@ fn websocket_hub_pairs_broadcasts_and_notifies_disconnect() {
     assert_eq!(first.outbound.try_recv().unwrap(), "first");
     assert_eq!(second.outbound.try_recv().unwrap(), "second");
 
-    second
-        .transition(|context| {
-            Ok((
-                context.unwrap().0,
-                Some("update".into()),
-                Some("update".into()),
-            ))
-        })
-        .expect("broadcast update");
+    complete(second.transition(|context| async move {
+        Ok((
+            context.unwrap().0,
+            Some("update".into()),
+            Some("update".into()),
+        ))
+    }))
+    .expect("broadcast update");
     assert_eq!(first.outbound.try_recv().unwrap(), "update");
     assert_eq!(second.outbound.try_recv().unwrap(), "update");
     drop(second);
@@ -640,35 +727,33 @@ fn websocket_hub_serializes_stateful_pair_transitions_and_addresses_peers() {
     assert_eq!(first.outbound.try_recv().unwrap(), "first");
     assert_eq!(second.outbound.try_recv().unwrap(), "second");
 
-    second
-        .transition(|context| {
-            let (state, role, first_request, second_request) = context.unwrap();
-            assert_eq!(state, "");
-            assert_eq!(role, 2);
-            assert_eq!(first_request, "/ws?player=Ada");
-            assert_eq!(second_request, "/ws?player=Grace");
-            Ok((
-                "move-1".into(),
-                Some("view-1a".into()),
-                Some("view-1b".into()),
-            ))
-        })
-        .expect("first transition");
+    complete(second.transition(|context| async move {
+        let (state, role, first_request, second_request) = context.unwrap();
+        assert_eq!(state, "");
+        assert_eq!(role, 2);
+        assert_eq!(first_request, "/ws?player=Ada");
+        assert_eq!(second_request, "/ws?player=Grace");
+        Ok((
+            "move-1".into(),
+            Some("view-1a".into()),
+            Some("view-1b".into()),
+        ))
+    }))
+    .expect("first transition");
     assert_eq!(first.outbound.try_recv().unwrap(), "view-1a");
     assert_eq!(second.outbound.try_recv().unwrap(), "view-1b");
 
-    first
-        .transition(|context| {
-            let (state, role, _, _) = context.unwrap();
-            assert_eq!(state, "move-1");
-            assert_eq!(role, 1);
-            Ok((
-                "move-2".into(),
-                Some("view-2a".into()),
-                Some("view-2b".into()),
-            ))
-        })
-        .expect("second transition");
+    complete(first.transition(|context| async move {
+        let (state, role, _, _) = context.unwrap();
+        assert_eq!(state, "move-1");
+        assert_eq!(role, 1);
+        Ok((
+            "move-2".into(),
+            Some("view-2a".into()),
+            Some("view-2b".into()),
+        ))
+    }))
+    .expect("second transition");
     assert_eq!(first.outbound.try_recv().unwrap(), "view-2a");
     assert_eq!(second.outbound.try_recv().unwrap(), "view-2b");
 }
@@ -685,20 +770,19 @@ fn websocket_hub_restores_disconnected_seat_with_retained_state() {
         .join("/ws".into(), "/ws?board=second".into(), 4, &pairing, None)
         .expect("join second peer");
     admit_pair(&first, &mut second);
-    first
-        .transition(|context| {
-            let (state, role, first_request, second_request) = context.unwrap();
-            assert_eq!(state, "");
-            assert_eq!(role, 1);
-            assert_eq!(first_request, "/ws?board=first");
-            assert_eq!(second_request, "/ws?board=second");
-            Ok((
-                "1,5,5".into(),
-                Some("first-view".into()),
-                Some("second-view".into()),
-            ))
-        })
-        .expect("retain first move");
+    complete(first.transition(|context| async move {
+        let (state, role, first_request, second_request) = context.unwrap();
+        assert_eq!(state, "");
+        assert_eq!(role, 1);
+        assert_eq!(first_request, "/ws?board=first");
+        assert_eq!(second_request, "/ws?board=second");
+        Ok((
+            "1,5,5".into(),
+            Some("first-view".into()),
+            Some("second-view".into()),
+        ))
+    }))
+    .expect("retain first move");
     assert_eq!(first.outbound.try_recv().unwrap(), "first-view");
     assert_eq!(second.outbound.try_recv().unwrap(), "second-view");
 
@@ -713,20 +797,19 @@ fn websocket_hub_restores_disconnected_seat_with_retained_state() {
             Some(("room-1".into(), 2)),
         )
         .expect("restore second seat");
-    restored
-        .transition(|context| {
-            let (state, role, first_request, second_request) = context.unwrap();
-            assert_eq!(state, "1,5,5");
-            assert_eq!(role, 2);
-            assert_eq!(first_request, "/ws?board=first");
-            assert_eq!(second_request, "/ws?board=second");
-            Ok((
-                "1,5,5;2,4,4".into(),
-                Some("next-first".into()),
-                Some("next-second".into()),
-            ))
-        })
-        .expect("transition restored seat");
+    complete(restored.transition(|context| async move {
+        let (state, role, first_request, second_request) = context.unwrap();
+        assert_eq!(state, "1,5,5");
+        assert_eq!(role, 2);
+        assert_eq!(first_request, "/ws?board=first");
+        assert_eq!(second_request, "/ws?board=second");
+        Ok((
+            "1,5,5;2,4,4".into(),
+            Some("next-first".into()),
+            Some("next-second".into()),
+        ))
+    }))
+    .expect("transition restored seat");
     assert_eq!(first.outbound.try_recv().unwrap(), "next-first");
     assert_eq!(restored.outbound.try_recv().unwrap(), "next-second");
 }
@@ -764,20 +847,19 @@ fn websocket_hub_retains_room_after_both_peers_disconnect() {
             Some(("room-1".into(), 2)),
         )
         .expect("restore second seat");
-    restored_second
-        .transition(|context| {
-            let (state, role, first_request, second_request) = context.unwrap();
-            assert_eq!(state, "");
-            assert_eq!(role, 2);
-            assert_eq!(first_request, "/ws?board=first");
-            assert_eq!(second_request, "/ws?board=second");
-            Ok((
-                "retained".into(),
-                Some("first".into()),
-                Some("second".into()),
-            ))
-        })
-        .expect("transition retained room");
+    complete(restored_second.transition(|context| async move {
+        let (state, role, first_request, second_request) = context.unwrap();
+        assert_eq!(state, "");
+        assert_eq!(role, 2);
+        assert_eq!(first_request, "/ws?board=first");
+        assert_eq!(second_request, "/ws?board=second");
+        Ok((
+            "retained".into(),
+            Some("first".into()),
+            Some("second".into()),
+        ))
+    }))
+    .expect("transition retained room");
     assert_eq!(restored_first.outbound.try_recv().unwrap(), "first");
     assert_eq!(restored_second.outbound.try_recv().unwrap(), "second");
 }

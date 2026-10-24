@@ -1,0 +1,130 @@
+/** Canonical ten-layer bootstrap convergence evidence. */
+module self_host.SelfHostConvergenceEvidence.
+
+import std.collections.List.
+
+pub struct StageEvidence {
+    tokens: String,
+    syntax: String,
+    interfaces: String,
+    diagnostics: String,
+    typed_syntax: String,
+    core_ir: String,
+    actor_ir: String,
+    managed_layouts: String,
+    runtime_behavior: String,
+    executable_artifacts: String,
+}.
+
+pub constructor StageEvidence {
+    (tokens: String, syntax: String, interfaces: String, diagnostics: String, typed_syntax: String, core_ir: String, managed_layouts: String, runtime_behavior: String, executable_artifacts: String): StageEvidence ->
+        StageEvidence {
+            tokens: tokens,
+            syntax: syntax,
+            interfaces: interfaces,
+            diagnostics: diagnostics,
+            typed_syntax: typed_syntax,
+            core_ir: core_ir,
+            actor_ir: "none",
+            managed_layouts: managed_layouts,
+            runtime_behavior: runtime_behavior,
+            executable_artifacts: executable_artifacts,
+        };
+    (tokens: String, syntax: String, interfaces: String, diagnostics: String, typed_syntax: String, core_ir: String, actor_ir: String, managed_layouts: String, runtime_behavior: String, executable_artifacts: String): StageEvidence ->
+        StageEvidence {
+            tokens: tokens,
+            syntax: syntax,
+            interfaces: interfaces,
+            diagnostics: diagnostics,
+            typed_syntax: typed_syntax,
+            core_ir: core_ir,
+            actor_ir: actor_ir,
+            managed_layouts: managed_layouts,
+            runtime_behavior: runtime_behavior,
+            executable_artifacts: executable_artifacts,
+        }
+}.
+
+pub struct ConvergenceEvidence {
+    converged: Bool,
+    compared_layers: Int,
+    first_difference: String,
+    differences: List[String],
+}.
+
+pub constructor ConvergenceEvidence {
+    (converged: Bool, compared_layers: Int, first_difference: String, differences: List[String]): ConvergenceEvidence ->
+        ConvergenceEvidence {
+            converged: converged,
+            compared_layers: compared_layers,
+            first_difference: first_difference,
+            differences: differences,
+        }
+}.
+
+@pure
+add_difference(equal: Bool, name: String, values: List[String]): List[String] ->
+    if { equal -> values; true -> [name | values] }.
+
+@pure
+reverse_at(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+first(values: List[String]): String ->
+    case values { [] -> ""; [value | _rest] -> value }.
+
+/** Compares layers in authority order; later equality never hides an earlier mismatch. */
+@pure
+pub compare(reference: StageEvidence, candidate: StageEvidence): ConvergenceEvidence ->
+    let reversed = add_difference(
+        reference.executable_artifacts == candidate.executable_artifacts,
+        "executable-artifacts",
+        add_difference(
+            reference.runtime_behavior == candidate.runtime_behavior,
+            "runtime-behavior",
+            add_difference(
+                reference.managed_layouts == candidate.managed_layouts,
+                "managed-layouts",
+                add_difference(
+                reference.actor_ir == candidate.actor_ir,
+                "actor-ir",
+                    add_difference(
+                    reference.core_ir == candidate.core_ir,
+                    "core-ir",
+                        add_difference(
+                        reference.typed_syntax == candidate.typed_syntax,
+                        "typed-syntax",
+                            add_difference(
+                            reference.diagnostics == candidate.diagnostics,
+                            "diagnostics",
+                                add_difference(
+                                reference.interfaces == candidate.interfaces,
+                                "interfaces",
+                                    add_difference(
+                                    reference.syntax == candidate.syntax,
+                                    "syntax",
+                                    add_difference(
+                                        reference.tokens == candidate.tokens,
+                                        "tokens",
+                                        List.new[String](),
+                                    ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    );
+    let differences = reverse_at(reversed, List.new[String]());
+    ConvergenceEvidence(
+        List.is_empty(differences),
+        10,
+        first(differences),
+        differences,
+    ).

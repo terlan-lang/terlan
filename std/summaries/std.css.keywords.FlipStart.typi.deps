@@ -1,0 +1,8 @@
+module=std.css.keywords.FlipStart
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=2325084885209064384
+interface_hash=5428474596950469401
+interface_doc_hash=11883934492490247130
+deps=0

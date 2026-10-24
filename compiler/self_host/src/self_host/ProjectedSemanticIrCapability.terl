@@ -1,0 +1,140 @@
+/** Rejects semantic plans that still contain fallback unsupported operations. */
+module self_host.ProjectedSemanticIrCapability.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{String}.
+import self_host.SelfHostSemanticIrSyntax.{
+    SemanticBlockPlan,
+    SemanticFunctionPlan,
+    SemanticInstructionPlan,
+    SemanticModulePlan,
+    SemanticRegionPlan,
+    SemanticTryRegionPlan
+}.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+unsupported_message(
+    function_name: String,
+    block_label: String,
+    opcode: String,
+): String ->
+    "unsupported-semantic-opcode function="
+        + function_name
+        + " block="
+        + block_label
+        + " opcode="
+        + opcode.
+
+@pure
+try_gaps(
+    value: SemanticTryRegionPlan,
+    function_name: String,
+): List[String] ->
+    append(
+        region_gaps(value.protected, function_name),
+        append(
+            region_gaps(value.success, function_name),
+            append(
+                region_gaps(value.failure, function_name),
+                regions_gaps(value.cleanup, function_name),
+            ),
+        ),
+    ).
+
+@pure
+instruction_gaps(
+    value: SemanticInstructionPlan,
+    function_name: String,
+    block_label: String,
+): List[String] ->
+    let nested = case value.try_region {
+        None -> List.new[String]();
+        Some(region) -> try_gaps(region, function_name)
+    };
+    if {
+        String.starts_with(value.opcode, "unsupported-") -> [
+            unsupported_message(function_name, block_label, value.opcode)
+            | nested
+        ];
+        true -> nested
+    }.
+
+@pure
+instructions_gaps(
+    values: List[SemanticInstructionPlan],
+    function_name: String,
+    block_label: String,
+): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(
+            instruction_gaps(value, function_name, block_label),
+            instructions_gaps(rest, function_name, block_label),
+        )
+    }.
+
+@pure
+block_gaps(value: SemanticBlockPlan, function_name: String): List[String] ->
+    let instruction_values = instructions_gaps(
+        value.instructions,
+        function_name,
+        value.label,
+    );
+    if {
+        String.starts_with(value.terminator.opcode, "unsupported-") -> append(
+            instruction_values,
+            [unsupported_message(function_name, value.label, value.terminator.opcode)],
+        );
+        true -> instruction_values
+    }.
+
+@pure
+blocks_gaps(values: List[SemanticBlockPlan], function_name: String): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(
+            block_gaps(value, function_name),
+            blocks_gaps(rest, function_name),
+        )
+    }.
+
+@pure
+region_gaps(value: SemanticRegionPlan, function_name: String): List[String] ->
+    blocks_gaps(value.blocks, function_name).
+
+@pure
+regions_gaps(values: List[SemanticRegionPlan], function_name: String): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(
+            region_gaps(value, function_name),
+            regions_gaps(rest, function_name),
+        )
+    }.
+
+@pure
+function_gaps(value: SemanticFunctionPlan): List[String] ->
+    blocks_gaps(value.blocks, value.module_name + "." + value.name).
+
+@pure
+functions_gaps(values: List[SemanticFunctionPlan]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(function_gaps(value), functions_gaps(rest))
+    }.
+
+/** Returns one stable diagnostic for every unsupported instruction or terminator. */
+@pure
+pub check(value: SemanticModulePlan): List[String] ->
+    functions_gaps(value.functions).

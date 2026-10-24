@@ -1,11 +1,15 @@
 /** Connects declaration identity to self-hosted type and expression parsing. */
 module self_host.FunctionLowering.
 
+import std.core.String.
+
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.FunctionSyntax.{FunctionSyntax}.
 import self_host.Syntax.{ConstFunctionDeclaration, FunctionDeclaration}.
 
+import std.collections.List.
 import std.core.{Bool, Int, String}.
+import self_host.CallableConstraintParser.
 import self_host.Delimited.
 import self_host.ExpressionParser.
 import self_host.ParameterParser.
@@ -23,12 +27,23 @@ without_terminal_dot(source: String): String ->
 
 @pure
 failure(source: DeclarationSyntax, message: String): FunctionSyntax ->
-    FunctionSyntax(false, source.name, "", ParameterParser.parse_all(""), TypeParser.parse(""), ExpressionParser.parse(""), source.is_public, source.class == ConstFunctionDeclaration, source.span, message).
+    FunctionSyntax(false, source.name, "", ParameterParser.parse_all(""), List.new[self_host.TypeSyntax.TypeParse](), TypeParser.parse(""), false, ExpressionParser.parse(""), source.is_public, source.class == ConstFunctionDeclaration, source.span, message).
 
 @pure
-validation_message(parameters_valid: Bool, parameter_error: String, return_valid: Bool, return_error: String, body_valid: Bool, body_error: String): String ->
+matching_parenthesis(source: String, index: Int, depth: Int): Int ->
+    if {
+        index >= source.byte_size() -> -1;
+        source.utf8_byte_at(index) == 40 -> matching_parenthesis(source, index + 1, depth + 1);
+        source.utf8_byte_at(index) == 41 and depth == 1 -> index;
+        source.utf8_byte_at(index) == 41 -> matching_parenthesis(source, index + 1, depth - 1);
+        true -> matching_parenthesis(source, index + 1, depth)
+    }.
+
+@pure
+validation_message(parameters_valid: Bool, parameter_error: String, constraints_valid: Bool, constraint_error: String, return_valid: Bool, return_error: String, body_valid: Bool, body_error: String): String ->
     if {
         not parameters_valid -> parameter_error;
+        not constraints_valid -> constraint_error;
         not return_valid -> return_error;
         not body_valid -> body_error;
         true -> ""
@@ -37,26 +52,39 @@ validation_message(parameters_valid: Bool, parameter_error: String, return_valid
 /** Lowers one function declaration through nested type/expression parsers. */
 @pure
 pub lower(source: DeclarationSyntax): FunctionSyntax ->
-    let open = Delimited.top_level_byte(source.body, 40);
-    let colon = Delimited.top_level_byte(source.body, 58);
-    let arrow = Delimited.top_level_pair(source.body, 45, 62);
+    let value = without_terminal_dot(source.body);
+    let open = Delimited.top_level_byte(value, 40);
+    let close = if { open < 0 -> -1; true -> matching_parenthesis(value, open + 1, 1) };
+    let colon = Delimited.top_level_byte(value, 58);
+    let arrow = Delimited.top_level_pair(value, 45, 62);
     if {
         source.class != FunctionDeclaration and source.class != ConstFunctionDeclaration -> failure(source, "declaration is not a function");
-        open < 0 or colon < 0 or arrow < 0 or not (open < colon and colon < arrow) ->
+        open < 0 or close < 0 or colon < 0 or not (open < close and close < colon) or (arrow >= 0 and colon >= arrow) ->
             failure(source, "function signature is incomplete");
         true ->
-            let parameters = String.trim(source.body.utf8_slice(open + 1, colon - open - 2));
+            let parameters = String.trim(value.utf8_slice(open + 1, close - open - 1));
             let typed_parameters = ParameterParser.parse_all(parameters);
-            let return_text = String.trim(source.body.utf8_slice(colon + 1, arrow - colon - 1));
-            let body_text = without_terminal_dot(source.body.utf8_slice(arrow + 2, source.body.byte_size() - arrow - 2));
+            let constraints = CallableConstraintParser.parse(
+                value.utf8_slice(close + 1, colon - close - 1),
+            );
+            let return_end = if { arrow < 0 -> value.byte_size(); true -> arrow };
+            let return_text = String.trim(value.utf8_slice(colon + 1, return_end - colon - 1));
+            let body_text = if {
+                arrow < 0 -> "";
+                true -> String.trim(value.utf8_slice(arrow + 2, value.byte_size() - arrow - 2))
+            };
             let return_type = TypeParser.parse(return_text);
             let body = ExpressionParser.parse(body_text);
             FunctionSyntax(
-                ParameterParser.all_valid(typed_parameters) and return_type.valid and body.valid,
+                ParameterParser.all_valid(typed_parameters)
+                    and return_type.valid
+                    and (arrow < 0 or body.valid),
                 source.name,
                 parameters,
                 typed_parameters,
+                constraints.values,
                 return_type,
+                arrow >= 0,
                 body,
                 source.is_public,
                 source.class == ConstFunctionDeclaration,
@@ -64,9 +92,11 @@ pub lower(source: DeclarationSyntax): FunctionSyntax ->
                 validation_message(
                     ParameterParser.all_valid(typed_parameters),
                     ParameterParser.first_error(typed_parameters),
+                    constraints.valid,
+                    constraints.message,
                     return_type.valid,
                     return_type.message,
-                    body.valid,
+                    arrow < 0 or body.valid,
                     body.message
                 )
             )

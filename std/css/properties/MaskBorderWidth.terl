@@ -1,190 +1,125 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-width
+ * The `mask-border-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * width of an element's [mask
+ * border](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border).
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: relative to width/height of the mask border image area.
+ *
+ * Keyword effects:
+ * - auto: The width of the mask border is made equal to the intrinsic width or height (whichever is
+ * applicable) of the corresponding `mask-border-slice`. If the image does not have the required
+ * intrinsic dimension, the corresponding `border-width` is used instead.
+ *
  * Grammar: <'border-image-width'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-width
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-width
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskBorderWidth.
 
 import std.core.Float.
 import std.core.Float.{to_string}.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
-import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css}.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
+import std.css.keywords.Auto.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained mask-border-width value.
- */
-pub opaque type Value = Token.
+pub opaque type CheckedComponent = SerializedValue.
 
-/**
- * A single non-global mask-border-width shorthand component.
- */
-pub opaque type Component = Token.
+pub type Component = Auto | CheckedComponent.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[Component]}.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    mask_border_width: Value,
+    mask_border_width: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the mask-border-width length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub struct OptionalProperty {
-    mask_border_width: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "mask-border-width", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "mask-border-width", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask-border-width", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-border-width", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-border-width", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-border-width", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a mask-border-width value.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "mask-border-width", css: length_css(value)}));
-        false -> None
+        true -> Some(Checked(serialize("mask-border-width", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a mask-border-width value.
+ * Checks the mask-border-width percentage range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "mask-border-width", css: percentage_css(value)}));
-        false -> None
+        true -> Some(Checked(serialize("mask-border-width", percentage_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a mask-border-width value.
+ * Checks the mask-border-width number range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(Token {property: "mask-border-width", css: to_string(value)}));
-        false -> None
+        true -> Some(Checked(serialize("mask-border-width", to_string(value))));
+        false -> Absent
     }.
 
 /**
- * Constructs one mask-border-width shorthand component.
+ * Checks the mask-border-width length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub component_auto(): Component ->
-    Component(Token {property: "mask-border-width", css: "auto"}).
-
-/**
- * Checks the specification range and constructs a mask-border-width value.
- */
-pub component_length(value: Length): Option[Component] ->
+pub component_length(value: Length): Option[CheckedComponent] ->
     case length_amount(value) >= 0 {
-        true -> Some(Component(Token {property: "mask-border-width", css: length_css(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("mask-border-width", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a mask-border-width value.
+ * Checks the mask-border-width percentage range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub component_percentage(value: Percentage): Option[Component] ->
+pub component_percentage(value: Percentage): Option[CheckedComponent] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Component(Token {property: "mask-border-width", css: percentage_css(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("mask-border-width", percentage_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a mask-border-width value.
+ * Checks the mask-border-width number range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub component_number(value: Float): Option[Component] ->
+pub component_number(value: Float): Option[CheckedComponent] ->
     case value >= 0 {
-        true -> Some(Component(Token {property: "mask-border-width", css: to_string(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("mask-border-width", to_string(value))));
+        false -> Absent
     }.
 
 /**
- * Serializes a library-owned shorthand component.
+ * Supplies 1 components in grammar order.
  */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Combines 1 typed components in specification order.
+ * Supplies 2 components in grammar order.
  */
-pub single(first: Component): Value ->
-    Value(Token {property: "mask-border-width", css: component_css(first)}).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).
 
 /**
- * Combines 2 typed components in specification order.
+ * Supplies 3 components in grammar order.
  */
-pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {
-            property: "mask-border-width",
-            css: component_css(first) + " " + component_css(second),
-        },
-    ).
+pub triple(first: Component, second: Component, third: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third]}).
 
 /**
- * Combines 3 typed components in specification order.
+ * Supplies 4 components in grammar order.
  */
-pub triple(first: Component, second: Component, third: Component): Value ->
-    Value(
-        Token {
-            property: "mask-border-width",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third),
-        },
-    ).
-
-/**
- * Combines 4 typed components in specification order.
- */
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value ->
-    Value(
-        Token {
-            property: "mask-border-width",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third) + " " + component_css(fourth),
-        },
-    ).
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third, fourth]}).

@@ -1,52 +1,35 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-box-4/#propdef-padding-bottom
+//! The `padding-bottom` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! height of the [padding
+//! area](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Box_model/Introduction#padding_area)
+//! on the bottom of an element.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: refer to the width of the containing block.
+//!
 //! Grammar: <length-percentage [0,∞]>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-box-4/#propdef-padding-bottom
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/padding-bottom
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PaddingBottom.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    padding_bottom: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    padding_bottom: Value
+    padding_bottom: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained padding-bottom value.
+/// Checks the padding-bottom length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Returns the CSS keyword inherit.
+/// Checks the padding-bottom percentage range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a padding-bottom value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Checks the specification range and constructs a padding-bottom value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

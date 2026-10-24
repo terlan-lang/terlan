@@ -1,0 +1,207 @@
+/**
+ * Repeated paired workloads; individual reports retain every raw observation.
+ */
+module compilation_benchmark.Suite.
+
+import compilation_benchmark.Runner.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.Directory.{create_all}.
+import std.io.File.{exists, read_text, write_text}.
+
+import type std.core.Option.
+import type std.data.Json.
+
+pub median(values: List[Int]): Option[Int] ->
+    let sorted = sort(values, []);
+    middle(sorted, length(sorted) div 2).
+
+length(values: List[Int]): Int ->
+    case values {
+        [] -> 0;
+        [_ | rest] -> 1 + length(rest)
+    }.
+
+middle(values: List[Int], index: Int): Option[Int] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                index == 0 -> Some(value);
+                true -> middle(rest, index - 1)
+            }
+    }.
+
+sort(values: List[Int], output: List[Int]): List[Int] ->
+    case values {
+        [] -> output;
+        [value | rest] -> sort(rest, insert(value, output))
+    }.
+
+insert(value: Int, values: List[Int]): List[Int] ->
+    case values {
+        [] -> [value];
+        [head | rest] ->
+            if {
+                value <= head -> [value | values];
+                true -> [head | insert(value, rest)]
+            }
+    }.
+
+sample_path(directory: String, index: Int, records: Bool): String ->
+    String.concat(
+        [
+            directory,
+            "/",
+            if {
+                records -> "records-";
+                true -> "scalar-"
+            },
+            Int.to_string(index),
+        ],
+    ).
+
+samples(
+    compiler: String,
+    directory: String,
+    count: Int,
+    width: Int,
+    index: Int,
+    repetitions: Int,
+): Bool ->
+    if {
+        index > repetitions -> true;
+        true -> Runner.run(compiler, sample_path(directory, index, false), count, width, false)
+            and Runner.run(compiler, sample_path(directory, index, true), count, width, true)
+            and samples(compiler, directory, count, width, index + 1, repetitions)
+    }.
+
+duration(commands: Json, name: String, index: Int): Option[Int] ->
+    let {
+        Ok(row) <- commands.at(index);
+        Ok(label) <- row.get("name");
+        Ok(text) <- label.as_string()
+    } else {
+        _ -> None
+    };
+    if {
+        text == name -> let {
+            Ok(value) <- row.get("wall_time_ns");
+            Ok(time) <- value.as_int()
+        } else {
+            _ -> None
+        };
+        Some(time);
+        true -> duration(commands, name, index + 1)
+    }.
+
+observations(
+    directory: String,
+    records: Bool,
+    phase: String,
+    index: Int,
+    repetitions: Int,
+    accumulated: List[Int],
+): Option[List[Int]] ->
+    if {
+        index > repetitions -> Some(accumulated);
+        true -> let {
+            Ok(text) <- read_text(String.append(sample_path(directory, index, records), "/report.json"));
+            Ok(report) <- Json.parse(text);
+            Ok(passed_value) <- report.get("passed");
+            Ok(true) <- passed_value.as_bool();
+            Ok(commands) <- report.get("commands");
+            Some(time) <- duration(commands, phase, 0)
+        } else {
+            _ -> None
+        };
+        observations(directory, records, phase, index + 1, repetitions, [time | accumulated])
+    }.
+
+phase_rows(
+    mut rows: Json,
+    directory: String,
+    records: Bool,
+    repetitions: Int,
+    phases: List[String],
+): Bool ->
+    case phases {
+        [] -> true;
+        [phase | rest] ->
+            let {
+                Some(values) <- observations(directory, records, phase, 1, repetitions, []);
+                Some(time) <- median(values)
+            } else {
+                _ -> false
+            };
+            (let row = Json.object();
+let _shape =
+    row
+        .put(
+            "workload",
+            Json.string(
+                if {
+                    records -> "records-generics";
+                    true -> "scalar-calls"
+                },
+            ),
+        );
+let _phase = row.put("phase", Json.string(phase));
+let _median = row.put("median_wall_time_ns", Json.int(time));
+let _samples = row.put("sample_count", Json.int(repetitions));
+let _row = rows.push(row);
+phase_rows(rows, directory, records, repetitions, rest))
+    }.
+
+pub run(compiler: String, directory: String, count: Int, width: Int, repetitions: Int): Bool ->
+    let valid =
+        count > 0
+            and count <= 1024
+            and width > 0
+            and width <= 256
+            and repetitions > 0
+            and repetitions <= 31
+            and repetitions rem 2 == 1;
+    if {
+        not valid or exists(directory) -> false;
+        true -> let Ok(_) <- create_all(directory) else {
+            _ -> false
+        };
+        (let passed = samples(compiler, directory, count, width, 1, repetitions);
+let report = Json.object();
+let rows = Json.array();
+let phases =
+    [
+        "build-cold",
+        "build-warm",
+        "implementation-edit",
+        "public-interface-edit",
+        "check-cold",
+        "check-warm",
+    ];
+let summarized =
+    passed
+        and phase_rows(rows, directory, false, repetitions, phases)
+        and phase_rows(rows, directory, true, repetitions, phases);
+let _schema = report.put("schema", Json.string("terlan.compilation-benchmark-suite.v1"));
+let _passed = report.put("passed", Json.bool(passed and summarized));
+let _rows = report.put("medians", rows);
+let _count = report.put("repetitions_per_workload", Json.int(repetitions));
+let _limits =
+    report
+        .put(
+            "limitations",
+            Json.string(
+                "Medians describe this run only. Compare identical compiler options and host conditions; raw host and toolchain evidence is in each sample report.",
+            ),
+        );
+(let {
+    Ok(text) <- Json.stringify_pretty(report);
+    Ok(_) <- write_text(String.append(directory, "/summary.json"), String.append(text, "\n"))
+} else {
+    _ -> false
+};
+passed and summarized))
+    }.

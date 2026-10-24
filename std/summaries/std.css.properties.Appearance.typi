@@ -1,104 +1,31 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-appearance
+//! The `appearance` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies the
+//! rendered appearance of replaced UI widget elements such as form controls. Most commonly, such
+//! elements are given native, platform-specific styling based on the operating system's theme, or a
+//! primitive appearance with styles that can be overridden using CSS.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: Sets interactive widgets to render with their _OS-native_ appearance. Behaves as `none`
+//! on elements with no OS-native styling.
+//! - base-select: Relevant only to the `select` element and `::picker(select)` pseudo-element,
+//! allowing them to be fully styled.
+//! - none: Gives the widget a _primitive_ appearance, making it stylable via CSS, while maintaining
+//! the widget's native functionality. This value does not affect non-widgets.
+//!
 //! Grammar: none | auto | base | base-select | <compat-auto> | <compat-special>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-appearance
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/appearance
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Appearance.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    appearance: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    appearance: Value
+    appearance: None | Auto | BaseSelect | Searchfield | Textarea | Checkbox | Radio | Menulist | Listbox | Meter | ProgressBar | Button | Textfield | MenulistButton | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained appearance value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword base.
-
-pub base(): Value.
-
-/// Returns the CSS keyword base-select.
-
-pub base_select(): Value.
-
-/// Returns the CSS keyword button.
-
-pub button(): Value.
-
-/// Returns the CSS keyword checkbox.
-
-pub checkbox(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword listbox.
-
-pub listbox(): Value.
-
-/// Returns the CSS keyword menulist.
-
-pub menulist(): Value.
-
-/// Returns the CSS keyword menulist-button.
-
-pub menulist_button(): Value.
-
-/// Returns the CSS keyword meter.
-
-pub meter(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword progress-bar.
-
-pub progress_bar(): Value.
-
-/// Returns the CSS keyword radio.
-
-pub radio(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword searchfield.
-
-pub searchfield(): Value.
-
-/// Returns the CSS keyword textarea.
-
-pub textarea(): Value.
-
-/// Returns the CSS keyword textfield.
-
-pub textfield(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

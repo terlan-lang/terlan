@@ -39,17 +39,11 @@ pub type Storage = Inline | Managed | Opaque.
  * not the transitive memory retained by a managed value.
  */
 pub struct Layout {
-    /**
-     * Physical value-slot size in bytes, excluding transitively retained memory.
-     */
+    /** Physical value-slot size in bytes, excluding transitively retained memory. */
     size: Int,
-    /**
-     * Required value-slot alignment in bytes.
-     */
+    /** Required value-slot alignment in bytes. */
     alignment: Int,
-    /**
-     * Inline, managed, or opaque storage selected for this target.
-     */
+    /** Inline, managed, or opaque storage selected for this target. */
     storage: Storage,
 }.
 

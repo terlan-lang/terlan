@@ -1,0 +1,112 @@
+/** Authenticated filesystem materialization for documentation backend units. */
+module self_host.SelfHostDocumentationDoctestMaterialize.
+
+import self_host.SelfHostDocumentationDoctestEvidenceDecode.{DecodedDoctests}.
+import self_host.SelfHostDocumentationDoctestEvidenceDecode.
+import std.core.Int.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.io.Directory.
+import std.io.File.
+
+@pure
+pub unit_path(output: String, index: Int): String ->
+    String.concat([output, "/doctest-", Int.to_string(index), ".terl"]).
+
+manifest_rows(
+    blocks: List[String],
+    output: String,
+    index: Int,
+    rendered: String,
+): String ->
+    case blocks {
+        [] -> rendered;
+        [source | rest] -> manifest_rows(
+            rest,
+            output,
+            index + 1,
+            String.concat([
+                rendered,
+                "unit\t", Int.to_string(index),
+                "\t", unit_path(output, index),
+                "\t", Hash.sha256(source),
+                "\n",
+            ]),
+        )
+    }.
+
+/** Renders the exact backend-unit manifest without writing source files. */
+pub manifest(decoded: DecodedDoctests, output: String): String ->
+    if {
+        not decoded.valid -> "";
+        true -> manifest_rows(
+            decoded.blocks,
+            output,
+            0,
+            String.concat([
+                "schema\tterlan.self-host.documentation-doctest-units/v1\n",
+                "count\t", Int.to_string(length(decoded.blocks)), "\n",
+            ]),
+        )
+    }.
+
+length[T](values: List[T]): Int ->
+    case values {
+        [] -> 0;
+        [_value | rest] -> 1 + length(rest)
+    }.
+
+write_units(blocks: List[String], output: String, index: Int): Bool ->
+    case blocks {
+        [] -> true;
+        [source | rest] ->
+            case File.write_text(unit_path(output, index), source) {
+                Err(_reason) -> false;
+                Ok(_unit) -> write_units(rest, output, index + 1)
+            }
+    }.
+
+write_manifest(decoded: DecodedDoctests, output: String, manifest_output: String): Bool ->
+    case write_units(decoded.blocks, output, 0) {
+        false -> false;
+        true ->
+            case File.write_text(manifest_output, manifest(decoded, output)) {
+                Err(_reason) -> false;
+                Ok(_unit) -> true
+            }
+    }.
+
+complete(marker: String): Bool ->
+    case File.write_text(marker, "complete\n") {
+        Err(_reason) -> false;
+        Ok(_unit) -> true
+    }.
+
+materialize(source: String, output: String, manifest_output: String, marker: String): Bool ->
+    let decoded = SelfHostDocumentationDoctestEvidenceDecode.decode(source);
+    if {
+        not decoded.valid -> false;
+        true ->
+            let _created = Directory.create_all(output);
+            case write_manifest(decoded, output, manifest_output) {
+                false -> false;
+                true -> complete(marker)
+            }
+    }.
+
+/** Authenticates evidence, writes source units, then commits manifest and marker. */
+pub run(
+    evidence_input: String,
+    output: String,
+    manifest_output: String,
+    complete_marker: String,
+): Bool ->
+    case File.write_text(complete_marker, "pending\n") {
+        Err(_reason) -> false;
+        Ok(_unit) ->
+            case File.read_text(evidence_input) {
+                Err(_reason) -> false;
+                Ok(source) -> materialize(source, output, manifest_output, complete_marker)
+            }
+    }.

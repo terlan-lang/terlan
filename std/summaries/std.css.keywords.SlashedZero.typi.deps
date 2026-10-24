@@ -1,0 +1,8 @@
+module=std.css.keywords.SlashedZero
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=7915958321301038330
+interface_hash=12891576831606090861
+interface_doc_hash=973544176609915709
+deps=0

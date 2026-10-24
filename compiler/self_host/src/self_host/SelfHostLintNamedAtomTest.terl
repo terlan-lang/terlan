@@ -1,0 +1,51 @@
+/** Positive and negative named-atom consistency contracts. */
+module self_host.SelfHostLintNamedAtomTest.
+
+import self_host.SelfHostLintNamedAtom.{AtomLiteralUse, NamedAtomType}.
+import self_host.SelfHostLintNamedAtom.
+import std.core.Option.{None, Some}.
+
+@test
+pub extracts_exact_atom_variant_text(): Bool ->
+    SelfHostLintNamedAtom.atom_literal_name("Atom[\"hit\"]") == Some("hit")
+        and SelfHostLintNamedAtom.atom_literal_name("Atom[hit]") == None
+        and SelfHostLintNamedAtom.atom_literal_name("Other[\"hit\"]") == None.
+
+@test
+pub reports_raw_literal_duplicating_local_singleton_type(): Bool ->
+    let diagnostics = SelfHostLintNamedAtom.diagnostics(
+        "module sample.\nAtom[\"hit\"]",
+        "Sample.terl",
+        [NamedAtomType("Hit", "hit")],
+        [AtomLiteralUse("hit", 15, true)],
+    );
+    case diagnostics {
+        [value] ->
+            value.rule_id == "TL0506"
+                and value.rule_name == "consistency.inline-named-atom"
+                and value.severity == "error"
+                and value.line == 2
+                and value.column == 1;
+        _ -> false
+    }.
+
+@test
+pub accepts_named_constructor_and_unrelated_atoms(): Bool ->
+    SelfHostLintNamedAtom.diagnostics(
+        "module sample.",
+        "Sample.terl",
+        [NamedAtomType("Hit", "hit")],
+        [
+            AtomLiteralUse("hit", 0, false),
+            AtomLiteralUse("external_protocol_tag", 0, true),
+        ],
+    ) == [].
+
+@test
+pub accepts_raw_atoms_without_named_atom_types(): Bool ->
+    SelfHostLintNamedAtom.diagnostics(
+        "module sample.",
+        "Sample.terl",
+        [],
+        [AtomLiteralUse("hit", 0, true)],
+    ) == [].

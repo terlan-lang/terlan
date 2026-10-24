@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword caption. Generated; do not edit.
+ */
+module std.css.keywords.Caption.
+
+pub type Caption.

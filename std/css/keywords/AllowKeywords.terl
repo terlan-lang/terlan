@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword allow-keywords. Generated; do not edit.
+ */
+module std.css.keywords.AllowKeywords.
+
+pub type AllowKeywords = Atom["allow-keywords"].

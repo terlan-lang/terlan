@@ -31,9 +31,8 @@ internal.
 - `run`: executes `terlc serve`.
 - `parse_serve_args`: normalizes command-local arguments into `ServeArgs`.
 - `validate_web_package`: validates a packaged browser artifact.
-- `logging`: request id allocation, local request log formatting, and
-  browser-readable development handler error pages with optional source span
-  metadata from generated manifests.
+- `logging`: test-only legacy log and development error-page formatting.
+  Production dynamic requests use `service_foundation` request contexts.
 - `response`: content-type mapping, live-reload script injection, SSE headers,
   and HTTP response rendering.
 - `tls`: TLS runtime boundary for manual, internal, and automatic ACME modes.
@@ -61,6 +60,13 @@ owns a descriptor-admitted native image. Request, Response, Router,
 middleware, template, WebSocket, and SSE values cross the canonical managed
 ABI and generated callbacks execute under request-owned shards.
 
+The HTTP package owns both synchronous and suspendable router orchestration.
+`handler/router_host.rs` and `handler/suspendable_router.rs` only adapt opaque
+callable execution, request values, and authorized response access. Capture
+argument construction is
+shared between both paths; route identity, middleware validation, and recovery
+policy are not reimplemented in the host adapter.
+
 The main flow is:
 
 1. Parse host, port, optional package directory, and `--check`.
@@ -74,10 +80,9 @@ The main flow is:
 
 Dynamic handlers are authorable as Terlan functions in package metadata, and
 serving them belongs to the VM-owned HTTP handler runtime. Public
-`std.http.Request` and `std.http.Response` stay Rust-native server/runtime
-values; VM runtime work should adapt native HTTP values to VM-callable handler
-functions without exposing an intermediate protocol as the user-facing HTTP
-model.
+`std.http.Request` and `std.http.Response` are Terlan source values. The HTTP
+package admits and projects their descriptors at the maintained protocol
+boundary; the host resolves code generations and executes their callables.
 
 Important invariants:
 
@@ -155,10 +160,11 @@ Important invariants:
   VM handler runtime.
 - `handler/response_bridge.rs`: handler response wrapper plus response header
   validation.
-- `handler/route.rs`: route selection, precedence, captured params, and
-  ambiguity validation.
+- `handler/route.rs`: manifest-generation caching and conversion of package-selected
+  endpoints into host execution handles. `std/http/native/src/manifest/selection`
+  owns cross-kind route selection through the shared package matcher.
 - `handler/types.rs`: manifest handler/static/file/error response data shapes.
-- `logging.rs`: request ids, local request logs, and development error pages.
+- `logging.rs`: test-only legacy log and development error-page formatters.
 - `manifest.rs`: web package manifest loading and validation data model.
 - `response.rs`: HTTP response serialization and live-reload response helpers.
 - `tls.rs`: `rustls` TLS runtime setup for manual/internal modes plus
@@ -192,6 +198,25 @@ Important invariants:
 : Internal response wrapper for VM/native handler output validation.
 
 ## Testing Notes
+
+TLS protocol selection and connection dispatch live in
+`std/http/native/src/server_connection`. The host supplies the compiled
+application callback and drives package futures through the generic VM task
+group in `hyper_server/connection_tasks.rs`; it does not construct separate
+HTTP/1 and HTTP/2 services. Package diagnostics survive the host boundary,
+including bounded task admission failure.
+
+HTTP request tests use the same `hyper_server::handle_request` and package-owned
+`request_pipeline::handle` as production. There is no separate test dispatcher
+or unbounded/lossy request-body reader. Only the development reload subscriber
+fixture bypasses that pipeline; it does not establish live application SSE
+support. Admission tests cover declared and actual body limits, misleading
+length headers, invalid UTF-8, and exact-limit bodies.
+
+`hyper_server_sse_source_test` separately drives compiled Terlan producers over
+real TLS through that production pipeline. It covers VM timer suspension, event
+encoding, malformed and oversized event rejection, and disconnect recovery.
+HEAD skips producer invocation; independent heartbeat policies remain unsupported.
 
 - `serve_test.rs` covers parser behavior, package validation, and HTTP response
   helpers.

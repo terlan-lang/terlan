@@ -1,6 +1,8 @@
 /** Self-hosted lowering for template source paths and typed properties. */
 module self_host.TemplateLowering.
 
+import std.core.String.
+
 import self_host.DeclarationPayloadSyntax.{StructFieldSyntax}.
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.Syntax.{TemplateDeclaration}.
@@ -16,10 +18,13 @@ import self_host.StructLowering.
 strip_quotes(source: String): String ->
     let value = String.trim(source);
     if {
-        value.byte_size() >= 2
-            and value.utf8_byte_at(0) == 34
-            and value.utf8_byte_at(value.byte_size() - 1) == 34 -> value.utf8_slice(1, value.byte_size() - 2);
-        true -> ""
+        value.byte_size() < 2 -> "";
+        true -> let first = value.utf8_byte_at(0);
+            let last = value.utf8_byte_at(value.byte_size() - 1);
+            if {
+                first == 34 and last == 34 -> value.utf8_slice(1, value.byte_size() - 2);
+                true -> ""
+            }
     }.
 
 @pure

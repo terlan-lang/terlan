@@ -1,0 +1,67 @@
+/** Stale-marker and artifact-order contracts for lint authority tooling. */
+module self_host.SelfHostLintAuthorityToolTest.
+
+import std.core.String.
+import self_host.SelfHostLintAuthority.LintAuthorityEvidence.
+import self_host.SelfHostLintAuthorityTool.
+import self_host.SelfHostLintRegistry.
+
+evidence(registry: String): LintAuthorityEvidence ->
+    LintAuthorityEvidence(registry, true, true, true, true, true).
+
+@test
+pub ready_plan_invalidates_first_and_completes_last(): Bool ->
+    let value = SelfHostLintAuthorityTool.plan_with_projection_count(
+        evidence(SelfHostLintRegistry.render()),
+        0,
+    );
+    case {value.remove_before_write, value.writes} {
+        {
+            [remove],
+            [registry, decision, complete],
+        } ->
+            value.ready
+                and remove == SelfHostLintAuthorityTool.complete_marker_path()
+                and registry.path == SelfHostLintAuthorityTool.registry_path()
+                and decision.path == SelfHostLintAuthorityTool.decision_path()
+                and String.contains(decision.contents, "status\tready")
+                and complete.path == SelfHostLintAuthorityTool.complete_marker_path()
+                and complete.contents == SelfHostLintRegistry.render();
+        _ -> false
+    }.
+
+@test
+pub pending_plan_removes_marker_and_never_recreates_it(): Bool ->
+    let value = SelfHostLintAuthorityTool.plan_with_projection_count(
+        evidence(SelfHostLintRegistry.render()),
+        1,
+    );
+    case {value.remove_before_write, value.writes} {
+        {[remove], [registry, decision]} ->
+            not value.ready
+                and remove == SelfHostLintAuthorityTool.complete_marker_path()
+                and registry.path == SelfHostLintAuthorityTool.registry_path()
+                and decision.path == SelfHostLintAuthorityTool.decision_path()
+                and String.contains(decision.contents, "status\tpending")
+                and String.contains(
+                    decision.contents,
+                    "missing\tzero-projection-rules",
+                );
+        _ -> false
+    }.
+
+@test
+pub stale_registry_cannot_produce_completion_marker(): Bool ->
+    let value = SelfHostLintAuthorityTool.plan_with_projection_count(
+        evidence("stale"),
+        0,
+    );
+    case value.writes {
+        [_, decision] ->
+            not value.ready
+                and String.contains(
+                    decision.contents,
+                    "missing\tcanonical-registry-artifact",
+                );
+        _ -> false
+    }.

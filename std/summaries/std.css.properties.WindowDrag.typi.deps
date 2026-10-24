@@ -1,9 +1,11 @@
 module=std.css.properties.WindowDrag
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16573483455545892727
-interface_hash=722466878070630739
-interface_doc_hash=1759615151890292237
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3508572807330346583
+interface_hash=7110273376046932419
+interface_doc_hash=16282878477582871928
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Move=15389515464783873084
+std.css.keywords.None=3400229744369726074

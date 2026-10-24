@@ -1,0 +1,169 @@
+/** Ordered runtime layouts derived from finite-sum pattern authority. */
+module self_host.ProjectedVariantLayout.
+
+import std.core.String.
+
+import self_host.ProjectedPatternAuthority.{FiniteSumContract, PatternAuthorityCatalog, PatternConstructorContract}.
+import self_host.TypedModuleSyntax.{TypedModule}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+import self_host.ProjectedPatternAuthority.
+
+
+pub struct VariantLayout {
+    owner: String,
+    name: String,
+    discriminant: Int,
+    type_parameters: List[String],
+    payload_types: List[Option[String]],
+}.
+
+pub constructor VariantLayout {
+    (owner: String, name: String, discriminant: Int, type_parameters: List[String], payload_types: List[Option[String]]): VariantLayout ->
+        VariantLayout {
+            owner: owner,
+            name: name,
+            discriminant: discriminant,
+            type_parameters: type_parameters,
+            payload_types: payload_types,
+        }
+}.
+
+
+pub struct VariantLayoutPlan {
+    valid: Bool,
+    layouts: List[VariantLayout],
+    diagnostics: List[String],
+}.
+
+pub constructor VariantLayoutPlan {
+    (valid: Bool, layouts: List[VariantLayout], diagnostics: List[String]): VariantLayoutPlan ->
+        VariantLayoutPlan { valid: valid, layouts: layouts, diagnostics: diagnostics }
+}.
+
+
+struct ConstructorLookup {
+    exact_count: Int,
+    exact: Option[PatternConstructorContract],
+    fallback_count: Int,
+    fallback: Option[PatternConstructorContract],
+}.
+
+constructor ConstructorLookup {
+    (exact_count: Int, exact: Option[PatternConstructorContract], fallback_count: Int, fallback: Option[PatternConstructorContract]): ConstructorLookup ->
+        ConstructorLookup {
+            exact_count: exact_count,
+            exact: exact,
+            fallback_count: fallback_count,
+            fallback: fallback,
+        }
+}.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+lookup_constructor(
+    owner: String,
+    name: String,
+    values: List[PatternConstructorContract],
+    exact_count: Int,
+    exact: Option[PatternConstructorContract],
+    fallback_count: Int,
+    fallback: Option[PatternConstructorContract],
+): ConstructorLookup ->
+    case values {
+        [] -> ConstructorLookup(exact_count, exact, fallback_count, fallback);
+        [value | rest] where value.name == name and value.owner == Some(owner) ->
+            lookup_constructor(owner, name, rest, exact_count + 1, Some(value), fallback_count, fallback);
+        [value | rest] where value.name == name and value.owner == None ->
+            lookup_constructor(owner, name, rest, exact_count, exact, fallback_count + 1, Some(value));
+        [_value | rest] -> lookup_constructor(owner, name, rest, exact_count, exact, fallback_count, fallback)
+    }.
+
+@pure
+selected_count(value: ConstructorLookup): Int ->
+    if { value.exact_count > 0 -> value.exact_count; true -> value.fallback_count }.
+
+@pure
+selected_value(value: ConstructorLookup): Option[PatternConstructorContract] ->
+    if { value.exact_count > 0 -> value.exact; true -> value.fallback }.
+
+@pure
+member_diagnostic(owner: String, name: String, count: Int): String ->
+    if {
+        count == 0 -> String.concat(["sum ", owner, " has no constructor schema for ", name]);
+        true -> String.concat(["sum ", owner, " has ambiguous constructor schema for ", name])
+    }.
+
+@pure
+member_plan(
+    owner: String,
+    name: String,
+    discriminant: Int,
+    constructors: List[PatternConstructorContract],
+): VariantLayoutPlan ->
+    let found = lookup_constructor(owner, name, constructors, 0, None, 0, None);
+    let count = selected_count(found);
+    case selected_value(found) {
+        Some(value) where count == 1 -> VariantLayoutPlan(
+            true,
+            [VariantLayout(owner, name, discriminant, value.type_parameters, value.parameter_types)],
+            List.new[String](),
+        );
+        _ -> VariantLayoutPlan(
+            false,
+            List.new[VariantLayout](),
+            [member_diagnostic(owner, name, count)],
+        )
+    }.
+
+@pure
+members_plan(
+    owner: String,
+    values: List[String],
+    constructors: List[PatternConstructorContract],
+    discriminant: Int,
+): VariantLayoutPlan ->
+    case values {
+        [] -> VariantLayoutPlan(true, List.new[VariantLayout](), List.new[String]());
+        [value | rest] ->
+            let current = member_plan(owner, value, discriminant, constructors);
+            let remaining = members_plan(owner, rest, constructors, discriminant + 1);
+            VariantLayoutPlan(
+                current.valid and remaining.valid,
+                append(current.layouts, remaining.layouts),
+                append(current.diagnostics, remaining.diagnostics),
+            )
+    }.
+
+@pure
+sums_plan(
+    values: List[FiniteSumContract],
+    constructors: List[PatternConstructorContract],
+): VariantLayoutPlan ->
+    case values {
+        [] -> VariantLayoutPlan(true, List.new[VariantLayout](), List.new[String]());
+        [value | rest] ->
+            let current = members_plan(value.name, value.members, constructors, 0);
+            let remaining = sums_plan(rest, constructors);
+            VariantLayoutPlan(
+                current.valid and remaining.valid,
+                append(current.layouts, remaining.layouts),
+                append(current.diagnostics, remaining.diagnostics),
+            )
+    }.
+
+/** Produces deterministic tags from the exact order used by exhaustiveness checks. */
+@pure
+pub from_catalog(source: PatternAuthorityCatalog): VariantLayoutPlan ->
+    sums_plan(source.sums, source.constructors).
+
+/** Produces runtime layouts directly from the module's typed pattern authority. */
+@pure
+pub plan(source: TypedModule): VariantLayoutPlan ->
+    from_catalog(ProjectedPatternAuthority.catalog(source)).

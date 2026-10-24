@@ -1,102 +1,60 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-top
+ * The `scroll-padding-top` property defines offsets for the top of the _optimal viewing region_ of
+ * the scrollport: the region used as the target region for placing things in view of the user. This
+ * allows the author to exclude regions of the scrollport that are obscured by other content (such
+ * as fixed-positioned toolbars or sidebars) or to put more breathing room between a targeted
+ * element and the edges of the scrollport.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: relative to the scroll container's scrollport.
+ *
+ * Keyword effects:
+ * - auto: The offset is determined by the user agent. This will generally be 0px, but a user agent
+ * is able to detect and do something else if a non-zero value is more appropriate.
+ *
  * Grammar: auto | <length-percentage [0,∞]>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-top
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-padding-top
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollPaddingTop.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
+import std.css.keywords.Auto.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained scroll-padding-top value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    scroll_padding_top: Value,
+    scroll_padding_top: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the scroll-padding-top length range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub struct OptionalProperty {
-    scroll_padding_top: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "scroll-padding-top", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "scroll-padding-top", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scroll-padding-top", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scroll-padding-top", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scroll-padding-top", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scroll-padding-top", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a scroll-padding-top value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(Token {property: "scroll-padding-top", css: std.css.Values.length_css(value)}),
-            );
-        false -> None
+pub length(value: Length): Option[Checked] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Checked(serialize("scroll-padding-top", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a scroll-padding-top value.
+ * Checks the scroll-padding-top percentage range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(
-                    Token {
-                        property: "scroll-padding-top",
-                        css: std.css.Values.percentage_css(value),
-                    },
-                ),
-            );
-        false -> None
+pub percentage(value: Percentage): Option[Checked] ->
+    case percentage_amount(value) >= 0 {
+        true -> Some(Checked(serialize("scroll-padding-top", percentage_css(value))));
+        false -> Absent
     }.

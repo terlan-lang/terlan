@@ -75,7 +75,7 @@ fn libpq_docker_gate_validates_success_failure_cancellation_and_cleanup() {
                 VmPostgresDriverOperation::BatchExecute {
                     target: VmPostgresQueryTarget::Pool(vm_pool),
                     driver_target: VmPostgresDriverQueryTarget::Pool(driver_pool),
-                    sql: "CREATE TEMP TABLE terlan_batch_probe (value bigint); INSERT INTO terlan_batch_probe VALUES (20), (22);".to_string(),
+                    sql: "CREATE TEMP TABLE terlan_batch_probe (value bigint); INSERT INTO terlan_batch_probe VALUES (20); INSERT INTO terlan_batch_probe VALUES (22);".to_string(),
                 },
             ),
         ),

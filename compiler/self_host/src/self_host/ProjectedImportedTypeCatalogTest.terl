@@ -1,0 +1,42 @@
+/** Imported type visibility contracts. */
+module self_host.ProjectedImportedTypeCatalogTest.
+
+import self_host.CanonicalLexer.
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.ProjectedFrontend.
+import self_host.ProjectedSemanticAnalysis.
+import self_host.Syntax.{SyntaxSpan, TypeDeclaration}.
+import std.collections.List.
+import std.core.Option.{None}.
+
+library(): ModuleInterface -> ModuleInterface(
+    "terlan.self-host.interface/v4",
+    "library.Types",
+    [ExportedSymbol(
+        "Box",
+        -1,
+        TypeDeclaration,
+        None,
+        false,
+        ["Value"],
+        [],
+        None,
+        SyntaxSpan(0, 0),
+    )],
+).
+
+analyze(source: String): self_host.ProjectedSemanticSyntax.ProjectedSemanticModule ->
+    let lexed = CanonicalLexer.lex(source);
+    ProjectedSemanticAnalysis.analyze_with_interfaces(
+        ProjectedFrontend.compile(source, lexed.tokens),
+        ["Box", "library.Types.Box"],
+        [library()],
+    ).
+
+selected_import_exposes_type(): Bool ->
+    analyze("module test.Imported.\nimport library.Types.{Box}.\nidentity(value: Box[Int]): Box[Int] -> value.").type_resolution.valid.
+
+unimported_interface_does_not_expose_type(): Bool ->
+    not analyze("module test.Hidden.\nidentity(value: Box[Int]): Box[Int] -> value.").type_resolution.valid.
+
+pub self_test(): Bool -> selected_import_exposes_type() and unimported_interface_does_not_expose_type().

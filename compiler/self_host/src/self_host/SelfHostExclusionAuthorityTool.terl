@@ -1,0 +1,74 @@
+/** Complete-closure no-ad-hoc-exclusion evidence producer. */
+module self_host.SelfHostExclusionAuthorityTool.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, String}.
+import std.io.File.
+
+import self_host.SelfHostExclusionAuthority.{ExclusionEntry, ExclusionSource}.
+import self_host.SelfHostExclusionAuthority.
+
+
+@pure
+manifest_paths(lines: List[String]): List[String] ->
+    case lines {
+        [] -> [];
+        [line | rest] -> let path = String.trim(line);
+            if {
+                path == "" or String.starts_with(path, "#") -> manifest_paths(rest);
+                true -> [path | manifest_paths(rest)]
+            }
+    }.
+
+read_sources(paths: List[String]): Option[List[ExclusionSource]] ->
+    case paths {
+        [] -> Some(List.new[ExclusionSource]());
+        [path | rest] -> case File.read_text(path) {
+            Err(_) -> None;
+            Ok(source) -> case read_sources(rest) {
+                None -> None;
+                Some(values) -> Some([ExclusionSource(path, source) | values])
+            }
+        }
+    }.
+
+write_admitted(
+    output_path: String,
+    sources: List[ExclusionSource],
+    entries: List[ExclusionEntry],
+): Bool ->
+    if {
+        not SelfHostExclusionAuthority.admit(sources, entries) -> false;
+        true -> case File.write_text(
+            output_path,
+            SelfHostExclusionAuthority.render(sources, entries),
+        ) {
+            Err(_) -> false;
+            Ok(_) -> true
+        }
+    }.
+
+/** Reads the complete closure and policy manifest, then publishes admitted evidence only. */
+pub write(
+    source_closure_path: String,
+    exclusion_manifest_path: String,
+    output_path: String,
+): Bool ->
+    let _removed = File.delete(output_path);
+    case File.read_text(source_closure_path) {
+        Err(_) -> false;
+        Ok(source_manifest) -> case File.read_text(exclusion_manifest_path) {
+            Err(_) -> false;
+            Ok(exclusion_manifest) -> case SelfHostExclusionAuthority.decode(exclusion_manifest) {
+                None -> false;
+                Some(entries) -> case read_sources(manifest_paths(String.split(source_manifest, "\n"))) {
+                    None -> false;
+                    Some(sources) -> write_admitted(output_path, sources, entries)
+                }
+            }
+        }
+    }.

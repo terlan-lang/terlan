@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword ordinal. Generated; do not edit.
+ */
+module std.css.keywords.Ordinal.
+
+pub type Ordinal.

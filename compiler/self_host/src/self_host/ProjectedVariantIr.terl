@@ -1,0 +1,34 @@
+/** Fail-closed lowering from finite-sum authority into typed Core IR. */
+module self_host.ProjectedVariantIr.
+
+import self_host.ProjectedVariantLayout.{VariantLayout, VariantLayoutPlan}.
+import self_host.SelfHostIrSyntax.{IrVariantLayout}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+
+
+@pure
+lower_layout(value: VariantLayout): IrVariantLayout ->
+    IrVariantLayout(
+        value.owner,
+        value.name,
+        value.discriminant,
+        value.type_parameters,
+        value.payload_types,
+    ).
+
+@pure
+lower_layouts(values: List[VariantLayout]): List[IrVariantLayout] ->
+    case values {
+        [] -> List.new[IrVariantLayout]();
+        [value | rest] -> [lower_layout(value) | lower_layouts(rest)]
+    }.
+
+/** Invalid or incomplete semantic layouts never cross the Core IR boundary. */
+@pure
+pub lower(source: VariantLayoutPlan): Option[List[IrVariantLayout]] ->
+    if {
+        source.valid and source.diagnostics == [] -> Some(lower_layouts(source.layouts));
+        true -> None
+    }.

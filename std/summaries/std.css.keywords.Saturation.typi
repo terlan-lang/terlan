@@ -1,0 +1,6 @@
+//! Shared CSS keyword saturation. Generated; do not edit.
+
+module std.css.keywords.Saturation.
+
+pub type Saturation =
+    Atom["saturation"].

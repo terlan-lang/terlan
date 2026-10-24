@@ -1,0 +1,87 @@
+/** Contracts for bounded self-hosted compiler worker planning. */
+module self_host.SelfHostWorkerPlanTest.
+
+import self_host.SelfHostIncrementalPlan.{IncrementalDecision, IncrementalUnit}.
+import self_host.SelfHostWorkerPlan.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+
+@test
+pub worker_batches_are_bounded_and_ordered(): Bool ->
+    let decisions = [
+        IncrementalDecision("a", true, "identity-changed"),
+        IncrementalDecision("b", false, "reused"),
+        IncrementalDecision("c", true, "dependency-changed"),
+        IncrementalDecision("d", true, "dependency-changed"),
+    ];
+    case SelfHostWorkerPlan.plan(decisions, 2) {
+        Some([first, second]) -> first.index == 0
+            and first.modules == ["a", "c"]
+            and second.index == 1
+            and second.modules == ["d"];
+        _ -> false
+    }.
+
+@test
+pub unchanged_modules_do_not_consume_worker_slots(): Bool ->
+    case SelfHostWorkerPlan.plan([IncrementalDecision("a", false, "reused")], 1) {
+        Some(batches) -> batches == [];
+        None -> false
+    }.
+
+@test
+pub non_positive_worker_limits_are_rejected(): Bool ->
+    SelfHostWorkerPlan.plan([], 0) == None
+        and SelfHostWorkerPlan.plan([], -1) == None.
+
+@test
+pub dependency_batches_are_ready_and_bounded(): Bool ->
+    let units = [
+        IncrementalUnit("a", "a1", []),
+        IncrementalUnit("b", "b1", ["a"]),
+        IncrementalUnit("c", "c1", []),
+        IncrementalUnit("d", "d1", ["b", "c"]),
+    ];
+    let decisions = [
+        IncrementalDecision("a", true, "identity-changed"),
+        IncrementalDecision("b", true, "dependency-changed"),
+        IncrementalDecision("c", true, "identity-changed"),
+        IncrementalDecision("d", true, "dependency-changed"),
+    ];
+    case SelfHostWorkerPlan.plan_dependencies(units, decisions, 2) {
+        Ok([first, second, third]) -> first.index == 0
+            and first.modules == ["a", "c"]
+            and second.index == 1
+            and second.modules == ["b"]
+            and third.index == 2
+            and third.modules == ["d"];
+        _ -> false
+    }.
+
+@test
+pub dependency_cycles_are_rejected(): Bool ->
+    case SelfHostWorkerPlan.plan_dependencies(
+        [
+            IncrementalUnit("a", "a1", ["b"]),
+            IncrementalUnit("b", "b1", ["a"]),
+        ],
+        [
+            IncrementalDecision("a", true, "identity-changed"),
+            IncrementalDecision("b", true, "dependency-changed"),
+        ],
+        2,
+    ) {
+        Err(_) -> true;
+        Ok(_) -> false
+    }.
+
+@test
+pub duplicate_unit_identities_are_rejected(): Bool ->
+    case SelfHostWorkerPlan.plan_dependencies(
+        [IncrementalUnit("a", "a1", []), IncrementalUnit("a", "a2", [])],
+        [IncrementalDecision("a", true, "identity-changed")],
+        1,
+    ) {
+        Err(_) -> true;
+        Ok(_) -> false
+    }.

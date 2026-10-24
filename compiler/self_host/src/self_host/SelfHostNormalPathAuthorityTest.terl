@@ -1,0 +1,67 @@
+/** Positive and negative contracts for Rust frontend retirement. */
+module self_host.SelfHostNormalPathAuthorityTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Bool, String}.
+import self_host.SelfHostNormalPathAuthority.{NormalPathSource}.
+import self_host.SelfHostNormalPathAuthority.
+
+
+manifest(): String ->
+    "compiler-package\tcompiler/self_host/scripts/package_stage.sh\ttarget/bootstrap/terlc1/terlc\n"
+        + "source-closure\tcompiler/self_host/scripts/source_closure.sh\ttarget/bootstrap/terlc1/terlc\n"
+        + "bounded-backend\tcompiler/self_host/scripts/bounded_package_stage.sh\tSELF_HOST_IMAGE\n"
+        + "native-object\tcompiler/self_host/scripts/native_object_stage.sh\tactor-backend-unit\n"
+        + "native-application\tcompiler/self_host/scripts/native_application_stage.sh\tactor-backend-unit\n"
+        + "hardening-evidence\tcompiler/self_host/scripts/hardening_evidence.sh\ttarget/bootstrap/terlc1/terlc\n"
+        + "production-authority\tcompiler/self_host/scripts/production_authority.sh\tproduction-evidence\n"
+        + "bootstrap-seed\tcompiler/self_host/scripts/seed_stage.sh\tTERLAN_SELF_HOST_IMAGE\n"
+        + "bootstrap-comparison\tcompiler/self_host/scripts/bootstrap_convergence.sh\tTERLAN_SELF_HOST_IMAGE\n"
+        + "fixed-point-comparison\tcompiler/self_host/scripts/bootstrap_fixed_point.sh\tTERLAN_SELF_HOST_IMAGE\n"
+        + "post-cleanup-convergence\tcompiler/self_host/scripts/post_cleanup_convergence.sh\tTERLAN_SELF_HOST_IMAGE\n".
+
+sources(recovery: Bool): List[NormalPathSource] ->
+    case SelfHostNormalPathAuthority.decode(manifest()) {
+        None -> [];
+        Some(entries) -> case entries {
+            [package, closure, bounded, native_object, native_application, hardening, production, seed, convergence, fixed, post_cleanup] -> [
+                NormalPathSource(package, if {
+                    recovery -> "TERLC=${TERLC:-target/debug/terlc}\ntarget/bootstrap/terlc1/terlc";
+                    true -> "target/bootstrap/terlc1/terlc"
+                }),
+                NormalPathSource(closure, "target/bootstrap/terlc1/terlc"),
+                NormalPathSource(bounded, "SELF_HOST_IMAGE"),
+                NormalPathSource(native_object, "actor-backend-unit"),
+                NormalPathSource(native_application, "actor-backend-unit"),
+                NormalPathSource(hardening, "target/bootstrap/terlc1/terlc"),
+                NormalPathSource(production, "production-evidence"),
+                NormalPathSource(seed, "TERLAN_SELF_HOST_IMAGE"),
+                NormalPathSource(convergence, "TERLAN_SELF_HOST_IMAGE"),
+                NormalPathSource(fixed, "TERLAN_SELF_HOST_IMAGE"),
+                NormalPathSource(post_cleanup, "TERLAN_SELF_HOST_IMAGE"),
+            ];
+            _ -> []
+        }
+    }.
+
+@test
+pub canonical_self_hosted_entry_points_are_admitted(): Bool ->
+    SelfHostNormalPathAuthority.admit(sources(false)).
+
+@test
+pub rust_or_recovery_frontend_on_normal_path_is_rejected(): Bool ->
+    not SelfHostNormalPathAuthority.admit(sources(true)).
+
+@test
+pub missing_or_added_entry_points_are_rejected(): Bool ->
+    case sources(false) {
+        [_first | rest] -> not SelfHostNormalPathAuthority.admit(rest);
+        [] -> false
+    }.
+
+@test
+pub unknown_manifest_role_is_rejected(): Bool ->
+    SelfHostNormalPathAuthority.decode(
+        manifest() + "extra\textra.sh\tself-hosted\n",
+    ) == None.

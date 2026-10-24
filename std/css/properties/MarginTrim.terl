@@ -1,87 +1,33 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-box-4/#propdef-margin-trim
+ * The `margin-trim` property allows the container to trim the margins of its children where they
+ * adjoin the container's edges.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - block: Margins provided to the block children where they adjoin the container's edges are
+ * trimmed to zero without affecting the margins provided to the container.
+ * - block-end: Margin of last block child with the container's edge is trimmed to zero.
+ * - block-start: Margin of the first block child with the container's edge is trimmed to zero.
+ * - none: Margins are not trimmed by the container.
+ *
  * Grammar: none | block | [ block-start || block-end ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-box-4/#propdef-margin-trim
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-trim
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MarginTrim.
 
-import type std.core.Option.
+import std.css.keywords.{Block, BlockEnd, BlockStart, None}.
 
-/**
- * A nominal, specification-constrained margin-trim value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    margin_trim: Value,
+    margin_trim: None | Block | BlockStart | BlockEnd | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    margin_trim: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword block.
- */
-pub block(): Value ->
-    Value(Token {property: "margin-trim", css: "block"}).
-
-/**
- * Returns the CSS keyword block-end.
- */
-pub block_end(): Value ->
-    Value(Token {property: "margin-trim", css: "block-end"}).
-
-/**
- * Returns the CSS keyword block-start.
- */
-pub block_start(): Value ->
-    Value(Token {property: "margin-trim", css: "block-start"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "margin-trim", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "margin-trim", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "margin-trim", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "margin-trim", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "margin-trim", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "margin-trim", css: "unset"}).

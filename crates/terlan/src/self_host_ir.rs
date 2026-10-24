@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::fmt;
 
 pub const ABI_MAJOR: u32 = 1;
-pub const ABI_MINOR: u32 = 0;
+pub const ABI_MINOR: u32 = 6;
 
 /// Named, typed input to a self-hosted IR function.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,7 +22,13 @@ pub struct IrInstruction {
     pub opcode: String,
     pub result: Option<String>,
     pub operands: Vec<String>,
+    #[serde(default)]
+    pub operand_types: Vec<Option<String>>,
     pub type_name: String,
+    #[serde(default)]
+    pub continuation_ordinal: Option<usize>,
+    #[serde(default)]
+    pub try_region: Option<IrTryRegion>,
 }
 
 /// Control-flow exit from a block, including successor labels.
@@ -43,6 +49,27 @@ pub struct IrBlock {
     pub terminator: IrTerminator,
 }
 
+/// One typed nested CFG region evaluated under a structured parent operation.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IrRegion {
+    pub label: String,
+    pub parameters: Vec<IrParameter>,
+    pub blocks: Vec<IrBlock>,
+    pub result: String,
+    pub type_name: String,
+}
+
+/// Protected, selected, and exactly-once cleanup regions of one typed `try`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IrTryRegion {
+    pub protected: IrRegion,
+    pub success: IrRegion,
+    pub failure: IrRegion,
+    pub cleanup: Vec<IrRegion>,
+}
+
 /// Typed function body or native symbol declaration emitted by the frontend.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -50,6 +77,12 @@ pub struct IrFunction {
     pub module_name: String,
     pub name: String,
     pub arity: usize,
+    #[serde(default)]
+    pub capture_count: usize,
+    #[serde(default)]
+    pub receiver_mutable: bool,
+    #[serde(default)]
+    pub receiver_command: bool,
     pub parameters: Vec<IrParameter>,
     pub return_type: String,
     pub blocks: Vec<IrBlock>,
@@ -61,7 +94,40 @@ pub struct IrFunction {
 #[serde(deny_unknown_fields)]
 pub struct IrModule {
     pub name: String,
+    #[serde(default)]
+    pub structs: Vec<IrStructLayout>,
     pub functions: Vec<IrFunction>,
+}
+
+/// Named aggregate layout required to decode structural field operations.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IrStructLayout {
+    pub name: String,
+    pub fields: Vec<IrStructField>,
+}
+
+/// One ordered aggregate field. String-only fields are accepted from ABI-1.0/1.1.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum IrStructField {
+    Legacy(String),
+    Typed { name: String, type_name: String },
+}
+
+impl IrStructField {
+    pub fn name(&self) -> &str {
+        match self {
+            Self::Legacy(name) | Self::Typed { name, .. } => name,
+        }
+    }
+
+    pub fn type_name(&self) -> Option<&str> {
+        match self {
+            Self::Legacy(_) => None,
+            Self::Typed { type_name, .. } => Some(type_name),
+        }
+    }
 }
 
 /// Versioned IR payload identifying the intended backend target.
@@ -99,11 +165,23 @@ impl fmt::Display for AbiError {
                 formatter,
                 "unsupported self-host IR ABI {major}.{minor}; consumer supports {ABI_MAJOR}.{ABI_MINOR}",
             ),
-            Self::Invalid(diagnostics) => write!(
-                formatter,
-                "self-host IR failed structural validation with {} diagnostic(s)",
-                diagnostics.len(),
-            ),
+            Self::Invalid(diagnostics) => {
+                write!(
+                    formatter,
+                    "self-host IR failed structural validation with {} diagnostic(s)",
+                    diagnostics.len(),
+                )?;
+                for diagnostic in diagnostics {
+                    write!(formatter, "; {}: {}", diagnostic.code, diagnostic.message)?;
+                    if let Some(function) = &diagnostic.function_name {
+                        write!(formatter, " in {function}")?;
+                    }
+                    if let Some(block) = &diagnostic.block_label {
+                        write!(formatter, " at {block}")?;
+                    }
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -155,6 +233,8 @@ pub fn validate(envelope: &BackendEnvelope) -> Vec<AbiDiagnostic> {
         ));
     }
 
+    validate_struct_layouts(envelope, &mut diagnostics);
+
     let mut function_keys = HashSet::new();
     for function in &envelope.module.functions {
         let key = (
@@ -170,16 +250,155 @@ pub fn validate(envelope: &BackendEnvelope) -> Vec<AbiDiagnostic> {
                 None,
             ));
         }
-        validate_function(&envelope.module, function, &mut diagnostics);
+        validate_function(
+            &envelope.module,
+            function,
+            envelope.abi_minor,
+            &mut diagnostics,
+        );
     }
     diagnostics
+}
+
+fn validate_struct_layouts(envelope: &BackendEnvelope, diagnostics: &mut Vec<AbiDiagnostic>) {
+    let mut layout_names = HashSet::new();
+    for layout in &envelope.module.structs {
+        if layout.name.is_empty() {
+            diagnostics.push(diagnostic(
+                "missing-struct-layout-name",
+                "struct layout name must not be empty",
+                None,
+                None,
+            ));
+        } else if !layout_names.insert(layout.name.as_str()) {
+            diagnostics.push(diagnostic(
+                "duplicate-struct-layout",
+                format!("struct layout {:?} is declared more than once", layout.name),
+                None,
+                None,
+            ));
+        }
+
+        let mut field_names = HashSet::new();
+        for field in &layout.fields {
+            let field_name = field.name();
+            if field_name.is_empty() {
+                diagnostics.push(diagnostic(
+                    "missing-struct-field-name",
+                    format!("struct layout {:?} has an unnamed field", layout.name),
+                    None,
+                    None,
+                ));
+            } else if !field_names.insert(field_name) {
+                diagnostics.push(diagnostic(
+                    "duplicate-struct-field",
+                    format!(
+                        "struct layout {:?} declares field {:?} more than once",
+                        layout.name, field_name
+                    ),
+                    None,
+                    None,
+                ));
+            }
+
+            match field.type_name() {
+                Some("") => diagnostics.push(diagnostic(
+                    "missing-struct-field-type",
+                    format!(
+                        "struct layout {:?} field {:?} has no type",
+                        layout.name, field_name
+                    ),
+                    None,
+                    None,
+                )),
+                None if envelope.abi_minor >= 2 => diagnostics.push(diagnostic(
+                    "legacy-struct-field-in-current-abi",
+                    format!(
+                        "ABI 1.2 struct layout {:?} field {:?} must carry a type",
+                        layout.name, field_name
+                    ),
+                    None,
+                    None,
+                )),
+                Some(_) | None => {}
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod struct_layout_abi_tests {
+    use super::*;
+
+    fn envelope(abi_minor: u32, field: IrStructField) -> BackendEnvelope {
+        BackendEnvelope {
+            abi_major: ABI_MAJOR,
+            abi_minor,
+            target: "native".into(),
+            module: IrModule {
+                name: "example.layout".into(),
+                structs: vec![IrStructLayout {
+                    name: "example.layout.Point".into(),
+                    fields: vec![field],
+                }],
+                functions: Vec::new(),
+            },
+        }
+    }
+
+    #[test]
+    fn abi_1_2_accepts_typed_struct_fields() {
+        let diagnostics = validate(&envelope(
+            2,
+            IrStructField::Typed {
+                name: "x".into(),
+                type_name: "Int".into(),
+            },
+        ));
+
+        assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    }
+
+    #[test]
+    fn abi_1_2_rejects_legacy_struct_fields() {
+        let diagnostics = validate(&envelope(2, IrStructField::Legacy("x".into())));
+
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "legacy-struct-field-in-current-abi"));
+    }
+
+    #[test]
+    fn abi_1_1_retains_legacy_struct_field_compatibility() {
+        let diagnostics = validate(&envelope(1, IrStructField::Legacy("x".into())));
+
+        assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    }
 }
 
 fn validate_function(
     module: &IrModule,
     function: &IrFunction,
+    abi_minor: u32,
     diagnostics: &mut Vec<AbiDiagnostic>,
 ) {
+    if function.capture_count > function.arity || function.capture_count > function.parameters.len()
+    {
+        diagnostics.push(diagnostic(
+            "capture-count-exceeds-arity",
+            "function capture count must not exceed its arity or parameter count",
+            Some(&function.name),
+            None,
+        ));
+    }
+    if abi_minor < 4 && function.capture_count != 0 {
+        diagnostics.push(diagnostic(
+            "capture-count-requires-abi-1.4",
+            "function capture metadata requires ABI 1.4",
+            Some(&function.name),
+            None,
+        ));
+    }
     if function.module_name != module.name {
         diagnostics.push(diagnostic(
             "function-module-mismatch",
@@ -208,6 +427,36 @@ fn validate_function(
         diagnostics.push(diagnostic(
             "missing-return-type",
             "function return type must not be empty",
+            Some(&function.name),
+            None,
+        ));
+    }
+    if function.receiver_command && !function.receiver_mutable {
+        diagnostics.push(diagnostic(
+            "receiver-command-without-mutable-receiver",
+            "receiver command must declare a mutable receiver",
+            Some(&function.name),
+            None,
+        ));
+    }
+    if function.receiver_mutable && function.parameters.is_empty() {
+        diagnostics.push(diagnostic(
+            "mutable-receiver-missing-parameter",
+            "mutable receiver function must have a receiver parameter",
+            Some(&function.name),
+            None,
+        ));
+    }
+    if function.receiver_command
+        && function
+            .parameters
+            .first()
+            .map(|parameter| parameter.type_name.as_str())
+            != Some(function.return_type.as_str())
+    {
+        diagnostics.push(diagnostic(
+            "receiver-command-return-mismatch",
+            "receiver command internal return type must equal its receiver type",
             Some(&function.name),
             None,
         ));
@@ -252,7 +501,7 @@ fn validate_function(
 
     for block in &function.blocks {
         validate_terminator(function, block, &labels, diagnostics);
-        validate_instructions(function, block, &labels, diagnostics);
+        validate_instructions(function, block, &labels, abi_minor, diagnostics);
     }
 }
 
@@ -321,6 +570,7 @@ fn validate_instructions(
     function: &IrFunction,
     block: &IrBlock,
     labels: &HashSet<&str>,
+    abi_minor: u32,
     diagnostics: &mut Vec<AbiDiagnostic>,
 ) {
     let mut results = HashSet::new();
@@ -351,10 +601,36 @@ fn validate_instructions(
                 Some(&block.label),
             ));
         }
+        validate_instruction_try_region(function, block, instruction, abi_minor, diagnostics);
         if instruction.type_name.is_empty() {
             diagnostics.push(diagnostic(
                 "missing-instruction-type",
                 "instruction type must not be empty",
+                Some(&function.name),
+                Some(&block.label),
+            ));
+        }
+        if abi_minor >= 3 && instruction.operand_types.len() != instruction.operands.len() {
+            diagnostics.push(diagnostic(
+                "operand-type-count-mismatch",
+                format!(
+                    "{} instruction has {} operand(s) but {} operand type slot(s)",
+                    instruction.opcode,
+                    instruction.operands.len(),
+                    instruction.operand_types.len()
+                ),
+                Some(&function.name),
+                Some(&block.label),
+            ));
+        }
+        if instruction
+            .operand_types
+            .iter()
+            .any(|type_name| matches!(type_name, Some(type_name) if type_name.is_empty()))
+        {
+            diagnostics.push(diagnostic(
+                "empty-operand-type",
+                "instruction operand type slots must be absent or non-empty",
                 Some(&function.name),
                 Some(&block.label),
             ));
@@ -379,12 +655,234 @@ fn validate_instructions(
     }
 }
 
+fn validate_instruction_try_region(
+    function: &IrFunction,
+    block: &IrBlock,
+    instruction: &IrInstruction,
+    abi_minor: u32,
+    diagnostics: &mut Vec<AbiDiagnostic>,
+) {
+    if (instruction.opcode == "try-region" || instruction.try_region.is_some()) && abi_minor < 6 {
+        diagnostics.push(diagnostic(
+            "try-region-requires-abi-1.6",
+            "structured try regions require ABI 1.6",
+            Some(&function.name),
+            Some(&block.label),
+        ));
+    }
+    match (instruction.opcode.as_str(), instruction.try_region.as_ref()) {
+        ("try-region", None) => diagnostics.push(diagnostic(
+            "missing-try-region",
+            "try-region instruction must carry a structured region payload",
+            Some(&function.name),
+            Some(&block.label),
+        )),
+        ("try-region", Some(region)) => {
+            validate_try_region(function, block, instruction, region, abi_minor, diagnostics)
+        }
+        (_, Some(_)) => diagnostics.push(diagnostic(
+            "unexpected-try-region",
+            "only try-region instructions may carry a structured region payload",
+            Some(&function.name),
+            Some(&block.label),
+        )),
+        (_, None) => {}
+    }
+}
+
+fn validate_try_region(
+    function: &IrFunction,
+    block: &IrBlock,
+    instruction: &IrInstruction,
+    region: &IrTryRegion,
+    abi_minor: u32,
+    diagnostics: &mut Vec<AbiDiagnostic>,
+) {
+    let mut labels = HashSet::new();
+    validate_region(
+        function,
+        block,
+        &region.protected,
+        abi_minor,
+        &mut labels,
+        diagnostics,
+    );
+    validate_region(
+        function,
+        block,
+        &region.success,
+        abi_minor,
+        &mut labels,
+        diagnostics,
+    );
+    validate_region(
+        function,
+        block,
+        &region.failure,
+        abi_minor,
+        &mut labels,
+        diagnostics,
+    );
+    for cleanup in &region.cleanup {
+        validate_region(
+            function,
+            block,
+            cleanup,
+            abi_minor,
+            &mut labels,
+            diagnostics,
+        );
+    }
+
+    if !region.protected.parameters.is_empty() {
+        diagnostics.push(diagnostic(
+            "invalid-try-protected-parameters",
+            "protected try region must not declare parameters",
+            Some(&function.name),
+            Some(&block.label),
+        ));
+    }
+    if region.success.parameters.len() != 1
+        || region.success.parameters[0].type_name != region.protected.type_name
+    {
+        diagnostics.push(diagnostic(
+            "invalid-try-success-parameters",
+            "success region must accept exactly the protected result type",
+            Some(&function.name),
+            Some(&block.label),
+        ));
+    }
+    if region.failure.parameters.len() != 1 || region.failure.parameters[0].type_name != "Int" {
+        diagnostics.push(diagnostic(
+            "invalid-try-failure-parameters",
+            "failure region must accept exactly one Int status parameter",
+            Some(&function.name),
+            Some(&block.label),
+        ));
+    }
+    if region
+        .cleanup
+        .iter()
+        .any(|cleanup| !cleanup.parameters.is_empty() || cleanup.type_name != "Unit")
+    {
+        diagnostics.push(diagnostic(
+            "invalid-try-cleanup-contract",
+            "cleanup regions must have no parameters and Unit result type",
+            Some(&function.name),
+            Some(&block.label),
+        ));
+    }
+    if region.success.type_name != instruction.type_name
+        || region.failure.type_name != instruction.type_name
+    {
+        diagnostics.push(diagnostic(
+            "try-region-result-type-mismatch",
+            "success and failure region types must equal the try instruction type",
+            Some(&function.name),
+            Some(&block.label),
+        ));
+    }
+}
+
+fn validate_region<'a>(
+    function: &IrFunction,
+    parent: &IrBlock,
+    region: &'a IrRegion,
+    abi_minor: u32,
+    region_labels: &mut HashSet<&'a str>,
+    diagnostics: &mut Vec<AbiDiagnostic>,
+) {
+    if region.label.is_empty() {
+        diagnostics.push(diagnostic(
+            "invalid-try-region-label",
+            "try region label must not be empty",
+            Some(&function.name),
+            Some(&parent.label),
+        ));
+    } else if !region_labels.insert(region.label.as_str()) {
+        diagnostics.push(diagnostic(
+            "duplicate-try-region-label",
+            "try region labels must be unique inside one try instruction",
+            Some(&function.name),
+            Some(&parent.label),
+        ));
+    }
+    if region.type_name.is_empty() {
+        diagnostics.push(diagnostic(
+            "missing-region-type",
+            "try region result type must not be empty",
+            Some(&function.name),
+            Some(&parent.label),
+        ));
+    }
+    if region.result.is_empty() {
+        diagnostics.push(diagnostic(
+            "missing-region-result",
+            "try region result identity must not be empty",
+            Some(&function.name),
+            Some(&parent.label),
+        ));
+    }
+    let Some(entry) = region.blocks.first() else {
+        diagnostics.push(diagnostic(
+            "missing-region-block",
+            "try region must contain an entry block",
+            Some(&function.name),
+            Some(&parent.label),
+        ));
+        return;
+    };
+    if entry.label != "entry" {
+        diagnostics.push(diagnostic(
+            "invalid-region-entry",
+            "first try region block must be named entry",
+            Some(&function.name),
+            Some(&parent.label),
+        ));
+    }
+    let mut labels = HashSet::new();
+    for nested in &region.blocks {
+        if nested.label.is_empty() || !labels.insert(nested.label.as_str()) {
+            diagnostics.push(diagnostic(
+                "invalid-region-block-label",
+                "try region block labels must be non-empty and unique",
+                Some(&function.name),
+                Some(&parent.label),
+            ));
+        }
+    }
+    for nested in &region.blocks {
+        validate_terminator(function, nested, &labels, diagnostics);
+        validate_instructions(function, nested, &labels, abi_minor, diagnostics);
+    }
+    let bound = region
+        .parameters
+        .iter()
+        .any(|parameter| parameter.name == region.result)
+        || region.blocks.iter().any(|nested| {
+            nested
+                .instructions
+                .iter()
+                .any(|instruction| instruction.result.as_deref() == Some(region.result.as_str()))
+        });
+    if !bound {
+        diagnostics.push(diagnostic(
+            "unbound-region-result",
+            "try region result must name a parameter or instruction result",
+            Some(&function.name),
+            Some(&parent.label),
+        ));
+    }
+}
+
 fn instruction_opcode_supported(opcode: &str) -> bool {
     matches!(
         opcode,
         "add-small"
             | "call-import"
+            | "call-import-mut-receiver"
             | "call-local"
+            | "call-local-mut-receiver"
             | "call-value"
             | "div-small"
             | "equal"
@@ -392,6 +890,7 @@ fn instruction_opcode_supported(opcode: &str) -> bool {
             | "get-pattern-binding"
             | "get-tuple-element"
             | "less-small"
+            | "load-atom"
             | "load-literal"
             | "make-closure"
             | "move"
@@ -400,11 +899,18 @@ fn instruction_opcode_supported(opcode: &str) -> bool {
             | "pattern-matched"
             | "phi"
             | "prepare-pattern"
+            | "put-array"
+            | "put-map"
             | "put-list"
+            | "put-list-cons"
+            | "put-struct"
             | "put-tuple"
+            | "put-variant"
             | "rem-small"
             | "select"
             | "sub-small"
+            | "try-region"
+            | "update-struct-field"
             | "unary-not"
     ) || opcode.starts_with("binary-")
         || opcode.starts_with("unary-")
@@ -413,15 +919,22 @@ fn instruction_opcode_supported(opcode: &str) -> bool {
 fn instruction_operands_valid(instruction: &IrInstruction, labels: &HashSet<&str>) -> bool {
     let operands = &instruction.operands;
     match instruction.opcode.as_str() {
-        "call-import" => operands.len() >= 2,
-        "call-local" => !operands.is_empty(),
+        "call-import" | "call-import-mut-receiver" => operands.len() >= 2,
+        "call-local" | "call-local-mut-receiver" => !operands.is_empty(),
         "call-value" | "make-closure" => !operands.is_empty(),
-        "put-list" | "put-tuple" => true,
+        "put-array" | "put-list" | "put-map" | "put-tuple" => true,
+        "put-struct" => operands.len().is_multiple_of(2),
+        "try-region" => operands.is_empty(),
+        "put-variant" => operands
+            .first()
+            .is_some_and(|constructor| !constructor.is_empty()),
+        "put-list-cons" => operands.len() >= 2,
         "add-small" | "div-small" | "equal" | "get-tuple-element" | "less-small" | "mul-small"
         | "rem-small" | "sub-small" => operands.len() == 2,
-        "get-map-elements" => operands.len() == 3,
-        "get-pattern-binding" => operands.len() == 2,
-        "load-literal" | "move" | "neg-small" | "pattern-matched" | "unary-not" => {
+        "get-map-elements" => operands.len() == 2,
+        "update-struct-field" => operands.len() == 3,
+        "get-pattern-binding" => valid_pattern_binding_operands(operands),
+        "load-atom" | "load-literal" | "move" | "neg-small" | "pattern-matched" | "unary-not" => {
             operands.len() == 1
         }
         "phi" => {
@@ -444,7 +957,26 @@ fn valid_pattern_operands(operands: &[String]) -> bool {
     if operands.len() < 4 || operands[0].is_empty() {
         return false;
     }
-    let mut index = 1;
+    let mut index = if operands.get(1).is_some_and(|value| value == "pattern-v2") {
+        2
+    } else {
+        1
+    };
+    consume_pattern_node(operands, &mut index) && index == operands.len()
+}
+
+fn valid_pattern_binding_operands(operands: &[String]) -> bool {
+    if operands.len() == 2 {
+        return operands[1].parse::<usize>().is_ok();
+    }
+    if operands.len() < 6
+        || operands[0].is_empty()
+        || operands[1].parse::<usize>().is_err()
+        || operands[2].is_empty()
+    {
+        return false;
+    }
+    let mut index = 3;
     consume_pattern_node(operands, &mut index) && index == operands.len()
 }
 
@@ -461,7 +993,7 @@ fn consume_pattern_node(operands: &[String], index: &mut usize) -> bool {
     else {
         return false;
     };
-    if kind.is_empty() || text.is_empty() {
+    if kind.is_empty() || (text.is_empty() && kind != "pattern") {
         return false;
     }
     *index += 3;

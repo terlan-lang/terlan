@@ -1,0 +1,163 @@
+/** Resolves typed closure target sets against the current suspension profiles. */
+module self_host.SelfHostActorDynamicTargets.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, String}.
+
+import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
+import self_host.SelfHostActorCallPlan.{ActorCalleeEntry}.
+import self_host.SelfHostActorCoreTraversal.{ActorDynamicCallEvidence}.
+import self_host.SelfHostActorEffects.{ActorCallableIdentity}.
+import self_host.SelfHostActorIdentity.
+
+
+@pure
+same_identity(left: ActorCallableIdentity, right: ActorCallableIdentity): Bool ->
+    left.module_name == right.module_name
+        and left.function_name == right.function_name
+        and left.arity == right.arity.
+
+@pure
+profile_for(
+    target: ActorCallableIdentity,
+    values: List[ActorSuspensionProfile],
+    found: Option[ActorSuspensionProfile],
+): Result[Option[ActorSuspensionProfile], String] ->
+    case values {
+        [] -> Ok(found);
+        [value | rest] -> if {
+            value.module_name != target.module_name
+                or value.callable_name != target.function_name
+                or value.arity != target.arity -> profile_for(target, rest, found);
+            true -> case found {
+                None -> profile_for(target, rest, Some(value));
+                Some(_) -> Err("dynamic target has ambiguous suspension profiles")
+            }
+        }
+    }.
+
+@pure
+same_entry(left: ActorCalleeEntry, right: ActorCalleeEntry): Bool ->
+    left.export_identity == right.export_identity
+        and left.continuation_identity == right.continuation_identity
+        and left.capture_count == right.capture_count.
+
+@pure
+entry_present(value: ActorCalleeEntry, values: List[ActorCalleeEntry]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same_entry(value, current) or entry_present(value, rest)
+    }.
+
+@pure
+append_entry(value: ActorCalleeEntry, values: List[ActorCalleeEntry]): List[ActorCalleeEntry] ->
+    if { entry_present(value, values) -> values; true -> [value | values] }.
+
+@pure
+exported_entries(
+    target: ActorCallableIdentity,
+    values: List[ActorCalleeEntry],
+    output: List[ActorCalleeEntry],
+): List[ActorCalleeEntry] ->
+    case values {
+        [] -> output;
+        [value | rest] -> exported_entries(
+            target,
+            rest,
+            append_entry(
+                ActorCalleeEntry(
+                    Some(SelfHostActorIdentity.export_identity(
+                        target.module_name,
+                        target.function_name,
+                        target.arity,
+                    )),
+                    value.continuation_identity,
+                    value.capture_count,
+                ),
+                output,
+            ),
+        )
+    }.
+
+@pure
+target_entries(
+    targets: List[ActorCallableIdentity],
+    profiles: List[ActorSuspensionProfile],
+    arity: Int,
+    output: List[ActorCalleeEntry],
+): Result[List[ActorCalleeEntry], String] ->
+    case targets {
+        [] -> Ok(output);
+        [target | rest] -> if {
+            target.arity != arity -> Err("dynamic target arity contradicts call-value arity");
+            true -> case profile_for(target, profiles, None) {
+                Err(reason) -> Err(reason);
+                Ok(None) -> target_entries(rest, profiles, arity, output);
+                Ok(Some(profile)) -> target_entries(
+                    rest,
+                    profiles,
+                    arity,
+                    exported_entries(target, profile.entries, output),
+                )
+            }
+        }
+    }.
+
+@pure
+resolved_profile(
+    value: ActorDynamicCallEvidence,
+    entries: List[ActorCalleeEntry],
+): Option[ActorSuspensionProfile] ->
+    case entries {
+        [] -> None;
+        [_ | _] -> Some(ActorSuspensionProfile(
+            "$dynamic",
+            value.result_name,
+            value.arity,
+            entries,
+        ))
+    }.
+
+@pure
+resolve_one(
+    value: ActorDynamicCallEvidence,
+    profiles: List[ActorSuspensionProfile],
+): Result[ActorDynamicCallEvidence, String] ->
+    case value.targets {
+        [] -> Err("call-value has no typed target identities");
+        [_ | _] -> case target_entries(
+            value.targets,
+            profiles,
+            value.arity,
+            List.new[ActorCalleeEntry](),
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(entries) -> let profile = resolved_profile(value, entries);
+            Ok(ActorDynamicCallEvidence(
+                value.result_name,
+                value.arity,
+                value.targets,
+                profile != None,
+                profile,
+            ))
+        }
+    }.
+
+/** Re-resolves every target set against the current convergence profile catalog. */
+@pure
+pub resolve(
+    values: List[ActorDynamicCallEvidence],
+    profiles: List[ActorSuspensionProfile],
+): Result[List[ActorDynamicCallEvidence], String] ->
+    case values {
+        [] -> Ok(List.new[ActorDynamicCallEvidence]());
+        [value | rest] -> case resolve_one(value, profiles) {
+            Err(reason) -> Err(reason);
+            Ok(current) -> case resolve(rest, profiles) {
+                Err(reason) -> Err(reason);
+                Ok(remaining) -> Ok([current | remaining])
+            }
+        }
+    }.

@@ -1,0 +1,6 @@
+//! Shared CSS keyword inline-table. Generated; do not edit.
+
+module std.css.keywords.InlineTable.
+
+pub type InlineTable =
+    Atom["inline-table"].

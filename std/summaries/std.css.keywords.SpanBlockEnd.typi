@@ -1,0 +1,6 @@
+//! Shared CSS keyword span-block-end. Generated; do not edit.
+
+module std.css.keywords.SpanBlockEnd.
+
+pub type SpanBlockEnd =
+    Atom["span-block-end"].

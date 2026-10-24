@@ -1,84 +1,32 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset-junction
+ * The `column-rule-inset-junction` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property can be used to offset both the top and bottom endpoints of column rule segments that are
+ * [junction
+ * endpoints](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-inset-junction-end#understanding_junction_endpoints);
+ * that is, endpoints at gap junctions where rule segments intersect.
+ *
+ * Keyword effects:
+ * - overlap-join: Specifies that the junction segment should extend across the row-rule, resolving
+ * to half the `row-gap` value plus half the used `row-rule-width` value.
+ *
  * Grammar: <inset-value> <inset-value>?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset-junction
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-inset-junction
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ColumnRuleInsetJunction.
 
-import std.css.Values.
+import std.css.keywords.OverlapJoin.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained column-rule-inset-junction value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    column_rule_inset_junction: Value,
+    column_rule_inset_junction: OverlapJoin | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    column_rule_inset_junction: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "column-rule-inset-junction", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "column-rule-inset-junction", css: "initial"}).
-
-/**
- * Returns the CSS keyword overlap-join.
- */
-pub overlap_join(): Value ->
-    Value(Token {property: "column-rule-inset-junction", css: "overlap-join"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "column-rule-inset-junction", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "column-rule-inset-junction", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "column-rule-inset-junction", css: "unset"}).
-
-/**
- * Constructs a column-rule-inset-junction value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "column-rule-inset-junction", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a column-rule-inset-junction value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "column-rule-inset-junction", css: std.css.Values.percentage_css(value)}).

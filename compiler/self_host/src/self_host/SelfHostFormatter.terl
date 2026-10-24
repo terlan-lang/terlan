@@ -1,0 +1,180 @@
+/** Deterministic source formatter over the lossless self-hosted tooling document. */
+module self_host.SelfHostFormatter.
+
+import std.collections.List.
+import std.core.{Bool, Int, String}.
+
+import self_host.CanonicalToken.{CommentToken, DocCommentToken, EndToken, ModuleDocCommentToken, TokenCategory}.
+import self_host.SelfHostToolingDocument.{ToolingDocument, ToolingToken}.
+import self_host.SelfHostToolingDocument.
+
+
+pub struct FormatResult {
+    valid: Bool,
+    changed: Bool,
+    source: String,
+    message: String,
+}.
+
+pub constructor FormatResult {
+    (valid: Bool, changed: Bool, source: String, message: String): FormatResult ->
+        FormatResult {
+            valid: valid,
+            changed: changed,
+            source: source,
+            message: message,
+        }
+}.
+
+
+struct FormatState {
+    depth: Int,
+    line_start: Bool,
+    previous: String,
+    output: String,
+}.
+
+constructor FormatState {
+    (depth: Int, line_start: Bool, previous: String, output: String): FormatState ->
+        FormatState {
+            depth: depth,
+            line_start: line_start,
+            previous: previous,
+            output: output,
+        }
+}.
+
+@pure
+indent(depth: Int): String ->
+    if {
+        depth <= 0 -> "";
+        true -> "    " + indent(depth - 1)
+    }.
+
+@pure
+is_comment(category: TokenCategory): Bool ->
+    category == CommentToken
+        or category == DocCommentToken
+        or category == ModuleDocCommentToken.
+
+@pure
+is_open(text: String): Bool -> text == "{".
+
+@pure
+is_close(text: String): Bool -> text == "}".
+
+@pure
+next_is_close(values: List[ToolingToken]): Bool ->
+    case values {
+        [value | _] -> is_close(value.text);
+        [] -> false
+    }.
+
+@pure
+no_space_before(text: String): Bool ->
+    text == ")"
+        or text == "]"
+        or text == ","
+        or text == ";"
+        or text == "."
+        or text == ":"
+        or text == "("
+        or text == "[".
+
+@pure
+no_space_after(text: String): Bool ->
+    text == ""
+        or text == "("
+        or text == "["
+        or text == "."
+        or text == "@".
+
+@pure
+token_prefix(state: FormatState, text: String): String ->
+    if {
+        state.line_start -> indent(state.depth);
+        no_space_before(text) or no_space_after(state.previous) -> "";
+        true -> " "
+    }.
+
+@pure
+ordinary(state: FormatState, text: String): FormatState ->
+    FormatState(
+        state.depth,
+        false,
+        text,
+        state.output + token_prefix(state, text) + text,
+    ).
+
+@pure
+open_block(
+    state: FormatState,
+    text: String,
+    followed_by_close: Bool,
+): FormatState ->
+    let opened = ordinary(state, text);
+    FormatState(
+        state.depth + 1,
+        not followed_by_close,
+        text,
+        opened.output + if { followed_by_close -> ""; true -> "\n" },
+    ).
+
+@pure
+close_block(state: FormatState, text: String): FormatState ->
+    let depth = if { state.depth > 0 -> state.depth - 1; true -> 0 };
+    let prefix = if {
+        state.previous == "{" and not state.line_start -> "";
+        state.line_start -> indent(depth);
+        true -> "\n" + indent(depth)
+    };
+    FormatState(depth, false, text, state.output + prefix + text).
+
+@pure
+comment(state: FormatState, text: String): FormatState ->
+    let prefix = if {
+        state.line_start -> indent(state.depth);
+        true -> " "
+    };
+    FormatState(state.depth, true, text, state.output + prefix + text + "\n").
+
+@pure
+semicolon(state: FormatState, text: String): FormatState ->
+    FormatState(state.depth, true, text, state.output + text + "\n").
+
+@pure
+declaration_end(state: FormatState, text: String): FormatState ->
+    FormatState(state.depth, true, text, state.output + text + "\n\n").
+
+@pure
+format_at(values: List[ToolingToken], state: FormatState): FormatState ->
+    case values {
+        [] -> state;
+        [value | rest] -> if {
+            value.category == EndToken -> format_at(rest, state);
+            is_comment(value.category) -> format_at(rest, comment(state, value.text));
+            is_open(value.text) -> format_at(
+                rest,
+                open_block(state, value.text, next_is_close(rest)),
+            );
+            is_close(value.text) -> format_at(rest, close_block(state, value.text));
+            value.text == ";" -> format_at(rest, semicolon(state, value.text));
+            value.terminal == "." -> format_at(rest, declaration_end(state, value.text));
+            true -> format_at(rest, ordinary(state, value.text))
+        }
+    }.
+
+@pure
+formatted(document: ToolingDocument): String ->
+    format_at(document.tokens, FormatState(0, true, "", "")).output.
+
+/** Formats admitted source and leaves rejected source byte-for-byte unchanged. */
+@pure
+pub format(source: String): FormatResult ->
+    let document = SelfHostToolingDocument.build(source);
+    if {
+        not document.valid -> FormatResult(false, false, source, document.message);
+        true ->
+            let output = formatted(document);
+            FormatResult(true, output != source, output, "ok")
+    }.

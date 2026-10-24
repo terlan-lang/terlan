@@ -681,3 +681,36 @@ fn template_component_prop_rejects_expression_slot_mismatching_expected_type() {
         ]
     );
 }
+
+#[test]
+fn external_custom_elements_require_explicit_opt_in_and_still_check_children() {
+    let parent = template_decl("Page", &[]);
+    let component = template_decl("Known", &[]);
+    assert!(component_messages(
+        &parent,
+        "known-card",
+        &component,
+        "<client-card data-custom-element></client-card>"
+    )
+    .is_empty());
+    assert_eq!(
+        component_messages(
+            &parent,
+            "known-card",
+            &component,
+            "<client-card></client-card>"
+        )
+        .len(),
+        1
+    );
+    assert_eq!(
+        component_messages(
+            &parent,
+            "known-card",
+            &component,
+            "<client-card data-custom-element><missing-child></missing-child></client-card>"
+        )
+        .len(),
+        1
+    );
+}

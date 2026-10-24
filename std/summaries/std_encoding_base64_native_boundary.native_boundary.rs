@@ -19,6 +19,7 @@ pub const FUNCTIONS: &[(&str, usize)] = &[
     ("encode_url", 1),
     ("encode_bytes", 1),
     ("encode_url_bytes", 1),
+    ("encode_url_unpadded_bytes", 1),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
@@ -30,6 +31,7 @@ pub const OPERATIONS: &[(&str, &str, usize)] = &[
     ("encode_url", "std.encoding.base64.encode_url", 1),
     ("encode_bytes", "std.encoding.base64.encode_bytes", 1),
     ("encode_url_bytes", "std.encoding.base64.encode_url_bytes", 1),
+    ("encode_url_unpadded_bytes", "std.encoding.base64.encode_url_unpadded_bytes", 1),
 ];
 
 pub const DEFAULT_CREDIT_WINDOW: usize = 32;
@@ -165,6 +167,7 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
                         "std.encoding.base64.encode_url" => native_unimplemented_operation(operation),
                         "std.encoding.base64.encode_bytes" => native_unimplemented_operation(operation),
                         "std.encoding.base64.encode_url_bytes" => native_unimplemented_operation(operation),
+                        "std.encoding.base64.encode_url_unpadded_bytes" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },
                     Err(err) => Err(err),

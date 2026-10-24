@@ -163,6 +163,27 @@ pub check(): Bool ->
 }
 
 #[test]
+fn generic_record_callbacks_retain_callable_parameters() {
+    check_generic_execution(
+        r#"
+module generic_record_callbacks.
+pub struct Handler[T] { run: (T, () -> Int) -> Int, }.
+invoke[T](value: T, callback: () -> Int): Int -> callback().
+handler[T](captured: T): Handler[T] ->
+    Handler {run: ((value, callback) ->
+        if { value == captured -> invoke(value, callback); true -> 0 })}.
+answer(): Int -> 42.
+pub check(): Bool ->
+    let callbacks = handler(7);
+    callbacks#Handler.run(7, answer) == 42
+        and callbacks#Handler.run(8, answer) == 0.
+"#,
+        &["check"],
+        false,
+    );
+}
+
+#[test]
 fn inferred_list_of_call_results_retains_its_collection_schema() {
     check_generic_execution(
         r#"

@@ -1,0 +1,6 @@
+//! Shared CSS keyword bidi-override. Generated; do not edit.
+
+module std.css.keywords.BidiOverride.
+
+pub type BidiOverride =
+    Atom["bidi-override"].

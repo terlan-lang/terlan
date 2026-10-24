@@ -36,6 +36,7 @@ pub constructor ConstantSyntax {
 pub struct TypeDeclarationSyntax {
     valid: Bool,
     name: String,
+    type_parameters: List[String],
     has_representation: Bool,
     representation: TypeParse,
     is_opaque: Bool,
@@ -49,6 +50,19 @@ pub constructor TypeDeclarationSyntax {
         TypeDeclarationSyntax {
             valid: valid,
             name: name,
+            type_parameters: List.new[String](),
+            has_representation: has_representation,
+            representation: representation,
+            is_opaque: is_opaque,
+            is_public: is_public,
+            span: span,
+            message: message,
+        };
+    (valid: Bool, name: String, type_parameters: List[String], has_representation: Bool, representation: TypeParse, is_opaque: Bool, is_public: Bool, span: SyntaxSpan, message: String): TypeDeclarationSyntax ->
+        TypeDeclarationSyntax {
+            valid: valid,
+            name: name,
+            type_parameters: type_parameters,
             has_representation: has_representation,
             representation: representation,
             is_opaque: is_opaque,

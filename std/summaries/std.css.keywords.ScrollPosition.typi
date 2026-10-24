@@ -1,0 +1,6 @@
+//! Shared CSS keyword scroll-position. Generated; do not edit.
+
+module std.css.keywords.ScrollPosition.
+
+pub type ScrollPosition =
+    Atom["scroll-position"].

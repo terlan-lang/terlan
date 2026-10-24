@@ -2,6 +2,9 @@ use super::*;
 use crate::callback_test_support::{Executor, State, Wait};
 use terlan_runtime_abi::NativeValue as V;
 
+#[path = "sse_callbacks_lifecycle_test.rs"]
+mod lifecycle;
+
 fn session() -> SseCallbacks<Executor<SseEvent>> {
     let plan = SseEndpointPlan::new(2, 64)
         .unwrap()
@@ -135,7 +138,44 @@ fn sse_terminal_cleanup_failure_still_closes_admission() {
             };
             assert!(result.is_err());
             assert!(!session.is_open());
+            assert_closed(&mut session);
         }
+    }
+}
+
+fn assert_closed(session: &mut SseCallbacks<Executor<SseEvent>>) {
+    let calls = session.executor().calls.len();
+    let cancellations = session.executor().cancellations.len();
+    let before = session.inspect();
+    for result in [
+        session.event_ready("late".into()),
+        session.keep_alive(),
+        session.enqueue_event("late".into()),
+        session.resume((Wait::Text, "late".into())),
+        session.drain(),
+        session.cancel("late".into()),
+    ] {
+        assert!(result.unwrap_err().to_string().contains("serve.sse.closed"));
+    }
+    SseCancellation::cancel(session, "transport cleanup".into()).unwrap();
+    assert_eq!(session.inspect(), before);
+    assert_eq!(session.executor().calls.len(), calls);
+    assert_eq!(session.executor().cancellations.len(), cancellations);
+}
+
+#[test]
+fn terminal_sessions_reject_late_callbacks_and_wakes_without_side_effects() {
+    for cancel in [false, true] {
+        let mut session = session();
+        session.enqueue_event("admitted".into()).unwrap();
+        if cancel {
+            session.cancel("closed".into()).unwrap();
+        } else {
+            session.drain().unwrap();
+        }
+        assert_closed(&mut session);
+        assert!(session.flush_next_event().is_some());
+        assert_eq!(session.flush_next_event(), None);
     }
 }
 

@@ -16,6 +16,11 @@ fn generated_router_executes_imported_and_captured_policy_over_http1() {
         "[package]\nname = \"callback_authority\"\nversion = \"0.0.9\"\nnamespace = \"app\"\n",
     )
     .unwrap();
+    fs::write(
+        source_dir.join("Browser.terl"),
+        "module app.Browser.\nimport std.js.Array.\npub value(): Int -> 7.\n",
+    )
+    .unwrap();
     let policy = source_dir.join("Policy.terl");
     fs::write(&policy, r#"module app.Policy.
 import std.http.{Request, Response, Error}.
@@ -39,14 +44,23 @@ pub recovery(prefix: String): (Failure) -> Outgoing ->
         &source,
         r#"module app.Http.
 import app.Policy.{gate, decorate, recovery}.
-import std.http.{Router, Response}.
+import std.http.Router as Routing.
+import std.http.{Request, Response}.
+import std.core.Option.{Some, None}.
 import type std.http.Request.Request.
 import type std.http.Response.Response.
 import type std.http.Router.Router.
 pub router(): Router ->
     let recover = recovery("captured");
-    Router.new().use(gate).map_response(decorate)
-        .get("/home", home).get("/blocked", home).get("/broken", broken).error(recover).
+    let prefix = "/";
+    let _discarded = Routing.new().get("/ghost", home);
+    Routing.new().use(gate).map_response(decorate)
+        .get(prefix + "home", home).get(prefix + "blocked", home)
+        .get(prefix + "echo/{id:Int}", (request) -> case request.param("id") {
+            Some(id) -> Response.text(id);
+            None -> Response.text("missing capture", 400)
+        })
+        .get(prefix + "broken", broken).error(recover).
 pub home(_request: Request): Response -> Response.text("source-home", 201).
 pub broken(_request: Request): Response -> Response.file("../secret").
 "#,
@@ -67,11 +81,12 @@ pub broken(_request: Request): Response -> Response.file("../secret").
     let manifest: serde_json::Value =
         serde_json::from_slice(&fs::read(web.join("manifest.json")).unwrap()).unwrap();
     assert!(manifest.get("error_handler").is_none());
-    assert_eq!(manifest["handlers"].as_array().unwrap().len(), 3);
+    assert_eq!(manifest["handlers"].as_array().unwrap().len(), 4);
     prewarm_dynamic_handler_sources(&web).expect("admit source callback graph");
     for (path, status, body, decorated) in [
         ("/home", 201, "source-home", true),
         ("/blocked", 403, "source-blocked", true),
+        ("/echo/42", 200, "42", true),
         ("/broken", 502, "captured:recovered", false),
     ] {
         let request =

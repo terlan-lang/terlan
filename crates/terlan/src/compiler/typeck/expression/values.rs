@@ -138,7 +138,7 @@ fn infer_singleton_alias_value(name: &str, ctx: &ExprInferContext<'_>) -> Option
     }
 
     let imported = ctx.constructor_aliases.get(name)?;
-    let interface = ctx.interface_map.get(imported.module.as_ref()?)?;
+    let interface = ctx.interface_map.get(&imported.module)?;
     let interface_aliases = interface_type_aliases(interface);
     let alias = interface_aliases.get(&imported.name)?;
     let qualified_names = interface_qualified_type_names(interface);

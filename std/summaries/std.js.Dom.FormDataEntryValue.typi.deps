@@ -1,8 +1,8 @@
 module=std.js.Dom.FormDataEntryValue
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=15408456694991136078
-interface_hash=469652280449713817
-interface_doc_hash=469652280449713817
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=714435975751190338
+interface_hash=750099040907161870
+interface_doc_hash=750099040907161870
 deps=0

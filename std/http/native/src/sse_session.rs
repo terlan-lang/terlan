@@ -51,26 +51,53 @@ impl<C> SseSession<C> {
         retry_ms: Option<i64>,
         data: &str,
     ) -> Result<(), SseError> {
+        self.enqueue_with(id, event, retry_ms, data, |_| Ok(()))
+    }
+
+    /// Reserves host-owned resources before publishing a validated frame. The
+    /// reservation is not called for rejected frames; its failure leaves the
+    /// queue unchanged. No fallible protocol work follows a successful reserve.
+    pub fn enqueue_with<E: From<SseError>>(
+        &mut self,
+        id: Option<&str>,
+        event: Option<&str>,
+        retry_ms: Option<i64>,
+        data: &str,
+        reserve: impl FnOnce(usize) -> Result<(), E>,
+    ) -> Result<(), E> {
         if self.closed {
-            return Err(SseError::Closed);
+            return Err(SseError::Closed.into());
         }
         if self.pending.len() >= self.plan.max_pending_events() {
-            return Err(SseError::BackpressureExceeded);
+            return Err(SseError::BackpressureExceeded.into());
         }
         let encoded = crate::encode_event(id, event, retry_ms, data)
             .map_err(|error| SseError::Codec(error.to_string()))?;
         if encoded.len() > self.plan.max_event_bytes() {
-            return Err(SseError::EventTooLarge);
+            return Err(SseError::EventTooLarge.into());
         }
+        reserve(encoded.len())?;
         self.pending.push_back(encoded.into_bytes());
         Ok(())
+    }
+
+    /// Discards queued frames after the host releases their resource ownership.
+    /// Discarded events are not counted as emitted, and the stream stays closed.
+    pub fn discard_pending(&mut self) {
+        self.close();
+        self.pending.clear();
     }
 
     /// Transfers one frame to the host writer; this does not acknowledge socket delivery.
     pub fn flush_next(&mut self) -> Option<Vec<u8>> {
         let frame = self.pending.pop_front()?;
-        self.emitted_events = self.emitted_events.saturating_add(1);
+        self.record_frame_transfer();
         Some(frame)
+    }
+
+    /// Counts a bounded frame handed to HTTP, including pull-produced frames.
+    pub(crate) fn record_frame_transfer(&mut self) {
+        self.emitted_events = self.emitted_events.saturating_add(1);
     }
 
     /// Rejects new events while retaining admitted frames for graceful drain.

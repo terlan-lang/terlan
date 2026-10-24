@@ -7,23 +7,72 @@ import std.collections.List.
 import std.core.Option.{Option}.
 import std.core.{Int, String}.
 
+pub struct ExportedStructField {
+    name: String,
+    type_name: Option[String],
+}.
+
+pub constructor ExportedStructField {
+    (name: String, type_name: Option[String]): ExportedStructField ->
+        ExportedStructField { name: name, type_name: type_name }
+}.
 
 pub struct ExportedSymbol {
     name: String,
     arity: Int,
     class: DeclarationClass,
+    owner: Option[String],
+    has_default: Bool,
+    receiver_mutable: Bool,
+    type_parameters: List[String],
+    parameter_types: List[Option[String]],
     return_type: Option[String],
     span: SyntaxSpan,
+    record_fields: List[ExportedStructField],
 }.
 
 pub constructor ExportedSymbol {
-    (name: String, arity: Int, class: DeclarationClass, return_type: Option[String], span: SyntaxSpan): ExportedSymbol ->
+    (name: String, arity: Int, class: DeclarationClass, owner: Option[String], has_default: Bool, type_parameters: List[String], parameter_types: List[Option[String]], return_type: Option[String], span: SyntaxSpan): ExportedSymbol ->
         ExportedSymbol {
             name: name,
             arity: arity,
             class: class,
+            owner: owner,
+            has_default: has_default,
+            receiver_mutable: false,
+            type_parameters: type_parameters,
+            parameter_types: parameter_types,
             return_type: return_type,
             span: span,
+            record_fields: List.new[ExportedStructField](),
+        };
+    (name: String, arity: Int, class: DeclarationClass, owner: Option[String], has_default: Bool, receiver_mutable: Bool, type_parameters: List[String], parameter_types: List[Option[String]], return_type: Option[String], span: SyntaxSpan): ExportedSymbol ->
+        ExportedSymbol {
+            name: name,
+            arity: arity,
+            class: class,
+            owner: owner,
+            has_default: has_default,
+            receiver_mutable: receiver_mutable,
+            type_parameters: type_parameters,
+            parameter_types: parameter_types,
+            return_type: return_type,
+            span: span,
+            record_fields: List.new[ExportedStructField](),
+        };
+    (name: String, arity: Int, class: DeclarationClass, owner: Option[String], has_default: Bool, receiver_mutable: Bool, type_parameters: List[String], parameter_types: List[Option[String]], return_type: Option[String], span: SyntaxSpan, record_fields: List[ExportedStructField]): ExportedSymbol ->
+        ExportedSymbol {
+            name: name,
+            arity: arity,
+            class: class,
+            owner: owner,
+            has_default: has_default,
+            receiver_mutable: receiver_mutable,
+            type_parameters: type_parameters,
+            parameter_types: parameter_types,
+            return_type: return_type,
+            span: span,
+            record_fields: record_fields,
         }
 }.
 

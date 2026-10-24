@@ -1,186 +1,57 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-flow
+ * The `flex-flow` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property specifies the direction of a flex container, as well as its wrapping behavior.
+ *
+ * Initial: flex-direction: row; flex-wrap: nowrap. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - balance: Specifies that flex items broken across multiple lines are distributed so that the
+ * line lengths are as similar as possible. If `balance` is specified as the only keyword, the other
+ * keyword defaults to `wrap`. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-wrap
+ * - column: The flex container's main axis has the same orientation as the block axis of the
+ * current writing mode.
+ * - column-reverse: Same as 'column', except the main-start and main-end directions are swapped.
+ * - nowrap: The flex container is single-line.
+ * - row: The flex container's main axis has the same orientation as the inline axis of the current
+ * writing mode.
+ * - row-reverse: Same as 'row', except the main-start and main-end directions are swapped.
+ * - wrap: The flexbox is multi-line.
+ * - wrap-reverse: Same as 'wrap', except the cross-start and cross-end directions are swapped.
+ *
  * Grammar: <'flex-direction'> || <'flex-wrap'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-flow
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-flow
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FlexFlow.
 
-import type std.core.Option.
+import std.css.keywords.{Balance, Column, ColumnReverse, Nowrap, Row, RowReverse, Wrap, WrapReverse}.
 
-/**
- * A nominal, specification-constrained flex-flow value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-/**
- * A non-global flex-direction component of flex-flow.
- */
-pub opaque type FlexDirectionPart = String.
+pub type FlexDirectionPart = Row | RowReverse | Column | ColumnReverse.
 
-/**
- * A non-global flex-wrap component of flex-flow.
- */
-pub opaque type FlexWrapPart = String.
+pub type FlexWrapPart = Nowrap | Wrap | WrapReverse | Balance.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Checked = {Atom["css_parts"], {FlexDirectionPart, FlexWrapPart}}.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    flex_flow: Value,
+    flex_flow: Row | RowReverse | Column | ColumnReverse | Nowrap | Wrap | WrapReverse | Balance | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Combines flex-direction, flex-wrap for flex-flow. Each parameter accepts its own keyword or typed
+ * unit choices directly.
  */
-pub struct OptionalProperty {
-    flex_flow: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword balance.
- */
-pub balance(): Value ->
-    Value(Token {property: "flex-flow", css: "balance"}).
-
-/**
- * Returns the CSS keyword column.
- */
-pub column(): Value ->
-    Value(Token {property: "flex-flow", css: "column"}).
-
-/**
- * Returns the CSS keyword column-reverse.
- */
-pub column_reverse(): Value ->
-    Value(Token {property: "flex-flow", css: "column-reverse"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "flex-flow", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "flex-flow", css: "initial"}).
-
-/**
- * Returns the CSS keyword nowrap.
- */
-pub nowrap(): Value ->
-    Value(Token {property: "flex-flow", css: "nowrap"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "flex-flow", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "flex-flow", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword row.
- */
-pub row(): Value ->
-    Value(Token {property: "flex-flow", css: "row"}).
-
-/**
- * Returns the CSS keyword row-reverse.
- */
-pub row_reverse(): Value ->
-    Value(Token {property: "flex-flow", css: "row-reverse"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "flex-flow", css: "unset"}).
-
-/**
- * Returns the CSS keyword wrap.
- */
-pub wrap(): Value ->
-    Value(Token {property: "flex-flow", css: "wrap"}).
-
-/**
- * Returns the CSS keyword wrap-reverse.
- */
-pub wrap_reverse(): Value ->
-    Value(Token {property: "flex-flow", css: "wrap-reverse"}).
-
-/**
- * Constructs the flex-direction keyword column.
- */
-pub flex_direction_column(): FlexDirectionPart ->
-    FlexDirectionPart("column").
-
-/**
- * Constructs the flex-direction keyword column-reverse.
- */
-pub flex_direction_column_reverse(): FlexDirectionPart ->
-    FlexDirectionPart("column-reverse").
-
-/**
- * Constructs the flex-direction keyword row.
- */
-pub flex_direction_row(): FlexDirectionPart ->
-    FlexDirectionPart("row").
-
-/**
- * Constructs the flex-direction keyword row-reverse.
- */
-pub flex_direction_row_reverse(): FlexDirectionPart ->
-    FlexDirectionPart("row-reverse").
-
-flex_direction_css(value: FlexDirectionPart): String ->
-    value.
-
-/**
- * Constructs the flex-wrap keyword balance.
- */
-pub flex_wrap_balance(): FlexWrapPart ->
-    FlexWrapPart("balance").
-
-/**
- * Constructs the flex-wrap keyword nowrap.
- */
-pub flex_wrap_nowrap(): FlexWrapPart ->
-    FlexWrapPart("nowrap").
-
-/**
- * Constructs the flex-wrap keyword wrap.
- */
-pub flex_wrap_wrap(): FlexWrapPart ->
-    FlexWrapPart("wrap").
-
-/**
- * Constructs the flex-wrap keyword wrap-reverse.
- */
-pub flex_wrap_wrap_reverse(): FlexWrapPart ->
-    FlexWrapPart("wrap-reverse").
-
-flex_wrap_css(value: FlexWrapPart): String ->
-    value.
-
-/**
- * Combines every named specification group in canonical order.
- */
-pub compose(flex_direction: FlexDirectionPart, flex_wrap: FlexWrapPart): Value ->
-    Value(
-        Token {
-            property: "flex-flow",
-            css: flex_direction_css(flex_direction) + " " + flex_wrap_css(flex_wrap),
-        },
-    ).
+pub compose(flex_direction: FlexDirectionPart, flex_wrap: FlexWrapPart): Checked ->
+    Checked({Atom["css_parts"], {flex_direction, flex_wrap}}).

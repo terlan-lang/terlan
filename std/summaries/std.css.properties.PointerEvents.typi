@@ -1,88 +1,68 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `pointer-events` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets under
+//! what circumstances (if any) a particular graphic element can become the
+//! [target](https://developer.mozilla.org/en-US/docs/Web/API/Event/target) of pointer events.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - all: SVG only (experimental for HTML). The element can only be the target of a pointer event
+//! when the pointer is over the interior (i.e., fill) or the perimeter (i.e., stroke) of the
+//! element. The values of the `fill`, `stroke`, and `visibility` properties do not affect event
+//! processing.
+//! - auto: The element behaves as it would if the `pointer-events` property were not specified. In
+//! SVG content, this value and the value `visiblePainted` have the same effect.
+//! - bounding-box: SVG only. The element can only be the target of a pointer event when the pointer
+//! is over the [bounding box](https://developer.mozilla.org/en-US/docs/Glossary/Bounding_box) of the
+//! element.
+//! - fill: SVG only. The element can only be the target of a pointer event when the pointer is over
+//! the interior (i.e., fill) of the element. The values of the `fill` and `visibility` properties do
+//! not affect event processing.
+//! - none: The element is generally not the
+//! [target](https://developer.mozilla.org/en-US/docs/Web/API/Event/target) of pointer events, with
+//! the exception of `pointerenter` and `pointerleave` events fired at the element or its
+//! descendants. Note that pointer events targeted at descendants (that don't set `pointer-events` to
+//! `none`) will still trigger event listeners on this parent element during the event capture and
+//! [bubble](https://developer.mozilla.org/en-US/docs/Web/API/Event/bubbles) phases.
+//! - painted: SVG only (experimental for HTML). The element can only be the target of a pointer
+//! event when e.g., the mouse cursor is over the interior (i.e., 'fill') of the element and the
+//! `fill` property is set to a value other than `none`, or when the mouse cursor is over the
+//! perimeter (i.e., 'stroke') of the element and the `stroke` property is set to a value other than
+//! `none`. The value of the `visibility` property does not affect event processing.
+//! - stroke: SVG only. The element can only be the target of a pointer event when the pointer is
+//! over the perimeter (i.e., stroke) of the element. The values of the `stroke` and `visibility`
+//! properties do not affect event processing.
+//! - visible: SVG only (experimental for HTML). The element can be the target of a pointer event
+//! when the `visibility` property is set to `visible` and e.g., the mouse cursor is over either the
+//! interior (i.e., fill) or the perimeter (i.e., stroke) of the element. The values of the `fill`
+//! and `stroke` do not affect event processing.
+//! - visibleFill: SVG only. The element can only be the target of a pointer event when the
+//! `visibility` property is set to `visible` and when e.g., a mouse cursor is over the interior
+//! (i.e., fill) of the element. The value of the `fill` property does not affect event processing.
+//! - visiblePainted: SVG only (experimental for HTML). The element can only be the target of a
+//! pointer event when the `visibility` property is set to `visible` and e.g., when a mouse cursor is
+//! over the interior (i.e., 'fill') of the element and the `fill` property is set to a value other
+//! than `none`, or when a mouse cursor is over the perimeter (i.e., 'stroke') of the element and the
+//! `stroke` property is set to a value other than `none`.
+//! - visibleStroke: SVG only. The element can only be the target of a pointer event when the
+//! `visibility` property is set to `visible` and e.g., when the mouse cursor is over the perimeter
+//! (i.e., stroke) of the element. The value of the `stroke` property does not affect event
+//! processing.
+//!
+//! Grammar: auto | bounding-box | visiblePainted | visibleFill | visibleStroke | visible | painted |
+//! fill | stroke | all | none
+//!
 //! Specification: https://w3c.github.io/svgwg/svg2-draft/interact.html#PointerEventsProperty
-//! Grammar: auto | bounding-box | visiblePainted | visibleFill | visibleStroke | visible | painted | fill | stroke | all | none
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/pointer-events
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PointerEvents.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    pointer_events: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    pointer_events: Value
+    pointer_events: Auto | BoundingBox | VisiblePainted | VisibleFill | VisibleStroke | Visible | Painted | Fill | Stroke | All | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained pointer-events value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword all.
-
-pub all(): Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword bounding-box.
-
-pub bounding_box(): Value.
-
-/// Returns the CSS keyword fill.
-
-pub fill(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword painted.
-
-pub painted(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stroke.
-
-pub stroke(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword visible.
-
-pub visible(): Value.
-
-/// Returns the CSS keyword visibleFill.
-
-pub visibleFill(): Value.
-
-/// Returns the CSS keyword visiblePainted.
-
-pub visiblePainted(): Value.
-
-/// Returns the CSS keyword visibleStroke.
-
-pub visibleStroke(): Value.
-
-export type Token.

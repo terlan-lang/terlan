@@ -1,78 +1,25 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/motion-1/#propdef-offset-distance
+ * The `offset-distance` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+ * a position along an `offset-path` for an element to be placed.
+ *
+ * Initial: 0. Inherited: no.
+ * Percentages: refer to the total path length.
+ *
  * Grammar: <length-percentage>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/motion-1/#propdef-offset-distance
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-distance
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.OffsetDistance.
 
-import std.css.Values.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
-
-/**
- * A nominal, specification-constrained offset-distance value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    offset_distance: Value,
+    offset_distance: Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    offset_distance: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "offset-distance", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "offset-distance", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "offset-distance", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "offset-distance", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "offset-distance", css: "unset"}).
-
-/**
- * Constructs a offset-distance value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "offset-distance", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a offset-distance value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "offset-distance", css: std.css.Values.percentage_css(value)}).

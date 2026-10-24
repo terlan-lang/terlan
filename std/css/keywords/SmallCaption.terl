@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword small-caption. Generated; do not edit.
+ */
+module std.css.keywords.SmallCaption.
+
+pub type SmallCaption = Atom["small-caption"].

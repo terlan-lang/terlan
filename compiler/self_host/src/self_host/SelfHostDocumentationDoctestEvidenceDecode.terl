@@ -1,0 +1,134 @@
+/** Strict decoder for canonical documentation doctest handoff evidence. */
+module self_host.SelfHostDocumentationDoctestEvidenceDecode.
+
+import std.core.Int.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import std.crypto.Hash.
+
+pub struct DecodedDoctests {
+    valid: Bool,
+    blocks: List[String],
+    message: String,
+}.
+
+pub constructor DecodedDoctests {
+    (valid: Bool, blocks: List[String], message: String): DecodedDoctests ->
+        DecodedDoctests { valid: valid, blocks: blocks, message: message }
+}.
+
+struct EvidenceLine {
+    valid: Bool,
+    value: String,
+    next: Int,
+}.
+
+constructor EvidenceLine {
+    (valid: Bool, value: String, next: Int): EvidenceLine ->
+        EvidenceLine { valid: valid, value: value, next: next }
+}.
+
+invalid(message: String): DecodedDoctests -> DecodedDoctests(false, [], message).
+
+read_line(source: String, offset: Int): EvidenceLine ->
+    let size = String.byte_size(source);
+    if {
+        offset < 0 or offset > size -> EvidenceLine(false, "", offset);
+        true ->
+            let newline = String.utf8_find_any_byte(source, offset, "\n");
+            if {
+                newline < 0 -> EvidenceLine(false, "", offset);
+                true -> EvidenceLine(
+                    true,
+                    String.utf8_slice(source, offset, newline - offset),
+                    newline + 1,
+                )
+            }
+    }.
+
+decode_blocks(
+    source: String,
+    offset: Int,
+    expected_index: Int,
+    expected_count: Int,
+    blocks: List[String],
+): DecodedDoctests ->
+    if {
+        expected_index == expected_count ->
+            if {
+                offset == String.byte_size(source) -> DecodedDoctests(true, blocks, "");
+                true -> invalid("trailing documentation doctest evidence")
+            };
+        true ->
+            let metadata = read_line(source, offset);
+            if {
+                not metadata.valid -> invalid("missing documentation doctest block metadata");
+                true ->
+                    case String.split(metadata.value, "\t") {
+                        ["block", index_text, length_text, digest] ->
+                            case Int.from_string(index_text) {
+                                None -> invalid("invalid documentation doctest block index");
+                                Some(index) ->
+                                    case Int.from_string(length_text) {
+                                        None -> invalid("invalid documentation doctest block length");
+                                        Some(length) ->
+                                            let end = metadata.next + length;
+                                            if {
+                                                index != expected_index -> invalid("non-sequential documentation doctest block index");
+                                                length < 0 -> invalid("negative documentation doctest block length");
+                                                end >= String.byte_size(source) -> invalid("truncated documentation doctest block");
+                                                String.utf8_byte_at(source, end) != 10 -> invalid("missing documentation doctest block delimiter");
+                                                true ->
+                                                    let block = String.utf8_slice(source, metadata.next, length);
+                                                    if {
+                                                        Hash.sha256(block) != digest -> invalid("documentation doctest block hash mismatch");
+                                                        true -> decode_blocks(
+                                                            source,
+                                                            end + 1,
+                                                            expected_index + 1,
+                                                            expected_count,
+                                                            append(blocks, [block]),
+                                                        )
+                                                    }
+                                            }
+                                    }
+                            };
+                        _ -> invalid("invalid documentation doctest block metadata")
+                    }
+            }
+    }.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+decode_count(source: String, offset: Int): DecodedDoctests ->
+    let count_line = read_line(source, offset);
+    if {
+        not count_line.valid -> invalid("missing documentation doctest count");
+        true ->
+            case String.split(count_line.value, "\t") {
+                ["count", count_text] ->
+                    case Int.from_string(count_text) {
+                        None -> invalid("invalid documentation doctest count");
+                        Some(count) ->
+                            if {
+                                count < 0 -> invalid("negative documentation doctest count");
+                                true -> decode_blocks(source, count_line.next, 0, count, [])
+                            }
+                    };
+                _ -> invalid("invalid documentation doctest count")
+            }
+    }.
+
+/** Decodes and authenticates every framed source block before backend use. */
+pub decode(source: String): DecodedDoctests ->
+    let schema = read_line(source, 0);
+    if {
+        not schema.valid -> invalid("missing documentation doctest schema");
+        schema.value != "schema\tterlan.self-host.documentation-doctest/v1" ->
+            invalid("unsupported documentation doctest schema");
+        true -> decode_count(source, schema.next)
+    }.

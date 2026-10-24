@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword slice. Generated; do not edit.
+ */
+module std.css.keywords.Slice.
+
+pub type Slice.

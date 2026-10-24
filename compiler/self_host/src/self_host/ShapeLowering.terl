@@ -1,8 +1,10 @@
 /** Self-hosted lowering for reusable shape patterns and guards. */
 module self_host.ShapeLowering.
 
+import std.core.String.
+
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
-import self_host.PatternSyntax.{PatternParse}.
+import self_host.PatternSyntax.{ConstructorPattern, GroupedPattern, ListConsPattern, ListPattern, MapPattern, NamePattern, NominalKeyedPattern, PatternClass, PatternParse, TuplePattern, WildcardPattern}.
 import self_host.ShapeSyntax.{ShapeSyntax}.
 import self_host.Syntax.{ShapeDeclaration}.
 
@@ -33,6 +35,142 @@ patterns_valid(values: List[PatternParse]): Bool ->
     case values {
         [] -> true;
         [value | rest] -> value.valid and patterns_valid(rest)
+    }.
+
+@pure
+valid_shape_parameter(value: PatternParse): Bool ->
+    value.valid
+        and (value.syntax.class == NamePattern or value.syntax.class == WildcardPattern)
+        and value.syntax.text == value.syntax.text.lowercase().
+
+@pure
+shape_parameters_valid(values: List[PatternParse]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> valid_shape_parameter(value) and shape_parameters_valid(rest)
+    }.
+
+@pure
+contains_parameter(values: List[String], name: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == name or contains_parameter(rest, name)
+    }.
+
+@pure
+has_duplicate_parameter(values: List[PatternParse], seen: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            contains_parameter(seen, value.syntax.text) -> true;
+            true -> has_duplicate_parameter(rest, [value.syntax.text | seen])
+        }
+    }.
+
+@pure
+first_invalid_shape_parameter(values: List[PatternParse]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if {
+            valid_shape_parameter(value) -> first_invalid_shape_parameter(rest);
+            true -> value.syntax.text
+        }
+    }.
+
+@pure
+first_duplicate_shape_parameter(values: List[PatternParse], seen: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if {
+            contains_parameter(seen, value.syntax.text) -> value.syntax.text;
+            true -> first_duplicate_shape_parameter(rest, [value.syntax.text | seen])
+        }
+    }.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+keyed_pattern_value(source: String): String ->
+    let colon = Delimited.top_level_byte(source, 58);
+    if {
+        colon < 0 -> source;
+        true -> String.trim(source.utf8_slice(colon + 1, source.byte_size() - colon - 1))
+    }.
+
+@pure
+pattern_parts_are_keyed(class: PatternClass): Bool ->
+    class == MapPattern or class == NominalKeyedPattern.
+
+@pure
+pattern_part_bindings(part: String, keyed: Bool): List[String] ->
+    if {
+        keyed -> pattern_bindings(PatternParser.parse(keyed_pattern_value(part)));
+        true -> pattern_bindings(PatternParser.parse(part))
+    }.
+
+@pure
+pattern_parts_bindings(parts: List[String], keyed: Bool): List[String] ->
+    case parts {
+        [] -> List.new[String]();
+        [part | rest] -> append(
+            pattern_part_bindings(part, keyed),
+            pattern_parts_bindings(rest, keyed),
+        )
+    }.
+
+@pure
+pattern_has_nested_bindings(class: PatternClass): Bool ->
+    class == ConstructorPattern
+        or class == TuplePattern
+        or class == MapPattern
+        or class == ListPattern
+        or class == ListConsPattern
+        or class == NominalKeyedPattern
+        or class == GroupedPattern.
+
+@pure
+pattern_bindings(value: PatternParse): List[String] ->
+    if {
+        value.syntax.class == NamePattern -> [value.syntax.text];
+        pattern_has_nested_bindings(value.syntax.class) ->
+            pattern_parts_bindings(
+                value.syntax.parts,
+                pattern_parts_are_keyed(value.syntax.class),
+            );
+        true -> List.new[String]()
+    }.
+
+@pure
+first_duplicate_binding(values: List[String], seen: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if {
+            contains_parameter(seen, value) -> value;
+            true -> first_duplicate_binding(rest, [value | seen])
+        }
+    }.
+
+@pure
+shape_binding_message(name: String, duplicate: String): String ->
+    String.concat([
+        "shape `",
+        name,
+        "` binds `",
+        duplicate,
+        "` more than once; duplicate shape bindings are ambiguous",
+    ]).
+
+@pure
+final_shape_message(name: String, duplicate: String, fallback: String): String ->
+    if {
+        fallback != "" -> fallback;
+        duplicate == "" -> "";
+        true -> shape_binding_message(name, duplicate)
     }.
 
 @pure
@@ -93,6 +231,8 @@ shape_message_after_parameters(body_valid: Bool, body_message: String, guard_at:
 shape_message_after_closed(parameters: List[PatternParse], body_valid: Bool, body_message: String, guard_at: Int, guard_valid: Bool, guard_message: String): String ->
     if {
         not patterns_valid(parameters) -> first_pattern_error(parameters);
+        not shape_parameters_valid(parameters) -> String.concat(["invalid shape parameter `", first_invalid_shape_parameter(parameters), "`"]);
+        has_duplicate_parameter(parameters, List.new[String]()) -> String.concat(["duplicate shape parameter `", first_duplicate_shape_parameter(parameters, List.new[String]()), "`"]);
         true -> shape_message_after_parameters(body_valid, body_message, guard_at, guard_valid, guard_message)
     }.
 
@@ -121,9 +261,16 @@ pub lower(source: DeclarationSyntax): ShapeSyntax ->
             let guard_text = shape_guard_text(right, guard_at);
             let body = PatternParser.parse(body_text);
             let guard = ExpressionParser.parse(guard_text);
+            let duplicate_binding = first_duplicate_binding(
+                pattern_bindings(body),
+                List.new[String](),
+            );
             let valid = parameters_closed
                 and patterns_valid(parameters)
+                and shape_parameters_valid(parameters)
+                and not has_duplicate_parameter(parameters, List.new[String]())
                 and body.valid
+                and duplicate_binding == ""
                 and (guard_at < 0 or guard.valid);
             ShapeSyntax(
                 valid,
@@ -134,6 +281,10 @@ pub lower(source: DeclarationSyntax): ShapeSyntax ->
                 guard,
                 source.is_public,
                 source.span,
-                shape_message(parameters_closed, parameters, body.valid, body.message, guard_at, guard.valid, guard.message),
+                final_shape_message(
+                    source.name,
+                    duplicate_binding,
+                    shape_message(parameters_closed, parameters, body.valid, body.message, guard_at, guard.valid, guard.message),
+                ),
             )
     }.

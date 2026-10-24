@@ -1,0 +1,216 @@
+/** Ordered actor call analysis between typed Core IR and CFG projection. */
+module self_host.SelfHostActorCallAnalysis.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+
+import std.core.{Int, String}.
+import self_host.SelfHostActorCallFacts.
+import self_host.SelfHostActorCallFacts.{ActorCallTarget, ActorStaticCallEdge, ActorSuspendingCallFact, ActorSuspensionProfile}.
+
+
+/**
+ * A call instruction observed during the compiler's canonical function walk.
+ * The walk, rather than actor analysis, owns both ordinal streams.
+ */
+pub struct ActorCallObservation {
+    caller_module: String,
+    caller_name: String,
+    caller_arity: Int,
+    block_label: String,
+    result_name: String,
+    continuation_label: String,
+    opcode: String,
+    operands: List[String],
+    native_call_index: Int,
+    global_continuation_ordinal: Option[Int],
+    dynamic_suspends: Bool,
+    dynamic_profile: Option[ActorSuspensionProfile],
+}.
+
+pub constructor ActorCallObservation {
+    (caller_module: String, caller_name: String, caller_arity: Int, block_label: String, result_name: String, continuation_label: String, opcode: String, operands: List[String], native_call_index: Int, global_continuation_ordinal: Option[Int], dynamic_suspends: Bool, dynamic_profile: Option[ActorSuspensionProfile]): ActorCallObservation ->
+        ActorCallObservation {
+            caller_module: caller_module,
+            caller_name: caller_name,
+            caller_arity: caller_arity,
+            block_label: block_label,
+            result_name: result_name,
+            continuation_label: continuation_label,
+            opcode: opcode,
+            operands: operands,
+            native_call_index: native_call_index,
+            global_continuation_ordinal: global_continuation_ordinal,
+            dynamic_suspends: dynamic_suspends,
+            dynamic_profile: dynamic_profile,
+        }
+}.
+
+
+/** A normalized call with the evidence needed by later actor passes. */
+pub struct ActorResolvedCall {
+    observation: self_host.SelfHostActorCallAnalysis.ActorCallObservation,
+    target: ActorCallTarget,
+    static_edge: Option[ActorStaticCallEdge],
+    suspension: Option[ActorSuspendingCallFact],
+}.
+
+pub constructor ActorResolvedCall {
+    (observation: self_host.SelfHostActorCallAnalysis.ActorCallObservation, target: ActorCallTarget, static_edge: Option[ActorStaticCallEdge], suspension: Option[ActorSuspendingCallFact]): ActorResolvedCall ->
+        ActorResolvedCall {
+            observation: observation,
+            target: target,
+            static_edge: static_edge,
+            suspension: suspension,
+        }
+}.
+
+
+/** Complete ordered evidence produced for one projection unit. */
+pub struct ActorCallAnalysis {
+    calls: List[self_host.SelfHostActorCallAnalysis.ActorResolvedCall],
+    static_edges: List[ActorStaticCallEdge],
+    suspending_calls: List[ActorSuspendingCallFact],
+}.
+
+pub constructor ActorCallAnalysis {
+    (calls: List[self_host.SelfHostActorCallAnalysis.ActorResolvedCall], static_edges: List[ActorStaticCallEdge], suspending_calls: List[ActorSuspendingCallFact]): ActorCallAnalysis ->
+        ActorCallAnalysis {
+            calls: calls,
+            static_edges: static_edges,
+            suspending_calls: suspending_calls,
+        }
+}.
+
+
+@pure
+append[T](values: List[T], value: T): List[T] ->
+    case values {
+        [] -> [value];
+        [head | rest] -> [head | append(rest, value)]
+    }.
+
+@pure
+append_edge(values: List[ActorStaticCallEdge], value: Option[ActorStaticCallEdge]): List[ActorStaticCallEdge] ->
+    case value {
+        None -> values;
+        Some(edge) -> append(values, edge)
+    }.
+
+@pure
+append_suspension(values: List[ActorSuspendingCallFact], value: Option[ActorSuspendingCallFact]): List[ActorSuspendingCallFact] ->
+    case value {
+        None -> values;
+        Some(call) -> append(values, call)
+    }.
+
+
+@pure
+validate_observation(value: ActorCallObservation): Result[ActorCallObservation, String] ->
+    if {
+        value.caller_module == "" -> Err("actor call observation has no caller module");
+        value.caller_name == "" -> Err("actor call observation has no caller name");
+        value.caller_arity < 0 -> Err("actor call observation has a negative caller arity");
+        value.block_label == "" -> Err("actor call observation has no block label");
+        value.result_name == "" -> Err("actor call observation has no result name");
+        value.continuation_label == "" -> Err("actor call observation has no continuation label");
+        value.native_call_index < 0 -> Err("actor call observation has a negative native call index");
+        true -> Ok(value)
+    }.
+
+
+@pure
+non_suspending_dynamic_profile(value: ActorCallObservation): Result[Option[ActorSuspensionProfile], String] ->
+    case value.dynamic_profile {
+        None -> Ok(None);
+        Some(_) -> Err("non-suspending call-value cannot carry a continuation profile")
+    }.
+
+@pure
+resolved_profile(target: ActorCallTarget, value: ActorCallObservation, profiles: List[ActorSuspensionProfile]): Result[Option[ActorSuspensionProfile], String] ->
+    if {
+        target.dynamic and !value.dynamic_suspends -> non_suspending_dynamic_profile(value);
+        true -> SelfHostActorCallFacts.suspension_profile(
+            target,
+            profiles,
+            value.dynamic_profile,
+        )
+    }.
+
+
+@pure
+resolved_suspension(target: ActorCallTarget, value: ActorCallObservation, profile: Option[ActorSuspensionProfile]): Result[Option[ActorSuspendingCallFact], String] ->
+    case profile {
+        None -> Ok(None);
+        Some(suspension_profile) -> case value.global_continuation_ordinal {
+            None -> Err("suspending call has no global continuation ordinal");
+            Some(ordinal) -> case SelfHostActorCallFacts.suspending_fact(
+                value.native_call_index,
+                ordinal,
+                target,
+                suspension_profile,
+            ) {
+                Ok(call) -> Ok(Some(call));
+                Err(reason) -> Err(reason)
+            }
+        }
+    }.
+
+
+@pure
+resolve_target(value: ActorCallObservation, profiles: List[ActorSuspensionProfile], target: ActorCallTarget): Result[ActorResolvedCall, String] ->
+    let edge = SelfHostActorCallFacts.static_edge(
+        value.caller_module,
+        value.caller_name,
+        value.caller_arity,
+        target,
+    );
+    case resolved_profile(target, value, profiles) {
+        Err(reason) -> Err(reason);
+        Ok(profile) -> case resolved_suspension(target, value, profile) {
+            Err(reason) -> Err(reason);
+            Ok(suspension) -> Ok(ActorResolvedCall(value, target, edge, suspension))
+        }
+    }.
+
+
+@pure
+resolve(value: ActorCallObservation, profiles: List[ActorSuspensionProfile]): Result[ActorResolvedCall, String] ->
+    case validate_observation(value) {
+        Err(reason) -> Err(reason);
+        Ok(observation) -> case SelfHostActorCallFacts.target(
+            observation.caller_module,
+            observation.opcode,
+            observation.operands,
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(None) -> Err("actor call observation does not describe a call instruction");
+            Ok(Some(target)) -> resolve_target(observation, profiles, target)
+        }
+    }.
+
+
+@pure
+analyze_at(values: List[ActorCallObservation], profiles: List[ActorSuspensionProfile], analysis: ActorCallAnalysis): Result[ActorCallAnalysis, String] ->
+    case values {
+        [] -> Ok(analysis);
+        [value | rest] -> case resolve(value, profiles) {
+            Err(reason) -> Err(reason);
+            Ok(call) -> analyze_at(
+                rest,
+                profiles,
+                ActorCallAnalysis(
+                    append(analysis.calls, call),
+                    append_edge(analysis.static_edges, call.static_edge),
+                    append_suspension(analysis.suspending_calls, call.suspension),
+                ),
+            )
+        }
+    }.
+
+
+/** Resolves ordered call observations without changing traversal order. */
+@pure
+pub analyze(values: List[ActorCallObservation], profiles: List[ActorSuspensionProfile]): Result[ActorCallAnalysis, String] ->
+    analyze_at(values, profiles, ActorCallAnalysis([], [], [])).

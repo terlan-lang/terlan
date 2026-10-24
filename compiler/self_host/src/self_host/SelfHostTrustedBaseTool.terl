@@ -1,0 +1,49 @@
+/** Materialized minimal-trusted-base evidence producer. */
+module self_host.SelfHostTrustedBaseTool.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, String}.
+import std.io.Directory.
+import std.io.File.
+
+import self_host.SelfHostTrustedBase.{TrustedBaseEntry}.
+import self_host.SelfHostTrustedBase.
+
+
+path_exists(path: String): Bool ->
+    if {
+        File.exists(path) -> true;
+        true -> case Directory.entries(path) {
+            Err(_) -> false;
+            Ok(_) -> true
+        }
+    }.
+
+all_paths_exist(values: List[TrustedBaseEntry]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> path_exists(value.path) and all_paths_exist(rest)
+    }.
+
+/** Publishes evidence only for the exact documented and materialized trust boundary. */
+pub write(manifest_path: String, output_path: String): Bool ->
+    let _removed = File.delete(output_path);
+    case File.read_text(manifest_path) {
+        Err(_) -> false;
+        Ok(manifest) -> case SelfHostTrustedBase.decode(manifest) {
+            None -> false;
+            Some(values) -> if {
+                not SelfHostTrustedBase.minimal(values) -> false;
+                not all_paths_exist(values) -> false;
+                true -> case File.write_text(
+                    output_path,
+                    SelfHostTrustedBase.render(values),
+                ) {
+                    Err(_) -> false;
+                    Ok(_) -> true
+                }
+            }
+        }
+    }.

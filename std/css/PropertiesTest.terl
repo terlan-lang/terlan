@@ -2,6 +2,9 @@ module std.css.PropertiesTest.
 
 import std.core.Option.{None, Some}.
 import std.css.Values.
+import std.css.Values.{Inherit}.
+import std.css.keywords.Auto.{Auto as MarginAuto}.
+import std.css.keywords.Auto.{Auto as WidthAuto}.
 import std.css.properties.{Border, Gap, Height, Margin, MarginLeft, Padding, Width}.
 import std.test.Test.{assert_equal}.
 
@@ -20,8 +23,8 @@ pub zero_sizes_and_positive_percentages_are_accepted(): Bool ->
 
 @test
 pub negative_margins_remain_valid_css_values(): Bool ->
-    let negative = MarginLeft.length(Values.px(-10.0));
-    assert_equal(negative, MarginLeft.length(Values.px(-10.0))).
+    let style = MarginLeft.Property {margin_left: Values.px(-10.0)};
+    assert_equal(style.margin_left, Values.px(-10.0)).
 
 @test
 pub shorthand_components_keep_their_numeric_constraints(): Bool ->
@@ -33,17 +36,15 @@ pub shorthand_components_keep_their_numeric_constraints(): Bool ->
 }.
 
 @test
-pub a_single_component_preserves_the_existing_property_value(): Bool ->
-    assert_equal(
-    Margin.single(Margin.component_length(Values.px(-10.0))),
-    Margin.length(Values.px(-10.0)),
-)
-        and assert_equal(Margin.single(Margin.component_auto()), Margin.auto()).
-
-@test
 pub border_width_parts_reject_negative_lengths(): Bool ->
     assert_equal(None, Border.line_width_length(Values.px(-1.0)))
         and case Border.line_width_length(Values.px(0.0)) {
     Some(_) -> true;
     None -> false
 }.
+
+@test
+pub keyword_enums_accept_property_and_css_wide_choices(): Bool ->
+    let automatic = Width.Property {width: WidthAuto};
+    let inherited = Width.Property {width: Inherit};
+    automatic != inherited.

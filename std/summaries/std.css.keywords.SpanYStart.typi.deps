@@ -1,0 +1,8 @@
+module=std.css.keywords.SpanYStart
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=2265605952215251575
+interface_hash=14666730318141352198
+interface_doc_hash=10600716862426015680
+deps=0

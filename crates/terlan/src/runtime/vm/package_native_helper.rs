@@ -35,7 +35,7 @@ mod clock_test;
 mod http_channel_value_test;
 mod scheduling;
 #[cfg(test)]
-mod source_test_support;
+pub(crate) mod source_test_support;
 mod storage_transport;
 mod test_fixtures;
 mod value_package;

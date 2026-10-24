@@ -1,0 +1,6 @@
+//! Shared CSS keyword searchfield. Generated; do not edit.
+
+module std.css.keywords.Searchfield.
+
+pub type Searchfield =
+    Atom["searchfield"].

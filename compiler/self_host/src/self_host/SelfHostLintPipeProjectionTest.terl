@@ -1,0 +1,56 @@
+/** Pipe tooling-document projection and fix contracts. */
+module self_host.SelfHostLintPipeProjectionTest.
+
+import std.core.String.
+import self_host.SelfHostLintPipeProjection.
+import self_host.SelfHostToolingDocument.
+
+@test
+pub projects_and_fixes_remote_first_argument_chains(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nvalue(input: String, option: Option): String -> Codec.render(Codec.validate(Codec.parse(input)), option).\n",
+    );
+    case SelfHostLintPipeProjection.diagnostics("Sample.terl", document) {
+        [value] ->
+            value.rule_id == "TL1002"
+                and value.fix_available
+                and String.contains(
+                    SelfHostLintPipeProjection.apply(document),
+                    "input\n    |> Codec.parse()\n    |> Codec.validate()\n    |> Codec.render(option)",
+                );
+        _ -> false
+    }.
+
+@test
+pub supports_receiver_chains_inside_a_named_outer_call(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nvalue(input: String, option: Option): String -> Codec.render(input.trim().lowercase(), option).\n",
+    );
+    case SelfHostLintPipeProjection.diagnostics("Sample.terl", document) {
+        [value] -> value.rule_id == "TL1002";
+        _ -> false
+    }.
+
+@test
+pub requires_local_name_and_arity_proof(): Bool ->
+    let proven = SelfHostToolingDocument.build(
+        "module sample.\nparse(value: String): String -> value.\nvalidate(value: String): String -> value.\nrender(value: String, option: Option): String -> value.\nresult(input: String, option: Option): String -> render(validate(parse(input)), option).\n",
+    );
+    let unknown = SelfHostToolingDocument.build(
+        "module sample.\nresult(input: String, option: Option): String -> render(validate(parse(input)), option).\n",
+    );
+    case SelfHostLintPipeProjection.diagnostics("Sample.terl", proven) {
+        [_] -> SelfHostLintPipeProjection.diagnostics("Sample.terl", unknown) == [];
+        _ -> false
+    }.
+
+@test
+pub rejects_named_and_type_argument_calls(): Bool ->
+    let named = SelfHostToolingDocument.build(
+        "module sample.\nvalue(input: String): String -> Codec.render(Codec.parse(value: input), option: Default).\n",
+    );
+    let typed = SelfHostToolingDocument.build(
+        "module sample.\nvalue(input: String, option: Option): String -> Codec.render(Codec.parse[String](input), option).\n",
+    );
+    SelfHostLintPipeProjection.diagnostics("Sample.terl", named) == []
+        and SelfHostLintPipeProjection.diagnostics("Sample.terl", typed) == [].

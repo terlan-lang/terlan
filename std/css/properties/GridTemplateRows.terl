@@ -1,126 +1,68 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-template-rows
+ * The `grid-template-rows` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+ * the line names and track sizing functions of the `grid rows`.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: refer to corresponding dimension of the content area.
+ *
+ * Keyword effects:
+ * - auto: As a maximum value, it represents the largest `max-content` size of the items in that
+ * track.
+ * - max-content: Represents the largest max-content contribution of the grid items occupying the
+ * grid track.
+ * - min-content: Represents the largest min-content contribution of the grid items occupying the
+ * grid track.
+ * - none: A keyword meaning that there is no explicit grid. Any rows will be implicitly generated
+ * and their size will be determined by the `grid-auto-rows` property.
+ * - subgrid: Indicates that the grid will adopt the spanned portion of its parent grid in that
+ * axis. Rather than being specified explicitly, the sizes of the grid rows/columns will be taken
+ * from the parent grid's definition.
+ *
  * Grammar: none | <track-list> | <auto-track-list> | subgrid <line-name-list>?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-template-rows
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/grid-template-rows
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.GridTemplateRows.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
+import std.css.keywords.{Auto, MaxContent, MinContent, None, Subgrid}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained grid-template-rows value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    grid_template_rows: Value,
+    grid_template_rows: None | MinContent | MaxContent | Auto | Subgrid | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the grid-template-rows length range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub struct OptionalProperty {
-    grid_template_rows: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "grid-template-rows", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "grid-template-rows", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "grid-template-rows", css: "initial"}).
-
-/**
- * Returns the CSS keyword max-content.
- */
-pub max_content(): Value ->
-    Value(Token {property: "grid-template-rows", css: "max-content"}).
-
-/**
- * Returns the CSS keyword min-content.
- */
-pub min_content(): Value ->
-    Value(Token {property: "grid-template-rows", css: "min-content"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "grid-template-rows", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "grid-template-rows", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "grid-template-rows", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword subgrid.
- */
-pub subgrid(): Value ->
-    Value(Token {property: "grid-template-rows", css: "subgrid"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "grid-template-rows", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a grid-template-rows value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(Token {property: "grid-template-rows", css: std.css.Values.length_css(value)}),
-            );
-        false -> None
+pub length(value: Length): Option[Checked] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Checked(serialize("grid-template-rows", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a grid-template-rows value.
+ * Checks the grid-template-rows percentage range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(
-                    Token {
-                        property: "grid-template-rows",
-                        css: std.css.Values.percentage_css(value),
-                    },
-                ),
-            );
-        false -> None
+pub percentage(value: Percentage): Option[Checked] ->
+    case percentage_amount(value) >= 0 {
+        true -> Some(Checked(serialize("grid-template-rows", percentage_css(value))));
+        false -> Absent
     }.

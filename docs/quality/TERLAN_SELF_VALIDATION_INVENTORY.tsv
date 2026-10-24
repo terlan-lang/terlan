@@ -7,7 +7,7 @@ scripts/self_validation/AcceleratorTargetAdmissionTest.terl	checker	migrated	arg
 scripts/self_validation/AcceleratorValueContractTest.terl	checker	migrated	arguments,filesystem,json,string-normalization
 scripts/self_validation/AllTerlanTestsVmInventoryTest.terl	checker	migrated	filesystem,bounded-recursive-text-read,regex,string-normalization
 scripts/self_validation/AngularTsIntegrationTest.terl	checker	migrated	arguments,environment,filesystem,process,temp-workspace,path,string-normalization
-scripts/self_validation/BattleshipExternalVmContractTest.terl	checker	migrated	environment,filesystem,process,temp-workspace,path,string-normalization
+scripts/self_validation/ExternalVmContractTest.terl	checker	migrated	environment,filesystem,process,temp-workspace,path,string-normalization
 scripts/self_validation/BuildArtifactBudgetTest.terl	quality-tool	migrated	arguments,environment,filesystem,file-metadata,hash,process,clock,json,deterministic-reporting
 scripts/self_validation/BuildInterfacesTest.terl	bootstrap-generator	migrated	arguments,environment,filesystem,process,bounded-parallelism,string-normalization
 scripts/self_validation/CallableSyntaxCleanupTest.terl	checker	migrated	filesystem,regex,string-search

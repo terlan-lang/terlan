@@ -1,8 +1,8 @@
 module=std.js.Dom.PopoverInvokerElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=699524111631300299
-interface_hash=18074188964494883876
-interface_doc_hash=18074188964494883876
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=10676034940457884076
+interface_hash=4509582883222748583
+interface_doc_hash=4509582883222748583
 deps=0

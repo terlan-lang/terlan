@@ -1,77 +1,32 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css2/#propdef-z-index
+ * The `z-index` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the z-order
+ * of a [positioned](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position)
+ * element and its descendants or flex and grid items. Overlapping elements with a larger z-index
+ * cover those with a smaller one.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: The box does not establish a new local stacking context. The stack level of the generated
+ * box in the current stacking context is `0`.
+ *
  * Grammar: auto | <integer> | inherit
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css2/#propdef-z-index
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/z-index
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ZIndex.
 
-import std.core.Int.
+import std.css.keywords.Auto.
 
-import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained z-index value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    z_index: Value,
+    z_index: Auto | Int | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    z_index: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "z-index", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "z-index", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "z-index", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "z-index", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "z-index", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "z-index", css: "unset"}).
-
-/**
- * Constructs a z-index value from a typed integer.
- */
-pub integer(value: Int): Value ->
-    Value(Token {property: "z-index", css: std.core.Int.to_string(value)}).

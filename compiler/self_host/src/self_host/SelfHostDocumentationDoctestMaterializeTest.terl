@@ -1,0 +1,38 @@
+/** Positive and negative documentation backend-unit manifest contracts. */
+module self_host.SelfHostDocumentationDoctestMaterializeTest.
+
+import self_host.SelfHostDocumentationDoctest.
+import self_host.SelfHostDocumentationDoctestEvidence.
+import self_host.SelfHostDocumentationDoctestEvidenceDecode.
+import self_host.SelfHostDocumentationDoctestMaterialize.
+import std.core.String.
+
+decoded(): self_host.SelfHostDocumentationDoctestEvidenceDecode.DecodedDoctests ->
+    SelfHostDocumentationDoctestEvidenceDecode.decode(
+        SelfHostDocumentationDoctestEvidence.render(
+            SelfHostDocumentationDoctest.extract(
+                "```terlan\nmodule materialized_example.\n```",
+            ),
+        ),
+    ).
+
+@test
+pub unit_paths_are_stable(): Bool ->
+    SelfHostDocumentationDoctestMaterialize.unit_path("target/docs", 3) ==
+        "target/docs/doctest-3.terl".
+
+@test
+pub valid_decoded_sources_have_a_hashed_unit_manifest(): Bool ->
+    let value = SelfHostDocumentationDoctestMaterialize.manifest(
+        decoded(),
+        "target/docs",
+    );
+    String.starts_with(
+        value,
+        "schema\tterlan.self-host.documentation-doctest-units/v1\ncount\t1\nunit\t0\ttarget/docs/doctest-0.terl\t",
+    ).
+
+@test
+pub invalid_decoded_sources_have_no_unit_manifest(): Bool ->
+    let value = SelfHostDocumentationDoctestEvidenceDecode.decode("invalid");
+    SelfHostDocumentationDoctestMaterialize.manifest(value, "target/docs") == "".

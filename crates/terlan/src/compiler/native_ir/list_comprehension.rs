@@ -231,7 +231,7 @@ fn visit_children(
 ) -> NativeIrResult<()> {
     let mut visit = |child: &mut CoreExpr| lower_expr(child, module, owner, helpers, count);
     match expr {
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
                 visit(item)?;
             }

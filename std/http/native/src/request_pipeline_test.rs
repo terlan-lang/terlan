@@ -361,3 +361,107 @@ fn websocket_handoff_requires_transport_and_cleans_up_handler_failure() {
         assert!(slot.take().is_some());
     }
 }
+
+struct ChannelApp {
+    app: App,
+    fail: bool,
+}
+
+impl Application for ChannelApp {
+    type WebSocket = Socket;
+    type Sse = Sse;
+
+    fn requires_file_body(&self, method: &str, path: &str) -> Result<bool, String> {
+        self.app.requires_file_body(method, path)
+    }
+
+    async fn handle_channel(
+        &self,
+        request: &Request<String>,
+        channel: &mut Option<Channel<Socket, Sse>>,
+    ) -> Result<Option<Response<Bytes>>, String> {
+        self.app.calls.borrow_mut().push("channel");
+        assert_eq!(request.body(), "payload");
+        *channel = self.app.channel.borrow_mut().take();
+        if self.fail {
+            Err("admission failed".into())
+        } else {
+            Ok(Some(Response::new(Bytes::from_static(b"channel response"))))
+        }
+    }
+
+    async fn handle_suspendable(
+        &self,
+        _: &Request<String>,
+    ) -> Result<Option<Response<Bytes>>, String> {
+        panic!("admitted channel must not enter ordinary handler dispatch")
+    }
+
+    fn handle(
+        &self,
+        _: Request<String>,
+        _: &mut Option<Channel<Socket, Sse>>,
+    ) -> Result<Response<Bytes>, String> {
+        panic!("admitted channel must not enter synchronous dispatch")
+    }
+}
+
+#[test]
+fn async_channel_admission_reuses_handoff_and_never_replays_ordinary_dispatch() {
+    let app = ChannelApp {
+        app: App::default(),
+        fail: false,
+    };
+    check(
+        ready(handle(&app, request(b"payload"), 7, None, None)),
+        StatusCode::OK,
+        "channel response",
+    );
+    assert_eq!(*app.app.calls.borrow(), ["route", "channel"]);
+    for fail in [false, true] {
+        for cleanup_fails in [false, true] {
+            let reasons = Rc::new(RefCell::new(Vec::new()));
+            let app = ChannelApp {
+                app: App {
+                    channel: RefCell::new(Some(Channel::Sse(Sse {
+                        reasons: Rc::clone(&reasons),
+                        fail: cleanup_fails,
+                    }))),
+                    ..App::default()
+                },
+                fail,
+            };
+            let response = ready(handle(&app, request(b"payload"), 7, None, None));
+            assert_eq!(
+                response.status(),
+                if fail {
+                    StatusCode::BAD_GATEWAY
+                } else {
+                    StatusCode::NOT_IMPLEMENTED
+                }
+            );
+            let body = ready(response.into_body().collect()).unwrap().to_bytes();
+            let body = std::str::from_utf8(&body).unwrap();
+            assert!(
+                body.contains(if fail {
+                    "admission failed"
+                } else {
+                    "upgrade_adapter_missing"
+                }),
+                "{body}"
+            );
+            assert_eq!(body.contains("cleanup error"), cleanup_fails, "{body}");
+            assert_eq!(reasons.borrow().len(), 1);
+            assert_eq!(*app.app.calls.borrow(), ["route", "channel"]);
+        }
+    }
+    let app = ChannelApp {
+        app: App::default(),
+        fail: true,
+    };
+    check(
+        ready(handle(&app, request(b"payload"), 7, None, None)),
+        StatusCode::BAD_GATEWAY,
+        "admission failed",
+    );
+}

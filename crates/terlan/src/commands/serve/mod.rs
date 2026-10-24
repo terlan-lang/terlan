@@ -31,12 +31,10 @@ use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use std::thread;
-#[cfg(test)]
-use std::time::Instant;
 
 use bytes::Bytes;
 #[cfg(test)]
-use http_body_util::{combinators::BoxBody, BodyExt, Full};
+use http_body_util::{combinators::UnsyncBoxBody, BodyExt, Full};
 #[cfg(test)]
 use hyper::body::Frame;
 #[cfg(test)]
@@ -133,8 +131,6 @@ fn runtime_artifact_directory(web_root: &Path) -> ServeResult<PathBuf> {
     Ok(root.join("build/artifacts"))
 }
 
-#[cfg(test)]
-use handler::handler_log_identity;
 use handler::{
     execute_suspendable_vm_handler_with_package_root_projected,
     execute_vm_handler_with_package_root_projected, execute_vm_router_handler_with_package_root,
@@ -148,11 +144,6 @@ use handler::{
     WebPackageWebSocket,
 };
 #[cfg(test)]
-use handler::{
-    manifest_file_response_for_request, manifest_handler_for_request,
-    manifest_static_response_for_request,
-};
-#[cfg(test)]
 use handler_cache::handler_cache_test_support::clear_vm_handler_module_cache_for_test;
 use handler_cache::{
     cached_vm_handler_for_manifest, cached_vm_handler_runtime_for_manifest,
@@ -160,29 +151,18 @@ use handler_cache::{
     with_cached_vm_handler_runtime_for_request, AotHandlerRuntime,
 };
 #[cfg(test)]
-use logging::{
-    log_file_route_result, log_handler_result, log_static_result, log_static_route_result,
-    next_request_id, render_dev_error_page, RouteLogEvent,
-};
+use logging::render_dev_error_page;
 use manifest::manifest_build_id;
-#[cfg(test)]
-use manifest::manifest_static_file_for_request;
 pub(crate) use manifest::validate_web_package;
-#[cfg(test)]
-use response::build_http_response;
 use response::{build_http_response_for_stream, inject_reload_script};
 #[cfg(test)]
 use terlan_http_native::content_type_for_path;
 use tls::{
-    acme_http01_challenge, runtime_tls_config_for_serve, AcmeHttp01Challenge, RuntimeTlsConfig,
+    acme_http01_response, runtime_tls_config_for_serve, RuntimeTlsConfig,
 };
 #[cfg(test)]
 use watch::ReloadHub;
 use watch::{spawn_reload_watcher, ReloadWatchBackend};
-#[cfg(test)]
-use websocket::manifest_websocket_for_path;
-#[cfg(test)]
-use websocket::{websocket_hub, websocket_upgrade_response, WebSocketHub};
 
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use args::parse_serve_args;

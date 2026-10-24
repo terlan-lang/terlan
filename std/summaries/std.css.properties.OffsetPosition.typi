@@ -1,112 +1,30 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/motion-1/#propdef-offset-position
+//! The `offset-position` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+//! the initial position of an element along a path. This property is typically used in combination
+//! with the `offset-path` property to create a motion effect. The value of `offset-position`
+//! determines where the element gets placed initially for moving along an offset path if an
+//! `offset-path` function such as `path()` does not specify its own starting position.
+//!
+//! Initial: normal. Inherited: no.
+//! Percentages: refer to the size of containing block.
+//!
+//! Keyword effects:
+//! - auto: Indicates that the offset starting position is the top-left corner of the element's box.
+//! - normal: Indicates that the element does not have an offset starting position and places the
+//! element at `50% 50%` of the containing block. This is the default value.
+//!
 //! Grammar: normal | auto | <position>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/motion-1/#propdef-offset-position
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-position
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OffsetPosition.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    offset_position: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    offset_position: Value
+    offset_position: Normal | Auto | Left | Center | Right | Top | Bottom | XStart | XEnd | YStart | YEnd | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained offset-position value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword block-end.
-
-pub block_end(): Value.
-
-/// Returns the CSS keyword block-start.
-
-pub block_start(): Value.
-
-/// Returns the CSS keyword bottom.
-
-pub bottom(): Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inline-end.
-
-pub inline_end(): Value.
-
-/// Returns the CSS keyword inline-start.
-
-pub inline_start(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Constructs a offset-position value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Constructs a offset-position value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword top.
-
-pub top(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword x-end.
-
-pub x_end(): Value.
-
-/// Returns the CSS keyword x-start.
-
-pub x_start(): Value.
-
-/// Returns the CSS keyword y-end.
-
-pub y_end(): Value.
-
-/// Returns the CSS keyword y-start.
-
-pub y_start(): Value.
-
-export type Token.

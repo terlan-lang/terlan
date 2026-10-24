@@ -1,0 +1,8 @@
+module=std.css.keywords.Arcs
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=18267688065013453417
+interface_hash=8809396117108491276
+interface_doc_hash=6973034945898782964
+deps=0

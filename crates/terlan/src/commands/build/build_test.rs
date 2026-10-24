@@ -79,6 +79,8 @@ mod tests {
     #[cfg(test)]
     mod std_source_application_closure_test;
     #[cfg(test)]
+    mod timeout_source_test;
+    #[cfg(test)]
     mod wasm_artifact_metadata_test;
     #[cfg(test)]
     mod wasm_build_target_test;

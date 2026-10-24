@@ -140,7 +140,11 @@ function_failure(message: String): FunctionRow ->
 
 @pure
 load_function(row: RequiredFieldRow, index: Int): FunctionRow ->
-    case {row.strings, row.ints, row.bools} {
+    case {
+        row.strings,
+        row.ints,
+        row.bools,
+    } {
         {[name, path, visibility], [argument_count], [returns_string_error, explicit_ffi_parameters, implementation]} ->
             FunctionRow(
                 valid = true,

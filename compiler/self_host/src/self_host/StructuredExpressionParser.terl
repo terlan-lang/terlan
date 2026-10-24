@@ -337,8 +337,105 @@ parse_clause_arrow(
     pattern: Bool,
     arrow: TokenSplit,
 ): ProjectedExpressionResult ->
+    let guard = split(arrow.left, "where");
+    if {
+        pattern and guard.found -> parse_guarded_clause(values, guard, arrow);
+        true -> let body = parse(arrow.right);
+            finish_clause(values, clause_left(pattern, arrow.left), body)
+    }.
+
+@pure
+parse_guarded_clause(
+    values: List[ProjectedCanonicalToken],
+    guard: TokenSplit,
+    arrow: TokenSplit,
+): ProjectedExpressionResult ->
+    let pattern = ProjectedPatternParser.parse(guard.left);
+    let condition = parse(guard.right);
     let body = parse(arrow.right);
-    finish_clause(values, clause_left(pattern, arrow.left), body).
+    case pattern.node {
+        Some(pattern_node) -> finish_guarded_clause_pattern(
+            values,
+            pattern,
+            pattern_node,
+            condition,
+            body,
+        );
+        None -> invalid(values, "structured guarded clause is invalid")
+    }.
+
+@pure
+finish_guarded_clause_pattern(
+    values: List[ProjectedCanonicalToken],
+    pattern: ProjectedExpressionResult,
+    pattern_node: ProjectedExpressionNode,
+    condition: ProjectedExpressionResult,
+    body: ProjectedExpressionResult,
+): ProjectedExpressionResult ->
+    case condition.node {
+        Some(condition_node) -> finish_guarded_clause_condition(
+            values,
+            pattern,
+            pattern_node,
+            condition,
+            condition_node,
+            body,
+        );
+        None -> invalid(values, "structured guarded clause is invalid")
+    }.
+
+@pure
+finish_guarded_clause_condition(
+    values: List[ProjectedCanonicalToken],
+    pattern: ProjectedExpressionResult,
+    pattern_node: ProjectedExpressionNode,
+    condition: ProjectedExpressionResult,
+    condition_node: ProjectedExpressionNode,
+    body: ProjectedExpressionResult,
+): ProjectedExpressionResult ->
+    case body.node {
+        Some(body_node) -> build_guarded_clause(
+            values,
+            pattern,
+            pattern_node,
+            condition,
+            condition_node,
+            body,
+            body_node,
+        );
+        None -> invalid(values, "structured guarded clause is invalid")
+    }.
+
+@pure
+build_guarded_clause(
+    values: List[ProjectedCanonicalToken],
+    pattern: ProjectedExpressionResult,
+    pattern_node: ProjectedExpressionNode,
+    condition: ProjectedExpressionResult,
+    condition_node: ProjectedExpressionNode,
+    body: ProjectedExpressionResult,
+    body_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    if {
+        pattern.valid
+            and pattern.rest == []
+            and condition.valid
+            and condition.rest == []
+            and body.valid
+            and body.rest == [] -> ProjectedExpressionResult(
+                true,
+                Some(node(
+                    "clause",
+                    "where",
+                    pattern_node.start_byte,
+                    body_node.end_byte,
+                    [pattern_node, condition_node, body_node],
+                )),
+                body.rest,
+                "",
+            );
+        true -> invalid(values, "structured guarded clause is invalid")
+    }.
 
 @pure
 clause_left(pattern: Bool, values: List[ProjectedCanonicalToken]): Option[ProjectedExpressionNode] ->

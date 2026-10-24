@@ -1,0 +1,71 @@
+/** Contracts for projected shape expansion. */
+module self_host.ProjectedShapeExpansionTest.
+
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedShapeExpansion.{ProjectedShapeDefinition}.
+
+import std.collections.List.
+import self_host.ProjectedShapeExpansion.
+
+
+@pure
+node(kind: String, text: String, children: List[ProjectedExpressionNode]): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, 0, 0, children).
+
+@pure
+binding(name: String): ProjectedExpressionNode ->
+    node("binding-pattern", name, List.new[ProjectedExpressionNode]()).
+
+@pure
+empty_guard(): ProjectedExpressionNode ->
+    node("invalid", "", List.new[ProjectedExpressionNode]()).
+
+@pure
+substitutes_pattern_and_guard(): Bool ->
+    let guard = node("binary", ">", [
+        node("name", "value", List.new[ProjectedExpressionNode]()),
+        node("literal", "0", List.new[ProjectedExpressionNode]()),
+    ]);
+    let definition = ProjectedShapeDefinition("Positive", ["value"], binding("value"), true, guard);
+    let expanded = ProjectedShapeExpansion.expand(
+        node("constructor-pattern", "Positive", [binding("item")]),
+        [definition],
+    );
+    expanded.valid
+        and expanded.pattern.text == "item"
+        and case expanded.guards {
+            [expanded_guard] -> case expanded_guard.children {
+                [subject, _zero] -> subject.kind == "name" and subject.text == "item";
+                _ -> false
+            };
+            _ -> false
+        }.
+
+@pure
+rejects_wrong_arity(): Bool ->
+    let definition = ProjectedShapeDefinition("Named", ["value"], binding("value"), false, empty_guard());
+    let expanded = ProjectedShapeExpansion.expand(
+        node("constructor-pattern", "Named", List.new[ProjectedExpressionNode]()),
+        [definition],
+    );
+    not expanded.valid and expanded.message == "shape `Named` expects 1 argument(s), found 0".
+
+@pure
+rejects_recursive_expansion(): Bool ->
+    let definition = ProjectedShapeDefinition(
+        "Loop",
+        ["value"],
+        node("constructor-pattern", "Loop", [binding("value")]),
+        false,
+        empty_guard(),
+    );
+    let expanded = ProjectedShapeExpansion.expand(
+        node("constructor-pattern", "Loop", [binding("item")]),
+        [definition],
+    );
+    not expanded.valid and expanded.message == "recursive shape expansion `Loop`".
+
+pub self_test(): Bool ->
+    substitutes_pattern_and_guard()
+        and rejects_wrong_arity()
+        and rejects_recursive_expansion().

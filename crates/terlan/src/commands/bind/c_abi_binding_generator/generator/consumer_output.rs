@@ -8,8 +8,8 @@ pub(super) fn render_consumer_test(manifest: &CAbiBindingManifest) -> Result<Str
         .all(|function| function.generated_smoke == CGeneratedSmokePolicy::PackageOwned)
     {
         return Ok(format!(
-            "module {}.NativeBoundaryTest.\n\n@test\npub generated_c_abi_package_owns_live_validation(): Bool -> true.\n",
-            manifest.package.namespace
+            "module {}.NativeBoundaryTest.\n\nimport {}.\n",
+            manifest.package.namespace, module.module
         ));
     }
     let constructor = role_function(manifest, CAbiFunctionRole::Constructor)?;
@@ -366,17 +366,8 @@ pub(super) fn role_name(role: CAbiFunctionRole) -> &'static str {
 pub(super) fn render_args(args: &[CAbiBindingArg]) -> String {
     args.iter()
         .map(|argument| match &argument.default {
-            Some(default) => format!(
-                "{}: {} = {}",
-                argument.name,
-                crate::terlan_hir::public_type_text(&argument.ty),
-                default
-            ),
-            None => format!(
-                "{}: {}",
-                argument.name,
-                crate::terlan_hir::public_type_text(&argument.ty)
-            ),
+            Some(default) => format!("{}: {} = {}", argument.name, argument.ty, default),
+            None => format!("{}: {}", argument.name, argument.ty),
         })
         .collect::<Vec<_>>()
         .join(", ")

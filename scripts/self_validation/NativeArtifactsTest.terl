@@ -682,7 +682,10 @@ compile_artifact(
                     comparable_count,
                     add_diagnostic(
                         diagnostics,
-                        String.append(String.append(name, ": rustc failed\n"), reason.message),
+                        String.append(
+                            String.append(name, ": rustc failed\n"),
+                            reason.message,
+                        ),
                     ),
                 );
             Ok(result) ->

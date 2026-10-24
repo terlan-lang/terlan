@@ -1,0 +1,6 @@
+# component	role	mode	path	rationale
+terlc0	recovery-compiler	recovery-only	crates/terlan	Reconstructs the first Terlan compiler generation only after recovery is explicitly selected.
+terlan-vm	execution-runtime	normal-and-recovery	crates/terlan/src/vm	Owns bytecode execution scheduling and managed runtime enforcement.
+cranelift-adapter	native-codegen	normal-and-recovery	crates/terlan/src/compiler/native_ir/cranelift	Lowers admitted typed Core operations to pinned Cranelift interfaces.
+runtime-abi	native-boundary	normal-and-recovery	crates/terlan-runtime-abi	Defines the checked ABI boundary between generated code native libraries and the VM.
+dependency-lock	dependency-identity	normal-and-recovery	Cargo.lock	Pins transitive Rust and Cranelift dependency identities used by recovery and runtime components.

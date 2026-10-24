@@ -1,0 +1,28 @@
+/** Artifact-derived lint parity contracts. */
+module self_host.SelfHostLintParityToolTest.
+
+import std.core.String.
+import self_host.SelfHostLintParityTool.
+
+@test
+pub separates_diagnostic_content_from_order_parity(): Bool ->
+    let value = SelfHostLintParityTool.evidence(
+        "b\na\n",
+        "a\nb\n",
+        "fixed\n",
+        "fixed\n",
+        "corpus\n",
+        "corpus\n",
+        "complete\n",
+    );
+    String.contains(value, "native_parity\tpass\n")
+        and String.contains(value, "diagnostic_order_parity\tfail\n")
+        and String.contains(value, "fix_parity\tpass\n")
+        and String.contains(value, "corpus_parity\tpass\n")
+        and String.contains(value, "bootstrap_compiled\tpass\n").
+
+@test
+pub counts_duplicate_diagnostics_and_requires_exact_bootstrap_marker(): Bool ->
+    not SelfHostLintParityTool.diagnostic_multiset_equal("a\na\n", "a\n")
+        and SelfHostLintParityTool.bootstrap_complete("complete\n")
+        and not SelfHostLintParityTool.bootstrap_complete("ready\n").

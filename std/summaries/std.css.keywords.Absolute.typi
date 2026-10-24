@@ -1,0 +1,6 @@
+//! Shared CSS keyword absolute. Generated; do not edit.
+
+module std.css.keywords.Absolute.
+
+pub type Absolute =
+    Atom["absolute"].

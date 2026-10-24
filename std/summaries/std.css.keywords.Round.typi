@@ -1,0 +1,6 @@
+//! Shared CSS keyword round. Generated; do not edit.
+
+module std.css.keywords.Round.
+
+pub type Round =
+    Atom["round"].

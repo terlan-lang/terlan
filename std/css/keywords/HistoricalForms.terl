@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword historical-forms. Generated; do not edit.
+ */
+module std.css.keywords.HistoricalForms.
+
+pub type HistoricalForms = Atom["historical-forms"].

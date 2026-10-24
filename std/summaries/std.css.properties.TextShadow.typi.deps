@@ -1,9 +1,10 @@
 module=std.css.properties.TextShadow
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7421827297726492058
-interface_hash=15136974788805444650
-interface_doc_hash=15624991984286723955
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=13757583779309123660
+interface_hash=8403391256040857399
+interface_doc_hash=15641541482118740250
+deps=2
+std.css.Values=330909209718432688
+std.css.keywords.None=3400229744369726074

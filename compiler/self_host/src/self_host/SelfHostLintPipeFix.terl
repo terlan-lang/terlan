@@ -1,0 +1,152 @@
+/** Span-authenticated diagnostics and source fixes for TL1002 candidates. */
+module self_host.SelfHostLintPipeFix.
+
+import self_host.SelfHostLintPipe.{PipeCandidate}.
+import self_host.SelfHostLintPipe.
+import std.core.String.
+
+pub struct PipeDiagnostic {
+    path: String,
+    line: Int,
+    column: Int,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+    fix_available: Bool,
+}.
+
+pub constructor PipeDiagnostic {
+    (path: String, line: Int, column: Int, rule_id: String, rule_name: String, severity: String, message: String, fix_available: Bool): PipeDiagnostic ->
+        PipeDiagnostic {
+            path: path,
+            line: line,
+            column: column,
+            rule_id: rule_id,
+            rule_name: rule_name,
+            severity: severity,
+            message: message,
+            fix_available: fix_available,
+        }
+}.
+
+struct SourcePosition {
+    line: Int,
+    column: Int,
+}.
+
+constructor SourcePosition {
+    (line: Int, column: Int): SourcePosition ->
+        SourcePosition { line: line, column: column }
+}.
+
+position_at(source: String, target: Int, offset: Int, line: Int, column: Int): SourcePosition ->
+    if {
+        offset >= target or offset >= String.byte_size(source) -> SourcePosition(line, column);
+        String.utf8_byte_at(source, offset) == 10 ->
+            position_at(source, target, offset + 1, line + 1, 1);
+        true -> position_at(source, target, offset + 1, line, column + 1)
+    }.
+
+admitted(source: String, candidate: PipeCandidate): Bool ->
+    let length = String.byte_size(candidate.original);
+    candidate.valid
+        and candidate.start_byte >= 0
+        and candidate.start_byte + length <= String.byte_size(source)
+        and String.utf8_slice(source, candidate.start_byte, length) == candidate.original.
+
+diagnostics_at(
+    source: String,
+    path: String,
+    candidates: List[PipeCandidate],
+): List[PipeDiagnostic] ->
+    case candidates {
+        [] -> [];
+        [candidate | rest] ->
+            let remaining = diagnostics_at(source, path, rest);
+            if {
+                not admitted(source, candidate) -> remaining;
+                true ->
+                    let position = position_at(source, candidate.start_byte, 0, 1, 1);
+                    [PipeDiagnostic(
+                        path,
+                        position.line,
+                        position.column,
+                        "TL1002",
+                        "format-boundary.pipe-fix",
+                        "suggestion",
+                        "prefer pipe form for a safe nested first-argument call chain",
+                        true,
+                    ) | remaining]
+            }
+    }.
+
+/** Emits exact pipe suggestions only for source-authenticated candidate spans. */
+@pure
+pub diagnostics(
+    source: String,
+    path: String,
+    candidates: List[PipeCandidate],
+): List[PipeDiagnostic] -> diagnostics_at(source, path, candidates).
+
+line_start_at(source: String, offset: Int): Int ->
+    if {
+        offset <= 0 -> 0;
+        String.utf8_byte_at(source, offset - 1) == 10 -> offset;
+        true -> line_start_at(source, offset - 1)
+    }.
+
+indent_at(source: String, offset: Int): String ->
+    let start = line_start_at(source, offset);
+    let prefix = String.utf8_slice(source, start, offset - start);
+    if { String.trim(prefix) == "" -> prefix; true -> "" }.
+
+insert_descending(
+    candidate: PipeCandidate,
+    values: List[PipeCandidate],
+): List[PipeCandidate] ->
+    case values {
+        [] -> [candidate];
+        [value | rest] ->
+            if {
+                candidate.start_byte > value.start_byte -> [candidate | [value | rest]];
+                true -> [value | insert_descending(candidate, rest)]
+            }
+    }.
+
+sort_descending_at(
+    values: List[PipeCandidate],
+    output: List[PipeCandidate],
+): List[PipeCandidate] ->
+    case values {
+        [] -> output;
+        [value | rest] -> sort_descending_at(rest, insert_descending(value, output))
+    }.
+
+replace(source: String, candidate: PipeCandidate): String ->
+    let length = String.byte_size(candidate.original);
+    let suffix_start = candidate.start_byte + length;
+    String.concat([
+        String.utf8_slice(source, 0, candidate.start_byte),
+        SelfHostLintPipe.replacement(candidate, indent_at(source, candidate.start_byte)),
+        String.utf8_slice(
+            source,
+            suffix_start,
+            String.byte_size(source) - suffix_start,
+        ),
+    ]).
+
+apply_at(source: String, candidates: List[PipeCandidate]): String ->
+    case candidates {
+        [] -> source;
+        [candidate | rest] ->
+            if {
+                admitted(source, candidate) -> apply_at(replace(source, candidate), rest);
+                true -> apply_at(source, rest)
+            }
+    }.
+
+/** Applies authenticated fixes from greatest source offset to least. */
+@pure
+pub apply(source: String, candidates: List[PipeCandidate]): String ->
+    apply_at(source, sort_descending_at(candidates, [])).

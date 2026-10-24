@@ -1,78 +1,33 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-color
+ * The `caret-color` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the color
+ * of the insertion caret, sometimes referred to as the text input cursor. This is the visible
+ * marker appearing at the insertion point where the next character typed will be added or where the
+ * next character deleted will be removed.
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: Generally resolves to
+ * [`currentColor`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/color_value#currentcolor_keyword),
+ * the `color` of the text that will be modified.
+ *
  * Grammar: auto | <color> [auto | <color>]?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-color
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/caret-color
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.CaretColor.
 
-import std.css.Values.
+import std.css.keywords.Auto.
 
-import type std.core.Option.
-import type std.css.Values.{Color}.
+import type std.css.Values.{Color, CurrentColor, Inherit, Initial, Revert, RevertLayer, Transparent, Unset}.
 
-/**
- * A nominal, specification-constrained caret-color value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    caret_color: Value,
+    caret_color: Auto | Color | Transparent | CurrentColor | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    caret_color: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "caret-color", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "caret-color", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "caret-color", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "caret-color", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "caret-color", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "caret-color", css: "unset"}).
-
-/**
- * Constructs a caret-color value from a typed color.
- */
-pub color(value: Color): Value ->
-    Value(Token {property: "caret-color", css: std.css.Values.color_css(value)}).

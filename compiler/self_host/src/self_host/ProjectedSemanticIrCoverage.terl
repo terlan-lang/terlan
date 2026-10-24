@@ -1,0 +1,104 @@
+/** Proves that semantic IR planning did not silently omit callable bodies. */
+module self_host.ProjectedSemanticIrCoverage.
+
+import std.core.String.
+
+import self_host.BackendSyntax.{BackendDeclaration}.
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.SelfHostSemanticIrSyntax.{SemanticFunctionPlan, SemanticModulePlan}.
+import self_host.TypedModuleSyntax.{FunctionPayload, MethodPayload}.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Int, String}.
+import self_host.ProjectedExpressionSupportIrPlan.
+
+
+@pure
+symbol_base_at(value: String, index: Int): String ->
+    if {
+        index == value.byte_size() -> value;
+        value.utf8_byte_at(index) == 91 -> value.utf8_slice(0, index);
+        true -> symbol_base_at(value, index + 1)
+    }.
+
+@pure
+symbol_base(value: String): String -> symbol_base_at(value, 0).
+
+@pure
+declaration_arity(value: BackendDeclaration): Int ->
+    case value.payload {
+        FunctionPayload(function) -> List.length(function.typed_parameters);
+        MethodPayload(method) -> 1 + List.length(method.parameters);
+        _ -> -1
+    }.
+
+@pure
+contains_plan(
+    values: List[SemanticFunctionPlan],
+    module_name: String,
+    name: String,
+    arity: Int,
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            (value.module_name == module_name and value.name == name and value.arity == arity)
+                or contains_plan(rest, module_name, name, arity)
+    }.
+
+@pure
+missing_message(module_name: String, value: BackendDeclaration, arity: Int): String ->
+    String.concat([
+        "missing-semantic-function-plan function=",
+        module_name,
+        ".",
+        symbol_base(value.symbol_name),
+        "/",
+        Int.to_string(arity),
+    ]).
+
+declaration_diagnostics(
+    module_name: String,
+    value: BackendDeclaration,
+    bodies: List[ProjectedBody],
+    functions: List[SemanticFunctionPlan],
+): List[String] ->
+    let arity = declaration_arity(value);
+    if {
+        arity < 0 -> List.new[String]();
+        true -> case ProjectedExpressionSupportIrPlan.body_for(value.symbol_name, bodies) {
+            None -> List.new[String]();
+            Some(_body) -> if {
+                contains_plan(functions, module_name, symbol_base(value.symbol_name), arity) -> List.new[String]();
+                true -> [missing_message(module_name, value, arity)]
+            }
+        }
+    }.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+declarations_diagnostics(
+    module_name: String,
+    values: List[BackendDeclaration],
+    bodies: List[ProjectedBody],
+    functions: List[SemanticFunctionPlan],
+): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(
+            declaration_diagnostics(module_name, value, bodies, functions),
+            declarations_diagnostics(module_name, rest, bodies, functions),
+        )
+    }.
+
+/** Returns stable diagnostics for every omitted top-level callable body. */
+pub check(
+    module_name: String,
+    declarations: List[BackendDeclaration],
+    bodies: List[ProjectedBody],
+    plan: SemanticModulePlan,
+): List[String] ->
+    declarations_diagnostics(module_name, declarations, bodies, plan.functions).

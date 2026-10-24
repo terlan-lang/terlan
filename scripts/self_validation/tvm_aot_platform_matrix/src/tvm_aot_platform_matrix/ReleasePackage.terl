@@ -79,7 +79,9 @@ run_command(root: String, program: String, arguments: List[String]): Option[Outp
                 output.status == 0 -> Some(output);
                 true -> output_failure(
                     "command",
-                    String.concat([program, " failed:\n", output.stdout, output.stderr]),
+                    String.concat(
+                        [program, " failed:\n", output.stdout, output.stderr],
+                    ),
                 )
             }
     }.
@@ -176,7 +178,11 @@ native_metadata_valid(metadata: Json, expected_target: String): Bool ->
     case metadata.required_fields(["target_triple"], ["native_debug_record_count"], ["continuation_ids"]) {
         Err(_reason) -> failure("self_test", "native self-test metadata is incomplete");
         Ok(projection) ->
-            case {projection.strings, projection.ints, projection.array_lengths} {
+            case {
+                projection.strings,
+                projection.ints,
+                projection.array_lengths,
+            } {
                 {[target], [debug_count], [continuation_count]} ->
                     if {
                         target != expected_target -> failure("self_test", "native self-test target drifted");
@@ -270,7 +276,10 @@ metadata_entry(path: String): Payload ->
 generated_entries(metadata: GeneratedMetadata): List[Payload] ->
     [
         ReleasePayload.payload(metadata.checksums, "SHA256SUMS"),
-        ReleasePayload.payload(metadata.install_manifest, "terlan-install-manifest.json"),
+        ReleasePayload.payload(
+            metadata.install_manifest,
+            "terlan-install-manifest.json",
+        ),
     ].
 
 remove_file(path: String): Bool ->
@@ -335,7 +344,13 @@ archive_staging(root: String, platform: ReleasePlatform, entries: List[Payload])
     case Directory.create_temporary("terlan-release-artifact.") {
         Err(_reason) -> archive_failure("archive", "cannot create release staging directory");
         Ok(staging) ->
-            create_staged_archive(staging, artifact, checksum, platform.artifact, entries)
+            create_staged_archive(
+                staging,
+                artifact,
+                checksum,
+                platform.artifact,
+                entries,
+            )
     }.
 
 finish_package(

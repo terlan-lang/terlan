@@ -1,10 +1,10 @@
 module=std.css.properties.MarginTop
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6730806812842835463
-interface_hash=17105304579558583364
-interface_doc_hash=8435896152320339838
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=14575511885095081321
+interface_hash=9230626001997012856
+interface_doc_hash=16416137334581277929
 deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722

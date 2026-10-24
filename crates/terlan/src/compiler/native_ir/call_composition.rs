@@ -1,6 +1,7 @@
 //! Admission and evaluation-context extraction for bounded suspending calls.
 
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use crate::terlan_syntax::span::Span;
 use crate::terlan_typeck::{CoreExpr, CoreLetBinding, CorePattern, CoreType};
@@ -54,7 +55,7 @@ pub(super) fn suspending_call_count(
                     .map(|arg| suspending_call_count(arg, suspending))
                     .sum::<usize>()
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => items
             .iter()
             .map(|item| suspending_call_count(item, suspending))
             .sum(),
@@ -182,9 +183,9 @@ pub(super) fn suspending_call_count(
 
 #[derive(Clone, Eq, PartialEq)]
 pub(super) struct ComposedCallProfile {
-    pub(super) continuations: Vec<ComposedContinuationProfile>,
-    pub(super) entries: Vec<u64>,
-    pub(super) tail_entries: HashMap<usize, Vec<(u64, usize)>>,
+    pub(super) continuations: Arc<Vec<ComposedContinuationProfile>>,
+    pub(super) entries: Arc<Vec<u64>>,
+    pub(super) tail_entries: Arc<HashMap<usize, Vec<(u64, usize)>>>,
 }
 
 /// The bounded ABI metadata needed to call a shared continuation body.
@@ -359,7 +360,7 @@ fn suspending_calls_are_composable(
                     .iter()
                     .all(|arg| suspending_calls_are_composable(arg, suspending, composable))
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => items
             .iter()
             .all(|item| suspending_calls_are_composable(item, suspending, composable)),
         CoreExpr::ListCons { head, tail }
@@ -463,9 +464,9 @@ fn suspending_calls_are_composable(
 impl ComposedCallProfile {
     pub(super) fn pure() -> Self {
         Self {
-            continuations: Vec::new(),
-            entries: Vec::new(),
-            tail_entries: HashMap::new(),
+            continuations: Arc::new(Vec::new()),
+            entries: Arc::new(Vec::new()),
+            tail_entries: Arc::new(HashMap::new()),
         }
     }
 
@@ -536,9 +537,9 @@ impl ComposedCallProfile {
         };
         continuations.push(completion);
         Self {
-            entries: reductions.iter().map(|(id, _)| *id).collect(),
-            continuations,
-            tail_entries: HashMap::new(),
+            entries: Arc::new(reductions.iter().map(|(id, _)| *id).collect()),
+            continuations: Arc::new(continuations),
+            tail_entries: Arc::new(HashMap::new()),
         }
     }
 
@@ -609,7 +610,7 @@ impl ComposedCallProfile {
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             tail_entries.insert(target, entries);
-            for (nested_target, entries) in &profile.tail_entries {
+            for (nested_target, entries) in profile.tail_entries.iter() {
                 tail_entries
                     .entry(*nested_target)
                     .or_insert_with(|| entries.clone());
@@ -619,7 +620,7 @@ impl ComposedCallProfile {
             // caller profile needs only the outward entry identities and
             // capture shapes; copying the complete graph here makes profile
             // width grow transitively with every call edge.
-            for entry in &profile.entries {
+            for entry in profile.entries.iter() {
                 let continuation = by_id.get(entry).copied().ok_or_else(|| {
                     format!("tail target {target} advertises absent continuation {entry}")
                 })?;
@@ -792,9 +793,9 @@ impl ComposedCallProfile {
         entries.sort_unstable();
         entries.dedup();
         Ok(Self {
-            continuations: ordered,
-            entries,
-            tail_entries,
+            continuations: Arc::new(ordered),
+            entries: Arc::new(entries),
+            tail_entries: Arc::new(tail_entries),
         })
     }
 }

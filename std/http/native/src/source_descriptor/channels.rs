@@ -9,7 +9,7 @@ pub fn sse_endpoint<V: DescriptorValue, C>(
     value: &V,
     mut callback: impl FnMut(&V, usize) -> Result<C>,
 ) -> Result<SseEndpointPlan<C>> {
-    let [pending, bytes, keep_alive, callbacks] = record(
+    let [pending, bytes, keep_alive, callbacks, producers, headers] = record(
         value,
         "Endpoint",
         [
@@ -17,9 +17,21 @@ pub fn sse_endpoint<V: DescriptorValue, C>(
             "max_event_bytes",
             "keep_alive_ms",
             "callbacks",
+            "producers",
+            "response_headers",
         ],
     )?;
     let mut plan = SseEndpointPlan::new(positive(pending)?, positive(bytes)?).map_err(error)?;
+    let headers = list(headers)?
+        .iter()
+        .map(|header| match header.descriptor_view() {
+            DescriptorView::Tuple([name, value]) => Ok((text(name)?, text(value)?)),
+            _ => Err(error("malformed SSE response header")),
+        })
+        .collect::<Result<_>>()?;
+    plan = plan
+        .with_response_headers(headers)
+        .map_err(|cause| error(cause.message()))?;
     match keep_alive.descriptor_view() {
         DescriptorView::Atom("none") => {}
         DescriptorView::Record("None", []) => {}
@@ -34,7 +46,7 @@ pub fn sse_endpoint<V: DescriptorValue, C>(
     if callbacks.len() > 1 {
         return Err(error("SSE callbacks already configured"));
     }
-    if let Some(value) = callbacks.first() {
+    for value in callbacks {
         let [open, event_ready, keep_alive, drain, cancellation] = record(
             value,
             "Callbacks",
@@ -49,6 +61,10 @@ pub fn sse_endpoint<V: DescriptorValue, C>(
                 cancellation: callback(cancellation, 1)?,
             })
             .map_err(error)?;
+    }
+    for value in list(producers)? {
+        let [next] = record(value, "Producer", ["next"])?;
+        plan = plan.with_producer(callback(next, 0)?).map_err(error)?;
     }
     Ok(plan)
 }

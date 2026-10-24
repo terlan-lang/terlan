@@ -1,0 +1,58 @@
+/** Stale-safe filesystem publication adapter for the self-hosted formatter. */
+module self_host.SelfHostFormatterTool.
+
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, String}.
+import std.io.File.
+
+import self_host.SelfHostFormatter.
+
+
+write_failure(diagnostics_path: String, marker_path: String, message: String): Bool ->
+    case File.write_text(diagnostics_path, message + "\n") {
+        Err(_) -> false;
+        Ok(_) -> case File.write_text(marker_path, "invalid\n") {
+            Err(_) -> false;
+            Ok(_) -> false
+        }
+    }.
+
+write_success(
+    formatted_path: String,
+    diagnostics_path: String,
+    marker_path: String,
+    source: String,
+): Bool ->
+    case File.write_text(formatted_path, source) {
+        Err(_) -> write_failure(diagnostics_path, marker_path, "cannot write formatted source");
+        Ok(_) -> case File.write_text(diagnostics_path, "") {
+            Err(_) -> false;
+            Ok(_) -> case File.write_text(marker_path, "complete\n") {
+                Err(_) -> false;
+                Ok(_) -> true
+            }
+        }
+    }.
+
+/** Formats one module behind a marker written only after all output is durable. */
+pub write(
+    source_path: String,
+    formatted_path: String,
+    diagnostics_path: String,
+    marker_path: String,
+): Bool ->
+    let _removed = File.delete(marker_path);
+    case File.read_text(source_path) {
+        Err(_) -> write_failure(diagnostics_path, marker_path, "cannot read formatter source");
+        Ok(source) ->
+            let result = SelfHostFormatter.format(source);
+            if {
+                result.valid -> write_success(
+                    formatted_path,
+                    diagnostics_path,
+                    marker_path,
+                    result.source,
+                );
+                true -> write_failure(diagnostics_path, marker_path, result.message)
+            }
+    }.

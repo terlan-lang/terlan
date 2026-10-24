@@ -225,9 +225,9 @@
       "source": "std.js.OmitThisParameter"
     },
     {
-      "detail": "Callback { params: [], return_type: Named(\"R\") }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "CallableFunction.bind return"
+      "detail": "generic and variadic callbacks require an explicit adapter",
+      "reason": "ts_bindgen.unsupported_callback_parameters",
+      "source": "CallableFunction.bind"
     },
     {
       "detail": "Any",
@@ -485,8 +485,8 @@
       "source": "std.js.URIError"
     },
     {
-      "detail": "Callback { params: [Primitive(String), Any], return_type: Any }",
-      "reason": "ts_bindgen.unsupported_callback_type",
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
       "source": "JSON.parse parameter reviver"
     },
     {
@@ -593,16 +593,6 @@
       "detail": "top-level variables and constructors are not emitted yet",
       "reason": "ts_bindgen.unsupported_top_level_variable",
       "source": "std.js.Array"
-    },
-    {
-      "detail": "Callback { params: [], return_type: Named(\"T\") }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "TypedPropertyDescriptor.get"
-    },
-    {
-      "detail": "Callback { params: [Named(\"T\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "TypedPropertyDescriptor.set"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -880,9 +870,9 @@
       "source": "Int8ArrayConstructor.construct_signature#5"
     },
     {
-      "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Int8ArrayConstructor.from parameter mapfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Int8ArrayConstructor.from parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -1010,9 +1000,9 @@
       "source": "Uint8ArrayConstructor.construct_signature#5"
     },
     {
-      "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Uint8ArrayConstructor.from parameter mapfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Uint8ArrayConstructor.from parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -1140,9 +1130,9 @@
       "source": "Uint8ClampedArrayConstructor.construct_signature#5"
     },
     {
-      "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Uint8ClampedArrayConstructor.from parameter mapfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Uint8ClampedArrayConstructor.from parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -1270,9 +1260,9 @@
       "source": "Int16ArrayConstructor.construct_signature#5"
     },
     {
-      "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Int16ArrayConstructor.from parameter mapfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Int16ArrayConstructor.from parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -1400,9 +1390,9 @@
       "source": "Uint16ArrayConstructor.construct_signature#5"
     },
     {
-      "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Uint16ArrayConstructor.from parameter mapfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Uint16ArrayConstructor.from parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -1530,9 +1520,9 @@
       "source": "Int32ArrayConstructor.construct_signature#5"
     },
     {
-      "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Int32ArrayConstructor.from parameter mapfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Int32ArrayConstructor.from parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -1660,9 +1650,9 @@
       "source": "Uint32ArrayConstructor.construct_signature#5"
     },
     {
-      "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Uint32ArrayConstructor.from parameter mapfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Uint32ArrayConstructor.from parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -1790,9 +1780,9 @@
       "source": "Float32ArrayConstructor.construct_signature#5"
     },
     {
-      "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Float32ArrayConstructor.from parameter mapfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Float32ArrayConstructor.from parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -1920,9 +1910,9 @@
       "source": "Float64ArrayConstructor.construct_signature#5"
     },
     {
-      "detail": "Callback { params: [Named(\"T\"), Primitive(Number)], return_type: Primitive(Number) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Float64ArrayConstructor.from parameter mapfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Float64ArrayConstructor.from parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -2120,9 +2110,9 @@
       "source": "Number#2"
     },
     {
-      "detail": "Callback { params: [Named(\"V\"), Named(\"K\"), Generic { name: \"Map\", args: [Named(\"K\"), Named(\"V\")] }], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Map.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Map.forEach parameter thisArg"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -2150,9 +2140,9 @@
       "source": "std.js.Map"
     },
     {
-      "detail": "Callback { params: [Named(\"V\"), Named(\"K\"), Generic { name: \"ReadonlyMap\", args: [Named(\"K\"), Named(\"V\")] }], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "ReadonlyMap.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "ReadonlyMap.forEach parameter thisArg"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -2180,9 +2170,9 @@
       "source": "Set.add"
     },
     {
-      "detail": "Callback { params: [Named(\"T\"), Named(\"T\"), Generic { name: \"Set\", args: [Named(\"T\")] }], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Set.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Set.forEach parameter thisArg"
     },
     {
       "detail": "only named properties and methods are supported",
@@ -2200,9 +2190,9 @@
       "source": "std.js.Set"
     },
     {
-      "detail": "Callback { params: [Named(\"T\"), Named(\"T\"), Generic { name: \"ReadonlySet\", args: [Named(\"T\")] }], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "ReadonlySet.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "ReadonlySet.forEach parameter thisArg"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -2325,13 +2315,8 @@
       "source": "Transformer.writableType"
     },
     {
-      "detail": "Callback { params: [Named(\"ReadableByteStreamController\")], return_type: Union([Primitive(Void), Generic { name: \"PromiseLike\", args: [Primitive(Void)] }]) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "UnderlyingByteSource.pull"
-    },
-    {
-      "detail": "Callback { params: [Named(\"ReadableByteStreamController\")], return_type: Any }",
-      "reason": "ts_bindgen.unsupported_callback_type",
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
       "source": "UnderlyingByteSource.start"
     },
     {
@@ -2340,13 +2325,8 @@
       "source": "UnderlyingByteSource.type"
     },
     {
-      "detail": "Callback { params: [Generic { name: \"ReadableStreamDefaultController\", args: [Named(\"R\")] }], return_type: Union([Primitive(Void), Generic { name: \"PromiseLike\", args: [Primitive(Void)] }]) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "UnderlyingDefaultSource.pull"
-    },
-    {
-      "detail": "Callback { params: [Generic { name: \"ReadableStreamDefaultController\", args: [Named(\"R\")] }], return_type: Any }",
-      "reason": "ts_bindgen.unsupported_callback_type",
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
       "source": "UnderlyingDefaultSource.start"
     },
     {
@@ -2600,9 +2580,9 @@
       "source": "std.js.Dom.AudioParam"
     },
     {
-      "detail": "Callback { params: [Named(\"AudioParam\"), Primitive(String), Named(\"AudioParamMap\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "AudioParamMap.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "AudioParamMap.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -2955,9 +2935,9 @@
       "source": "std.js.Dom.CSSNestedDeclarations"
     },
     {
-      "detail": "Callback { params: [Named(\"CSSNumericValue\"), Primitive(Number), Named(\"CSSNumericArray\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "CSSNumericArray.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "CSSNumericArray.forEach parameter thisArg"
     },
     {
       "detail": "only named properties and methods are supported",
@@ -3145,9 +3125,9 @@
       "source": "std.js.Dom.CSSTransformComponent"
     },
     {
-      "detail": "Callback { params: [Named(\"CSSTransformComponent\"), Primitive(Number), Named(\"CSSTransformValue\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "CSSTransformValue.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "CSSTransformValue.forEach parameter thisArg"
     },
     {
       "detail": "only named properties and methods are supported",
@@ -3185,9 +3165,9 @@
       "source": "std.js.Dom.CSSUnitValue"
     },
     {
-      "detail": "Callback { params: [Named(\"CSSUnparsedSegment\"), Primitive(Number), Named(\"CSSUnparsedValue\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "CSSUnparsedValue.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "CSSUnparsedValue.forEach parameter thisArg"
     },
     {
       "detail": "only named properties and methods are supported",
@@ -3410,9 +3390,9 @@
       "source": "std.js.Dom.CustomEvent"
     },
     {
-      "detail": "Callback { params: [Primitive(String), Primitive(String), Named(\"CustomStateSet\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "CustomStateSet.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "CustomStateSet.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -3670,9 +3650,9 @@
       "source": "std.js.Dom.DOMStringMap"
     },
     {
-      "detail": "Callback { params: [Primitive(String), Primitive(Number), Named(\"DOMTokenList\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "DOMTokenList.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "DOMTokenList.forEach parameter thisArg"
     },
     {
       "detail": "only named properties and methods are supported",
@@ -4515,9 +4495,9 @@
       "source": "std.js.Dom.Event"
     },
     {
-      "detail": "Callback { params: [Primitive(Number), Primitive(String), Named(\"EventCounts\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "EventCounts.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "EventCounts.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -4565,8 +4545,8 @@
       "source": "EventSource.addEventListener"
     },
     {
-      "detail": "Callback { params: [Named(\"MessageEvent\")], return_type: Any }",
-      "reason": "ts_bindgen.unsupported_callback_type",
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
       "source": "EventSource.addEventListener parameter listener"
     },
     {
@@ -4575,8 +4555,8 @@
       "source": "EventSource.removeEventListener"
     },
     {
-      "detail": "Callback { params: [Named(\"MessageEvent\")], return_type: Any }",
-      "reason": "ts_bindgen.unsupported_callback_type",
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
       "source": "EventSource.removeEventListener parameter listener"
     },
     {
@@ -4755,9 +4735,9 @@
       "source": "FontFaceSet.onloadingerror"
     },
     {
-      "detail": "Callback { params: [Named(\"FontFace\"), Named(\"FontFace\"), Named(\"FontFaceSet\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "FontFaceSet.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "FontFaceSet.forEach parameter thisArg"
     },
     {
       "detail": "TypeScript type shape is outside the first DOM binding slice",
@@ -4780,9 +4760,9 @@
       "source": "std.js.Dom.FontFaceSetLoadEvent"
     },
     {
-      "detail": "Callback { params: [Named(\"FormDataEntryValue\"), Primitive(String), Named(\"FormData\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "FormData.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "FormData.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -6755,9 +6735,9 @@
       "source": "std.js.Dom.HashChangeEvent"
     },
     {
-      "detail": "Callback { params: [Primitive(String), Primitive(String), Named(\"Headers\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Headers.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Headers.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -6765,9 +6745,9 @@
       "source": "std.js.Dom.Headers"
     },
     {
-      "detail": "Callback { params: [Named(\"AbstractRange\"), Named(\"AbstractRange\"), Named(\"Highlight\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "Highlight.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "Highlight.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -6775,9 +6755,9 @@
       "source": "std.js.Dom.Highlight"
     },
     {
-      "detail": "Callback { params: [Named(\"Highlight\"), Primitive(String), Named(\"HighlightRegistry\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "HighlightRegistry.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "HighlightRegistry.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -7205,9 +7185,9 @@
       "source": "std.js.Dom.MIDIInput"
     },
     {
-      "detail": "Callback { params: [Named(\"MIDIInput\"), Primitive(String), Named(\"MIDIInputMap\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "MIDIInputMap.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "MIDIInputMap.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -7235,9 +7215,9 @@
       "source": "std.js.Dom.MIDIOutput"
     },
     {
-      "detail": "Callback { params: [Named(\"MIDIOutput\"), Primitive(String), Named(\"MIDIOutputMap\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "MIDIOutputMap.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "MIDIOutputMap.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -7380,9 +7360,9 @@
       "source": "std.js.Dom.MediaKeySession"
     },
     {
-      "detail": "Callback { params: [Named(\"MediaKeyStatus\"), Named(\"BufferSource\"), Named(\"MediaKeyStatusMap\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "MediaKeyStatusMap.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "MediaKeyStatusMap.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -7850,9 +7830,9 @@
       "source": "std.js.Dom.NodeIterator"
     },
     {
-      "detail": "Callback { params: [Named(\"Node\"), Primitive(Number), Named(\"NodeList\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "NodeList.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "NodeList.forEach parameter thisArg"
     },
     {
       "detail": "only named properties and methods are supported",
@@ -7865,9 +7845,9 @@
       "source": "std.js.Dom.NodeList"
     },
     {
-      "detail": "Callback { params: [Named(\"TNode\"), Primitive(Number), Generic { name: \"NodeListOf\", args: [Named(\"TNode\")] }], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "NodeListOf.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "NodeListOf.forEach parameter thisArg"
     },
     {
       "detail": "only named properties and methods are supported",
@@ -8760,8 +8740,8 @@
       "source": "std.js.Dom.RTCSessionDescription"
     },
     {
-      "detail": "Callback { params: [Any, Primitive(String), Named(\"RTCStatsReport\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
       "source": "RTCStatsReport.forEach parameter callbackfn"
     },
     {
@@ -11105,9 +11085,9 @@
       "source": "std.js.Dom.StylePropertyMap"
     },
     {
-      "detail": "Callback { params: [Array(Named(\"CSSStyleValue\")), Primitive(String), Named(\"StylePropertyMapReadOnly\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "StylePropertyMapReadOnly.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "StylePropertyMapReadOnly.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -11370,9 +11350,9 @@
       "source": "std.js.Dom.webkitURL"
     },
     {
-      "detail": "Callback { params: [Primitive(String), Primitive(String), Named(\"URLSearchParams\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "URLSearchParams.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "URLSearchParams.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -11470,9 +11450,9 @@
       "source": "std.js.Dom.ViewTransition"
     },
     {
-      "detail": "Callback { params: [Primitive(String), Primitive(String), Named(\"ViewTransitionTypeSet\")], return_type: Primitive(Void) }",
-      "reason": "ts_bindgen.unsupported_callback_type",
-      "source": "ViewTransitionTypeSet.forEach parameter callbackfn"
+      "detail": "Any",
+      "reason": "ts_bindgen.unsupported_any",
+      "source": "ViewTransitionTypeSet.forEach parameter thisArg"
     },
     {
       "detail": "top-level variables and constructors are not emitted yet",
@@ -18692,17 +18672,17 @@
     {
       "detail": "member bind references unavailable type OmitThisParameter",
       "reason": "ts_bindgen.unresolved_type_reference",
-      "source": "CallableFunction.bind"
+      "source": "CallableFunction.bind#2"
     },
     {
       "detail": "member bind references unavailable type T",
       "reason": "ts_bindgen.unresolved_type_reference",
-      "source": "CallableFunction.bind#2"
+      "source": "CallableFunction.bind#3"
     },
     {
       "detail": "member bind references unavailable type ThisParameterType",
       "reason": "ts_bindgen.unresolved_type_reference",
-      "source": "CallableFunction.bind#3"
+      "source": "CallableFunction.bind#4"
     },
     {
       "detail": "member apply references unavailable type T",

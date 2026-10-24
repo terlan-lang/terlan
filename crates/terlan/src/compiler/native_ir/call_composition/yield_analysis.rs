@@ -14,7 +14,7 @@ pub(super) fn process_yield_count(expr: &CoreExpr) -> usize {
         CoreExpr::FunctionCall { callee, args } => {
             process_yield_count(callee) + args.iter().map(process_yield_count).sum::<usize>()
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items.iter().map(process_yield_count).sum()
         }
         CoreExpr::ListCons { head, tail }

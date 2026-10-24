@@ -1,0 +1,6 @@
+//! Shared CSS keyword span-x-start. Generated; do not edit.
+
+module std.css.keywords.SpanXStart.
+
+pub type SpanXStart =
+    Atom["span-x-start"].

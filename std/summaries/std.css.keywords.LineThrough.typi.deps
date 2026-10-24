@@ -1,0 +1,8 @@
+module=std.css.keywords.LineThrough
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=11434414759937477913
+interface_hash=8703939082437773162
+interface_doc_hash=11839834298801341605
+deps=0

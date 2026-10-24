@@ -7,12 +7,14 @@
  */
 module self_host.ProjectedInterfaceCatalog.
 
+import std.core.String.
+
 import std.collections.List.
 import std.core.{Bool, Int, String}.
 import std.core.Option.{None, Option, Some}.
-import std.core.Result.{Err, Ok}.
+import std.core.Result.{Err, Ok, Result}.
 import std.io.File.
-import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.ModuleInterfaceSyntax.{ExportedStructField, ExportedSymbol, ModuleInterface}.
 import self_host.Syntax.{
     AnnotationSchemaDeclaration,
     ConfigDeclaration,
@@ -39,9 +41,10 @@ import self_host.Syntax.{
 import self_host.CanonicalLexer.
 import self_host.Compiler.
 import self_host.CompilerPipeline.
-import self_host.ProjectedBackendCompile.
+import self_host.ProjectedCoreBackendCompile.
 import self_host.ProjectedFrontend.
 import self_host.SemanticSyntax.{SemanticDiagnostic}.
+import self_host.SelfHostCoreOptimizeArtifactTool.
 
 
 pub struct InterfaceCatalog {
@@ -174,8 +177,61 @@ rendered_return_type(value: Option[String]): String ->
     case value { Some(name) -> name; None -> "_" }.
 
 @pure
+rendered_parameter_types(values: List[Option[String]]): String ->
+    case values {
+        [] -> "";
+        [value] -> rendered_return_type(value);
+        [value | rest] -> String.concat([rendered_return_type(value), ";", rendered_parameter_types(rest)])
+    }.
+
+@pure
+rendered_type_parameters(values: List[String]): String -> String.join(values, ",").
+
+@pure
+render_record_fields(owner: String, values: List[ExportedStructField]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([
+            "field\t",
+            owner,
+            "\t",
+            value.name,
+            "\t",
+            rendered_return_type(value.type_name),
+            "\n",
+            render_record_fields(owner, rest),
+        ])
+    }.
+
+@pure
+rendered_owner(value: Option[String]): String ->
+    case value { Some(name) -> name; None -> "_" }.
+
+@pure
+parsed_owner(value: String): Option[String] ->
+    if { value == "_" -> None; true -> Some(value) }.
+
+@pure
+rendered_default(value: Bool): String -> if { value -> "true"; true -> "false" }.
+
+@pure
 parsed_return_type(value: String): Option[String] ->
     if { value == "_" -> None; true -> Some(value) }.
+
+@pure
+parsed_parameter_types_at(values: List[String]): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> [parsed_return_type(value) | parsed_parameter_types_at(rest)]
+    }.
+
+@pure
+parsed_parameter_types(value: String): List[Option[String]] ->
+    if { value == "" -> List.new[Option[String]](); true -> parsed_parameter_types_at(String.split(value, ";")) }.
+
+@pure
+parsed_type_parameters(value: String): List[String] ->
+    if { value == "" -> List.new[String](); true -> String.split(value, ",") }.
 
 @pure
 render_symbols(values: List[ExportedSymbol]): String ->
@@ -191,10 +247,21 @@ render_symbols(values: List[ExportedSymbol]): String ->
             "\t",
             rendered_return_type(value.return_type),
             "\t",
+            rendered_type_parameters(value.type_parameters),
+            "\t",
+            rendered_parameter_types(value.parameter_types),
+            "\t",
+            rendered_owner(value.owner),
+            "\t",
+            rendered_default(value.has_default),
+            "\t",
             Int.to_string(value.span.start_byte),
             "\t",
             Int.to_string(value.span.end_byte),
+            "\t",
+            rendered_default(value.receiver_mutable),
             "\n",
+            render_record_fields(value.name, value.record_fields),
             render_symbols(rest),
         ])
     }.
@@ -203,7 +270,7 @@ render_symbols(values: List[ExportedSymbol]): String ->
 @pure
 pub render(value: ModuleInterface): String ->
     String.concat([
-        "interface\tterlan.self-host.interface-catalog/v2\t",
+        "interface\tterlan.self-host.interface-catalog/v5\t",
         value.module_name,
         "\n",
         render_symbols(value.symbols),
@@ -219,7 +286,7 @@ interface_message(module_name: String): String ->
 
 @pure
 finished_interface(module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    InterfaceParse(module_name != "", ModuleInterface("terlan.self-host.interface/v2", module_name, reverse(symbols)), interface_message(module_name)).
+    InterfaceParse(module_name != "", ModuleInterface("terlan.self-host.interface/v5", module_name, reverse(symbols)), interface_message(module_name)).
 
 @pure
 header_name(name: String, tail: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
@@ -234,7 +301,20 @@ header_schema(schema: String, tail: List[String], rest: List[String], module_nam
 
 @pure
 header_schema_name(schema: String, name: String, remaining: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    if { schema == "terlan.self-host.interface-catalog/v2" -> header_name(name, remaining, rest, module_name, symbols); true -> invalid_interface("invalid interface catalog record") }.
+    if {
+        schema == "terlan.self-host.interface-catalog/v5"
+            or schema == "terlan.self-host.interface-catalog/v4"
+            or schema == "terlan.self-host.interface-catalog/v3" ->
+            header_name(name, remaining, rest, module_name, symbols);
+        true -> invalid_interface("invalid interface catalog record")
+    }.
+
+@pure
+receiver_tail_valid(values: List[String]): Bool ->
+    values == [] or values == ["true"] or values == ["false"].
+
+@pure
+parsed_receiver_mutable(values: List[String]): Bool -> values == ["true"].
 
 @pure
 header_parts(values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
@@ -244,41 +324,57 @@ header_parts(values: List[String], rest: List[String], module_name: String, symb
     }.
 
 @pure
-parsed_symbol_end(name: String, arity: Int, class_source: String, return_source: String, start_byte: Int, value: Option[Int], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+parsed_symbol_end(name: String, arity: Int, class_source: String, return_source: String, type_parameters_source: String, parameter_types_source: String, owner_source: String, has_default: Bool, receiver_mutable: Bool, start_byte: Int, value: Option[Int], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
     case value {
         None -> invalid_interface("invalid interface symbol end");
-        Some(end_byte) -> parse_symbols(rest, module_name, [ExportedSymbol(name, arity, class_from_name(class_source), parsed_return_type(return_source), SyntaxSpan(start_byte, end_byte)) | symbols])
+        Some(end_byte) -> parse_symbols(rest, module_name, [ExportedSymbol(name, arity, class_from_name(class_source), parsed_owner(owner_source), has_default, receiver_mutable, parsed_type_parameters(type_parameters_source), parsed_parameter_types(parameter_types_source), parsed_return_type(return_source), SyntaxSpan(start_byte, end_byte)) | symbols])
     }.
 
 @pure
-parsed_symbol_start(name: String, arity: Int, class_source: String, return_source: String, value: Option[Int], end_source: String, rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+parsed_symbol_start(name: String, arity: Int, class_source: String, return_source: String, type_parameters_source: String, parameter_types_source: String, owner_source: String, has_default: Bool, receiver_mutable: Bool, value: Option[Int], end_source: String, rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
     case value {
         None -> invalid_interface("invalid interface symbol start");
-        Some(start_byte) -> parsed_symbol_end(name, arity, class_source, return_source, start_byte, Int.from_string(end_source), rest, module_name, symbols)
+        Some(start_byte) -> parsed_symbol_end(name, arity, class_source, return_source, type_parameters_source, parameter_types_source, owner_source, has_default, receiver_mutable, start_byte, Int.from_string(end_source), rest, module_name, symbols)
     }.
 
 @pure
-parsed_symbol_arity(name: String, value: Option[Int], class_source: String, return_source: String, start_source: String, end_source: String, rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+parsed_symbol_arity(name: String, value: Option[Int], class_source: String, return_source: String, type_parameters_source: String, parameter_types_source: String, owner_source: String, has_default: Bool, receiver_mutable: Bool, start_source: String, end_source: String, rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
     case value {
         None -> invalid_interface("invalid interface symbol arity");
-        Some(arity) -> parsed_symbol_start(name, arity, class_source, return_source, Int.from_string(start_source), end_source, rest, module_name, symbols)
+        Some(arity) -> parsed_symbol_start(name, arity, class_source, return_source, type_parameters_source, parameter_types_source, owner_source, has_default, receiver_mutable, Int.from_string(start_source), end_source, rest, module_name, symbols)
     }.
 
 @pure
-symbol_values(name: String, arity_source: String, class_source: String, return_source: String, start_source: String, end_source: String, tail: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    if { tail == [] and module_name != "" and name != "" and known_class(class_source) -> parsed_symbol_arity(name, Int.from_string(arity_source), class_source, return_source, start_source, end_source, rest, module_name, symbols); true -> invalid_interface("invalid interface catalog record") }.
+symbol_values(name: String, arity_source: String, class_source: String, return_source: String, type_parameters_source: String, parameter_types_source: String, owner_source: String, default_source: String, start_source: String, end_source: String, tail: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+    if { receiver_tail_valid(tail) and module_name != "" and name != "" and known_class(class_source) and (default_source == "true" or default_source == "false") -> parsed_symbol_arity(name, Int.from_string(arity_source), class_source, return_source, type_parameters_source, parameter_types_source, owner_source, default_source == "true", parsed_receiver_mutable(tail), start_source, end_source, rest, module_name, symbols); true -> invalid_interface("invalid interface catalog record") }.
 
 @pure
-symbol_end_part(name: String, arity_source: String, class_source: String, return_source: String, start_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    case values { [end_source | tail] -> symbol_values(name, arity_source, class_source, return_source, start_source, end_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
+symbol_end_part(name: String, arity_source: String, class_source: String, return_source: String, type_parameters_source: String, parameter_types_source: String, owner_source: String, default_source: String, start_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+    case values { [end_source | tail] -> symbol_values(name, arity_source, class_source, return_source, type_parameters_source, parameter_types_source, owner_source, default_source, start_source, end_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
 
 @pure
-symbol_start_part(name: String, arity_source: String, class_source: String, return_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    case values { [start_source | tail] -> symbol_end_part(name, arity_source, class_source, return_source, start_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
+symbol_start_part(name: String, arity_source: String, class_source: String, return_source: String, type_parameters_source: String, parameter_types_source: String, owner_source: String, default_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+    case values { [start_source | tail] -> symbol_end_part(name, arity_source, class_source, return_source, type_parameters_source, parameter_types_source, owner_source, default_source, start_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
+
+@pure
+symbol_default_part(name: String, arity_source: String, class_source: String, return_source: String, type_parameters_source: String, parameter_types_source: String, owner_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+    case values { [default_source | tail] -> symbol_start_part(name, arity_source, class_source, return_source, type_parameters_source, parameter_types_source, owner_source, default_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
+
+@pure
+symbol_owner_part(name: String, arity_source: String, class_source: String, return_source: String, type_parameters_source: String, parameter_types_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+    case values { [owner_source | tail] -> symbol_default_part(name, arity_source, class_source, return_source, type_parameters_source, parameter_types_source, owner_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
+
+@pure
+symbol_parameter_types_part(name: String, arity_source: String, class_source: String, return_source: String, type_parameters_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+    case values { [parameter_types_source | tail] -> symbol_owner_part(name, arity_source, class_source, return_source, type_parameters_source, parameter_types_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
+
+@pure
+symbol_type_parameters_part(name: String, arity_source: String, class_source: String, return_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+    case values { [type_parameters_source | tail] -> symbol_parameter_types_part(name, arity_source, class_source, return_source, type_parameters_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
 
 @pure
 symbol_return_part(name: String, arity_source: String, class_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    case values { [return_source | tail] -> symbol_start_part(name, arity_source, class_source, return_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
+    case values { [return_source | tail] -> symbol_type_parameters_part(name, arity_source, class_source, return_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
 
 @pure
 symbol_class_part(name: String, arity_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
@@ -294,7 +390,60 @@ symbol_parts(values: List[String], rest: List[String], module_name: String, symb
 
 @pure
 non_header_record(kind: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    if { kind == "symbol" -> symbol_parts(values, rest, module_name, symbols); true -> invalid_interface("invalid interface catalog record") }.
+    if {
+        kind == "symbol" -> symbol_parts(values, rest, module_name, symbols);
+        kind == "field" -> field_parts(values, rest, module_name, symbols);
+        true -> invalid_interface("invalid interface catalog record")
+    }.
+
+@pure
+append_record_fields(
+    values: List[ExportedStructField],
+    field: ExportedStructField,
+): List[ExportedStructField] ->
+    case values {
+        [] -> [field];
+        [value | rest] -> [value | append_record_fields(rest, field)]
+    }.
+
+@pure
+append_record_field(
+    value: ExportedSymbol,
+    field: ExportedStructField,
+): ExportedSymbol -> ExportedSymbol(
+    value.name,
+    value.arity,
+    value.class,
+    value.owner,
+    value.has_default,
+    value.receiver_mutable,
+    value.type_parameters,
+    value.parameter_types,
+    value.return_type,
+    value.span,
+    append_record_fields(value.record_fields, field),
+).
+
+@pure
+field_parts(
+    values: List[String],
+    rest: List[String],
+    module_name: String,
+    symbols: List[ExportedSymbol],
+): InterfaceParse ->
+    case {values, symbols} {
+        {[owner, name, type_name], [symbol | remaining]}
+            where owner == symbol.name and symbol.class == StructDeclaration ->
+                parse_symbols(
+                    rest,
+                    module_name,
+                    [append_record_field(
+                        symbol,
+                        ExportedStructField(name, parsed_return_type(type_name)),
+                    ) | remaining],
+                );
+        _ -> invalid_interface("invalid interface struct field record")
+    }.
 
 @pure
 record_kind(kind: String, tail: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
@@ -323,6 +472,12 @@ parse_symbols(
 parse(source: String): InterfaceParse ->
     parse_symbols(String.split(source, "\n"), "", List.new[ExportedSymbol]()).
 
+/** Decodes an in-memory v5 catalog, retaining explicit v3/v4 compatibility. */
+@pure
+pub decode(source: String): Option[ModuleInterface] ->
+    let parsed = parse(source);
+    if { parsed.valid -> Some(parsed.interface); true -> None }.
+
 write_rendered_interface(output: String, rendered: String): Bool ->
     case File.write_text(output, rendered) {
         Err(_error) -> false;
@@ -333,8 +488,9 @@ write_compiled_interface(output: String, valid: Bool, interface: ModuleInterface
     if { not valid -> false; true -> write_rendered_interface(output, render(interface)) }.
 
 write_interface_source(source: String, output: String): Bool ->
-    let compiled = Compiler.compile(source);
-    write_compiled_interface(output, compiled.valid, compiled.interface).
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    write_compiled_interface(output, lexed.valid and frontend.valid, frontend.backend.interface).
 
 /** Compiles one source and writes its complete public interface artifact. */
 pub write_interface(source_path: String, output: String): Bool ->
@@ -452,7 +608,7 @@ write_backend_result(lex_valid: Bool, frontend_valid: Bool, frontend_message: St
 write_backend_source(source: String, interfaces: List[ModuleInterface], output: String, diagnostics_output: String): Bool ->
     let lexed = CanonicalLexer.lex(source);
     let frontend = ProjectedFrontend.compile(source, lexed.tokens);
-    let backend = ProjectedBackendCompile.compile(frontend, interfaces, "terlan-vm");
+    let backend = ProjectedCoreBackendCompile.compile(frontend, interfaces, "terlan-vm");
     write_backend_result(lexed.valid, frontend.valid, frontend.message, backend.diagnostics, backend.json, output, diagnostics_output).
 
 read_backend_source(source_path: String, interfaces: List[ModuleInterface], output: String, diagnostics_output: String): Bool ->
@@ -462,14 +618,135 @@ read_backend_source(source_path: String, interfaces: List[ModuleInterface], outp
     }.
 
 /** Compiles one source against a persistent complete-closure interface set. */
+pub write_backend_catalog(
+    source_path: String,
+    catalog: InterfaceCatalog,
+    output: String,
+    diagnostics_output: String,
+): Bool ->
+    if {
+        not catalog.valid -> write_failure(diagnostics_output, catalog.message);
+        true -> read_backend_source(source_path, catalog.interfaces, output, diagnostics_output)
+    }.
+
+/** Loads a catalog once for a single-unit compatibility entry point. */
 pub write_backend(
     source_path: String,
     interface_manifest: String,
     output: String,
     diagnostics_output: String,
 ): Bool ->
+    write_backend_catalog(source_path, load(interface_manifest), output, diagnostics_output).
+
+write_optimizer_artifacts_source(
+    source: String,
+    interfaces: List[ModuleInterface],
+    target: String,
+    output: String,
+): Bool ->
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    if {
+        not lexed.valid -> SelfHostCoreOptimizeArtifactTool.write_failure(
+            output,
+            "canonical lexer rejected optimizer source",
+        );
+        not frontend.valid -> SelfHostCoreOptimizeArtifactTool.write_failure(
+            output,
+            String.concat(["projected frontend rejected optimizer source: ", frontend.message]),
+        );
+        true -> SelfHostCoreOptimizeArtifactTool.write(
+            output,
+            ProjectedCoreBackendCompile.compile_optimizer_artifacts(
+                frontend,
+                interfaces,
+                target,
+            ),
+        )
+    }.
+
+read_optimizer_artifacts_source(
+    source_path: String,
+    interfaces: List[ModuleInterface],
+    output: String,
+): Bool ->
+    case File.read_text(source_path) {
+        Err(_error) -> SelfHostCoreOptimizeArtifactTool.write_failure(
+            output,
+            "cannot read optimizer source",
+        );
+        Ok(source) -> write_optimizer_artifacts_source(source, interfaces, "terlan-vm", output)
+    }.
+
+write_cross_target_source(
+    source: String,
+    interfaces: List[ModuleInterface],
+    target_a: String,
+    target_b: String,
+    output: String,
+): Bool ->
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    if {
+        not lexed.valid -> SelfHostCoreOptimizeArtifactTool.write_failure(
+            output,
+            "canonical lexer rejected cross-target optimizer source",
+        );
+        not frontend.valid -> SelfHostCoreOptimizeArtifactTool.write_failure(
+            output,
+            String.concat(["projected frontend rejected cross-target optimizer source: ", frontend.message]),
+        );
+        true -> SelfHostCoreOptimizeArtifactTool.write_cross_target(
+            output,
+            target_a,
+            target_b,
+            ProjectedCoreBackendCompile.compile_optimizer_artifacts(
+                frontend,
+                interfaces,
+                target_a,
+            ),
+            ProjectedCoreBackendCompile.compile_optimizer_artifacts(
+                frontend,
+                interfaces,
+                target_b,
+            ),
+        )
+    }.
+
+/** Proves optimizer output is unchanged across two distinct target requests. */
+pub write_optimizer_cross_target(
+    source_path: String,
+    interface_manifest: String,
+    target_a: String,
+    target_b: String,
+    output: String,
+): Bool ->
     let catalog = load(interface_manifest);
     if {
-        not catalog.valid -> write_failure(diagnostics_output, catalog.message);
-        true -> read_backend_source(source_path, catalog.interfaces, output, diagnostics_output)
+        not catalog.valid -> SelfHostCoreOptimizeArtifactTool.write_failure(output, catalog.message);
+        true -> case File.read_text(source_path) {
+            Err(_error) -> SelfHostCoreOptimizeArtifactTool.write_failure(
+                output,
+                "cannot read cross-target optimizer source",
+            );
+            Ok(source) -> write_cross_target_source(
+                source,
+                catalog.interfaces,
+                target_a,
+                target_b,
+                output,
+            )
+        }
+    }.
+
+/** Materializes validated pre/post optimizer Core artifacts from one source unit. */
+pub write_optimizer_artifacts(
+    source_path: String,
+    interface_manifest: String,
+    output: String,
+): Bool ->
+    let catalog = load(interface_manifest);
+    if {
+        not catalog.valid -> SelfHostCoreOptimizeArtifactTool.write_failure(output, catalog.message);
+        true -> read_optimizer_artifacts_source(source_path, catalog.interfaces, output)
     }.

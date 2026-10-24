@@ -1,8 +1,8 @@
 module=std.js.Dom.CookieList
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6798665374263752099
-interface_hash=14926309126379941035
-interface_doc_hash=14926309126379941035
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3575362914737643472
+interface_hash=8628344834440153314
+interface_doc_hash=8628344834440153314
 deps=0

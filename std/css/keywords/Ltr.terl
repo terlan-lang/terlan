@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword ltr. Generated; do not edit.
+ */
+module std.css.keywords.Ltr.
+
+pub type Ltr.

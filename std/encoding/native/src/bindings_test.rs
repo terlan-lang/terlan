@@ -11,6 +11,7 @@ fn all_bindings_reject_wrong_arity_and_value_types() {
         &ENCODE_URL,
         &ENCODE_BYTES,
         &ENCODE_URL_BYTES,
+        &ENCODE_URL_UNPADDED_BYTES,
         &DECODE_TEXT,
         &DECODE_URL_TEXT,
         &DECODE_BYTES,
@@ -30,6 +31,7 @@ fn all_bindings_reject_wrong_arity_and_value_types() {
         }
         let wrong = if binding.operation.ends_with("encode_bytes")
             || binding.operation.ends_with("encode_url_bytes")
+            || binding.operation.ends_with("encode_url_unpadded_bytes")
         {
             NativeValue::String("".into())
         } else {
@@ -70,6 +72,30 @@ fn byte_codecs_preserve_all_octets_and_padding_boundaries() {
                 NativeValue::from(Ok::<_, String>(NativeValue::Bytes(bytes)))
             );
         }
+    }
+}
+
+#[test]
+fn unpadded_url_encoding_preserves_all_octets_without_changing_padded_mode() {
+    use ::base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+    for len in [0, 1, 2, 3, 16, 32, 255, 256, 257, 4096] {
+        let bytes = (0..len).map(|index| index as u8).collect::<Vec<_>>();
+        let NativeValue::String(encoded) = invoke(
+            &ENCODE_URL_UNPADDED_BYTES,
+            NativeValue::Bytes(bytes.clone()),
+        ) else {
+            panic!("encoded text required");
+        };
+        assert!(!encoded.contains('='));
+        assert!(encoded
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || b"-_".contains(&byte)));
+        assert_eq!(URL_SAFE_NO_PAD.decode(&encoded).unwrap(), bytes);
+        assert_eq!(encoded, base64::encode_url_unpadded_bytes(&bytes));
+        assert_eq!(
+            encoded,
+            base64::encode_url_bytes(&bytes).trim_end_matches('=')
+        );
     }
 }
 

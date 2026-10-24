@@ -1,60 +1,34 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#TextRenderingProperty
+//! The `text-rendering` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property provides
+//! information to the rendering engine about what to optimize for when rendering text.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: The browser makes educated guesses about when to optimize for speed, legibility, and
+//! geometric precision while drawing text. For differences in how this value is interpreted by the
+//! browser, see the compatibility table.
+//! - geometricPrecision: The browser emphasizes geometric precision over rendering speed and
+//! legibility. Certain aspects of fonts — such as kerning — don't scale linearly. So this value can
+//! make text using those fonts look good.
+//! - optimizeLegibility: The browser emphasizes legibility over rendering speed and geometric
+//! precision. This enables kerning and optional ligatures.
+//! - optimizeSpeed: The browser emphasizes rendering speed over legibility and geometric precision
+//! when drawing text. It disables kerning and ligatures.
+//!
 //! Grammar: auto | optimizeSpeed | optimizeLegibility | geometricPrecision
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#TextRenderingProperty
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-rendering
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextRendering.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    text_rendering: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    text_rendering: Value
+    text_rendering: Auto | OptimizeSpeed | OptimizeLegibility | GeometricPrecision | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained text-rendering value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword geometricPrecision.
-
-pub geometricPrecision(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword optimizeLegibility.
-
-pub optimizeLegibility(): Value.
-
-/// Returns the CSS keyword optimizeSpeed.
-
-pub optimizeSpeed(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

@@ -390,22 +390,20 @@ pub(super) fn run_terlan_vm_test_file(
         .chain(project_core_modules.iter().map(|module| &module.core))
         .chain(imported_std_core_modules.iter().map(|module| &module.core))
         .collect::<Vec<_>>();
-    let active_debug_input = NativeDebugInput {
-        source_path: path,
-        source_text: &source,
-        core: &core,
-        syntax: &compiled.syntax_output,
-    };
+    let active_debug_input =
+        NativeDebugInput::capture(path, &source, &core, &compiled.syntax_output);
     let debug_inputs = std::iter::once(active_debug_input)
         .chain(
             project_core_modules
                 .iter()
                 .chain(imported_std_core_modules.iter())
-                .map(|module| NativeDebugInput {
-                    source_path: &module.source_path,
-                    source_text: &module.source_text,
-                    core: &module.core,
-                    syntax: &module.syntax,
+                .map(|module| {
+                    NativeDebugInput::capture(
+                        &module.source_path,
+                        &module.source_text,
+                        &module.core,
+                        &module.syntax,
+                    )
                 }),
         )
         .collect::<Vec<_>>();

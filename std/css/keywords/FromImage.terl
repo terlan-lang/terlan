@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword from-image. Generated; do not edit.
+ */
+module std.css.keywords.FromImage.
+
+pub type FromImage = Atom["from-image"].

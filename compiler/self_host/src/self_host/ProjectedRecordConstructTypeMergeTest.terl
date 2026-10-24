@@ -1,0 +1,50 @@
+/** Declaration-authoritative nominal record construction contracts. */
+module self_host.ProjectedRecordConstructTypeMergeTest.
+
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedRecordAccessTypeMerge.{RecordFieldType, RecordLayoutType}.
+import self_host.ProjectedRecordConstructTypeMerge.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+import std.core.Option.{None, Some}.
+
+@test
+pub record_construction_requires_complete_typed_local_fields(): Bool ->
+    let expression = ProjectedExpressionNode(
+        "nominal-keyed",
+        "Point",
+        10,
+        24,
+        [
+            ProjectedExpressionNode("identifier", "Point", 10, 15, []),
+            ProjectedExpressionNode(
+                "keyed-field",
+                "x",
+                17,
+                21,
+                [ProjectedExpressionNode("integer", "1", 20, 21, [])],
+            ),
+        ],
+    );
+    let merged = ProjectedRecordConstructTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(0, None, 10),
+                InferredTypeFact(3, Some("Int"), 20),
+            ],
+            [],
+        ),
+        expression,
+        [RecordLayoutType(
+            "Point",
+            "sample.Geometry.Point",
+            [
+                RecordFieldType("x", Some("Int")),
+                RecordFieldType("label", Some("String")),
+            ],
+        )],
+    );
+    case {merged.facts, merged.diagnostics} {
+        {[result | _rest], [diagnostic]} -> result.type_name == Some("Point")
+            and diagnostic.code == "missing-record-field";
+        _ -> false
+    }.

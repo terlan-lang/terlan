@@ -434,12 +434,12 @@ pub update(values: List[Int]): Dynamic ->\n\
 }
 
 #[test]
-fn syntax_output_lowering_to_core_fixed_array_expr() {
+fn syntax_output_lowering_to_core_array_expr() {
     let module = parse_module_as_syntax_output(
         "\
-module core_fixed_array_expr_boundary.\n\
+module core_array_expr_boundary.\n\
 \n\
-pub rgb(): FixedArray[3, Int] ->\n\
+pub rgb(): Array[3, Int] ->\n\
     #[1, 2, 3].\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
@@ -454,7 +454,7 @@ pub rgb(): FixedArray[3, Int] ->\n\
     assert_eq!(function.clauses.len(), 1);
     assert_eq!(
         function.clauses[0].body.core_expr,
-        Some(CoreExpr::FixedArray(vec![
+        Some(CoreExpr::Array(vec![
             CoreExpr::Int(1),
             CoreExpr::Int(2),
             CoreExpr::Int(3),
@@ -465,8 +465,7 @@ pub rgb(): FixedArray[3, Int] ->\n\
         CoreProofCoverage::ProofModelRequired
     );
     assert!(
-        core.contract_text()
-            .contains("FixedArray(Int(1),Int(2),Int(3))"),
+        core.contract_text().contains("Array(Int(1),Int(2),Int(3))"),
         "contract text: {}",
         core.contract_text()
     );
@@ -872,4 +871,45 @@ pub make(): Html[Dynamic] ->\n\
     assert_eq!(fields.len(), 1);
     assert_eq!(fields[0].key, "title");
     assert!(matches!(fields[0].value, CoreExpr::Binary(_)));
+}
+
+#[test]
+fn template_props_resolve_local_nominal_types_for_values_and_defaults() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module local_template_types.
+struct User { id: Int }.
+template Page from "./page.terl.html" {
+    user: User,
+    fallback: User = User {id: 0}
+}.
+pub render(user: User): Html[Dynamic] -> Page(user = user).
+"#,
+    )
+    .expect("parse local template record props");
+    let resolved = resolve_syntax_module_output(&module).module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
+#[test]
+fn template_props_keep_different_local_nominal_types_distinct() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module distinct_template_types.
+struct User { id: Int }.
+struct Other { id: Int }.
+template Page from "./page.terl.html" { user: User }.
+pub render(user: Other): Html[Dynamic] -> Page(user = user).
+"#,
+    )
+    .expect("parse distinct template record props");
+    let resolved = resolve_syntax_module_output(&module).module;
+    let diagnostics = type_check_syntax_module_output(&module, &resolved);
+    assert!(
+        diagnostics
+            .iter()
+            .any(|item| item.message.contains("prop `user`")),
+        "{diagnostics:?}"
+    );
 }

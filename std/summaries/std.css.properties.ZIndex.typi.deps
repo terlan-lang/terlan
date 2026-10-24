@@ -1,10 +1,10 @@
 module=std.css.properties.ZIndex
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=2945707534421436310
-interface_hash=12742372543520754599
-interface_doc_hash=13050938039814525393
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15011461070729616424
+interface_hash=14002815155763318606
+interface_doc_hash=6417313272245096928
 deps=2
-std.core.Int=6981787512204747997
-std.core.Option=11539230284316612175
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722

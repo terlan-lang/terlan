@@ -1,0 +1,54 @@
+/** Filesystem publication adapter for self-hosted module documentation. */
+module self_host.SelfHostDocumentationTool.
+
+import std.core.String.
+
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, String}.
+import std.io.File.
+
+import self_host.SelfHostDocumentation.
+
+
+write_failure(diagnostics_path: String, marker_path: String, message: String): Bool ->
+    case File.write_text(diagnostics_path, String.concat([message, "\n"])) {
+        Err(_) -> false;
+        Ok(_) -> case File.write_text(marker_path, "invalid\n") {
+            Err(_) -> false;
+            Ok(_) -> false
+        }
+    }.
+
+write_success(
+    markdown_path: String,
+    diagnostics_path: String,
+    marker_path: String,
+    markdown: String,
+): Bool ->
+    case File.write_text(markdown_path, markdown) {
+        Err(_) -> write_failure(diagnostics_path, marker_path, "cannot write documentation output");
+        Ok(_) -> case File.write_text(diagnostics_path, "") {
+            Err(_) -> false;
+            Ok(_) -> case File.write_text(marker_path, "complete\n") {
+                Err(_) -> false;
+                Ok(_) -> true
+            }
+        }
+    }.
+
+/** Builds and publishes one Markdown module behind a last-written marker. */
+pub write(
+    source_path: String,
+    markdown_path: String,
+    diagnostics_path: String,
+    marker_path: String,
+): Bool ->
+    let _removed = File.delete(marker_path);
+    case File.read_text(source_path) {
+        Err(_) -> write_failure(diagnostics_path, marker_path, "cannot read documentation source");
+        Ok(source) -> let documentation = SelfHostDocumentation.build(source);
+        case SelfHostDocumentation.markdown(documentation) {
+            Err(reason) -> write_failure(diagnostics_path, marker_path, reason);
+            Ok(markdown) -> write_success(markdown_path, diagnostics_path, marker_path, markdown)
+        }
+    }.

@@ -1,8 +1,7 @@
 use std::path::Path;
 
 use crate::terlan_syntax::{
-    parse_module_as_syntax_output, syntax_module_import_identity, SyntaxDeclarationPayload,
-    SyntaxImportKind,
+    parse_module_as_syntax_output, SyntaxDeclarationPayload, SyntaxImportKind,
 };
 
 use crate::commands::build::js_browser::WebRouteSourceArtifact;
@@ -115,182 +114,22 @@ fn is_browser_js_source_module(syntax: &crate::terlan_syntax::SyntaxModuleOutput
 /// - `true` for router, WebSocket, or room-protocol metadata modules.
 ///
 /// Transformation:
-/// - Combines explicit router imports with naming conventions for generated
-///   realtime route metadata.
+/// - Supplies ordinary public export metadata to the HTTP package. Imported
+///   callback providers are resolved by the application closure, not this scan.
 fn is_web_route_source_module(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> bool {
-    (imports_std_http_router(syntax) && declares_router_function(syntax))
-        || declares_http_handler_function(syntax)
-        || is_websocket_metadata_module(syntax)
-        || is_room_protocol_metadata_module(syntax)
-}
-
-/// Returns whether a module provides an importable HTTP request handler.
-///
-/// Handler modules participate in route metadata discovery even when router
-/// assembly lives elsewhere. This makes selected `Request -> Response`
-/// imports resolvable without treating unrelated server model modules as web
-/// route sources.
-fn declares_http_handler_function(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> bool {
-    syntax.declarations.iter().any(|declaration| {
-        matches!(
-            &declaration.payload,
-            SyntaxDeclarationPayload::Function {
-                is_public: true,
-                params,
-                return_type,
-                ..
-            } if params.first().is_some_and(|param| is_http_request_type(&param.annotation.text))
-                && is_http_response_type(&return_type.text)
-        )
-    })
-}
-
-fn is_http_request_type(type_text: &str) -> bool {
-    matches!(
-        type_text,
-        "Request" | "std.http.Request.Request" | "Request.Request"
-    )
-}
-
-fn is_http_response_type(type_text: &str) -> bool {
-    matches!(
-        type_text,
-        "Response" | "std.http.Response.Response" | "Response.Response"
-    )
-}
-
-/// Returns whether a module declares WebSocket metadata.
-///
-/// Inputs:
-/// - `syntax`: parsed syntax-output module.
-///
-/// Output:
-/// - `true` when the module provides zero-argument `route` and `protocol`
-///   functions under a `.WebSocket` module name.
-///
-/// Transformation:
-/// - Recognizes declarative websocket modules without compiling handler bodies.
-fn is_websocket_metadata_module(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> bool {
-    syntax.module_name.ends_with(".WebSocket")
-        && declares_zero_arg_public_function(syntax, "route")
-        && declares_zero_arg_public_function(syntax, "protocol")
-}
-
-/// Returns whether a module declares room-protocol metadata.
-///
-/// Inputs:
-/// - `syntax`: parsed syntax-output module.
-///
-/// Output:
-/// - `true` when the module provides zero-argument `route` and `protocol`
-///   functions under a `.RoomProtocol` module name.
-///
-/// Transformation:
-/// - Identifies generated realtime protocol descriptors as route metadata.
-fn is_room_protocol_metadata_module(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> bool {
-    syntax.module_name.ends_with(".RoomProtocol")
-        && declares_zero_arg_public_function(syntax, "route")
-        && declares_zero_arg_public_function(syntax, "protocol")
-}
-
-/// Returns whether a source module imports `std.http.Router`.
-///
-/// Inputs:
-/// - `syntax`: parsed syntax-output module.
-///
-/// Output:
-/// - `true` when a module import references `std.http.Router`.
-///
-/// Transformation:
-/// - Uses explicit imports as the web-route source marker, avoiding filename
-///   conventions or backend-specific annotations.
-fn imports_std_http_router(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> bool {
-    syntax.declarations.iter().any(|declaration| {
-        matches!(
-            &declaration.payload,
-            SyntaxDeclarationPayload::Import {
-                import_kind: SyntaxImportKind::Module,
-                module_name,
-                items,
-                is_selected,
-                ..
-            } if syntax_module_import_identity(module_name, items, *is_selected)
-                    == "std.http.Router"
-                || (module_name == "std.http"
-                    && *is_selected
-                    && items.iter().any(|item| item.name == "Router"))
-        )
-    })
-}
-
-/// Returns whether a source module declares a public router function.
-///
-/// Inputs:
-/// - `syntax`: parsed syntax-output module.
-///
-/// Output:
-/// - `true` when the module has `pub router(...)`.
-///
-/// Transformation:
-/// - Keeps the route-source classifier narrow so ordinary modules that merely
-///   import HTTP support still compile through the selected target backend.
-fn declares_router_function(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> bool {
-    declares_public_function(syntax, "router")
-}
-
-/// Checks whether a module declares a named zero-argument public function.
-///
-/// Inputs:
-/// - `syntax`: parsed syntax-output module.
-/// - `target`: function name to find.
-///
-/// Output:
-/// - `true` when a matching `pub target()` declaration exists.
-///
-/// Transformation:
-/// - Scans syntax declarations without invoking typechecking.
-fn declares_zero_arg_public_function(
-    syntax: &crate::terlan_syntax::SyntaxModuleOutput,
-    target: &str,
-) -> bool {
-    syntax.declarations.iter().any(|declaration| {
-        matches!(
-            &declaration.payload,
+    let exports = syntax
+        .declarations
+        .iter()
+        .filter_map(|declaration| match &declaration.payload {
             SyntaxDeclarationPayload::Function {
                 name,
                 is_public: true,
                 params,
                 ..
-            } if name == target && params.is_empty()
-        )
-    })
-}
-
-/// Checks whether a module declares a named public function.
-///
-/// Inputs:
-/// - `syntax`: parsed syntax-output module.
-/// - `target`: function name to find.
-///
-/// Output:
-/// - `true` when a matching public function declaration exists.
-///
-/// Transformation:
-/// - Performs a declaration-level scan for route-source classification.
-fn declares_public_function(
-    syntax: &crate::terlan_syntax::SyntaxModuleOutput,
-    target: &str,
-) -> bool {
-    syntax.declarations.iter().any(|declaration| {
-        matches!(
-            &declaration.payload,
-            SyntaxDeclarationPayload::Function {
-                name,
-                is_public: true,
-                ..
-            } if name == target
-        )
-    })
+            } => Some((name.as_str(), params.len())),
+            _ => None,
+        });
+    terlan_http_native::manifest::has_route_entrypoints(&syntax.module_name, exports)
 }
 
 #[cfg(test)]

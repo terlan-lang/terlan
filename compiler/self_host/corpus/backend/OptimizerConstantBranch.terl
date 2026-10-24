@@ -1,0 +1,8 @@
+/** Executable optimizer probe: the false branch must become unreachable. */
+module self_host_probe.OptimizerConstantBranch.
+
+pub main(): Bool ->
+    if {
+        true -> true;
+        true -> false
+    }.

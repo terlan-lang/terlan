@@ -1,87 +1,30 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#PaintOrderProperty
+ * The `paint-order` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property lets you
+ * control the order in which the fill and stroke (and painting markers) of text content and shapes
+ * are drawn.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - normal: Paint the different items in normal paint order.
+ *
  * Grammar: normal | [ fill || stroke || markers ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#PaintOrderProperty
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/paint-order
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PaintOrder.
 
-import type std.core.Option.
+import std.css.keywords.{Fill, Markers, Normal, Stroke}.
 
-/**
- * A nominal, specification-constrained paint-order value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    paint_order: Value,
+    paint_order: Normal | Fill | Stroke | Markers | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    paint_order: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword fill.
- */
-pub fill(): Value ->
-    Value(Token {property: "paint-order", css: "fill"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "paint-order", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "paint-order", css: "initial"}).
-
-/**
- * Returns the CSS keyword markers.
- */
-pub markers(): Value ->
-    Value(Token {property: "paint-order", css: "markers"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "paint-order", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "paint-order", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "paint-order", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword stroke.
- */
-pub stroke(): Value ->
-    Value(Token {property: "paint-order", css: "stroke"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "paint-order", css: "unset"}).

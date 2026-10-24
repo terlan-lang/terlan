@@ -136,6 +136,11 @@ where
         &mut self,
         wake: PureNativeIoWake,
     ) -> Result<AotChannelCallbackState, String> {
+        let (event, invocation) = self.take_pending()?;
+        self.finish_step(event, invocation.resume(wake)?)
+    }
+
+    fn take_pending(&mut self) -> Result<(Event, AotHandlerInvocation), String> {
         let invocation = self.pending.take().ok_or_else(|| {
             format!(
                 "error[serve.{}.callback_state]: no callback is waiting",
@@ -148,7 +153,7 @@ where
                 self.channel
             )
         })?;
-        self.finish_step(event, invocation.resume(wake)?)
+        Ok((event, invocation))
     }
 
     /// Cancels and releases currently parked callback state, if present.

@@ -1,10 +1,10 @@
 module=std.css.properties.InsetBlockStart
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=18267093754896043745
-interface_hash=6576321217869659006
-interface_doc_hash=3269912676644401812
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4674728594978452649
+interface_hash=7658134271468899004
+interface_doc_hash=12214746804405671110
 deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722

@@ -36,7 +36,7 @@ pub(crate) use function_inference::{
 };
 pub(super) use guard_purity::{
     check_clause_guard_purity, check_pure_expression_effects_with_call_facts,
-    expression_has_effects_with_call_facts, EffectfulCallFacts,
+    collect_proven_pure_receiver_calls, expression_has_effects_with_call_facts, EffectfulCallFacts,
 };
 use indexing::{infer_syntax_index, infer_syntax_index_assign};
 use operators::{infer_syntax_binary_op, infer_syntax_unary_op};
@@ -389,7 +389,7 @@ pub(super) fn infer_syntax_expr(
             }
             Type::List(Box::new(apply_subst(&head_type, subst)))
         }
-        SyntaxExprKind::FixedArray => {
+        SyntaxExprKind::Array => {
             let elem_type = normalize_union(
                 expr.children
                     .iter()
@@ -402,8 +402,8 @@ pub(super) fn infer_syntax_expr(
                     )
                     .collect(),
             );
-            Type::FixedArray {
-                size: types::FixedArraySize::Known(expr.children.len()),
+            Type::Array {
+                size: types::ArraySize::Known(expr.children.len()),
                 elem: Box::new(elem_type),
             }
         }

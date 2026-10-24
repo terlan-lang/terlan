@@ -1,9 +1,9 @@
 module=std.css.properties.Background
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=8970578203812130548
-interface_hash=11234103813189829689
-interface_doc_hash=10588749203345160159
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5145534930094160738
+interface_hash=917865699959750158
+interface_doc_hash=11348165800037457694
 deps=1
-std.core.Option=11539230284316612175
+std.css.Values=330909209718432688

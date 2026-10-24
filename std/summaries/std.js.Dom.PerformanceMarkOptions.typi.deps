@@ -1,8 +1,8 @@
 module=std.js.Dom.PerformanceMarkOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16056255035444070210
-interface_hash=14126936652581928281
-interface_doc_hash=14126936652581928281
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=11918802164859856407
+interface_hash=6071805764665283336
+interface_doc_hash=6071805764665283336
 deps=0

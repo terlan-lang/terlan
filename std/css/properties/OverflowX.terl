@@ -1,93 +1,49 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-overflow-3/#propdef-overflow-x
+ * The `overflow-x` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets what shows
+ * when content overflows a block-level element's left and right edges. This may be nothing, a
+ * scroll bar, or the overflow content. This property may also be set by using the `overflow`
+ * shorthand property.
+ *
+ * Initial: visible. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: Overflow content is clipped at the element's padding box, and overflow content can be
+ * scrolled into view. Unlike `scroll`, user agents display scroll bars _only if_ the content is
+ * overflowing and hide scroll bars by default. If content fits inside the element's padding box, it
+ * looks the same as with `visible`, but still establishes a new block-formatting context. Desktop
+ * browsers provide scroll bars if content overflows.
+ * - clip: Overflow content is clipped at the element's _overflow clip edge_ that is defined using
+ * the `overflow-clip-margin` property. As a result, content overflows the element's padding box by
+ * the `<length>` value of `overflow-clip-margin` or by `0px` if not set. The difference between
+ * `clip` and `hidden` is that the `clip` keyword also forbids all scrolling, including programmatic
+ * scrolling. No new formatting context is created. To establish a formatting context, use
+ * `overflow: clip` along with `display: flow-root`. The element box is not a scroll container.
+ * - hidden: Overflow content is clipped if necessary to fit horizontally in the elements' padding
+ * box. No scroll bars are provided.
+ * - scroll: Overflow content is clipped if necessary to fit horizontally inside the element's
+ * padding box. Browsers display scroll bars in the horizontal direction whether or not any content
+ * is actually clipped. (This prevents scroll bars from appearing or disappearing when the content
+ * changes.) Printers may still print overflowing content.
+ * - visible: Overflow content is not clipped and may be visible outside the element's padding box
+ * on left and right edges. The element box is not a `scroll container`.
+ *
  * Grammar: visible | hidden | clip | scroll | auto
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-overflow-3/#propdef-overflow-x
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow-x
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.OverflowX.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, Clip, Hidden, Scroll, Visible}.
 
-/**
- * A nominal, specification-constrained overflow-x value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    overflow_x: Value,
+    overflow_x: Visible | Hidden | Clip | Scroll | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    overflow_x: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "overflow-x", css: "auto"}).
-
-/**
- * Returns the CSS keyword clip.
- */
-pub clip(): Value ->
-    Value(Token {property: "overflow-x", css: "clip"}).
-
-/**
- * Returns the CSS keyword hidden.
- */
-pub hidden(): Value ->
-    Value(Token {property: "overflow-x", css: "hidden"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "overflow-x", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "overflow-x", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "overflow-x", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "overflow-x", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword scroll.
- */
-pub scroll(): Value ->
-    Value(Token {property: "overflow-x", css: "scroll"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "overflow-x", css: "unset"}).
-
-/**
- * Returns the CSS keyword visible.
- */
-pub visible(): Value ->
-    Value(Token {property: "overflow-x", css: "visible"}).

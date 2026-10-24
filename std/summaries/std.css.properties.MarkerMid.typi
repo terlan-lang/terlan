@@ -1,48 +1,29 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#MarkerMidProperty
+//! The `marker-mid` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property points to a
+//! marker that will be drawn on the middle vertices of the element's path; that is, at each of its
+//! vertices between the start and end vertices. The marker must have been defined using an SVG
+//! `marker` element, and can only be referenced with a `<url>` value. The value of the CSS property
+//! overrides any values of the `marker-mid` attribute in the SVG.
+//!
+//! Initial: none. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - none: This means no marker will be drawn at each middle vertex of the element's path.
+//!
 //! Grammar: none | <marker-ref>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#MarkerMidProperty
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/marker-mid
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MarkerMid.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    marker_mid: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    marker_mid: Value
+    marker_mid: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained marker-mid value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

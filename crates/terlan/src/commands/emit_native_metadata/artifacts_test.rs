@@ -527,13 +527,18 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             "std.encoding.Base64",
             base64_std_source(),
             "std_encoding_base64_native_boundary",
-            8,
+            9,
             &[
                 ("encode", 1, "std.encoding.base64.encode"),
                 ("decode_text", 1, "std.encoding.base64.decode_text"),
                 ("encode_url", 1, "std.encoding.base64.encode_url"),
                 ("decode_url_text", 1, "std.encoding.base64.decode_url_text"),
                 ("encode_bytes", 1, "std.encoding.base64.encode_bytes"),
+                (
+                    "encode_url_unpadded_bytes",
+                    1,
+                    "std.encoding.base64.encode_url_unpadded_bytes",
+                ),
                 ("decode_octets", 1, "std.encoding.base64.decode_octets"),
                 (
                     "encode_url_bytes",
@@ -579,8 +584,11 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             "std.http.Cookies",
             http_cookies_std_source(),
             "std_http_cookies_native_boundary",
-            1,
-            &[("encode", 9, "std.http.cookies.encode")],
+            2,
+            &[
+                ("decode", 1, "std.http.cookies.decode"),
+                ("encode", 9, "std.http.cookies.encode"),
+            ],
         ),
         (
             "std.db.Postgres",

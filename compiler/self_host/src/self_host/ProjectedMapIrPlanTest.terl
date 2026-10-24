@@ -1,0 +1,54 @@
+/** Regression contracts for standalone keyed-map typed IR planning. */
+module self_host.ProjectedMapIrPlanTest.
+
+import self_host.ProjectedExpressionIrPlan.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
+import self_host.SelfHostSemanticIrSyntax.{SemanticInstructionPlan}.
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.{Bool, Int, String}.
+
+node(
+    kind: String,
+    text: String,
+    start: Int,
+    children: List[ProjectedExpressionNode],
+): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, start, start + 1, children).
+
+put_map_contract(values: List[SemanticInstructionPlan]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            rest == [] -> value.opcode == "put-map"
+                and value.operands == ["%2", "%3", "%4", "%5"]
+                and value.operand_types == [
+                    Some("String"),
+                    Some("Int"),
+                    Some("String"),
+                    Some("Int"),
+                ];
+            true -> put_map_contract(rest)
+        }
+    }.
+
+/** Map planning preserves source order and alternating key/value type evidence. */
+pub keyed_map_emits_ordered_put_map(): Bool ->
+    let expression = node("keyed-container", "", 0, [
+        node("keyed-fields", ":", 1, [
+            node("keyed-field", "left", 2, [node("integer", "1", 3, [])]),
+            node("keyed-field", "right", 4, [node("integer", "2", 5, [])]),
+        ]),
+    ]);
+    let plan = ProjectedExpressionIrPlan.lower_expression(
+        expression,
+        0,
+        [
+            InferredTypeFact(0, Some("Map[String, Int]"), 0),
+            InferredTypeFact(3, Some("Int"), 3),
+            InferredTypeFact(5, Some("Int"), 5),
+        ],
+        [],
+    );
+    put_map_contract(plan.instructions).

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword zoom-out. Generated; do not edit.
+ */
+module std.css.keywords.ZoomOut.
+
+pub type ZoomOut = Atom["zoom-out"].

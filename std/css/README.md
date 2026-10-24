@@ -1,82 +1,90 @@
 # Typed CSS
 
-CSS properties are generated from the pinned `@webref/css` specification dataset.
-Each `std.css.properties.Name` module exposes a nominal `Value`, a `Property`
-struct for inclusion, and constructors for supported values. Width values cannot
-be assigned to height properties; raw strings cannot become property values.
-
-Use `OptionalProperty` to compose partial style blocks. Its field has type
-`Option[Value]`: initialize absent declarations with `None` and present ones
-with `Some(value)`. A shared empty style value can be specialized with ordinary
-record updates, as demonstrated by Battleship.
-
-Compose application styles with ordinary struct inclusion:
+CSS property modules expose a `Property` struct whose field accepts the allowed
+keyword enums and typed units directly. Include these structs to compose an
+application style:
 
 ```terlan
-import type std.css.properties.Width.{Property as WidthProperty}.
-import type std.css.properties.Height.{Property as HeightProperty}.
+import std.css.keywords.BorderBox.
+import type std.css.properties.BoxSizing.{Property as SizingProperty}.
 
-pub struct Dimensions includes WidthProperty, HeightProperty {}.
-pub struct TileStyle includes Dimensions {}.
+pub struct TileStyle includes SizingProperty {}.
+
+pub tile(): TileStyle ->
+    TileStyle {box_sizing: BorderBox}.
 ```
 
-`std.css.Values` supplies typed lengths, percentages, colors, angles, and times.
-Property constructors enforce numeric ranges from the grammar. For example,
-`Width.length(px(30.0))` returns `Some(value)`, while a negative width returns
-`None`. Negative margins remain valid. RGB construction checks channel bounds.
+The field supplies the property name, and its union type supplies the permitted
+inputs. Keyword values need no wrapping function or serialized property record.
+For example, `animation_direction: Alternate` emits `animation-direction: alternate`.
+CSS-wide `Inherit`, `Initial`, `Unset`, `Revert`, and `RevertLayer` are accepted by
+every property.
 
-Bounded space-separated shorthands expose a separate nominal `Component` type.
-Use `component_length`, `component_percentage`, or supported keyword constructors
-such as `component_auto`, then combine them with `single`, `pair`, `triple`, or
-`quad` as permitted by the specification's repetition bounds:
+Each style chooses its declarations by including the properties it needs.
+For a conditional declaration, define an application field such as
+`animation_direction: Option[Alternate]`; `None` omits it and `Some(Alternate)`
+emits it. `Some(None)` emits the CSS keyword `none` when that keyword belongs to
+the field's permitted enum. Its distinction from an omitted declaration follows
+the checked optional field type.
+
+`std.css.Values` supplies lengths, percentages, colors, angles, and times.
+Unconstrained inputs are assigned directly, such as `margin_left: px(-10.0)`.
+Color fields accept `Transparent` and `CurrentColor` directly; `rgb` validates
+channel bounds. Units are constrained by their shared types.
+
+Numeric ranges retain actual validators. `Width.length(px(30.0))` returns
+`Some(checked)`, while a negative width returns `None`. Assign the checked result
+to the width field. A checked width cannot be substituted for a checked height.
+Properties that need these validators expose a `Checked` type; keyword-only
+properties have no opaque result type or constructor.
+
+Bounded shorthands accept keywords and unconstrained typed units directly:
 
 ```terlan
 import std.css.Values.{px, root_em}.
 import std.css.properties.Margin.
+import std.css.keywords.Auto.
 
-pub centered(): Margin.Value ->
-    Margin.pair(Margin.component_length(px(0.0)), Margin.component_auto()).
+pub centered(): Margin.Checked ->
+    Margin.pair(px(0.0), Auto).
 
-pub spacing(): Margin.Value ->
-    Margin.quad(
-        Margin.component_length(root_em(1.0)),
-        Margin.component_length(px(0.0)),
-        Margin.component_length(root_em(1.5)),
-        Margin.component_length(root_em(1.0)),
-    ).
+pub spacing(): Margin.Checked ->
+    Margin.quad(root_em(1.0), px(0.0), root_em(1.5), root_em(1.0)).
 ```
 
-Component constructors preserve the specification's numeric ranges: for
-example, `Padding.component_length` returns `Option[Padding.Component]` and
-rejects negative lengths. Components from another property, complete shorthand
-values, and CSS-wide keywords cannot be passed to a composition function.
-`MarginInline` permits two components, while `Margin` permits up to four.
-The generator currently finds supported repetitions in 56 property definitions.
+`Component` is the permitted input union for that shorthand. Padding components
+retain `component_length` and `component_percentage` validators because their
+amounts must be nonnegative. Complete shorthand values and CSS-wide keywords
+cannot be passed as components. `MarginInline` permits two components; `Margin`
+permits four. There are 48 supported repetitions.
 
-Named `&&` and `||` groups expose `compose`, which supplies every group in
-specification order. Each group with keywords, alternatives, or range checks
-has its own opaque part type and prefixed constructors. A group containing one
-unconstrained primitive accepts that shared type directly, such as `Color`:
+Named `&&` and `||` groups expose `compose` with distinct typed part unions:
 
 ```terlan
 import std.core.Option.{None, Some}.
 import std.css.Values.{px, rgb}.
 import std.css.properties.Border.
+import std.css.keywords.Solid.
 import type std.core.Option.
 
-pub unit_border(): Option[Border.Value] ->
+pub unit_border(): Option[Border.Checked] ->
     case {Border.line_width_length(px(2.0)), rgb(127, 136, 26)} {
-        {Some(width), Some(color)} ->
-            Some(Border.compose(width, Border.line_style_solid(), color));
+        {Some(width), Some(color)} -> Some(Border.compose(width, Solid, color));
         _ -> None
     }.
 ```
 
-Width and style parts cannot be interchanged, and parts from another property
-or CSS-wide keywords cannot fill those slots. Numeric constraints are checked
-before parts are constructed. This API currently covers 47 properties,
-including borders, outlines, flex-flow, and text decoration. `compose` supplies
-all groups; APIs for partial combinations of `||` groups are future work.
+Width and style part unions constrain the arguments. Checked numeric parts
+cannot be forged outside their module. This API covers 18 properties, including
+borders, outlines, flex-flow, and text decoration. Partial combinations of `||`
+groups are future work. Compounds retain typed sequences and tuples until the
+stylesheet output boundary, where their parts are serialized in order.
+
+Generation keeps standards-track CSS implemented without prefixes or flags in
+at least one current released browser. Pinned MDN compatibility and grammar data
+filter unimplemented proposals, including additions to implemented properties.
+A specification's editor-draft URL alone does not exclude an implemented feature.
+Obsolete generated modules and interfaces are removed during generation.
 
 An application stylesheet exports a pure `stylesheet/0` function returning a
 list of `std.css.Stylesheet.Rule[T]` values, optionally wrapped in `Result`.
@@ -119,18 +127,44 @@ terlc interface std/css/Values.terl std/css/Stylesheet.terl std/css/properties/*
 make typed-css-check
 ```
 
-The generator covers 752 property definitions. Its first version exposes
+The generator covers 570 implemented property definitions. Its first version exposes
 CSS-wide keywords and complete atomic alternatives resolved from the grammar,
 including referenced types and numeric ranges, plus bounded space-separated
 repetitions of up to four components and complete compositions of named
 `&&`/`||` groups with up to four terms. Other compound forms, CSS functions,
 typed custom properties, and typed at-rules are future work; use handwritten CSS
 for those forms. `bindings.json` records the exact dataset version and checksum,
-source grammars, supported constructor forms, and specification links. Draft
-definitions can be newer than browser implementations.
+source grammars, supported direct values and checked forms, and specification links. It also
+records the pinned adoption datasets, implemented browsers, and reasons for
+excluding 182 property definitions. Presence in the package means at least one
+released browser implements the property; support across every browser is not
+required.
 
 The compiler fixture at `tests/fixtures/typed-css` exercises a CSS-only build.
-The sibling Battleship application demonstrates the mixed path: its typed
-`battleship.Styles` module owns board dimensions, tile sizing, setup controls,
-disabled-state styles, placeholder spacing, automatic page centering, and
-unit-state borders alongside its existing handwritten stylesheets.
+It supplies a self-contained stylesheet with typed dimensions, spacing,
+and borders alongside a handwritten CSS entry.
+
+## Generated author documentation
+
+Each generated module describes the property's purpose, its initial value,
+inheritance and percentage behavior when available, and links to the specification
+and author guide. Keyword documentation explains the effect of each documented
+choice. Numeric validators document accepted ranges and failure results;
+shorthand functions document component order and four-side expansion.
+
+Generation reads the checked-in `tools/css/documentation-data.json` snapshot.
+It combines MDN contributor prose at the recorded content commit with Microsoft
+CSS value descriptions and a small set of authored specification summaries in
+`documentation-overrides.json`. To refresh MDN content explicitly, check out the
+recorded `mdn/content` revision and run:
+
+```sh
+node tools/css/collect-documentation.mjs /path/to/mdn/content
+npm run generate --prefix tools/css
+```
+
+MDN-derived purpose and value descriptions are adapted under
+[CC-BY-SA 2.5](../../tools/css/LICENSE-MDN.md), with source links in each module.
+Additional Microsoft value descriptions retain their
+[MIT notice](../../tools/css/LICENSE-Microsoft.md). These notices apply to the
+attributed documentation; generated Terlan code retains the repository license.

@@ -1,0 +1,6 @@
+//! Shared CSS keyword show. Generated; do not edit.
+
+module std.css.keywords.Show.
+
+pub type Show =
+    Atom["show"].

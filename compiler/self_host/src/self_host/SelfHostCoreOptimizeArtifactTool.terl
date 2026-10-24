@@ -1,0 +1,167 @@
+/** Materializes optimizer inputs and outputs without delegating optimizer authority to Rust. */
+module self_host.SelfHostCoreOptimizeArtifactTool.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, String}.
+import std.io.Directory.
+import std.io.File.
+import self_host.SelfHostBackendCompile.{CoreOptimizationCompilation}.
+
+
+struct Artifact {
+    name: String,
+    contents: String,
+}.
+
+constructor Artifact {
+    (name: String, contents: String): Artifact -> Artifact {
+        name: name,
+        contents: contents,
+    }
+}.
+
+path(root: String, name: String): String -> root + "/" + name.
+
+diagnostics_text(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> value + "\n" + diagnostics_text(rest)
+    }.
+
+write_all(root: String, values: List[Artifact]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> case File.write_text(path(root, value.name), value.contents) {
+            Err(_) -> false;
+            Ok(_) -> write_all(root, rest)
+        }
+    }.
+
+write_marker(root: String, value: String): Bool ->
+    case File.write_text(path(root, "artifacts.complete"), value) {
+        Err(_) -> false;
+        Ok(_) -> value == "complete\n"
+    }.
+
+write_invalid(
+    root: String,
+    diagnostics_before: List[String],
+    diagnostics_after: List[String],
+): Bool ->
+    let written = write_all(root, [
+        Artifact("validation-before.marker", "invalid\n"),
+        Artifact("validation-after.marker", "invalid\n"),
+        Artifact("diagnostics-before.txt", diagnostics_text(diagnostics_before)),
+        Artifact("diagnostics-after.txt", diagnostics_text(diagnostics_after)),
+    ]);
+    if { written -> write_marker(root, "invalid\n"); true -> false }.
+
+write_ready(
+    root: String,
+    value: CoreOptimizationCompilation,
+    unoptimized: String,
+    optimized_once: String,
+    optimized_twice: String,
+    optimized_regenerated: String,
+): Bool ->
+    let written = write_all(root, [
+        Artifact("unoptimized.json", unoptimized),
+        Artifact("optimized-once.json", optimized_once),
+        Artifact("optimized-twice.json", optimized_twice),
+        Artifact("optimized-regenerated.json", optimized_regenerated),
+        Artifact("validation-before.marker", "complete\n"),
+        Artifact("validation-after.marker", "complete\n"),
+        Artifact("diagnostics-before.txt", diagnostics_text(value.diagnostics_before)),
+        Artifact("diagnostics-after.txt", diagnostics_text(value.diagnostics_after)),
+    ]);
+    if { written -> write_marker(root, "complete\n"); true -> false }.
+
+write_options(root: String, value: CoreOptimizationCompilation): Bool ->
+    case value.unoptimized_json {
+        None -> write_invalid(root, value.diagnostics_before, value.diagnostics_after);
+        Some(unoptimized) -> case value.optimized_once_json {
+            None -> write_invalid(root, value.diagnostics_before, value.diagnostics_after);
+            Some(optimized_once) -> case value.optimized_twice_json {
+                None -> write_invalid(root, value.diagnostics_before, value.diagnostics_after);
+                Some(optimized_twice) -> case value.optimized_regenerated_json {
+                    None -> write_invalid(root, value.diagnostics_before, value.diagnostics_after);
+                    Some(optimized_regenerated) -> write_ready(
+                        root,
+                        value,
+                        unoptimized,
+                        optimized_once,
+                        optimized_twice,
+                        optimized_regenerated,
+                    )
+                }
+            }
+        }
+    }.
+
+/** Writes validation and canonical Core envelopes, publishing completion last. */
+pub write(root: String, value: CoreOptimizationCompilation): Bool ->
+    let _removed = File.delete(path(root, "artifacts.complete"));
+    case Directory.create_all(root) {
+        Err(_) -> false;
+        Ok(_) -> write_options(root, value)
+    }.
+
+/** Publishes a fail-closed frontend/catalog failure in the same artifact layout. */
+pub write_failure(root: String, message: String): Bool ->
+    let _removed = File.delete(path(root, "artifacts.complete"));
+    case Directory.create_all(root) {
+        Err(_) -> false;
+        Ok(_) -> write_invalid(root, [message], List.new[String]())
+    }.
+
+write_cross_target_marker(root: String, complete: Bool): Bool ->
+    case File.write_text(
+        path(root, "cross-target.marker"),
+        if { complete -> "complete\n"; true -> "invalid\n" },
+    ) {
+        Err(_) -> false;
+        Ok(_) -> complete
+    }.
+
+write_cross_target_values(
+    root: String,
+    target_a: String,
+    target_b: String,
+    module_a: String,
+    module_b: String,
+): Bool ->
+    let complete = target_a != target_b and module_a != "" and module_a == module_b;
+    let written = write_all(root, [
+        Artifact("cross-targets.tsv", target_a + "\n" + target_b + "\n"),
+        Artifact("cross-target-a.json", module_a),
+        Artifact("cross-target-b.json", module_b),
+    ]);
+    if { written -> write_cross_target_marker(root, complete); true -> false }.
+
+/** Compares independently compiled target-neutral modules and publishes the decision last. */
+pub write_cross_target(
+    root: String,
+    target_a: String,
+    target_b: String,
+    value_a: CoreOptimizationCompilation,
+    value_b: CoreOptimizationCompilation,
+): Bool ->
+    let _removed = File.delete(path(root, "cross-target.marker"));
+    case Directory.create_all(root) {
+        Err(_) -> false;
+        Ok(_) -> case value_a.optimized_module_json {
+            None -> write_cross_target_marker(root, false);
+            Some(module_a) -> case value_b.optimized_module_json {
+                None -> write_cross_target_marker(root, false);
+                Some(module_b) -> write_cross_target_values(
+                    root,
+                    target_a,
+                    target_b,
+                    module_a,
+                    module_b,
+                )
+            }
+        }
+    }.

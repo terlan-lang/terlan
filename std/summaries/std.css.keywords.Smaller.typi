@@ -1,0 +1,6 @@
+//! Shared CSS keyword smaller. Generated; do not edit.
+
+module std.css.keywords.Smaller.
+
+pub type Smaller =
+    Atom["smaller"].

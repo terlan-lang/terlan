@@ -1,6 +1,8 @@
 /** Self-hosted lowering for struct declarations and typed field defaults. */
 module self_host.StructLowering.
 
+import std.core.String.
+
 import self_host.DeclarationPayloadSyntax.{StructFieldSyntax, StructSyntax}.
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.ExpressionSyntax.{ExpressionParse}.
@@ -120,6 +122,23 @@ pub first_error(values: List[StructFieldSyntax]): String ->
     }.
 
 @pure
+contains_field_name(values: List[StructFieldSyntax], name: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.name == name or contains_field_name(rest, name)
+    }.
+
+@pure
+first_duplicate_field(values: List[StructFieldSyntax]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if {
+            contains_field_name(rest, value.name) -> value.name;
+            true -> first_duplicate_field(rest)
+        }
+    }.
+
+@pure
 struct_field_text(source: DeclarationSyntax, open: Int, body_valid: Bool): String ->
     if {
         body_valid -> source.body.utf8_slice(open + 1, source.body.byte_size() - open - 3);
@@ -127,24 +146,175 @@ struct_field_text(source: DeclarationSyntax, open: Int, body_valid: Bool): Strin
     }.
 
 @pure
+strip_comments_at(
+    source: String,
+    index: Int,
+    copy_start: Int,
+    comment: Int,
+    quote_byte: Int,
+    escaped: Bool,
+    output: String,
+): String ->
+    if {
+        index >= source.byte_size() -> if {
+            comment == 0 -> String.append(
+                output,
+                source.utf8_slice(copy_start, source.byte_size() - copy_start),
+            );
+            true -> output
+        };
+        comment == 1
+            and index + 1 < source.byte_size()
+            and source.utf8_byte_at(index) == 42
+            and source.utf8_byte_at(index + 1) == 47 -> strip_comments_at(
+                source,
+                index + 2,
+                index + 2,
+                0,
+                0,
+                false,
+                String.append(output, " "),
+            );
+        comment == 1 -> strip_comments_at(
+            source,
+            index + 1,
+            copy_start,
+            comment,
+            quote_byte,
+            escaped,
+            output,
+        );
+        comment == 2 and source.utf8_byte_at(index) == 10 -> strip_comments_at(
+            source,
+            index,
+            index,
+            0,
+            0,
+            false,
+            output,
+        );
+        comment == 2 -> strip_comments_at(
+            source,
+            index + 1,
+            copy_start,
+            comment,
+            quote_byte,
+            escaped,
+            output,
+        );
+        quote_byte != 0 and escaped -> strip_comments_at(
+            source,
+            index + 1,
+            copy_start,
+            0,
+            quote_byte,
+            false,
+            output,
+        );
+        quote_byte != 0 and source.utf8_byte_at(index) == 92 -> strip_comments_at(
+            source,
+            index + 1,
+            copy_start,
+            0,
+            quote_byte,
+            true,
+            output,
+        );
+        quote_byte != 0 and source.utf8_byte_at(index) == quote_byte -> strip_comments_at(
+            source,
+            index + 1,
+            copy_start,
+            0,
+            0,
+            false,
+            output,
+        );
+        quote_byte != 0 -> strip_comments_at(
+            source,
+            index + 1,
+            copy_start,
+            0,
+            quote_byte,
+            false,
+            output,
+        );
+        source.utf8_byte_at(index) == 34 or source.utf8_byte_at(index) == 39 ->
+            strip_comments_at(
+                source,
+                index + 1,
+                copy_start,
+                0,
+                source.utf8_byte_at(index),
+                false,
+                output,
+            );
+        index + 1 < source.byte_size()
+            and source.utf8_byte_at(index) == 47
+            and source.utf8_byte_at(index + 1) == 42 -> strip_comments_at(
+                source,
+                index + 2,
+                index + 2,
+                1,
+                0,
+                false,
+                String.append(output, source.utf8_slice(copy_start, index - copy_start)),
+            );
+        index + 1 < source.byte_size()
+            and source.utf8_byte_at(index) == 47
+            and source.utf8_byte_at(index + 1) == 47 -> strip_comments_at(
+                source,
+                index + 2,
+                index + 2,
+                2,
+                0,
+                false,
+                String.append(output, source.utf8_slice(copy_start, index - copy_start)),
+            );
+        true -> strip_comments_at(
+            source,
+            index + 1,
+            copy_start,
+            0,
+            0,
+            false,
+            output,
+        )
+    }.
+
+@pure
+strip_comments(source: String): String ->
+    strip_comments_at(source, 0, 0, 0, 0, false, "").
+
+@pure
 struct_fields(field_text: String, body_valid: Bool): List[StructFieldSyntax] ->
     if {
-        body_valid -> lower_fields(drop_terminal_empty(Delimited.split_top_level(field_text, 44)));
+        body_valid -> lower_fields(drop_terminal_empty(Delimited.split_top_level(
+            strip_comments(field_text),
+            44,
+        )));
         true -> List.new[StructFieldSyntax]()
     }.
 
 @pure
-struct_message_after_supported(body_valid: Bool, fields: List[StructFieldSyntax]): String ->
+struct_message_after_fields(fields: List[StructFieldSyntax], duplicate_field: String): String ->
     if {
-        not body_valid -> "struct body is incomplete";
-        true -> first_error(fields)
+        not fields_valid(fields) -> first_error(fields);
+        duplicate_field != "" -> String.concat(["duplicate field \`", duplicate_field, "\` in struct declaration"]);
+        true -> ""
     }.
 
 @pure
-struct_message(supported: Bool, body_valid: Bool, fields: List[StructFieldSyntax]): String ->
+struct_message_after_supported(body_valid: Bool, fields: List[StructFieldSyntax], duplicate_field: String): String ->
+    if {
+        not body_valid -> "struct body is incomplete";
+        true -> struct_message_after_fields(fields, duplicate_field)
+    }.
+
+@pure
+struct_message(supported: Bool, body_valid: Bool, fields: List[StructFieldSyntax], duplicate_field: String): String ->
     if {
         not supported -> "declaration is not a struct";
-        true -> struct_message_after_supported(body_valid, fields)
+        true -> struct_message_after_supported(body_valid, fields, duplicate_field)
     }.
 
 @pure
@@ -154,11 +324,12 @@ pub lower(source: DeclarationSyntax): StructSyntax ->
     let body_valid = open >= 0 and String.ends_with(String.trim(source.body), "}.");
     let field_text = struct_field_text(source, open, body_valid);
     let fields = struct_fields(field_text, body_valid);
+    let duplicate_field = first_duplicate_field(fields);
     StructSyntax(
-        supported and body_valid and fields_valid(fields),
+        supported and body_valid and fields_valid(fields) and duplicate_field == "",
         source.name,
         fields,
         source.is_public,
         source.span,
-        struct_message(supported, body_valid, fields),
+        struct_message(supported, body_valid, fields, duplicate_field),
     ).

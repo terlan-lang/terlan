@@ -1,6 +1,8 @@
 /** Stable declaration-boundary evidence for projected parser parity. */
 module self_host.ProjectedParserEvidence.
 
+import std.core.String.
+
 import self_host.ProjectedParserSyntax.{ProjectedSurfaceDeclaration, ProjectedSurfaceModule}.
 
 import std.collections.List.

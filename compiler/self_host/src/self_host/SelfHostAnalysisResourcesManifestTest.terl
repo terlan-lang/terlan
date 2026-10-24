@@ -1,0 +1,53 @@
+/** Strict observation-codec contracts for self-analysis resource evidence. */
+module self_host.SelfHostAnalysisResourcesManifestTest.
+
+import std.core.String.
+
+import std.core.Option.{None, Some}.
+import self_host.SelfHostAnalysisResources.
+import self_host.SelfHostAnalysisResourcesManifest.
+
+
+observation(): String ->
+    "schema\tterlan.self-host.analysis-resources-observation/v1\n"
+        + "modules\t10\t20\n"
+        + "tokens\t100\t200\n"
+        + "syntax-nodes\t80\t160\n"
+        + "type-constraints\t60\t120\n"
+        + "core-instructions\t50\t100\n"
+        + "actor-continuations\t4\t8\n"
+        + "native-bytes\t900\t1000\n".
+
+@test
+pub canonical_observation_decodes_and_is_admitted(): Bool ->
+    case SelfHostAnalysisResourcesManifest.decode(observation()) {
+        None -> false;
+        Some(value) -> SelfHostAnalysisResources.within_limits(value.usage, value.limits)
+    }.
+
+@test
+pub signed_duplicate_or_extra_metrics_are_rejected(): Bool ->
+    SelfHostAnalysisResourcesManifest.decode(String.replace(
+        observation(),
+        "modules\t10\t20",
+        "modules\t-1\t20",
+    )) == None
+        and SelfHostAnalysisResourcesManifest.decode(
+            observation() + "tokens\t1\t2\n",
+        ) == None
+        and SelfHostAnalysisResourcesManifest.decode(String.replace(
+            observation(),
+            "modules\t10\t20",
+            "modules\t9999999999999999999\t20",
+        )) == None.
+
+@test
+pub over_budget_observation_decodes_but_is_not_admitted(): Bool ->
+    case SelfHostAnalysisResourcesManifest.decode(String.replace(
+        observation(),
+        "native-bytes\t900\t1000",
+        "native-bytes\t1001\t1000",
+    )) {
+        None -> false;
+        Some(value) -> not SelfHostAnalysisResources.within_limits(value.usage, value.limits)
+    }.

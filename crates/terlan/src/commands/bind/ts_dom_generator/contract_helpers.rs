@@ -35,6 +35,12 @@ pub(super) fn render_module_test(
         output.push('\n');
         output.push_str(&render_member_test(module, member));
     }
+    if manifest.generator.profile == "typescript-declarations" {
+        for operation in super::super::ts_record_helpers::operations(module) {
+            output.push('\n');
+            output.push_str(&operation.signature_test(&module.module_path));
+        }
+    }
     output
 }
 

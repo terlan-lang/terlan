@@ -1,6 +1,6 @@
 use super::interface_rendering::assert_trait_conformance;
 
-use super::super::imported_type_refs::collect_syntax_selected_type_refs;
+use super::super::imported_type_refs::collect_syntax_callable_type_refs;
 use super::super::{
     load_interfaces_from_file_set, resolve_syntax_module_output_with_interfaces,
     syntax_module_output_to_interface, ModuleInterface, TraitConformanceSource,
@@ -40,7 +40,7 @@ pub opaque type Item.
 ///
 /// Output:
 /// - Test passes when both local type names resolve to provider type
-///   `std.core.Task`.
+///   `std.core.Task.Task`.
 ///
 /// Transformation:
 /// - Parses the consumer through syntax output, resolves it against the
@@ -412,7 +412,7 @@ pub(super) fn std_interface_loading_discovers_release_traversal_contracts() {
         "std.collections.Iterator",
         "next",
         1,
-        "std.core.Option[Step[T]]",
+        "std.core.Option.Option[Step[T]]",
         "iterator",
         "Iterator[T]",
         false,
@@ -423,7 +423,7 @@ pub(super) fn std_interface_loading_discovers_release_traversal_contracts() {
         "std.collections.Iterable",
         "Iterable",
         "iterator",
-        "std.collections.Iterator[T]",
+        "std.collections.Iterator.Iterator[T]",
         "collection",
         "C",
     );
@@ -635,7 +635,7 @@ impl not Show[String].\n",
 ///   syntax and implements a higher-kinded trait for `List`.
 ///
 /// Output:
-/// - Generated interface text uses `std.collections.List`, the exported
+/// - Generated interface text uses `std.collections.List.List`, the exported
 ///   type constructor, rather than the module path `std.collections.List`.
 ///
 /// Transformation:
@@ -665,7 +665,8 @@ pub impl Functor[List] for List {\n\
     let rendered = interface.to_terlan_interface_text();
 
     assert!(
-        rendered.contains("pub impl Functor[std.collections.List] for std.collections.List"),
+        rendered
+            .contains("pub impl Functor[std.collections.List.List] for std.collections.List.List"),
         "rendered interface should qualify the default imported type constructor:\n{}",
         rendered
     );
@@ -692,6 +693,28 @@ pub compare_with(callback: (Int, Int) -> Comparison): Comparison ->\n\
 }
 
 #[test]
+pub(super) fn interface_rendering_qualifies_fully_qualified_default_type_fields() {
+    let module = parse_module_as_syntax_output(
+        "module self_host.CanonicalToken.\n\
+pub type TokenCategory.\n\
+pub struct CanonicalToken { category: self_host.CanonicalToken.TokenCategory }.\n\
+pub struct CanonicalLexOutput { tokens: List[self_host.CanonicalToken] }.\n",
+    )
+    .expect("parse module-default field fixture");
+
+    let rendered = syntax_module_output_to_interface(&module).to_terlan_interface_text();
+
+    assert!(
+        rendered.contains("tokens: List[self_host.CanonicalToken.CanonicalToken]"),
+        "fully qualified module-default field should use canonical type identity:\n{rendered}"
+    );
+    assert!(
+        rendered.contains("category: self_host.CanonicalToken.TokenCategory"),
+        "an explicit module member must not be expanded as the default type:\n{rendered}"
+    );
+}
+
+#[test]
 pub(super) fn interface_rendering_distinguishes_namespace_and_selected_type_imports() {
     let module = parse_module_as_syntax_output(
         "module collapsed_type_signature.\n\
@@ -711,9 +734,7 @@ pub keep_result(value: Result[Int, String]): Result[Int, String] ->\n\
         "collapsed module-default shorthand must remain resolver-owned:\n{rendered}"
     );
     assert!(
-        rendered.contains(
-            "pub keep_result(value: std.core.Result[Int, String]): std.core.Result[Int, String]."
-        ),
+        rendered.contains("pub keep_result(value: std.core.Result.Result[Int, String]): std.core.Result.Result[Int, String]."),
         "an explicitly selected type must retain its provider identity:\n{rendered}"
     );
 }
@@ -725,7 +746,7 @@ pub(super) fn interface_summary_without_imports_has_no_selected_type_references(
     )
     .expect("parse import-free summary");
 
-    let imported = collect_syntax_selected_type_refs(&module);
+    let imported = collect_syntax_callable_type_refs(&module);
 
     assert!(
         imported.is_empty(),

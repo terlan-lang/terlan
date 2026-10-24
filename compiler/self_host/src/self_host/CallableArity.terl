@@ -1,9 +1,12 @@
 /** Computes callable arity from a canonical declaration header. */
 module self_host.CallableArity.
 
+import std.core.String.
+
 
 import std.core.Option.{None, Option, Some}.
-import self_host.TypedModuleSyntax.{FunctionPayload, MethodPayload, TypedDeclaration}.
+import self_host.ConstructorSyntax.{ConstructorClauseSyntax}.
+import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, MethodPayload, TypedDeclaration}.
 
 
 import std.collections.List.
@@ -85,11 +88,31 @@ function_arity(header: String): Option[Int] ->
     let colon = Delimited.top_level_byte(header, 58);
     arity_parts(String.split(callable_head(header, colon), "(")).
 
+@pure
+constructor_payload_arity(source: TypedDeclaration): Option[Int] ->
+    case source.payload {
+        ConstructorPayload(constructor_payload) -> constructor_arity(constructor_payload.clauses);
+        _ -> None
+    }.
+
+@pure
+method_or_constructor_arity(source: TypedDeclaration): Option[Int] ->
+    case source.payload {
+        MethodPayload(method) -> Some(length(method.parameters) + 1);
+        _ -> constructor_payload_arity(source)
+    }.
+
+@pure
+constructor_arity(values: List[ConstructorClauseSyntax]): Option[Int] ->
+    case values {
+        [] -> None;
+        [value | _] -> Some(length(value.parameters))
+    }.
+
 /** Interface export summaries identify ordinary functions by name and arity. */
 @pure
 pub of(source: TypedDeclaration): Option[Int] ->
     case source.payload {
         FunctionPayload(function) -> Some(length(function.typed_parameters));
-        MethodPayload(method) -> Some(length(method.parameters) + 1);
-        _ -> None
+        _ -> method_or_constructor_arity(source)
     }.

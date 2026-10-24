@@ -1,8 +1,8 @@
 module=std.js.Dom.ConstantSourceNode
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=2214648941143695446
-interface_hash=10351275652694306649
-interface_doc_hash=10351275652694306649
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=2845388089269489009
+interface_hash=3615261579637543441
+interface_doc_hash=3615261579637543441
 deps=0

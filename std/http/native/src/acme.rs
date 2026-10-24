@@ -16,6 +16,7 @@ use std::{
 };
 
 pub mod cache;
+pub mod http01;
 mod certificate_validation;
 #[cfg(any(feature = "acme-issuer", test))]
 pub mod issuer;

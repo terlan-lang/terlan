@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaImage
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=2427403448430768504
-interface_hash=2664163018472501554
-interface_doc_hash=2664163018472501554
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5495056126779323226
+interface_hash=11432961520731581134
+interface_doc_hash=11432961520731581134
 deps=0

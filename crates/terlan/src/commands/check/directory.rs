@@ -405,7 +405,6 @@ pub(crate) fn run_check_dir(
         let required = parsed_modules
             .iter()
             .flat_map(|(_, _, module)| crate::formal_pipeline::source_dependency_modules(module))
-            .filter(|module| module.starts_with("std."))
             .collect();
         crate::formal_pipeline::load_required_standard_interfaces(
             &file.to_string_lossy(),

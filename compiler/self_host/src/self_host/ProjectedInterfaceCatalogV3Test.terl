@@ -1,0 +1,63 @@
+/** Interface v3 callable-contract persistence. */
+module self_host.ProjectedInterfaceCatalogV3Test.
+
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.ProjectedInterfaceCatalog.
+import self_host.Syntax.{FunctionDeclaration, MethodDeclaration, SyntaxSpan}.
+import std.core.Option.{None, Some}.
+
+@pure
+callable_contract_round_trips(): Bool ->
+    let source = ModuleInterface(
+        "terlan.self-host.interface/v4",
+        "test.Library",
+        [ExportedSymbol(
+            "choose",
+            2,
+            FunctionDeclaration,
+            None,
+            false,
+            ["Value"],
+            [Some("Value"), Some("Bool")],
+            Some("Value"),
+            SyntaxSpan(10, 40),
+        )],
+    );
+    case ProjectedInterfaceCatalog.decode(ProjectedInterfaceCatalog.render(source)) {
+        Some(decoded) -> case decoded.symbols {
+            [symbol] -> symbol.type_parameters == ["Value"]
+                and symbol.parameter_types == [Some("Value"), Some("Bool")]
+                and symbol.owner == None
+                and not symbol.has_default
+                and symbol.return_type == Some("Value");
+            _ -> false
+        };
+        None -> false
+    }.
+
+@pure
+trait_member_contract_round_trips(): Bool ->
+    let source = ModuleInterface(
+        "terlan.self-host.interface/v4",
+        "test.Named",
+        [ExportedSymbol(
+            "name",
+            1,
+            MethodDeclaration,
+            Some("Named"),
+            true,
+            [],
+            [Some("Value")],
+            Some("String"),
+            SyntaxSpan(4, 20),
+        )],
+    );
+    case ProjectedInterfaceCatalog.decode(ProjectedInterfaceCatalog.render(source)) {
+        Some(decoded) -> case decoded.symbols {
+            [symbol] -> symbol.owner == Some("Named") and symbol.has_default;
+            _ -> false
+        };
+        None -> false
+    }.
+
+pub self_test(): Bool -> callable_contract_round_trips() and trait_member_contract_round_trips().

@@ -1,0 +1,91 @@
+module self_host.ProjectedCanonicalIrPlanTest.
+
+import self_host.ProjectedCanonicalIrPlan.{canonicalize}.
+import self_host.ProjectedTypeResolutionSyntax.{ProjectedTypeDiagnostic, ProjectedTypeResolution, TypeIdentityBinding}.
+import self_host.SelfHostIrSyntax.{IrStructField, IrStructLayout}.
+import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan, SemanticFunctionPlan, SemanticInstructionPlan, SemanticModulePlan, SemanticTerminatorPlan}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+
+@pure
+resolution(): ProjectedTypeResolution -> ProjectedTypeResolution(
+    true,
+    ["Point"],
+    ["Row"],
+    [
+        TypeIdentityBinding("Point", "sample.Geometry.Point"),
+        TypeIdentityBinding("Row", "sample.Data.Row"),
+    ],
+    List.new[ProjectedTypeDiagnostic](),
+).
+
+@test
+pub semantic_plan_struct_fields_are_canonical_before_abi_lowering(): Bool ->
+    let plan = SemanticModulePlan(
+        "sample.Geometry",
+        [IrStructLayout(
+            "sample.Geometry.Edge",
+            [
+                IrStructField("start", "Point"),
+                IrStructField("metadata", "Option[Row]"),
+            ],
+        )],
+        List.new[self_host.SelfHostSemanticIrSyntax.SemanticFunctionPlan](),
+    );
+    case canonicalize(plan, resolution()) {
+        Err(_message) -> false;
+        Ok(canonical) -> case canonical.structs {
+            [layout] -> layout.fields == [
+                IrStructField("start", "sample.Geometry.Point"),
+                IrStructField("metadata", "Option[sample.Data.Row]"),
+            ];
+            _ -> false
+        }
+    }.
+
+@test
+pub instruction_type_canonicalization_preserves_full_metadata(): Bool ->
+    let plan = SemanticModulePlan(
+        "sample.Geometry",
+        [],
+        [SemanticFunctionPlan(
+            "sample.Geometry",
+            "project",
+            0,
+            [],
+            Some("Row"),
+            [SemanticBlockPlan(
+                "entry",
+                [SemanticInstructionPlan(
+                    "select",
+                    Some("%0"),
+                    ["%condition", "%left", "%right"],
+                    [Some("Bool"), Some("Point"), Some("Option[Row]")],
+                    Some("Row"),
+                    Some(7),
+                )],
+                SemanticTerminatorPlan("return", ["%0"], []),
+            )],
+            None,
+        )],
+    );
+    case canonicalize(plan, resolution()) {
+        Err(_message) -> false;
+        Ok(canonical) -> case canonical.functions {
+            [function] -> case function.blocks {
+                [block] -> case block.instructions {
+                    [instruction] -> instruction.operand_types == [
+                            Some("Bool"),
+                            Some("sample.Geometry.Point"),
+                            Some("Option[sample.Data.Row]"),
+                        ]
+                        and instruction.resolved_type == Some("sample.Data.Row")
+                        and instruction.continuation_ordinal == Some(7);
+                    _ -> false
+                };
+                _ -> false
+            };
+            _ -> false
+        }
+    }.

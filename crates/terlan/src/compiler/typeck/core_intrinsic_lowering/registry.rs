@@ -57,7 +57,6 @@ pub(crate) fn core_primitive_intrinsic(
         "std.vm.NativeBridge" => core_vm_native_bridge_primitive_intrinsic(function, arity),
         "std.vm.Bytes" => core_vm_bytes_primitive_intrinsic(function, arity),
         "std.vm.BitString" => core_vm_bitstring_primitive_intrinsic(function, arity),
-        "std.vm.Timeout" => core_vm_timeout_primitive_intrinsic(function, arity),
         "std.vm.Tcp" => core_vm_tcp_primitive_intrinsic(function, arity),
         "std.vm.Port" => core_vm_port_primitive_intrinsic(function, arity),
         _ => None,
@@ -626,31 +625,6 @@ fn core_vm_bitstring_primitive_intrinsic(
         ("to_int_be", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToIntBe),
         ("to_uint_le", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToUintLe),
         ("to_int_le", 1) => Some(CorePrimitiveIntrinsic::VmBitStringToIntLe),
-        _ => None,
-    }
-}
-
-/// Resolves a `std.vm.Timeout` operation name and arity to a primitive intrinsic.
-///
-/// Inputs:
-/// - `function`: source-level operation name after the `std.vm.Timeout`
-///   module path.
-/// - `arity`: source-visible argument count.
-///
-/// Output:
-/// - `Some(CorePrimitiveIntrinsic)` for executable timeout constructors.
-/// - `None` for unsupported operations or arity mismatch.
-///
-/// Transformation:
-/// - Keeps VM timeout representation target-owned while source tests use a
-///   typed timeout value.
-fn core_vm_timeout_primitive_intrinsic(
-    function: &str,
-    arity: usize,
-) -> Option<CorePrimitiveIntrinsic> {
-    match (function, arity) {
-        ("milliseconds", 1) => Some(CorePrimitiveIntrinsic::VmTimeoutMilliseconds),
-        ("forever", 0) => Some(CorePrimitiveIntrinsic::VmTimeoutForever),
         _ => None,
     }
 }

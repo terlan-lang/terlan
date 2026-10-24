@@ -1,52 +1,34 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-multicol-2/#propdef-column-height
+//! The `column-height` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+//! the height of the columns in a [CSS multi-column
+//! layout](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Multicol_layout).
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: The initial value. If the content container has a set height, the content columns will
+//! grow to that height, overflowing to the side if the content doesn't fit inside the container. If
+//! the content container does not have a set height, the content will be equally distributed between
+//! the columns generated inside the container.
+//!
 //! Grammar: auto | <length [0,∞]>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-multicol-2/#propdef-column-height
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-height
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ColumnHeight.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    column_height: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    column_height: Value
+    column_height: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained column-height value.
+/// Checks the column-height length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a column-height value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub length(value: std.css.Values.Length): Option[Checked].

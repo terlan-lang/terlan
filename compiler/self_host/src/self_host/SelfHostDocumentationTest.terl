@@ -1,0 +1,35 @@
+/** Positive and negative self-hosted documentation contracts. */
+module self_host.SelfHostDocumentationTest.
+
+import std.core.String.
+
+import std.core.Result.{Err, Ok}.
+import self_host.SelfHostDocumentation.
+
+
+@test
+pub documented_public_api_renders_source_shaped_markdown(): Bool ->
+    let documentation = SelfHostDocumentation.build(
+        "//! Sample module.\nmodule sample.Docs.\n/** Returns one. */\npub one(): Int -> 1.\nprivate(): Int -> 2.\n",
+    );
+    case SelfHostDocumentation.markdown(documentation) {
+        Err(_) -> false;
+        Ok(markdown) -> documentation.valid
+            and String.contains(markdown, "# sample.Docs")
+            and String.contains(markdown, "## one")
+            and String.contains(markdown, "pub one(): Int -> 1.")
+            and String.contains(markdown, "Returns one.")
+            and not String.contains(markdown, "private")
+    }.
+
+@test
+pub undocumented_public_api_is_rejected(): Bool ->
+    let documentation = SelfHostDocumentation.build(
+        "module sample.Docs.\npub one(): Int -> 1.\n",
+    );
+    not documentation.valid
+        and String.contains(documentation.message, "missing documentation")
+        and case SelfHostDocumentation.markdown(documentation) {
+            Err(_) -> true;
+            Ok(_) -> false
+        }.

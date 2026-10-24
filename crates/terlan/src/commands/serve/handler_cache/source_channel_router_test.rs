@@ -79,6 +79,13 @@ fn source_channels_execute_imported_callbacks_and_restorable_policy() {
                 assert_eq!(plan.max_pending_events(), 4);
                 assert_eq!(plan.max_event_bytes(), 1024);
                 assert_eq!(plan.keep_alive_ms(), Some(15000));
+                assert_eq!(
+                    plan.response_headers(),
+                    [
+                        ("cache-control".into(), "no-cache".into()),
+                        ("x-content-type-options".into(), "nosniff".into()),
+                    ]
+                );
                 let callbacks = plan.callbacks().unwrap();
                 for callback in [&callbacks.open, &callbacks.keep_alive, &callbacks.drain] {
                     assert_eq!(call(callback, vec![]), ReplValue::Unit);

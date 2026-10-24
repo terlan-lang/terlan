@@ -3,10 +3,10 @@
 use std::collections::HashSet;
 
 use super::type_support::type_excludes_pattern;
-use crate::terlan_typeck::CoreExpr;
+use crate::terlan_typeck::{CoreExpr, CoreIfClause};
 
 use super::{
-    bind_values, bool_and, core_expr_type, extend_bindings,
+    bind_values, bool_and, core_expr_type_with_constructors, extend_bindings,
     lowering::{contains_case, lower_containing_case, lower_plain, StructuredCaseEnvironment},
     pattern_plan, validate_bindings, NativeExpr,
 };
@@ -73,7 +73,13 @@ pub(crate) fn lower_suspending_case(
     let scrutinee_type =
         infer_native_type_with_constructors(scrutinee, param_types, function_types, constructors)
             .or_else(|| {
-                core_expr_type(scrutinee, param_core_types, function_core_types).and_then(
+                core_expr_type_with_constructors(
+                    scrutinee,
+                    param_core_types,
+                    function_core_types,
+                    constructors,
+                )
+                .and_then(
                     |core_type| {
                         crate::compiler::native_ir::native_type(
                             Some(&core_type),
@@ -88,7 +94,12 @@ pub(crate) fn lower_suspending_case(
                     scrutinee.contract_text()
                 )
             })?;
-    let scrutinee_core = core_expr_type(scrutinee, param_core_types, function_core_types);
+    let scrutinee_core = core_expr_type_with_constructors(
+        scrutinee,
+        param_core_types,
+        function_core_types,
+        constructors,
+    );
     let structured_environment = StructuredCaseEnvironment {
         functions,
         function_types,
@@ -124,14 +135,14 @@ pub(crate) fn lower_suspending_case(
     outer_slots.insert(scrutinee_name.clone(), scrutinee_slot);
     outer_types.insert(scrutinee_name.clone(), scrutinee_type);
     if let Some(core_type) = scrutinee_core.clone() {
-        outer_core_types.insert(scrutinee_name, core_type);
+        outer_core_types.insert(scrutinee_name.clone(), core_type);
     }
     let scrutinee_value = NativeExpr::Param(scrutinee_slot);
 
     let mut continuations = Vec::new();
     let mut native_clauses = Vec::with_capacity(clauses.len());
     let mut list_coverage = super::list_coverage::ListCoverage::default();
-    for clause in clauses {
+    for (clause_index, clause) in clauses.iter().enumerate() {
         if type_excludes_pattern(&clause.pattern, scrutinee_core.as_ref()) {
             continue;
         }
@@ -165,35 +176,34 @@ pub(crate) fn lower_suspending_case(
                     }
                     types
                 });
-        if clause.guard.as_ref().is_some_and(|guard| {
+        let guard_suspends = clause.guard.as_ref().is_some_and(|guard| {
             expr_calls_suspending(guard, suspending_functions)
                 || super::super::contains_process_yield(guard)
-        }) {
-            return Err(
-                "error[native_ir.suspending_case_guard]: suspending structured-case guards are not supported"
-                    .to_string(),
-            );
-        }
-        let guard = clause
-            .guard
-            .as_ref()
-            .map(|guard| {
-                lower_plain(
-                    guard,
-                    &binding_slots,
-                    &binding_types,
-                    &binding_core_types,
-                    StructuredCaseEnvironment {
-                        functions,
-                        function_types,
-                        function_core_types,
-                        constructors,
-                    },
-                )
-            })
-            .transpose()?
-            .unwrap_or(NativeExpr::Bool(true));
-        let condition = bool_and(plan.predicate, bind_values(&plan.bindings, guard));
+        });
+        let condition = if guard_suspends {
+            plan.predicate
+        } else {
+            let guard = clause
+                .guard
+                .as_ref()
+                .map(|guard| {
+                    lower_plain(
+                        guard,
+                        &binding_slots,
+                        &binding_types,
+                        &binding_core_types,
+                        StructuredCaseEnvironment {
+                            functions,
+                            function_types,
+                            function_core_types,
+                            constructors,
+                        },
+                    )
+                })
+                .transpose()?
+                .unwrap_or(NativeExpr::Bool(true));
+            bool_and(plan.predicate, bind_values(&plan.bindings, guard))
+        };
         let mut clause_names = binding_slots
             .iter()
             .map(|(name, slot)| (*slot, name.clone()))
@@ -203,8 +213,29 @@ pub(crate) fn lower_suspending_case(
             .into_iter()
             .map(|(_, name)| name)
             .collect::<Vec<_>>();
+        let selected_core = if guard_suspends {
+            let mut guarded = vec![CoreIfClause {
+                condition: clause
+                    .guard
+                    .clone()
+                    .expect("suspending guard was established"),
+                body: clause.body.clone(),
+            }];
+            if clause_index + 1 < clauses.len() {
+                guarded.push(CoreIfClause {
+                    condition: CoreExpr::Atom("true".to_string()),
+                    body: CoreExpr::Case {
+                        scrutinee: Box::new(CoreExpr::Var(scrutinee_name.clone())),
+                        clauses: clauses[clause_index + 1..].to_vec(),
+                    },
+                });
+            }
+            CoreExpr::If { clauses: guarded }
+        } else {
+            clause.body.clone()
+        };
         let (selected, mut selected_continuations) = control::lower_owned_expr_with_yields(
-            clause.body.clone(),
+            selected_core,
             YieldLoweringScope {
                 param_names: &clause_names,
                 params: &binding_slots,

@@ -1,52 +1,35 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-slice
+//! The `mask-border-slice` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property divides
+//! the image set by `mask-border-source` into regions. These regions are used to form the components
+//! of an element's [mask
+//! border](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border).
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: refer to size of the mask border image.
+//!
 //! Grammar: <'border-image-slice'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-slice
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-slice
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MaskBorderSlice.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    mask_border_slice: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    mask_border_slice: Value
+    mask_border_slice: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained mask-border-slice value.
+/// Checks the mask-border-slice number range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub number(value: Float): Option[Checked].
 
-/// Returns the CSS keyword inherit.
+/// Checks the mask-border-slice percentage range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a mask-border-slice value.
-
-pub number(value: Float): Option[Value].
-
-/// Checks the specification range and constructs a mask-border-slice value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

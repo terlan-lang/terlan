@@ -1,0 +1,6 @@
+//! Shared CSS keyword textfield. Generated; do not edit.
+
+module std.css.keywords.Textfield.
+
+pub type Textfield =
+    Atom["textfield"].

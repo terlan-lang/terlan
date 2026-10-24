@@ -1,9 +1,11 @@
 module=std.css.properties.CaretAnimation
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=12176094929917308396
-interface_hash=16303254473260352603
-interface_doc_hash=6970636754559115780
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1671462837610921981
+interface_hash=15019447936573346936
+interface_doc_hash=9510135781416017984
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722
+std.css.keywords.Manual=11554701572838361834

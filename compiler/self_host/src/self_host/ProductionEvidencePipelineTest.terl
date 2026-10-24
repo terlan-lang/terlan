@@ -1,0 +1,18 @@
+/** Production evidence plan admission contracts. */
+module self_host.ProductionEvidencePipelineTest.
+
+import self_host.ProductionEvidencePipeline.
+
+@test
+pub parity_jobs_require_gate_keys(): Bool ->
+    ProductionEvidencePipeline.valid_job("parity", "core-ir-authority")
+        and not ProductionEvidencePipeline.valid_job("parity", "stage1-identity").
+
+@test
+pub identity_jobs_require_identity_keys(): Bool ->
+    ProductionEvidencePipeline.valid_job("identity", "stage1-identity")
+        and not ProductionEvidencePipeline.valid_job("identity", "core-ir-authority").
+
+@test
+pub unknown_job_kinds_are_rejected(): Bool ->
+    not ProductionEvidencePipeline.valid_job("manual", "core-ir-authority").

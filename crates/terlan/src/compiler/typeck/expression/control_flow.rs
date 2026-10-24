@@ -241,7 +241,7 @@ fn check_clauses_exhaustiveness(
     ctx: &ExprInferContext,
     errors: &mut Vec<String>,
 ) {
-    let expanded = expand_type_aliases(match_type, ctx.aliases);
+    let expanded = expand_interface_global_aliases(match_type, ctx.aliases);
     let mut remaining = as_exhaustive_union_variants(&expanded);
     if remaining.len() <= 1 && !has_finite_fields(&expanded) {
         return;

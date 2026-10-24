@@ -1,10 +1,9 @@
 module=std.css.properties.StrokeMiterlimit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=15184697260803015279
-interface_hash=17030438427296221057
-interface_doc_hash=5457241059105139443
-deps=2
-std.core.Float=3784534907681217377
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=12651062534436241201
+interface_hash=12703562449308273091
+interface_doc_hash=13499503523120940477
+deps=1
+std.css.Values=330909209718432688

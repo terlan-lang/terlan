@@ -123,7 +123,7 @@ mod tests {
             ("{first, second, third}", LalrpopSyntaxNodeKind::Tuple),
             ("[first, second]", LalrpopSyntaxNodeKind::List),
             ("[head | tail]", LalrpopSyntaxNodeKind::ListCons),
-            ("#[255, 128, 0]", LalrpopSyntaxNodeKind::FixedArray),
+            ("#[255, 128, 0]", LalrpopSyntaxNodeKind::Array),
             ("{name: \"Ada\", age: 42}", LalrpopSyntaxNodeKind::Map),
             ("-value", LalrpopSyntaxNodeKind::Unary),
             ("Value as Int", LalrpopSyntaxNodeKind::Cast),

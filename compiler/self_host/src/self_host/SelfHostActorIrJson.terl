@@ -1,0 +1,115 @@
+/** Canonical JSON ABI for actor suspension and continuation Core IR. */
+module self_host.SelfHostActorIrJson.
+
+import self_host.SelfHostActorIrSyntax.{ActorContinuation, ActorIrPlan, ActorResumeEdge, ActorSuspensionSite}.
+import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
+import self_host.SelfHostActorCallPlan.{ActorCalleeEntry}.
+import self_host.SelfHostActorTypedCoreModule.{ActorTypedCoreModule}.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Result}.
+import std.data.Json.
+import type std.data.Json.{Json, JsonError}.
+
+
+strings(values: List[String], output: Json): Json ->
+    case values { [] -> output; [value | rest] -> strings(rest, output.push(Json.string(value))) }.
+
+continuation(value: ActorContinuation): Json ->
+    let has_ordinal = case value.ordinal { Some(_) -> true; None -> false };
+    let ordinal = case value.ordinal { Some(number) -> number; None -> 0 };
+    Json.object()
+        .put("id", Json.string(value.id))
+        .put("source_module", Json.string(value.source_module))
+        .put("source_function", Json.string(value.source_function))
+        .put("source_arity", Json.int(value.source_arity))
+        .put("identity_kind", Json.string(value.identity_kind))
+        .put("outward_entry", Json.bool(value.outward_entry))
+        .put("has_ordinal", Json.bool(has_ordinal))
+        .put("ordinal", Json.int(ordinal))
+        .put("capture_names", strings(value.capture_names, Json.array()))
+        .put("capture_types", strings(value.capture_types, Json.array()))
+        .put("parameter_names", strings(value.parameter_names, Json.array()))
+        .put("parameter_types", strings(value.parameter_types, Json.array()))
+        .put("return_type", Json.string(value.return_type))
+        .put("entry_block", Json.string(value.entry_block)).
+
+continuations(values: List[ActorContinuation], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> continuations(rest, output.push(continuation(value)))
+    }.
+
+resume(value: ActorResumeEdge): Json ->
+    let has_export = case value.callee_export_id { Some(_) -> true; None -> false };
+    let export_id = case value.callee_export_id { Some(identity) -> identity; None -> "" };
+    Json.object()
+        .put("has_callee_export_id", Json.bool(has_export))
+        .put("callee_export_id", Json.string(export_id))
+        .put("callee_continuation_id", Json.string(value.callee_continuation_id))
+        .put("callee_capture_count", Json.int(value.callee_capture_count))
+        .put("continuation_id", Json.string(value.continuation_id))
+        .put("caller_value_start", Json.int(value.caller_value_start)).
+
+resumes(values: List[ActorResumeEdge], output: Json): Json ->
+    case values { [] -> output; [value | rest] -> resumes(rest, output.push(resume(value))) }.
+
+suspension(value: ActorSuspensionSite): Json ->
+    Json.object()
+        .put("source_function", Json.string(value.source_function))
+        .put("source_arity", Json.int(value.source_arity))
+        .put("native_call_index", Json.int(value.native_call_index))
+        .put("block_label", Json.string(value.block_label))
+        .put("result_name", Json.string(value.result_name))
+        .put("callee_module", Json.string(value.callee_module))
+        .put("callee_function", Json.string(value.callee_function))
+        .put("callee_arity", Json.int(value.callee_arity))
+        .put("value_names", strings(value.value_names, Json.array()))
+        .put("resumes", resumes(value.resumes, Json.array()))
+        .put("completion_continuation_id", Json.string(value.completion_continuation_id)).
+
+suspensions(values: List[ActorSuspensionSite], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> suspensions(rest, output.push(suspension(value)))
+    }.
+
+profile_entry(value: ActorCalleeEntry): Json ->
+    let has_export = case value.export_identity { Some(_) -> true; None -> false };
+    let export_identity = case value.export_identity { Some(identity) -> identity; None -> "" };
+    Json.object()
+        .put("has_export_identity", Json.bool(has_export))
+        .put("export_identity", Json.string(export_identity))
+        .put("continuation_identity", Json.string(value.continuation_identity))
+        .put("capture_count", Json.int(value.capture_count)).
+
+profile_entries(values: List[ActorCalleeEntry], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> profile_entries(rest, output.push(profile_entry(value)))
+    }.
+
+profile(value: ActorSuspensionProfile): Json ->
+    Json.object()
+        .put("module_name", Json.string(value.module_name))
+        .put("callable_name", Json.string(value.callable_name))
+        .put("arity", Json.int(value.arity))
+        .put("runtime_owned", Json.bool(value.runtime_owned))
+        .put("entries", profile_entries(value.entries, Json.array())).
+
+profiles(values: List[ActorSuspensionProfile], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> profiles(rest, output.push(profile(value)))
+    }.
+
+document(value: ActorIrPlan, values: List[ActorSuspensionProfile]): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.self-host.actor-ir/v2"))
+        .put("continuations", continuations(value.continuations, Json.array()))
+        .put("suspension_sites", suspensions(value.suspension_sites, Json.array()))
+        .put("profiles", profiles(values, Json.array())).
+
+pub encode(value: ActorTypedCoreModule): Result[String, JsonError] ->
+    Json.stringify(document(value.actors, value.profiles)).

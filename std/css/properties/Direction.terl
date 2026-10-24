@@ -1,75 +1,32 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-direction
+ * The `direction` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * direction of text, table and grid columns, and horizontal overflow. Use `rtl` for languages
+ * written from right to left (like Hebrew or Arabic), and `ltr` for those written from left to
+ * right (like English and most other languages).
+ *
+ * Initial: ltr. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - ltr: Text and other elements go from left to right. This is the default value.
+ * - rtl: Text and other elements go from right to left.
+ *
  * Grammar: ltr | rtl
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-direction
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/direction
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Direction.
 
-import type std.core.Option.
+import std.css.keywords.{Ltr, Rtl}.
 
-/**
- * A nominal, specification-constrained direction value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    direction: Value,
+    direction: Ltr | Rtl | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    direction: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "direction", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "direction", css: "initial"}).
-
-/**
- * Returns the CSS keyword ltr.
- */
-pub ltr(): Value ->
-    Value(Token {property: "direction", css: "ltr"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "direction", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "direction", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword rtl.
- */
-pub rtl(): Value ->
-    Value(Token {property: "direction", css: "rtl"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "direction", css: "unset"}).

@@ -1,0 +1,215 @@
+{
+  "glyph-orientation-vertical": {
+    "description": "Controls glyph rotation in vertical SVG text. This legacy property is deprecated; use text-orientation for new layouts.",
+    "source": "https://www.w3.org/TR/SVG11/text.html#GlyphOrientationVerticalProperty"
+  },
+  "scroll-axis-lock": {
+    "description": "Controls whether the browser can constrain a scrolling gesture to one axis. Use none when diagonal scrolling must remain available.",
+    "values": {
+      "auto": "Allows the browser to lock a gesture to one scrolling axis.",
+      "none": "Keeps diagonal scrolling available by disabling axis locking."
+    },
+    "source": "https://drafts.csswg.org/css-overflow-5/#propdef-scroll-axis-lock"
+  },
+  "window-drag": {
+    "description": "Marks a region that can move an application window when dragged. A move region consumes the drag gesture instead of delivering normal pointer and mouse events.",
+    "values": {
+      "none": "Leaves this element available for ordinary interaction.",
+      "move": "Uses this element as an area for dragging the window."
+    },
+    "source": "https://drafts.csswg.org/css-ui-4/#propdef-window-drag"
+  },
+  "view-transition-group": {
+    "description": "Controls nesting of named view-transition groups. Use containment to preserve ancestor effects such as clipping during a transition; this has no effect when view-transition-name is none.",
+    "values": {
+      "normal": "Nests inside the nearest ancestor group that establishes containment, or the transition root.",
+      "contain": "Establishes a container for descendant transition groups.",
+      "nearest": "Nests inside the nearest ancestor transition group, even without explicit containment."
+    },
+    "source": "https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-group"
+  },
+  "speak": {
+    "description": "Controls whether an element participates in synthesized speech. This affects aural presentation rather than visual layout.",
+    "values": {
+      "auto": "Follows the element visibility when deciding whether to speak its text.",
+      "never": "Excludes the element from synthesized speech.",
+      "always": "Includes the element in synthesized speech regardless of its visual display."
+    },
+    "source": "https://drafts.csswg.org/css-speech-1/#propdef-speak"
+  },
+  "stroke-color": {
+    "description": "Sets the solid paint color for strokes around text or SVG shapes. Use the stroke shorthand when changing the complete stroke, and this property when changing only its color.",
+    "source": "https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-color"
+  },
+  "text-decoration-skip-spaces": {
+    "description": "Controls whether underline, overline, and line-through decorations cross spaces, including decorations inherited from ancestors.",
+    "values": {
+      "none": "Draws decorations across spaces.",
+      "all": "Omits decorations across all spaces.",
+      "start": "Omits decorations across spaces at the start of each line.",
+      "end": "Omits decorations across spaces at the end of each line."
+    },
+    "source": "https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip-spaces"
+  },
+  "column-rule-inset": {
+    "description": "Adjusts the both endpoints of column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset"
+  },
+  "column-rule-inset-cap": {
+    "description": "Adjusts the both endpoints of column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset-cap"
+  },
+  "column-rule-inset-cap-end": {
+    "description": "Adjusts the end endpoints of column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset-cap-end"
+  },
+  "column-rule-inset-cap-start": {
+    "description": "Adjusts the start endpoints of column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset-cap-start"
+  },
+  "column-rule-inset-end": {
+    "description": "Adjusts the end endpoints of column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset-end"
+  },
+  "column-rule-inset-junction": {
+    "description": "Adjusts the both endpoints of column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset-junction"
+  },
+  "column-rule-inset-junction-end": {
+    "description": "Adjusts the end endpoints of column gap decoration segments at intersections between gaps. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset-junction-end"
+  },
+  "column-rule-inset-junction-start": {
+    "description": "Adjusts the start endpoints of column gap decoration segments at intersections between gaps. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset-junction-start"
+  },
+  "column-rule-inset-start": {
+    "description": "Adjusts the start endpoints of column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset-start"
+  },
+  "row-rule-inset": {
+    "description": "Adjusts the both endpoints of row gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset"
+  },
+  "row-rule-inset-cap": {
+    "description": "Adjusts the both endpoints of row gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-cap"
+  },
+  "row-rule-inset-cap-end": {
+    "description": "Adjusts the end endpoints of row gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-cap-end"
+  },
+  "row-rule-inset-cap-start": {
+    "description": "Adjusts the start endpoints of row gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-cap-start"
+  },
+  "row-rule-inset-end": {
+    "description": "Adjusts the end endpoints of row gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-end"
+  },
+  "row-rule-inset-junction": {
+    "description": "Adjusts the both endpoints of row gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-junction"
+  },
+  "row-rule-inset-junction-end": {
+    "description": "Adjusts the end endpoints of row gap decoration segments at intersections between gaps. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-junction-end"
+  },
+  "row-rule-inset-junction-start": {
+    "description": "Adjusts the start endpoints of row gap decoration segments at intersections between gaps. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-junction-start"
+  },
+  "row-rule-inset-start": {
+    "description": "Adjusts the start endpoints of row gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-start"
+  },
+  "rule-inset": {
+    "description": "Adjusts the both endpoints of row and column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-rule-inset"
+  },
+  "rule-inset-cap": {
+    "description": "Adjusts the both endpoints of row and column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-rule-inset-cap"
+  },
+  "rule-inset-end": {
+    "description": "Adjusts the end endpoints of row and column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-rule-inset-end"
+  },
+  "rule-inset-junction": {
+    "description": "Adjusts the both endpoints of row and column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-rule-inset-junction"
+  },
+  "rule-inset-start": {
+    "description": "Adjusts the start endpoints of row and column gap decoration segments. Positive lengths shorten segments inward; negative lengths extend them outward.",
+    "values": {
+      "overlap-join": "Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps."
+    },
+    "source": "https://drafts.csswg.org/css-gaps-1/#propdef-rule-inset-start"
+  }
+}

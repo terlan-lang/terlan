@@ -1,81 +1,37 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-color-adjust-1/#propdef-color-scheme
+ * The `color-scheme` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows an
+ * element to indicate which color schemes it can comfortably be rendered in. User agents change the
+ * following aspects of the UI chrome to match the used color scheme:
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - dark: Indicates that the element can be rendered using the operating system _dark_ color
+ * scheme.
+ * - light: Indicates that the element can be rendered using the operating system _light_ color
+ * scheme.
+ * - normal: Indicates that the element can be rendered using the page's [color
+ * scheme](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta/name/color-scheme)
+ * settings. If the page does not have a color scheme set, the element is rendered using the page's
+ * default color settings.
+ *
  * Grammar: normal | [ light | dark | <custom-ident> ]+ && only?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-color-adjust-1/#propdef-color-scheme
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/color-scheme
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ColorScheme.
 
-import type std.core.Option.
+import std.css.keywords.{Dark, Light, Normal}.
 
-/**
- * A nominal, specification-constrained color-scheme value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    color_scheme: Value,
+    color_scheme: Normal | Light | Dark | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    color_scheme: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword dark.
- */
-pub dark(): Value ->
-    Value(Token {property: "color-scheme", css: "dark"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "color-scheme", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "color-scheme", css: "initial"}).
-
-/**
- * Returns the CSS keyword light.
- */
-pub light(): Value ->
-    Value(Token {property: "color-scheme", css: "light"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "color-scheme", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "color-scheme", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "color-scheme", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "color-scheme", css: "unset"}).

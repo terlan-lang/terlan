@@ -1,0 +1,194 @@
+/** Exact normal-path inventory proving recovery frontends are not selected. */
+module self_host.SelfHostNormalPathAuthority.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, String}.
+
+
+pub struct NormalPathEntry {
+    role: String,
+    path: String,
+    required_token: String,
+}.
+
+pub constructor NormalPathEntry {
+    (role: String, path: String, required_token: String): NormalPathEntry ->
+        NormalPathEntry {
+            role: role,
+            path: path,
+            required_token: required_token,
+        }
+}.
+
+pub struct NormalPathSource {
+    entry: NormalPathEntry,
+    source: String,
+}.
+
+pub constructor NormalPathSource {
+    (entry: NormalPathEntry, source: String): NormalPathSource ->
+        NormalPathSource { entry: entry, source: source }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+expected(role: String, path: String, token: String): Bool ->
+    if {
+        role == "compiler-package" -> path == "compiler/self_host/scripts/package_stage.sh"
+            and token == "target/bootstrap/terlc1/terlc";
+        role == "source-closure" -> path == "compiler/self_host/scripts/source_closure.sh"
+            and token == "target/bootstrap/terlc1/terlc";
+        role == "bounded-backend" -> path == "compiler/self_host/scripts/bounded_package_stage.sh"
+            and token == "SELF_HOST_IMAGE";
+        role == "native-object" -> path == "compiler/self_host/scripts/native_object_stage.sh"
+            and token == "actor-backend-unit";
+        role == "native-application" -> path == "compiler/self_host/scripts/native_application_stage.sh"
+            and token == "actor-backend-unit";
+        role == "hardening-evidence" -> path == "compiler/self_host/scripts/hardening_evidence.sh"
+            and token == "target/bootstrap/terlc1/terlc";
+        role == "production-authority" -> path == "compiler/self_host/scripts/production_authority.sh"
+            and token == "production-evidence";
+        role == "bootstrap-seed" -> path == "compiler/self_host/scripts/seed_stage.sh"
+            and token == "TERLAN_SELF_HOST_IMAGE";
+        role == "bootstrap-comparison" -> path == "compiler/self_host/scripts/bootstrap_convergence.sh"
+            and token == "TERLAN_SELF_HOST_IMAGE";
+        role == "fixed-point-comparison" -> path == "compiler/self_host/scripts/bootstrap_fixed_point.sh"
+            and token == "TERLAN_SELF_HOST_IMAGE";
+        role == "post-cleanup-convergence" -> path == "compiler/self_host/scripts/post_cleanup_convergence.sh"
+            and token == "TERLAN_SELF_HOST_IMAGE";
+        true -> false
+    }.
+
+@pure
+duplicate(values: List[NormalPathEntry], role: String, path: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.role == role
+            or value.path == path
+            or duplicate(rest, role, path)
+    }.
+
+@pure
+decode_row(line: String, output: List[NormalPathEntry]): Option[List[NormalPathEntry]] ->
+    case String.split(line, "\t") {
+        [role, path, token] ->
+            let normalized_role = String.trim(role);
+            let normalized_path = String.trim(path);
+            let normalized_token = String.trim(token);
+            if {
+                not expected(normalized_role, normalized_path, normalized_token) -> None;
+                duplicate(output, normalized_role, normalized_path) -> None;
+                true -> Some([NormalPathEntry(
+                    normalized_role,
+                    normalized_path,
+                    normalized_token,
+                ) | output])
+            };
+        _ -> None
+    }.
+
+@pure
+decode_lines(
+    lines: List[String],
+    output: List[NormalPathEntry],
+): Option[List[NormalPathEntry]] ->
+    case lines {
+        [] -> Some(reverse_at(output, List.new[NormalPathEntry]()));
+        [line | rest] -> let normalized = String.trim(line);
+            if {
+                normalized == "" or String.starts_with(normalized, "#") ->
+                    decode_lines(rest, output);
+                true -> case decode_row(normalized, output) {
+                    None -> None;
+                    Some(next) -> decode_lines(rest, next)
+                }
+            }
+    }.
+
+@pure
+pub decode(manifest: String): Option[List[NormalPathEntry]] ->
+    decode_lines(String.split(manifest, "\n"), List.new[NormalPathEntry]()).
+
+@pure
+canonical_roles(values: List[NormalPathEntry], roles: List[String]): Bool ->
+    case values {
+        [] -> List.is_empty(roles);
+        [value | rest] -> case roles {
+            [] -> false;
+            [role | remaining] -> value.role == role
+                and canonical_roles(rest, remaining)
+        }
+    }.
+
+@pure
+forbidden_frontend(source: String): Bool ->
+    String.contains(source, "TERLC=${TERLC:-target/debug/terlc}")
+        or String.contains(source, "TERLC=${TERLC:-$ROOT/target/debug/terlc}")
+        or String.contains(source, "TERLC=${TERLC:-target/bootstrap/terlc0/terlc}")
+        or String.contains(source, "TERLC=${TERLC:-$ROOT/target/bootstrap/terlc0/terlc}")
+        or (String.contains(source, "cargo run") and String.contains(source, "--bin terlc")).
+
+@pure
+source_admitted(value: NormalPathSource): Bool ->
+    String.contains(value.source, value.entry.required_token)
+        and not forbidden_frontend(value.source).
+
+@pure
+all_sources_admitted(values: List[NormalPathSource]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> source_admitted(value) and all_sources_admitted(rest)
+    }.
+
+/** Admits exactly the canonical normal entry points and no Rust/recovery frontend selector. */
+@pure
+pub admit(values: List[NormalPathSource]): Bool ->
+    canonical_roles(
+        paths(values),
+        [
+            "compiler-package",
+            "source-closure",
+            "bounded-backend",
+            "native-object",
+            "native-application",
+            "hardening-evidence",
+            "production-authority",
+            "bootstrap-seed",
+            "bootstrap-comparison",
+            "fixed-point-comparison",
+            "post-cleanup-convergence",
+        ],
+    ) and all_sources_admitted(values).
+
+@pure
+paths(values: List[NormalPathSource]): List[NormalPathEntry] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [value.entry | paths(rest)]
+    }.
+
+@pure
+render_rows(values: List[NormalPathSource]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> value.entry.role
+            + "\t"
+            + value.entry.path
+            + "\tself-hosted\n"
+            + render_rows(rest)
+    }.
+
+@pure
+pub render(values: List[NormalPathSource]): String ->
+    "terlan.self-host.normal-path-authority/v1\n"
+        + "role\tpath\tfrontend\n"
+        + render_rows(values).

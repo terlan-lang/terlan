@@ -1,123 +1,44 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-sizing-3/#column-sizing
+ * The `column-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * ideal column width in a multi-column layout.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: The width of the column is determined by other CSS properties, such as `column-count`.
+ *
  * Grammar: auto | <box-size> | auto | <box-size>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-sizing-3/#column-sizing
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-width
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ColumnWidth.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, serialize}.
+import std.css.keywords.Auto.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained column-width value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    column_width: Value,
+    column_width: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the column-width length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub struct OptionalProperty {
-    column_width: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "column-width", css: "auto"}).
-
-/**
- * Returns the CSS keyword contain.
- */
-pub contain(): Value ->
-    Value(Token {property: "column-width", css: "contain"}).
-
-/**
- * Returns the CSS keyword fit-content.
- */
-pub fit_content(): Value ->
-    Value(Token {property: "column-width", css: "fit-content"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "column-width", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "column-width", css: "initial"}).
-
-/**
- * Returns the CSS keyword max-content.
- */
-pub max_content(): Value ->
-    Value(Token {property: "column-width", css: "max-content"}).
-
-/**
- * Returns the CSS keyword min-content.
- */
-pub min_content(): Value ->
-    Value(Token {property: "column-width", css: "min-content"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "column-width", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "column-width", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword stretch.
- */
-pub stretch(): Value ->
-    Value(Token {property: "column-width", css: "stretch"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "column-width", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a column-width value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "column-width", css: std.css.Values.length_css(value)}));
-        false -> None
-    }.
-
-/**
- * Checks the specification range and constructs a column-width value.
- */
-pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "column-width", css: std.css.Values.percentage_css(value)}));
-        false -> None
+pub length(value: Length): Option[Checked] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Checked(serialize("column-width", length_css(value))));
+        false -> Absent
     }.

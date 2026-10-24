@@ -247,7 +247,10 @@ pub labeled_pattern_audit_expands_paths_and_rejects_empty_matches(): Bool ->
 } else {
     _ -> false
 };
-audit.file_count == 1 and audit.digest == digest and not audit.portable and missing.code == NotFound);
+audit.file_count == 1
+    and audit.digest == digest
+    and not audit.portable
+    and missing.code == NotFound);
             let _removed = remove_all(root);
             result
     }.

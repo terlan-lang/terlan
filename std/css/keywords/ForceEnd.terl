@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword force-end. Generated; do not edit.
+ */
+module std.css.keywords.ForceEnd.
+
+pub type ForceEnd = Atom["force-end"].

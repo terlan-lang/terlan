@@ -1,6 +1,7 @@
 //! Request decoding is an ordinary source method, including its result policy.
 
 use super::source_constructor_test::check_sources;
+use crate::runtime::vm::package_native_helper::source_test_support::assert_source_checks;
 
 #[test]
 fn body_json_uses_source_policy_and_ordinary_guarded_result_matching() {
@@ -49,13 +50,13 @@ pub exercise(): Bool ->
     let request = Request {
         #method: "POST", #path: "/source",
         #params: [{"id", "42"}], #body: "raw body",
-        #query_string: "q=&q=last", #query: [{"q", ""}],
-        #headers: [{"x-test", "header"}, {"key", "ascii"}], #cookies: [{"session", "cookie"}],
+        #query_string: "q=last&q=",
+        #headers: [{"x-test", "header"}, {"key", "ascii"}], #cookies: ["session=cookie"],
         #body_file_path: "/tmp/body"
     };
     request.method() == "POST" and request.path() == "/source"
         and request.body_text() == "raw body"
-        and request.query_string() == "q=&q=last"
+        and request.query_string() == "q=last&q="
         and request.body_file_path() == "/tmp/body"
         and request.cookies().headers() == []
         and (case request.param("id") { Some(value) -> value == "42"; None -> false })
@@ -69,15 +70,7 @@ pub exercise(): Bool ->
         and (case request.cookie("missing") { None -> true; _ -> false }).
 "#
     );
-    check_sources(&[
-        "module request_values. import std.http.Request. pub check(): Bool -> Request.exercise().",
-        &request,
-        include_str!("../../../../../std/http/Cookies.terl"),
-        include_str!("../../../../../std/collections/Enumerable.terl"),
-        include_str!("../../../../../std/collections/List.terl"),
-        include_str!("../../../../../std/collections/Iterator.terl"),
-        include_str!("../../../../../std/core/Option.terl"),
-    ]);
+    assert_source_checks("std_http_Request", &request, &["exercise"]);
 }
 
 #[test]
@@ -91,24 +84,16 @@ pub check(): Bool ->
     let pairs = [{{"key", "first"}}, {{"key", ""}}, {{"KEY", "other"}}, {{"key", "last"}}];
     let request = Request {{
         #method: "GET", #path: "/", #params: pairs, #body: "",
-        #query_string: "", #query: pairs, #headers: pairs, #cookies: [], #body_file_path: ""
+        #query_string: "key=first&key=&KEY=other&key=last", #headers: pairs, #cookies: [], #body_file_path: ""
     }};
     request.param("key") == {expected}
         and request.query("key") == {expected}
         and request.header("KEY") == {expected}.
 "#,
         );
-        for source in [
-            provider.clone(),
-            provider.replace("module std.http.Request.", "module app.SourceRequest."),
-        ] {
-            check_sources(&[
-                &source,
-                include_str!("../../../../../std/collections/Enumerable.terl"),
-                include_str!("../../../../../std/collections/List.terl"),
-                include_str!("../../../../../std/collections/Iterator.terl"),
-                include_str!("../../../../../std/core/Option.terl"),
-            ]);
+        for module in ["std.http.Request", "app.SourceRequest"] {
+            let source = provider.replace("module std.http.Request.", &format!("module {module}."));
+            assert_source_checks(&module.replace('.', "_"), &source, &["check"]);
         }
     }
 }
@@ -127,39 +112,40 @@ pub check(): Bool ->
     ];
     let request = Request {
         #method: "GET", #path: "/", #params: pairs, #body: "",
-        #query_string: "", #query: pairs, #headers: pairs,
-        #cookies: pairs, #body_file_path: ""
+        #query_string: "sid=first&empty=&sid=second&SID=upper&empty=later&last_empty=before&last_empty=&binary_to_atom=text&list_to_atom=text",
+        #headers: pairs,
+        #cookies: [
+            "sid=first; empty=; sid=second; SID=upper; empty=later; last_empty=before; last_empty=; binary_to_atom=text; list_to_atom=text",
+            "sid=ignored-header"
+        ], #body_file_path: ""
     };
     request.param("sid") == Some("second")
         and request.query("sid") == Some("second")
         and request.header("sId") == Some("second")
-        and request.cookie("sid") == Some("first")
-        and request.cookie("SID") == Some("upper")
-        and request.cookie("empty") == Some("")
+        and cookie_values(request)
         and request.param("empty") == Some("later")
         and request.query("last_empty") == Some("")
         and request.header("LAST_EMPTY") == Some("")
-        and request.cookie("absent") == None
         and request.param("absent") == None
         and request.query("absent") == None
         and request.header("absent") == None
         and request.param("binary_to_atom") == Some("text")
         and request.query("list_to_atom") == Some("text")
         and request.header("BINARY_TO_ATOM") == Some("text")
+        and cookie_names(request).
+
+cookie_values(request: Request): Bool ->
+    request.cookie("sid") == Some("first")
+        and request.cookie("SID") == Some("upper")
+        and request.cookie("empty") == Some("").
+
+cookie_names(request: Request): Bool ->
+    request.cookie("absent") == None
         and request.cookie("list_to_atom") == Some("text").
 "#,
     );
-    for source in [
-        provider.clone(),
-        provider.replace("module std.http.Request.", "module app.RequestSnapshot."),
-    ] {
-        check_sources(&[
-            &source,
-            include_str!("../../../../../std/http/Cookies.terl"),
-            include_str!("../../../../../std/collections/Enumerable.terl"),
-            include_str!("../../../../../std/collections/List.terl"),
-            include_str!("../../../../../std/collections/Iterator.terl"),
-            include_str!("../../../../../std/core/Option.terl"),
-        ]);
+    for module in ["std.http.Request", "app.RequestSnapshot"] {
+        let source = provider.replace("module std.http.Request.", &format!("module {module}."));
+        assert_source_checks(&module.replace('.', "_"), &source, &["check"]);
     }
 }

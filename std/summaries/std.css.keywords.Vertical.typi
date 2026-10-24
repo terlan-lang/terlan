@@ -1,0 +1,6 @@
+//! Shared CSS keyword vertical. Generated; do not edit.
+
+module std.css.keywords.Vertical.
+
+pub type Vertical =
+    Atom["vertical"].

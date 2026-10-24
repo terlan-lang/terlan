@@ -10,9 +10,11 @@ mod callback_invocation;
 mod context_binding;
 mod descriptor_value;
 mod native_argument;
+mod native_binding;
 mod native_record;
 mod native_services;
 mod native_value;
+mod record_fields;
 mod resource;
 mod resource_adapter;
 mod resource_operation;
@@ -27,6 +29,7 @@ pub use descriptor_value::{DescriptorValue, DescriptorView, OwnedDescriptor};
 pub use native_argument::FromNativeValue;
 pub use native_services::NativeServices;
 pub use native_value::{NativeBinding, NativeValue};
+pub use record_fields::into_record_fields;
 pub use resource::{NativeResourceHandle, ResourceError, ResourceRegistry, SYSTEM_RESOURCE_OWNER};
 pub use resource_adapter::{
     NativeResourceAdapter, NativeResourceStore, ResourceInvoke, ResourceMutate,

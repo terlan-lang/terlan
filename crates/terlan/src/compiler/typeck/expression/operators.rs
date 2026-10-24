@@ -427,11 +427,11 @@ fn are_structurally_equal_compatible(left: &Type, right: &Type) -> bool {
                 })
         }
         (
-            Type::FixedArray {
+            Type::Array {
                 size: left_size,
                 elem: left_elem,
             },
-            Type::FixedArray {
+            Type::Array {
                 size: right_size,
                 elem: right_elem,
             },

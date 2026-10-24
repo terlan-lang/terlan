@@ -1,52 +1,24 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-fill-opacity
+//! The `fill-opacity` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! opacity of the painting operation (color, gradient, pattern, etc.) applied to SVG shapes or text
+//! content elements to fill the element. The property defines the opacity of the element's `fill`
+//! only; it does not affect the stroke. If present, it overrides the element's `fill-opacity`
+//! attribute.
+//!
+//! Initial: 1. Inherited: yes.
+//! Percentages: map to the range [0,1].
+//!
 //! Grammar: <'opacity'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-fill-opacity
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/fill-opacity
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FillOpacity.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    fill_opacity: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    fill_opacity: Value
+    fill_opacity: Float | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained fill-opacity value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a fill-opacity value from a typed number.
-
-pub number(value: Float): Value.
-
-/// Constructs a fill-opacity value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

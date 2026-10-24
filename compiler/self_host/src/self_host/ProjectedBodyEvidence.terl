@@ -1,6 +1,8 @@
 /** Stable evidence combining callable identities with expression-tree validity. */
 module self_host.ProjectedBodyEvidence.
 
+import std.core.String.
+
 import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
 
 import std.collections.List.

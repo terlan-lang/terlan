@@ -5,11 +5,36 @@
  * symbol primitive. Source code should define named aliases with
  * `Atom["name"]` and use those aliases in expressions and patterns.
  *
+ * Public singleton aliases have one declaration in a compilation graph.
+ * Import the existing alias instead of declaring the same atom in another module.
+ * The compiler reports `duplicate_atom_alias` for duplicate public declarations.
+ * Private aliases, opaque types, unions, and references to shared aliases remain valid.
+ *
  * Atom names are finite source-level symbols. Runtime text must not create
  * new atoms. Dynamic input should remain `String` or be matched through an
  * explicit finite table that returns `Result` for unknown values.
  */
 module std.core.Atom.
+
+/**
+ * Automatic policy marker shared across APIs.
+ */
+pub type Auto.
+
+/**
+ * Left direction marker shared across APIs.
+ */
+pub type Left.
+
+/**
+ * Manual policy marker shared across APIs.
+ */
+pub type Manual.
+
+/**
+ * Strict policy marker shared across APIs.
+ */
+pub type Strict.
 
 /**
  * Returns whether two singleton atom-backed values are equal.

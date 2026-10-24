@@ -1,0 +1,54 @@
+/** Positive and negative contracts for no-ad-hoc-exclusion authority. */
+module self_host.SelfHostExclusionAuthorityTest.
+
+import std.core.Option.{None, Some}.
+import self_host.SelfHostExclusionAuthority.{ExclusionSource}.
+import self_host.SelfHostExclusionAuthority.
+
+
+@test
+pub closure_without_exclusions_is_admitted(): Bool ->
+    case SelfHostExclusionAuthority.decode("# no exclusions\n") {
+        None -> false;
+        Some(entries) -> SelfHostExclusionAuthority.admit(
+            [ExclusionSource("compiler/Main.terl", "module compiler.Main.\n")],
+            entries,
+        )
+    }.
+
+@test
+pub unowned_comment_directive_is_rejected(): Bool ->
+    case SelfHostExclusionAuthority.decode("") {
+        None -> false;
+        Some(entries) -> not SelfHostExclusionAuthority.admit(
+            [ExclusionSource("compiler/Main.terl", "// nolint\nmodule compiler.Main.\n")],
+            entries,
+        )
+    }.
+
+@test
+pub owned_materialized_directive_is_admitted(): Bool ->
+    case SelfHostExclusionAuthority.decode(
+        "lint-suppression\tcompiler/Main.terl\tnolint\tcompiler-team\tlegacy boundary\n",
+    ) {
+        None -> false;
+        Some(entries) -> SelfHostExclusionAuthority.admit(
+            [ExclusionSource("compiler/Main.terl", "// nolint: legacy boundary\nmodule compiler.Main.\n")],
+            entries,
+        )
+    }.
+
+@test
+pub stale_or_unowned_manifest_rows_are_rejected(): Bool ->
+    SelfHostExclusionAuthority.decode(
+        "lint-suppression\tcompiler/Main.terl\tnolint\t\tmissing owner\n",
+    ) == None
+        and case SelfHostExclusionAuthority.decode(
+            "lint-suppression\tcompiler/Main.terl\tnolint\tcompiler-team\tlegacy boundary\n",
+        ) {
+            None -> false;
+            Some(entries) -> not SelfHostExclusionAuthority.admit(
+                [ExclusionSource("compiler/Main.terl", "module compiler.Main.\n")],
+                entries,
+            )
+        }.

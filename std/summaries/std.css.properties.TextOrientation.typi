@@ -1,56 +1,33 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-text-orientation
+//! The `text-orientation` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! orientation of the text characters in a line. It only affects text in vertical mode (when
+//! `writing-mode` is not `horizontal-tb`). It is useful for controlling the display of languages
+//! that use vertical script, and also for making vertical table headers.
+//!
+//! Initial: mixed. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - mixed: Rotates the characters of horizontal scripts 90° clockwise. Lays out the characters of
+//! vertical scripts naturally. Default value.
+//! - sideways: Causes characters to be laid out as they would be horizontally, but with the whole
+//! line rotated 90° clockwise.
+//! - upright: Lays out the characters of horizontal scripts naturally (upright), as well as the
+//! glyphs for vertical scripts. Note that this keyword causes all characters to be considered as
+//! left-to-right: the used value of `direction` is forced to be `ltr`.
+//!
 //! Grammar: mixed | upright | sideways
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-text-orientation
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-orientation
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextOrientation.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    text_orientation: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    text_orientation: Value
+    text_orientation: Mixed | Upright | Sideways | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained text-orientation value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword mixed.
-
-pub mixed(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword sideways.
-
-pub sideways(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword upright.
-
-pub upright(): Value.
-
-export type Token.

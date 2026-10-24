@@ -1,0 +1,6 @@
+//! Shared CSS keyword jis83. Generated; do not edit.
+
+module std.css.keywords.Jis83.
+
+pub type Jis83 =
+    Atom["jis83"].

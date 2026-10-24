@@ -1,0 +1,149 @@
+/** Target compatibility lint authority for TL0702. */
+module self_host.SelfHostLintTargets.
+
+import std.core.String.
+
+pub struct TargetDiagnostic {
+    path: String,
+    line: Int,
+    column: Int,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+    fix_available: Bool,
+}.
+
+pub constructor TargetDiagnostic {
+    (path: String, line: Int, column: Int, rule_id: String, rule_name: String, severity: String, message: String, fix_available: Bool): TargetDiagnostic ->
+        TargetDiagnostic {
+            path: path,
+            line: line,
+            column: column,
+            rule_id: rule_id,
+            rule_name: rule_name,
+            severity: severity,
+            message: message,
+            fix_available: fix_available,
+        }
+}.
+
+first(values: List[String]): String ->
+    case values { [] -> ""; [value | _rest] -> value }.
+
+trim_periods(value: String): String ->
+    if {
+        String.ends_with(value, ".") -> trim_periods(
+            String.utf8_slice(value, 0, String.byte_size(value) - 1),
+        );
+        true -> value
+    }.
+
+/** Extracts a module name from one real import declaration line. */
+pub import_module(line: String): String ->
+    let trimmed = String.trim(line);
+    if {
+        not String.starts_with(trimmed, "import ") -> "";
+        true ->
+            let after_import = String.utf8_slice(
+                trimmed,
+                7,
+                String.byte_size(trimmed) - 7,
+            );
+            let rest = if {
+                String.starts_with(after_import, "type ") -> String.utf8_slice(
+                    after_import,
+                    5,
+                    String.byte_size(after_import) - 5,
+                );
+                true -> after_import
+            };
+            trim_periods(String.trim(first(String.split(
+                first(String.split(rest, "{")),
+                " as ",
+            ))))
+    }.
+
+/** Returns js, wasm, vm, native, or empty for a non-target std module. */
+pub target_family(module_name: String): String ->
+    if {
+        module_name == "std.js" or String.starts_with(module_name, "std.js.") -> "js";
+        module_name == "std.wasm" or String.starts_with(module_name, "std.wasm.") -> "wasm";
+        module_name == "std.vm" or String.starts_with(module_name, "std.vm.") -> "vm";
+        module_name == "std.native" or String.starts_with(module_name, "std.native.") -> "native";
+        true -> ""
+    }.
+
+compatible(left: String, right: String): Bool ->
+    left == right
+        or (left == "vm" and right == "native")
+        or (left == "native" and right == "vm").
+
+incompatible_with_seen(family: String, seen: List[String]): Bool ->
+    case seen {
+        [] -> false;
+        [value | rest] ->
+            if { compatible(family, value) -> incompatible_with_seen(family, rest); true -> true }
+    }.
+
+contains(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | _rest] -> true;
+        [_item | rest] -> contains(value, rest)
+    }.
+
+diagnostics_at(
+    lines: List[String],
+    path: String,
+    line_number: Int,
+    in_block_comment: Bool,
+    seen: List[String],
+): List[TargetDiagnostic] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            if {
+                trimmed == "" or String.starts_with(trimmed, "//") ->
+                    diagnostics_at(rest, path, line_number + 1, in_block_comment, seen);
+                in_block_comment -> diagnostics_at(
+                    rest,
+                    path,
+                    line_number + 1,
+                    not String.contains(trimmed, "*/"),
+                    seen,
+                );
+                String.starts_with(trimmed, "/*") -> diagnostics_at(
+                    rest,
+                    path,
+                    line_number + 1,
+                    not String.contains(trimmed, "*/"),
+                    seen,
+                );
+                not String.starts_with(trimmed, "import ") ->
+                    diagnostics_at(rest, path, line_number + 1, false, seen);
+                true ->
+                    let family = target_family(import_module(trimmed));
+                    if {
+                        family == "" -> diagnostics_at(rest, path, line_number + 1, false, seen);
+                        incompatible_with_seen(family, seen) -> [TargetDiagnostic(
+                            path,
+                            line_number,
+                            String.byte_size(line) - String.byte_size(String.trim_start(line)) + 1,
+                            "TL0702",
+                            "targets.incompatible-std",
+                            "warning",
+                            "source mixes incompatible target-specific std imports",
+                            false,
+                        )];
+                        contains(family, seen) -> diagnostics_at(rest, path, line_number + 1, false, seen);
+                        true -> diagnostics_at(rest, path, line_number + 1, false, [family | seen])
+                    }
+            }
+    }.
+
+/** Reports only the first incompatible target-specific std import. */
+@pure
+pub diagnostics(path: String, source: String): List[TargetDiagnostic] ->
+    diagnostics_at(String.split(source, "\n"), path, 1, false, []).

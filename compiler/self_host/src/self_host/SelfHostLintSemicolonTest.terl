@@ -1,0 +1,42 @@
+/** Positive and negative TL0001 diagnostics and fix contracts. */
+module self_host.SelfHostLintSemicolonTest.
+
+import self_host.SelfHostLintSemicolon.
+
+@test
+pub reports_dense_semicolon_chain(): Bool ->
+    case SelfHostLintSemicolon.diagnostics(
+        "Sample.terl",
+        "module sample.\n    first(); second().\n",
+    ) {
+        [value] ->
+            value.rule_id == "TL0001"
+                and value.rule_name == "readability.semicolon-chain"
+                and value.severity == "warning"
+                and value.fix_available
+                and value.line == 2
+                and value.column == 12;
+        _ -> false
+    }.
+
+@test
+pub ignores_semicolons_in_strings_comments_and_incomplete_chains(): Bool ->
+    SelfHostLintSemicolon.diagnostics(
+        "Sample.terl",
+        "\"first(); second()\"\nfirst(); second() // example\nfirst();\n; second()\n",
+    ) == [].
+
+@test
+pub fixes_chain_with_original_indentation(): Bool ->
+    SelfHostLintSemicolon.fix("    first(); second(); third().") ==
+        "    first();\n    second();\n    third().".
+
+@test
+pub preserves_strings_and_terminal_newline(): Bool ->
+    SelfHostLintSemicolon.fix("value = \"a;b\"; done().\n") ==
+        "value = \"a;b\";\ndone().\n".
+
+@test
+pub leaves_comment_lines_unchanged(): Bool ->
+    let source = "// first(); second()\n * first(); second()";
+    SelfHostLintSemicolon.fix(source) == source.

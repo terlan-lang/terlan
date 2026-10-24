@@ -101,7 +101,10 @@ log_directory_error(context: String, reason: DirectoryError): Unit ->
             context,
             String.append(
                 ": ",
-                String.append(reason.message, String.append(" (", String.append(reason.path, ")"))),
+                String.append(
+                    reason.message,
+                    String.append(" (", String.append(reason.path, ")")),
+                ),
             ),
         ),
     ).
@@ -112,7 +115,10 @@ log_file_error(context: String, reason: FileError): Unit ->
             context,
             String.append(
                 ": ",
-                String.append(reason.message, String.append(" (", String.append(reason.path, ")"))),
+                String.append(
+                    reason.message,
+                    String.append(" (", String.append(reason.path, ")")),
+                ),
             ),
         ),
     ).

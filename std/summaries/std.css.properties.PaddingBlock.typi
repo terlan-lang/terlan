@@ -1,72 +1,54 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-logical-1/#propdef-padding-block
+//! The `padding-block` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property defines the logical block start and end padding of an element, which maps to physical
+//! padding properties depending on the element's writing mode, directionality, and text orientation.
+//!
+//! Initial: padding-block-start: 0; padding-block-end: 0. Inherited: no.
+//! Percentages: logical-width of containing block.
+//!
 //! Grammar: <'padding-top'>{1,2}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-logical-1/#propdef-padding-block
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/padding-block
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PaddingBlock.
 
-/// A single non-global padding-block shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
+pub opaque type CheckedComponent.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    padding_block: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    CheckedComponent.
 
 pub struct Property {
-    padding_block: Value
+    padding_block: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained padding-block value.
+/// Checks the padding-block length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-/// Checks the specification range and constructs a padding-block value.
+/// Checks the padding-block percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub component_length(value: std.css.Values.Length): Option[Component].
+pub component_percentage(value: std.css.Values.Percentage): Option[CheckedComponent].
 
-/// Checks the specification range and constructs a padding-block value.
+/// Checks the padding-block length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub component_percentage(value: std.css.Values.Percentage): Option[Component].
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Returns the CSS keyword inherit.
+/// Supplies 2 components in grammar order.
 
-pub inherit(): Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Returns the CSS keyword initial.
+/// Checks the padding-block percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub initial(): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].
 
-/// Checks the specification range and constructs a padding-block value.
+/// Supplies 1 components in grammar order.
 
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Checks the specification range and constructs a padding-block value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub single(first: Component): Checked.

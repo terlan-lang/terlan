@@ -1,0 +1,3 @@
+module corpus.semantic.UnknownName.
+
+pub value(): Int -> missing_value.

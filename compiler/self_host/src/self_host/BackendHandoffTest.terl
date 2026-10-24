@@ -2,7 +2,11 @@
 module self_host.BackendHandoffTest.
 
 import std.core.String.
+import std.core.Option.{None, Some}.
+import self_host.CanonicalLexer.
 import self_host.Compiler.
+import self_host.ProjectedBackendEvidence.
+import self_host.ProjectedFrontend.
 
 @pure
 positive_handoff(): Bool ->
@@ -21,4 +25,13 @@ negative_handoff(): Bool ->
         "module demo.Backend.\nstruct User { id: Int }.\ntype User = Int.\n",
     ).valid.
 
-pub self_test(): Bool -> positive_handoff() and negative_handoff().
+guarded_case_handoff(): Bool ->
+    let source = "module demo.Guarded.\npub positive(values: List[Int]): List[Int] -> case values { [] -> []; [value | rest] where value > 0 -> [value | positive(rest)]; [_value | rest] -> positive(rest) }.\n";
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    case ProjectedBackendEvidence.document(frontend, "terlan-vm") {
+        Some(text) -> frontend.valid and String.contains(text, "root_case_guard_1");
+        None -> false
+    }.
+
+pub self_test(): Bool -> positive_handoff() and negative_handoff() and guarded_case_handoff().

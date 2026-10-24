@@ -11,6 +11,8 @@ use crate::websocket::session::{InboundQueueInfo, Session};
 use crate::websocket::Utf8Bytes;
 
 mod connection;
+mod opening;
+mod terminal;
 
 #[cfg(test)]
 #[path = "callbacks_test.rs"]
@@ -32,8 +34,40 @@ impl<I: CallbackInvocation<WebSocketEvent>> WebSocketCallbacks<I> {
     /// Admits one live connection and immediately dispatches its open callback.
     pub fn open(invocation: I, live: Session<I::Value>) -> Result<Self, ServiceError> {
         let mut session = Self { live, invocation };
-        session.invoke(WebSocketEvent::Open, Vec::new())?;
+        if !session.is_open() {
+            return Err("error[serve.websocket.closed]: connection is closed".into());
+        }
+        if let Err(error) = session.invoke(WebSocketEvent::Open, Vec::new()) {
+            return Err(session.failed_open(error));
+        }
         Ok(session)
+    }
+
+    fn failed_open(&mut self, error: ServiceError) -> ServiceError {
+        match self.cancel(error.to_string()) {
+            Ok(_) => error,
+            Err(cleanup) => format!("{error}; cancellation failed: {cleanup}").into(),
+        }
+    }
+
+    async fn notify_suspendable(&mut self, event: WebSocketEvent) -> Result<(), ServiceError> {
+        if let Some(callback) = self.live.plan().callback(event) {
+            self.invocation
+                .invoke_suspendable(event, callback, Vec::new())
+                .await
+                .map(|_| ())
+                .map_err(ServiceError::from)
+        } else {
+            // An absent callback has no source work that could own a wait.
+            let state = self.invoke(event, Vec::new())?;
+            crate::channel_completion::finish_terminal(
+                &mut self.invocation,
+                event,
+                state,
+                "websocket",
+            )
+            .map(|_| ())
+        }
     }
 
     /// Returns whether the package-owned connection remains open.
@@ -91,8 +125,8 @@ impl<I: CallbackInvocation<WebSocketEvent>> WebSocketCallbacks<I> {
         }
     }
 
-    /// Dispatches one paired frame with runtime-owned state and peer metadata.
-    pub fn dispatch_next_paired_inbound_output(
+    /// Awaits one paired source callback with a serialized room snapshot.
+    pub async fn dispatch_next_paired_inbound_output(
         &mut self,
         context: Option<crate::source_descriptor::PairContext>,
     ) -> Result<(bool, Option<I::Value>), ServiceError> {
@@ -100,26 +134,32 @@ impl<I: CallbackInvocation<WebSocketEvent>> WebSocketCallbacks<I> {
             return Ok((false, None));
         };
         if let Some(wait) = wait {
-            let state = self.resume(I::text_wake(wait, text))?;
+            let state = self
+                .invocation
+                .resume_streaming(I::text_wake(wait, text))
+                .await?;
             Ok((true, completed_value(state)))
         } else {
-            let state = self.invoke(
-                WebSocketEvent::Inbound,
-                vec![
-                    context
-                        .map(|(state, role, first, second)| {
-                            NativeValue::Tuple(vec![
-                                state.into(),
-                                role.into(),
-                                first.into(),
-                                second.into(),
-                            ])
-                        })
-                        .into(),
-                    NativeValue::String(text),
-                ],
-            )?;
-            Ok((true, completed_value(state)))
+            let value = self
+                .invoke_callback_suspendable(
+                    WebSocketEvent::Inbound,
+                    vec![
+                        context
+                            .map(|(state, role, first, second)| {
+                                NativeValue::Tuple(vec![
+                                    state.into(),
+                                    role.into(),
+                                    first.into(),
+                                    second.into(),
+                                ])
+                            })
+                            .into(),
+                        NativeValue::String(text),
+                    ],
+                    "paired inbound",
+                )
+                .await?;
+            Ok((true, Some(value)))
         }
     }
 
@@ -131,6 +171,30 @@ impl<I: CallbackInvocation<WebSocketEvent>> WebSocketCallbacks<I> {
             })?;
         }
         Ok(wait)
+    }
+
+    /// Runs one frame through host timers/workers, retaining text waits for
+    /// subsequent frames instead of blocking transport ownership.
+    pub async fn dispatch_next_inbound_streaming(
+        &mut self,
+    ) -> Result<(bool, Option<I::Value>), ServiceError> {
+        let Some(QueuedFrame { text, wait }) = self.next_inbound_frame()? else {
+            return Ok((false, None));
+        };
+        let state = if let Some(wait) = wait {
+            self.invocation
+                .resume_streaming(I::text_wake(wait, text))
+                .await?
+        } else {
+            self.invocation
+                .invoke_streaming(
+                    WebSocketEvent::Inbound,
+                    self.live.plan().callback(WebSocketEvent::Inbound),
+                    vec![NativeValue::String(text)],
+                )
+                .await?
+        };
+        Ok((true, completed_value(state)))
     }
 
     fn next_inbound_frame(&mut self) -> Result<Option<QueuedFrame<I::Wait>>, ServiceError> {
@@ -169,34 +233,36 @@ impl<I: CallbackInvocation<WebSocketEvent>> WebSocketCallbacks<I> {
         })
     }
 
-    pub fn dispatch_pair_room_identity_output(
+    pub async fn dispatch_pair_room_identity_output(
         &mut self,
         sequence: i64,
     ) -> Result<String, ServiceError> {
-        self.invoke_string_callback(
+        self.invoke_string_callback_suspendable(
             WebSocketEvent::PairRoomIdentity,
             vec![NativeValue::Int(sequence)],
             "room identity",
         )
+        .await
     }
 
     /// Builds both source-selected payloads after a fresh pair is formed.
-    pub fn dispatch_pair_matched_output(
+    pub async fn dispatch_pair_matched_output(
         &mut self,
         room_id: String,
         first_request: String,
         second_request: String,
     ) -> Result<(String, String), ServiceError> {
-        let state = self.invoke(
-            WebSocketEvent::PairMatched,
-            vec![
-                NativeValue::String(room_id),
-                NativeValue::String(first_request),
-                NativeValue::String(second_request),
-            ],
-        )?;
-        let value = completed_value(state).ok_or_else(||
-            "error[serve.websocket.callback_result]: paired matched callback suspended without producing payloads".to_string())?;
+        let value = self
+            .invoke_callback_suspendable(
+                WebSocketEvent::PairMatched,
+                vec![
+                    NativeValue::String(room_id),
+                    NativeValue::String(first_request),
+                    NativeValue::String(second_request),
+                ],
+                "paired matched",
+            )
+            .await?;
         crate::source_descriptor::paired_match(value).map_err(|error| {
             format!(
                 "error[serve.websocket.callback_result]: {}",
@@ -207,7 +273,7 @@ impl<I: CallbackInvocation<WebSocketEvent>> WebSocketCallbacks<I> {
     }
 
     /// Builds the retained role-specific view for one reclaimed seat.
-    pub fn dispatch_pair_restored_output(
+    pub async fn dispatch_pair_restored_output(
         &mut self,
         room_id: String,
         state: String,
@@ -215,7 +281,7 @@ impl<I: CallbackInvocation<WebSocketEvent>> WebSocketCallbacks<I> {
         first_request: String,
         second_request: String,
     ) -> Result<String, ServiceError> {
-        self.invoke_string_callback(
+        self.invoke_string_callback_suspendable(
             WebSocketEvent::PairRestored,
             vec![
                 NativeValue::String(room_id),
@@ -226,24 +292,27 @@ impl<I: CallbackInvocation<WebSocketEvent>> WebSocketCallbacks<I> {
             ],
             "paired restored",
         )
+        .await
     }
 
     /// Builds the typed payload sent while the first peer waits for a match.
-    pub fn dispatch_pair_waiting_output(&mut self) -> Result<String, ServiceError> {
-        self.invoke_string_callback(
+    pub async fn dispatch_pair_waiting_output(&mut self) -> Result<String, ServiceError> {
+        self.invoke_string_callback_suspendable(
             WebSocketEvent::PairWaiting,
             Vec::new(),
             "paired waiting payload",
         )
+        .await
     }
 
     /// Builds the typed payload sent when a paired peer disconnects.
-    pub fn dispatch_pair_peer_left_output(&mut self) -> Result<String, ServiceError> {
-        self.invoke_string_callback(
+    pub async fn dispatch_pair_peer_left_output(&mut self) -> Result<String, ServiceError> {
+        self.invoke_string_callback_suspendable(
             WebSocketEvent::PairPeerLeft,
             Vec::new(),
             "paired peer-left payload",
         )
+        .await
     }
 
     /// Dispatches one admitted inbound text frame through generated code.
@@ -257,20 +326,6 @@ impl<I: CallbackInvocation<WebSocketEvent>> WebSocketCallbacks<I> {
     /// Dispatches one writable transport notification through generated code.
     pub fn writable(&mut self) -> Result<CallbackState<I::Value, I::Wait>, ServiceError> {
         self.invoke(WebSocketEvent::Writable, Vec::new())
-    }
-
-    /// Dispatches graceful close and ends the live-session lease.
-    pub fn close(&mut self) -> Result<CallbackState<I::Value, I::Wait>, ServiceError> {
-        self.live.close();
-        self.invocation
-            .cancel_pending("websocket transport closed".to_string())?;
-        let state = self.invoke(WebSocketEvent::Close, Vec::new());
-        crate::channel_completion::finish_terminal(
-            &mut self.invocation,
-            WebSocketEvent::Close,
-            state?,
-            "websocket",
-        )
     }
 
     /// Cancels parked work, dispatches cancellation, and ends the live lease.
@@ -311,25 +366,38 @@ impl<I: CallbackInvocation<WebSocketEvent>> WebSocketCallbacks<I> {
             .map_err(ServiceError::from)
     }
 
-    fn invoke_string_callback(
+    async fn invoke_callback_suspendable(
+        &mut self,
+        event: WebSocketEvent,
+        args: Vec<NativeValue>,
+        label: &str,
+    ) -> Result<I::Value, ServiceError> {
+        let callback = self.live.plan().callback(event).ok_or_else(|| {
+            format!("error[serve.websocket.callback_result]: no {label} callback")
+        })?;
+        self.invocation
+            .invoke_suspendable(event, callback, args)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    async fn invoke_string_callback_suspendable(
         &mut self,
         event: WebSocketEvent,
         args: Vec<NativeValue>,
         label: &str,
     ) -> Result<String, ServiceError> {
-        match completed_value(self.invoke(event, args)?) {
-            Some(value) => {
-                match value.into_descriptor() {
-                    OwnedDescriptor::String(payload) => Ok(payload),
-                    _ => Err(format!(
-                        "error[serve.websocket.callback_result]: {label} callback returned a non-String value, expected String"
-                    ).into()),
-                }
-            },
-            None => Err(format!(
-                "error[serve.websocket.callback_result]: {label} callback suspended without producing a payload"
-            ).into()),
-        }
+        let value = self.invoke_callback_suspendable(event, args, label).await?;
+        string_payload(value, label)
+    }
+}
+
+fn string_payload(value: impl DescriptorValue, label: &str) -> Result<String, ServiceError> {
+    match value.into_descriptor() {
+        OwnedDescriptor::String(payload) => Ok(payload),
+        _ => Err(format!(
+            "error[serve.websocket.callback_result]: {label} callback returned a non-String value, expected String"
+        ).into()),
     }
 }
 

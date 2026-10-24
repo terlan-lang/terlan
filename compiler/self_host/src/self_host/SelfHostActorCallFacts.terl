@@ -1,0 +1,394 @@
+/** Canonical actor call facts derived from typed Core IR call operands. */
+module self_host.SelfHostActorCallFacts.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+
+import std.core.{Bool, Int, String}.
+import self_host.SelfHostActorCallPlan.{ActorCalleeEntry}.
+
+
+/** A normalized fixed or closure call before suspension resolution. */
+pub struct ActorCallTarget {
+    module_name: Option[String],
+    callable_name: Option[String],
+    arity: Int,
+    arguments: List[String],
+    mutable_receiver: Bool,
+    place: Option[String],
+    dynamic: Bool,
+}.
+
+pub constructor ActorCallTarget {
+    (module_name: Option[String], callable_name: Option[String], arity: Int, arguments: List[String], mutable_receiver: Bool, place: Option[String], dynamic: Bool): ActorCallTarget ->
+        ActorCallTarget {
+            module_name: module_name,
+            callable_name: callable_name,
+            arity: arity,
+            arguments: arguments,
+            mutable_receiver: mutable_receiver,
+            place: place,
+            dynamic: dynamic,
+        }
+}.
+
+
+/** A static call-graph edge used by the suspension fixed point. */
+pub struct ActorStaticCallEdge {
+    caller_module: String,
+    caller_name: String,
+    caller_arity: Int,
+    callee_module: String,
+    callee_name: String,
+    callee_arity: Int,
+}.
+
+pub constructor ActorStaticCallEdge {
+    (caller_module: String, caller_name: String, caller_arity: Int, callee_module: String, callee_name: String, callee_arity: Int): ActorStaticCallEdge ->
+        ActorStaticCallEdge {
+            caller_module: caller_module,
+            caller_name: caller_name,
+            caller_arity: caller_arity,
+            callee_module: callee_module,
+            callee_name: callee_name,
+            callee_arity: callee_arity,
+        }
+}.
+
+
+/** Entry-continuation evidence for a callable known to suspend. */
+pub struct ActorSuspensionProfile {
+    module_name: String,
+    callable_name: String,
+    arity: Int,
+    runtime_owned: Bool,
+    entries: List[ActorCalleeEntry],
+}.
+
+pub constructor ActorSuspensionProfile {
+    (module_name: String, callable_name: String, arity: Int, entries: List[ActorCalleeEntry]): ActorSuspensionProfile ->
+        ActorSuspensionProfile {
+            module_name: module_name,
+            callable_name: callable_name,
+            arity: arity,
+            runtime_owned: false,
+            entries: entries,
+        };
+    (module_name: String, callable_name: String, arity: Int, runtime_owned: Bool, entries: List[ActorCalleeEntry]): ActorSuspensionProfile ->
+        ActorSuspensionProfile {
+            module_name: module_name,
+            callable_name: callable_name,
+            arity: arity,
+            runtime_owned: runtime_owned,
+            entries: entries,
+        }
+}.
+
+
+/** A suspension-capable call anchored to compiler-owned ordinal streams. */
+pub struct ActorSuspendingCallFact {
+    native_call_index: Int,
+    global_continuation_ordinal: Int,
+    target: self_host.SelfHostActorCallFacts.ActorCallTarget,
+    profile: self_host.SelfHostActorCallFacts.ActorSuspensionProfile,
+}.
+
+pub constructor ActorSuspendingCallFact {
+    (native_call_index: Int, global_continuation_ordinal: Int, target: self_host.SelfHostActorCallFacts.ActorCallTarget, profile: self_host.SelfHostActorCallFacts.ActorSuspensionProfile): ActorSuspendingCallFact ->
+        ActorSuspendingCallFact {
+            native_call_index: native_call_index,
+            global_continuation_ordinal: global_continuation_ordinal,
+            target: target,
+            profile: profile,
+        }
+}.
+
+
+@pure
+length_at[T](values: List[T], count: Int): Int ->
+    case values {
+        [] -> count;
+        [_ | rest] -> length_at(rest, count + 1)
+    }.
+
+@pure
+length[T](values: List[T]): Int -> length_at(values, 0).
+
+
+@pure
+local_target(module_name: String, operands: List[String]): Result[ActorCallTarget, String] ->
+    case operands {
+        [] -> Err("call-local has no callable identity");
+        [callee | arguments] -> Ok(ActorCallTarget(
+            Some(module_name),
+            Some(callee),
+            length(arguments),
+            arguments,
+            false,
+            None,
+            false,
+        ))
+    }.
+
+@pure
+import_target(operands: List[String]): Result[ActorCallTarget, String] ->
+    case operands {
+        [] -> Err("call-import has no module identity");
+        [_module_name] -> Err("call-import has no callable identity");
+        [module_name | rest] -> case rest {
+            [] -> Err("call-import has no callable identity");
+            [callee | arguments] -> Ok(ActorCallTarget(
+                Some(module_name),
+                Some(callee),
+                length(arguments),
+                arguments,
+                false,
+                None,
+                false,
+            ))
+        }
+    }.
+
+@pure
+local_mutable_target(module_name: String, operands: List[String]): Result[ActorCallTarget, String] ->
+    case operands {
+        [] -> Err("call-local-mut-receiver has no callable identity");
+        [_callee] -> Err("call-local-mut-receiver has no place operand");
+        [callee | rest] -> case rest {
+            [] -> Err("call-local-mut-receiver has no place operand");
+            [place | arguments] -> Ok(ActorCallTarget(
+                Some(module_name),
+                Some(callee),
+                length(arguments),
+                arguments,
+                true,
+                Some(place),
+                false,
+            ))
+        }
+    }.
+
+@pure
+import_mutable_target(operands: List[String]): Result[ActorCallTarget, String] ->
+    case operands {
+        [] -> Err("call-import-mut-receiver has no module identity");
+        [_module_name] -> Err("call-import-mut-receiver has no callable identity");
+        [_module_name, _callee] -> Err("call-import-mut-receiver has no place operand");
+        [module_name | callable_and_arguments] -> case callable_and_arguments {
+            [] -> Err("call-import-mut-receiver has no callable identity");
+            [callee | place_and_arguments] -> case place_and_arguments {
+                [] -> Err("call-import-mut-receiver has no place operand");
+                [place | arguments] -> Ok(ActorCallTarget(
+                    Some(module_name),
+                    Some(callee),
+                    length(arguments),
+                    arguments,
+                    true,
+                    Some(place),
+                    false,
+                ))
+            }
+        }
+    }.
+
+@pure
+dynamic_target(operands: List[String]): Result[ActorCallTarget, String] ->
+    case operands {
+        [] -> Err("call-value has no callee operand");
+        [_callee | arguments] -> Ok(ActorCallTarget(
+            None,
+            None,
+            length(arguments),
+            arguments,
+            false,
+            None,
+            true,
+        ))
+    }.
+
+
+/**
+ * Normalizes the five Core IR call encodings. Non-call instructions produce
+ * None; malformed call instructions fail closed.
+ */
+@pure
+pub target(module_name: String, opcode: String, operands: List[String]): Result[Option[ActorCallTarget], String] ->
+    case opcode {
+        "call-local" -> case local_target(module_name, operands) {
+            Ok(value) -> Ok(Some(value));
+            Err(reason) -> Err(reason)
+        };
+        "call-import" -> case import_target(operands) {
+            Ok(value) -> Ok(Some(value));
+            Err(reason) -> Err(reason)
+        };
+        "call-local-mut-receiver" -> case local_mutable_target(module_name, operands) {
+            Ok(value) -> Ok(Some(value));
+            Err(reason) -> Err(reason)
+        };
+        "call-import-mut-receiver" -> case import_mutable_target(operands) {
+            Ok(value) -> Ok(Some(value));
+            Err(reason) -> Err(reason)
+        };
+        "call-value" -> case dynamic_target(operands) {
+            Ok(value) -> Ok(Some(value));
+            Err(reason) -> Err(reason)
+        };
+        _ -> Ok(None)
+    }.
+
+
+/** Dynamic calls do not claim a static call-graph edge. */
+@pure
+pub static_edge(caller_module: String, caller_name: String, caller_arity: Int, target: ActorCallTarget): Option[ActorStaticCallEdge] ->
+    case target.module_name {
+        Some(callee_module) -> case target.callable_name {
+            Some(callee_name) -> Some(ActorStaticCallEdge(
+                caller_module,
+                caller_name,
+                caller_arity,
+                callee_module,
+                callee_name,
+                target.arity,
+            ));
+            _ -> None
+        };
+        _ -> None
+    }.
+
+
+@pure
+same_profile(target: ActorCallTarget, profile: ActorSuspensionProfile): Bool ->
+    case target.module_name {
+        Some(module_name) -> case target.callable_name {
+            Some(callable_name) ->
+                module_name == profile.module_name and
+                callable_name == profile.callable_name and
+                target.arity == profile.arity;
+            _ -> false
+        };
+        _ -> false
+    }.
+
+@pure
+find_profile(target: ActorCallTarget, profiles: List[ActorSuspensionProfile], found: Option[ActorSuspensionProfile]): Result[Option[ActorSuspensionProfile], String] ->
+    case profiles {
+        [] -> Ok(found);
+        [profile | rest] -> if {
+            !same_profile(target, profile) -> find_profile(target, rest, found);
+            true -> case found {
+                None -> find_profile(target, rest, Some(profile));
+                Some(_) -> Err("actor suspension profile is ambiguous")
+            }
+        }
+    }.
+
+
+/**
+ * Resolves a call against the suspension catalog. Closure calls require a
+ * typed, call-site-specific profile; guessing from arity is forbidden.
+ */
+@pure
+pub suspension_profile(target: ActorCallTarget, profiles: List[ActorSuspensionProfile], dynamic_profile: Option[ActorSuspensionProfile]): Result[Option[ActorSuspensionProfile], String] ->
+    if {
+        target.dynamic -> case dynamic_profile {
+            None -> Err("suspending call-value has no typed continuation profile");
+            Some(profile) -> if {
+                profile.arity != target.arity -> Err("call-value continuation profile has the wrong arity");
+                true -> Ok(Some(profile))
+            }
+        };
+        true -> case dynamic_profile {
+            Some(_) -> Err("static call cannot use a dynamic continuation profile");
+            None -> find_profile(target, profiles, None)
+        }
+    }.
+
+
+/**
+ * Attaches ordinals owned by the compiler traversal. The actor projection must
+ * not renumber only call sites because other continuation forms share the
+ * global continuation ordinal stream.
+ */
+@pure
+pub suspending_fact(native_call_index: Int, global_continuation_ordinal: Int, target: ActorCallTarget, profile: ActorSuspensionProfile): Result[ActorSuspendingCallFact, String] ->
+    if {
+        native_call_index < 0 -> Err("native call index must be non-negative");
+        global_continuation_ordinal < 0 -> Err("global continuation ordinal must be non-negative");
+        not profile_entries_valid(profile.entries) -> Err("actor suspension profile has invalid or duplicate entries");
+        profile.arity != target.arity -> Err("actor suspension profile has the wrong arity");
+        true -> Ok(ActorSuspendingCallFact(
+            native_call_index,
+            global_continuation_ordinal,
+            target,
+            profile,
+        ))
+    }.
+
+@pure
+same_profile_entry(left: ActorCalleeEntry, right: ActorCalleeEntry): Bool ->
+    left.export_identity == right.export_identity
+        and left.continuation_identity == right.continuation_identity
+        and left.capture_count == right.capture_count.
+
+@pure
+profile_entry_present(value: ActorCalleeEntry, values: List[ActorCalleeEntry]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same_profile_entry(value, current)
+            or profile_entry_present(value, rest)
+    }.
+
+@pure
+hex_byte(value: Int): Bool ->
+    (value >= 48 and value <= 57) or (value >= 97 and value <= 102).
+
+@pure
+identity_hex_valid(value: String, index: Int): Bool ->
+    if {
+        index == value.byte_size() -> true;
+        not hex_byte(value.utf8_byte_at(index)) -> false;
+        true -> identity_hex_valid(value, index + 1)
+    }.
+
+@pure
+dispatch_identity_valid(value: String): Bool ->
+    value.byte_size() == 71
+        and String.starts_with(value, "sha256:")
+        and identity_hex_valid(value, 7).
+
+@pure
+profile_export_valid(value: ActorCalleeEntry): Bool ->
+    case value.export_identity {
+        None -> true;
+        Some(identity) -> dispatch_identity_valid(identity)
+    }.
+
+@pure
+profile_entries_valid_at(values: List[ActorCalleeEntry]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> dispatch_identity_valid(value.continuation_identity)
+            and value.capture_count >= 0
+            and profile_export_valid(value)
+            and not profile_entry_present(value, rest)
+            and profile_entries_valid_at(rest)
+    }.
+
+@pure
+profile_entries_valid(values: List[ActorCalleeEntry]): Bool ->
+    case values {
+        [] -> false;
+        [_ | _] -> profile_entries_valid_at(values)
+    }.
+
+/** Validates the complete resumable-entry set for one suspending callable. */
+@pure
+pub profile_valid(value: ActorSuspensionProfile): Bool ->
+    value.module_name != ""
+        and value.callable_name != ""
+        and value.arity >= 0
+        and profile_entries_valid(value.entries).

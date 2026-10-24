@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword text-top. Generated; do not edit.
+ */
+module std.css.keywords.TextTop.
+
+pub type TextTop = Atom["text-top"].

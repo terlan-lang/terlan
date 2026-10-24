@@ -84,6 +84,17 @@ pub(super) fn check_syntax_callable_clauses(
         let mut facts = effectful_call_facts(effectful_local_calls, imported_effects);
         facts.function_values = Some(&function_values);
         let mut local_expr_ctx = expr_ctx_with_current_bounds(expr_ctx, &instantiated.bounds);
+        let mut proven_pure_receiver_calls = Vec::new();
+        if requires_pure_body {
+            collect_proven_pure_receiver_calls(
+                &clause.body,
+                &locals,
+                &local_expr_ctx,
+                &subst,
+                &mut proven_pure_receiver_calls,
+            );
+            facts.proven_pure_receiver_calls = Some(&proven_pure_receiver_calls);
+        }
         local_expr_ctx.effectful_calls = facts;
         let mut local_errors = Vec::new();
         if let Some(guard) = clause.guard.as_ref() {
@@ -138,7 +149,7 @@ pub(super) fn check_syntax_callable_clauses(
             );
         }
 
-        let expected_return = expand_type_aliases(&instantiated.ret, aliases);
+        let expected_return = expand_interface_global_aliases(&instantiated.ret, aliases);
         let inferred = if bounds_error {
             Type::Dynamic
         } else {
@@ -165,7 +176,7 @@ pub(super) fn check_syntax_callable_clauses(
             diagnostics.push(expression_error_to_diagnostic(error, span));
         }
 
-        let inferred_expanded = expand_type_aliases(&inferred, aliases);
+        let inferred_expanded = expand_interface_global_aliases(&inferred, aliases);
 
         if let Err(message) = unify_return_type(&expected_return, &inferred_expanded, &mut subst) {
             let expected_substituted = apply_subst(&instantiated.ret, &subst);

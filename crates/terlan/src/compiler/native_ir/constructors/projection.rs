@@ -15,9 +15,15 @@ pub(in super::super) fn managed_field_projection(
         ));
     };
     if let Some(record_name) = record_name {
-        let identifies_receiver = layouts
-            .iter()
-            .any(|((identity, _), layout)| identity == record_name && layout.result == base);
+        let identifies_receiver = layouts.iter().any(|((identity, _), layout)| {
+            // Retained generic structs use their complete Apply contract
+            // as the layout key; selectors retain the declared constructor.
+            let constructor = identity
+                .strip_prefix("Apply(")
+                .and_then(|application| application.split_once(';'))
+                .map(|(constructor, _)| constructor);
+            layout.result == base && (identity == record_name || constructor == Some(record_name))
+        });
         if !identifies_receiver {
             return Err(format!(
                 "error[native_ir.record_identity]: `{record_name}` does not identify the receiver type"

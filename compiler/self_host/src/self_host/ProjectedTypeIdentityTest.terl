@@ -1,0 +1,24 @@
+module self_host.ProjectedTypeIdentityTest.
+
+import self_host.ProjectedTypeResolution.{canonical_name}.
+import self_host.ProjectedTypeResolutionSyntax.{ProjectedTypeResolution, TypeIdentityBinding}.
+import std.collections.List.
+import std.core.Option.{Some}.
+
+@test
+pub canonical_type_identity_is_preserved_for_each_visible_spelling(): Bool ->
+    let resolution = ProjectedTypeResolution(
+        true,
+        ["Point"],
+        ["Row", "Data.Row", "sample.Data.Row"],
+        [
+            TypeIdentityBinding("Point", "sample.Geometry.Point"),
+            TypeIdentityBinding("Row", "sample.Data.Row"),
+            TypeIdentityBinding("Data.Row", "sample.Data.Row"),
+            TypeIdentityBinding("sample.Data.Row", "sample.Data.Row"),
+        ],
+        List.new[self_host.ProjectedTypeResolutionSyntax.ProjectedTypeDiagnostic](),
+    );
+    canonical_name(resolution, "Point") == Some("sample.Geometry.Point")
+        and canonical_name(resolution, "Row") == Some("sample.Data.Row")
+        and canonical_name(resolution, "Data.Row") == Some("sample.Data.Row").

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword ne-resize. Generated; do not edit.
+ */
+module std.css.keywords.NeResize.
+
+pub type NeResize = Atom["ne-resize"].

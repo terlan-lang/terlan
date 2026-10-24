@@ -4,7 +4,7 @@
 module self_host.ProjectedNestedControlIrPlan.
 
 import self_host.ProjectedExpressionIrPlan.{lower_expression}.
-import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, concat_instructions, nested_if_result_type, node_size, register, resolved_or_dynamic, some_string}.
+import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, append_ir_parameters, concat_instructions, nested_if_result_type, node_size, pattern_parameters, register, resolved_or_dynamic, some_string}.
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
 import self_host.SelfHostIrSyntax.{IrParameter}.
@@ -115,8 +115,17 @@ nested_let_if_two(
             facts,
             parameters,
         );
-    let continuation_plan = lower_expression(continuation, source_id + node_size(source), facts, parameters);
     let result_type = nested_if_result_type(source, first_body_plan, second_body_plan, facts, parameters);
+    let continuation_parameters = append_ir_parameters(
+        parameters,
+        pattern_parameters(pattern, result_type, facts, parameters),
+    );
+    let continuation_plan = lower_expression(
+        continuation,
+        source_id + node_size(source),
+        facts,
+        continuation_parameters,
+    );
     nested_if_cfg(
         pattern,
         register(source_id),
@@ -134,7 +143,7 @@ pub linear_binding(
     source: ExpressionPlan,
 ): List[SemanticInstructionPlan] ->
     if {
-        pattern.kind == "binding-pattern" -> [
+        ProjectedExpressionSupportIrPlan.binding_pattern(pattern) -> [
             SemanticInstructionPlan(
                 "move",
                 some_string(pattern.text),
@@ -270,7 +279,7 @@ nested_let_if_parts(
     case expression_node_triple(values) {
         Some(parts) ->
             nested_let_if_binding(
-                parts.first.kind == "binding-pattern",
+                ProjectedExpressionSupportIrPlan.binding_pattern(parts.first),
                 parts.first,
                 parts.second,
                 parts.third,

@@ -1,0 +1,59 @@
+/** Positive and negative bootstrap-workaround classification contracts. */
+module self_host.SelfHostCompatibilityAuthorityTest.
+
+import std.core.Option.{None, Some}.
+import self_host.SelfHostCompatibilityAuthority.{CompatibilitySource}.
+import self_host.SelfHostCompatibilityAuthority.
+
+
+@test
+pub classified_permanent_compatibility_api_is_admitted(): Bool ->
+    case SelfHostCompatibilityAuthority.decode(
+        "compiler/Adapter.terl\tpermanent-api\tpublic convenience boundary\n",
+    ) {
+        None -> false;
+        Some(values) -> SelfHostCompatibilityAuthority.workarounds_removed(
+            [CompatibilitySource(
+                "compiler/Adapter.terl",
+                "/** Compatibility entry point for isolated callers. */\nmodule compiler.Adapter.\n",
+            )],
+            values,
+        )
+    }.
+
+@test
+pub unclassified_or_stale_boundary_is_rejected(): Bool ->
+    case SelfHostCompatibilityAuthority.decode("") {
+        None -> false;
+        Some(values) -> not SelfHostCompatibilityAuthority.workarounds_removed(
+            [CompatibilitySource(
+                "compiler/Adapter.terl",
+                "/** Compatibility entry point. */\nmodule compiler.Adapter.\n",
+            )],
+            values,
+        )
+    }.
+
+@test
+pub remaining_bootstrap_workaround_is_rejected(): Bool ->
+    case SelfHostCompatibilityAuthority.decode(
+        "compiler/Adapter.terl\tbootstrap-workaround\tremove after convergence\n",
+    ) {
+        None -> false;
+        Some(values) -> not SelfHostCompatibilityAuthority.workarounds_removed(
+            [CompatibilitySource(
+                "compiler/Adapter.terl",
+                "/** Compatibility entry point for bootstrap. */\nmodule compiler.Adapter.\n",
+            )],
+            values,
+        )
+    }.
+
+@test
+pub unknown_disposition_and_duplicate_path_are_rejected(): Bool ->
+    SelfHostCompatibilityAuthority.decode(
+        "compiler/Adapter.terl\ttemporary\tunknown state\n",
+    ) == None
+        and SelfHostCompatibilityAuthority.decode(
+            "compiler/Adapter.terl\tpermanent-api\tone\ncompiler/Adapter.terl\trecovery-boundary\ttwo\n",
+        ) == None.

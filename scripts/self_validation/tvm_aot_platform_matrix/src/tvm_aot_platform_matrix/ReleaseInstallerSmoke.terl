@@ -43,7 +43,9 @@ run_installer(
                 true -> let _failed =
                     failure(
                         "command",
-                        String.concat([program, " failed:\n", output.stdout, output.stderr]),
+                        String.concat(
+                            [program, " failed:\n", output.stdout, output.stderr],
+                        ),
                     );
                 None
             };

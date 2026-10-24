@@ -8,7 +8,8 @@ use super::plain::closure_invocation_signature;
 pub(super) use super::plain::lower_plain;
 use super::type_support::type_excludes_pattern;
 use super::{
-    bind_values, bool_and, core_expr_type, extend_bindings, pattern_plan, validate_bindings,
+    bind_values, bool_and, core_expr_type, core_expr_type_with_constructors, extend_bindings,
+    pattern_plan, validate_bindings,
 };
 use crate::compiler::native_ir::{
     infer_native_type_with_constructors, NativeConstructorLayouts, NativeExpr, NativeType,
@@ -325,7 +326,13 @@ fn lower_case(
     let scrutinee_type =
         infer_native_type_with_constructors(scrutinee, param_types, function_types, constructors)
             .or_else(|| {
-                core_expr_type(scrutinee, core_types, function_core_types).and_then(|ty| {
+                core_expr_type_with_constructors(
+                    scrutinee,
+                    core_types,
+                    function_core_types,
+                    constructors,
+                )
+                .and_then(|ty| {
                     crate::compiler::native_ir::native_type(Some(&ty), &ty.contract_text())
                 })
             })
@@ -335,7 +342,12 @@ fn lower_case(
                     scrutinee.contract_text()
                 )
             })?;
-    let scrutinee_core = core_expr_type(scrutinee, core_types, function_core_types);
+    let scrutinee_core = core_expr_type_with_constructors(
+        scrutinee,
+        core_types,
+        function_core_types,
+        constructors,
+    );
     let scrutinee = if contains_case(scrutinee) {
         lower_containing_case(scrutinee, params, param_types, core_types, environment)?
     } else {

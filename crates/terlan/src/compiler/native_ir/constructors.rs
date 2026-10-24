@@ -41,7 +41,7 @@ pub(super) struct NativeConstructorLayout {
 }
 
 /// Constructor identities resolved for one application module.
-pub(super) type NativeConstructorLayouts = HashMap<(String, usize), NativeConstructorLayout>;
+pub(super) type NativeConstructorLayouts = HashMap<(String, usize), Arc<NativeConstructorLayout>>;
 
 /// Normalizes compiler-owned facade fields that have one public managed ABI.
 pub(super) fn canonical_structural_field_name(
@@ -194,7 +194,7 @@ pub(super) fn native_constructor_layouts(
             encode_aggregate_layout(&descriptor)
                 .map_err(|error| format!("error[native_ir.constructor_abi]: {error}"))?,
         );
-        let layout = NativeConstructorLayout {
+        let layout = Arc::new(NativeConstructorLayout {
             parameter_core_types: declaration
                 .params
                 .iter()
@@ -210,7 +210,7 @@ pub(super) fn native_constructor_layouts(
             result_core_type: declaration.core_return_type.clone(),
             descriptor,
             encoded_layout,
-        };
+        });
         if layouts.insert(key.clone(), layout.clone()).is_some() {
             return Err(format!(
                 "error[native_ir.constructor_duplicate]: duplicate constructor `{}/{}`",
@@ -607,7 +607,9 @@ fn constructor_layout<'a>(
         return None;
     };
     let identity = constructor_identity.as_deref().unwrap_or(constructor);
-    layouts.get(&(identity.to_owned(), args.len()))
+    layouts
+        .get(&(identity.to_owned(), args.len()))
+        .map(Arc::as_ref)
 }
 
 /// Resolves and lowers one fixed named record construction.
@@ -748,8 +750,12 @@ pub(super) fn lower_record_update(
                     local_base.saturating_add(1).saturating_add(source_index),
                 ));
             }
-            let encoded = encode_aggregate_field_operation(semantic, index)
-                .map_err(|error| format!("error[native_ir.record_update_operation]: {error}"))?;
+            let encoded = if native_field_type(expected.field_type())?.is_managed_reference() {
+                encode_aggregate_field_operation(semantic, index)
+            } else {
+                encode_aggregate_scalar_field_operation(semantic, index)
+            }
+            .map_err(|error| format!("error[native_ir.record_update_operation]: {error}"))?;
             Ok(NativeExpr::ManagedOperation {
                 encoded: Arc::from(encoded),
                 args: vec![NativeExpr::Param(local_base)],

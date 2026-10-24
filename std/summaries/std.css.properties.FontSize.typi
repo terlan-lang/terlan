@@ -1,96 +1,71 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-size
+//! The `font-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the size of
+//! the font. Changing the font size also updates the sizes of the font size-relative `<length>`
+//! units, such as `em`, `ex`, and so forth.
+//!
+//! Initial: medium. Inherited: yes.
+//! Percentages: refer to the parent element's font size.
+//!
+//! Keyword effects:
+//! - large:
+//! [Absolute-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/absolute-size)
+//! keywords, based on the user's default font size (which is `medium`).
+//! - larger:
+//! [Relative-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/relative-size)
+//! keywords. The font will be larger or smaller relative to the parent element's font size, roughly
+//! by the ratio used to separate the absolute-size keywords above.
+//! - math: [Scaling rules](https://w3c.github.io/mathml-core/#the-math-script-level-property) are
+//! applied when determining the computed value of the `font-size` property for math elements
+//! relative to the `font-size` of the containing parent. See the
+//! [math-depth](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/math-depth)
+//! property for more information.
+//! - medium:
+//! [Absolute-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/absolute-size)
+//! keywords, based on the user's default font size (which is `medium`).
+//! - small:
+//! [Absolute-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/absolute-size)
+//! keywords, based on the user's default font size (which is `medium`).
+//! - smaller:
+//! [Relative-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/relative-size)
+//! keywords. The font will be larger or smaller relative to the parent element's font size, roughly
+//! by the ratio used to separate the absolute-size keywords above.
+//! - x-large:
+//! [Absolute-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/absolute-size)
+//! keywords, based on the user's default font size (which is `medium`).
+//! - x-small:
+//! [Absolute-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/absolute-size)
+//! keywords, based on the user's default font size (which is `medium`).
+//! - xx-large:
+//! [Absolute-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/absolute-size)
+//! keywords, based on the user's default font size (which is `medium`).
+//! - xx-small:
+//! [Absolute-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/absolute-size)
+//! keywords, based on the user's default font size (which is `medium`).
+//! - xxx-large:
+//! [Absolute-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/absolute-size)
+//! keywords, based on the user's default font size (which is `medium`).
+//!
 //! Grammar: <absolute-size> | <relative-size> | <length-percentage [0,∞]> | math
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-size
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-size
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontSize.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    font_size: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    font_size: Value
+    font_size: XxSmall | XSmall | Small | Medium | Large | XLarge | XxLarge | XxxLarge | Larger | Smaller | Math | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained font-size value.
+/// Checks the font-size length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Returns the CSS keyword inherit.
+/// Checks the font-size percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword large.
-
-pub large(): Value.
-
-/// Returns the CSS keyword larger.
-
-pub larger(): Value.
-
-/// Checks the specification range and constructs a font-size value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Returns the CSS keyword math.
-
-pub math(): Value.
-
-/// Returns the CSS keyword medium.
-
-pub medium(): Value.
-
-/// Checks the specification range and constructs a font-size value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword small.
-
-pub small(): Value.
-
-/// Returns the CSS keyword smaller.
-
-pub smaller(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword x-large.
-
-pub x_large(): Value.
-
-/// Returns the CSS keyword x-small.
-
-pub x_small(): Value.
-
-/// Returns the CSS keyword xx-large.
-
-pub xx_large(): Value.
-
-/// Returns the CSS keyword xx-small.
-
-pub xx_small(): Value.
-
-/// Returns the CSS keyword xxx-large.
-
-pub xxx_large(): Value.
-
-export type Token.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

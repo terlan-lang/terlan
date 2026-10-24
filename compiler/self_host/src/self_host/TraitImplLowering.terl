@@ -1,6 +1,8 @@
 /** Token-boundary lowering for explicit positive and negative trait implementations. */
 module self_host.TraitImplLowering.
 
+import std.core.String.
+
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.CanonicalToken.{CanonicalLexOutput}.
 import self_host.ExpressionSyntax.{ExpressionParse}.
@@ -57,7 +59,13 @@ segment_text(source: String, segment: TokenSegment): String ->
 @pure
 function_name(source: String): String ->
     let open = Delimited.top_level_byte(source, 40);
-    if { open > 0 -> String.trim(source.utf8_slice(0, open)); true -> "" }.
+    if {
+        open <= 0 -> "";
+        true -> case String.split(String.trim(source.utf8_slice(0, open)), "[") {
+            [] -> "";
+            [name | _rest] -> String.trim(name)
+        }
+    }.
 
 @pure
 method(source: String, segment: TokenSegment): FunctionSyntax ->

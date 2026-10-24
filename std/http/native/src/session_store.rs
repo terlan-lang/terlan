@@ -14,6 +14,12 @@ pub struct SessionStore<R: ActorStateStore<String>> {
 }
 
 impl<R: ActorStateStore<String>> SessionStore<R> {
+    /// The source acquisition branch creates a fresh identity after absence;
+    /// the host supplies storage without selecting HTTP recovery behavior.
+    pub fn for_application(resources: R) -> Self {
+        Self::new(resources, RecoveryPolicy::CreateLocalReplacement)
+    }
+
     /// Includes expired entries retained for pending or failed resource cleanup.
     pub fn is_empty(&self) -> bool {
         self.registry.entries().is_empty()
@@ -56,18 +62,9 @@ impl<R: ActorStateStore<String>> SessionStorage for SessionStore<R> {
             .map_err(session_error)
     }
 
-    fn create(
-        &mut self,
-        excluded_identity: &str,
-        ttl_seconds: u64,
-    ) -> Result<String, BoundaryError> {
+    fn try_create(&mut self, identity: &str, ttl_seconds: u64) -> Result<bool, BoundaryError> {
         self.registry
-            .create(
-                excluded_identity,
-                ttl_seconds,
-                &mut Resources(&mut self.resources),
-            )
-            .map(|entry| entry.id)
+            .try_create(identity, ttl_seconds, &mut Resources(&mut self.resources))
             .map_err(session_error)
     }
 
@@ -86,10 +83,19 @@ impl<R: ActorStateStore<String>> SessionStorage for SessionStore<R> {
         self.resources.delete(&handle, key)
     }
 
-    fn rotate(&mut self, identity: &str, ttl_seconds: u64) -> Result<String, BoundaryError> {
+    fn try_rotate(
+        &mut self,
+        identity: &str,
+        replacement: &str,
+        ttl_seconds: u64,
+    ) -> Result<bool, BoundaryError> {
         self.registry
-            .rotate(identity, ttl_seconds, &mut Resources(&mut self.resources))
-            .map(|entry| entry.id)
+            .try_rotate(
+                identity,
+                replacement,
+                ttl_seconds,
+                &mut Resources(&mut self.resources),
+            )
             .map_err(session_error)
     }
 

@@ -15,7 +15,7 @@ module std.http.Tls.
 /// exposing ACME provider internals.
 
 pub type Auto =
-    Atom["auto"].
+    std.core.Atom.Auto.
 
 /// Config represents declarative HTTP TLS configuration.
 ///
@@ -57,7 +57,7 @@ pub type LetsEncrypt =
 /// user-managed certificate files.
 
 pub type Manual =
-    Atom["manual"].
+    std.core.Atom.Manual.
 
 /// Mode represents the supported TLS configuration modes.
 ///

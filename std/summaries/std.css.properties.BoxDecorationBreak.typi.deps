@@ -1,9 +1,11 @@
 module=std.css.properties.BoxDecorationBreak
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=8252041924022410950
-interface_hash=9152587851372553972
-interface_doc_hash=5545709872623960412
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15885388289484589621
+interface_hash=11942466063305417258
+interface_doc_hash=8188252555926960073
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Clone=17702418462915090250
+std.css.keywords.Slice=16763702229497716782

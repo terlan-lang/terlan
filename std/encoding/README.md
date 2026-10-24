@@ -42,7 +42,9 @@ Important invariants:
   copied-value bridge. The compiler and VM have no encoding dispatch cases or
   special knowledge of `Base64Error`.
 - `std/RUST_BACKED_MANIFEST.tsv`: records native operation ownership.
-- HTTP and data modules may use encoding helpers later for protocol work.
+- HTTP session identity construction composes OS entropy with
+  `Base64.encode_url_unpadded_bytes` in Terlan; the existing URL-safe encode
+  functions retain their padded output and strict decoder behavior.
 
 ## Edge Cases
 

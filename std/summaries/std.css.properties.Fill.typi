@@ -1,52 +1,27 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#FillProperty
+//! The `fill` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines how SVG text
+//! content and the interior canvas of SVG shapes are filled or painted. If present, it overrides the
+//! element's `fill` attribute.
+//!
+//! Initial: black. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - none: No `fill` is painted; the areas inside the stroke, if any, are transparent.
+//!
 //! Grammar: <paint>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#FillProperty
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/fill
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Fill.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    fill: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    fill: Value
+    fill: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained fill value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword child.
-
-pub child(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

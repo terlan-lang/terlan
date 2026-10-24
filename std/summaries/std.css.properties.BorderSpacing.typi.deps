@@ -1,10 +1,10 @@
 module=std.css.properties.BorderSpacing
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16016987285708475011
-interface_hash=7205518084822429338
-interface_doc_hash=425090093365780239
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=8438476398427647193
+interface_hash=12617058254886333299
+interface_doc_hash=6242619553422308236
 deps=2
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688

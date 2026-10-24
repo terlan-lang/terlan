@@ -1,0 +1,304 @@
+/** Tooling-document projection for TL0003 and TL0010 lambda rules. */
+module self_host.SelfHostLintLambdaProjection.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.SelfHostLintReadability.ForwardingLambda.
+import self_host.SelfHostLintReadability.
+import self_host.SelfHostToolingDocument.ToolingDocument.
+import self_host.Delimited.
+
+struct ParameterFacts {
+    all_simple: Bool,
+    has_types: Bool,
+    names: List[String],
+}.
+
+constructor ParameterFacts {
+    (
+        all_simple: Bool,
+        has_types: Bool,
+        names: List[String],
+    ): ParameterFacts -> ParameterFacts {
+        all_simple: all_simple,
+        has_types: has_types,
+        names: names,
+    }
+}.
+
+struct CallFacts {
+    valid: Bool,
+    arguments: List[String],
+}.
+
+constructor CallFacts {
+    (valid: Bool, arguments: List[String]): CallFacts ->
+        CallFacts { valid: valid, arguments: arguments }
+}.
+
+pub struct LambdaProjectionFacts {
+    callbacks: List[{Int, Bool, List[String]}],
+    forwarding: List[ForwardingLambda],
+}.
+
+pub constructor LambdaProjectionFacts {
+    (
+        callbacks: List[{Int, Bool, List[String]}],
+        forwarding: List[ForwardingLambda],
+    ): LambdaProjectionFacts -> LambdaProjectionFacts {
+        callbacks: callbacks,
+        forwarding: forwarding,
+    }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+ascii_lower(value: Int): Bool -> value >= 97 and value <= 122.
+
+ascii_digit(value: Int): Bool -> value >= 48 and value <= 57.
+
+identifier_tail(values: List[Int]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            (ascii_lower(value) or ascii_digit(value) or value == 95)
+                and identifier_tail(rest)
+    }.
+
+simple_variable(value: String): Bool ->
+    case String.codepoints(value) {
+        [] -> false;
+        [95] -> false;
+        [first | rest] ->
+            (ascii_lower(first) or first == 95) and identifier_tail(rest)
+    }.
+
+parameter_name(value: String): {Bool, Bool, String} ->
+    case String.split_once(String.trim(value), ":") {
+        None ->
+            let name = String.trim(value);
+            {simple_variable(name), false, name};
+        Some({left, _type}) ->
+            let name = String.trim(left);
+            {simple_variable(name), true, name}
+    }.
+
+parameter_parts(
+    values: List[String],
+    all_simple: Bool,
+    has_types: Bool,
+    names: List[String],
+): ParameterFacts ->
+    case values {
+        [] -> ParameterFacts(all_simple, has_types, names);
+        [value | rest] ->
+            case parameter_name(value) {
+                {true, typed, name} -> parameter_parts(
+                    rest,
+                    all_simple,
+                    has_types or typed,
+                    append(names, [name]),
+                );
+                {false, typed, _} -> parameter_parts(
+                    rest,
+                    false,
+                    has_types or typed,
+                    names,
+                )
+            }
+    }.
+
+lambda_parameters(source: String, value: ProjectedExpressionNode): ParameterFacts ->
+    case value.children {
+        [_parameters, body] ->
+            let header = String.utf8_slice(
+                source,
+                value.start_byte,
+                body.start_byte - value.start_byte,
+            );
+            let trimmed_header = String.trim_end(header);
+            let header_size = String.byte_size(trimmed_header);
+            if {
+                header_size < 2 or not String.ends_with(trimmed_header, "->") ->
+                    ParameterFacts(false, false, []);
+                true ->
+                    let group = String.trim(String.utf8_slice(
+                        trimmed_header,
+                        0,
+                        header_size - 2,
+                    ));
+                    let size = String.byte_size(group);
+                    if {
+                        size < 2
+                            or not String.starts_with(group, "(")
+                            or not String.ends_with(group, ")") ->
+                            ParameterFacts(false, false, []);
+                        true ->
+                            let inside = String.trim(
+                                String.utf8_slice(group, 1, size - 2),
+                            );
+                            if {
+                                inside == "" -> ParameterFacts(true, false, []);
+                                true -> parameter_parts(
+                                    Delimited.split_top_level(inside, 44),
+                                    true,
+                                    false,
+                                    [],
+                                )
+                            }
+                    }
+            }
+    }.
+
+argument_parts(values: List[String], output: List[String]): CallFacts ->
+    case values {
+        [] -> CallFacts(true, output);
+        [value | rest] ->
+            let name = String.trim(value);
+            if {
+                simple_variable(name) -> argument_parts(rest, append(output, [name]));
+                true -> CallFacts(false, [])
+            }
+    }.
+
+direct_call(source: String, value: ProjectedExpressionNode): CallFacts ->
+    if {
+        value.kind != "call" -> CallFacts(false, []);
+        true ->
+            let text = String.trim(String.utf8_slice(
+                source,
+                value.start_byte,
+                value.end_byte - value.start_byte,
+            ));
+            let open = String.utf8_find_any_byte(text, 0, "(");
+            let size = String.byte_size(text);
+            if {
+                open <= 0 or size <= open + 1 or not String.ends_with(text, ")") ->
+                    CallFacts(false, []);
+                not simple_variable(String.trim(String.utf8_slice(text, 0, open))) ->
+                    CallFacts(false, []);
+                true ->
+                    let arguments = String.trim(String.utf8_slice(
+                        text,
+                        open + 1,
+                        size - open - 2,
+                    ));
+                    if {
+                        arguments == "" -> CallFacts(true, []);
+                        true -> argument_parts(
+                            Delimited.split_top_level(arguments, 44),
+                            [],
+                        )
+                    }
+            }
+    }.
+
+multi_expression_body(value: ProjectedExpressionNode): Bool ->
+    (value.kind == "let" or value.kind == "sequence")
+        and List.length(value.children) > 1.
+
+lambda_local_facts(
+    source: String,
+    value: ProjectedExpressionNode,
+): LambdaProjectionFacts ->
+    case value.children {
+        [_parameters, body] ->
+            let parameters = lambda_parameters(source, value);
+            let call = direct_call(source, body);
+            let callbacks = if {
+                multi_expression_body(body) and parameters.names != [] ->
+                    [{value.start_byte, true, parameters.names}];
+                true -> []
+            };
+            let forwarding = if {
+                parameters.all_simple and not parameters.has_types and call.valid -> [ForwardingLambda(
+                    value.start_byte,
+                    1,
+                    false,
+                    false,
+                    true,
+                    false,
+                    false,
+                    true,
+                    true,
+                    parameters.names,
+                    call.arguments,
+                )];
+                true -> []
+            };
+            LambdaProjectionFacts(callbacks, forwarding);
+        _ -> LambdaProjectionFacts([], [])
+    }.
+
+node_facts(source: String, value: ProjectedExpressionNode): LambdaProjectionFacts ->
+    let nested = nodes_facts(source, value.children);
+    if {
+        value.kind != "lambda" -> nested;
+        true ->
+            let local = lambda_local_facts(source, value);
+            LambdaProjectionFacts(
+                append(local.callbacks, nested.callbacks),
+                append(local.forwarding, nested.forwarding),
+            )
+    }.
+
+nodes_facts(
+    source: String,
+    values: List[ProjectedExpressionNode],
+): LambdaProjectionFacts ->
+    case values {
+        [] -> LambdaProjectionFacts([], []);
+        [value | rest] ->
+            let first = node_facts(source, value);
+            let following = nodes_facts(source, rest);
+            LambdaProjectionFacts(
+                append(first.callbacks, following.callbacks),
+                append(first.forwarding, following.forwarding),
+            )
+    }.
+
+body_facts(source: String, values: List[self_host.ProjectedBodySyntax.ProjectedBody]): LambdaProjectionFacts ->
+    case values {
+        [] -> LambdaProjectionFacts([], []);
+        [value | rest] ->
+            let following = body_facts(source, rest);
+            case value.expression.node {
+                None -> following;
+                Some(expression) ->
+                    let first = node_facts(source, expression);
+                    LambdaProjectionFacts(
+                        append(first.callbacks, following.callbacks),
+                        append(first.forwarding, following.forwarding),
+                    )
+            }
+    }.
+
+/** Projects callback and forwarding-lambda facts from one shared document. */
+pub facts(value: ToolingDocument): LambdaProjectionFacts ->
+    if {
+        value.valid and value.frontend.bodies.valid ->
+            body_facts(value.source, value.frontend.bodies.values);
+        true -> LambdaProjectionFacts([], [])
+    }.
+
+/** Runs TL0003 and TL0010 with no native AST projection. */
+@pure
+pub diagnostics(
+    path: String,
+    value: ToolingDocument,
+): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
+    let projected = facts(value);
+    SelfHostLintReadability.diagnostics(
+        path,
+        value.source,
+        [],
+        projected.callbacks,
+        [],
+        [],
+        [],
+        [],
+        projected.forwarding,
+    ).

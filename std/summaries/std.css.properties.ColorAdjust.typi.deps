@@ -1,9 +1,11 @@
 module=std.css.properties.ColorAdjust
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=9737074399674071835
-interface_hash=13723571035562966674
-interface_doc_hash=15276612544892037803
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3574845832452114115
+interface_hash=7653304208271949795
+interface_doc_hash=15611898738823270255
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Economy=17151594924773466696
+std.css.keywords.Exact=8109451172240185940

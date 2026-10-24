@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword flip-block. Generated; do not edit.
+ */
+module std.css.keywords.FlipBlock.
+
+pub type FlipBlock = Atom["flip-block"].

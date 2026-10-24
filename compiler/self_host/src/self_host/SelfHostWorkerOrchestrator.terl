@@ -1,0 +1,180 @@
+/** Deterministic fail-fast orchestration for dependency-safe worker batches. */
+module self_host.SelfHostWorkerOrchestrator.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, Int, String}.
+
+import self_host.SelfHostWorkerPlan.{WorkerBatch}.
+
+
+pub struct WorkerSchedulerState {
+    pending: List[WorkerBatch],
+    active: List[String],
+    completed: List[String],
+    failed: List[String],
+    cancelled: List[String],
+    cancellation_requested: Bool,
+}.
+
+constructor WorkerSchedulerState {
+    (
+        pending: List[WorkerBatch],
+        active: List[String],
+        completed: List[String],
+        failed: List[String],
+        cancelled: List[String],
+        cancellation_requested: Bool,
+    ): WorkerSchedulerState -> WorkerSchedulerState {
+        pending: pending,
+        active: active,
+        completed: completed,
+        failed: failed,
+        cancelled: cancelled,
+        cancellation_requested: cancellation_requested,
+    }
+}.
+
+
+pub struct WorkerDispatch {
+    state: WorkerSchedulerState,
+    modules: List[String],
+}.
+
+constructor WorkerDispatch {
+    (state: WorkerSchedulerState, modules: List[String]): WorkerDispatch ->
+        WorkerDispatch { state: state, modules: modules }
+}.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+contains(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> current == value or contains(value, rest)
+    }.
+
+@pure
+has_duplicate(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> contains(value, rest) or has_duplicate(rest)
+    }.
+
+@pure
+remove(value: String, values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [current | rest] -> if {
+            current == value -> rest;
+            true -> [current | remove(value, rest)]
+        }
+    }.
+
+@pure
+batch_modules(values: List[WorkerBatch]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(value.modules, batch_modules(rest))
+    }.
+
+@pure
+valid_batches(values: List[WorkerBatch], index: Int): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> value.index == index
+            and value.modules != []
+            and valid_batches(rest, index + 1)
+    }.
+
+/** Admits one complete, deterministic worker schedule. */
+@pure
+pub start(values: List[WorkerBatch]): Result[WorkerSchedulerState, String] ->
+    let modules = batch_modules(values);
+    if {
+        not valid_batches(values, 0) -> Err("worker batches must be non-empty and contiguously indexed");
+        has_duplicate(modules) -> Err("worker schedule contains duplicate modules");
+        true -> Ok(WorkerSchedulerState(values, [], [], [], [], false))
+    }.
+
+/** Dispatches the next dependency-safe batch only after the prior batch drains. */
+@pure
+pub dispatch(value: WorkerSchedulerState): Result[WorkerDispatch, String] ->
+    if {
+        value.cancellation_requested -> Err("worker schedule is cancelled");
+        value.active != [] -> Err("worker batch is still active");
+        true -> case value.pending {
+            [] -> Ok(WorkerDispatch(value, []));
+            [batch | rest] -> let next = WorkerSchedulerState(
+                rest,
+                batch.modules,
+                value.completed,
+                value.failed,
+                value.cancelled,
+                false,
+            );
+            Ok(WorkerDispatch(next, batch.modules))
+        }
+    }.
+
+/** Records one worker result; the first failure atomically cancels all remainder. */
+@pure
+pub complete(
+    value: WorkerSchedulerState,
+    module_name: String,
+    success: Bool,
+): Result[WorkerSchedulerState, String] ->
+    if {
+        value.cancellation_requested -> Err("worker schedule is cancelled");
+        not contains(module_name, value.active) -> Err("worker completion is not active");
+        success -> Ok(WorkerSchedulerState(
+            value.pending,
+            remove(module_name, value.active),
+            [module_name | value.completed],
+            value.failed,
+            value.cancelled,
+            false,
+        ));
+        true -> Ok(WorkerSchedulerState(
+            [],
+            [],
+            value.completed,
+            [module_name | value.failed],
+            append(
+                remove(module_name, value.active),
+                append(batch_modules(value.pending), value.cancelled),
+            ),
+            true,
+        ))
+    }.
+
+/** Cancels active and pending work without publishing additional artifacts. */
+@pure
+pub cancel(value: WorkerSchedulerState): WorkerSchedulerState ->
+    if {
+        value.cancellation_requested -> value;
+        true -> WorkerSchedulerState(
+            [],
+            [],
+            value.completed,
+            value.failed,
+            append(value.active, append(batch_modules(value.pending), value.cancelled)),
+            true,
+        )
+    }.
+
+@pure
+pub finished(value: WorkerSchedulerState): Bool ->
+    value.pending == [] and value.active == [].
+
+@pure
+pub succeeded(value: WorkerSchedulerState): Bool ->
+    finished(value)
+        and not value.cancellation_requested
+        and value.failed == [].

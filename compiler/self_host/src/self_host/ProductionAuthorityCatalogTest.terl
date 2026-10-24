@@ -1,0 +1,27 @@
+/** Phase 4-8 authority catalog aggregation contracts. */
+module self_host.ProductionAuthorityCatalogTest.
+
+import self_host.ProductionAuthorityCatalog.
+
+@test
+pub marker_contents_are_compared_exactly_after_trimming(): Bool ->
+    ProductionAuthorityCatalog.marker_passes("complete\n", "complete")
+        and not ProductionAuthorityCatalog.marker_passes("denied\n", "complete").
+
+@test
+pub empty_source_catalog_is_canonical_but_fails_later_completeness(): Bool ->
+    ProductionAuthorityCatalog.render(
+        "schema\tterlan.self-host.production-authority-sources/v1\n",
+    ) == "schema\tterlan.self-host.production-authority/v1\n".
+
+@test
+pub wrong_source_schema_is_rejected(): Bool ->
+    ProductionAuthorityCatalog.render(
+        "schema\tterlan.self-host.production-authority-sources/v0\n",
+    ) == "".
+
+@test
+pub unknown_source_gate_is_rejected_before_file_admission(): Bool ->
+    ProductionAuthorityCatalog.render(
+        "schema\tterlan.self-host.production-authority-sources/v1\ngate\tunknown-authority\t/missing\tcomplete\n",
+    ) == "".

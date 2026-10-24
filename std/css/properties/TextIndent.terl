@@ -1,78 +1,24 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-indent
+ * The `text-indent` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * length of empty space (indentation) that is put before lines of text in a block.
+ *
+ * Initial: 0. Inherited: yes.
+ * Percentages: refer to the width of the containing block.
+ *
  * Grammar: [ <length-percentage> ] && hanging? && each-line?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-indent
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-indent
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextIndent.
 
-import std.css.Values.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
-
-/**
- * A nominal, specification-constrained text-indent value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_indent: Value,
+    text_indent: Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    text_indent: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-indent", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-indent", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-indent", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-indent", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-indent", css: "unset"}).
-
-/**
- * Constructs a text-indent value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "text-indent", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a text-indent value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "text-indent", css: std.css.Values.percentage_css(value)}).

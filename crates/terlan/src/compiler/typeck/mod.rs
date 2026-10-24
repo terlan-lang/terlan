@@ -15,9 +15,11 @@ use crate::terlan_syntax::{
 
 #[cfg(test)]
 #[path = "binding_identity_test.rs"]
+#[cfg(test)]
 mod binding_identity_test;
 #[cfg(test)]
 #[path = "const_eval_test.rs"]
+#[cfg(test)]
 mod const_eval_test;
 mod phase_timings;
 mod types;
@@ -58,6 +60,7 @@ use named_args::*;
 
 mod declarations;
 use declarations::*;
+pub(crate) use declarations::check_public_atom_aliases;
 
 mod signature_loading;
 use signature_loading::*;
@@ -246,14 +249,14 @@ enum Variance {
 /// - Resolver import metadata for visible types.
 ///
 /// Output:
-/// - Optional provider module and source type name; local names have no provider.
+/// - Provider module and source type name.
 ///
 /// Transformation:
-/// - Preserves imported provider identities and current-module local scope
-///   while resolving public type paths.
+/// - Gives diagnostics and constructor lookup a stable qualified identity for
+///   imported type references.
 #[derive(Debug, Clone)]
 struct QualifiedTypeName {
-    module: Option<String>,
+    module: String,
     name: String,
 }
 
@@ -340,7 +343,8 @@ fn type_check_syntax_module_with_inputs<'a>(
 
     let mut alias_names: HashSet<String> = aliases.keys().cloned().collect();
     alias_names.extend(resolved.imported_types.keys().cloned());
-    let imported_type_names = imported_type_names(resolved);
+    let imported_type_names =
+        imported_type_names_for_module(inputs.syntax_function_module, resolved);
     alias_names.extend(inputs.alias_extra_names);
     alias_names.extend(primitive_type_names());
     let function_signatures = inputs.function_signatures;
@@ -497,7 +501,7 @@ fn type_check_prepared_syntax_module_output(
 ) -> Vec<Diagnostic> {
     let mut timings = phase_timings::TypeCheckTimings::new();
     let imported_aliases = imported_type_aliases(resolved);
-    let imported_names = imported_type_names(resolved);
+    let imported_names = imported_type_names_for_module(module, resolved);
     let local_aliases = collect_qualified_syntax_type_aliases(module, &imported_names);
     let mut aliases = imported_aliases.clone();
     aliases.extend(local_aliases.clone());
@@ -701,7 +705,7 @@ pub fn infer_syntax_expression_type(
     let mut diagnostics = type_check_syntax_module_output(module, resolved);
 
     let imported_aliases = imported_type_aliases(resolved);
-    let imported_names = imported_type_names(resolved);
+    let imported_names = imported_type_names_for_module(module, resolved);
     let local_aliases = collect_qualified_syntax_type_aliases(module, &imported_names);
     let mut aliases = imported_aliases.clone();
     aliases.extend(local_aliases.clone());
@@ -747,7 +751,7 @@ pub fn infer_syntax_expression_type(
     );
     let template_schemes = collect_syntax_template_schemes(module, &alias_names);
     let import_maps = collect_syntax_import_maps(module, &resolved.interface_map);
-    let imported_type_names = imported_type_names(resolved);
+    let imported_type_names = imported_type_names_for_module(module, resolved);
     let constructor_aliases = imported_type_names.clone();
     let trait_bound_impl_type_args = collect_trait_bound_impl_type_args(&trait_method_calls);
     let negative_trait_impl_type_args =

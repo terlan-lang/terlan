@@ -1,5 +1,5 @@
 use super::imported_type_refs::{
-    collect_syntax_imported_type_refs, collect_syntax_selected_type_refs,
+    collect_syntax_callable_type_refs, collect_syntax_imported_type_refs,
 };
 use super::interface_render::normalize_type_text;
 use super::shapes::collect_syntax_shape_signatures;
@@ -13,7 +13,7 @@ pub(super) fn syntax_module_output_to_prepared_interface(
     let mut public_types = HashSet::new();
     let mut private_types = HashSet::new();
     let mut opaque_types = HashSet::new();
-    let imported_type_refs = collect_syntax_selected_type_refs(module);
+    let imported_type_refs = collect_syntax_callable_type_refs(module);
     let type_params = collect_syntax_type_params(module);
     let type_bodies = collect_syntax_type_bodies(module, &imported_type_refs);
     let struct_fields = collect_syntax_struct_fields(module, &imported_type_refs);
@@ -27,7 +27,7 @@ pub(super) fn syntax_module_output_to_prepared_interface(
     let mut associated_constants = HashMap::new();
     let traits = collect_syntax_trait_signatures(module);
     let trait_conformances = collect_syntax_trait_conformances(module);
-    let constructors = collect_syntax_constructor_signatures(module);
+    let constructors = collect_syntax_constructor_signatures(module, &imported_type_refs);
     for declaration in &module.declarations {
         match &declaration.payload {
             SyntaxDeclarationPayload::Constant {
@@ -239,7 +239,7 @@ pub(super) fn syntax_module_output_to_prepared_interface(
                         continue;
                     };
                     let value_text = interface_render::render_constant_expr(&constant.value);
-                    let name = format!("{}.{}", normalize_type_text(&owner), constant.name);
+                    let name = format!("{owner}.{}", constant.name);
                     associated_constants.insert(
                         name.clone(),
                         ConstantSignature {
@@ -516,6 +516,7 @@ pub(super) fn collect_syntax_trait_signatures(
 /// signature metadata and computes minimum arity from defaults.
 pub(super) fn collect_syntax_constructor_signatures(
     module: &SyntaxModuleOutput,
+    imported_type_refs: &HashMap<String, String>,
 ) -> HashMap<String, Vec<ConstructorSignature>> {
     let mut constructors = HashMap::new();
 
@@ -540,7 +541,10 @@ pub(super) fn collect_syntax_constructor_signatures(
                     .filter(|param| !param.is_varargs)
                     .map(|param| ParamSignature {
                         name: param.name.clone(),
-                        annotation: param.annotation.text.clone(),
+                        annotation: qualify_syntax_type_text(
+                            &normalize_type_text(&param.annotation.text),
+                            imported_type_refs,
+                        ),
                         is_mutable: false,
                         default: param
                             .default_text
@@ -556,7 +560,10 @@ pub(super) fn collect_syntax_constructor_signatures(
                     .find(|param| param.is_varargs)
                     .map(|param| ParamSignature {
                         name: param.name.clone(),
-                        annotation: param.annotation.text.clone(),
+                        annotation: qualify_syntax_type_text(
+                            &normalize_type_text(&param.annotation.text),
+                            imported_type_refs,
+                        ),
                         is_mutable: false,
                         default: param
                             .default_text
@@ -575,7 +582,10 @@ pub(super) fn collect_syntax_constructor_signatures(
                     type_params: type_params.clone(),
                     params,
                     vararg,
-                    return_type: clause.return_type.text.clone(),
+                    return_type: qualify_syntax_type_text(
+                        &normalize_type_text(&clause.return_type.text),
+                        imported_type_refs,
+                    ),
                     body: clause.body_text.clone(),
                     min_arity,
                     varargs: clause.params.iter().any(|param| param.is_varargs),

@@ -85,7 +85,7 @@ fn nullary_union_cast_inference_requires_one_matching_empty_variant() {
         .unwrap()
         .clone();
     conflicting.encoded_layout = std::sync::Arc::from(b"conflicting layout".as_slice());
-    layouts.insert(("conflict".into(), 0), conflicting);
+    layouts.insert(("conflict".into(), 0), conflicting.into());
     assert!(zero_field_managed_variant_layout(&atom, target, &layouts)
         .unwrap_err()
         .to_string()

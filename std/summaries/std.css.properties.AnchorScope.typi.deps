@@ -1,9 +1,11 @@
 module=std.css.properties.AnchorScope
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=8021264674787949652
-interface_hash=11255806347362073812
-interface_doc_hash=4690662823385115006
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=257348513667897643
+interface_hash=18155582694043062573
+interface_doc_hash=6564329824666898330
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.All=17654307083516515669
+std.css.keywords.None=3400229744369726074

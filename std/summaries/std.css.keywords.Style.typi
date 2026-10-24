@@ -1,0 +1,6 @@
+//! Shared CSS keyword style. Generated; do not edit.
+
+module std.css.keywords.Style.
+
+pub type Style =
+    Atom["style"].

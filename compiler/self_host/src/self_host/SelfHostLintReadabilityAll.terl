@@ -1,0 +1,37 @@
+/** Build-once self-hosted readability lint execution. */
+module self_host.SelfHostLintReadabilityAll.
+
+import self_host.SelfHostLintDestructureProjection.
+import self_host.SelfHostLintGroupedBindingProjection.
+import self_host.SelfHostLintLambdaProjection.
+import self_host.SelfHostLintPublicDocsSource.
+import self_host.SelfHostLintReadability.
+import self_host.SelfHostLintReadabilityDocument.
+import self_host.SelfHostLintReadabilitySource.
+import self_host.SelfHostToolingDocument.ToolingDocument.
+import self_host.SelfHostToolingDocument.
+
+/** Runs every transferred readability rule over one shared document. */
+pub diagnostics_document(
+    path: String,
+    document: ToolingDocument,
+): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
+    let lambdas = SelfHostLintLambdaProjection.facts(document);
+    SelfHostLintReadability.diagnostics(
+        path,
+        document.source,
+        SelfHostLintReadabilityDocument.deep_expression_facts(document),
+        lambdas.callbacks,
+        SelfHostLintDestructureProjection.facts(document),
+        SelfHostLintReadabilitySource.lines(document.source),
+        SelfHostLintPublicDocsSource.subjects(document.source),
+        SelfHostLintGroupedBindingProjection.facts(document),
+        lambdas.forwarding,
+    ).
+
+/** Lexes and projects source once before running readability policy. */
+pub diagnostics(
+    path: String,
+    source: String,
+): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
+    diagnostics_document(path, SelfHostToolingDocument.build(source)).

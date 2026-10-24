@@ -1,72 +1,35 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-clip
+//! The `mask-clip` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property determines the
+//! area which is affected by a mask. The painted content of an element must be restricted to this
+//! area.
+//!
+//! Initial: border-box. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - border-box: The painted content is clipped to the border box.
+//! - content-box: The painted content is clipped to the content box.
+//! - fill-box: The painted content is clipped to the object bounding box.
+//! - no-clip: The painted content is not clipped.
+//! - padding-box: The painted content is clipped to the padding box.
+//! - stroke-box: The painted content is clipped to the stroke bounding box.
+//! - view-box: Uses the nearest SVG viewport as reference box. If a
+//! [`viewBox`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/viewBox)
+//! attribute is specified for the element creating the SVG viewport, the reference box is positioned
+//! at the origin of the coordinate system established by the `viewBox` attribute and the dimension
+//! of the reference box is set to the width and height values of the `viewBox` attribute.
+//!
 //! Grammar: [ <coord-box> | no-clip ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-clip
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-clip
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MaskClip.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    mask_clip: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    mask_clip: Value
+    mask_clip: ContentBox | PaddingBox | BorderBox | FillBox | StrokeBox | ViewBox | NoClip | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained mask-clip value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword border-box.
-
-pub border_box(): Value.
-
-/// Returns the CSS keyword content-box.
-
-pub content_box(): Value.
-
-/// Returns the CSS keyword fill-box.
-
-pub fill_box(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword no-clip.
-
-pub no_clip(): Value.
-
-/// Returns the CSS keyword padding-box.
-
-pub padding_box(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stroke-box.
-
-pub stroke_box(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword view-box.
-
-pub view_box(): Value.
-
-export type Token.

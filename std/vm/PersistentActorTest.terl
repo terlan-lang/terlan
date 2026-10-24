@@ -11,42 +11,166 @@ pub order_actor(): ActorId ->
 pub order_schema(version: Int): SchemaId ->
     PersistentActor.schema_id("OrderSnapshot", version).
 
-pub accepts_snapshot_plan(plan: SnapshotPlan): Bool -> true.
+pub accepts_snapshot_plan(plan: SnapshotPlan): Bool ->
+    plan == PersistentActor.snapshot(order_actor(), order_schema(1), 42, "paid")
+        and plan != PersistentActor.snapshot(order_actor(), order_schema(1), 42, "unpaid").
 
-pub accepts_replay_plan(plan: ReplayPlan): Bool -> true.
+pub accepts_replay_plan(plan: ReplayPlan): Bool ->
+    plan == PersistentActor.replay(order_actor(), order_schema(1))
+        and plan != PersistentActor.replay(order_actor(), order_schema(2)).
 
 pub accepts_resource_restore(checkpoint: ResourceCheckpoint, plan: ResourceRestorePlan): Bool ->
-    true.
+    checkpoint == PersistentActor.resource_checkpoint(order_actor(), "postgres:orders")
+        and plan != PersistentActor.restore_resource(
+    order_actor(),
+    PersistentActor.resource_checkpoint(order_actor(), "postgres:other"),
+).
 
-pub accepts_mailbox_restore(checkpoint: MailboxCheckpoint, plan: MailboxRestorePlan): Bool -> true.
+pub accepts_mailbox_restore(checkpoint: MailboxCheckpoint, plan: MailboxRestorePlan): Bool ->
+    checkpoint == PersistentActor.mailbox_checkpoint(order_actor(), 42)
+        and plan != PersistentActor.restore_mailbox(
+    order_actor(),
+    PersistentActor.mailbox_checkpoint(order_actor(), 43),
+).
 
-pub accepts_migration_rollback(plan: MigrationRollbackPlan): Bool -> true.
+pub accepts_migration_rollback(plan: MigrationRollbackPlan): Bool ->
+    plan == PersistentActor.migration_rollback(
+    order_actor(),
+    order_schema(1),
+    order_schema(2),
+    7,
+    "schema_migration_failed",
+)
+        and plan != PersistentActor.migration_rollback(
+    order_actor(),
+    order_schema(1),
+    order_schema(2),
+    8,
+    "schema_migration_failed",
+).
 
-pub accepts_package_migration(registration: PackageMigrationRegistration): Bool -> true.
+pub accepts_package_migration(registration: PackageMigrationRegistration): Bool ->
+    registration == PersistentActor.register_package_migration(
+    "orders@0.0.7",
+    order_actor(),
+    order_schema(1),
+    order_schema(2),
+    "OrderSnapshot.v1_to_v2",
+)
+        and registration != PersistentActor.register_package_migration(
+    "other@0.0.7",
+    order_actor(),
+    order_schema(1),
+    order_schema(2),
+    "OrderSnapshot.v1_to_v2",
+).
 
-pub accepts_timer_restore(checkpoint: TimerCheckpoint, plan: TimerRestorePlan): Bool -> true.
+pub accepts_timer_restore(checkpoint: TimerCheckpoint, plan: TimerRestorePlan): Bool ->
+    checkpoint == PersistentActor.timer_checkpoint(order_actor(), "payment-timeout", 30000)
+        and plan != PersistentActor.restore_timer(
+    order_actor(),
+    PersistentActor.timer_checkpoint(order_actor(), "payment-timeout", 30001),
+).
 
-pub accepts_package_store(binding: PackageStoreBinding): Bool -> true.
+pub accepts_package_store(binding: PackageStoreBinding): Bool ->
+    binding == PersistentActor.package_store("orders@0.0.7", order_actor(), order_schema(1))
+        and binding != PersistentActor.package_store("other@0.0.7", order_actor(), order_schema(1)).
 
-pub accepts_package_retention_policy(binding: PackageRetentionPolicyBinding): Bool -> true.
+pub accepts_package_retention_policy(binding: PackageRetentionPolicyBinding): Bool ->
+    binding == PersistentActor.package_retention_policy(
+    "orders@0.0.7",
+    order_actor(),
+    PersistentActor.retention_policy(100, 50, 75),
+)
+        and binding != PersistentActor.package_retention_policy(
+    "orders@0.0.7",
+    order_actor(),
+    PersistentActor.retention_policy(101, 50, 75),
+).
 
-pub accepts_model_sync_retention_continuity(plan: ModelSyncRetentionContinuityPlan): Bool -> true.
+pub accepts_model_sync_retention_continuity(plan: ModelSyncRetentionContinuityPlan): Bool ->
+    plan == PersistentActor.model_sync_retention_continuity(
+    order_actor(),
+    PersistentActor.retention_policy(100, 50, 75),
+    "OrderProjection",
+    80,
+)
+        and plan != PersistentActor.model_sync_retention_continuity(
+    order_actor(),
+    PersistentActor.retention_policy(100, 50, 75),
+    "OrderProjection",
+    81,
+).
 
-pub accepts_schema_declaration(declaration: SchemaDeclaration): Bool -> true.
+pub accepts_schema_declaration(declaration: SchemaDeclaration): Bool ->
+    declaration == PersistentActor.schema(
+    order_schema(2),
+    ["id", "status"],
+    ["created", "paid"],
+    PersistentActor.schema_id("OrderMailbox", 1),
+)
+        and declaration != PersistentActor.schema(
+    order_schema(2),
+    ["id"],
+    ["created", "paid"],
+    PersistentActor.schema_id("OrderMailbox", 1),
+).
 
-pub accepts_event_variant_schema(event_schema: EventVariantSchemaId): Bool -> true.
+pub accepts_event_variant_schema(event_schema: EventVariantSchemaId): Bool ->
+    event_schema == PersistentActor.event_variant_schema("orders@0.0.7", order_actor(), order_schema(2), "paid", 1)
+        and event_schema != PersistentActor.event_variant_schema("orders@0.0.7", order_actor(), order_schema(2), "paid", 2).
 
-pub accepts_durable_adapter_schema(metadata: DurableAdapterSchemaMetadata): Bool -> true.
+pub accepts_durable_adapter_schema(metadata: DurableAdapterSchemaMetadata): Bool ->
+    metadata == PersistentActor.durable_adapter_schema(
+    "orders@0.0.7",
+    "local-log",
+    order_schema(2),
+    "store/order-100",
+    1,
+)
+        and metadata != PersistentActor.durable_adapter_schema(
+    "orders@0.0.7",
+    "local-log",
+    order_schema(2),
+    "store/order-100",
+    2,
+).
 
-pub accepts_persistent_actor_declaration(declaration: PersistentActorDeclaration): Bool -> true.
+pub accepts_persistent_actor_declaration(declaration: PersistentActorDeclaration): Bool ->
+    declaration == PersistentActor.persistent_actor(order_actor(), order_schema(1), "store/order-100/OrderSnapshot")
+        and declaration != PersistentActor.persistent_actor(order_actor(), order_schema(1), "store/other").
 
-pub accepts_retention_policy(policy: RetentionPolicy): Bool -> true.
+pub accepts_retention_policy(policy: RetentionPolicy): Bool ->
+    policy == PersistentActor.retention_policy(100, 50, 75)
+        and policy != PersistentActor.retention_policy(100, 51, 75).
 
-pub accepts_actor_family_retention_defaults(defaults: ActorFamilyRetentionDefaults): Bool -> true.
+pub accepts_actor_family_retention_defaults(defaults: ActorFamilyRetentionDefaults): Bool ->
+    defaults == PersistentActor.family_retention_defaults(
+    "OrderActor",
+    PersistentActor.retention_policy(10, 1, 1),
+    PersistentActor.retention_policy(1000, 500, 750),
+)
+        and defaults != PersistentActor.family_retention_defaults(
+    "OtherActor",
+    PersistentActor.retention_policy(10, 1, 1),
+    PersistentActor.retention_policy(1000, 500, 750),
+).
 
-pub accepts_audit_retention(plan: AuditRetentionPlan): Bool -> true.
+pub accepts_audit_retention(plan: AuditRetentionPlan): Bool ->
+    plan == PersistentActor.audit_retention(
+    order_actor(),
+    PersistentActor.retention_policy(100, 50, 75),
+    ["created", "paid"],
+)
+        and plan != PersistentActor.audit_retention(
+    order_actor(),
+    PersistentActor.retention_policy(100, 50, 75),
+    ["created"],
+).
 
-pub accepts_redaction_policy(policy: RedactionPolicy): Bool -> true.
+pub accepts_redaction_policy(policy: RedactionPolicy): Bool ->
+    policy == PersistentActor.redaction_policy(["state.secret", "mailbox.payload"], false, true)
+        and policy != PersistentActor.redaction_policy(["state.secret", "mailbox.payload"], true, true).
 
 @test
 pub typed_snapshot_schema_id_is_source_visible(): Bool ->
@@ -67,7 +191,7 @@ pub schema_compatibility_is_source_visible(): Bool ->
     let expected_schema = order_schema(1);
     let actual_schema = order_schema(1);
     let compatible = PersistentActor.compatible_schema(expected_schema, actual_schema);
-    compatible.
+    compatible and not PersistentActor.compatible_schema(expected_schema, order_schema(2)).
 
 @test
 pub resource_restore_plan_is_source_visible(): Bool ->

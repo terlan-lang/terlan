@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword no-contextual. Generated; do not edit.
+ */
+module std.css.keywords.NoContextual.
+
+pub type NoContextual = Atom["no-contextual"].

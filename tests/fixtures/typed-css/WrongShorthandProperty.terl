@@ -1,6 +1,5 @@
 module typed_css.WrongShorthandProperty.
 
+import std.css.keywords.Auto.{Auto}.
 import std.css.properties.{Margin, MarginInline}.
-
-pub invalid(): Margin.Value ->
-    Margin.pair(MarginInline.component_auto(), Margin.component_auto()).
+pub invalid(): Margin.Checked -> Margin.pair(MarginInline.pair(Auto, Auto), Auto).

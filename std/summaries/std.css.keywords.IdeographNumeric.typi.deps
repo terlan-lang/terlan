@@ -1,0 +1,8 @@
+module=std.css.keywords.IdeographNumeric
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=16762545402661826011
+interface_hash=9638453537649817597
+interface_doc_hash=17741799089032414471
+deps=0

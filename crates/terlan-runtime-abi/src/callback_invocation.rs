@@ -44,5 +44,25 @@ pub trait CallbackInvocation<Event>: Debug {
         wake: Self::Wake,
     ) -> Result<CallbackState<Self::Value, Self::Wait>, String>;
 
+    /// Executes host work asynchronously while allowing a protocol-owned wait
+    /// to remain parked for a later event. Synchronous embedders reuse invoke.
+    fn invoke_streaming(
+        &mut self,
+        event: Event,
+        callback: Option<&Self::Value>,
+        args: Vec<NativeValue>,
+    ) -> impl Future<Output = Result<CallbackState<Self::Value, Self::Wait>, String>> {
+        async move { self.invoke(event, callback, args) }
+    }
+
+    /// Resumes a protocol-owned wait and drives any following host work without
+    /// replaying the callback. Another protocol wait may remain parked.
+    fn resume_streaming(
+        &mut self,
+        wake: Self::Wake,
+    ) -> impl Future<Output = Result<CallbackState<Self::Value, Self::Wait>, String>> {
+        async move { self.resume(wake) }
+    }
+
     fn cancel_pending(&mut self, reason: String) -> Result<(), String>;
 }

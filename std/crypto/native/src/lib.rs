@@ -3,9 +3,11 @@
 #![forbid(unsafe_code)]
 
 pub mod ed25519;
+mod entropy;
 pub mod hash;
 mod hash_bindings;
 
+pub use entropy::ENTROPY_BYTES;
 pub use hash_bindings::{
     SHA256, SHA256_BYTES, SHA256_DOMAIN_FRAMED, SHA256_FRAMED, SHA256_NUL_SEPARATED,
 };

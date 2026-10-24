@@ -481,7 +481,9 @@ artifact_classes(repository: String): Json ->
     value.
 
 executable_sizes(repository: String): Json ->
-    let target = child(repository, "target");
+    executable_sizes_at(child(repository, "target")).
+
+executable_sizes_at(target: String): Json ->
     let value = Json.object();
     let _a = value.put("debug/terlc", Json.int(file_size(child(target, "debug/terlc"))));
     let _b = value.put("debug/terlan-vm", Json.int(file_size(child(target, "debug/terlan-vm"))));
@@ -512,6 +514,42 @@ executable_sizes(repository: String): Json ->
                 Json.int(file_size(child(target, "release/terlan-test-orchestrator"))),
             );
     value.
+
+executable_names(): List[String] ->
+    ["terlc", "terlan-vm", "terlan-native-worker", "terlan-test-orchestrator"].
+
+positive_executable_sizes(sizes: Json, prefix: String, names: List[String]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            case json_int(sizes, String.append(prefix, name)) {
+                Some(value) -> value > 0 and positive_executable_sizes(sizes, prefix, rest);
+                None -> false
+            }
+    }.
+
+executable_sizes_within_budget(sizes: Json, policy: Json): Bool ->
+    let report = Json.object();
+    let _sizes = report.put("executable_sizes", sizes);
+    let {
+        Some(maxima) <- json_member(policy, "executable_maximum_bytes");
+        Some(debug_maximum) <- json_int(maxima, "debug");
+        Some(release_maximum) <- json_int(maxima, "release")
+    } else {
+        _ -> false
+    };
+    debug_maximum > 0
+        and release_maximum > 0
+        and positive_executable_sizes(sizes, "debug/", executable_names())
+        and positive_executable_sizes(sizes, "release/", executable_names())
+        and same_strings(validate_executables(report, policy, []), []).
+
+run_executable_check(target: String, policy: Json): Bool ->
+    if {
+        executable_sizes_within_budget(executable_sizes_at(target), policy) -> let _passed = println("Canonical debug and release executable sizes passed.");
+        true;
+        true -> fail("Executable size check failed: missing files, invalid policy, or budget exceeded")
+    }.
 
 profile_fingerprints(repository: String): Option[Json] ->
     let debug_value = profile_fingerprint(repository, debug_command_text());
@@ -1192,7 +1230,7 @@ sum_profile(sizes: Json, prefix: String, names: List[String], total: Int): Int -
 validate_executables(report: Json, policy: Json, findings: List[String]): List[String] ->
     case {json_member(report, "executable_sizes"), json_member(policy, "executable_maximum_bytes")} {
         {Some(sizes), Some(maxima)} ->
-            let names = ["terlc", "terlan-vm", "terlan-native-worker", "terlan-test-orchestrator"];
+            let names = executable_names();
             let debug = sum_profile(sizes, "debug/", names, 0);
             let release = sum_profile(sizes, "release/", names, 0);
             let debug_findings =
@@ -1517,6 +1555,11 @@ run_refresh_mode(repository: String, policy: Json): Bool ->
 
 run_mode(repository: String, policy: Json): Bool ->
     case Arguments.get(0) {
+        Some("--check-executables") ->
+            case {Arguments.count(), Arguments.get(1)} {
+                {2, Some(target)} -> run_executable_check(target, policy);
+                _ -> fail("Executable size check requires a Cargo target directory")
+            };
         Some("--self-test") ->
             if {
                 Arguments.count() == 1 -> run_self_test(repository, policy);
@@ -1546,3 +1589,33 @@ pub clock_contract_supports_evidence_and_elapsed_time(): Bool ->
     unix_time_ns() > 0
         and monotonic_time_ns() >= started
         and elapsed_milliseconds(1000000000, 1123456789) == 123.
+
+@test
+pub executable_budget_rejects_overflow_missing_files_and_invalid_policy(): Bool ->
+    let {
+        Ok(sizes) <-
+            Json.parse(
+                "{\"debug/terlc\":1,\"debug/terlan-vm\":1,\"debug/terlan-native-worker\":1,\"debug/terlan-test-orchestrator\":1,\"release/terlc\":2,\"release/terlan-vm\":2,\"release/terlan-native-worker\":2,\"release/terlan-test-orchestrator\":2}",
+            );
+        Ok(policy) <- Json.parse("{\"executable_maximum_bytes\":{\"debug\":4,\"release\":8}}");
+        Ok(maxima) <- policy.get("executable_maximum_bytes")
+    } else {
+        _ -> false
+    };
+    executable_budget_cases(sizes, policy, maxima).
+
+executable_budget_cases(sizes: Json, policy: Json, maxima: Json): Bool ->
+    let exact_limit = executable_sizes_within_budget(sizes, policy);
+    let _lowered = maxima.put("release", Json.int(7));
+    let _lowered_policy = policy.put("executable_maximum_bytes", maxima);
+    let oversized = not executable_sizes_within_budget(sizes, policy);
+    let _restored = maxima.put("release", Json.int(8));
+    let _restored_policy = policy.put("executable_maximum_bytes", maxima);
+    let missing = not executable_sizes_within_budget(Json.object(), policy);
+    let _empty = sizes.put("release/terlc", Json.int(0));
+    let empty = not executable_sizes_within_budget(sizes, policy);
+    let _negative = sizes.put("release/terlc", Json.int(-1));
+    let negative = not executable_sizes_within_budget(sizes, policy);
+    let _restored_size = sizes.put("release/terlc", Json.int(2));
+    let invalid_policy = not executable_sizes_within_budget(sizes, Json.object());
+    exact_limit and oversized and missing and empty and negative and invalid_policy.

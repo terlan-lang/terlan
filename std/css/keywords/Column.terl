@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword column. Generated; do not edit.
+ */
+module std.css.keywords.Column.
+
+pub type Column.

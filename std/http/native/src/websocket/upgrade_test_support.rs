@@ -24,10 +24,10 @@ impl Source {
 }
 
 impl AdmissionCallbacks for Source {
-    fn room_identity(&mut self, _: i64) -> Result<String, crate::ServiceError> {
+    async fn room_identity(&mut self, _: i64) -> Result<String, crate::ServiceError> {
         unreachable!("unpaired endpoint")
     }
-    fn matched(
+    async fn matched(
         &mut self,
         _: String,
         _: String,
@@ -36,7 +36,7 @@ impl AdmissionCallbacks for Source {
         unreachable!("unpaired endpoint")
     }
 
-    fn restored(
+    async fn restored(
         &mut self,
         _: String,
         _: String,
@@ -57,30 +57,30 @@ impl Callbacks for Source {
     async fn identity(&mut self, _: String) -> Result<Option<(String, i64)>, crate::ServiceError> {
         unreachable!("unpaired endpoint")
     }
-    fn waiting(&mut self) -> Result<String, crate::ServiceError> {
+    async fn waiting(&mut self) -> Result<String, crate::ServiceError> {
         unreachable!("unpaired endpoint")
     }
-    fn peer_left(&mut self) -> Result<String, crate::ServiceError> {
+    async fn peer_left(&mut self) -> Result<String, crate::ServiceError> {
         unreachable!("unpaired endpoint")
     }
     fn enqueue(&mut self, text: Utf8Bytes) -> Result<(), crate::ServiceError> {
         self.events.lock().unwrap().push(format!("text:{text}"));
         Ok(())
     }
-    fn next_inbound(&mut self) -> Result<(bool, Option<String>), crate::ServiceError> {
+    async fn next_inbound(&mut self) -> Result<(bool, Option<String>), crate::ServiceError> {
         Ok((false, None))
     }
-    fn next_paired(
+    async fn next_paired(
         &mut self,
         _: Option<crate::source_descriptor::PairContext>,
     ) -> Result<Option<PairedTransition>, crate::ServiceError> {
         unreachable!("unpaired endpoint")
     }
-    fn writable(&mut self) -> Result<(), crate::ServiceError> {
+    async fn writable(&mut self) -> Result<(), crate::ServiceError> {
         self.events.lock().unwrap().push("writable".into());
         Ok(())
     }
-    fn close(&mut self) -> Result<(), crate::ServiceError> {
+    async fn close(&mut self) -> Result<(), crate::ServiceError> {
         self.events.lock().unwrap().push("close".into());
         Ok(())
     }

@@ -1,9 +1,10 @@
 module=std.css.properties.ViewTransitionName
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7354215947395345209
-interface_hash=13632092030222573685
-interface_doc_hash=4414012410568527249
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=89270702315569337
+interface_hash=1637283770106651058
+interface_doc_hash=198641943606334211
+deps=2
+std.css.Values=330909209718432688
+std.css.keywords.None=3400229744369726074

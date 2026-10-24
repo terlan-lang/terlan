@@ -3,8 +3,8 @@
 //! `std.http.Session` exposes actor-backed session helpers used by Terlan HTTP
 //! handlers. The HTTP server binds request cookies to VM session actor
 //! identity; source code owns the private session record and explicit response
-//! threading and lifetime policy. Native operations receive the selected identity
-//! and, for allocation and renewal, the source-selected lifetime.
+//! threading, identity retry, and lifetime policy. Native operations supply
+//! entropy and atomically reserve or replace source-selected identities.
 
 module std.http.Session.
 

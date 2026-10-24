@@ -1,0 +1,6 @@
+//! Shared CSS keyword cell. Generated; do not edit.
+
+module std.css.keywords.Cell.
+
+pub type Cell =
+    Atom["cell"].

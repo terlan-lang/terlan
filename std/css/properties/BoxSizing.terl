@@ -1,75 +1,37 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-sizing-3/#propdef-box-sizing
+ * The `box-sizing` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how the
+ * total width and height of an element is calculated.
+ *
+ * Initial: content-box. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - border-box: The `width` and `height` properties include the content, padding, and border, but
+ * do not include the margin. Note that padding and border will be inside of the box. For example,
+ * `.box {width: 350px; border: 10px solid black;}` renders a box that is 350px wide, with the area
+ * for content being 330px wide. The content box can't be negative and is floored to 0, making it
+ * impossible to use `border-box` to make the element disappear.
+ * - content-box: This is the initial and default value as specified by the CSS standard. The
+ * `width` and `height` properties include the content, but does not include the padding, border, or
+ * margin. For example, `.box {width: 350px; border: 10px solid black;}` renders a box that is 370px
+ * wide.
+ *
  * Grammar: content-box | border-box
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-sizing-3/#propdef-box-sizing
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/box-sizing
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BoxSizing.
 
-import type std.core.Option.
+import std.css.keywords.{BorderBox, ContentBox}.
 
-/**
- * A nominal, specification-constrained box-sizing value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    box_sizing: Value,
+    box_sizing: ContentBox | BorderBox | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    box_sizing: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword border-box.
- */
-pub border_box(): Value ->
-    Value(Token {property: "box-sizing", css: "border-box"}).
-
-/**
- * Returns the CSS keyword content-box.
- */
-pub content_box(): Value ->
-    Value(Token {property: "box-sizing", css: "content-box"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "box-sizing", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "box-sizing", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "box-sizing", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "box-sizing", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "box-sizing", css: "unset"}).

@@ -1,0 +1,234 @@
+/** Tooling-document projection for TL0009 grouped binding candidates. */
+module self_host.SelfHostLintGroupedBindingProjection.
+
+import std.core.Option.{None, Some}.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.SelfHostLintReadability.GroupedBindingCandidate.
+import self_host.SelfHostLintReadability.
+import self_host.SelfHostToolingDocument.{ToolingDocument, ToolingToken}.
+
+struct ClauseParts {
+    valid: Bool,
+    pattern: ProjectedExpressionNode,
+    body: ProjectedExpressionNode,
+}.
+
+constructor ClauseParts {
+    (
+        valid: Bool,
+        pattern: ProjectedExpressionNode,
+        body: ProjectedExpressionNode,
+    ): ClauseParts -> ClauseParts {
+        valid: valid,
+        pattern: pattern,
+        body: body,
+    }
+}.
+
+empty_node(): ProjectedExpressionNode ->
+    ProjectedExpressionNode("invalid", "", 0, 0, []).
+
+invalid_clause(): ClauseParts ->
+    ClauseParts(false, empty_node(), empty_node()).
+
+clause_parts(value: ProjectedExpressionNode): ClauseParts ->
+    if {
+        value.kind != "clause" or value.text == "where" -> invalid_clause();
+        true -> case value.children {
+            [pattern, body] -> ClauseParts(true, pattern, body);
+            _ -> invalid_clause()
+        }
+    }.
+
+token_at(values: List[ToolingToken], start_byte: Int): Option[ToolingToken] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.start_byte == start_byte -> Some(value);
+                value.start_byte > start_byte -> None;
+                true -> token_at(rest, start_byte)
+            }
+    }.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+pattern_names(
+    value: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): List[String] ->
+    if {
+        value.kind == "pattern-token" -> case token_at(tokens, value.start_byte) {
+            Some(token) where token.terminal == "var" and value.text != "_" -> [value.text];
+            _ -> []
+        };
+        true -> pattern_names_at(value.children, tokens)
+    }.
+
+pattern_names_at(
+    values: List[ProjectedExpressionNode],
+    tokens: List[ToolingToken],
+): List[String] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            pattern_names(value, tokens),
+            pattern_names_at(rest, tokens),
+        )
+    }.
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+reads_names(value: ProjectedExpressionNode, names: List[String]): Bool ->
+    (value.kind == "identifier" and contains(names, value.text))
+        or children_read_names(value.children, names).
+
+children_read_names(
+    values: List[ProjectedExpressionNode],
+    names: List[String],
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            reads_names(value, names) or children_read_names(rest, names)
+    }.
+
+nodes_equal(
+    left: ProjectedExpressionNode,
+    right: ProjectedExpressionNode,
+): Bool ->
+    left.kind == right.kind
+        and left.text == right.text
+        and node_lists_equal(left.children, right.children).
+
+node_lists_equal(
+    left: List[ProjectedExpressionNode],
+    right: List[ProjectedExpressionNode],
+): Bool ->
+    case {left, right} {
+        {[], []} -> true;
+        {[left_value | left_rest], [right_value | right_rest]} ->
+            nodes_equal(left_value, right_value)
+                and node_lists_equal(left_rest, right_rest);
+        _ -> false
+    }.
+
+nested_clause_repeats(
+    value: ProjectedExpressionNode,
+    fallback: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): Bool ->
+    let parts = clause_parts(value);
+    parts.valid
+        and not reads_names(parts.body, pattern_names(parts.pattern, tokens))
+        and nodes_equal(parts.body, fallback).
+
+nested_case_repeats(
+    value: ProjectedExpressionNode,
+    fallback: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): Bool ->
+    if {
+        value.kind != "case" -> false;
+        true -> case value.children {
+            [_subject, first, second] ->
+                nested_clause_repeats(first, fallback, tokens)
+                    or nested_clause_repeats(second, fallback, tokens);
+            _ -> false
+        }
+    }.
+
+/** Matches the native repeated-fallback case-pair predicate. */
+pub candidate(
+    value: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): Bool ->
+    if {
+        value.kind != "case" -> false;
+        true -> case value.children {
+            [_subject, first, second] ->
+                let first_parts = clause_parts(first);
+                let second_parts = clause_parts(second);
+                first_parts.valid
+                    and second_parts.valid
+                    and (
+                        nested_case_repeats(first_parts.body, second_parts.body, tokens)
+                            or nested_case_repeats(second_parts.body, first_parts.body, tokens)
+                    );
+            _ -> false
+        }
+    }.
+
+node_facts(
+    value: ProjectedExpressionNode,
+    tokens: List[ToolingToken],
+): List[GroupedBindingCandidate] ->
+    if {
+        candidate(value, tokens) -> [GroupedBindingCandidate(
+            value.start_byte,
+            2,
+            2,
+            true,
+            true,
+            false,
+        )];
+        true -> nodes_facts(value.children, tokens)
+    }.
+
+nodes_facts(
+    values: List[ProjectedExpressionNode],
+    tokens: List[ToolingToken],
+): List[GroupedBindingCandidate] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            node_facts(value, tokens),
+            nodes_facts(rest, tokens),
+        )
+    }.
+
+body_facts(
+    values: List[self_host.ProjectedBodySyntax.ProjectedBody],
+    tokens: List[ToolingToken],
+): List[GroupedBindingCandidate] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.expression.node {
+            None -> body_facts(rest, tokens);
+            Some(expression) -> append(
+                node_facts(expression, tokens),
+                body_facts(rest, tokens),
+            )
+        }
+    }.
+
+/** Projects every outermost repeated-fallback case pair. */
+pub facts(value: ToolingDocument): List[GroupedBindingCandidate] ->
+    if {
+        value.valid and value.frontend.bodies.valid ->
+            body_facts(value.frontend.bodies.values, value.tokens);
+        true -> []
+    }.
+
+/** Runs TL0009 without native AST projection. */
+@pure
+pub diagnostics(
+    path: String,
+    value: ToolingDocument,
+): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
+    SelfHostLintReadability.diagnostics(
+        path,
+        value.source,
+        [],
+        [],
+        [],
+        [],
+        [],
+        facts(value),
+        [],
+    ).

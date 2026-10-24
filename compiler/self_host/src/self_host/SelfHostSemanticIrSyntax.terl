@@ -8,12 +8,15 @@ import std.core.Option.{Option}.
 import std.collections.List.
 import self_host.SelfHostIrSyntax.
 
-import self_host.SelfHostIrSyntax.{BackendEnvelope, IrModule, IrParameter}.
+import self_host.SelfHostIrSyntax.{BackendEnvelope, IrModule, IrParameter, IrStructLayout}.
 pub struct SemanticInstructionPlan {
     opcode: String,
     result: Option[String],
     operands: List[String],
+    operand_types: List[Option[String]],
     resolved_type: Option[String],
+    continuation_ordinal: Option[Int],
+    try_region: Option[self_host.SelfHostSemanticIrSyntax.SemanticTryRegionPlan],
 }.
 
 pub constructor SemanticInstructionPlan {
@@ -22,7 +25,40 @@ pub constructor SemanticInstructionPlan {
             opcode: opcode,
             result: result,
             operands: operands,
+            operand_types: List.new[Option[String]](),
             resolved_type: resolved_type,
+            continuation_ordinal: None,
+            try_region: None,
+        };
+    (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], resolved_type: Option[String]): SemanticInstructionPlan ->
+        SemanticInstructionPlan {
+            opcode: opcode,
+            result: result,
+            operands: operands,
+            operand_types: operand_types,
+            resolved_type: resolved_type,
+            continuation_ordinal: None,
+            try_region: None,
+        };
+    (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], resolved_type: Option[String], continuation_ordinal: Option[Int]): SemanticInstructionPlan ->
+        SemanticInstructionPlan {
+            opcode: opcode,
+            result: result,
+            operands: operands,
+            operand_types: operand_types,
+            resolved_type: resolved_type,
+            continuation_ordinal: continuation_ordinal,
+            try_region: None,
+        };
+    (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], resolved_type: Option[String], continuation_ordinal: Option[Int], try_region: Option[self_host.SelfHostSemanticIrSyntax.SemanticTryRegionPlan]): SemanticInstructionPlan ->
+        SemanticInstructionPlan {
+            opcode: opcode,
+            result: result,
+            operands: operands,
+            operand_types: operand_types,
+            resolved_type: resolved_type,
+            continuation_ordinal: continuation_ordinal,
+            try_region: try_region,
         }
 }.
 
@@ -59,10 +95,51 @@ pub constructor SemanticBlockPlan {
 }.
 
 
+pub struct SemanticRegionPlan {
+    label: String,
+    parameters: List[IrParameter],
+    blocks: List[self_host.SelfHostSemanticIrSyntax.SemanticBlockPlan],
+    result: String,
+    resolved_type: Option[String],
+}.
+
+pub constructor SemanticRegionPlan {
+    (label: String, parameters: List[IrParameter], blocks: List[self_host.SelfHostSemanticIrSyntax.SemanticBlockPlan], result: String, resolved_type: Option[String]): SemanticRegionPlan ->
+        SemanticRegionPlan {
+            label: label,
+            parameters: parameters,
+            blocks: blocks,
+            result: result,
+            resolved_type: resolved_type,
+        }
+}.
+
+
+pub struct SemanticTryRegionPlan {
+    protected: self_host.SelfHostSemanticIrSyntax.SemanticRegionPlan,
+    success: self_host.SelfHostSemanticIrSyntax.SemanticRegionPlan,
+    failure: self_host.SelfHostSemanticIrSyntax.SemanticRegionPlan,
+    cleanup: List[self_host.SelfHostSemanticIrSyntax.SemanticRegionPlan],
+}.
+
+pub constructor SemanticTryRegionPlan {
+    (protected: self_host.SelfHostSemanticIrSyntax.SemanticRegionPlan, success: self_host.SelfHostSemanticIrSyntax.SemanticRegionPlan, failure: self_host.SelfHostSemanticIrSyntax.SemanticRegionPlan, cleanup: List[self_host.SelfHostSemanticIrSyntax.SemanticRegionPlan]): SemanticTryRegionPlan ->
+        SemanticTryRegionPlan {
+            protected: protected,
+            success: success,
+            failure: failure,
+            cleanup: cleanup,
+        }
+}.
+
+
 pub struct SemanticFunctionPlan {
     module_name: String,
     name: String,
     arity: Int,
+    capture_count: Int,
+    receiver_mutable: Bool,
+    receiver_command: Bool,
     parameters: List[IrParameter],
     resolved_return_type: Option[String],
     blocks: List[self_host.SelfHostSemanticIrSyntax.SemanticBlockPlan],
@@ -75,6 +152,35 @@ pub constructor SemanticFunctionPlan {
             module_name: module_name,
             name: name,
             arity: arity,
+            capture_count: 0,
+            receiver_mutable: false,
+            receiver_command: false,
+            parameters: parameters,
+            resolved_return_type: resolved_return_type,
+            blocks: blocks,
+            native_symbol: native_symbol,
+        };
+    (module_name: String, name: String, arity: Int, receiver_mutable: Bool, receiver_command: Bool, parameters: List[IrParameter], resolved_return_type: Option[String], blocks: List[self_host.SelfHostSemanticIrSyntax.SemanticBlockPlan], native_symbol: Option[String]): SemanticFunctionPlan ->
+        SemanticFunctionPlan {
+            module_name: module_name,
+            name: name,
+            arity: arity,
+            capture_count: 0,
+            receiver_mutable: receiver_mutable,
+            receiver_command: receiver_command,
+            parameters: parameters,
+            resolved_return_type: resolved_return_type,
+            blocks: blocks,
+            native_symbol: native_symbol,
+        };
+    (module_name: String, name: String, arity: Int, capture_count: Int, receiver_mutable: Bool, receiver_command: Bool, parameters: List[IrParameter], resolved_return_type: Option[String], blocks: List[self_host.SelfHostSemanticIrSyntax.SemanticBlockPlan], native_symbol: Option[String]): SemanticFunctionPlan ->
+        SemanticFunctionPlan {
+            module_name: module_name,
+            name: name,
+            arity: arity,
+            capture_count: capture_count,
+            receiver_mutable: receiver_mutable,
+            receiver_command: receiver_command,
             parameters: parameters,
             resolved_return_type: resolved_return_type,
             blocks: blocks,
@@ -85,13 +191,15 @@ pub constructor SemanticFunctionPlan {
 
 pub struct SemanticModulePlan {
     name: String,
+    structs: List[IrStructLayout],
     functions: List[self_host.SelfHostSemanticIrSyntax.SemanticFunctionPlan],
 }.
 
 pub constructor SemanticModulePlan {
-    (name: String, functions: List[self_host.SelfHostSemanticIrSyntax.SemanticFunctionPlan]): SemanticModulePlan ->
+    (name: String, structs: List[IrStructLayout], functions: List[self_host.SelfHostSemanticIrSyntax.SemanticFunctionPlan]): SemanticModulePlan ->
         SemanticModulePlan {
             name: name,
+            structs: structs,
             functions: functions,
         }
 }.

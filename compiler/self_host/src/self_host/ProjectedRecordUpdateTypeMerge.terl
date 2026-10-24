@@ -1,0 +1,404 @@
+/** Resolves immutable record updates against declaration-owned layouts. */
+module self_host.ProjectedRecordUpdateTypeMerge.
+
+import self_host.ModuleInterfaceSyntax.ModuleInterface.
+import self_host.ProjectedBodySyntax.ProjectedBody.
+import self_host.ProjectedExpressionSupportIrPlan.node_size.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedFrontendSyntax.ProjectedFrontendModule.
+import self_host.ProjectedLocalSemanticSyntax.LocalSemanticResult.
+import self_host.ProjectedRecordAccessTypeMerge.
+import self_host.ProjectedRecordAccessTypeMerge.{RecordFieldType, RecordLayoutType}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+
+struct RecordUpdateField {
+    field_node_id: Int,
+    value_node_id: Int,
+    byte_offset: Int,
+    value_offset: Int,
+    name: String,
+}.
+
+constructor RecordUpdateField {
+    (
+        field_node_id: Int,
+        value_node_id: Int,
+        byte_offset: Int,
+        value_offset: Int,
+        name: String,
+    ): RecordUpdateField -> RecordUpdateField {
+        field_node_id: field_node_id,
+        value_node_id: value_node_id,
+        byte_offset: byte_offset,
+        value_offset: value_offset,
+        name: name,
+    }
+}.
+
+struct RecordUpdateSite {
+    node_id: Int,
+    source_node_id: Int,
+    source_offset: Int,
+    byte_offset: Int,
+    type_name: String,
+    fields: List[RecordUpdateField],
+}.
+
+constructor RecordUpdateSite {
+    (
+        node_id: Int,
+        source_node_id: Int,
+        source_offset: Int,
+        byte_offset: Int,
+        type_name: String,
+        fields: List[RecordUpdateField],
+    ): RecordUpdateSite -> RecordUpdateSite {
+        node_id: node_id,
+        source_node_id: source_node_id,
+        source_offset: source_offset,
+        byte_offset: byte_offset,
+        type_name: type_name,
+        fields: fields,
+    }
+}.
+
+struct UpdateScan {
+    next_id: Int,
+    sites: List[RecordUpdateSite],
+}.
+
+constructor UpdateScan {
+    (next_id: Int, sites: List[RecordUpdateSite]): UpdateScan ->
+        UpdateScan { next_id: next_id, sites: sites }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+update_fields(
+    values: List[ProjectedExpressionNode],
+    field_id: Int,
+): List[RecordUpdateField] ->
+    case values {
+        [] -> [];
+        [field | rest] -> case field.children {
+            [value] -> [RecordUpdateField(
+                field_id,
+                field_id + 1,
+                field.start_byte,
+                value.start_byte,
+                field.text,
+            ) | update_fields(rest, field_id + node_size(field))];
+            _ -> update_fields(rest, field_id + node_size(field))
+        }
+    }.
+
+update_site(
+    value: ProjectedExpressionNode,
+    node_id: Int,
+): Option[RecordUpdateSite] ->
+    case value.children {
+        [source | [type_name | fields]] -> Some(RecordUpdateSite(
+            node_id,
+            node_id + 1,
+            source.start_byte,
+            value.start_byte,
+            type_name.text,
+            update_fields(
+                fields,
+                node_id + 1 + node_size(source) + node_size(type_name),
+            ),
+        ));
+        _ -> None
+    }.
+
+scan_children(values: List[ProjectedExpressionNode], next_id: Int): UpdateScan ->
+    case values {
+        [] -> UpdateScan(next_id, []);
+        [value | rest] ->
+            let current = scan_node(value, next_id);
+            let remaining = scan_children(rest, current.next_id);
+            UpdateScan(
+                remaining.next_id,
+                append(current.sites, remaining.sites),
+            )
+    }.
+
+scan_node(value: ProjectedExpressionNode, node_id: Int): UpdateScan ->
+    let nested = scan_children(value.children, node_id + 1);
+    if {
+        value.kind == "record-update" -> case update_site(value, node_id) {
+            None -> nested;
+            Some(site) -> UpdateScan(nested.next_id, [site | nested.sites])
+        };
+        true -> nested
+    }.
+
+body_sites(values: List[ProjectedBody]): List[RecordUpdateSite] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.expression.node {
+            None -> body_sites(rest);
+            Some(node) -> append(scan_node(node, 0).sites, body_sites(rest))
+        }
+    }.
+
+layout_at(name: String, values: List[RecordLayoutType]): Option[RecordLayoutType] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.name == name or value.qualified_name == name -> Some(value);
+            true -> layout_at(name, rest)
+        }
+    }.
+
+private_field_name(name: String): Bool -> String.starts_with(name, "#").
+
+canonical_field_name(name: String): String ->
+    if {
+        private_field_name(name) -> String.utf8_slice(name, 1, String.byte_size(name) - 1);
+        true -> name
+    }.
+
+field_at(name: String, values: List[RecordFieldType]): Option[RecordFieldType] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.name == canonical_field_name(name) -> Some(value);
+            true -> field_at(name, rest)
+        }
+    }.
+
+fact_type(
+    node_id: Int,
+    byte_offset: Int,
+    values: List[InferredTypeFact],
+): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.node_id == node_id and value.byte_offset == byte_offset -> value.type_name;
+            true -> fact_type(node_id, byte_offset, rest)
+        }
+    }.
+
+site_at(
+    node_id: Int,
+    byte_offset: Int,
+    values: List[RecordUpdateSite],
+): Option[RecordUpdateSite] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.node_id == node_id and value.byte_offset == byte_offset -> Some(value);
+            true -> site_at(node_id, byte_offset, rest)
+        }
+    }.
+
+merge_fact(value: InferredTypeFact, sites: List[RecordUpdateSite]): InferredTypeFact ->
+    case site_at(value.node_id, value.byte_offset, sites) {
+        None -> value;
+        Some(site) -> InferredTypeFact(value.node_id, Some(site.type_name), value.byte_offset)
+    }.
+
+merge_facts(
+    values: List[InferredTypeFact],
+    sites: List[RecordUpdateSite],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [merge_fact(value, sites) | merge_facts(rest, sites)]
+    }.
+
+type_matches(expected: String, actual: String): Bool ->
+    expected == actual
+        or String.starts_with(expected, String.append(actual, "["))
+        or String.starts_with(actual, String.append(expected, "[")).
+
+record_type_matches(
+    declared: String,
+    actual: String,
+    layout: RecordLayoutType,
+): Bool -> type_matches(declared, actual)
+    or type_matches(layout.name, actual)
+    or type_matches(layout.qualified_name, actual).
+
+contains_name(name: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> canonical_field_name(value) == canonical_field_name(name)
+            or contains_name(name, rest)
+    }.
+
+field_diagnostics(
+    values: List[RecordUpdateField],
+    layout: RecordLayoutType,
+    facts: List[InferredTypeFact],
+    names: List[String],
+): List[TypeConstraintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let remaining = field_diagnostics(rest, layout, facts, [value.name | names]);
+            if {
+                contains_name(value.name, names) -> [TypeConstraintDiagnostic(
+                    "duplicate-record-update-field",
+                    String.concat(["record update repeats field: ", value.name]),
+                    value.byte_offset,
+                ) | remaining];
+                true -> case field_at(value.name, layout.fields) {
+                    None -> [TypeConstraintDiagnostic(
+                        "unknown-record-field",
+                        String.concat(["record field is not declared: ", value.name]),
+                        value.byte_offset,
+                    ) | remaining];
+                    Some(field) -> case field.type_name {
+                        _ where private_field_name(value.name) != field.is_private -> [
+                            TypeConstraintDiagnostic(
+                                "record-field-visibility",
+                                if {
+                                    field.is_private -> "private record field must be written with #";
+                                    true -> "public record field must not be written with #"
+                                },
+                                value.byte_offset,
+                            ) | remaining
+                        ];
+                        None -> [TypeConstraintDiagnostic(
+                            "unresolved-record-field-type",
+                            "record field type is unresolved",
+                            value.byte_offset,
+                        ) | remaining];
+                        Some(expected) -> case fact_type(
+                            value.value_node_id,
+                            value.value_offset,
+                            facts,
+                        ) {
+                            None -> [TypeConstraintDiagnostic(
+                                "unresolved-record-update-value",
+                                "record update value type is unresolved",
+                                value.value_offset,
+                            ) | remaining];
+                            Some(actual) -> if {
+                                type_matches(expected, actual) -> remaining;
+                                true -> [TypeConstraintDiagnostic(
+                                    "record-update-type-mismatch",
+                                    String.concat([
+                                        "record field requires ",
+                                        expected,
+                                        ", found ",
+                                        actual,
+                                    ]),
+                                    value.value_offset,
+                                ) | remaining]
+                            }
+                        }
+                    }
+                }
+            }
+    }.
+
+site_diagnostics(
+    values: List[RecordUpdateSite],
+    layouts: List[RecordLayoutType],
+    facts: List[InferredTypeFact],
+): List[TypeConstraintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let remaining = site_diagnostics(rest, layouts, facts);
+            case layout_at(value.type_name, layouts) {
+                None -> [TypeConstraintDiagnostic(
+                    "unknown-record-type",
+                    String.concat(["record type is not declared: ", value.type_name]),
+                    value.byte_offset,
+                ) | remaining];
+                Some(layout) -> append(
+                    case fact_type(value.source_node_id, value.source_offset, facts) {
+                        None -> [TypeConstraintDiagnostic(
+                            "unresolved-record-update-source",
+                            "record update receiver type is unresolved",
+                            value.source_offset,
+                        )];
+                        Some(actual) -> if {
+                            record_type_matches(value.type_name, actual, layout) -> [];
+                            true -> [TypeConstraintDiagnostic(
+                                "record-update-source-type-mismatch",
+                                String.concat([
+                                    "record update requires ",
+                                    value.type_name,
+                                    ", found ",
+                                    actual,
+                                ]),
+                                value.source_offset,
+                            )]
+                        }
+                    },
+                    append(
+                        field_diagnostics(value.fields, layout, facts, []),
+                        remaining,
+                    ),
+                )
+            }
+    }.
+
+field_offset(byte_offset: Int, values: List[RecordUpdateField]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.byte_offset == byte_offset or field_offset(byte_offset, rest)
+    }.
+
+owned_offset(byte_offset: Int, values: List[RecordUpdateSite]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.byte_offset == byte_offset
+            or field_offset(byte_offset, value.fields)
+            or owned_offset(byte_offset, rest)
+    }.
+
+without_deferred_diagnostics(
+    values: List[TypeConstraintDiagnostic],
+    sites: List[RecordUpdateSite],
+): List[TypeConstraintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] -> if {
+            value.code == "unknown-type-constraint" and owned_offset(value.byte_offset, sites) ->
+                without_deferred_diagnostics(rest, sites);
+            true -> [value | without_deferred_diagnostics(rest, sites)]
+        }
+    }.
+
+merge_sites(
+    value: TypeConstraintResolution,
+    sites: List[RecordUpdateSite],
+    layouts: List[RecordLayoutType],
+): TypeConstraintResolution -> TypeConstraintResolution(
+    merge_facts(value.facts, sites),
+    append(
+        without_deferred_diagnostics(value.diagnostics, sites),
+        site_diagnostics(sites, layouts, value.facts),
+    ),
+).
+
+pub merge_expression(
+    value: TypeConstraintResolution,
+    expression: ProjectedExpressionNode,
+    layouts: List[RecordLayoutType],
+): TypeConstraintResolution -> merge_sites(value, scan_node(expression, 0).sites, layouts).
+
+pub merge(
+    frontend: ProjectedFrontendModule,
+    imported_interfaces: List[ModuleInterface],
+    semantics: LocalSemanticResult,
+): LocalSemanticResult -> LocalSemanticResult(
+    semantics.bindings,
+    semantics.callables,
+    merge_sites(
+        semantics.types,
+        body_sites(frontend.bodies.values),
+        ProjectedRecordAccessTypeMerge.catalog(frontend, imported_interfaces),
+    ),
+).

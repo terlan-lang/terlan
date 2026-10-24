@@ -1,72 +1,25 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/pservers.html#StopColorProperty
+ * The `stop-color` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+ * color to use for an SVG `stop` element within a gradient. If present, it overrides the element's
+ * `stop-color` attribute.
+ *
+ * Initial: black. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <'color'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/pservers.html#StopColorProperty
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stop-color
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.StopColor.
 
-import std.css.Values.
+import type std.css.Values.{Color, CurrentColor, Inherit, Initial, Revert, RevertLayer, Transparent, Unset}.
 
-import type std.core.Option.
-import type std.css.Values.{Color}.
-
-/**
- * A nominal, specification-constrained stop-color value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    stop_color: Value,
+    stop_color: Color | Transparent | CurrentColor | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    stop_color: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "stop-color", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "stop-color", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "stop-color", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "stop-color", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "stop-color", css: "unset"}).
-
-/**
- * Constructs a stop-color value from a typed color.
- */
-pub color(value: Color): Value ->
-    Value(Token {property: "stop-color", css: std.css.Values.color_css(value)}).

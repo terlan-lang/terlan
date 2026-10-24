@@ -1,0 +1,6 @@
+//! Shared CSS keyword shrink. Generated; do not edit.
+
+module std.css.keywords.Shrink.
+
+pub type Shrink =
+    Atom["shrink"].

@@ -124,3 +124,85 @@ fn static_resolution_uses_the_route_manifest_snapshot() {
     invalidate_web_manifest_cache(&root);
     fs::remove_dir_all(root).expect("remove fixture");
 }
+
+#[test]
+fn mixed_manifest_dispatch_retains_endpoint_kind_and_file_boundary() {
+    let root = route_fixture();
+    fs::write(root.join("report.txt"), "report").unwrap();
+    let mut manifest: WebPackageManifest =
+        serde_json::from_str(&fs::read_to_string(root.join("manifest.json")).unwrap()).unwrap();
+    manifest.handlers = serde_json::from_value(serde_json::json!([
+        {"method":"GET", "route":"/*", "module":"app.Web", "function":"fallback", "arity":1},
+        {"method":"GET", "route":"/users/{id:Int}", "module":"app.Web", "function":"user", "arity":1},
+        {"method":"HEAD", "route":"/events/*", "module":"app.Web", "function":"head", "arity":1}
+    ])).unwrap();
+    manifest.sse = serde_json::from_value(serde_json::json!([
+        {"module":"app.Events", "route":"/events/live", "source":{"path":"src/app/Events.terl", "line":1, "column":1}}
+    ])).unwrap();
+    manifest.static_responses = serde_json::from_value(serde_json::json!([
+        {"method":"GET", "route":"/users/me", "status":200, "content_type":"text/plain", "body":"me"}
+    ])).unwrap();
+    manifest.file_responses = serde_json::from_value(serde_json::json!([
+        {"method":"GET", "route":"/download", "path":"report.txt", "status":200},
+        {"method":"GET", "route":"/unsafe", "path":"../outside.txt", "status":200}
+    ]))
+    .unwrap();
+    let manifest = Arc::new(manifest);
+    let select = |method, path| manifest_route_for_loaded_manifest(&root, method, path, &manifest);
+    match select("GET", "/users/42") {
+        Some(MatchedWebPackageRoute::Handler(matched)) => {
+            assert_eq!(matched.handler.function, "user");
+            assert_eq!(matched.params, [("id".into(), "42".into())]);
+        }
+        _ => panic!("typed dynamic handler"),
+    }
+    match select("HEAD", "/users/me") {
+        Some(MatchedWebPackageRoute::StaticResponse(response)) => assert_eq!(response.body, "me"),
+        _ => panic!("static response outranks wildcard handler"),
+    }
+    match select("GET", "/events/live") {
+        Some(MatchedWebPackageRoute::Sse(endpoint)) => assert_eq!(endpoint.module, "app.Events"),
+        _ => panic!("SSE outranks wildcard handler"),
+    }
+    match select("HEAD", "/events/live") {
+        Some(MatchedWebPackageRoute::Handler(matched)) => {
+            assert_eq!(matched.handler.function, "head")
+        }
+        _ => panic!("explicit HEAD outranks GET SSE"),
+    }
+    match select("GET", "/download") {
+        Some(MatchedWebPackageRoute::FileResponse(response, path)) => {
+            assert_eq!(response.path, "report.txt");
+            assert_eq!(path, root.join("report.txt"));
+        }
+        _ => panic!("file response outranks wildcard handler"),
+    }
+    assert!(select("GET", "/unsafe").is_none());
+    fs::remove_file(root.join("report.txt")).unwrap();
+    assert!(select("GET", "/download").is_none());
+    assert!(select("POST", "/events/live").is_none());
+    assert!(matches!(
+        select("GET", "/"),
+        Some(MatchedWebPackageRoute::StaticFile(_))
+    ));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn websocket_reservation_precedes_static_assets_for_handshake_rejection() {
+    let root = route_fixture();
+    let mut manifest: WebPackageManifest =
+        serde_json::from_str(&fs::read_to_string(root.join("manifest.json")).unwrap()).unwrap();
+    manifest.websockets = serde_json::from_value(serde_json::json!([
+        {"route":"/index.html", "protocol":"chat"}
+    ]))
+    .unwrap();
+    let manifest = Arc::new(manifest);
+    for method in ["GET", "HEAD", "POST"] {
+        assert!(matches!(
+            manifest_route_for_loaded_manifest(&root, method, "/index.html", &manifest),
+            Some(MatchedWebPackageRoute::WebSocket(_))
+        ));
+    }
+    fs::remove_dir_all(root).unwrap();
+}

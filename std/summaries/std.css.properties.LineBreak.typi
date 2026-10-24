@@ -1,64 +1,33 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-line-break
+//! The `line-break` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how to
+//! break lines of Chinese, Japanese, or Korean (CJK) text when working with punctuation and symbols.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - anywhere: There is a soft wrap opportunity around every typographic character unit, including
+//! around any punctuation character or preserved white spaces, or in the middle of words,
+//! disregarding any prohibition against line breaks, even those introduced by characters with the
+//! GL, WJ, or ZWJ character class or mandated by the `word-break` property. The different wrapping
+//! opportunities must not be prioritized. Hyphenation is not applied.
+//! - auto: Break text using the default line break rule.
+//! - loose: Break text using the least restrictive line break rule. Typically used for short lines,
+//! such as in newspapers.
+//! - normal: Break text using the most common line break rule.
+//! - strict: Break text using the most stringent line break rule.
+//!
 //! Grammar: auto | loose | normal | strict | anywhere
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-line-break
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/line-break
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.LineBreak.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    line_break: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    line_break: Value
+    line_break: Auto | Loose | Normal | Strict | Anywhere | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained line-break value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword anywhere.
-
-pub anywhere(): Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword loose.
-
-pub loose(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword strict.
-
-pub strict(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

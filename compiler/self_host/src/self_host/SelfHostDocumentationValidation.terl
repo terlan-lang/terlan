@@ -1,0 +1,288 @@
+/** Shared policy used by self-hosted documentation validation. */
+module self_host.SelfHostDocumentationValidation.
+
+import self_host.SelfHostDocumentation.{DocumentationItem, DocumentationModule}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool}.
+import std.core.Int.
+import std.core.String.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+link_parts(parts: List[String], first: Bool): List[String] ->
+    case parts {
+        [] -> [];
+        [part | rest] ->
+            if {
+                first -> link_parts(rest, false);
+                true ->
+                    case String.split(part, ")") {
+                        [target | _tail] -> [target | link_parts(rest, false)];
+                        _ -> link_parts(rest, false)
+                    }
+            }
+    }.
+
+link_lines(lines: List[String]): List[String] ->
+    case lines {
+        [] -> [];
+        [line | rest] -> append(
+            link_parts(String.split(line, "](#"), true),
+            link_lines(rest),
+        )
+    }.
+
+/** Extracts local Markdown link targets from one documentation block. */
+pub local_link_targets(docs: String): List[String] ->
+    link_lines(String.split(docs, "\n")).
+
+opening_language(line: String): String ->
+    case line {
+        "```" -> "";
+        "``` " -> "";
+        "```terlan" -> "terlan";
+        "``` terlan" -> "terlan";
+        "```erlang" -> "erlang";
+        "``` erlang" -> "erlang";
+        "```text" -> "text";
+        "``` text" -> "text";
+        _ -> line
+    }.
+
+fence_lines(lines: List[String], open: Bool): List[Option[String]] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            let normalized = String.trim(line);
+            if {
+                not String.starts_with(normalized, "```") -> fence_lines(rest, open);
+                open -> [None | fence_lines(rest, false)];
+                true -> [Some(opening_language(normalized)) | fence_lines(rest, true)]
+            }
+    }.
+
+/** Extracts ordered opening and closing fence events from one documentation block. */
+pub fence_events(docs: String): List[Option[String]] ->
+    fence_lines(String.split(docs, "\n"), false).
+
+whitespace(character: String): Bool ->
+    case character {
+        " " -> true;
+        "\t" -> true;
+        "\n" -> true;
+        "\r" -> true;
+        _ -> false
+    }.
+
+arity_result(commas: Int, content: Bool): Int ->
+    if { content -> commas + 1; true -> 0 }.
+
+callable_arity_at(
+    characters: List[String],
+    started: Bool,
+    depth: Int,
+    commas: Int,
+    content: Bool,
+    quoted: Bool,
+    escaped: Bool,
+    hyphen: Bool,
+): Option[Int] ->
+    case characters {
+        [] -> None;
+        [character | rest] ->
+            if {
+                not started and character == "{" -> None;
+                not started and hyphen and character == ">" -> None;
+                not started and character == "(" ->
+                    callable_arity_at(rest, true, 1, 0, false, false, false, false);
+                not started -> callable_arity_at(
+                    rest,
+                    false,
+                    0,
+                    0,
+                    false,
+                    false,
+                    false,
+                    character == "-",
+                );
+                quoted and escaped -> callable_arity_at(
+                    rest, true, depth, commas, true, true, false, false,
+                );
+                quoted and character == "\\" -> callable_arity_at(
+                    rest, true, depth, commas, true, true, true, false,
+                );
+                quoted and character == "\"" -> callable_arity_at(
+                    rest, true, depth, commas, true, false, false, false,
+                );
+                quoted -> callable_arity_at(
+                    rest, true, depth, commas, true, true, false, false,
+                );
+                character == "\"" -> callable_arity_at(
+                    rest, true, depth, commas, true, true, false, false,
+                );
+                character == "(" or character == "[" or character == "{" ->
+                    callable_arity_at(
+                        rest, true, depth + 1, commas, true, false, false, false,
+                    );
+                character == ")" and depth == 1 -> Some(arity_result(commas, content));
+                character == ")" or character == "]" or character == "}" ->
+                    callable_arity_at(
+                        rest, true, depth - 1, commas, true, false, false, false,
+                    );
+                character == "," and depth == 1 -> callable_arity_at(
+                    rest, true, depth, commas + 1, content, false, false, false,
+                );
+                whitespace(character) -> callable_arity_at(
+                    rest, true, depth, commas, content, false, false, false,
+                );
+                true -> callable_arity_at(
+                    rest, true, depth, commas, true, false, false, false,
+                )
+            }
+    }.
+
+/** Returns callable arity from a source-shaped declaration signature. */
+pub callable_arity(signature: String): Option[Int] ->
+    callable_arity_at(
+        String.characters(signature),
+        false,
+        0,
+        0,
+        false,
+        false,
+        false,
+        false,
+    ).
+
+/** Returns whether `language` is accepted on an opening documentation fence. */
+pub allowed_fence_language(language: String): Bool ->
+    case language {
+        "" -> true;
+        "terlan" -> true;
+        "erlang" -> true;
+        "text" -> true;
+        _ -> false
+    }.
+
+/** Returns whether `target` is one of the canonical local anchors. */
+pub resolves_local_anchor(target: String, anchors: List[String]): Bool ->
+    case anchors {
+        [] -> false;
+        [target | _] -> true;
+        [_ | remaining] -> resolves_local_anchor(target, remaining)
+    }.
+
+/** Validates local-link targets after documentation extraction. */
+pub validate_local_anchors(
+    targets: List[String],
+    anchors: List[String]
+): Result[Bool, String] ->
+    case targets {
+        [] -> Ok(true);
+        [target | remaining] ->
+            case resolves_local_anchor(target, anchors) {
+                true -> validate_local_anchors(remaining, anchors);
+                false -> Err("broken intra-doc link")
+            }
+    }.
+
+/** Validates an extracted stream of opening and closing fence languages.
+ *
+ * Opening fences carry their language. Closing fences carry `None`.
+ */
+validate_fence_stream(
+    fences: List[Option[String]],
+    open: Bool
+): Result[Bool, String] ->
+    case fences {
+        [] ->
+            case open {
+                true -> Err("unclosed doc code fence");
+                false -> Ok(true)
+            };
+        [None | remaining] ->
+            case open {
+                true -> validate_fence_stream(remaining, false);
+                false -> Err("closing doc code fence without an opening fence")
+            };
+        [Some(language) | remaining] ->
+            case open {
+                true -> Err("opening doc code fence inside an open fence");
+                false ->
+                    case allowed_fence_language(language) {
+                        true -> validate_fence_stream(remaining, true);
+                        false -> Err("unsupported doc code fence language")
+                    }
+            }
+    }.
+
+/** Validates an extracted documentation-fence stream from its initial state. */
+pub validate_fences(fences: List[Option[String]]): Result[Bool, String] ->
+    validate_fence_stream(fences, false).
+
+/** Validates all documentation references and code fences in one pass boundary. */
+pub validate(
+    targets: List[String],
+    anchors: List[String],
+    fences: List[Option[String]]
+): Result[Bool, String] ->
+    case validate_local_anchors(targets, anchors) {
+        Err(message) -> Err(message);
+        Ok(_) -> validate_fences(fences)
+    }.
+
+item_anchors(items: List[DocumentationItem]): List[String] ->
+    case items {
+        [] -> [];
+        [item | rest] ->
+            let remaining = item_anchors(rest);
+            case callable_arity(item.signature) {
+                None -> [item.name | remaining];
+                Some(arity) ->
+                    let value = Int.to_string(arity);
+                    [
+                        item.name
+                        | [
+                            String.concat([item.name, "/", value])
+                            | [
+                                String.concat([item.name, "-", value])
+                                | remaining
+                            ]
+                        ]
+                    ]
+            }
+    }.
+
+validate_document(docs: String, anchors: List[String]): Result[Bool, String] ->
+    validate(local_link_targets(docs), anchors, fence_events(docs)).
+
+validate_items(
+    items: List[DocumentationItem],
+    anchors: List[String],
+): Result[Bool, String] ->
+    case items {
+        [] -> Ok(true);
+        [item | rest] ->
+            case validate_document(item.docs, anchors) {
+                Err(message) -> Err(message);
+                Ok(_) -> validate_items(rest, anchors)
+            }
+    }.
+
+/** Validates normalized module and declaration documentation independently. */
+pub validate_module(documentation: DocumentationModule): Result[Bool, String] ->
+    if {
+        not documentation.valid -> Err(documentation.message);
+        true ->
+            let anchors = [documentation.module_name | item_anchors(documentation.items)];
+            case validate_document(documentation.module_docs, anchors) {
+                Err(message) -> Err(message);
+                Ok(_) -> validate_items(documentation.items, anchors)
+            }
+    }.

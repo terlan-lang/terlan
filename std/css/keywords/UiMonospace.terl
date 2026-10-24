@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword ui-monospace. Generated; do not edit.
+ */
+module std.css.keywords.UiMonospace.
+
+pub type UiMonospace = Atom["ui-monospace"].

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword table-column-group. Generated; do not edit.
+ */
+module std.css.keywords.TableColumnGroup.
+
+pub type TableColumnGroup = Atom["table-column-group"].

@@ -1,0 +1,47 @@
+/** Strict lint parity evidence decoder contracts. */
+module self_host.SelfHostLintAuthorityEvidenceTest.
+
+import std.core.Result.{Err, Ok}.
+import self_host.SelfHostLintAuthorityEvidence.
+import self_host.SelfHostLintRegistry.
+
+@test
+pub decodes_canonical_pass_and_fail_values(): Bool ->
+    case SelfHostLintAuthorityEvidence.decode(
+        SelfHostLintAuthorityEvidence.render(true, true, false, true, true),
+        SelfHostLintRegistry.render(),
+    ) {
+        Ok(value) ->
+            value.native_parity
+                and value.diagnostic_order_parity
+                and not value.fix_parity
+                and value.corpus_parity
+                and value.bootstrap_compiled;
+        Err(_) -> false
+    }.
+
+@test
+pub rejects_unknown_reordered_and_duplicate_rows(): Bool ->
+    case SelfHostLintAuthorityEvidence.decode(
+        "terlan.self-host.lint-parity/v1\nfix_parity\tpass\nnative_parity\tpass\nfix_parity\tpass\ncorpus_parity\tpass\nbootstrap_compiled\tpass\n",
+        SelfHostLintRegistry.render(),
+    ) {
+        Err(_) -> true;
+        Ok(_) -> false
+    }.
+
+@test
+pub rejects_noncanonical_values_and_trailing_rows(): Bool ->
+    let invalid_value = SelfHostLintAuthorityEvidence.decode(
+        "terlan.self-host.lint-parity/v1\nnative_parity\tyes\ndiagnostic_order_parity\tpass\nfix_parity\tpass\ncorpus_parity\tpass\nbootstrap_compiled\tpass\n",
+        SelfHostLintRegistry.render(),
+    );
+    let trailing = SelfHostLintAuthorityEvidence.decode(
+        SelfHostLintAuthorityEvidence.render(true, true, true, true, true)
+            + "unexpected\tpass\n",
+        SelfHostLintRegistry.render(),
+    );
+    case {invalid_value, trailing} {
+        {Err(_), Err(_)} -> true;
+        _ -> false
+    }.

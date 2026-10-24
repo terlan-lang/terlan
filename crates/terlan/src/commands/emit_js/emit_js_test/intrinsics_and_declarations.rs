@@ -258,22 +258,9 @@ pub answer(): Int ->
     assert!(!js.contains("Terlan JS backend stub"), "{js}");
 }
 
-/// Verifies that binding-pattern case expressions stay outside the direct
-/// JS backend subset until pattern-dispatch semantics are represented.
-///
-/// Inputs:
-/// - A checked Terlan module whose public function body contains a case
-///   expression with a binding pattern.
-///
-/// Output:
-/// - Assertions over direct-AST rejection and fallback JavaScript source.
-///
-/// Transformation:
-/// - Compiles source through the formal pipeline, verifies the direct Oxc
-///   AST emitter declines the binding-pattern `CoreExpr::Case`, then
-///   checks the command-facing facade preserves the JS stub fallback.
+/// A binding-only case preserves its value through direct JavaScript emission.
 #[test]
-pub(super) fn emit_core_module_with_oxc_codegen_falls_back_for_binding_case_expr() {
+pub(super) fn emit_core_module_with_oxc_codegen_handles_binding_case_expr() {
     let source = "\
 module js_core_binding_case_fallback.
 
@@ -292,15 +279,19 @@ pub choose(status: Atom): Atom ->
     )
     .expect("compile source to CoreIR");
 
-    assert!(oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core).is_none());
-
+    let direct = oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core)
+        .expect("direct backend lowers binding cases");
     let js = oxc_backend::emit_core_module_with_oxc_codegen(&artifacts.core)
-        .expect("fallback Oxc backend emits bootstrap JS");
-
-    assert!(js.contains("export function choose(status)"));
+        .expect("Oxc backend emits executable case binding");
+    assert_eq!(direct, js);
+    assert!(!js.contains("Terlan JS backend stub"), "{js}");
+    let output = std::process::Command::new("node")
+        .args(["--input-type=module", "--eval", &format!("{js}\nif (choose('ready') !== 'ready' || choose('waiting') !== 'waiting') process.exit(1);")])
+        .output().expect("execute generated binding case");
     assert!(
-        js.contains("throw new Error(\"Terlan JS backend stub\")"),
-        "{js}"
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
     );
 }
 

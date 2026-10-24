@@ -1,0 +1,46 @@
+/** End-to-end semantic authority contracts for projected ABI-1 compilation. */
+module self_host.ProjectedBackendCompileTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import self_host.CanonicalLexer.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.ProjectedBackendCompile.
+import self_host.ProjectedFrontend.
+
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+compile(source: String): self_host.SelfHostSemanticIrSyntax.BackendCompilation ->
+    let lexed = CanonicalLexer.lex(source);
+    ProjectedBackendCompile.compile(
+        ProjectedFrontend.compile(source, lexed.tokens),
+        List.new[ModuleInterface](),
+        "terlan-vm",
+    ).
+
+unknown_type_blocks_backend(): Bool ->
+    let backend = compile(
+        "module demo.Invalid.\npub identity(value: Missing): Missing -> value.\n",
+    );
+    case backend.envelope {
+        Some(_value) -> false;
+        None -> contains(backend.diagnostics, "projected-type-resolution-failed")
+    }.
+
+valid_semantics_reach_backend(): Bool ->
+    let backend = compile(
+        "module demo.Valid.\npub identity(value: Int): Int -> value.\n",
+    );
+    case backend.envelope {
+        Some(_value) -> backend.diagnostics == [];
+        None -> false
+    }.
+
+pub self_test(): Bool ->
+    unknown_type_blocks_backend() and valid_semantics_reach_backend().

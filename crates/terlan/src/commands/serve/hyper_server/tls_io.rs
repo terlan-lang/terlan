@@ -9,6 +9,7 @@ use terlan_net_native::tls_stream::TlsStream;
 
 use crate::runtime::vm::protocol_task_executor::{protocol_sleep_until, VmReadyStream};
 
+#[cfg(test)]
 pub(crate) use terlan_http_native::tls::HttpProtocol;
 pub(crate) type HttpTlsIo = terlan_http_native::tls::TlsIo<VmReadyStream>;
 

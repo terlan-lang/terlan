@@ -1,0 +1,156 @@
+/** Strict inventory model for the production self-hosting regression corpus. */
+module self_host.SelfHostRegressionCorpus.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+
+
+pub struct RegressionCorpusEntry {
+    stage: String,
+    expectation: String,
+    path: String,
+}.
+
+pub constructor RegressionCorpusEntry {
+    (stage: String, expectation: String, path: String): RegressionCorpusEntry ->
+        RegressionCorpusEntry {
+            stage: stage,
+            expectation: expectation,
+            path: path,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+known_pair(stage: String, expectation: String): Bool ->
+    if {
+        stage == "frontend" -> expectation == "accept" or expectation == "reject";
+        stage == "semantic" -> expectation == "accept" or expectation == "reject";
+        stage == "backend" -> expectation == "equivalent";
+        stage == "fragment-expression"
+            or stage == "fragment-pattern"
+            or stage == "fragment-type" -> expectation == "project";
+        true -> false
+    }.
+
+@pure
+safe_path(path: String): Bool ->
+    path != ""
+        and not String.starts_with(path, "/")
+        and not String.contains(path, "..")
+        and String.ends_with(path, ".terl").
+
+@pure
+already_present(values: List[RegressionCorpusEntry], stage: String, path: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            value.stage == stage and value.path == path -> true;
+            true -> already_present(rest, stage, path)
+        }
+    }.
+
+@pure
+decode_row(
+    line: String,
+    output: List[RegressionCorpusEntry],
+): Option[List[RegressionCorpusEntry]] ->
+    case String.split(line, "\t") {
+        [stage, expectation, path] ->
+            let normalized_stage = String.trim(stage);
+            let normalized_expectation = String.trim(expectation);
+            let normalized_path = String.trim(path);
+            if {
+                not known_pair(normalized_stage, normalized_expectation) -> None;
+                not safe_path(normalized_path) -> None;
+                already_present(output, normalized_stage, normalized_path) -> None;
+                true -> Some([RegressionCorpusEntry(
+                    normalized_stage,
+                    normalized_expectation,
+                    normalized_path,
+                ) | output])
+            };
+        _ -> None
+    }.
+
+@pure
+decode_lines(
+    lines: List[String],
+    output: List[RegressionCorpusEntry],
+): Option[List[RegressionCorpusEntry]] ->
+    case lines {
+        [] -> Some(reverse_at(output, List.new[RegressionCorpusEntry]()));
+        [line | rest] -> let normalized = String.trim(line);
+            if {
+                normalized == "" or String.starts_with(normalized, "#") ->
+                    decode_lines(rest, output);
+                true -> case decode_row(normalized, output) {
+                    None -> None;
+                    Some(next) -> decode_lines(rest, next)
+                }
+            }
+    }.
+
+@pure
+pub decode(manifest: String): Option[List[RegressionCorpusEntry]] ->
+    decode_lines(String.split(manifest, "\n"), List.new[RegressionCorpusEntry]()).
+
+@pure
+has(values: List[RegressionCorpusEntry], stage: String, expectation: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            value.stage == stage and value.expectation == expectation -> true;
+            true -> has(rest, stage, expectation)
+        }
+    }.
+
+/** Requires positive and negative frontend and semantic coverage plus backend and fragment surfaces. */
+@pure
+pub complete(values: List[RegressionCorpusEntry]): Bool ->
+    has(values, "frontend", "accept")
+        and has(values, "frontend", "reject")
+        and has(values, "semantic", "accept")
+        and has(values, "semantic", "reject")
+        and has(values, "backend", "equivalent")
+        and has(values, "fragment-expression", "project")
+        and has(values, "fragment-pattern", "project")
+        and has(values, "fragment-type", "project").
+
+@pure
+count(values: List[RegressionCorpusEntry], stage: String, expectation: String): Int ->
+    case values {
+        [] -> 0;
+        [value | rest] -> if {
+            value.stage == stage and value.expectation == expectation ->
+                1 + count(rest, stage, expectation);
+            true -> count(rest, stage, expectation)
+        }
+    }.
+
+@pure
+row(values: List[RegressionCorpusEntry], stage: String, expectation: String): String ->
+    stage + "\t" + expectation + "\t" + count(values, stage, expectation).to_string() + "\n".
+
+/** Renders canonical coverage counts for an admitted corpus inventory. */
+@pure
+pub render(values: List[RegressionCorpusEntry]): String ->
+    "terlan.self-host.regression-corpus/v1\n"
+        + "stage\texpectation\tcases\n"
+        + row(values, "frontend", "accept")
+        + row(values, "frontend", "reject")
+        + row(values, "semantic", "accept")
+        + row(values, "semantic", "reject")
+        + row(values, "backend", "equivalent")
+        + row(values, "fragment-expression", "project")
+        + row(values, "fragment-pattern", "project")
+        + row(values, "fragment-type", "project").

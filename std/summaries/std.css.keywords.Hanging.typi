@@ -1,0 +1,6 @@
+//! Shared CSS keyword hanging. Generated; do not edit.
+
+module std.css.keywords.Hanging.
+
+pub type Hanging =
+    Atom["hanging"].

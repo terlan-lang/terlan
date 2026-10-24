@@ -1,0 +1,311 @@
+/** Derives actor continuation captures from split typed Core IR control flow. */
+module self_host.SelfHostActorLiveness.
+
+import std.core.String.
+
+import self_host.SelfHostActorCallExtraction.{ActorCallObservation, ActorVisibleValue}.
+import self_host.SelfHostActorCallPlan.{ActorCalleeEntry}.
+import self_host.SelfHostActorCfgSplit.{ActorSplitAnchor}.
+import self_host.SelfHostIrSyntax.{IrBlock, IrFunction, IrInstruction, IrParameter}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+
+
+pub struct ActorResolvedCallee {
+    result_name: String,
+    module_name: String,
+    function_name: String,
+    arity: Int,
+    entries: List[ActorCalleeEntry],
+}.
+
+pub constructor ActorResolvedCallee {
+    (result_name: String, module_name: String, function_name: String, arity: Int, entries: List[ActorCalleeEntry]): ActorResolvedCallee ->
+        ActorResolvedCallee {
+            result_name: result_name,
+            module_name: module_name,
+            function_name: function_name,
+            arity: arity,
+            entries: entries,
+        }
+}.
+
+
+pub struct ActorObservationPlan {
+    valid: Bool,
+    observations: List[ActorCallObservation],
+    diagnostics: List[String],
+}.
+
+pub constructor ActorObservationPlan {
+    (valid: Bool, observations: List[ActorCallObservation], diagnostics: List[String]): ActorObservationPlan ->
+        ActorObservationPlan {
+            valid: valid,
+            observations: observations,
+            diagnostics: diagnostics,
+        }
+}.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+contains(value: String, values: List[String]): Bool ->
+    case values { [] -> false; [current | rest] -> current == value or contains(value, rest) }.
+
+@pure
+unique(values: List[String], seen: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] where contains(value, seen) -> unique(rest, seen);
+        [value | rest] -> [value | unique(rest, [value | seen])]
+    }.
+
+@pure
+block_named(label: String, values: List[IrBlock]): Option[IrBlock] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if { value.label == label -> Some(value); true -> block_named(label, rest) }
+    }.
+
+@pure
+reachable_targets(
+    targets: List[String],
+    blocks: List[IrBlock],
+    path: List[String],
+): List[String] ->
+    case targets {
+        [] -> List.new[String]();
+        [value | rest] -> append(
+            reachable(value, blocks, path),
+            reachable_targets(rest, blocks, path),
+        )
+    }.
+
+@pure
+reachable(label: String, blocks: List[IrBlock], path: List[String]): List[String] ->
+    if {
+        contains(label, path) -> List.new[String]();
+        true -> case block_named(label, blocks) {
+            None -> List.new[String]();
+            Some(block) -> [label | reachable_targets(
+                block.terminator.targets,
+                blocks,
+                [label | path],
+            )]
+        }
+    }.
+
+@pure
+parameter_values(values: List[IrParameter]): List[ActorVisibleValue] ->
+    case values {
+        [] -> List.new[ActorVisibleValue]();
+        [value | rest] -> [ActorVisibleValue(value.name, value.type_name) | parameter_values(rest)]
+    }.
+
+@pure
+instruction_values(values: List[IrInstruction]): List[ActorVisibleValue] ->
+    case values {
+        [] -> List.new[ActorVisibleValue]();
+        [value | rest] -> case value.result {
+            Some(name) -> [ActorVisibleValue(name, value.type_name) | instruction_values(rest)];
+            None -> instruction_values(rest)
+        }
+    }.
+
+@pure
+block_values(values: List[IrBlock]): List[ActorVisibleValue] ->
+    case values {
+        [] -> List.new[ActorVisibleValue]();
+        [value | rest] -> append(instruction_values(value.instructions), block_values(rest))
+    }.
+
+@pure
+value_names(values: List[ActorVisibleValue]): List[String] ->
+    case values { [] -> List.new[String](); [value | rest] -> [value.name | value_names(rest)] }.
+
+@pure
+known_operands(values: List[String], known: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] where contains(value, known) -> [value | known_operands(rest, known)];
+        [_value | rest] -> known_operands(rest, known)
+    }.
+
+@pure
+instruction_uses(values: List[IrInstruction], known: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(
+            known_operands(value.operands, known),
+            instruction_uses(rest, known),
+        )
+    }.
+
+@pure
+instruction_definitions(values: List[IrInstruction]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> case value.result {
+            Some(name) -> [name | instruction_definitions(rest)];
+            None -> instruction_definitions(rest)
+        }
+    }.
+
+@pure
+reachable_uses(labels: List[String], blocks: List[IrBlock], known: List[String]): List[String] ->
+    case labels {
+        [] -> List.new[String]();
+        [label | rest] -> case block_named(label, blocks) {
+            None -> reachable_uses(rest, blocks, known);
+            Some(block) -> append(
+                instruction_uses(block.instructions, known),
+                append(
+                    known_operands(block.terminator.operands, known),
+                    reachable_uses(rest, blocks, known),
+                ),
+            )
+        }
+    }.
+
+@pure
+reachable_definitions(labels: List[String], blocks: List[IrBlock]): List[String] ->
+    case labels {
+        [] -> List.new[String]();
+        [label | rest] -> case block_named(label, blocks) {
+            None -> reachable_definitions(rest, blocks);
+            Some(block) -> append(
+                instruction_definitions(block.instructions),
+                reachable_definitions(rest, blocks),
+            )
+        }
+    }.
+
+@pure
+free_uses(uses: List[String], definitions: List[String], output: List[String]): List[String] ->
+    case uses {
+        [] -> unique(output, List.new[String]());
+        [value | rest] where contains(value, definitions) -> free_uses(rest, definitions, output);
+        [value | rest] -> free_uses(rest, definitions, append(output, [value]))
+    }.
+
+@pure
+instruction_for(result_name: String, blocks: List[IrBlock]): Option[IrInstruction] ->
+    case blocks {
+        [] -> None;
+        [block | rest] -> case instruction_for_at(result_name, block.instructions) {
+            Some(value) -> Some(value);
+            None -> instruction_for(result_name, rest)
+        }
+    }.
+
+@pure
+instruction_for_at(result_name: String, values: List[IrInstruction]): Option[IrInstruction] ->
+    case values {
+        [] -> None;
+        [value | rest] -> case value.result {
+            Some(name) where name == result_name -> Some(value);
+            _ -> instruction_for_at(result_name, rest)
+        }
+    }.
+
+@pure
+callee_for(result_name: String, values: List[ActorResolvedCallee]): Option[ActorResolvedCallee] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.result_name == result_name -> Some(value);
+            true -> callee_for(result_name, rest)
+        }
+    }.
+
+@pure
+observation(
+    function: IrFunction,
+    anchor: ActorSplitAnchor,
+    callee: ActorResolvedCallee,
+    visible: List[ActorVisibleValue],
+): Option[ActorCallObservation] ->
+    case instruction_for(anchor.result_name, function.blocks) {
+        None -> None;
+        Some(call) ->
+            let labels = unique(
+                reachable(anchor.continuation_block, function.blocks, List.new[String]()),
+                List.new[String](),
+            );
+            let known = value_names(visible);
+            let uses = reachable_uses(labels, function.blocks, known);
+            let definitions = reachable_definitions(labels, function.blocks);
+            Some(ActorCallObservation(
+                function.module_name,
+                function.name,
+                function.arity,
+                anchor.continuation_ordinal,
+                anchor.native_call_index,
+                anchor.call_block,
+                anchor.result_name,
+                callee.module_name,
+                callee.function_name,
+                callee.arity,
+                visible,
+                free_uses(uses, definitions, List.new[String]()),
+                call.type_name,
+                function.return_type,
+                anchor.continuation_block,
+                callee.entries,
+            ))
+    }.
+
+@pure
+observations_at(
+    function: IrFunction,
+    anchors: List[ActorSplitAnchor],
+    callees: List[ActorResolvedCallee],
+    visible: List[ActorVisibleValue],
+): ActorObservationPlan ->
+    case anchors {
+        [] -> ActorObservationPlan(true, List.new[ActorCallObservation](), List.new[String]());
+        [anchor | rest] ->
+            let remaining = observations_at(function, rest, callees, visible);
+            case callee_for(anchor.result_name, callees) {
+                None -> ActorObservationPlan(
+                    false,
+                    remaining.observations,
+                    append([
+                        String.concat(["actor call `", anchor.result_name, "` has no resolved callee contract"]),
+                    ], remaining.diagnostics),
+                );
+                Some(callee) -> case observation(function, anchor, callee, visible) {
+                    None -> ActorObservationPlan(
+                        false,
+                        remaining.observations,
+                        append([
+                            String.concat(["actor call instruction `", anchor.result_name, "` is absent"]),
+                        ], remaining.diagnostics),
+                    );
+                    Some(value) -> ActorObservationPlan(
+                        remaining.valid,
+                        [value | remaining.observations],
+                        remaining.diagnostics,
+                    )
+                }
+            }
+    }.
+
+/** Produces typed call observations from split CFG reachability and resolved callees. */
+@pure
+pub observations(
+    function: IrFunction,
+    anchors: List[ActorSplitAnchor],
+    callees: List[ActorResolvedCallee],
+): ActorObservationPlan ->
+    observations_at(
+        function,
+        anchors,
+        callees,
+        append(parameter_values(function.parameters), block_values(function.blocks)),
+    ).

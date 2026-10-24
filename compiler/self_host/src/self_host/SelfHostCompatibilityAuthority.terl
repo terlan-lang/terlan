@@ -1,0 +1,194 @@
+/** Complete-closure classification of compatibility and bootstrap-workaround boundaries. */
+module self_host.SelfHostCompatibilityAuthority.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+
+
+pub struct CompatibilityBoundary {
+    path: String,
+    disposition: String,
+    reason: String,
+}.
+
+pub constructor CompatibilityBoundary {
+    (path: String, disposition: String, reason: String): CompatibilityBoundary ->
+        CompatibilityBoundary {
+            path: path,
+            disposition: disposition,
+            reason: reason,
+        }
+}.
+
+pub struct CompatibilitySource {
+    path: String,
+    source: String,
+}.
+
+pub constructor CompatibilitySource {
+    (path: String, source: String): CompatibilitySource ->
+        CompatibilitySource { path: path, source: source }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+known_disposition(value: String): Bool ->
+    value == "permanent-api"
+        or value == "recovery-boundary"
+        or value == "bootstrap-workaround".
+
+@pure
+safe_path(path: String): Bool ->
+    path != ""
+        and not String.starts_with(path, "/")
+        and not String.contains(path, "..")
+        and String.ends_with(path, ".terl").
+
+@pure
+duplicate(values: List[CompatibilityBoundary], path: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.path == path or duplicate(rest, path)
+    }.
+
+@pure
+decode_row(
+    line: String,
+    output: List[CompatibilityBoundary],
+): Option[List[CompatibilityBoundary]] ->
+    case String.split(line, "\t") {
+        [path, disposition, reason] ->
+            let normalized_path = String.trim(path);
+            let normalized_disposition = String.trim(disposition);
+            let normalized_reason = String.trim(reason);
+            if {
+                not safe_path(normalized_path) -> None;
+                not known_disposition(normalized_disposition) -> None;
+                normalized_reason == "" -> None;
+                duplicate(output, normalized_path) -> None;
+                true -> Some([CompatibilityBoundary(
+                    normalized_path,
+                    normalized_disposition,
+                    normalized_reason,
+                ) | output])
+            };
+        _ -> None
+    }.
+
+@pure
+decode_lines(
+    lines: List[String],
+    output: List[CompatibilityBoundary],
+): Option[List[CompatibilityBoundary]] ->
+    case lines {
+        [] -> Some(reverse_at(output, List.new[CompatibilityBoundary]()));
+        [line | rest] -> let normalized = String.trim(line);
+            if {
+                normalized == "" or String.starts_with(normalized, "#") ->
+                    decode_lines(rest, output);
+                true -> case decode_row(normalized, output) {
+                    None -> None;
+                    Some(next) -> decode_lines(rest, next)
+                }
+            }
+    }.
+
+@pure
+pub decode(manifest: String): Option[List[CompatibilityBoundary]] ->
+    decode_lines(String.split(manifest, "\n"), List.new[CompatibilityBoundary]()).
+
+@pure
+classified(values: List[CompatibilityBoundary], path: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.path == path or classified(rest, path)
+    }.
+
+@pure
+compatibility_marker(source: String): Bool ->
+    String.contains(source, "Compatibility entry point")
+        or String.contains(source, "retaining explicit v3/v4 compatibility").
+
+@pure
+source_classified(
+    source: CompatibilitySource,
+    values: List[CompatibilityBoundary],
+): Bool ->
+    not compatibility_marker(source.source)
+        or classified(values, source.path).
+
+@pure
+all_sources_classified(
+    sources: List[CompatibilitySource],
+    values: List[CompatibilityBoundary],
+): Bool ->
+    case sources {
+        [] -> true;
+        [source | rest] -> source_classified(source, values)
+            and all_sources_classified(rest, values)
+    }.
+
+@pure
+boundary_materialized(
+    value: CompatibilityBoundary,
+    sources: List[CompatibilitySource],
+): Bool ->
+    case sources {
+        [] -> false;
+        [source | rest] -> if {
+            source.path == value.path
+                and compatibility_marker(source.source) -> true;
+            true -> boundary_materialized(value, rest)
+        }
+    }.
+
+@pure
+all_boundaries_materialized(
+    values: List[CompatibilityBoundary],
+    sources: List[CompatibilitySource],
+): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> boundary_materialized(value, sources)
+            and all_boundaries_materialized(rest, sources)
+    }.
+
+@pure
+has_workaround(values: List[CompatibilityBoundary]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.disposition == "bootstrap-workaround"
+            or has_workaround(rest)
+    }.
+
+/** Proves all compatibility boundaries are materialized, classified, and non-bootstrap. */
+@pure
+pub workarounds_removed(
+    sources: List[CompatibilitySource],
+    values: List[CompatibilityBoundary],
+): Bool ->
+    not List.is_empty(sources)
+        and not has_workaround(values)
+        and all_sources_classified(sources, values)
+        and all_boundaries_materialized(values, sources).
+
+@pure
+pub render(
+    sources: List[CompatibilitySource],
+    values: List[CompatibilityBoundary],
+): String ->
+    "terlan.self-host.compatibility-authority/v1\n"
+        + "closure-sources\t"
+        + List.length(sources).to_string()
+        + "\nclassified-boundaries\t"
+        + List.length(values).to_string()
+        + "\nbootstrap-workarounds\t0\n".

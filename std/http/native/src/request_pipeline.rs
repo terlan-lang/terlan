@@ -27,6 +27,15 @@ pub trait Application {
     type Sse: SseCancellation;
 
     fn requires_file_body(&self, method: &str, path: &str) -> Result<bool, String>;
+    /// Admits source channels through the host's async executor when available.
+    /// Returning None leaves the request to ordinary or synchronous dispatch.
+    fn handle_channel(
+        &self,
+        _request: &Request<String>,
+        _channel: &mut Option<Channel<Self::WebSocket, Self::Sse>>,
+    ) -> impl Future<Output = Result<Option<Response<Bytes>>, String>> {
+        std::future::ready(Ok(None))
+    }
     fn handle_suspendable(
         &self,
         request: &Request<String>,
@@ -76,11 +85,6 @@ where
         Ok(request) => request,
         Err(error) => return error_response(error.status, error.message),
     };
-    match application.handle_suspendable(&request).await {
-        Ok(Some(response)) => return ResponseBody::from_response(response),
-        Ok(None) => {}
-        Err(error) => return error_response(StatusCode::INTERNAL_SERVER_ERROR, error),
-    }
     let route = request.uri().path().to_string();
     let target = request
         .uri()
@@ -88,7 +92,22 @@ where
         .map(|target| target.as_str().to_string())
         .unwrap_or_else(|| route.clone());
     let mut channel = None;
-    let response = match application.handle(request, &mut channel) {
+    let result = match application.handle_channel(&request, &mut channel).await {
+        Ok(Some(response)) => Ok(response),
+        Ok(None) => match application.handle_suspendable(&request).await {
+            Ok(Some(response)) => Ok(response),
+            Ok(None) => application.handle(request, &mut channel),
+            Err(error) => Err(error),
+        },
+        Err(error) => {
+            let error = match channel {
+                Some(mut channel) => cancel(&mut channel, error),
+                None => error,
+            };
+            return error_response(StatusCode::BAD_GATEWAY, error);
+        }
+    };
+    let mut response = match result {
         Ok(response) => response,
         Err(error) => {
             let error = match channel {
@@ -109,10 +128,22 @@ where
                 );
             }
         }
-        Some(mut channel @ Channel::Sse(_)) => {
-            let message = cancel(&mut channel,
-                "error[serve_http.upgrade_adapter_missing]: maintained async Hyper adapter is required for SSE".into());
-            return error_response(StatusCode::NOT_IMPLEMENTED, message);
+        Some(Channel::Sse(session)) => {
+            return match session.into_body() {
+                Ok(body) => {
+                    // The body is live, not the finite admission handshake.
+                    // Hyper owns HTTP/1 framing and HTTP/2 stream termination.
+                    for name in [
+                        http::header::CONTENT_LENGTH,
+                        http::header::TRANSFER_ENCODING,
+                        http::header::CONNECTION,
+                    ] {
+                        response.headers_mut().remove(name);
+                    }
+                    response.map(|_| body)
+                }
+                Err(error) => error_response(StatusCode::NOT_IMPLEMENTED, error.to_string()),
+            };
         }
         None => {}
     }

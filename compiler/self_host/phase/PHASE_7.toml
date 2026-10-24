@@ -1,0 +1,48 @@
+schema = "terlan.self-host.phase/v1"
+phase = 7
+name = "self-hosted-driver-and-tooling"
+status = "in-progress"
+
+[driver]
+multi_module_compile = true
+canonical_package_artifacts = true
+incremental_identity = true
+reverse_dependency_invalidation = true
+per_module_publication = true
+manifest_last_commit = true
+bounded_worker_planning = true
+bounded_parallel_workers = "implemented-vm-process-driver-validation-pending"
+cancellation = "implemented-fail-fast-and-explicit-validation-pending"
+
+[tooling]
+formatter = "implemented-token-aware-cli-and-fixed-point-validation-pending"
+linter = "partial-import-rules-cli-and-marker-protocol-validation-pending"
+documentation = "partial-public-api-markdown-cli-and-marker-protocol-validation-pending"
+package_workflow = "implemented-ordered-stale-safe-publication-validation-pending"
+diagnostic_rendering = "implemented-canonical-stage-and-source-rendering-validation-pending"
+support_bundle = "implemented-length-framed-stale-safe-publication-validation-pending"
+compiler_trace = "implemented-deterministic-stage-events-validation-pending"
+
+[[gate]]
+id = "self-host-driver-parity-check"
+status = "pending"
+
+[[gate]]
+id = "self-host-incremental-equivalence-check"
+status = "pending-validation"
+
+[[gate]]
+id = "self-host-tooling-parity-check"
+status = "pending"
+
+[[gate]]
+id = "self-host-cancellation-check"
+status = "pending"
+
+[[gate]]
+id = "self-host-build-reproducibility-check"
+status = "pending"
+
+[next]
+implementation = "formatter-linter-documentation-and-trace-parity-validation"
+reason = "all named user-facing tooling implementations are Terlan-owned; parity and production-path validation remain incomplete"

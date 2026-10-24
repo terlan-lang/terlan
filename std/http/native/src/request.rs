@@ -11,9 +11,8 @@ pub struct Request {
     body_file_path: String,
     params: Vec<(String, String)>,
     query_string: String,
-    query: Vec<(String, String)>,
     headers: Vec<(String, String)>,
-    cookies: Vec<(String, String)>,
+    cookies: Vec<String>,
 }
 
 /// Route, query, header, and cookie metadata attached to one HTTP request.
@@ -23,12 +22,10 @@ pub struct RequestMetadata {
     pub params: Vec<(String, String)>,
     /// Raw query text without a leading question mark.
     pub query_string: String,
-    /// Decoded query parameters in source-visible order.
-    pub query: Vec<(String, String)>,
     /// Decoded request headers in source-visible order.
     pub headers: Vec<(String, String)>,
-    /// Decoded request cookies in source-visible order.
-    pub cookies: Vec<(String, String)>,
+    /// Raw Cookie headers in wire order; the source accessor owns decoding.
+    pub cookies: Vec<String>,
 }
 
 /// Owned request metadata transferred to a consuming server or language boundary.
@@ -45,16 +42,14 @@ pub struct RequestParts {
     pub params: Vec<(String, String)>,
     /// Raw query text without a leading question mark.
     pub query_string: String,
-    /// Decoded query parameters in source-visible order.
-    pub query: Vec<(String, String)>,
     /// Decoded headers in source-visible order.
     pub headers: Vec<(String, String)>,
-    /// Decoded cookies in wire order, including duplicate names and empty values.
-    pub cookies: Vec<(String, String)>,
+    /// Raw Cookie headers in wire order, including empty or malformed headers.
+    pub cookies: Vec<String>,
 }
 
 impl Request {
-    /// Transfers request storage without applying source cookie precedence.
+    /// Transfers request storage without applying source query or cookie policy.
     pub fn into_parts(self) -> RequestParts {
         RequestParts {
             method: self.method,
@@ -63,7 +58,6 @@ impl Request {
             body_file_path: self.body_file_path,
             params: self.params,
             query_string: self.query_string,
-            query: self.query,
             headers: self.headers,
             cookies: self.cookies,
         }
@@ -102,7 +96,7 @@ impl Request {
         path: impl Into<String>,
         body: impl Into<String>,
     ) -> Self {
-        Self::from_parts_with_metadata(method, path, body, Vec::new(), Vec::new(), Vec::new())
+        Self::from_parts_with_metadata(method, path, body, Vec::new(), String::new(), Vec::new())
     }
 
     /// Builds a request wrapper from server request parts and decoded metadata.
@@ -112,8 +106,8 @@ impl Request {
     /// - `path`: URL path without query text.
     /// - `body`: UTF-8 request body text.
     /// - `params`: decoded route parameters in source-visible order.
-    /// - `query`: decoded query parameters in source-visible order.
-    /// - `cookies`: decoded request cookies in source-visible order.
+    /// - `query_string`: raw query text without the leading `?`.
+    /// - `cookies`: raw Cookie headers in wire order.
     ///
     /// Output:
     /// - `Request` containing stable request metadata, body text, and request
@@ -128,10 +122,18 @@ impl Request {
         path: impl Into<String>,
         body: impl Into<String>,
         params: Vec<(String, String)>,
-        query: Vec<(String, String)>,
-        cookies: Vec<(String, String)>,
+        query_string: impl Into<String>,
+        cookies: Vec<String>,
     ) -> Self {
-        Self::from_parts_with_all_metadata(method, path, body, params, query, Vec::new(), cookies)
+        Self::from_parts_with_all_metadata(
+            method,
+            path,
+            body,
+            params,
+            query_string,
+            Vec::new(),
+            cookies,
+        )
     }
 
     /// Builds a request wrapper from all server request metadata.
@@ -141,9 +143,9 @@ impl Request {
     /// - `path`: URL path without query text.
     /// - `body`: UTF-8 request body text.
     /// - `params`: decoded route parameters in source-visible order.
-    /// - `query`: decoded query parameters in source-visible order.
+    /// - `query_string`: raw query text without the leading `?`.
     /// - `headers`: decoded request headers in source-visible order.
-    /// - `cookies`: decoded request cookies in source-visible order.
+    /// - `cookies`: raw Cookie headers in wire order.
     ///
     /// Output:
     /// - `Request` containing stable request metadata, body text, and request
@@ -158,9 +160,9 @@ impl Request {
         path: impl Into<String>,
         body: impl Into<String>,
         params: Vec<(String, String)>,
-        query: Vec<(String, String)>,
+        query_string: impl Into<String>,
         headers: Vec<(String, String)>,
-        cookies: Vec<(String, String)>,
+        cookies: Vec<String>,
     ) -> Self {
         Self::from_parts_with_raw_query_metadata(
             method,
@@ -168,8 +170,7 @@ impl Request {
             body,
             RequestMetadata {
                 params,
-                query_string: String::new(),
-                query,
+                query_string: query_string.into(),
                 headers,
                 cookies,
             },
@@ -184,15 +185,14 @@ impl Request {
     /// - `body`: UTF-8 request body text.
     /// - `params`: decoded route parameters in source-visible order.
     /// - `query_string`: raw query text without the leading `?`.
-    /// - `query`: decoded query parameters in source-visible order.
     /// - `headers`: decoded request headers in source-visible order.
-    /// - `cookies`: decoded request cookies in source-visible order.
+    /// - `cookies`: raw Cookie headers in wire order.
     ///
     /// Output:
     /// - `Request` containing stable request metadata and lookup pairs.
     ///
     /// Transformation:
-    /// - Preserves raw query text separately from decoded query pairs.
+    /// - Preserves raw query text for source-selected decoding.
     pub fn from_parts_with_raw_query_metadata(
         method: impl Into<String>,
         path: impl Into<String>,
@@ -202,7 +202,6 @@ impl Request {
         let RequestMetadata {
             params,
             query_string,
-            query,
             headers,
             cookies,
         } = metadata;
@@ -213,7 +212,6 @@ impl Request {
             body_file_path: String::new(),
             params,
             query_string,
-            query,
             headers,
             cookies,
         }
@@ -272,21 +270,6 @@ impl Request {
         &self.body_file_path
     }
 
-    /// Returns decoded query pairs in request order.
-    ///
-    /// Inputs:
-    /// - `self`: request wrapper.
-    ///
-    /// Output:
-    /// - Borrowed query pairs captured by the server bridge.
-    ///
-    /// Transformation:
-    /// - Exposes metadata to runtime bridges without allowing mutation or
-    ///   exposing concrete server request storage.
-    pub fn query_pairs(&self) -> &[(String, String)] {
-        &self.query
-    }
-
     /// Returns the raw request query string.
     ///
     /// Inputs:
@@ -317,18 +300,18 @@ impl Request {
         &self.headers
     }
 
-    /// Returns decoded request cookie pairs for runtime jar construction.
+    /// Returns raw Cookie headers for source-selected decoding and jar construction.
     ///
     /// Inputs:
     /// - `self`: request wrapper.
     ///
     /// Output:
-    /// - Borrowed parsed cookie pairs in request order.
+    /// - Borrowed header values in wire order; non-text headers are empty strings.
     ///
     /// Transformation:
     /// - Exposes cookie metadata only inside the HTTP adapter so the facade can
     ///   seed a mutable cookie jar without making request fields public.
-    pub fn cookie_pairs(&self) -> &[(String, String)] {
+    pub fn cookie_headers(&self) -> &[String] {
         &self.cookies
     }
 

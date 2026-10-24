@@ -1,8 +1,8 @@
 module=std.js.Intl.NumberFormatConstructor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=10489323457272321341
-interface_hash=11819862761582375594
-interface_doc_hash=11819862761582375594
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=2979425030944009118
+interface_hash=9971740714177157547
+interface_doc_hash=9971740714177157547
 deps=0

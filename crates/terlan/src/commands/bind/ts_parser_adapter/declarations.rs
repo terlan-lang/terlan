@@ -77,6 +77,7 @@ pub(in crate::commands::bind) struct TsUnsupportedDeclaration {
 ///   scope metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::commands::bind) struct TsInterfaceDeclaration {
+    pub(in crate::commands::bind) plain_record: bool,
     pub(in crate::commands::bind) namespace: String,
     pub(in crate::commands::bind) name: String,
     pub(in crate::commands::bind) doc: Option<String>,
@@ -308,6 +309,14 @@ fn parse_top_level_statement(
             "ts_bindgen.unsupported_top_level_import",
             "TypeScript imports are not emitted yet",
         )]),
+        Statement::ExportNamedDeclaration(export) if export.declaration.is_some() => {
+            parse_nested_declaration(
+                source,
+                comments,
+                "",
+                export.declaration.as_ref().expect("checked declaration"),
+            )
+        }
         Statement::ExportAllDeclaration(_)
         | Statement::ExportDefaultDeclaration(_)
         | Statement::ExportNamedDeclaration(_)
@@ -670,6 +679,13 @@ fn parse_interface(
         .collect::<Vec<_>>();
 
     Ok(TsInterfaceDeclaration {
+        plain_record: interface.extends.is_empty()
+            && interface.type_parameters.as_ref().is_none_or(|parameters| {
+                parameters
+                    .params
+                    .iter()
+                    .all(|parameter| parameter.constraint.is_none() && parameter.default.is_none())
+            }),
         namespace: namespace.to_string(),
         name: interface.id.name.to_string(),
         doc: leading_jsdoc(source, comments, interface.span),

@@ -1,56 +1,31 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-auto-flow
+//! The `grid-auto-flow` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property controls
+//! how the auto-placement algorithm works, specifying exactly how auto-placed items get flowed into
+//! the grid.
+//!
+//! Initial: row. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - column: Items are placed by filling each column in turn, adding new columns as necessary.
+//! - dense: "dense" packing algorithm attempts to fill in holes earlier in the grid, if smaller
+//! items come up later. This may cause items to appear out-of-order, when doing so would fill in
+//! holes left by larger items.
+//! - row: Items are placed by filling each row in turn, adding new rows as necessary. If neither
+//! `row` nor `column` is provided, `row` is assumed.
+//!
 //! Grammar: [ row | column ] || dense
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-auto-flow
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/grid-auto-flow
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.GridAutoFlow.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    grid_auto_flow: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    grid_auto_flow: Value
+    grid_auto_flow: Row | Column | Dense | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained grid-auto-flow value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword column.
-
-pub column(): Value.
-
-/// Returns the CSS keyword dense.
-
-pub dense(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword row.
-
-pub row(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

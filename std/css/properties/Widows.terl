@@ -1,75 +1,42 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-break-4/#propdef-widows
+ * The `widows` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the minimum
+ * number of lines in a block container that must be shown at the _top_ of a
+ * [page](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Paged_media), region, or
+ * [column](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Multicol_layout).
+ *
+ * Initial: 2. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: <integer [1,∞]>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-break-4/#propdef-widows
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/widows
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Widows.
 
 import std.core.Int.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
+import std.css.Values.{serialize}.
 
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained widows value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    widows: Value,
+    widows: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the widows integer range. Returns Some when amount >= 1; otherwise returns None.
  */
-pub struct OptionalProperty {
-    widows: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "widows", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "widows", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "widows", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "widows", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "widows", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a widows value.
- */
-pub integer(value: Int): Option[Value] ->
+pub integer(value: Int): Option[Checked] ->
     case value >= 1 {
-        true -> Some(Value(Token {property: "widows", css: std.core.Int.to_string(value)}));
-        false -> None
+        true -> Some(Checked(serialize("widows", std.core.Int.to_string(value))));
+        false -> Absent
     }.

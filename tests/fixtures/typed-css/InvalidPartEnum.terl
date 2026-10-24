@@ -1,0 +1,5 @@
+module typed_css.InvalidPartEnum.
+
+import std.css.keywords.Solid.{Solid}.
+import type std.css.properties.Border.{LineWidthPart}.
+pub invalid(): LineWidthPart -> Solid.

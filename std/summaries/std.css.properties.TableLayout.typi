@@ -1,52 +1,33 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-tables-3/#propdef-table-layout
+//! The `table-layout` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! algorithm used to lay out `table` cells, rows, and columns.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: The automatic table layout algorithm is used. The widths of the table and its cells are
+//! adjusted to fit the content. Most browsers use this algorithm by default.
+//! - fixed: The fixed table layout algorithm is used. When using this keyword, the table's width
+//! _needs to be specified explicitly_ using the `width` property. If the value of the `width`
+//! property is set to `auto` or is not specified, the browser uses the automatic table layout
+//! algorithm, in which case the `fixed` value has no effect.\ The fixed table layout algorithm is
+//! faster than the automatic layout algorithm because the horizontal layout of the table depends
+//! only on the table's width, the width of the columns, and borders or cell spacing. The horizontal
+//! layout doesn't depend on the contents of the cells because it depends only on explicitly set
+//! widths.
+//!
 //! Grammar: auto | fixed
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-tables-3/#propdef-table-layout
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/table-layout
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TableLayout.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    table_layout: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    table_layout: Value
+    table_layout: Auto | Fixed | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained table-layout value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword fixed.
-
-pub fixed(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

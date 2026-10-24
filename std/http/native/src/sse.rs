@@ -5,23 +5,15 @@ use std::{convert::Infallible, time::Duration};
 use axum::response::{sse::Event, IntoResponse, Sse};
 use futures_util::{stream, FutureExt};
 use http_body_util::BodyExt;
-use terlan_runtime_abi::{BoundaryError, ErrorDomain, FromNativeValue, NativeBinding, NativeValue};
+use terlan_runtime_abi::{native_binding, BoundaryError, ErrorDomain, NativeBinding};
 
 /// Exact value-only event encoder used by the Terlan response builder.
-pub const ENCODE_EVENT: NativeBinding = NativeBinding {
-    operation: "std.http.sse.encode_event",
-    arity: 4,
-    invoke: |args| {
-        ENCODE_EVENT.validate_arity(args.len())?;
-        encode_event(
-            Option::<&str>::from_native(&args[0])?,
-            Option::<&str>::from_native(&args[1])?,
-            Option::<i64>::from_native(&args[2])?,
-            <&str>::from_native(&args[3])?,
-        )
-        .map(NativeValue::from)
-    },
-};
+pub const ENCODE_EVENT: NativeBinding = native_binding!(
+    "std.http.sse.encode_event",
+    |id: Option<&str>, event: Option<&str>, retry_ms: Option<i64>, data: &str| {
+        encode_event(id, event, retry_ms, data)
+    }
+);
 
 /// Encodes one event with source-normalized data, rejecting metadata injection.
 pub fn encode_event(

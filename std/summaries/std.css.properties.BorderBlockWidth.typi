@@ -1,96 +1,62 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-block-width
+//! The `border-block-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+//! the width of the logical block borders of an element, which maps to a physical border width
+//! depending on the element's writing mode, directionality, and text orientation. It corresponds to
+//! the `border-top-width` and `border-bottom-width`, or `border-left-width`, and
+//! `border-right-width` property depending on the values defined for `writing-mode`, `direction`,
+//! and `text-orientation`.
+//!
+//! Initial: border-block-start-width: medium; border-block-end-width: medium. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - medium: Same as `3px`. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+//! - thick: Same as `5px`. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+//! - thin: Same as `1px`. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+//!
 //! Grammar: <'border-top-width'>{1,2}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-block-width
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-block-width
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderBlockWidth.
 
-/// A single non-global border-block-width shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
+pub opaque type CheckedComponent.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    border_block_width: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    Thin
+  | Medium
+  | Thick
+  | CheckedComponent.
 
 pub struct Property {
-    border_block_width: Value
+    border_block_width: Thin | Medium | Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained border-block-width value.
+/// Checks the border-block-width length range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub opaque type Value.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-/// Constructs one border-block-width shorthand component.
+/// Checks the border-block-width length range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub component_hairline(): Component.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Checks the specification range and constructs a border-block-width value.
+/// Supplies 2 components in grammar order.
 
-pub component_length(value: std.css.Values.Length): Option[Component].
+pub pair(first: Component, second: Component): Checked.
 
-/// Constructs one border-block-width shorthand component.
+/// Supplies 1 components in grammar order.
 
-pub component_medium(): Component.
-
-/// Constructs one border-block-width shorthand component.
-
-pub component_thick(): Component.
-
-/// Constructs one border-block-width shorthand component.
-
-pub component_thin(): Component.
-
-/// Returns the CSS keyword hairline.
-
-pub hairline(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a border-block-width value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Returns the CSS keyword medium.
-
-pub medium(): Value.
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Returns the CSS keyword thick.
-
-pub thick(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub single(first: Component): Checked.

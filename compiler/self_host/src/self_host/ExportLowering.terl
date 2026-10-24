@@ -1,6 +1,8 @@
 /** Self-hosted lowering for explicit export identities. */
 module self_host.ExportLowering.
 
+import std.core.String.
+
 
 import std.core.Option.{None, Option, Some}.
 import self_host.DeclarationSyntax.{DeclarationSyntax}.

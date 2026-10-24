@@ -1,0 +1,193 @@
+/** Deterministic bounded batches for parallel self-hosted module compilation. */
+module self_host.SelfHostWorkerPlan.
+
+import self_host.SelfHostIncrementalPlan.{IncrementalDecision, IncrementalUnit}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, String}.
+
+pub struct WorkerBatch {
+    index: Int,
+    modules: List[String],
+}.
+
+pub constructor WorkerBatch {
+    (index: Int, modules: List[String]): WorkerBatch ->
+        WorkerBatch { index: index, modules: modules }
+}.
+
+@pure
+rebuild_modules(values: List[IncrementalDecision]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] where value.rebuild -> [value.module_name | rebuild_modules(rest)];
+        [_value | rest] -> rebuild_modules(rest)
+    }.
+
+@pure
+take(values: List[String], remaining: Int): List[String] ->
+    if {
+        remaining <= 0 -> List.new[String]();
+        true -> case values {
+            [] -> List.new[String]();
+            [value | rest] -> [value | take(rest, remaining - 1)]
+        }
+    }.
+
+@pure
+drop(values: List[String], remaining: Int): List[String] ->
+    if {
+        remaining <= 0 -> values;
+        true -> case values {
+            [] -> List.new[String]();
+            [_value | rest] -> drop(rest, remaining - 1)
+        }
+    }.
+
+@pure
+batches(values: List[String], width: Int, index: Int): List[WorkerBatch] ->
+    case values {
+        [] -> List.new[WorkerBatch]();
+        [_value | _rest] -> [WorkerBatch(index, take(values, width))
+            | batches(drop(values, width), width, index + 1)]
+    }.
+
+/** Returns ordered batches whose width never exceeds the worker limit. */
+@pure
+pub plan(values: List[IncrementalDecision], worker_limit: Int): Option[List[WorkerBatch]] ->
+    if {
+        worker_limit <= 0 -> None;
+        true -> Some(batches(rebuild_modules(values), worker_limit, 0))
+    }.
+
+@pure
+contains(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> current == value or contains(value, rest)
+    }.
+
+@pure
+has_duplicate(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> contains(value, rest) or has_duplicate(rest)
+    }.
+
+@pure
+unit_exists(module_name: String, values: List[IncrementalUnit]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.module_name == module_name or unit_exists(module_name, rest)
+    }.
+
+@pure
+all_units_exist(values: List[String], units: List[IncrementalUnit]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> unit_exists(value, units) and all_units_exist(rest, units)
+    }.
+
+@pure
+unit_names(values: List[IncrementalUnit]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.module_name | unit_names(rest)]
+    }.
+
+@pure
+dependencies(module_name: String, values: List[IncrementalUnit]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> if {
+            value.module_name == module_name -> value.dependencies;
+            true -> dependencies(module_name, rest)
+        }
+    }.
+
+@pure
+depends_on_pending(values: List[String], pending: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> contains(value, pending) or depends_on_pending(rest, pending)
+    }.
+
+@pure
+ready_modules(pending: List[String], units: List[IncrementalUnit]): List[String] ->
+    case pending {
+        [] -> List.new[String]();
+        [value | rest] -> if {
+            depends_on_pending(dependencies(value, units), pending) -> ready_modules(rest, units);
+            true -> [value | ready_modules(rest, units)]
+        }
+    }.
+
+@pure
+remove_modules(values: List[String], removed: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> if {
+            contains(value, removed) -> remove_modules(rest, removed);
+            true -> [value | remove_modules(rest, removed)]
+        }
+    }.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+batch_count(value_count: Int, width: Int): Int ->
+    if {
+        value_count <= 0 -> 0;
+        true -> 1 + batch_count(value_count - width, width)
+    }.
+
+@pure
+dependency_batches(
+    pending: List[String],
+    units: List[IncrementalUnit],
+    worker_limit: Int,
+    index: Int,
+): Result[List[WorkerBatch], String] ->
+    case pending {
+        [] -> Ok(List.new[WorkerBatch]());
+        [_ | _] -> let ready = ready_modules(pending, units);
+        if {
+            ready == [] -> Err("rebuild dependency graph contains a cycle");
+            true -> let current = batches(ready, worker_limit, index);
+            case dependency_batches(
+                remove_modules(pending, ready),
+                units,
+                worker_limit,
+                index + batch_count(List.length(ready), worker_limit),
+            ) {
+                Err(reason) -> Err(reason);
+                Ok(remaining) -> Ok(append(current, remaining))
+            }
+        }
+    }.
+
+/**
+ * Returns deterministic bounded batches where every rebuilt dependency is in
+ * an earlier batch. Dependencies outside the rebuild set are treated as
+ * already published reusable inputs.
+ */
+@pure
+pub plan_dependencies(
+    units: List[IncrementalUnit],
+    values: List[IncrementalDecision],
+    worker_limit: Int,
+): Result[List[WorkerBatch], String] ->
+    let rebuild = rebuild_modules(values);
+    if {
+        worker_limit <= 0 -> Err("worker limit must be positive");
+        has_duplicate(unit_names(units)) -> Err("incremental units contain duplicate module identities");
+        has_duplicate(rebuild) -> Err("incremental decisions contain duplicate rebuild modules");
+        not all_units_exist(rebuild, units) -> Err("incremental decision has no matching unit");
+        true -> dependency_batches(rebuild, units, worker_limit, 0)
+    }.

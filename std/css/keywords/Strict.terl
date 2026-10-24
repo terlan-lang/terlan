@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword strict. Generated; do not edit.
+ */
+module std.css.keywords.Strict.
+
+pub type Strict = std.core.Atom.Strict.

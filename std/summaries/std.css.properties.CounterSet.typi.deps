@@ -1,9 +1,10 @@
 module=std.css.properties.CounterSet
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=5151008333459351296
-interface_hash=16802010996493968280
-interface_doc_hash=12248876546251632285
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3133689884971381279
+interface_hash=11454200264974797897
+interface_doc_hash=15986823020132909330
+deps=2
+std.css.Values=330909209718432688
+std.css.keywords.None=3400229744369726074

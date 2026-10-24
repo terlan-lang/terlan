@@ -26,7 +26,7 @@ fn error(message: impl std::fmt::Display) -> NativeAdapterError {
     NativeAdapterError::new("http.descriptor", message.to_string(), 0)
 }
 
-fn record<'a, V: DescriptorValue, const N: usize>(
+pub(crate) fn record<'a, V: DescriptorValue, const N: usize>(
     value: &'a V,
     expected_name: &str,
     names: [&str; N],
@@ -62,7 +62,7 @@ fn list<V: DescriptorValue>(value: &V) -> Result<&[V]> {
     }
 }
 
-fn text<V: DescriptorValue>(value: &V) -> Result<String> {
+pub(crate) fn text<V: DescriptorValue>(value: &V) -> Result<String> {
     match value.descriptor_view() {
         DescriptorView::String(value) => Ok(value.to_owned()),
         _ => Err(error("expected String")),

@@ -1,80 +1,42 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-inline
+//! The `margin-inline` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property defines both the logical inline start and end margins of an element, which maps to
+//! physical margins depending on the element's writing mode, directionality, and text orientation.
+//!
+//! Initial: margin-inline-start: 0; margin-inline-end: 0. Inherited: no.
+//! Percentages: depends on layout model.
+//!
+//! Keyword effects:
+//! - auto: The browser selects a suitable value to use. See `margin`. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-top
+//!
 //! Grammar: <'margin-top'>{1,2}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-inline
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-inline
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MarginInline.
 
-/// A single non-global margin-inline shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
-
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    margin_inline: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    Auto
+  | std.css.Values.Length
+  | std.css.Values.Percentage.
 
 pub struct Property {
-    margin_inline: Value
+    margin_inline: Auto | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained margin-inline value.
+/// Supplies 2 components in grammar order.
 
-pub opaque type Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Returns the CSS keyword auto.
+/// Supplies 1 components in grammar order.
 
-pub auto(): Value.
-
-/// Constructs one margin-inline shorthand component.
-
-pub component_auto(): Component.
-
-/// Constructs a margin-inline value from a typed length.
-
-pub component_length(value: std.css.Values.Length): Component.
-
-/// Constructs a margin-inline value from a typed percentage.
-
-pub component_percentage(value: std.css.Values.Percentage): Component.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a margin-inline value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Constructs a margin-inline value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub single(first: Component): Checked.

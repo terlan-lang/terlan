@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword no-punctuation. Generated; do not edit.
+ */
+module std.css.keywords.NoPunctuation.
+
+pub type NoPunctuation = Atom["no-punctuation"].

@@ -1,6 +1,8 @@
 /** String-aware delimiter scanning shared by nested syntax parsers. */
 module self_host.Delimited.
 
+import std.core.String.
+
 import std.collections.List.
 import std.core.{Int, String}.
 
@@ -226,9 +228,11 @@ reverse_at[T](values: List[T], output: List[T]): List[T] ->
 
 @pure
 is_pipe_forward(source: String, index: Int, delimiter: Int): Bool ->
-    delimiter == 124
-        and index + 1 < source.byte_size()
-        and source.utf8_byte_at(index + 1) == 62.
+    if {
+        delimiter != 124 -> false;
+        index + 1 >= source.byte_size() -> false;
+        true -> source.utf8_byte_at(index + 1) == 62
+    }.
 
 @pure
 split_at(
@@ -355,21 +359,29 @@ pub top_level_text(source: String, expected: String): Int ->
     top_level_text_at(source, expected, 0, initial()).
 
 @pure
+assignment_previous(source: String, index: Int): Bool ->
+    if {
+        index == 0 -> true;
+        true -> let byte = source.utf8_byte_at(index - 1);
+            byte != 61 and byte != 33 and byte != 60 and byte != 62
+    }.
+
+@pure
+assignment_next(source: String, index: Int): Bool ->
+    if {
+        index + 1 == source.byte_size() -> true;
+        true -> let byte = source.utf8_byte_at(index + 1);
+            byte != 61 and byte != 62
+    }.
+
+@pure
 assignment_at(source: String, index: Int, state: ScanState): Int ->
     if {
         index == source.byte_size() -> -1;
         outside(state)
             and source.utf8_byte_at(index) == 61
-            and (index == 0 or (
-                source.utf8_byte_at(index - 1) != 61
-                    and source.utf8_byte_at(index - 1) != 33
-                    and source.utf8_byte_at(index - 1) != 60
-                    and source.utf8_byte_at(index - 1) != 62
-            ))
-            and (index + 1 == source.byte_size() or (
-                source.utf8_byte_at(index + 1) != 61
-                    and source.utf8_byte_at(index + 1) != 62
-            )) -> index;
+            and assignment_previous(source, index)
+            and assignment_next(source, index) -> index;
         true -> assignment_at(
             source,
             index + 1,

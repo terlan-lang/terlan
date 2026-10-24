@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword trim-both. Generated; do not edit.
+ */
+module std.css.keywords.TrimBoth.
+
+pub type TrimBoth = Atom["trim-both"].

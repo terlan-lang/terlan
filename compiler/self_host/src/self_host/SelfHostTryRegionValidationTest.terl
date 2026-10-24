@@ -1,0 +1,73 @@
+/** Positive and negative contracts for structured try-region validation. */
+module self_host.SelfHostTryRegionValidationTest.
+
+import self_host.SelfHostIrSyntax.{IrBlock, IrDiagnostic, IrFunction, IrInstruction, IrModule, IrParameter, IrRegion, IrStructLayout, IrTerminator, IrTryRegion}.
+import self_host.SelfHostIrValidation.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Bool, String}.
+
+literal(result: String, text: String, type_name: String): IrInstruction ->
+    IrInstruction("load-literal", Some(result), [text], type_name).
+
+region(
+    label: String,
+    parameters: List[IrParameter],
+    result: String,
+    type_name: String,
+    instructions: List[IrInstruction],
+): IrRegion ->
+    IrRegion(
+        label,
+        parameters,
+        [IrBlock("entry", instructions, IrTerminator("return", [result], []))],
+        result,
+        type_name,
+    ).
+
+module_with_success_parameters(parameters: List[IrParameter]): IrModule ->
+    let protected = region("protected", [], "%protected", "Int", [literal("%protected", "1", "Int")]);
+    let success = region("success", parameters, "%value", "Int", []);
+    let failure = region("failure", [IrParameter("%status", "Int")], "%status", "Int", []);
+    let cleanup = region("cleanup", [], "%unit", "Unit", [literal("%unit", "Unit", "Unit")]);
+    let instruction = IrInstruction(
+        "try-region",
+        Some("%result"),
+        [],
+        [],
+        "Int",
+        None,
+        Some(IrTryRegion(protected, success, failure, [cleanup])),
+    );
+    IrModule(
+        "demo.Try",
+        List.new[IrStructLayout](),
+        [IrFunction(
+            "demo.Try",
+            "run",
+            0,
+            [],
+            "Int",
+            [IrBlock("entry", [instruction], IrTerminator("return", ["%result"], []))],
+            None,
+        )],
+    ).
+
+contains_code(values: List[IrDiagnostic], code: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.code == code or contains_code(rest, code)
+    }.
+
+/** A complete role-correct structured try region is admitted. */
+pub valid_try_region_is_admitted(): Bool ->
+    SelfHostIrValidation.validate(
+        module_with_success_parameters([IrParameter("%value", "Int")]),
+    ).valid.
+
+/** Missing success value binding is rejected with a positive companion. */
+pub invalid_success_contract_is_rejected(): Bool ->
+    let validation = SelfHostIrValidation.validate(module_with_success_parameters([]));
+    valid_try_region_is_admitted()
+        and not validation.valid
+        and contains_code(validation.diagnostics, "invalid-try-success-parameters").

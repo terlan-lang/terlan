@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword spell-out. Generated; do not edit.
+ */
+module std.css.keywords.SpellOut.
+
+pub type SpellOut = Atom["spell-out"].

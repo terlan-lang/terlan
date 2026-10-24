@@ -1,0 +1,6 @@
+//! Shared CSS keyword inline-start. Generated; do not edit.
+
+module std.css.keywords.InlineStart.
+
+pub type InlineStart =
+    Atom["inline-start"].

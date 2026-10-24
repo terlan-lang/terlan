@@ -490,7 +490,7 @@ pub(super) fn expr_calls_selected(
         // enclosing function as suspending so generated callers always carry
         // a transition buffer and can forward the selected target's result.
         CoreExpr::FunctionCall { .. } => true,
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => items
             .iter()
             .any(|item| expr_calls_selected(item, resolver, selected)),
         CoreExpr::ListCons { head, tail }

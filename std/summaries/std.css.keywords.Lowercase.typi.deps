@@ -1,0 +1,8 @@
+module=std.css.keywords.Lowercase
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=13073227187797255721
+interface_hash=8963482286969323133
+interface_doc_hash=11914752170392749270
+deps=0

@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSLayerStatementRule
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=10970956163609698417
-interface_hash=12026653415395372583
-interface_doc_hash=12026653415395372583
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4844733340673204109
+interface_hash=17199120196508777223
+interface_doc_hash=17199120196508777223
 deps=0

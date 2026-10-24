@@ -1,64 +1,33 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-clip
+//! The `background-clip` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! whether an element's background extends underneath its border box, padding box, or content box.
+//!
+//! Initial: border-box. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - border-area: The background is painted within (clipped to) the area painted by the border,
+//! taking `border-width` and `border-style` into account but ignoring any transparency introduced by
+//! `border-color`.
+//! - border-box: The background extends to the outside edge of the border (but underneath the border
+//! in z-ordering).
+//! - content-box: The background is painted within (clipped to) the content box.
+//! - padding-box: The background extends to the outside edge of the padding. No background is drawn
+//! beneath the border.
+//! - text: The background is painted within (clipped to) the foreground text.
+//!
 //! Grammar: <bg-clip>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-clip
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/background-clip
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BackgroundClip.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    background_clip: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    background_clip: Value
+    background_clip: ContentBox | PaddingBox | BorderBox | BorderArea | TextKeyword | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained background-clip value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword border-area.
-
-pub border_area(): Value.
-
-/// Returns the CSS keyword border-box.
-
-pub border_box(): Value.
-
-/// Returns the CSS keyword content-box.
-
-pub content_box(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword padding-box.
-
-pub padding_box(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword text.
-
-pub text(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

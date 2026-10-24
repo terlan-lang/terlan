@@ -1,92 +1,36 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `content` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property replaces content
+//! with a generated value. It can be used to define what is rendered inside an element or
+//! pseudo-element. For elements, the `content` property specifies whether the element renders
+//! normally (`normal` or `none`) or is replaced with an image (and associated "alt" text). For
+//! pseudo-elements and margin boxes, `content` defines the content as images, text, both, or none,
+//! which determines whether the element renders at all.
+//!
+//! Initial: normal. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - none: When applied to a pseudo-element, the pseudo-element is not generated. When applied to an
+//! element, the value has no effect.
+//! - normal: For the `::before` and `::after` pseudo-elements, this value computes to `none` . For
+//! other pseudo-elements such as `::marker`, `::placeholder`, or `::file-selector-button`, it
+//! produces the element's initial (or normal) content. For regular elements or page margin boxes, it
+//! computes to the element's descendants. This is the default value.
+//!
+//! Grammar: normal | none | [ <content-replacement> | <content-list> ] [/ <alt-text> ]? |
+//! <element()>
+//!
 //! Specification: https://drafts.csswg.org/css-content-3/#propdef-content
-//! Grammar: normal | none | [ <content-replacement> | <content-list> ] [/ <alt-text> ]? | <element()>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/content
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Content.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    content: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    content: Value
+    content: Normal | None | OpenQuote | CloseQuote | NoOpenQuote | NoCloseQuote | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained content value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword circle.
-
-pub circle(): Value.
-
-/// Returns the CSS keyword close-quote.
-
-pub close_quote(): Value.
-
-/// Returns the CSS keyword contents.
-
-pub contents(): Value.
-
-/// Returns the CSS keyword disc.
-
-pub disc(): Value.
-
-/// Returns the CSS keyword disclosure-closed.
-
-pub disclosure_closed(): Value.
-
-/// Returns the CSS keyword disclosure-open.
-
-pub disclosure_open(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword no-close-quote.
-
-pub no_close_quote(): Value.
-
-/// Returns the CSS keyword no-open-quote.
-
-pub no_open_quote(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword open-quote.
-
-pub open_quote(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword square.
-
-pub square(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

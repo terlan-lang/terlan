@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword span-self-inline-end. Generated; do not edit.
+ */
+module std.css.keywords.SpanSelfInlineEnd.
+
+pub type SpanSelfInlineEnd = Atom["span-self-inline-end"].

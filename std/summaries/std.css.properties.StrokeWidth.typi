@@ -1,76 +1,29 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-width
+//! The `stroke-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! width of a stroke applied to the [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) shape.
+//! If present, it overrides the element's `stroke-width` attribute.
+//!
+//! Initial: 1px. Inherited: yes.
+//! Percentages: refer to the normalized diagonal measure of the current SVG viewport's applied
+//! `viewBox`, or of the viewport itself if no viewBox is specified.
+//!
 //! Grammar: [ <length-percentage> | <line-width> | <number> ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-width
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-width
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.StrokeWidth.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    stroke_width: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    stroke_width: Value
+    stroke_width: std.css.Values.Length | std.css.Values.Percentage | Float | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained stroke-width value.
+/// Checks the stroke-width length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
-
-/// Returns the CSS keyword hairline.
-
-pub hairline(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a stroke-width value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Checks the specification range and constructs a stroke-width value.
-
-pub length_2(value: std.css.Values.Length): Option[Value].
-
-/// Returns the CSS keyword medium.
-
-pub medium(): Value.
-
-/// Constructs a stroke-width value from a typed number.
-
-pub number(value: Float): Value.
-
-/// Constructs a stroke-width value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword thick.
-
-pub thick(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub length(value: std.css.Values.Length): Option[Checked].

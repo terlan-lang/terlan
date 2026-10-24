@@ -1,9 +1,11 @@
 module=std.css.properties.AnimationTimeline
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=13680444813606599237
-interface_hash=7516165532277238962
-interface_doc_hash=12047367282258337802
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=11870420189240536063
+interface_hash=14500659998127289583
+interface_doc_hash=14821716686564169654
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722
+std.css.keywords.None=3400229744369726074

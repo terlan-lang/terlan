@@ -1,9 +1,11 @@
 module=std.css.properties.TimelineScope
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=15615305733081917791
-interface_hash=654112501811997883
-interface_doc_hash=8240906074972775637
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=8665900551954659752
+interface_hash=7750775639126431016
+interface_doc_hash=18135002034864914743
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.All=17654307083516515669
+std.css.keywords.None=3400229744369726074

@@ -1,0 +1,8 @@
+module=std.css.keywords.ZoomOut
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=5900422520390875373
+interface_hash=13118455792137159200
+interface_doc_hash=9326896963210914821
+deps=0

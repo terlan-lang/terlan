@@ -1,104 +1,23 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-position
+//! The `mask-position` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! initial position, relative to the mask position layer set by `mask-origin`, for each defined mask
+//! image.
+//!
+//! Initial: 0% 0%. Inherited: no.
+//! Percentages: refer to size of mask painting area minus size of mask layer image (see the text for
+//! `background-position`).
+//!
 //! Grammar: <position>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-position
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-position
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MaskPosition.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    mask_position: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    mask_position: Value
+    mask_position: Left | Center | Right | Top | Bottom | XStart | XEnd | YStart | YEnd | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained mask-position value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword block-end.
-
-pub block_end(): Value.
-
-/// Returns the CSS keyword block-start.
-
-pub block_start(): Value.
-
-/// Returns the CSS keyword bottom.
-
-pub bottom(): Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inline-end.
-
-pub inline_end(): Value.
-
-/// Returns the CSS keyword inline-start.
-
-pub inline_start(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Constructs a mask-position value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Constructs a mask-position value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword top.
-
-pub top(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword x-end.
-
-pub x_end(): Value.
-
-/// Returns the CSS keyword x-start.
-
-pub x_start(): Value.
-
-/// Returns the CSS keyword y-end.
-
-pub y_end(): Value.
-
-/// Returns the CSS keyword y-start.
-
-pub y_start(): Value.
-
-export type Token.

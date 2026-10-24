@@ -1,80 +1,63 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-radius
+//! The `border-radius` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property rounds the corners of an element's outer border edge. You can set a single radius to
+//! make circular corners, or two radii to make elliptical corners.
+//!
+//! Initial: border-top-left-radius: 0; border-top-right-radius: 0; border-bottom-right-radius: 0;
+//! border-bottom-left-radius: 0. Inherited: no.
+//! Percentages: refer to the corresponding dimension of the border box.
+//!
 //! Grammar: <length-percentage [0,∞]>{1,4} [ / <length-percentage [0,∞]>{1,4} ]?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-radius
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-radius
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderRadius.
 
-/// A single non-global border-radius shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
+pub opaque type CheckedComponent.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    border_radius: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    CheckedComponent.
 
 pub struct Property {
-    border_radius: Value
+    border_radius: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained border-radius value.
+/// Checks the border-radius length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-/// Checks the specification range and constructs a border-radius value.
+/// Checks the border-radius percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub component_length(value: std.css.Values.Length): Option[Component].
+pub component_percentage(value: std.css.Values.Percentage): Option[CheckedComponent].
 
-/// Checks the specification range and constructs a border-radius value.
+/// Checks the border-radius length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub component_percentage(value: std.css.Values.Percentage): Option[Component].
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Returns the CSS keyword inherit.
+/// Supplies 2 components in grammar order.
 
-pub inherit(): Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Returns the CSS keyword initial.
+/// Checks the border-radius percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub initial(): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].
 
-/// Checks the specification range and constructs a border-radius value.
+/// Supplies 4 components in grammar order.
 
-pub length(value: std.css.Values.Length): Option[Value].
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
-/// Combines 2 typed components in specification order.
+/// Supplies 1 components in grammar order.
 
-pub pair(first: Component, second: Component): Value.
+pub single(first: Component): Checked.
 
-/// Checks the specification range and constructs a border-radius value.
+/// Supplies 3 components in grammar order.
 
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Combines 4 typed components in specification order.
-
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Combines 3 typed components in specification order.
-
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub triple(first: Component, second: Component, third: Component): Checked.

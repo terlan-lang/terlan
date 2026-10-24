@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGPatternElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=9649652697058893904
-interface_hash=12206645156688645249
-interface_doc_hash=12206645156688645249
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=11343455892251696442
+interface_hash=435555904186920498
+interface_doc_hash=435555904186920498
 deps=0

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword repeat-y. Generated; do not edit.
+ */
+module std.css.keywords.RepeatY.
+
+pub type RepeatY = Atom["repeat-y"].

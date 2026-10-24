@@ -1,0 +1,287 @@
+/** Canonical import lint rules TL0601 through TL0604. */
+module self_host.SelfHostLintImports.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+
+import self_host.CanonicalToken.{CanonicalToken, CommentToken, DocCommentToken, ModuleDocCommentToken}.
+import self_host.SelfHostLintSyntax.{LintDiagnostic}.
+import self_host.SelfHostToolingDocument.{ToolingDocument}.
+import self_host.TokenSegment.{TokenSegment}.
+import self_host.TokenSegmenter.
+
+
+struct ImportEntry {
+    key: String,
+    selected: List[String],
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+constructor ImportEntry {
+    (key: String, selected: List[String], start_byte: Int, end_byte: Int): ImportEntry ->
+        ImportEntry {
+            key: key,
+            selected: selected,
+            start_byte: start_byte,
+            end_byte: end_byte,
+        }
+}.
+
+struct SourcePosition {
+    line: Int,
+    column: Int,
+}.
+
+constructor SourcePosition {
+    (line: Int, column: Int): SourcePosition -> SourcePosition { line: line, column: column }
+}.
+
+@pure
+is_trivia(value: CanonicalToken): Bool ->
+    value.category == CommentToken
+        or value.category == DocCommentToken
+        or value.category == ModuleDocCommentToken.
+
+@pure
+import_tokens(values: List[CanonicalToken], found: Bool): List[CanonicalToken] ->
+    case values {
+        [] -> List.new[CanonicalToken]();
+        [value | rest] -> if {
+            found -> [value | import_tokens(rest, true)];
+            value.terminal == "import" -> [value | import_tokens(rest, true)];
+            true -> import_tokens(rest, false)
+        }
+    }.
+
+@pure
+first_token(values: List[CanonicalToken]): Option[CanonicalToken] ->
+    case values {
+        [] -> None;
+        [value | _] -> Some(value)
+    }.
+
+@pure
+canonical_text(values: List[CanonicalToken]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if {
+            is_trivia(value) -> canonical_text(rest);
+            true -> String.concat([value.text, canonical_text(rest)])
+        }
+    }.
+
+@pure
+prepend_if_present(value: String, values: List[String]): List[String] ->
+    if { value == "" -> values; true -> [value | values] }.
+
+@pure
+reverse(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse(rest, [value | output])
+    }.
+
+@pure
+selected_values(values: List[CanonicalToken], current: String, output: List[String]): List[String] ->
+    case values {
+        [] -> reverse(prepend_if_present(current, output), List.new[String]());
+        [value | rest] -> if {
+            value.terminal == "}" -> reverse(prepend_if_present(current, output), List.new[String]());
+            value.terminal == "," -> selected_values(rest, "", prepend_if_present(current, output));
+            is_trivia(value) -> selected_values(rest, current, output);
+            true -> selected_values(rest, String.concat([current, value.text]), output)
+        }
+    }.
+
+@pure
+selected_after_open(values: List[CanonicalToken]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> if {
+            value.terminal == "{" or value.terminal == "nominal-keyed-{" -> selected_values(rest, "", []);
+            true -> selected_after_open(rest)
+        }
+    }.
+
+@pure
+entry(value: TokenSegment): Option[ImportEntry] ->
+    let tokens = import_tokens(value.tokens, false);
+    case first_token(tokens) {
+        None -> None;
+        Some(first) -> Some(ImportEntry(
+            canonical_text(tokens),
+            selected_after_open(tokens),
+            first.start_byte,
+            value.end_byte,
+        ))
+    }.
+
+@pure
+entries(values: List[TokenSegment]): List[ImportEntry] ->
+    case values {
+        [] -> List.new[ImportEntry]();
+        [value | rest] -> case entry(value) {
+            None -> entries(rest);
+            Some(import_entry) -> [import_entry | entries(rest)]
+        }
+    }.
+
+@pure
+position_at(source: String, target: Int, index: Int, line: Int, column: Int): SourcePosition ->
+    if {
+        index >= target -> SourcePosition(line, column);
+        source.utf8_byte_at(index) == 10 -> position_at(source, target, index + 1, line + 1, 1);
+        true -> position_at(source, target, index + 1, line, column + 1)
+    }.
+
+@pure
+diagnostic(
+    path: String,
+    source: String,
+    value: ImportEntry,
+    rule_id: String,
+    rule_name: String,
+    message: String,
+): LintDiagnostic ->
+    let position = position_at(source, value.start_byte, 0, 1, 1);
+    LintDiagnostic(
+        path,
+        position.line,
+        position.column,
+        value.start_byte,
+        value.end_byte,
+        rule_id,
+        rule_name,
+        "warning",
+        message,
+        false,
+    ).
+
+@pure
+contains(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> current == value or contains(value, rest)
+    }.
+
+@pure
+duplicate_imports(values: List[ImportEntry], seen: List[String], path: String, source: String): List[LintDiagnostic] ->
+    case values {
+        [] -> List.new[LintDiagnostic]();
+        [value | rest] -> if {
+            contains(value.key, seen) -> [diagnostic(
+                path,
+                source,
+                value,
+                "TL0601",
+                "imports.duplicate",
+                "duplicate import declaration; keep one import",
+            ) | duplicate_imports(rest, seen, path, source)];
+            true -> duplicate_imports(rest, [value.key | seen], path, source)
+        }
+    }.
+
+@pure
+has_duplicate(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> contains(value, rest) or has_duplicate(rest)
+    }.
+
+@pure
+duplicate_selected(values: List[ImportEntry], path: String, source: String): List[LintDiagnostic] ->
+    case values {
+        [] -> List.new[LintDiagnostic]();
+        [value | rest] -> if {
+            has_duplicate(value.selected) -> [diagnostic(
+                path,
+                source,
+                value,
+                "TL0602",
+                "imports.duplicate-selected",
+                "duplicate selected import name; keep one selected name",
+            ) | duplicate_selected(rest, path, source)];
+            true -> duplicate_selected(rest, path, source)
+        }
+    }.
+
+@pure
+string_less_at(left: String, right: String, index: Int): Bool ->
+    if {
+        index == left.byte_size() -> index < right.byte_size();
+        index == right.byte_size() -> false;
+        left.utf8_byte_at(index) < right.utf8_byte_at(index) -> true;
+        left.utf8_byte_at(index) > right.utf8_byte_at(index) -> false;
+        true -> string_less_at(left, right, index + 1)
+    }.
+
+@pure
+string_less(left: String, right: String): Bool -> string_less_at(left, right, 0).
+
+@pure
+import_sort(values: List[ImportEntry], previous: Option[String], path: String, source: String): List[LintDiagnostic] ->
+    case values {
+        [] -> List.new[LintDiagnostic]();
+        [value | rest] -> case previous {
+            Some(previous_key) where string_less(value.key, previous_key) -> [diagnostic(
+                path,
+                source,
+                value,
+                "TL0603",
+                "imports.sort-order",
+                "import declarations should be sorted for stable module structure",
+            ) | import_sort(rest, Some(value.key), path, source)];
+            _ -> import_sort(rest, Some(value.key), path, source)
+        }
+    }.
+
+@pure
+selected_unsorted(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [_] -> false;
+        [left | [right | rest]] -> string_less(right, left) or selected_unsorted([right | rest])
+    }.
+
+@pure
+selected_sort(values: List[ImportEntry], path: String, source: String): List[LintDiagnostic] ->
+    case values {
+        [] -> List.new[LintDiagnostic]();
+        [value | rest] -> if {
+            selected_unsorted(value.selected) -> [diagnostic(
+                path,
+                source,
+                value,
+                "TL0604",
+                "imports.selected-sort-order",
+                "selected import names should be sorted for stable import lists",
+            ) | selected_sort(rest, path, source)];
+            true -> selected_sort(rest, path, source)
+        }
+    }.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+/** Runs the complete initial canonical import lint family. */
+@pure
+pub lint(path: String, document: ToolingDocument): List[LintDiagnostic] ->
+    let imports = entries(TokenSegmenter.split(document.canonical_tokens).segments);
+    append(
+        duplicate_imports(imports, [], path, document.source),
+        append(
+            duplicate_selected(imports, path, document.source),
+            append(
+                import_sort(imports, None, path, document.source),
+                selected_sort(imports, path, document.source),
+            ),
+        ),
+    ).

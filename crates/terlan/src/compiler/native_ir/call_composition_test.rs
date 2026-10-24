@@ -447,7 +447,7 @@ fn lexical_tail_purity_requires_an_explicit_empty_target_profile() {
         &pure
     ));
     let mut outward = ComposedCallProfile::pure();
-    outward.entries.push(19);
+    std::sync::Arc::make_mut(&mut outward.entries).push(19);
     assert!(!is_non_suspending_with_profiles(
         &wrapped,
         &suspending,
@@ -555,7 +555,7 @@ fn profile_admits_a_callee_that_can_complete_or_suspend() {
 #[test]
 fn recursive_component_contract_includes_every_members_outward_yields() {
     let mut profile = ComposedCallProfile {
-        continuations: vec![ComposedContinuationProfile {
+        continuations: std::sync::Arc::new(vec![ComposedContinuationProfile {
             id: 10,
             source_span: None,
             params: vec![NativeType::Int],
@@ -573,14 +573,14 @@ fn recursive_component_contract_includes_every_members_outward_yields() {
                 values: Vec::new(),
             },
             completion_result: true,
-        }],
-        entries: vec![10],
-        tail_entries: HashMap::new(),
+        }]),
+        entries: std::sync::Arc::new(vec![10]),
+        tail_entries: std::sync::Arc::new(HashMap::new()),
     };
     let mut outward = profile.continuations[0].clone();
     outward.completion_result = false;
     let sibling = ComposedCallProfile {
-        continuations: vec![
+        continuations: std::sync::Arc::new(vec![
             outward,
             ComposedContinuationProfile {
                 id: 20,
@@ -589,9 +589,9 @@ fn recursive_component_contract_includes_every_members_outward_yields() {
                 body: NativeExpr::Param(0),
                 completion_result: false,
             },
-        ],
-        entries: vec![20],
-        tail_entries: HashMap::new(),
+        ]),
+        entries: std::sync::Arc::new(vec![20]),
+        tail_entries: std::sync::Arc::new(HashMap::new()),
     };
 
     profile.merge_recursive_component_profile(&sibling);
@@ -734,15 +734,15 @@ fn nested_wrapper_appends_only_the_new_caller_value_suffix() {
 #[test]
 fn root_owned_wrapper_is_valid_without_a_reusable_caller_profile() {
     let callee = ComposedCallProfile {
-        continuations: vec![ComposedContinuationProfile {
+        continuations: std::sync::Arc::new(vec![ComposedContinuationProfile {
             id: 10,
             source_span: None,
             params: vec![NativeType::Int, NativeType::Bool],
             body: NativeExpr::Param(0),
             completion_result: false,
-        }],
-        entries: vec![10],
-        tail_entries: HashMap::new(),
+        }]),
+        entries: std::sync::Arc::new(vec![10]),
+        tail_entries: std::sync::Arc::new(HashMap::new()),
     };
     let profiles = HashMap::from([(4, callee)]);
     let labels = HashMap::from([(4, "fixture.callee/0".to_string())]);

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword open-quote. Generated; do not edit.
+ */
+module std.css.keywords.OpenQuote.
+
+pub type OpenQuote = Atom["open-quote"].

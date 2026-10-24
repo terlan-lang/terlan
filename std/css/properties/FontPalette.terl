@@ -1,81 +1,39 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-palette
+ * The `font-palette` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows
+ * specifying one of the many palettes contained in a [color font](https://www.colorfonts.wtf/) that
+ * a user agent may use for the font. Users can also override the values in a palette or create a
+ * new palette by using the `@font-palette-values` at-rule.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - dark: Specifies the first palette in the font that matches 'dark' to be used for the font. Some
+ * fonts contain metadata that identify a palette as applicable for a dark (close to black)
+ * background. If a font does not have this metadata, the value behaves as `normal`.
+ * - light: Specifies the first palette in the font that matches 'light' to be used for the font.
+ * Some fonts contain metadata that identify a palette as applicable for a light (close to white)
+ * background. If a font does not have this metadata, the `light` value behaves as `normal`.
+ * - normal: Specifies the default color palette or the default glyph colorization (set by the font
+ * maker) to be used for the font. With this setting, the palette in the font at index 0 is
+ * rendered.
+ *
  * Grammar: normal | light | dark | <palette-identifier> | <palette-mix()>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-palette
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-palette
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontPalette.
 
-import type std.core.Option.
+import std.css.keywords.{Dark, Light, Normal}.
 
-/**
- * A nominal, specification-constrained font-palette value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    font_palette: Value,
+    font_palette: Normal | Light | Dark | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    font_palette: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword dark.
- */
-pub dark(): Value ->
-    Value(Token {property: "font-palette", css: "dark"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-palette", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-palette", css: "initial"}).
-
-/**
- * Returns the CSS keyword light.
- */
-pub light(): Value ->
-    Value(Token {property: "font-palette", css: "light"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "font-palette", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-palette", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-palette", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-palette", css: "unset"}).

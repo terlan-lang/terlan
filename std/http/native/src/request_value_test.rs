@@ -8,9 +8,8 @@ fn request() -> RequestParts {
         body_file_path: "/tmp/body".into(),
         query_string: "key=value".into(),
         params: vec![("id".into(), "42".into())],
-        query: vec![("key".into(), "value".into())],
         headers: vec![("x-test".into(), "header".into())],
-        cookies: vec![("session".into(), "cookie".into())],
+        cookies: vec!["session=cookie".into()],
     }
 }
 
@@ -38,20 +37,19 @@ fn every_projection_selects_only_its_field_and_preserves_record_shape() {
             "params",
             "body",
             "query_string",
-            "query",
             "headers",
             "cookies",
             "body_file_path"
         ]
     );
-    for mask in 0..512_u16 {
+    for mask in 0..256_u16 {
         let NativeValue::Record { name, fields } =
             request_descriptor(request(), Projection::Fields(mask << 1))
         else {
             panic!()
         };
         assert_eq!(name, "Request");
-        for index in 0..9 {
+        for index in 0..8 {
             let expected = if mask & (1 << index) != 0 {
                 &complete[index]
             } else {
@@ -85,23 +83,43 @@ fn source_tuple_preserves_the_public_pattern_head_order() {
 }
 
 #[test]
-fn records_preserve_duplicate_cookies_while_tuple_maps_keep_first_values() {
-    let cookies = vec![
-        ("sid".into(), "first".into()),
-        ("empty".into(), "".into()),
-        ("sid".into(), "shadowed".into()),
-        ("SID".into(), "upper".into()),
-        ("empty".into(), "later".into()),
-    ];
-    let expected: NativeValue = cookies.clone().into();
+fn legacy_tuple_decodes_query_without_discarding_the_original_text() {
     let mut input = request();
-    input.cookies = cookies.clone();
+    let raw = "key=first&key=last&empty&space=a+b&bad=%FF&eq=a=b";
+    input.query_string = raw.into();
+    let NativeValue::Tuple(fields) = source_request_tuple(input) else {
+        panic!("request tuple");
+    };
+    assert_eq!(fields[5], raw.into());
+    assert_eq!(
+        fields[6],
+        NativeValue::Map(vec![
+            ("key".into(), "first".into()),
+            ("key".into(), "last".into()),
+            ("empty".into(), "".into()),
+            ("space".into(), "a b".into()),
+            ("bad".into(), "\u{fffd}".into()),
+            ("eq".into(), "a=b".into()),
+        ])
+    );
+}
+
+#[test]
+fn records_preserve_duplicate_cookies_while_tuple_maps_keep_first_values() {
+    let groups: Vec<String> = vec![
+        "sid=first; empty=; sid=shadowed; SID=upper; empty=later".into(),
+        "".into(),
+        "sid=later-header".into(),
+    ];
+    let expected: NativeValue = groups.clone().into();
+    let mut input = request();
+    input.cookies = groups.clone();
     let NativeValue::Record { fields, .. } = request_descriptor(input, Projection::Complete) else {
         panic!("request record")
     };
-    assert_eq!(fields[7].1, expected);
+    assert_eq!(fields[6].1, expected);
     let mut input = request();
-    input.cookies = cookies;
+    input.cookies = groups;
     let NativeValue::Tuple(fields) = source_request_tuple(input) else {
         panic!("request tuple")
     };
@@ -117,6 +135,23 @@ fn records_preserve_duplicate_cookies_while_tuple_maps_keep_first_values() {
 }
 
 #[test]
+fn legacy_tuple_never_promotes_later_headers_when_first_is_empty_or_absent() {
+    for groups in [
+        vec![],
+        vec!["".into()],
+        vec!["".into(), "sid=later".into()],
+        vec!["invalid".into(), "sid=later".into()],
+    ] {
+        let mut input = request();
+        input.cookies = groups;
+        let NativeValue::Tuple(fields) = source_request_tuple(input) else {
+            panic!("request tuple")
+        };
+        assert_eq!(fields[8], NativeValue::Map(vec![]));
+    }
+}
+
+#[test]
 fn all_record_metadata_preserves_order_duplicates_and_empty_values() {
     let pairs = vec![
         ("key".into(), "first".into()),
@@ -126,14 +161,19 @@ fn all_record_metadata_preserves_order_duplicates_and_empty_values() {
     ];
     let mut input = request();
     input.params = pairs.clone();
-    input.query = pairs.clone();
+    input.query_string = "key=first&key=&KEY=different&key=last".into();
     input.headers = pairs.clone();
-    input.cookies = pairs.clone();
+    input.cookies = vec!["key=first; key=; KEY=different; key=last".into()];
     let expected: NativeValue = pairs.into();
     let NativeValue::Record { fields, .. } = request_descriptor(input, Projection::Complete) else {
         panic!("request record")
     };
-    for index in [2, 5, 6, 7] {
+    assert_eq!(
+        fields[6].1,
+        vec!["key=first; key=; KEY=different; key=last"].into()
+    );
+    assert_eq!(fields[4].1, "key=first&key=&KEY=different&key=last".into());
+    for index in [2, 5] {
         assert_eq!(fields[index].1, expected);
     }
 }

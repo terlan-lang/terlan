@@ -21,6 +21,7 @@ pub enum WebSocketEvent {
 /// Events dispatched against the source-declared SSE callback set.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SseEvent {
+    Produce,
     Open,
     EventReady,
     KeepAlive,
@@ -64,14 +65,14 @@ impl<C> WebSocketEndpointPlan<C> {
 impl<C> SseEndpointPlan<C> {
     /// Borrows a retained callback; an unconfigured endpoint has no callbacks.
     pub fn callback(&self, event: SseEvent) -> Option<&C> {
-        let callbacks = self.callbacks()?;
-        Some(match event {
-            SseEvent::Open => &callbacks.open,
-            SseEvent::EventReady => &callbacks.event_ready,
-            SseEvent::KeepAlive => &callbacks.keep_alive,
-            SseEvent::Drain => &callbacks.drain,
-            SseEvent::Cancellation => &callbacks.cancellation,
-        })
+        match event {
+            SseEvent::Produce => self.producer(),
+            SseEvent::Open => self.callbacks().map(|callbacks| &callbacks.open),
+            SseEvent::EventReady => self.callbacks().map(|callbacks| &callbacks.event_ready),
+            SseEvent::KeepAlive => self.callbacks().map(|callbacks| &callbacks.keep_alive),
+            SseEvent::Drain => self.callbacks().map(|callbacks| &callbacks.drain),
+            SseEvent::Cancellation => self.callbacks().map(|callbacks| &callbacks.cancellation),
+        }
     }
 }
 

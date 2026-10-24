@@ -1,0 +1,99 @@
+/** Byte-exact actor continuation identities shared with native lowering. */
+module self_host.SelfHostActorIdentity.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Int, String}.
+import std.crypto.Hash.
+import std.vm.BitString.
+import std.vm.Bytes.
+
+
+@pure
+utf8_bytes_at(value: String, index: Int): List[Int] ->
+    if {
+        index == value.byte_size() -> List.new[Int]();
+        true -> [value.utf8_byte_at(index) | utf8_bytes_at(value, index + 1)]
+    }.
+
+@pure
+utf8_bytes(value: String): Bytes -> Bytes.from_list(utf8_bytes_at(value, 0)).
+
+@pure
+zero(): Bytes -> Bytes.from_list([0]).
+
+@pure
+uint64_le(value: Int): Bytes -> BitString.from_uint_le(value, 64).to_bytes().
+
+@pure
+append(left: Bytes, right: Bytes): Bytes -> Bytes.concat(left, right).
+
+@pure
+site_bytes(
+    domain: String,
+    module_name: String,
+    function_name: String,
+    arity: Int,
+    ordinal: Option[Int],
+): Bytes ->
+    let prefix = append(
+        append(
+            append(
+                append(
+                    append(utf8_bytes(domain), zero()),
+                    utf8_bytes(module_name),
+                ),
+                zero(),
+            ),
+            utf8_bytes(function_name),
+        ),
+        zero(),
+    );
+    let with_arity = append(prefix, uint64_le(arity));
+    case ordinal {
+        Some(value) -> append(with_arity, uint64_le(value));
+        None -> with_arity
+    }.
+
+@pure
+identity(
+    domain: String,
+    module_name: String,
+    function_name: String,
+    arity: Int,
+    ordinal: Option[Int],
+): String ->
+    String.append("sha256:", Hash.sha256_bytes(site_bytes(
+        domain,
+        module_name,
+        function_name,
+        arity,
+        ordinal,
+    ))).
+
+/** Stable identity for one source-ordered suspension continuation. */
+@pure
+pub continuation(module_name: String, function_name: String, arity: Int, ordinal: Int): String ->
+    identity("terlan-tvm-continuation-v1", module_name, function_name, arity, Some(ordinal)).
+
+/** Stable identity for synchronous completion of one composed call site. */
+@pure
+pub composed_completion(module_name: String, function_name: String, arity: Int, ordinal: Int): String ->
+    identity("terlan-tvm-composed-completion-v1", module_name, function_name, arity, Some(ordinal)).
+
+/** Stable identity for one function's reduction-yield continuation. */
+@pure
+pub reduction_continuation(module_name: String, function_name: String, arity: Int): String ->
+    identity("terlan-tvm-reduction-continuation-v1", module_name, function_name, arity, None).
+
+/** Stable identity for the completion node wrapping a reduction continuation. */
+@pure
+pub reduction_completion(module_name: String, function_name: String, arity: Int): String ->
+    identity("terlan-tvm-reduction-completion-v1", module_name, function_name, arity, None).
+
+/** Stable identity for one package-composable callable export. */
+@pure
+pub export_identity(module_name: String, function_name: String, arity: Int): String ->
+    identity("terlan-tvm-export-v1", module_name, function_name, arity, None).

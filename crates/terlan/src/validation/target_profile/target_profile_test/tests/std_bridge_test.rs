@@ -753,14 +753,14 @@ Task.result[Int](task, 1).\n",
 ///
 /// Output:
 /// - Test passes when VM target-profile validation accepts the direct-safe
-///   Base64 and Path adapters and reports a stable unsupported URI diagnostic.
+///   Base64, Path, and URI package adapters.
 ///
 /// Transformation:
 /// - Resolves the portable utility std contracts from checked-in summaries,
 ///   lowers the module to CoreIR, and validates that executable utility use
 ///   is blocked until the selected target owns the Rust/NativeBoundary bridge.
 #[test]
-fn vm_profile_accepts_direct_base64_and_path_and_rejects_unsupported_uri() {
+fn vm_profile_accepts_direct_base64_path_and_uri() {
     let module = lower(
         "\
 module profile_web_data_operation.\n\
@@ -795,6 +795,16 @@ Uri.parse(text).\n",
 
     assert!(!messages.contains("rust-backed std module std.encoding.Base64"));
     assert!(!messages.contains("rust-backed std module std.io.Path"));
+    assert!(
+        !messages.contains("rust-backed std module std.net.Uri"),
+        "VM owns the maintained URI package adapter, got {violations:?}"
+    );
+    let unsupported = target_profile_checks(&module, TargetProfile::WasmCore);
+    let messages = unsupported
+        .iter()
+        .map(|v| v.message.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
     assert!(
         messages.contains("rust-backed std module std.net.Uri"),
         "expected Uri target-profile diagnostic, got {violations:?}"
@@ -847,6 +857,33 @@ Response.text(\"ok\").\n",
                         .contains("rust-backed std module std.http.Response")
             }),
             "{profile:?} should accept HTTP std modules, got {violations:?}"
+        );
+    }
+}
+
+#[test]
+fn os_entropy_is_vm_only_not_a_browser_randomness_substitution() {
+    let module = lower(
+        "module profile_entropy. import std.crypto.Entropy. import type std.vm.Bytes.
+         pub bytes(): Bytes -> Entropy.bytes(32).",
+        "src/profile_entropy.terl",
+    );
+    for profile in [
+        TargetProfile::Vm,
+        TargetProfile::JsShared,
+        TargetProfile::JsBrowser,
+        TargetProfile::JsWorker,
+    ] {
+        let violations = target_profile_checks(&module, profile);
+        let rejected = violations.iter().any(|violation| {
+            violation
+                .message
+                .contains("rust-backed std module std.crypto.Entropy")
+        });
+        assert_eq!(
+            rejected,
+            profile != TargetProfile::Vm,
+            "{profile:?}: {violations:?}"
         );
     }
 }

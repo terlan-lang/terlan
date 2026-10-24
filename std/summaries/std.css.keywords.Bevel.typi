@@ -1,0 +1,6 @@
+//! Shared CSS keyword bevel. Generated; do not edit.
+
+module std.css.keywords.Bevel.
+
+pub type Bevel =
+    Atom["bevel"].

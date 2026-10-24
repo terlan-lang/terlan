@@ -84,6 +84,74 @@ pub demo(): Bool ->\n\
     );
 }
 
+/// Verifies constructor summaries resolve imported dependency aliases before
+/// overload selection, independently of unrelated loaded interfaces.
+#[test]
+fn syntax_output_imported_constructor_overloads_resolve_global_option_alias() {
+    let provider = parse_module_as_syntax_output(
+        r#"
+module plan_provider.
+
+import std.core.Option.{Option}.
+
+pub struct Plan {
+    value: Option[String],
+    fallback: String,
+}.
+
+pub constructor Plan {
+    (value: Option[String]): Plan ->
+        Plan { value: value, fallback: "" };
+    (value: Option[String], fallback: String): Plan ->
+        Plan { value: value, fallback: fallback }
+}.
+"#,
+    )
+    .expect("parse constructor provider fixture");
+    let provider_interface_text =
+        syntax_module_output_to_interface(&provider).to_terlan_interface_text();
+    assert!(
+        provider_interface_text.contains("value: std.core.Option.Option[String]"),
+        "constructor dependency was not qualified:\n{provider_interface_text}"
+    );
+    let provider_summary = parse_interface_module_as_syntax_output(&provider_interface_text)
+        .expect("reparse constructor provider interface");
+    let noise = parse_interface_module_as_syntax_output(
+        "module unrelated_noise.\npub value(): Int.\n",
+    )
+    .expect("parse unrelated interface");
+
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        provider_summary.module_name.clone(),
+        syntax_module_output_to_interface(&provider_summary),
+    );
+    interfaces.insert(
+        noise.module_name.clone(),
+        syntax_module_output_to_interface(&noise),
+    );
+
+    let consumer = parse_module_as_syntax_output(
+        r#"
+module plan_consumer.
+
+import plan_provider.{Plan}.
+import std.core.Option.{None}.
+
+pub make(): Plan -> Plan(None).
+"#,
+    )
+    .expect("parse constructor consumer fixture");
+    let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&consumer, &resolved);
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {:?}",
+        diagnostics
+    );
+}
+
 /// Verifies imported HKT-generic functions preserve explicit type arguments.
 ///
 /// Inputs:

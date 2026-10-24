@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword self-y-start. Generated; do not edit.
+ */
+module std.css.keywords.SelfYStart.
+
+pub type SelfYStart = Atom["self-y-start"].

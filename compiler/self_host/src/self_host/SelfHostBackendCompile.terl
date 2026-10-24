@@ -15,10 +15,48 @@ import self_host.SelfHostIrJson.
 import self_host.SelfHostIrSyntax.
 import self_host.SelfHostIrSyntax.{IrDiagnostic}.
 import self_host.SelfHostIrValidation.
+import self_host.SelfHostCoreOptimize.
+import self_host.SelfHostSsaValidation.
 import self_host.SelfHostSemanticIrLowering.
+import self_host.SelfHostContinuationOrdinals.
+import self_host.ProjectedMutableReceiverIr.
 import self_host.SelfHostSemanticIrSyntax.
 
 import self_host.SelfHostSemanticIrSyntax.{BackendCompilation, IrLoweringDiagnostic, SemanticModulePlan}.
+
+pub struct CoreOptimizationCompilation {
+    unoptimized_json: Option[String],
+    optimized_once_json: Option[String],
+    optimized_twice_json: Option[String],
+    optimized_regenerated_json: Option[String],
+    optimized_module_json: Option[String],
+    optimized_envelope: Option[BackendEnvelope],
+    diagnostics_before: List[String],
+    diagnostics_after: List[String],
+}.
+
+pub constructor CoreOptimizationCompilation {
+    (
+        unoptimized_json: Option[String],
+        optimized_once_json: Option[String],
+        optimized_twice_json: Option[String],
+        optimized_regenerated_json: Option[String],
+        optimized_module_json: Option[String],
+        optimized_envelope: Option[BackendEnvelope],
+        diagnostics_before: List[String],
+        diagnostics_after: List[String],
+    ): CoreOptimizationCompilation -> CoreOptimizationCompilation {
+        unoptimized_json: unoptimized_json,
+        optimized_once_json: optimized_once_json,
+        optimized_twice_json: optimized_twice_json,
+        optimized_regenerated_json: optimized_regenerated_json,
+        optimized_module_json: optimized_module_json,
+        optimized_envelope: optimized_envelope,
+        diagnostics_before: diagnostics_before,
+        diagnostics_after: diagnostics_after,
+    }
+}.
+
 @pure
 lowering_messages_at(values: List[IrLoweringDiagnostic], output: List[String]): List[String] ->
     case values {
@@ -62,36 +100,141 @@ none_envelope(): Option[BackendEnvelope] -> None.
 none_string(): Option[String] -> None.
 
 @pure
-failed_compilation(diagnostics: List[String]): BackendCompilation ->
-    BackendCompilation(
-        envelope = none_envelope(),
-        json = none_string(),
-        diagnostics = diagnostics,
+none_optimization_compilation(
+    diagnostics_before: List[String],
+    diagnostics_after: List[String],
+): CoreOptimizationCompilation ->
+    CoreOptimizationCompilation(
+        unoptimized_json = None,
+        optimized_once_json = None,
+        optimized_twice_json = None,
+        optimized_regenerated_json = None,
+        optimized_module_json = None,
+        optimized_envelope = None,
+        diagnostics_before = diagnostics_before,
+        diagnostics_after = diagnostics_after,
     ).
 
-encoded_compilation(envelope: BackendEnvelope): BackendCompilation ->
-    case SelfHostIrJson.encode(envelope) {
-        Ok(json) -> BackendCompilation(
-            envelope = Some(envelope),
-            json = Some(json),
-            diagnostics = List.new[String](),
-        );
-        Err(_) -> BackendCompilation(
-            envelope = Some(envelope),
-            json = None,
-            diagnostics = ["backend-json-encoding-failed"],
-        )
+@pure
+failed_before(diagnostics: List[String]): CoreOptimizationCompilation ->
+    none_optimization_compilation(diagnostics, List.new[String]()).
+
+@pure
+failed_after(diagnostics: List[String]): CoreOptimizationCompilation ->
+    none_optimization_compilation(List.new[String](), diagnostics).
+
+@pure
+append_messages(left: List[String], right: List[String]): List[String] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_messages(rest, right)]
+    }.
+
+@pure
+production_compilation(value: CoreOptimizationCompilation): BackendCompilation ->
+    BackendCompilation(
+        envelope = value.optimized_envelope,
+        json = value.optimized_once_json,
+        diagnostics = append_messages(value.diagnostics_before, value.diagnostics_after),
+    ).
+
+encoded_optimizer_regeneration(
+    unoptimized_json: String,
+    envelope: BackendEnvelope,
+    optimized_once: IrModule,
+    optimized_twice: IrModule,
+    optimized_regenerated: IrModule,
+    target: String,
+    optimized_once_json: String,
+): CoreOptimizationCompilation ->
+    case SelfHostIrJson.encode(SelfHostBackendEnvelope.current(optimized_twice, target)) {
+        Err(_) -> failed_after(["optimizer-idempotence-json-encoding-failed"]);
+        Ok(optimized_twice_json) ->
+            case SelfHostIrJson.encode(SelfHostBackendEnvelope.current(optimized_regenerated, target)) {
+                Err(_) -> failed_after(["optimizer-determinism-json-encoding-failed"]);
+                Ok(optimized_regenerated_json) -> if {
+                    optimized_once_json != optimized_twice_json ->
+                        failed_after(["target-independent Core optimization is not idempotent"]);
+                    optimized_once_json != optimized_regenerated_json ->
+                        failed_after(["target-independent Core optimization is not deterministic"]);
+                    true -> CoreOptimizationCompilation(
+                        unoptimized_json = Some(unoptimized_json),
+                        optimized_once_json = Some(optimized_once_json),
+                        optimized_twice_json = Some(optimized_twice_json),
+                        optimized_regenerated_json = Some(optimized_regenerated_json),
+                        optimized_module_json = Some(SelfHostIrJson.encode_module(optimized_once)),
+                        optimized_envelope = Some(envelope),
+                        diagnostics_before = List.new[String](),
+                        diagnostics_after = List.new[String](),
+                    )
+                }
+            }
+    }.
+
+optimizer_fixed_point_compilation(
+    original: IrModule,
+    optimized_once: IrModule,
+    target: String,
+): CoreOptimizationCompilation ->
+    case SelfHostIrJson.encode(SelfHostBackendEnvelope.current(original, target)) {
+        Err(_) -> failed_before(["unoptimized-backend-json-encoding-failed"]);
+        Ok(unoptimized_json) ->
+            let envelope = SelfHostBackendEnvelope.current(optimized_once, target);
+            case SelfHostIrJson.encode(envelope) {
+                Err(_) -> failed_after(["backend-json-encoding-failed"]);
+                Ok(optimized_once_json) -> encoded_optimizer_regeneration(
+                    unoptimized_json,
+                    envelope,
+                    optimized_once,
+                    SelfHostCoreOptimize.optimize(optimized_once),
+                    SelfHostCoreOptimize.optimize(original),
+                    target,
+                    optimized_once_json,
+                )
+            }
+    }.
+
+pub compile_optimizer_artifacts(
+    plan: SemanticModulePlan,
+    target: String,
+): CoreOptimizationCompilation ->
+    case SelfHostContinuationOrdinals.assign(ProjectedMutableReceiverIr.normalize(plan)) {
+        Err(reason) -> failed_before([String.append("continuation-ordinal-assignment-failed: ", reason)]);
+        Ok(assigned) ->
+            let lowered = SelfHostSemanticIrLowering.lower(assigned);
+            case lowered.ir_module {
+                None -> failed_before(lowering_messages(lowered.diagnostics));
+                Some(ir_module) ->
+                    let validation = SelfHostIrValidation.validate(ir_module);
+                    if {
+                        not validation.valid -> failed_before(validation_messages(validation.diagnostics));
+                        true -> let ssa_validation = SelfHostSsaValidation.validate(ir_module);
+                        if {
+                            not ssa_validation.valid -> failed_before(validation_messages(ssa_validation.diagnostics));
+                            true -> let optimized = SelfHostCoreOptimize.optimize(ir_module);
+                            let optimized_validation = SelfHostIrValidation.validate(optimized);
+                            if {
+                                not optimized_validation.valid -> failed_after([
+                                    "target-independent Core optimization produced invalid IR"
+                                    | validation_messages(optimized_validation.diagnostics)
+                                ]);
+                                true -> let optimized_ssa = SelfHostSsaValidation.validate(optimized);
+                                if {
+                                    not optimized_ssa.valid -> failed_after([
+                                        "target-independent Core optimization produced invalid SSA"
+                                        | validation_messages(optimized_ssa.diagnostics)
+                                    ]);
+                                    true -> optimizer_fixed_point_compilation(
+                                        ir_module,
+                                        optimized,
+                                        target,
+                                    )
+                                }
+                            }
+                        }
+                    }
+            }
     }.
 
 pub compile(plan: SemanticModulePlan, target: String): BackendCompilation ->
-    let lowered = SelfHostSemanticIrLowering.lower(plan);
-    case lowered.ir_module {
-        None -> failed_compilation(lowering_messages(lowered.diagnostics));
-        Some(ir_module) ->
-            let validation = SelfHostIrValidation.validate(ir_module);
-            if {
-                not validation.valid -> failed_compilation(validation_messages(validation.diagnostics));
-                true -> let envelope = SelfHostBackendEnvelope.current(ir_module, target);
-                encoded_compilation(envelope)
-            }
-    }.
+    production_compilation(compile_optimizer_artifacts(plan, target)).

@@ -144,7 +144,8 @@ fn api_emit_writes_contract_json_and_openapi_outputs() {
 #[test]
 fn api_emit_from_source_writes_route_openapi_paths() {
     let out_dir = temp_dir("api_command", "emit_source_outputs");
-    let source_path = out_dir.join("Http.terl");
+    let source_path = out_dir.join("src/app/Http.terl");
+    fs::create_dir_all(source_path.parent().unwrap()).unwrap();
     write_router_source(&source_path);
 
     let mut state = CliState::default();

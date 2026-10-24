@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword monospace. Generated; do not edit.
+ */
+module std.css.keywords.Monospace.
+
+pub type Monospace.

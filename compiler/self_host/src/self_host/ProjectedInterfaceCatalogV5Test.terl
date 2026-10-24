@@ -1,0 +1,41 @@
+/** Interface v5 preserves public struct field names and types. */
+module self_host.ProjectedInterfaceCatalogV5Test.
+
+import self_host.ModuleInterfaceSyntax.{ExportedStructField, ExportedSymbol, ModuleInterface}.
+import self_host.ProjectedInterfaceCatalog.
+import self_host.Syntax.{StructDeclaration, SyntaxSpan}.
+import std.core.Option.{None, Some}.
+
+@test
+pub struct_fields_round_trip_without_changing_symbol_signatures(): Bool ->
+    let source = ModuleInterface(
+        "terlan.self-host.interface/v5",
+        "sample.Geometry",
+        [ExportedSymbol(
+            "Point",
+            -1,
+            StructDeclaration,
+            None,
+            false,
+            false,
+            [],
+            [],
+            None,
+            SyntaxSpan(0, 20),
+            [
+                ExportedStructField("x", Some("Int")),
+                ExportedStructField("label", Some("String")),
+            ],
+        )],
+    );
+    case ProjectedInterfaceCatalog.decode(ProjectedInterfaceCatalog.render(source)) {
+        None -> false;
+        Some(decoded) -> case decoded.symbols {
+            [symbol] -> symbol.name == "Point"
+                and symbol.record_fields == [
+                    ExportedStructField("x", Some("Int")),
+                    ExportedStructField("label", Some("String")),
+                ];
+            _ -> false
+        }
+    }.

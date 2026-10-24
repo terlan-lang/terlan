@@ -3,13 +3,11 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::compiler::native_ir::NativeCodegenPolicy;
-use crate::formal_pipeline::CheckedSyntaxModuleArtifacts;
 use crate::terlan_typeck::CoreModule;
 use crate::CliState;
 
 use super::super::{BuildOneError, BuildTimings};
 use super::compile::{compile_vm_module, CompiledVmModule};
-use super::native_debug::NativeDebugInput;
 use super::parallel_compile::compile_vm_modules;
 use super::{native_image, native_reuse, std_source};
 
@@ -20,6 +18,7 @@ mod tests;
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(crate) struct CompiledServeApplication {
     pub(crate) core: CoreModule,
+    pub(crate) interfaces: Vec<crate::terlan_hir::ModuleInterface>,
     pub(crate) image: native_image::CompiledServeNativeImage,
 }
 
@@ -57,18 +56,12 @@ pub(in crate::commands::build) fn build_one_vm_artifact(
         state,
     )?;
     let result = if imported.is_empty() {
-        write_vm_artifact(
-            &module.source_path,
-            &module.source_text,
-            &module.compiled,
-            state,
-            policy,
-        )
+        write_vm_artifact(module, state, policy)
     } else {
         let mut modules = Vec::with_capacity(imported.len() + 1);
         modules.push(module);
         modules.extend(imported);
-        write_vm_application_artifacts(&modules, state, policy, None)
+        write_vm_application_artifacts(modules, state, policy, None)
     };
     timings.mark("vm.aot-and-artifact");
     result
@@ -102,10 +95,10 @@ pub(crate) fn compile_serve_application(
             web_root.display()
         ));
     }
-    compile_application_from_root(web_root, &source_root, expected_module, false)
+    compile_application_from_root(web_root, &source_root, expected_module)
 }
 
-/// Compiles a source export and its imports independently of the output location.
+/// Compiles a source module for tooling without imposing serving output layout.
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(crate) fn compile_source_application(
     workspace: &std::path::Path,
@@ -113,7 +106,7 @@ pub(crate) fn compile_source_application(
     expected_module: &str,
 ) -> Result<CompiledServeApplication, String> {
     let source_root = application_source_root(source_path, expected_module)?;
-    compile_application_from_root(workspace, &source_root, expected_module, true)
+    compile_application_from_root(workspace, &source_root, expected_module)
 }
 
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
@@ -121,7 +114,6 @@ fn compile_application_from_root(
     web_root: &std::path::Path,
     source_root: &std::path::Path,
     expected_module: &str,
-    selected_source: bool,
 ) -> Result<CompiledServeApplication, String> {
     let source_roots = super::super::terlan_vm_source_roots_for_directory(source_root)?;
     let state = CliState {
@@ -133,17 +125,14 @@ fn compile_application_from_root(
     };
     let (paths, state) = super::super::prepare_source_roots_build(&source_roots, &state)
         .map_err(|status| format!("serve application preparation failed with {status:?}"))?;
-    let compiled = if selected_source {
+    let mut modules =
         super::application_closure::compile_application_closure(&paths, expected_module, &state)
-    } else {
-        compile_vm_modules(&paths, &state)
-    };
-    let mut modules = compiled.map_err(|error| match error {
-        BuildOneError::Message(message) => message,
-        BuildOneError::Exit(status) => {
-            format!("serve application compilation failed with {status:?}")
-        }
-    })?;
+            .map_err(|error| match error {
+                BuildOneError::Message(message) => message,
+                BuildOneError::Exit(status) => {
+                    format!("serve application compilation failed with {status:?}")
+                }
+            })?;
     if let Some(active_path) = modules
         .first()
         .map(|module| PathBuf::from(&module.source_path))
@@ -175,23 +164,9 @@ fn compile_application_from_root(
         .position(|module| module.compiled.core.module == expected_module)
         .ok_or_else(|| format!("serve application is missing route module `{expected_module}`"))?;
     let core = modules[route_index].compiled.core.clone();
-    let cores = modules
-        .iter()
-        .map(|module| &module.compiled.core)
-        .collect::<Vec<_>>();
     let debug_source_paths = modules
         .iter()
         .map(|module| stable_serve_debug_source_path(source_root, &module.source_path))
-        .collect::<Vec<_>>();
-    let debug_inputs = modules
-        .iter()
-        .zip(&debug_source_paths)
-        .map(|(module, source_path)| NativeDebugInput {
-            source_path,
-            source_text: &module.source_text,
-            core: &module.compiled.core,
-            syntax: &module.compiled.syntax_output,
-        })
         .collect::<Vec<_>>();
     let module_stem = expected_module.replace('.', "_");
     let roots = core
@@ -200,10 +175,21 @@ fn compile_application_from_root(
         .filter(|function| function.public)
         .map(|function| (core.module.clone(), function.name.clone(), function.arity))
         .collect::<Vec<_>>();
+    let (cores, debug_inputs): (Vec<_>, Vec<_>) = modules
+        .into_iter()
+        .zip(debug_source_paths)
+        .map(|(module, source_path)| {
+            (
+                module.compiled.core,
+                module.native_debug.with_source_path(source_path),
+            )
+        })
+        .unzip();
+    let core_refs = cores.iter().collect::<Vec<_>>();
     let image = native_image::compile_serve_native_application_image_with_metadata(
         web_root,
         &module_stem,
-        &cores,
+        &core_refs,
         &roots,
         &debug_inputs,
     )?
@@ -212,7 +198,8 @@ fn compile_application_from_root(
             "error[serve.aot.image_required]: application route module `{expected_module}` did not produce a native image"
         )
     })?;
-    Ok(CompiledServeApplication { core, image })
+    let interfaces = modules.iter().map(|module| module.compiled.core.interface.clone()).collect();
+    Ok(CompiledServeApplication { core, image, interfaces })
 }
 
 /// Removes the build output root from source identities embedded in packaged
@@ -302,6 +289,14 @@ fn build_vm_application_artifacts_with_optional_entry(
     policy: NativeCodegenPolicy,
     entry_module: Option<&str>,
 ) -> Result<(), BuildOneError> {
+    if std::env::var_os("TERLAN_BUILD_LOW_MEMORY").is_some() {
+        return super::low_memory::build_vm_application_artifacts(
+            paths,
+            state,
+            policy,
+            entry_module,
+        );
+    }
     let mut timings = BuildTimings::new(state.timings);
     let mut modules = compile_vm_modules(paths, state)?;
     timings.mark("vm.application-compile");
@@ -329,16 +324,14 @@ fn build_vm_application_artifacts_with_optional_entry(
         );
     }
     timings.mark("vm.application-std-closure");
-    let result = write_vm_application_artifacts(&modules, state, policy, entry_module);
+    let result = write_vm_application_artifacts(modules, state, policy, entry_module);
     timings.mark("vm.application-aot-and-artifact");
     result
 }
 
 /// Writes one descriptor-bearing native image when the module is AOT-capable.
 fn write_vm_artifact(
-    source_path: &str,
-    source_text: &str,
-    compiled: &CheckedSyntaxModuleArtifacts,
+    module: CompiledVmModule,
     state: &CliState,
     policy: NativeCodegenPolicy,
 ) -> Result<(), BuildOneError> {
@@ -346,30 +339,31 @@ fn write_vm_artifact(
     fs::create_dir_all(&vm_dir).map_err(|err| {
         BuildOneError::Message(format!("cannot create VM artifact directory: {err}"))
     })?;
-    let module_stem = module_file_stem(&compiled.core);
+    let module_stem = module_file_stem(&module.compiled.core);
     let native_cache_root = state
         .cache_dir
         .clone()
         .unwrap_or_else(|| state.out_dir.join(".terlan"))
         .join("native-aot");
+    let CompiledVmModule {
+        source_path,
+        compiled,
+        native_debug,
+        ..
+    } = module;
     let native_image = native_image::compile_native_application_image(
         &vm_dir,
         &native_cache_root,
         &module_stem,
         &[&compiled.core],
-        &[NativeDebugInput {
-            source_path,
-            source_text,
-            core: &compiled.core,
-            syntax: &compiled.syntax_output,
-        }],
+        std::slice::from_ref(&native_debug),
         policy,
         state.incremental,
     )?;
     if let Some(native_image) = native_image.as_ref() {
         native_reuse::write_native_reuse_stamp(
-            source_path,
-            source_text,
+            &source_path,
+            native_debug.source_text(),
             state,
             native_image,
             policy,
@@ -379,7 +373,7 @@ fn write_vm_artifact(
 }
 
 fn write_vm_application_artifacts(
-    modules: &[CompiledVmModule],
+    modules: Vec<CompiledVmModule>,
     state: &CliState,
     policy: NativeCodegenPolicy,
     entry_module: Option<&str>,
@@ -410,19 +404,6 @@ fn write_vm_application_artifacts(
         .clone()
         .unwrap_or_else(|| state.out_dir.join(".terlan"))
         .join("native-aot");
-    let cores = modules
-        .iter()
-        .map(|module| &module.compiled.core)
-        .collect::<Vec<_>>();
-    let debug_inputs = modules
-        .iter()
-        .map(|module| NativeDebugInput {
-            source_path: &module.source_path,
-            source_text: &module.source_text,
-            core: &module.compiled.core,
-            syntax: &module.compiled.syntax_output,
-        })
-        .collect::<Vec<_>>();
     let roots = if entry
         .compiled
         .core
@@ -447,11 +428,15 @@ fn write_vm_application_artifacts(
             })
             .collect::<Vec<_>>()
     };
-    native_image::compile_rooted_native_application_image(
+    let (cores, debug_inputs): (Vec<_>, Vec<_>) = modules
+        .into_iter()
+        .map(|module| (module.compiled.core, module.native_debug))
+        .unzip();
+    native_image::compile_owned_rooted_native_application_image(
         &vm_dir,
         &native_cache_root,
         &image_stem,
-        &cores,
+        cores,
         native_image::RootedNativeApplicationInput {
             roots: &roots,
             debug_inputs: &debug_inputs,

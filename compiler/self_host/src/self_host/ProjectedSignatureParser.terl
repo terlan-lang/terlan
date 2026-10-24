@@ -1,18 +1,21 @@
 /** Extracts recursive pattern/type trees from projected declaration signatures. */
 module self_host.ProjectedSignatureParser.
 
+import std.core.String.
+
 
 import std.core.Option.{None, Option, Some}.
 import self_host.ProjectedParserSyntax.{ProjectedSurfaceDeclaration}.
-import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree, ProjectedSignatureDocument, ProjectedTypeDeclarationTree}.
+import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree, ProjectedSignatureDocument, ProjectedTypeConstructorArity, ProjectedTypeDeclarationTree}.
 import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
-import self_host.Syntax.{ConstFunctionDeclaration, FunctionDeclaration, MethodDeclaration, OpaqueTypeDeclaration, TypeDeclaration}.
+import self_host.Syntax.{ConstFunctionDeclaration, ConstructorDeclaration, FunctionDeclaration, MethodDeclaration, OpaqueTypeDeclaration, StructDeclaration, TypeDeclaration}.
 
 
 import std.collections.List.
 import std.core.{Int, String}.
 import self_host.Parser.
 import self_host.ProjectedPatternParser.
+import self_host.StructuredExpressionParser.
 import self_host.ProjectedTypeParser.
 
 
@@ -258,15 +261,29 @@ callable_message(parameters_are_valid: Bool, colon_found: Bool, return_valid: Bo
     if { not parameters_are_valid -> "one or more callable parameters are invalid"; true -> callable_type_message(colon_found, return_valid, return_message) }.
 
 @pure
+guard_message(current: String, guard_found: Bool, guard_valid: Bool, message: String): String ->
+    if {
+        current != "" -> current;
+        guard_found and not guard_valid -> message;
+        true -> ""
+    }.
+
+@pure
 callable_after_params(
     declaration: ProjectedSurfaceDeclaration,
+    type_parameters: List[String],
     parameters: List[ProjectedParameterTree],
     values: List[ProjectedCanonicalToken],
 ): ProjectedCallableSignature ->
-    let colon = split(values, ":");
+    let guard = split(values, "where");
+    let return_values = if { guard.found -> guard.left; true -> values };
+    let colon = split(return_values, ":");
     let return_type = ProjectedTypeParser.parse(colon.right);
+    let guard_expression = StructuredExpressionParser.parse(guard.right);
     let valid_parameters = parameters_valid(parameters);
-    ProjectedCallableSignature(valid_parameters and (not colon.found or return_type.valid), Parser.declaration_head(declaration.text), parameters, return_type.node, declaration.span, callable_message(valid_parameters, colon.found, return_type.valid, return_type.message)).
+    let valid_guard = not guard.found or guard_expression.valid;
+    let message = callable_message(valid_parameters, colon.found, return_type.valid, return_type.message);
+    ProjectedCallableSignature(valid_parameters and (not colon.found or return_type.valid) and valid_guard, Parser.declaration_head(declaration.text), type_parameters, parameters, return_type.node, guard_expression.node, declaration.span, guard_message(message, guard.found, guard_expression.valid, guard_expression.message)).
 
 @pure
 function_signature(
@@ -278,8 +295,8 @@ function_signature(
     case opening_split.separator {
         Some(opening) ->
             let params = group(opening, opening_split.right);
-            callable_after_params(declaration, parameters_at(params.inner, List.new[ProjectedParameterTree]()), params.rest);
-        None -> ProjectedCallableSignature(false, Parser.declaration_head(declaration.text), List.new[ProjectedParameterTree](), None, declaration.span, "callable signature is missing parameter list")
+            callable_after_params(declaration, generic_parameter_names(split(opening_split.left, "[")), parameters_at(params.inner, List.new[ProjectedParameterTree]()), params.rest);
+        None -> ProjectedCallableSignature(false, Parser.declaration_head(declaration.text), List.new[String](), List.new[ProjectedParameterTree](), None, None, declaration.span, "callable signature is missing parameter list")
     }.
 
 @pure
@@ -301,10 +318,10 @@ method_signature(
                         receiver_parameters,
                         parameters_at(ordinary.inner, List.new[ProjectedParameterTree]()),
                     );
-                    callable_after_params(declaration, parameters, ordinary.rest);
-                None -> ProjectedCallableSignature(false, Parser.declaration_head(declaration.text), List.new[ProjectedParameterTree](), None, declaration.span, "method signature is missing ordinary parameter list")
+                    callable_after_params(declaration, generic_parameter_names(split(receiver_open.left, "[")), parameters, ordinary.rest);
+                None -> ProjectedCallableSignature(false, Parser.declaration_head(declaration.text), List.new[String](), List.new[ProjectedParameterTree](), None, None, declaration.span, "method signature is missing ordinary parameter list")
             };
-        None -> ProjectedCallableSignature(false, Parser.declaration_head(declaration.text), List.new[ProjectedParameterTree](), None, declaration.span, "method signature is missing receiver")
+        None -> ProjectedCallableSignature(false, Parser.declaration_head(declaration.text), List.new[String](), List.new[ProjectedParameterTree](), None, None, declaration.span, "method signature is missing receiver")
     }.
 
 @pure
@@ -343,6 +360,53 @@ missing_representation_message(assignment_found: Bool, is_opaque: Bool, atom_sho
     if { not assignment_found and not is_opaque and not atom_shorthand -> "generic type declaration is missing = representation"; true -> "" }.
 
 @pure
+last_text(values: List[ProjectedCanonicalToken], fallback: String): String ->
+    case values {
+        [] -> fallback;
+        [value | rest] -> last_text(rest, value.text)
+    }.
+
+@pure
+type_declaration_name(assignment: TokenSplit, generic_head: TokenSplit): String ->
+    if {
+        generic_head.found -> last_text(generic_head.left, "");
+        true -> let representation_separator = split(assignment.left, ":");
+            if {
+                representation_separator.found -> last_text(representation_separator.left, "");
+                true -> last_text(assignment.left, "")
+            }
+    }.
+
+@pure
+generic_parameter_name(values: List[ProjectedCanonicalToken]): String ->
+    String.trim(token_text(split(values, ":").left)).
+
+generic_parameter_names_at(
+    values: List[ProjectedCanonicalToken],
+    output: List[String],
+): List[String] ->
+    if {
+        values == [] -> reverse(output);
+        true -> let comma = split(values, ",");
+            let name = generic_parameter_name(comma.left);
+            if {
+                comma.found -> generic_parameter_names_at(comma.right, [name | output]);
+                true -> reverse([name | output])
+            }
+    }.
+
+generic_parameter_names(generic_head: TokenSplit): List[String] ->
+    case generic_head.separator {
+        Some(opening) -> let parameters = group(opening, generic_head.right);
+            generic_parameter_names_at(parameters.inner, List.new[String]());
+        None -> List.new[String]()
+    }.
+
+@pure
+generic_parameter_count(generic_head: TokenSplit): Int ->
+    generic_parameter_names(generic_head).length().
+
+@pure
 type_declaration(
     tokens: List[ProjectedCanonicalToken],
     declaration: ProjectedSurfaceDeclaration,
@@ -360,6 +424,9 @@ type_declaration(
     ProjectedTypeDeclarationTree(
         type_declaration_valid(assignment.found, representation.valid, is_opaque, atom_shorthand),
         Parser.declaration_head(declaration.text),
+        type_declaration_name(assignment, generic_head),
+        generic_parameter_count(generic_head),
+        generic_parameter_names(generic_head),
         representation_node,
         is_opaque,
         declaration.span,
@@ -408,6 +475,50 @@ all_callables_valid(values: List[ProjectedCallableSignature]): Bool ->
 all_types_valid(values: List[ProjectedTypeDeclarationTree]): Bool ->
     case values { [] -> true; [value | rest] -> value.valid and all_types_valid(rest) }.
 
+@pure
+is_type_constructor_declaration(value: ProjectedSurfaceDeclaration): Bool ->
+    value.class == TypeDeclaration
+        or value.class == OpaqueTypeDeclaration
+        or value.class == StructDeclaration
+        or value.class == ConstructorDeclaration.
+
+@pure
+non_generic_constructor_name(
+    values: List[ProjectedCanonicalToken],
+    class: self_host.Syntax.DeclarationClass,
+): String ->
+    if {
+        class == StructDeclaration or class == ConstructorDeclaration ->
+            last_text(split(values, "{").left, "");
+        true -> let assignment = split(values, "=");
+            type_declaration_name(assignment, split(values, "["))
+    }.
+
+@pure
+type_constructor_entry(
+    tokens: List[ProjectedCanonicalToken],
+    declaration: ProjectedSurfaceDeclaration,
+): ProjectedTypeConstructorArity ->
+    let values = without_terminal_dot(declaration_tokens(tokens, declaration));
+    let generic_head = split(values, "[");
+    let name = if {
+        generic_head.found -> last_text(generic_head.left, "");
+        true -> non_generic_constructor_name(values, declaration.class)
+    };
+    ProjectedTypeConstructorArity(name, generic_parameter_count(generic_head)).
+
+@pure
+type_constructors_at(
+    tokens: List[ProjectedCanonicalToken],
+    declarations: List[ProjectedSurfaceDeclaration],
+): List[ProjectedTypeConstructorArity] ->
+    case declarations {
+        [] -> List.new[ProjectedTypeConstructorArity]();
+        [value | rest] where is_type_constructor_declaration(value) ->
+            [type_constructor_entry(tokens, value) | type_constructors_at(tokens, rest)];
+        [_value | rest] -> type_constructors_at(tokens, rest)
+    }.
+
 /** Extracts every callable signature and type representation in one module. */
 @pure
 pub parse(
@@ -416,4 +527,9 @@ pub parse(
 ): ProjectedSignatureDocument ->
     let callables = callables_at(tokens, declarations);
     let types = types_at(tokens, declarations);
-    ProjectedSignatureDocument(all_callables_valid(callables) and all_types_valid(types), callables, types).
+    ProjectedSignatureDocument(
+        all_callables_valid(callables) and all_types_valid(types),
+        callables,
+        types,
+        type_constructors_at(tokens, declarations),
+    ).

@@ -1,0 +1,142 @@
+/** Fixed-point suspension effects for self-hosted actor call planning. */
+module self_host.SelfHostActorEffects.
+
+import std.collections.List.
+import std.core.{Bool, Int, String}.
+
+
+pub struct ActorCallableIdentity {
+    module_name: String,
+    function_name: String,
+    arity: Int,
+}.
+
+pub constructor ActorCallableIdentity {
+    (module_name: String, function_name: String, arity: Int): ActorCallableIdentity ->
+        ActorCallableIdentity {
+            module_name: module_name,
+            function_name: function_name,
+            arity: arity,
+        }
+}.
+
+
+pub struct ActorCallableEffect {
+    identity: ActorCallableIdentity,
+    recursive: Bool,
+    native_operation: Bool,
+    direct_yield: Bool,
+    dynamic_suspends: Bool,
+    calls: List[ActorCallableIdentity],
+}.
+
+pub constructor ActorCallableEffect {
+    (identity: ActorCallableIdentity, recursive: Bool, native_operation: Bool, direct_yield: Bool, dynamic_suspends: Bool, calls: List[ActorCallableIdentity]): ActorCallableEffect ->
+        ActorCallableEffect {
+            identity: identity,
+            recursive: recursive,
+            native_operation: native_operation,
+            direct_yield: direct_yield,
+            dynamic_suspends: dynamic_suspends,
+            calls: calls,
+        }
+}.
+
+
+pub struct ActorSuspensionCatalog {
+    identities: List[ActorCallableIdentity],
+}.
+
+pub constructor ActorSuspensionCatalog {
+    (identities: List[ActorCallableIdentity]): ActorSuspensionCatalog ->
+        ActorSuspensionCatalog { identities: identities }
+}.
+
+
+@pure
+same(left: ActorCallableIdentity, right: ActorCallableIdentity): Bool ->
+    left.module_name == right.module_name
+        and left.function_name == right.function_name
+        and left.arity == right.arity.
+
+@pure
+contains(value: ActorCallableIdentity, values: List[ActorCallableIdentity]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same(value, current) or contains(value, rest)
+    }.
+
+@pure
+append_unique(
+    value: ActorCallableIdentity,
+    values: List[ActorCallableIdentity],
+): List[ActorCallableIdentity] ->
+    if { contains(value, values) -> values; true -> [value | values] }.
+
+@pure
+seeded(value: ActorCallableEffect): Bool ->
+    value.recursive
+        or value.native_operation
+        or value.direct_yield
+        or value.dynamic_suspends.
+
+@pure
+seeds(
+    values: List[ActorCallableEffect],
+    output: List[ActorCallableIdentity],
+): List[ActorCallableIdentity] ->
+    case values {
+        [] -> output;
+        [value | rest] -> if {
+            seeded(value) -> seeds(rest, append_unique(value.identity, output));
+            true -> seeds(rest, output)
+        }
+    }.
+
+@pure
+calls_suspending(
+    values: List[ActorCallableIdentity],
+    suspending: List[ActorCallableIdentity],
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> contains(value, suspending) or calls_suspending(rest, suspending)
+    }.
+
+@pure
+expand(
+    values: List[ActorCallableEffect],
+    suspending: List[ActorCallableIdentity],
+): List[ActorCallableIdentity] ->
+    case values {
+        [] -> suspending;
+        [value | rest] -> if {
+            seeded(value) or calls_suspending(value.calls, suspending) ->
+                expand(rest, append_unique(value.identity, suspending));
+            true -> expand(rest, suspending)
+        }
+    }.
+
+@pure
+fixed_point(
+    values: List[ActorCallableEffect],
+    suspending: List[ActorCallableIdentity],
+): List[ActorCallableIdentity] ->
+    let expanded = expand(values, suspending);
+    if {
+        expanded.length() == suspending.length() -> expanded;
+        true -> fixed_point(values, expanded)
+    }.
+
+/** Computes transitive suspension effects from local and imported callable facts. */
+@pure
+pub catalog(
+    values: List[ActorCallableEffect],
+    imported_suspending: List[ActorCallableIdentity],
+): ActorSuspensionCatalog ->
+    ActorSuspensionCatalog(fixed_point(values, seeds(values, imported_suspending))).
+
+/** Reports whether one fully resolved callable can suspend its actor. */
+@pure
+pub suspends(value: ActorCallableIdentity, catalog: ActorSuspensionCatalog): Bool ->
+    contains(value, catalog.identities).

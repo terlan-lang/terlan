@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword table-row-group. Generated; do not edit.
+ */
+module std.css.keywords.TableRowGroup.
+
+pub type TableRowGroup = Atom["table-row-group"].

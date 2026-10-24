@@ -1,8 +1,8 @@
 module=std.js.Dom.DragEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=5377656441343441024
-interface_hash=15500626463715495503
-interface_doc_hash=15500626463715495503
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=10567548234661045
+interface_hash=13341607885095977236
+interface_doc_hash=13341607885095977236
 deps=0

@@ -1,0 +1,8 @@
+module=std.css.keywords.OptimizeSpeed
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=1083314154538869158
+interface_hash=17589640856982827186
+interface_doc_hash=11255131484586153491
+deps=0

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword sticky. Generated; do not edit.
+ */
+module std.css.keywords.Sticky.
+
+pub type Sticky.

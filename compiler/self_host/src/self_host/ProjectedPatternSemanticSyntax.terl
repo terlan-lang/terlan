@@ -1,0 +1,34 @@
+/** Diagnostics produced by projected pattern and shape semantics. */
+module self_host.ProjectedPatternSemanticSyntax.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+pub struct ProjectedPatternSemanticDiagnostic {
+    declaration_head: String,
+    start_byte: Int,
+    end_byte: Int,
+    message: String,
+}.
+
+pub constructor ProjectedPatternSemanticDiagnostic {
+    (declaration_head: String, start_byte: Int, end_byte: Int, message: String): ProjectedPatternSemanticDiagnostic ->
+        ProjectedPatternSemanticDiagnostic {
+            declaration_head: declaration_head,
+            start_byte: start_byte,
+            end_byte: end_byte,
+            message: message,
+        }
+}.
+
+
+pub struct ProjectedPatternSemanticCheck {
+    valid: Bool,
+    diagnostics: List[ProjectedPatternSemanticDiagnostic],
+}.
+
+pub constructor ProjectedPatternSemanticCheck {
+    (valid: Bool, diagnostics: List[ProjectedPatternSemanticDiagnostic]): ProjectedPatternSemanticCheck ->
+        ProjectedPatternSemanticCheck { valid: valid, diagnostics: diagnostics }
+}.

@@ -468,7 +468,7 @@ fn canonicalize_native_package_expr(
                 | CoreIntrinsicId::VmEffectFail => {}
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
                 canonicalize_native_package_expr(item, module, imports, aliases)?;
             }

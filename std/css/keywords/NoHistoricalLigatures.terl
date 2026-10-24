@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword no-historical-ligatures. Generated; do not edit.
+ */
+module std.css.keywords.NoHistoricalLigatures.
+
+pub type NoHistoricalLigatures = Atom["no-historical-ligatures"].

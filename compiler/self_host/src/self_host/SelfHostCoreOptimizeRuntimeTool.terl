@@ -1,0 +1,87 @@
+/** Executes pre/post optimizer Core images and materializes comparable observations. */
+module self_host.SelfHostCoreOptimizeRuntimeTool.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, Int, String}.
+import std.io.File.
+import std.system.Process.
+import type std.system.Process.{Command, Output}.
+
+
+path(root: String, name: String): String -> root + "/" + name.
+
+bounded_command(program: String, arguments: List[String]): Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_arguments(Process.command(program), arguments),
+            30000,
+        ),
+        1048576,
+    ).
+
+run(program: String, arguments: List[String]): Result[Output, String] ->
+    case Process.run(bounded_command(program, arguments)) {
+        Err(reason) -> Err(reason.message);
+        Ok(output) -> Ok(output)
+    }.
+
+publish(publisher: String, output: String, core: String): Result[Output, String] ->
+    run(publisher, [output, core]).
+
+execute(vm: String, image: String, entry: String): Result[Output, String] ->
+    run(vm, ["run", image, "--entry", entry, "--test-eval"]).
+
+observation(value: Output): String ->
+    String.concat([
+        "status\t", Int.to_string(value.status), "\n",
+        "stdout\t", value.stdout, "\n",
+        "stderr\t", value.stderr, "\n",
+    ]).
+
+write_observations(root: String, reference: Output, candidate: Output): Bool ->
+    case File.write_text(path(root, "runtime-before.tsv"), observation(reference)) {
+        Err(_) -> false;
+        Ok(_) -> case File.write_text(path(root, "runtime-after.tsv"), observation(candidate)) {
+            Err(_) -> false;
+            Ok(_) -> true
+        }
+    }.
+
+execute_images(root: String, vm: String, entry: String): Bool ->
+    case execute(vm, path(root, "before.tvm"), entry) {
+        Err(_) -> false;
+        Ok(reference) -> case execute(vm, path(root, "after.tvm"), entry) {
+            Err(_) -> false;
+            Ok(candidate) -> write_observations(root, reference, candidate)
+        }
+    }.
+
+publish_after(root: String, publisher: String, vm: String, entry: String): Bool ->
+    case publish(
+        publisher,
+        path(root, "after.tvm"),
+        path(root, "optimized-once.json"),
+    ) {
+        Err(_) -> false;
+        Ok(output) -> if {
+            output.status != 0 -> false;
+            true -> execute_images(root, vm, entry)
+        }
+    }.
+
+/** Publishes and executes both envelopes; the authority evaluator compares the records. */
+pub write(root: String, publisher: String, vm: String, entry: String): Bool ->
+    let _before_removed = File.delete(path(root, "runtime-before.tsv"));
+    let _after_removed = File.delete(path(root, "runtime-after.tsv"));
+    case publish(
+        publisher,
+        path(root, "before.tvm"),
+        path(root, "unoptimized.json"),
+    ) {
+        Err(_) -> false;
+        Ok(output) -> if {
+            output.status != 0 -> false;
+            true -> publish_after(root, publisher, vm, entry)
+        }
+    }.

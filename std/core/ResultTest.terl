@@ -5,7 +5,7 @@ import std.test.Test.{assert, assert_equal}.
 
 import type std.core.Result.
 
-pub type Problem.
+type Problem.
 
 pub error_result(): Result[Int, Problem] ->
     Err(Problem).

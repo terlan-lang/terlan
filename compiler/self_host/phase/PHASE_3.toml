@@ -1,7 +1,7 @@
 schema = "terlan.self-host.phase/v1"
 phase = 3
 name = "semantic-analysis-and-backend-handoff"
-status = "validated-candidate"
+status = "validated"
 
 [inputs]
 typed_module = "self_host.TypedModuleSyntax.TypedModule"
@@ -13,7 +13,8 @@ backend_contract = "terlan.self-host.backend/v1"
 [contracts]
 invalid_declarations_rejected = true
 duplicate_type_symbols_rejected = true
-function_shape_identity_pending = true
+function_shape_identity_pending = false
+function_shape_identity = true
 identical_callable_duplicates_rejected = true
 deterministic_backend_handoff = true
 typed_payloads_cross_backend_boundary = true
@@ -63,5 +64,5 @@ native_backend_is_downstream = true
 explicitly_run = true
 common_semantic_parity = true
 supplemental_type_evidence = true
-retained_image = "target/quality/self-host-phase3-image-17/bin/terlan-self-host-semantic-evidence"
-artifact_root = "target/quality/self-host-phase3-semantic-17"
+retained_image = "target/quality/self-host-phase3-image-21/bin/terlan-self-host-semantic-evidence"
+artifact_root = "target/quality/self-host-phase3-evidence-21"

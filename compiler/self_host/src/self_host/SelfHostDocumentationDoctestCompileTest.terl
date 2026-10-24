@@ -1,0 +1,39 @@
+/** Positive and negative self-hosted documentation frontend contracts. */
+module self_host.SelfHostDocumentationDoctestCompileTest.
+
+import self_host.SelfHostDocumentationDoctest.
+import self_host.SelfHostDocumentationDoctestCompile.
+
+@test
+pub valid_example_passes_self_hosted_frontend(): Bool ->
+    let extraction = SelfHostDocumentationDoctest.extract(
+        "```terlan\nmodule documentation_example.\n```",
+    );
+    let admitted = SelfHostDocumentationDoctestCompile.admit(extraction);
+    admitted.valid and admitted.count == 1.
+
+@test
+pub multiple_valid_examples_are_counted(): Bool ->
+    let extraction = SelfHostDocumentationDoctest.extract(
+        "```terlan\nmodule first_example.\n```\n```terlan\nmodule second_example.\n```",
+    );
+    let admitted = SelfHostDocumentationDoctestCompile.admit(extraction);
+    admitted.valid and admitted.count == 2.
+
+@test
+pub invalid_example_fails_self_hosted_frontend(): Bool ->
+    let extraction = SelfHostDocumentationDoctest.extract(
+        "```terlan\nmodule .\n```",
+    );
+    let admitted = SelfHostDocumentationDoctestCompile.admit(extraction);
+    not admitted.valid and admitted.count == 0.
+
+@test
+pub extraction_failure_is_preserved(): Bool ->
+    let extraction = SelfHostDocumentationDoctest.extract(
+        "```terlan\nmodule incomplete.",
+    );
+    let admitted = SelfHostDocumentationDoctestCompile.admit(extraction);
+    not admitted.valid
+        and admitted.count == 0
+        and admitted.message == "unclosed doc code fence".

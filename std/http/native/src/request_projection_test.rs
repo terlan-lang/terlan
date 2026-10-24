@@ -1,6 +1,18 @@
 use super::RequestFieldProjection as Projection;
 
 #[test]
+fn file_body_requires_proven_exclusive_file_observation() {
+    assert!(!Projection::Complete.requires_file_body());
+    for mask in 0..256 {
+        let projection = Projection::Fields(mask << 1);
+        assert_eq!(
+            projection.requires_file_body(),
+            mask & (1 << 7) != 0 && mask & (1 << 3) == 0
+        );
+    }
+}
+
+#[test]
 fn bitmask_operations_fail_closed_on_overflow() {
     for field in 0..16 {
         let mut projection = Projection::empty();
@@ -23,8 +35,8 @@ fn bitmask_operations_fail_closed_on_overflow() {
 
 #[test]
 fn request_contract_admits_only_declared_positions() {
-    for mask in 0_u16..512 {
-        let fields: Vec<_> = (0..9).filter(|field| mask & (1 << field) != 0).collect();
+    for mask in 0_u16..256 {
+        let fields: Vec<_> = (0..8).filter(|field| mask & (1 << field) != 0).collect();
         let projection = Projection::from_observed_fields(fields);
         assert_eq!(projection, Projection::Fields(mask << 1));
         for field in 0..=10 {
@@ -32,11 +44,11 @@ fn request_contract_admits_only_declared_positions() {
             assert_eq!(projection.requires(field), observed);
             assert_eq!(
                 projection.admits_scalar_string(field),
-                matches!(field, 1 | 2 | 4 | 5 | 9) && mask << 1 == 1 << field
+                matches!(field, 1 | 2 | 4 | 5 | 8) && mask << 1 == 1 << field
             );
         }
     }
-    for invalid in [9, 10, 16, 32, 64, usize::MAX] {
+    for invalid in [8, 9, 10, 16, 32, 64, usize::MAX] {
         for fields in [vec![invalid], vec![1, invalid], vec![invalid, 1]] {
             assert_eq!(
                 Projection::from_observed_fields(fields),

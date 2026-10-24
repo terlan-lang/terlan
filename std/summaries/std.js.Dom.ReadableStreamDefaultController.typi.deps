@@ -1,8 +1,8 @@
 module=std.js.Dom.ReadableStreamDefaultController
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=1656088576628663710
-interface_hash=6895062691315936700
-interface_doc_hash=6895062691315936700
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=10049637572149953552
+interface_hash=11904817365996377683
+interface_doc_hash=11904817365996377683
 deps=0

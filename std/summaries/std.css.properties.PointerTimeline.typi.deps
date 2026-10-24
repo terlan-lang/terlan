@@ -1,9 +1,0 @@
-module=std.css.properties.PointerTimeline
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=2266815693134365763
-interface_hash=16096967528392339247
-interface_doc_hash=3721312064634576249
-deps=1
-std.core.Option=11539230284316612175

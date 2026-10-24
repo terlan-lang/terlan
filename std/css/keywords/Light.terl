@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword light. Generated; do not edit.
+ */
+module std.css.keywords.Light.
+
+pub type Light.

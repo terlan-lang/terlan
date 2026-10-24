@@ -1,0 +1,41 @@
+schema_version = 1
+status = "candidate"
+
+[cold_single]
+wall_seconds_max = 30
+peak_rss_kib_max = 131072
+
+[parallel_mini]
+modules = 4
+artifacts = 16
+commands = 4
+workers = 4
+commands_per_worker = 4
+wall_seconds_max = 10
+peak_rss_kib_max = 262144
+
+[warm_unchanged]
+scheduled_commands_max = 0
+wall_seconds_max = 5
+
+[affected_incremental]
+changed_modules = 1
+affected_modules = 3
+artifacts = 12
+commands = 3
+workers = 3
+commands_per_worker = 1
+planner_wall_seconds_max = 5
+planner_peak_rss_kib_max = 131072
+compile_wall_seconds_max = 120
+compile_peak_rss_kib_max = 524288
+warm_wall_seconds_max = 5
+
+[full_bootstrap]
+modules = 200
+artifacts = 800
+commands = 200
+workers = 8
+commands_per_worker = 4
+wall_seconds_max = 900
+peak_rss_kib_max = 524288

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword view-box. Generated; do not edit.
+ */
+module std.css.keywords.ViewBox.
+
+pub type ViewBox = Atom["view-box"].

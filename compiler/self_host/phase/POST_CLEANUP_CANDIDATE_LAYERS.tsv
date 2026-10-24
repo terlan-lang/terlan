@@ -1,0 +1,11 @@
+schema	terlan.self-host.convergence-input/v1
+tokens	target/quality/self-host-phase9/candidate/post-cleanup/tokens.digest
+syntax	target/quality/self-host-phase9/candidate/post-cleanup/syntax.digest
+interfaces	target/quality/self-host-phase9/candidate/post-cleanup/interfaces.digest
+diagnostics	target/quality/self-host-phase9/candidate/post-cleanup/diagnostics.digest
+typed-syntax	target/quality/self-host-phase9/candidate/post-cleanup/typed-syntax.digest
+core-ir	target/quality/self-host-phase9/candidate/post-cleanup/core-ir.digest
+actor-ir	target/quality/self-host-phase9/candidate/post-cleanup/actor-ir.digest
+managed-layouts	target/quality/self-host-phase9/candidate/post-cleanup/managed-layouts.digest
+runtime-behavior	target/quality/self-host-phase9/candidate/post-cleanup/runtime-behavior.digest
+executable-artifacts	target/quality/self-host-phase9/candidate/post-cleanup/executable-artifacts.digest

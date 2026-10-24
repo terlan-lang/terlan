@@ -1,0 +1,8 @@
+module=std.css.keywords.FixedPosition
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=11962296191235496539
+interface_hash=10037176658637703649
+interface_doc_hash=17814847832565537712
+deps=0

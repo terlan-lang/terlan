@@ -1,0 +1,6 @@
+//! Shared CSS keyword around. Generated; do not edit.
+
+module std.css.keywords.Around.
+
+pub type Around =
+    Atom["around"].

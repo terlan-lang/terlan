@@ -94,3 +94,47 @@ fn imported_singleton_alias_retains_identity_in_lambda_pattern() {
     assert_eq!(**lambda_body, CoreExpr::Atom("not_found".into()));
     assert_eq!(**body, CoreExpr::Atom("not_found".into()));
 }
+
+#[test]
+fn canonical_singleton_imports_preserve_atom_values_without_capturing_parameters() {
+    let core = lower("module consumer.\nimport provider.{NotFound}.\npub value(): Atom -> NotFound.\npub shadow(NotFound: Int): Int -> NotFound.\n");
+    let value = core
+        .functions
+        .iter()
+        .find(|function| function.name == "value")
+        .unwrap();
+    assert_eq!(
+        value.clauses[0].body.core_expr,
+        Some(CoreExpr::Atom("not_found".into()))
+    );
+    let shadow = core
+        .functions
+        .iter()
+        .find(|function| function.name == "shadow")
+        .unwrap();
+    assert_eq!(
+        shadow.clauses[0].body.core_expr,
+        Some(CoreExpr::Var("NotFound".into()))
+    );
+}
+
+/// Public re-exports retain their singleton value rather than a runtime variable.
+#[test]
+fn local_singleton_reexport_retains_atom_value() {
+    let core = lower(
+        "module consumer. pub type Missing = provider.NotFound. pub value(): Atom -> Missing.",
+    );
+    assert_eq!(
+        core.functions[0].clauses[0].body.core_expr,
+        Some(CoreExpr::Atom("not_found".into()))
+    );
+}
+
+#[test]
+fn unrenamed_singleton_import_retains_atom_value() {
+    let core = lower("module consumer. import provider.{NotFound}. pub value(): Atom -> NotFound.");
+    assert_eq!(
+        core.functions[0].clauses[0].body.core_expr,
+        Some(CoreExpr::Atom("not_found".into()))
+    );
+}

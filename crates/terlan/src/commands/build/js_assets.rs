@@ -38,6 +38,10 @@ pub(super) fn browser_static_assets_from_manifest(
             .rsbuild_config
             .as_ref()
             .map(|config| project_dir.join(config)),
+        html_template: assets
+            .html_template
+            .as_ref()
+            .map(|template| project_dir.join(template)),
         angular_ts: false,
         styles: assets
             .styles

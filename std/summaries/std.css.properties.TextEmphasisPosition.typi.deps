@@ -1,9 +1,11 @@
 module=std.css.properties.TextEmphasisPosition
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=13723593354855383405
-interface_hash=15499499505480243729
-interface_doc_hash=47075196381985240
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4845781187455893132
+interface_hash=10404484618725840253
+interface_doc_hash=2271971678179122357
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Over=12085564955025059178
+std.css.keywords.Under=5983534090386312291

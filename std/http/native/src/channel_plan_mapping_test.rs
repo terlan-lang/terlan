@@ -8,10 +8,15 @@ fn callback_mapping_preserves_sse_policy_and_visits_each_callback_once() {
     let empty = SseEndpointPlan::<Owned>::new(3, 4096).unwrap();
     let empty = empty.map_callbacks(|_| -> usize { panic!("empty callback set") });
     assert!(empty.callbacks().is_none());
+    assert!(empty.producer().is_none());
     assert_eq!(empty.keep_alive_ms(), None);
     let plan = SseEndpointPlan::new(3, 4096)
         .unwrap()
+        .with_response_headers(vec![("X-Source".into(), "retained".into())])
+        .unwrap()
         .with_keep_alive_ms(15000)
+        .unwrap()
+        .with_producer(Owned(5))
         .unwrap()
         .with_callbacks(SseCallbacks {
             open: Owned(0),
@@ -26,10 +31,15 @@ fn callback_mapping_preserves_sse_policy_and_visits_each_callback_once() {
         seen.push(value);
         value + 10
     });
-    assert_eq!(seen, [0, 1, 2, 3, 4]);
+    assert_eq!(seen, [0, 1, 2, 3, 4, 5]);
+    assert_eq!(mapped.producer(), Some(&15));
     assert_eq!(mapped.max_pending_events(), 3);
     assert_eq!(mapped.max_event_bytes(), 4096);
     assert_eq!(mapped.keep_alive_ms(), Some(15000));
+    assert_eq!(
+        mapped.response_headers(),
+        [("X-Source".into(), "retained".into())]
+    );
     assert_eq!(
         mapped.callbacks().unwrap(),
         &SseCallbacks {

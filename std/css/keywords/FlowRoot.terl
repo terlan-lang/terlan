@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword flow-root. Generated; do not edit.
+ */
+module std.css.keywords.FlowRoot.
+
+pub type FlowRoot = Atom["flow-root"].

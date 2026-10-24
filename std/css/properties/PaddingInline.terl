@@ -1,133 +1,88 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-logical-1/#propdef-padding-inline
+ * The `padding-inline` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property defines the logical inline start and end padding of an element, which maps to physical
+ * padding properties depending on the element's writing mode, directionality, and text orientation.
+ *
+ * Initial: padding-inline-start: 0; padding-inline-end: 0. Inherited: no.
+ * Percentages: logical-width of containing block.
+ *
  * Grammar: <'padding-top'>{1,2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-logical-1/#propdef-padding-inline
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/padding-inline
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PaddingInline.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
-import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css}.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained padding-inline value.
- */
-pub opaque type Value = Token.
+pub opaque type CheckedComponent = SerializedValue.
 
-/**
- * A single non-global padding-inline shorthand component.
- */
-pub opaque type Component = Token.
+pub type Component = CheckedComponent.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[Component]}.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    padding_inline: Value,
+    padding_inline: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the padding-inline length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub struct OptionalProperty {
-    padding_inline: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "padding-inline", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "padding-inline", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "padding-inline", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "padding-inline", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "padding-inline", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a padding-inline value.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "padding-inline", css: length_css(value)}));
-        false -> None
+        true -> Some(Checked(serialize("padding-inline", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a padding-inline value.
+ * Checks the padding-inline percentage range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "padding-inline", css: percentage_css(value)}));
-        false -> None
+        true -> Some(Checked(serialize("padding-inline", percentage_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a padding-inline value.
+ * Checks the padding-inline length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub component_length(value: Length): Option[Component] ->
+pub component_length(value: Length): Option[CheckedComponent] ->
     case length_amount(value) >= 0 {
-        true -> Some(Component(Token {property: "padding-inline", css: length_css(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("padding-inline", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a padding-inline value.
+ * Checks the padding-inline percentage range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub component_percentage(value: Percentage): Option[Component] ->
+pub component_percentage(value: Percentage): Option[CheckedComponent] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Component(Token {property: "padding-inline", css: percentage_css(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("padding-inline", percentage_css(value))));
+        false -> Absent
     }.
 
 /**
- * Serializes a library-owned shorthand component.
+ * Supplies 1 components in grammar order.
  */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Combines 1 typed components in specification order.
+ * Supplies 2 components in grammar order.
  */
-pub single(first: Component): Value ->
-    Value(Token {property: "padding-inline", css: component_css(first)}).
-
-/**
- * Combines 2 typed components in specification order.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {property: "padding-inline", css: component_css(first) + " " + component_css(second)},
-    ).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

@@ -76,6 +76,34 @@ pub (box: Box) value(): Int.\n\
 }
 
 #[test]
+fn accepts_type_resolved_pure_receiver_despite_impure_name_collision() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module purity.receiver_resolved_collision.\n\
+\n\
+import type provider.Box.{Box}.\n\
+import provider.Box.\n\
+\n\
+@pure\n\
+pub read(box: Box): Int ->\n\
+    box.value().\n\
+",
+        "\
+module provider.Box.\n\
+\n\
+pub type Box.\n\
+pub type Other.\n\
+\n\
+@pure\n\
+pub (box: Box) value(): Int.\n\
+pub (other: Other) value(): Int.\n\
+",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
+}
+
+#[test]
 fn rejects_pure_function_calling_unproven_imported_receiver_method() {
     let diagnostics = check_syntax_output_with_interface(
         "\

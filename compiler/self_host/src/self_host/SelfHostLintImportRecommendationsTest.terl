@@ -1,0 +1,47 @@
+/** TL0608/TL0609 tooling-document contracts. */
+module self_host.SelfHostLintImportRecommendationsTest.
+
+import self_host.SelfHostLintImportRecommendations.
+import self_host.SelfHostToolingDocument.
+
+@test
+pub reports_redundant_qualified_selected_calls_once_per_line(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nimport std.text.Codec.{decode}.\nvalue(input: String): Value -> Codec.decode(input) + std.text.Codec.decode(input).\n",
+    );
+    case SelfHostLintImportRecommendations.lint("Sample.terl", document) {
+        [value] -> value.rule_id == "TL0608" and value.line == 3;
+        _ -> false
+    }.
+
+@test
+pub ignores_selected_types_and_constructor_shaped_items(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nimport type std.text.Codec.{decode}.\nimport std.text.Codec.{Value}.\nvalue(input: String): Value -> Codec.decode(input).\n",
+    );
+    SelfHostLintImportRecommendations.lint("Sample.terl", document) == [].
+
+@test
+pub recommends_selected_import_for_one_qualified_member(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nimport std.text.Codec.\nvalue(input: String): Value -> Codec.decode(input).\n",
+    );
+    case SelfHostLintImportRecommendations.lint("Sample.terl", document) {
+        [value] -> value.rule_id == "TL0609" and value.line == 2;
+        _ -> false
+    }.
+
+@test
+pub keeps_alias_multi_member_and_constructor_imports(): Bool ->
+    let alias = SelfHostToolingDocument.build(
+        "module sample.\nimport std.text.Codec as C.\nvalue(input: String): Value -> C.decode(input).\n",
+    );
+    let multiple = SelfHostToolingDocument.build(
+        "module sample.\nimport std.text.Codec.\nvalue(input: String): Value -> Codec.decode(input) + Codec.encode(input).\n",
+    );
+    let constructor_document = SelfHostToolingDocument.build(
+        "module sample.\nimport std.text.Codec.\nvalue(input: String): Codec -> Codec(input).\n",
+    );
+    SelfHostLintImportRecommendations.lint("Sample.terl", alias) == []
+        and SelfHostLintImportRecommendations.lint("Sample.terl", multiple) == []
+        and SelfHostLintImportRecommendations.lint("Sample.terl", constructor_document) == [].

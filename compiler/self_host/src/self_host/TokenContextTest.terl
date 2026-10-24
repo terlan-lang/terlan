@@ -36,6 +36,13 @@ positive_specialized_context(): Bool ->
         and contains_terminal(tokens, "binary-layout-[").
 
 @pure
+keyword_module_path_is_tight(): Bool ->
+    let tokens = TokenContext.project(CanonicalLexer.lex(
+        "module std.template.Template.\nimport std.template.Template.{trusted}.\n",
+    ).tokens);
+    contains_terminal(tokens, "tight-dot").
+
+@pure
 legacy_atoms_are_not_merged(): Bool ->
     let lexical = CanonicalLexer.lex("value == :ready or value == :'not ready'").tokens;
     let tokens = TokenContext.project(lexical);
@@ -53,5 +60,6 @@ negative_context(): Bool ->
 pub self_test(): Bool ->
     positive_context()
         and positive_specialized_context()
+        and keyword_module_path_is_tight()
         and legacy_atoms_are_not_merged()
         and negative_context().

@@ -1,10 +1,9 @@
 module=std.css.properties.Cx
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=18243971805175594085
-interface_hash=9568806700369476262
-interface_doc_hash=17258327007445487207
-deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=17774282902924616056
+interface_hash=10609286346990008294
+interface_doc_hash=10809286578243533271
+deps=1
+std.css.Values=330909209718432688

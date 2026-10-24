@@ -25,6 +25,12 @@ pub(crate) enum VmAccountedSseError {
     MemoryPressureRejected,
 }
 
+impl From<VmSseError> for VmAccountedSseError {
+    fn from(error: VmSseError) -> Self {
+        Self::Stream(error)
+    }
+}
+
 /// Server-sent event envelope owned by the VM HTTP runtime.
 ///
 /// Inputs:
@@ -44,15 +50,7 @@ pub struct VmSseEvent {
     data: String,
 }
 
-/// Inspectable SSE stream state.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct VmSseStreamInfo {
-    pub(crate) pending_events: usize,
-    pub(crate) max_pending_events: usize,
-    pub(crate) max_event_bytes: usize,
-    pub(crate) closed: bool,
-    pub(crate) emitted_events: usize,
-}
+pub(crate) use terlan_http_native::sse_session::SseStreamInfo as VmSseStreamInfo;
 
 /// Inspectable heartbeat state for a browser-side live-template stream.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -173,24 +171,11 @@ pub(crate) struct VmSseDomPatchBackpressure {
 pub(crate) type VmSseEndpointPlan =
     terlan_http_native::channel_plan::SseEndpointPlan<super::ReplValue>;
 
-/// VM-owned bounded SSE stream queue.
-///
-/// Inputs:
-/// - Typed SSE events from handlers or actors.
-///
-/// Output:
-/// - Encoded SSE frames drained by HTTP streaming code.
-///
-/// Transformation:
-/// - Applies deterministic backpressure and close semantics without exposing
-///   host async runtime primitives or unbounded buffers.
+/// Test adapter for the package queue. Only VM memory ownership is modeled here;
+/// framing, bounds, close, and drain behavior use the production HTTP package.
 #[derive(Debug)]
 pub(crate) struct VmSseStream {
-    pending: VecDeque<VmSseEvent>,
-    max_pending_events: usize,
-    max_event_bytes: usize,
-    closed: bool,
-    emitted_events: usize,
+    session: terlan_http_native::sse_session::SseSession<()>,
 }
 
 /// SSE stream whose queued protocol buffers are owned by one VM process.
@@ -199,7 +184,7 @@ pub(crate) struct VmSseStream {
 pub(crate) struct VmAccountedSseStream {
     stream: VmSseStream,
     owner: VmProcessId,
-    allocations: VecDeque<VmSharedAllocationId>,
+    allocations: VecDeque<(VmSharedAllocationId, usize)>,
 }
 
 impl VmSseEvent {
@@ -424,66 +409,56 @@ impl VmSseStream {
         max_pending_events: usize,
         max_event_bytes: usize,
     ) -> Result<Self, VmSseError> {
-        if max_pending_events == 0 || max_event_bytes == 0 {
-            return Err(VmSseError::BackpressureExceeded);
-        }
         Ok(Self {
-            pending: VecDeque::new(),
-            max_pending_events,
-            max_event_bytes,
-            closed: false,
-            emitted_events: 0,
+            session: terlan_http_native::sse_session::SseSession::open(
+                terlan_http_native::channel_plan::SseEndpointPlan::new(
+                    max_pending_events,
+                    max_event_bytes,
+                )?,
+            ),
         })
     }
 
     /// Enqueues one typed event after validating size and stream state.
     #[cfg(test)]
     pub(crate) fn enqueue(&mut self, event: VmSseEvent) -> Result<(), VmSseError> {
-        self.validate_enqueue(&event)?;
-        self.pending.push_back(event);
-        Ok(())
+        self.enqueue_with(event, |_| Ok(()))
     }
 
-    #[cfg(test)]
-    fn validate_enqueue(&self, event: &VmSseEvent) -> Result<usize, VmSseError> {
-        if self.closed {
-            return Err(VmSseError::Closed);
-        }
-        if self.pending.len() >= self.max_pending_events {
-            return Err(VmSseError::BackpressureExceeded);
-        }
-        let encoded_bytes = event.encode()?.len();
-        if encoded_bytes > self.max_event_bytes {
-            return Err(VmSseError::EventTooLarge);
-        }
-        Ok(encoded_bytes)
+    fn enqueue_with<E: From<VmSseError>>(
+        &mut self,
+        event: VmSseEvent,
+        reserve: impl FnOnce(usize) -> Result<(), E>,
+    ) -> Result<(), E> {
+        let retry_ms = event
+            .retry_ms
+            .map(i64::try_from)
+            .transpose()
+            .map_err(|_| VmSseError::InvalidRetry)?;
+        self.session.enqueue_with(
+            event.id.as_deref(),
+            event.event.as_deref(),
+            retry_ms,
+            &event.data,
+            reserve,
+        )
     }
 
-    /// Encodes and removes the next queued SSE event.
+    /// Transfers the next already encoded package frame.
     #[cfg(test)]
-    pub(crate) fn flush_next(&mut self) -> Result<Option<Vec<u8>>, VmSseError> {
-        let Some(event) = self.pending.pop_front() else {
-            return Ok(None);
-        };
-        self.emitted_events += 1;
-        Ok(Some(event.encode()?))
+    pub(crate) fn flush_next(&mut self) -> Option<Vec<u8>> {
+        self.session.flush_next()
     }
 
     /// Closes the stream for new events while retaining already queued events.
     #[cfg(test)]
     pub(crate) fn close(&mut self) {
-        self.closed = true;
+        self.session.close();
     }
 
     /// Returns an inspectable stream snapshot.
     pub(crate) fn inspect(&self) -> VmSseStreamInfo {
-        VmSseStreamInfo {
-            pending_events: self.pending.len(),
-            max_pending_events: self.max_pending_events,
-            max_event_bytes: self.max_event_bytes,
-            closed: self.closed,
-            emitted_events: self.emitted_events,
-        }
+        self.session.inspect()
     }
 }
 
@@ -510,31 +485,32 @@ impl VmAccountedSseStream {
         processes: &mut VmProcessTable,
         event: VmSseEvent,
     ) -> Result<(), VmAccountedSseError> {
-        let encoded_bytes = self
-            .stream
-            .validate_enqueue(&event)
-            .map_err(VmAccountedSseError::Stream)?;
-        let decision = memory
-            .register_shared_allocation(
-                processes,
-                self.owner,
-                VmSharedAllocationKind::ProtocolBuffer,
-                encoded_bytes,
-            )
-            .map_err(VmAccountedSseError::Memory)?;
-        scheduler
-            .charge_memory_reductions(processes, self.owner, encoded_bytes)
-            .map_err(VmAccountedSseError::Memory)?;
-        if decision.pressure.outcome == VmMemoryPressureOutcome::HardLimitRejected {
-            return Err(VmAccountedSseError::MemoryPressureRejected);
-        }
-        let allocation = decision.allocation_id.ok_or_else(|| {
-            VmAccountedSseError::Memory(
-                "accounted SSE enqueue did not produce an allocation id".to_string(),
-            )
+        let mut reserved = None;
+        self.stream.enqueue_with(event, |encoded_bytes| {
+            let decision = memory
+                .register_shared_allocation(
+                    processes,
+                    self.owner,
+                    VmSharedAllocationKind::ProtocolBuffer,
+                    encoded_bytes,
+                )
+                .map_err(VmAccountedSseError::Memory)?;
+            scheduler
+                .charge_memory_reductions(processes, self.owner, encoded_bytes)
+                .map_err(VmAccountedSseError::Memory)?;
+            if decision.pressure.outcome == VmMemoryPressureOutcome::HardLimitRejected {
+                return Err(VmAccountedSseError::MemoryPressureRejected);
+            }
+            let allocation = decision.allocation_id.ok_or_else(|| {
+                VmAccountedSseError::Memory(
+                    "accounted SSE enqueue did not produce an allocation id".to_string(),
+                )
+            })?;
+            reserved = Some((allocation, encoded_bytes));
+            Ok(())
         })?;
-        self.stream.pending.push_back(event);
-        self.allocations.push_back(allocation);
+        self.allocations
+            .push_back(reserved.expect("successful enqueue reserved memory"));
         Ok(())
     }
 
@@ -545,11 +521,10 @@ impl VmAccountedSseStream {
         scheduler: &mut VmScheduler,
         processes: &mut VmProcessTable,
     ) -> Result<Option<Vec<u8>>, VmAccountedSseError> {
-        let Some(event) = self.stream.pending.front() else {
+        if self.stream.inspect().pending_events == 0 {
             return Ok(None);
-        };
-        let encoded = event.encode().map_err(VmAccountedSseError::Stream)?;
-        let allocation = self.allocations.front().copied().ok_or_else(|| {
+        }
+        let (allocation, encoded_bytes) = self.allocations.front().copied().ok_or_else(|| {
             VmAccountedSseError::Memory(
                 "accounted SSE queue is missing protocol-buffer ownership".to_string(),
             )
@@ -558,12 +533,10 @@ impl VmAccountedSseStream {
             .release_shared_allocation(processes, allocation, self.owner)
             .map_err(VmAccountedSseError::Memory)?;
         scheduler
-            .charge_memory_reductions(processes, self.owner, encoded.len())
+            .charge_memory_reductions(processes, self.owner, encoded_bytes)
             .map_err(VmAccountedSseError::Memory)?;
-        self.stream.pending.pop_front();
         self.allocations.pop_front();
-        self.stream.emitted_events += 1;
-        Ok(Some(encoded))
+        Ok(self.stream.session.flush_next())
     }
 
     /// Cancels the stream and atomically releases every pending protocol buffer.
@@ -574,18 +547,20 @@ impl VmAccountedSseStream {
         processes: &mut VmProcessTable,
     ) -> Result<usize, VmAccountedSseError> {
         let released_bytes = self
-            .stream
-            .pending
+            .allocations
             .iter()
-            .try_fold(0usize, |total, event| {
-                let bytes = event.encode().map_err(VmAccountedSseError::Stream)?.len();
-                total.checked_add(bytes).ok_or_else(|| {
+            .try_fold(0usize, |total, (_, bytes)| {
+                total.checked_add(*bytes).ok_or_else(|| {
                     VmAccountedSseError::Memory(
                         "accounted SSE cancellation byte size overflow".to_string(),
                     )
                 })
             })?;
-        let allocations = self.allocations.iter().copied().collect::<Vec<_>>();
+        let allocations = self
+            .allocations
+            .iter()
+            .map(|(id, _)| *id)
+            .collect::<Vec<_>>();
         let released = memory
             .release_shared_allocations(processes, &allocations, self.owner)
             .map_err(VmAccountedSseError::Memory)?;
@@ -593,8 +568,7 @@ impl VmAccountedSseStream {
             .charge_memory_reductions(processes, self.owner, released_bytes)
             .map_err(VmAccountedSseError::Memory)?;
         self.allocations.clear();
-        self.stream.pending.clear();
-        self.stream.close();
+        self.stream.session.discard_pending();
         Ok(released)
     }
 
@@ -666,48 +640,18 @@ pub fn endpoint_with_keep_alive(
 
 #[cfg(test)]
 fn encode_event_text(event: &VmSseEvent) -> Result<String, VmSseError> {
-    validate_line_field(event.id.as_deref()).map_err(|_| VmSseError::InvalidEventName)?;
-    validate_line_field(event.event.as_deref()).map_err(|_| VmSseError::InvalidEventName)?;
-    if event.retry_ms == Some(0) {
-        return Err(VmSseError::InvalidRetry);
-    }
-
-    let mut output = String::new();
-    if let Some(id) = &event.id {
-        output.push_str("id: ");
-        output.push_str(id);
-        output.push('\n');
-    }
-    if let Some(event_name) = &event.event {
-        output.push_str("event: ");
-        output.push_str(event_name);
-        output.push('\n');
-    }
-    if let Some(retry_ms) = event.retry_ms {
-        output.push_str("retry: ");
-        output.push_str(&retry_ms.to_string());
-        output.push('\n');
-    }
-    for line in event.data.lines() {
-        output.push_str("data: ");
-        output.push_str(line);
-        output.push('\n');
-    }
-    if event.data.ends_with('\n') {
-        output.push_str("data: \n");
-    }
-    output.push('\n');
-    Ok(output)
-}
-
-#[cfg(test)]
-fn validate_line_field(value: Option<&str>) -> Result<(), ()> {
-    match value {
-        Some(value) if value.contains('\n') || value.contains('\r') || value.contains('\0') => {
-            Err(())
-        }
-        _ => Ok(()),
-    }
+    let retry_ms = event
+        .retry_ms
+        .map(i64::try_from)
+        .transpose()
+        .map_err(|_| VmSseError::InvalidRetry)?;
+    terlan_http_native::encode_event(
+        event.id.as_deref(),
+        event.event.as_deref(),
+        retry_ms,
+        &event.data,
+    )
+    .map_err(|error| VmSseError::Codec(error.to_string()))
 }
 
 #[cfg(test)]

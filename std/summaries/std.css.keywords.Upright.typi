@@ -1,0 +1,6 @@
+//! Shared CSS keyword upright. Generated; do not edit.
+
+module std.css.keywords.Upright.
+
+pub type Upright =
+    Atom["upright"].

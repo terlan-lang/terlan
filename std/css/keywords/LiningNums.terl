@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword lining-nums. Generated; do not edit.
+ */
+module std.css.keywords.LiningNums.
+
+pub type LiningNums = Atom["lining-nums"].

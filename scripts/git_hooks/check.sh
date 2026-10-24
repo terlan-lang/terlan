@@ -6,6 +6,7 @@ echo 'pre-commit: Rust dependency security audit'
 make --no-print-directory rust-security-audit-check
 echo 'pre-commit: editor release contracts'
 make --no-print-directory editor-release-contract-check
+bash scripts/build_artifact_bootstrap_test.sh
 echo 'pre-commit: Rust formatting'
 cargo fmt --all -- --check
 echo 'pre-commit: build the staged compiler, VM, native worker, and service runtime'
@@ -13,6 +14,23 @@ cargo build --locked -p terlan --bin terlc --bin terlan-vm --bin terlan-native-w
 cargo build --locked -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
 terlc="$CARGO_TARGET_DIR/debug/terlc"
 export TERLC="$terlc"
+echo 'pre-commit: canonical executable size budget'
+cargo build --release --locked -p terlan -p terlan-test-orchestrator \
+  --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator
+cargo build --locked -p terlan-test-orchestrator
+TERLAN_REPOSITORY_ROOT="$PWD" "$terlc" run scripts/self_validation/BuildArtifactBudgetTest.terl \
+  -- --check-executables "$CARGO_TARGET_DIR"
+# Reuse the optimized compiler already required by the executable budget.
+terlc="$CARGO_TARGET_DIR/release/terlc"
+export TERLC="$terlc"
+echo 'pre-commit: standard-library release manifest'
+"$terlc" build tests/js/fixtures/JsConstructorTypesTest.terl --target js.browser \
+  --out-dir target/git-hooks-js-constructor-types
+TERLAN_RELEASE_MANIFEST_ROOT="$PWD" TERLAN_RELEASE_MANIFEST_TERLC="$terlc" \
+  "$terlc" test std/scripts/ReleaseManifestTest.terl
+echo 'pre-commit: proof release baseline'
+cargo build --locked -p terlan --bin terlan-quality --features quality-tools
+bash scripts/git_hooks/proof_baseline.sh
 echo 'pre-commit: Terlan formatting'
 make --no-print-directory -f crates/terlan/cli.mk terlan-format-check TERLAN_FORMAT_COMPILER="$terlc"
 typed_css_checked=false
@@ -23,8 +41,6 @@ if rg -q '^(std/css/|tools/css/|tools/web-toolchain/css-bundle|scripts/check_typ
   TERLC="$terlc" bash scripts/check_typed_css.sh
   typed_css_checked=true
 fi
-echo 'pre-commit: complete Playwright browser matrix'
-bash scripts/git_hooks/js_browser.sh
 echo 'pre-commit: hook policy and snapshot regression tests'
 "$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl
 bash scripts/git_hooks_test.sh
@@ -107,7 +123,7 @@ while IFS= read -r lane; do
         # The typed CSS gate checks every generated property in bounded batches
         # and executes the handwritten CSS tests and browser fixture.
         if [[ "$typed_css_checked" == true && "$path" == std/css/* ]]; then continue; fi
-        # JavaScript sources execute through the browser matrix above.
+        # JavaScript sources execute through the browser matrix below.
         if [[ "$path" == std/js/* || "$path" == tests/js/* ]]; then continue; fi
         if [[ "$path" == *.terl || "$path" == *.terls || "$path" == *.terli || "$path" == *terlan.toml ]]; then
           check_terlan_source "$path"
@@ -132,3 +148,6 @@ while IFS= read -r lane; do
     *) echo "Unknown pre-commit lane: $lane" >&2; exit 1 ;;
   esac
 done < "$plan"
+
+echo 'pre-commit: complete Playwright browser matrix'
+bash scripts/git_hooks/js_browser.sh

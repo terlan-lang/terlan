@@ -57,6 +57,13 @@ pub (list: List[T]) each(cb: (T) -> Unit): Unit.
 @pure
 pub (list: List[T]) first(): std.core.Option[T].
 
+/// Maps each value to a list and concatenates those lists in source order.
+///
+/// This ordinary Terlan implementation is also the semantic target for list
+/// comprehension desugaring; no backend-specific comprehension runtime exists.
+
+pub flat_map[A, B](values: List[A], callback: (A) -> List[B]): List[B].
+
 /// Returns whether a list contains no values.
 ///
 /// Input: one `List[T]`.

@@ -1,0 +1,80 @@
+/** Contracts preventing premature production authority transfer. */
+module self_host.ProductionAuthorityTest.
+
+import self_host.ProductionAuthority.{ProductionEvidence, ProductionHardeningEvidence}.
+import self_host.ProductionAuthority.
+import std.collections.List.
+
+@pure
+complete_hardening(): ProductionHardeningEvidence ->
+    ProductionHardeningEvidence(
+        true, true, true, true, true, true, true, true,
+        true, true, true, true, true, true, true, true,
+    ).
+
+@pure
+evidence(performance: Bool, trusted_base: Bool, exclusions: Bool, stage1: String, stage2: String): ProductionEvidence ->
+    ProductionEvidence(
+        true, true, true, true, true, true, true, true,
+        true, true, true, true, performance, true, trusted_base, exclusions,
+        stage1, stage2, stage1, stage2, complete_hardening(),
+    ).
+
+@pure
+complete(stage1: String, stage2: String): ProductionEvidence ->
+    evidence(true, true, true, stage1, stage2).
+
+@test
+pub complete_fixed_point_is_transferable_but_retains_recovery(): Bool ->
+    let decision = ProductionAuthority.evaluate(complete("sha256:same", "sha256:same"));
+    decision.transferable
+        and decision.retain_terlc0
+        and List.is_empty(decision.failures).
+
+@test
+pub convergence_does_not_waive_performance(): Bool ->
+    let decision = ProductionAuthority.evaluate(evidence(false, true, true, "sha256:same", "sha256:same"));
+    not decision.transferable
+        and decision.failures == ["performance-within-budget"].
+
+@test
+pub fixed_point_identity_must_be_non_empty_and_equal(): Bool ->
+    let empty = ProductionAuthority.evaluate(complete("", ""));
+    let mismatch = ProductionAuthority.evaluate(complete("sha256:one", "sha256:two"));
+    not empty.transferable
+        and empty.failures == ["stage-fixed-point"]
+        and not mismatch.transferable
+        and mismatch.failures == ["stage-fixed-point"].
+
+@test
+pub exclusions_and_missing_trusted_base_block_transfer(): Bool ->
+    let decision = ProductionAuthority.evaluate(evidence(true, false, false, "sha256:same", "sha256:same"));
+    not decision.transferable
+        and decision.failures == ["trusted-base-documented", "no-ad-hoc-exclusions"].
+
+@test
+pub hardening_evidence_is_mandatory(): Bool ->
+    let decision = ProductionAuthority.evaluate(ProductionEvidence(
+        true, true, true, true, true, true, true, true,
+        true, true, true, true, true, true, true, true,
+        "sha256:same", "sha256:same", "sha256:same", "sha256:same",
+    ));
+    not decision.transferable
+        and decision.failures == [
+            "pattern-semantics-authority",
+            "backend-language-complete",
+            "tooling-authority",
+            "nested-control-flow-complete",
+            "complete-pattern-surface",
+            "bootstrap-workarounds-removed",
+            "idiomatic-source-restored",
+            "pattern-decision-tree-complete",
+            "self-analysis-resource-bounds",
+            "compiler-regression-corpus-complete",
+            "minimal-trusted-base",
+            "rust-frontend-removed-from-normal-paths",
+            "post-cleanup-converged",
+            "dynamic-call-target-authority",
+            "target-independent-optimizer-authority",
+            "bounded-parallel-backend-authority",
+        ].

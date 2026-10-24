@@ -1,79 +1,25 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-color-4/#propdef-opacity
+ * The `opacity` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the opacity
+ * of an element. Opacity is the degree to which content behind an element is hidden, and is the
+ * opposite of transparency.
+ *
+ * Initial: 1. Inherited: no.
+ * Percentages: map to the range [0,1].
+ *
  * Grammar: <opacity-value>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-color-4/#propdef-opacity
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/opacity
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Opacity.
 
-import std.core.Float.
-import std.css.Values.
+import type std.css.Values.{Inherit, Initial, Percentage, Revert, RevertLayer, Unset}.
 
-import type std.core.Option.
-import type std.css.Values.{Percentage}.
-
-/**
- * A nominal, specification-constrained opacity value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    opacity: Value,
+    opacity: Float | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    opacity: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "opacity", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "opacity", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "opacity", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "opacity", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "opacity", css: "unset"}).
-
-/**
- * Constructs a opacity value from a typed number.
- */
-pub number(value: Float): Value ->
-    Value(Token {property: "opacity", css: std.core.Float.to_string(value)}).
-
-/**
- * Constructs a opacity value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "opacity", css: std.css.Values.percentage_css(value)}).

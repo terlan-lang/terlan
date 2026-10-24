@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword visibleStroke. Generated; do not edit.
+ */
+module std.css.keywords.VisibleStroke.
+
+pub type VisibleStroke = Atom["visibleStroke"].

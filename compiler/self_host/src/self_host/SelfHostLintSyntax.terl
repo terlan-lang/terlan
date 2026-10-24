@@ -1,0 +1,83 @@
+/** Stable diagnostic contracts shared with the public Terlan lint command. */
+module self_host.SelfHostLintSyntax.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.{Bool, Int, String}.
+
+
+pub struct LintDiagnostic {
+    path: String,
+    line: Int,
+    column: Int,
+    start_byte: Int,
+    end_byte: Int,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+    fix_available: Bool,
+}.
+
+pub constructor LintDiagnostic {
+    (
+        path: String,
+        line: Int,
+        column: Int,
+        start_byte: Int,
+        end_byte: Int,
+        rule_id: String,
+        rule_name: String,
+        severity: String,
+        message: String,
+        fix_available: Bool,
+    ): LintDiagnostic -> LintDiagnostic {
+        path: path,
+        line: line,
+        column: column,
+        start_byte: start_byte,
+        end_byte: end_byte,
+        rule_id: rule_id,
+        rule_name: rule_name,
+        severity: severity,
+        message: message,
+        fix_available: fix_available,
+    }
+}.
+
+
+pub struct LintReport {
+    valid_source: Bool,
+    diagnostics: List[LintDiagnostic],
+    message: String,
+}.
+
+pub constructor LintReport {
+    (valid_source: Bool, diagnostics: List[LintDiagnostic], message: String): LintReport ->
+        LintReport {
+            valid_source: valid_source,
+            diagnostics: diagnostics,
+            message: message,
+        }
+}.
+
+@pure
+pub render(value: LintDiagnostic): String ->
+    String.concat([
+        value.path,
+        ":", value.line.to_string(),
+        ":", value.column.to_string(),
+        ": ", value.severity,
+        "[", value.rule_id, ":", value.rule_name, "]: ",
+        value.message,
+        if { value.fix_available -> " [fix available]"; true -> "" },
+    ]).
+
+@pure
+pub render_all(values: List[LintDiagnostic]): String ->
+    case values {
+        [] -> "";
+        [value] -> render(value);
+        [value | rest] -> String.concat([render(value), "\n", render_all(rest)])
+    }.

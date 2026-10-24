@@ -1,0 +1,71 @@
+/**
+ * Regression checks for benchmark evidence and ownership of output paths.
+ */
+module compilation_benchmark.RunnerTest.
+
+import compilation_benchmark.{Evidence, Runner}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.io.Directory.{create_all, create_temporary, remove_all}.
+import std.io.File.{exists, read_text, write_text}.
+
+@test
+pub existing_output_is_never_overwritten(): Bool ->
+    let {
+        Ok(directory) <- create_temporary("terlan-compilation-benchmark-owner-");
+        Ok(_) <- write_text(String.append(directory, "/sentinel"), "preserve")
+    } else {
+        _ -> false
+    };
+    (let refused = not Runner.run("missing-compiler", directory, 1, 1, false); let preserved = read_text(String.append(directory, "/sentinel")) == Ok("preserve"); let removed = remove_all(directory) == Ok(Unit); refused and preserved and removed).
+
+@test
+pub invalid_dimensions_do_not_create_output(): Bool ->
+    let Ok(directory) <- create_temporary("terlan-compilation-benchmark-bounds-") else {
+        _ -> false
+    };
+    (let child = String.append(directory, "/output"); let zero = not Runner.run("missing-compiler", child, 0, 1, false); let excessive = not Runner.run("missing-compiler", child, 1, 257, false); let absent = not exists(child); let removed = remove_all(directory) == Ok(Unit); zero and excessive and absent and removed).
+
+@test
+pub native_activity_counts_attempts_and_rejects_malformed_logs(): Bool ->
+    let Ok(directory) <- create_temporary("terlan-compilation-benchmark-evidence-") else {
+        _ -> false
+    };
+    (let path = String.append(directory, "/activity.jsonl");
+let missing = Evidence.native_work(path) == 0;
+let written = write_text(path, String.concat([event("started"), event("completed"), event("started")])) == Ok(Unit);
+let counted = Evidence.native_work(path) == 2;
+let poisoned = write_text(path, "{\"state\":\"started\"}\ntruncated\n") == Ok(Unit);
+let rejected = Evidence.native_work(path) == -1;
+let unknown = write_text(path, event("unknown")) == Ok(Unit);
+let rejected_unknown = Evidence.native_work(path) == -1;
+let removed = remove_all(directory) == Ok(Unit);
+missing
+    and written
+    and counted
+    and poisoned
+    and rejected
+    and unknown
+    and rejected_unknown
+    and removed).
+
+event(state: String): String ->
+    String.concat(
+        [
+            "{\"schema\":\"terlan.native-build-activity.v1\",\"operation\":\"module-object\",\"state\":\"",
+            state,
+            "\"}\n",
+        ],
+    ).
+
+@test
+pub stdlib_dependency_sidecars_are_part_of_the_input_identity(): Bool ->
+    let {
+        Ok(directory) <- create_temporary("terlan-compilation-stdlib-");
+        Ok(_) <- create_all(String.append(directory, "/std"));
+        Ok(_) <- write_text(String.append(directory, "/std/Source.terl"), "module std.Source.\n");
+        Ok(_) <- write_text(String.append(directory, "/std/Source.typi.deps"), "first")
+    } else {
+        _ -> false
+    };
+    (let original = Evidence.stdlib_digest(directory); let changed = write_text(String.append(directory, "/std/Source.typi.deps"), "second") == Ok(Unit); let current = Evidence.stdlib_digest(directory); let removed = remove_all(directory) == Ok(Unit); changed and original != current and removed).

@@ -1,93 +1,21 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-glyph-orientation-vertical
+ * Controls glyph rotation in vertical SVG text. This legacy property is deprecated; use
+ * text-orientation for new layouts.
+ *
  * Grammar: auto | 0deg | 90deg | 0 | 90
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-glyph-orientation-vertical
+ *
+ * Author guide: https://www.w3.org/TR/SVG11/text.html#GlyphOrientationVerticalProperty
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.GlyphOrientationVertical.
 
-import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained glyph-orientation-vertical value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    glyph_orientation_vertical: Value,
+    glyph_orientation_vertical: Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    glyph_orientation_vertical: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword 0.
- */
-pub keyword_0(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "0"}).
-
-/**
- * Returns the CSS keyword 0deg.
- */
-pub keyword_0deg(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "0deg"}).
-
-/**
- * Returns the CSS keyword 90.
- */
-pub keyword_90(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "90"}).
-
-/**
- * Returns the CSS keyword 90deg.
- */
-pub keyword_90deg(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "90deg"}).
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "unset"}).

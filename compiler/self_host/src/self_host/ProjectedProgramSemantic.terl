@@ -9,7 +9,6 @@ import self_host.ProjectedSemanticAnalysis.
 import self_host.ProjectedTypeEnvironment.
 
 
-@pure
 pub analyze(
     source: ProjectedFrontendModule,
     program: ResolvedCompilationBundle,

@@ -1,0 +1,129 @@
+/**
+ * Stable identities and actual native work observed during one benchmark.
+ */
+module compilation_benchmark.Evidence.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.crypto.Hash.{sha256_selected_files}.
+import std.data.Json.
+import std.io.Directory.{files_recursive_excluding}.
+import std.io.File.{exists, read_text}.
+import std.system.Platform.
+
+import type std.core.Option.
+import type std.data.Json.
+
+selected(root: String, files: List[String], accumulated: List[String]): List[String] ->
+    case files {
+        [] -> reverse(accumulated, []);
+        [path | rest] ->
+            let suffix =
+                path.ends_with(".terl")
+                    or path.ends_with(".terli")
+                    or path.ends_with(".typi")
+                    or path.ends_with(".typi.deps")
+                    or path.ends_with(".toml");
+            let prefix = String.append(root, "/");
+            if {
+                suffix and path.starts_with(prefix) -> let relative = path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size());
+                selected(root, rest, [relative | accumulated]);
+                true -> selected(root, rest, accumulated)
+            }
+    }.
+
+pub stdlib_digest(repository: String): Option[String] ->
+    let root = String.append(repository, "/std");
+    let {
+        Ok(files) <- files_recursive_excluding(root, ["target", ".git", ".terlan", "native"]);
+        Ok(digest) <- sha256_selected_files(root, selected(root, files, []))
+    } else {
+        _ -> None
+    };
+    Some(digest).
+
+work_lines(lines: List[String], total: Int): Int ->
+    case lines {
+        [] -> total;
+        [line | rest] ->
+            if {
+                line == "" -> work_lines(rest, total);
+                true -> let {
+                    Ok(value) <- Json.parse(line);
+                    Ok(state_value) <- value.get("state");
+                    Ok(state) <- state_value.as_string();
+                    Ok(schema_value) <- value.get("schema");
+                    Ok("terlan.native-build-activity.v1") <- schema_value.as_string();
+                    Ok(operation_value) <- value.get("operation");
+                    Ok(operation) <- operation_value.as_string();
+                    true <-
+                        operation == "module-object"
+                            or operation == "application-object"
+                            or operation == "native-link";
+                    true <-
+                        state == "started"
+                            or state == "spawned"
+                            or state == "completed"
+                            or state == "failed"
+                } else {
+                    _ -> -1
+                };
+                work_lines(
+                    rest,
+                    total + if {
+    state == "started" -> 1;
+    true -> 0
+},
+                )
+            }
+    }.
+
+pub native_work(path: String): Int ->
+    if {
+        not exists(path) -> 0;
+        true -> case read_text(path) {
+            Ok(text) -> work_lines(text.split("\n"), 0);
+            Err(_) -> -1
+        }
+    }.
+
+reverse(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse(rest, [value | output])
+    }.
+
+/**
+ * Records host availability explicitly; unavailable metrics are never invented.
+ */
+pub host_snapshot(): Json ->
+    let host = Platform.current();
+    let metrics = Platform.current_metrics();
+    let result = Json.object();
+    let _os = result.put("operating_system", Json.string(host.operating_system));
+    let _architecture = result.put("architecture", Json.string(host.architecture));
+    let _available = result.put("metrics_available", Json.bool(metrics.available));
+    let _message = result.put("metrics_message", Json.string(metrics.message));
+    let _kernel = result.put("kernel", Json.string(metrics.kernel));
+    let _cpu = result.put("cpu_model", Json.string(metrics.cpu_model));
+    let _memory = result.put("memory_bytes", Json.int(metrics.memory_bytes));
+    let _free = result.put("available_memory_bytes", Json.int(metrics.available_memory_bytes));
+    let _governor = result.put("cpu_governor", Json.string(metrics.cpu_governor));
+    let affinity = Json.array();
+    let _cpus = push_ints(affinity, metrics.cpu_affinity);
+    let _affinity = result.put("cpu_affinity", affinity);
+    let _load =
+        case Json.float(metrics.load_1m) {
+            Ok(load) -> result.put("load_1m", load);
+            Err(_) -> result.put("load_1m", Json.string("unavailable"))
+        };
+    result.
+
+push_ints(mut result: Json, values: List[Int]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let _pushed = result.push(Json.int(value));
+            push_ints(result, rest)
+    }.

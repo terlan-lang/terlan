@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword pan-up. Generated; do not edit.
+ */
+module std.css.keywords.PanUp.
+
+pub type PanUp = Atom["pan-up"].

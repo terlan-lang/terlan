@@ -1,128 +1,72 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-basis
+ * The `flex-basis` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * initial main size of a `flex item`. It sets the size of the content box unless otherwise set with
+ * `box-sizing`.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: refer to the flex container's inner main size.
+ *
+ * Keyword effects:
+ * - auto: Retrieves the value of the main size property as the used 'flex-basis'.
+ * - content: Indicates automatic sizing, based on the flex item's content.
+ * - fit-content: Use the fit-content inline size or fit-content block size, as appropriate to the
+ * writing mode. See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/width
+ * - max-content: Use the max-content inline size or max-content block size, as appropriate to the
+ * writing mode. See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/width
+ * - min-content: Use the min-content inline size or min-content block size, as appropriate to the
+ * writing mode. See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/width
+ * - stretch: Sets the width of the element's [margin
+ * box](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics/Box_model#parts_of_a_box)
+ * to the width of its [containing
+ * block](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Display/Containing_block#identifying_the_containing_block).
+ * It attempts to make the margin box fill the available space in the containing block, so in a way
+ * behaving similar to `100%` but applying the resulting size to the margin box rather than the box
+ * determined by
+ * [box-sizing](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/box-sizing).
+ * See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/width
+ *
  * Grammar: content | <'width'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-basis
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-basis
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FlexBasis.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
+import std.css.keywords.{Auto, Content, FitContent, MaxContent, MinContent, Stretch}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained flex-basis value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    flex_basis: Value,
+    flex_basis: Content | Auto | Stretch | MinContent | MaxContent | FitContent | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the flex-basis length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub struct OptionalProperty {
-    flex_basis: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "flex-basis", css: "auto"}).
-
-/**
- * Returns the CSS keyword contain.
- */
-pub contain(): Value ->
-    Value(Token {property: "flex-basis", css: "contain"}).
-
-/**
- * Returns the CSS keyword content.
- */
-pub content(): Value ->
-    Value(Token {property: "flex-basis", css: "content"}).
-
-/**
- * Returns the CSS keyword fit-content.
- */
-pub fit_content(): Value ->
-    Value(Token {property: "flex-basis", css: "fit-content"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "flex-basis", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "flex-basis", css: "initial"}).
-
-/**
- * Returns the CSS keyword max-content.
- */
-pub max_content(): Value ->
-    Value(Token {property: "flex-basis", css: "max-content"}).
-
-/**
- * Returns the CSS keyword min-content.
- */
-pub min_content(): Value ->
-    Value(Token {property: "flex-basis", css: "min-content"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "flex-basis", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "flex-basis", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword stretch.
- */
-pub stretch(): Value ->
-    Value(Token {property: "flex-basis", css: "stretch"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "flex-basis", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a flex-basis value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "flex-basis", css: std.css.Values.length_css(value)}));
-        false -> None
+pub length(value: Length): Option[Checked] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Checked(serialize("flex-basis", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a flex-basis value.
+ * Checks the flex-basis percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "flex-basis", css: std.css.Values.percentage_css(value)}));
-        false -> None
+pub percentage(value: Percentage): Option[Checked] ->
+    case percentage_amount(value) >= 0 {
+        true -> Some(Checked(serialize("flex-basis", percentage_css(value))));
+        false -> Absent
     }.

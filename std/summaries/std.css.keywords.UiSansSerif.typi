@@ -1,0 +1,6 @@
+//! Shared CSS keyword ui-sans-serif. Generated; do not edit.
+
+module std.css.keywords.UiSansSerif.
+
+pub type UiSansSerif =
+    Atom["ui-sans-serif"].

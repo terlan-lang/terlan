@@ -1,0 +1,324 @@
+/** Target-independent, semantics-preserving typed Core optimization. */
+module self_host.SelfHostCoreOptimize.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, String}.
+
+import self_host.SelfHostIrSyntax.{IrBlock, IrFunction, IrInstruction, IrModule, IrRegion, IrTerminator, IrTryRegion}.
+
+
+@pure
+contains(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> current == value or contains(value, rest)
+    }.
+
+@pure
+add_unique(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> if {
+            contains(value, output) -> add_unique(rest, output);
+            true -> add_unique(rest, [value | output])
+        }
+    }.
+
+@pure
+expand_reachable(blocks: List[IrBlock], labels: List[String], output: List[String]): List[String] ->
+    case blocks {
+        [] -> output;
+        [block | rest] -> if {
+            contains(block.label, labels) ->
+                expand_reachable(
+                    rest,
+                    labels,
+                    add_unique(block.terminator.targets, output),
+                );
+            true -> expand_reachable(rest, labels, output)
+        }
+    }.
+
+@pure
+reachable(blocks: List[IrBlock], labels: List[String]): List[String] ->
+    let expanded = expand_reachable(blocks, labels, labels);
+    if {
+        List.length(expanded) == List.length(labels) -> expanded;
+        true -> reachable(blocks, expanded)
+    }.
+
+
+struct PhiInputs {
+    operands: List[String],
+    operand_types: List[Option[String]],
+}.
+
+constructor PhiInputs {
+    (operands: List[String], operand_types: List[Option[String]]): PhiInputs ->
+        PhiInputs { operands: operands, operand_types: operand_types }
+}.
+
+@pure
+reverse_strings(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_strings(rest, [value | output])
+    }.
+
+@pure
+reverse_types(values: List[Option[String]], output: List[Option[String]]): List[Option[String]] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_types(rest, [value | output])
+    }.
+
+@pure
+phi_inputs_at(
+    operands: List[String],
+    operand_types: List[Option[String]],
+    labels: List[String],
+    output_operands: List[String],
+    output_types: List[Option[String]],
+): Option[PhiInputs] ->
+    case operands {
+        [] -> case operand_types {
+            [] -> Some(PhiInputs(
+                reverse_strings(output_operands, List.new[String]()),
+                reverse_types(output_types, List.new[Option[String]]()),
+            ));
+            _ -> None
+        };
+        [predecessor | [value | rest]] -> case operand_types {
+            [predecessor_type | [value_type | type_rest]] -> if {
+                contains(predecessor, labels) -> phi_inputs_at(
+                    rest,
+                    type_rest,
+                    labels,
+                    [value | [predecessor | output_operands]],
+                    [value_type | [predecessor_type | output_types]],
+                );
+                true -> phi_inputs_at(rest, type_rest, labels, output_operands, output_types)
+            };
+            _ -> None
+        };
+        _ -> None
+    }.
+
+@pure
+rewrite_instruction(value: IrInstruction, labels: List[String]): IrInstruction ->
+    let nested = optimize_try_region(value.try_region);
+    if {
+        value.opcode != "phi" -> IrInstruction(
+            value.opcode,
+            value.result,
+            value.operands,
+            value.operand_types,
+            value.type_name,
+            value.continuation_ordinal,
+            nested,
+        );
+        true -> case phi_inputs_at(
+            value.operands,
+            value.operand_types,
+            labels,
+            List.new[String](),
+            List.new[Option[String]](),
+        ) {
+            None -> IrInstruction(
+                value.opcode,
+                value.result,
+                value.operands,
+                value.operand_types,
+                value.type_name,
+                value.continuation_ordinal,
+                nested,
+            );
+            Some(inputs) -> case inputs.operands {
+                [_predecessor, operand] -> case inputs.operand_types {
+                    [_predecessor_type, operand_type] -> IrInstruction(
+                        "move",
+                        value.result,
+                        [operand],
+                        [operand_type],
+                        value.type_name,
+                        value.continuation_ordinal,
+                        nested,
+                    );
+                    _ -> IrInstruction(
+                        value.opcode,
+                        value.result,
+                        inputs.operands,
+                        inputs.operand_types,
+                        value.type_name,
+                        value.continuation_ordinal,
+                        nested,
+                    )
+                };
+                _ -> IrInstruction(
+                    value.opcode,
+                    value.result,
+                    inputs.operands,
+                    inputs.operand_types,
+                    value.type_name,
+                    value.continuation_ordinal,
+                    nested,
+                )
+            }
+        }
+    }.
+
+@pure
+rewrite_instructions(values: List[IrInstruction], labels: List[String]): List[IrInstruction] ->
+    case values {
+        [] -> List.new[IrInstruction]();
+        [value | rest] -> [rewrite_instruction(value, labels) | rewrite_instructions(rest, labels)]
+    }.
+
+@pure
+predecessor_labels(
+    target: String,
+    values: List[IrBlock],
+    reachable_labels: List[String],
+): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> if {
+            contains(value.label, reachable_labels)
+                and contains(target, value.terminator.targets) -> [
+                    value.label | predecessor_labels(target, rest, reachable_labels)
+                ];
+            true -> predecessor_labels(target, rest, reachable_labels)
+        }
+    }.
+
+literal_bool(name: String, values: List[IrInstruction]): Option[Bool] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.result == Some(name)
+                and value.opcode == "load-literal"
+                and value.type_name == "Bool" -> case value.operands {
+                    ["true"] -> Some(true);
+                    ["false"] -> Some(false);
+                    _ -> literal_bool(name, rest)
+                };
+            true -> literal_bool(name, rest)
+        }
+    }.
+
+simplify_terminator(value: IrBlock): IrBlock ->
+    if {
+        value.terminator.opcode != "branch" -> value;
+        true -> case value.terminator.operands {
+            [condition] -> case value.terminator.targets {
+                [selected, fallback] -> case literal_bool(condition, value.instructions) {
+                    Some(true) -> IrBlock(
+                        value.label,
+                        value.instructions,
+                        IrTerminator("jump", List.new[String](), [selected]),
+                    );
+                    Some(false) -> IrBlock(
+                        value.label,
+                        value.instructions,
+                        IrTerminator("jump", List.new[String](), [fallback]),
+                    );
+                    None -> value
+                };
+                _ -> value
+            };
+            _ -> value
+        }
+    }.
+
+simplify_terminators(values: List[IrBlock]): List[IrBlock] ->
+    case values {
+        [] -> List.new[IrBlock]();
+        [value | rest] -> [simplify_terminator(value) | simplify_terminators(rest)]
+    }.
+
+filter_blocks(
+    values: List[IrBlock],
+    all: List[IrBlock],
+    labels: List[String],
+): List[IrBlock] ->
+    case values {
+        [] -> List.new[IrBlock]();
+        [value | rest] -> if {
+            contains(value.label, labels) -> [IrBlock(
+                value.label,
+                rewrite_instructions(
+                    value.instructions,
+                    predecessor_labels(value.label, all, labels),
+                ),
+                value.terminator,
+            ) | filter_blocks(rest, all, labels)];
+            true -> filter_blocks(rest, all, labels)
+        }
+    }.
+
+@pure
+blocks(values: List[IrBlock]): List[IrBlock] ->
+    let simplified = simplify_terminators(values);
+    case simplified {
+        [] -> List.new[IrBlock]();
+        [entry | _] ->
+            let labels = reachable(simplified, [entry.label]);
+            filter_blocks(simplified, simplified, labels)
+    }.
+
+@pure
+optimize_region(value: IrRegion): IrRegion ->
+    IrRegion(
+        value.label,
+        value.parameters,
+        blocks(value.blocks),
+        value.result,
+        value.type_name,
+    ).
+
+@pure
+optimize_regions(values: List[IrRegion]): List[IrRegion] ->
+    case values {
+        [] -> List.new[IrRegion]();
+        [value | rest] -> [optimize_region(value) | optimize_regions(rest)]
+    }.
+
+@pure
+optimize_try_region(value: Option[IrTryRegion]): Option[IrTryRegion] ->
+    case value {
+        None -> None;
+        Some(region) -> Some(IrTryRegion(
+            optimize_region(region.protected),
+            optimize_region(region.success),
+            optimize_region(region.failure),
+            optimize_regions(region.cleanup),
+        ))
+    }.
+
+@pure
+function(value: IrFunction): IrFunction ->
+    IrFunction(
+        value.module_name,
+        value.name,
+        value.arity,
+        value.capture_count,
+        value.receiver_mutable,
+        value.receiver_command,
+        value.parameters,
+        value.return_type,
+        blocks(value.blocks),
+        value.native_symbol,
+    ).
+
+@pure
+functions(values: List[IrFunction]): List[IrFunction] ->
+    case values {
+        [] -> List.new[IrFunction]();
+        [value | rest] -> [function(value) | functions(rest)]
+    }.
+
+/** Optimizes one validated typed Core module without consulting its target. */
+@pure
+pub optimize(value: IrModule): IrModule ->
+    IrModule(value.name, value.structs, functions(value.functions)).

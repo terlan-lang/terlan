@@ -1,0 +1,8 @@
+module=std.css.keywords.Blink
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=2002174155802649809
+interface_hash=457510292881393449
+interface_doc_hash=12660157549134203626
+deps=0

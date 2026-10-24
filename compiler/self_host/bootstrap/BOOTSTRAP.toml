@@ -5,6 +5,9 @@ version = 1
 [stage0]
 implementation = "rust"
 artifact = "target/bootstrap/terlc0/terlc"
+publisher = "compiler/self_host/scripts/native_seed_image.sh"
+runtime = "target/bootstrap/stage0/runtime/terlan-vm"
+native_image = "target/bootstrap/stage0/image/terlan-self-host.tvm"
 source = "crates/terlan"
 
 [stage1]
@@ -21,6 +24,8 @@ built_by = "stage1"
 
 [comparison]
 schema = "terlan.self-host.bootstrap-comparison.v1"
+required_transitions = ["stage0-to-stage1", "stage1-to-stage2"]
+authority = "self_host.SelfHostBootstrapTool.compare_generations"
 canonical_layers = [
   "tokens",
   "source-spans",

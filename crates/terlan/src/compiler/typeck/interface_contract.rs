@@ -386,15 +386,7 @@ pub(super) fn check_interface_annotations(
     names.extend(primitive_type_names());
     names.extend(
         [
-            "Binary",
-            "Number",
-            "Atom",
-            "Term",
-            "Dynamic",
-            "Never",
-            "Text",
-            "List",
-            "FixedArray",
+            "Binary", "Number", "Atom", "Term", "Dynamic", "Never", "Text", "List", "Array",
         ]
         .map(str::to_string),
     );
@@ -403,16 +395,14 @@ pub(super) fn check_interface_annotations(
         .map(|name| (name.clone(), 0))
         .collect::<HashMap<_, _>>();
     arities.insert("List".to_string(), 1);
-    arities.insert("FixedArray".to_string(), 2);
+    arities.insert("Array".to_string(), 2);
     let own = syntax_module_output_to_interface(module);
     for interface in resolved.interface_map.values().chain(std::iter::once(&own)) {
         for name in &interface.public_types {
-            for path in [
+            arities.insert(
                 format!("{}.{}", interface.module, name),
-                crate::terlan_hir::public_type_path(&interface.module, name),
-            ] {
-                arities.insert(path, interface.type_params.get(name).map_or(0, Vec::len));
-            }
+                interface.type_params.get(name).map_or(0, Vec::len),
+            );
         }
     }
     for (name, imported) in &resolved.imported_types {
@@ -685,7 +675,7 @@ fn check_named_type(
                 check_named_type(arg, names, arities, errors);
             }
         }
-        Type::List(ty) | Type::Existential { body: ty, .. } | Type::FixedArray { elem: ty, .. } => {
+        Type::List(ty) | Type::Existential { body: ty, .. } | Type::Array { elem: ty, .. } => {
             check_named_type(ty, names, arities, errors)
         }
         Type::Tuple(types) | Type::Union(types) | Type::Apply { args: types, .. } => {

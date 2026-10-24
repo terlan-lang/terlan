@@ -1,150 +1,61 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-overflow-3/#propdef-overflow
+ * The `overflow` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets the desired behavior when content does not fit in the element's padding box
+ * (overflows) in the horizontal and/or vertical direction.
+ *
+ * Initial: visible. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: Overflow content is clipped at the element's padding box. When overflowing, the element
+ * box is a scroll container displaying scroll bars.
+ * - clip: Overflow content is clipped at the element's _overflow clip edge_ defined by the
+ * `overflow-clip-margin` property. The element box is not a scroll container, clipped content is
+ * not visible, and programmatic scrolling is not supported.
+ * - hidden: Overflow content is clipped at the element's padding box, hiding the clipped content.
+ * When overflowing, the element box is a `scroll container` with no scroll bars; scrolling is still
+ * possible via other methods including tabbing to hidden focusable elements, properties such as
+ * `scrollLeft` property, and methods like `scrollTo()`.
+ * - scroll: Overflow content is clipped at the element's padding box. Whether overflowing or not,
+ * the element box is always a scroll container displaying scroll bars.
+ * - visible: Overflow content is not clipped and may be visible outside the element's padding box.
+ * The element box is not a `scroll container`. This is the default value.
+ *
  * Grammar: <'overflow-block'>{1,2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-overflow-3/#propdef-overflow
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Overflow.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, Clip, Hidden, Scroll, Visible}.
 
-/**
- * A nominal, specification-constrained overflow value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-/**
- * A single non-global overflow shorthand component.
- */
-pub opaque type Component = Token.
+pub type Component = Visible | Hidden | Clip | Scroll | Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Checked = {Atom["css_parts"], List[Component]}.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    overflow: Value,
+    overflow: Visible | Hidden | Clip | Scroll | Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Supplies 1 components in grammar order.
  */
-pub struct OptionalProperty {
-    overflow: std.core.Option[Value],
-}.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Returns the CSS keyword auto.
+ * Supplies 2 components in grammar order.
  */
-pub auto(): Value ->
-    Value(Token {property: "overflow", css: "auto"}).
-
-/**
- * Returns the CSS keyword clip.
- */
-pub clip(): Value ->
-    Value(Token {property: "overflow", css: "clip"}).
-
-/**
- * Returns the CSS keyword hidden.
- */
-pub hidden(): Value ->
-    Value(Token {property: "overflow", css: "hidden"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "overflow", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "overflow", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "overflow", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "overflow", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword scroll.
- */
-pub scroll(): Value ->
-    Value(Token {property: "overflow", css: "scroll"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "overflow", css: "unset"}).
-
-/**
- * Returns the CSS keyword visible.
- */
-pub visible(): Value ->
-    Value(Token {property: "overflow", css: "visible"}).
-
-/**
- * Constructs one overflow shorthand component.
- */
-pub component_auto(): Component ->
-    Component(Token {property: "overflow", css: "auto"}).
-
-/**
- * Constructs one overflow shorthand component.
- */
-pub component_clip(): Component ->
-    Component(Token {property: "overflow", css: "clip"}).
-
-/**
- * Constructs one overflow shorthand component.
- */
-pub component_hidden(): Component ->
-    Component(Token {property: "overflow", css: "hidden"}).
-
-/**
- * Constructs one overflow shorthand component.
- */
-pub component_scroll(): Component ->
-    Component(Token {property: "overflow", css: "scroll"}).
-
-/**
- * Constructs one overflow shorthand component.
- */
-pub component_visible(): Component ->
-    Component(Token {property: "overflow", css: "visible"}).
-
-/**
- * Serializes a library-owned shorthand component.
- */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
-
-/**
- * Combines 1 typed components in specification order.
- */
-pub single(first: Component): Value ->
-    Value(Token {property: "overflow", css: component_css(first)}).
-
-/**
- * Combines 2 typed components in specification order.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(Token {property: "overflow", css: component_css(first) + " " + component_css(second)}).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

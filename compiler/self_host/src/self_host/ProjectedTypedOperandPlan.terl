@@ -1,0 +1,155 @@
+/** Derives operand type evidence for canonical semantic IR instructions. */
+module self_host.ProjectedTypedOperandPlan.
+
+import std.core.String.
+
+import self_host.SelfHostIrSyntax.{IrParameter}.
+import self_host.SelfHostSemanticIrSyntax.{
+    SemanticBlockPlan,
+    SemanticFunctionPlan,
+    SemanticInstructionPlan,
+    SemanticModulePlan
+}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Float, Int, String}.
+
+pub struct OperandTypeBinding {
+    name: String,
+    type_name: String,
+}.
+
+pub constructor OperandTypeBinding {
+    (name: String, type_name: String): OperandTypeBinding ->
+        OperandTypeBinding { name: name, type_name: type_name }
+}.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+parameter_bindings(values: List[IrParameter]): List[OperandTypeBinding] ->
+    case values {
+        [] -> List.new[OperandTypeBinding]();
+        [value | rest] -> [OperandTypeBinding(value.name, value.type_name)
+            | parameter_bindings(rest)]
+    }.
+
+@pure
+instruction_binding(value: SemanticInstructionPlan): List[OperandTypeBinding] ->
+    case value.result {
+        None -> List.new[OperandTypeBinding]();
+        Some(name) -> case value.resolved_type {
+            None -> List.new[OperandTypeBinding]();
+            Some(type_name) -> [OperandTypeBinding(name, type_name)]
+        }
+    }.
+
+@pure
+instruction_bindings(values: List[SemanticInstructionPlan]): List[OperandTypeBinding] ->
+    case values {
+        [] -> List.new[OperandTypeBinding]();
+        [value | rest] -> append(instruction_binding(value), instruction_bindings(rest))
+    }.
+
+@pure
+block_bindings(values: List[SemanticBlockPlan]): List[OperandTypeBinding] ->
+    case values {
+        [] -> List.new[OperandTypeBinding]();
+        [value | rest] -> append(instruction_bindings(value.instructions), block_bindings(rest))
+    }.
+
+@pure
+lookup(name: String, values: List[OperandTypeBinding]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | _rest] where value.name == name -> Some(value.type_name);
+        [_value | rest] -> lookup(name, rest)
+    }.
+
+@pure
+literal_type(value: String): Option[String] ->
+    if {
+        value == "true" or value == "false" -> Some("Bool");
+        String.starts_with(value, "\"") -> Some("String");
+        Int.from_string(value) != None -> Some("Int");
+        Float.from_string(value) != None -> Some("Float");
+        true -> None
+    }.
+
+@pure
+operand_type(value: String, bindings: List[OperandTypeBinding]): Option[String] ->
+    case lookup(value, bindings) {
+        Some(type_name) -> Some(type_name);
+        None -> literal_type(value)
+    }.
+
+@pure
+operand_types(
+    values: List[String],
+    bindings: List[OperandTypeBinding],
+): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> [operand_type(value, bindings) | operand_types(rest, bindings)]
+    }.
+
+@pure
+instructions(
+    values: List[SemanticInstructionPlan],
+    bindings: List[OperandTypeBinding],
+): List[SemanticInstructionPlan] ->
+    case values {
+        [] -> List.new[SemanticInstructionPlan]();
+        [value | rest] -> [SemanticInstructionPlan(
+            value.opcode,
+            value.result,
+            value.operands,
+            operand_types(value.operands, bindings),
+            value.resolved_type,
+            value.continuation_ordinal,
+        ) | instructions(rest, bindings)]
+    }.
+
+@pure
+blocks(
+    values: List[SemanticBlockPlan],
+    bindings: List[OperandTypeBinding],
+): List[SemanticBlockPlan] ->
+    case values {
+        [] -> List.new[SemanticBlockPlan]();
+        [value | rest] -> [SemanticBlockPlan(
+            value.label,
+            instructions(value.instructions, bindings),
+            value.terminator,
+        ) | blocks(rest, bindings)]
+    }.
+
+@pure
+function(value: SemanticFunctionPlan): SemanticFunctionPlan ->
+    let bindings = append(parameter_bindings(value.parameters), block_bindings(value.blocks));
+    SemanticFunctionPlan(
+        value.module_name,
+        value.name,
+        value.arity,
+        value.capture_count,
+        value.receiver_mutable,
+        value.receiver_command,
+        value.parameters,
+        value.resolved_return_type,
+        blocks(value.blocks, bindings),
+        value.native_symbol,
+    ).
+
+@pure
+functions(values: List[SemanticFunctionPlan]): List[SemanticFunctionPlan] ->
+    case values {
+        [] -> List.new[SemanticFunctionPlan]();
+        [value | rest] -> [function(value) | functions(rest)]
+    }.
+
+/** Adds canonical operand type vectors to every semantic instruction. */
+@pure
+pub annotate(value: SemanticModulePlan): SemanticModulePlan ->
+    SemanticModulePlan(value.name, value.structs, functions(value.functions)).

@@ -39,7 +39,7 @@ pub (receiver: MediaRecorder) audio_bits_per_second(): JsNumber.
 pub (receiver: MediaRecorder) mime_type(): JsString.
 
 /**
- * The **`stream`** read-only property of the MediaRecorder interface returns the stream that was passed into the MediaRecorder.MediaRecorder constructor when the `MediaRecorder` was created.
+ * The **`stream`** read-only property of the MediaRecorder interface returns the stream that was passed into the MediaRecorder constructor when the `MediaRecorder` was created.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaRecorder/stream)
  */

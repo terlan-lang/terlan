@@ -4,9 +4,13 @@ use crate::channel_plan::{WebSocketPairing, WebSocketRestoration};
 use crate::http_test_io::{complete, MemoryIo, State};
 use std::future::{pending, ready};
 use std::io::{self, Cursor};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::task::{Context, Poll, Waker};
 use tungstenite::protocol::{Role, WebSocket};
+
+#[path = "connection_transition_test.rs"]
+mod transition_tests;
 
 struct Source {
     live: Session<()>,
@@ -15,6 +19,8 @@ struct Source {
     cancel_failure: bool,
     identity: Option<(String, i64)>,
     pending_identity: bool,
+    pending_payload: Option<(&'static str, Arc<AtomicBool>)>,
+    pending_close: Option<Arc<AtomicBool>>,
     broadcast: bool,
 }
 
@@ -32,6 +38,8 @@ impl Source {
             cancel_failure: false,
             identity: None,
             pending_identity: false,
+            pending_payload: None,
+            pending_close: None,
             broadcast: false,
         }
     }
@@ -44,23 +52,50 @@ impl Source {
             Ok(())
         }
     }
+
+    async fn event_ready(&mut self, name: &str) -> Result<(), crate::ServiceError> {
+        let result = self.event(name);
+        if let Some((event, released)) = &self.pending_payload {
+            if *event == name {
+                std::future::poll_fn(|_| {
+                    if released.load(Ordering::SeqCst) {
+                        Poll::Ready(())
+                    } else {
+                        Poll::Pending
+                    }
+                })
+                .await;
+            }
+        }
+        result
+    }
+
+    async fn payload(&mut self, name: &str) -> Result<String, crate::ServiceError> {
+        self.event_ready(name).await?;
+        Ok(if name == "waiting" {
+            "source-waiting"
+        } else {
+            "source-left"
+        }
+        .into())
+    }
 }
 
 impl AdmissionCallbacks for Source {
-    fn room_identity(&mut self, sequence: i64) -> Result<String, crate::ServiceError> {
-        self.event("room_identity")?;
+    async fn room_identity(&mut self, sequence: i64) -> Result<String, crate::ServiceError> {
+        self.event_ready("room_identity").await?;
         Ok(format!("room{sequence}"))
     }
-    fn matched(
+    async fn matched(
         &mut self,
         room: String,
         _: String,
         _: String,
     ) -> Result<(String, String), crate::ServiceError> {
-        self.event("matched")?;
+        self.event_ready("matched").await?;
         Ok((format!("{room}/1"), format!("{room}/2")))
     }
-    fn restored(
+    async fn restored(
         &mut self,
         room: String,
         state: String,
@@ -68,7 +103,7 @@ impl AdmissionCallbacks for Source {
         _: String,
         _: String,
     ) -> Result<String, crate::ServiceError> {
-        self.event("restored")?;
+        self.event_ready("restored").await?;
         Ok(format!("{room}/{state}/{role}"))
     }
 }
@@ -85,13 +120,11 @@ impl Callbacks for Source {
         }
         Ok(self.identity.clone())
     }
-    fn waiting(&mut self) -> Result<String, crate::ServiceError> {
-        self.event("waiting")?;
-        Ok("source-waiting".into())
+    async fn waiting(&mut self) -> Result<String, crate::ServiceError> {
+        self.payload("waiting").await
     }
-    fn peer_left(&mut self) -> Result<String, crate::ServiceError> {
-        self.event("peer_left")?;
-        Ok("source-left".into())
+    async fn peer_left(&mut self) -> Result<String, crate::ServiceError> {
+        self.payload("peer_left").await
     }
     fn enqueue(&mut self, text: Utf8Bytes) -> Result<(), crate::ServiceError> {
         self.event("enqueue")?;
@@ -99,18 +132,18 @@ impl Callbacks for Source {
             .enqueue_inbound(text)
             .map_err(|error| crate::ServiceError::from(error.to_string()))
     }
-    fn next_inbound(&mut self) -> Result<(bool, Option<String>), crate::ServiceError> {
-        self.event("inbound")?;
+    async fn next_inbound(&mut self) -> Result<(bool, Option<String>), crate::ServiceError> {
+        self.event_ready("inbound").await?;
         Ok(match self.live.next_inbound() {
             Some(text) => (true, Some(format!("echo:{text}"))),
             None => (false, None),
         })
     }
-    fn next_paired(
+    async fn next_paired(
         &mut self,
         context: Option<PairContext>,
     ) -> Result<Option<PairedTransition>, crate::ServiceError> {
-        self.event("stateful")?;
+        self.event_ready("stateful").await?;
         if self.broadcast {
             let state = context.map(|context| context.0).unwrap_or_default();
             return Ok(self.live.next_inbound().map(|text| {
@@ -129,12 +162,23 @@ impl Callbacks for Source {
             )
         }))
     }
-    fn writable(&mut self) -> Result<(), crate::ServiceError> {
-        self.event("writable")
+    async fn writable(&mut self) -> Result<(), crate::ServiceError> {
+        self.event_ready("writable").await
     }
-    fn close(&mut self) -> Result<(), crate::ServiceError> {
+    async fn close(&mut self) -> Result<(), crate::ServiceError> {
         self.live.close();
-        self.event("close")
+        let result = self.event("close");
+        if let Some(released) = &self.pending_close {
+            std::future::poll_fn(|_| {
+                if released.load(Ordering::SeqCst) {
+                    Poll::Ready(())
+                } else {
+                    Poll::Pending
+                }
+            })
+            .await;
+        }
+        result
     }
     fn cancel(&mut self, reason: String) -> Result<(), crate::ServiceError> {
         self.events.push(format!("cancel:{reason}"));
@@ -265,6 +309,43 @@ fn close_callback_failure_does_not_cancel_twice_or_skip_close_reply() {
 }
 
 #[test]
+fn close_reply_flushes_while_source_cleanup_is_pending_without_second_terminal_event() {
+    for abandon in [false, true] {
+        for fail in [false, true] {
+            let released = Arc::new(AtomicBool::new(false));
+            let mut source = Source::new(None);
+            source.pending_close = Some(released.clone());
+            source.failure = fail.then_some("close");
+            let (io, state) = io(vec![Message::Close(None)]);
+            let hub = Arc::default();
+            let mut future = Box::pin(serve(
+                ready(Ok(io)),
+                &mut source,
+                &hub,
+                "/ws".into(),
+                "/ws".into(),
+                pending,
+            ));
+            assert!(future
+                .as_mut()
+                .poll(&mut Context::from_waker(Waker::noop()))
+                .is_pending());
+            assert_eq!(output(&state), [Message::Close(None)]);
+            assert_eq!(state.lock().unwrap().drops, 0);
+            if !abandon {
+                released.store(true, Ordering::SeqCst);
+                let result = complete(&mut future);
+                assert_eq!(result.is_err(), fail);
+            }
+            drop(future);
+            assert_eq!(source.events, ["writable", "close"]);
+            assert!(!source.live.is_open());
+            assert_eq!(state.lock().unwrap().drops, 1);
+        }
+    }
+}
+
+#[test]
 fn paired_delivery_and_stateful_transitions_use_package_registry() {
     for stateful in [false, true] {
         let pair = pairing(false);
@@ -302,6 +383,49 @@ fn paired_delivery_and_stateful_transitions_use_package_registry() {
                 "left"
             ]
         );
+    }
+}
+
+#[test]
+fn pending_close_and_transport_pressure_share_one_cancellable_owner() {
+    for abandon in [false, true] {
+        let released = Arc::new(AtomicBool::new(false));
+        let mut source = Source::new(None);
+        source.pending_close = Some(released.clone());
+        let (io, state) = io(vec![Message::Close(None)]);
+        state.lock().unwrap().write_budget = Some(0);
+        let hub = Arc::default();
+        let mut future = Box::pin(serve(
+            ready(Ok(io)),
+            &mut source,
+            &hub,
+            "/ws".into(),
+            "/ws".into(),
+            || {
+                let state = state.clone();
+                std::future::poll_fn(move |_| {
+                    if state.lock().unwrap().write_budget == Some(0) {
+                        Poll::Pending
+                    } else {
+                        Poll::Ready(())
+                    }
+                })
+            },
+        ));
+        assert!(future
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop()))
+            .is_pending());
+        assert!(state.lock().unwrap().outgoing.is_empty());
+        if !abandon {
+            state.lock().unwrap().write_budget = None;
+            released.store(true, Ordering::SeqCst);
+            complete(&mut future).unwrap();
+            assert_eq!(output(&state), [Message::Close(None)]);
+        }
+        drop(future);
+        assert_eq!(source.events, ["writable", "close"]);
+        assert_eq!(state.lock().unwrap().drops, 1);
     }
 }
 
@@ -356,6 +480,88 @@ fn restoration_invokes_source_identity_and_payloads_and_propagates_failures() {
                 assert!(result.unwrap_err().contains(failure));
                 assert!(source.events.last().unwrap().starts_with("cancel:"));
             }
+        }
+    }
+}
+
+#[test]
+fn paired_payload_waits_do_not_reserve_rooms_and_cancel_without_leaks() {
+    for event in ["waiting", "peer_left"] {
+        for outcome in ["complete", "failure", "drop"] {
+            let pair = pairing(true);
+            let hub = Arc::new(WebSocketHub::default());
+            let mut source = Source::new(Some(pair.clone()));
+            let released = Arc::new(AtomicBool::new(false));
+            source.pending_payload = Some((event, released.clone()));
+            source.failure = (outcome == "failure").then_some(event);
+            let (io, state) = io(vec![Message::Close(None)]);
+            let mut future = Box::pin(serve(
+                ready(Ok(io)),
+                &mut source,
+                &hub,
+                "/ws".into(),
+                "/first".into(),
+                pending,
+            ));
+            for _ in 0..2 {
+                assert!(future
+                    .as_mut()
+                    .poll(&mut Context::from_waker(Waker::noop()))
+                    .is_pending());
+            }
+            assert!(state.lock().unwrap().outgoing.is_empty());
+            assert_eq!(state.lock().unwrap().drops, 0);
+            // A different connection remains the first peer while source work waits.
+            let probe = hub
+                .join("/ws".into(), "/probe".into(), 4, &pair, None)
+                .unwrap();
+            assert_eq!(probe.outbound.try_recv().unwrap(), "waiting");
+            drop(probe);
+            if outcome != "drop" {
+                released.store(true, Ordering::SeqCst);
+                let result = complete(&mut future);
+                if outcome == "failure" {
+                    assert!(result.unwrap_err().to_string().contains(event));
+                } else {
+                    result.unwrap();
+                }
+            }
+            drop(future);
+            assert_eq!(state.lock().unwrap().drops, 1);
+            assert!(!source.live.is_open());
+            assert_eq!(
+                source
+                    .events
+                    .iter()
+                    .filter(|seen| seen.as_str() == event)
+                    .count(),
+                1
+            );
+            if outcome == "complete" {
+                assert_eq!(
+                    output(&state),
+                    [Message::text("source-waiting"), Message::Close(None)]
+                );
+                assert_eq!(source.events.last().unwrap(), "close");
+            } else {
+                assert!(state.lock().unwrap().outgoing.is_empty());
+                assert_eq!(
+                    source
+                        .events
+                        .iter()
+                        .filter(|seen| seen.starts_with("cancel:"))
+                        .count(),
+                    1
+                );
+                assert!(!source
+                    .events
+                    .iter()
+                    .any(|seen| seen == "close" || seen == "writable"));
+            }
+            let next = hub
+                .join("/ws".into(), "/next".into(), 4, &pair, None)
+                .unwrap();
+            assert_eq!(next.outbound.try_recv().unwrap(), "waiting");
         }
     }
 }
@@ -599,4 +805,158 @@ fn full_peer_queue_cancels_broadcast_without_consuming_more_frames() {
         1
     );
     assert!(source.events.last().unwrap().starts_with("cancel:"));
+}
+
+#[test]
+fn pairing_admission_waits_release_the_hub_and_cleanup_on_every_exit() {
+    for event in ["room_identity", "matched", "restored"] {
+        for outcome in ["complete", "failure", "drop", "depart", "update"] {
+            if outcome == "update" && event != "restored" {
+                continue;
+            }
+            let pair = pairing(true);
+            let hub = Arc::new(WebSocketHub::default());
+            let first = hub
+                .join("/ws".into(), "/first".into(), 8, &pair, None)
+                .unwrap();
+            assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
+            if event == "restored" {
+                let mut initial = Source::new(Some(pair.clone()));
+                let (stream, _) = io(vec![Message::Close(None)]);
+                run(stream, &mut initial, &hub).unwrap();
+                assert_eq!(
+                    first.outbound.try_iter().collect::<Vec<_>>(),
+                    ["room1/1", "left"]
+                );
+            }
+            let mut first = Some(first);
+            let mut source = Source::new(Some(pair.clone()));
+            source.identity = (event == "restored").then(|| ("room1".into(), 2));
+            source.failure = (outcome == "failure").then_some(event);
+            let released = Arc::new(AtomicBool::new(false));
+            source.pending_payload = Some((event, released.clone()));
+            let (stream, state) = io(vec![Message::Close(None)]);
+            let mut future = Box::pin(serve(
+                ready(Ok(stream)),
+                &mut source,
+                &hub,
+                "/ws".into(),
+                "/second".into(),
+                pending,
+            ));
+            for _ in 0..2 {
+                assert!(future
+                    .as_mut()
+                    .poll(&mut Context::from_waker(Waker::noop()))
+                    .is_pending());
+            }
+            assert!(state.lock().unwrap().outgoing.is_empty());
+            assert!(first.as_ref().unwrap().outbound.try_recv().is_err());
+            // An unrelated route can admit while source code owns a wait.
+            let probe = hub
+                .join("/other".into(), "/probe".into(), 4, &pair, None)
+                .unwrap();
+            assert_eq!(probe.outbound.try_recv().unwrap(), "waiting");
+            drop(probe);
+            let error = hub
+                .join(
+                    "/ws".into(),
+                    "/premature".into(),
+                    4,
+                    &pair,
+                    Some(("room1".into(), 2)),
+                )
+                .err()
+                .unwrap()
+                .to_string();
+            assert!(
+                error.contains(if event == "restored" {
+                    "already connected"
+                } else {
+                    "room not found"
+                }),
+                "{error}"
+            );
+            if outcome == "depart" {
+                drop(first.take());
+            }
+            if outcome == "update" {
+                crate::callback_test_support::ready(first.as_ref().unwrap().transition(
+                    |_| async move { Ok(("new state".into(), None, Some("new view".into()))) },
+                ))
+                .unwrap();
+            }
+            let succeeds = outcome == "complete";
+            if outcome != "drop" {
+                released.store(true, Ordering::SeqCst);
+                let result = complete(&mut future);
+                if succeeds {
+                    result.unwrap();
+                } else {
+                    let error = result.unwrap_err().to_string();
+                    assert!(
+                        error.contains(if outcome == "failure" {
+                            event
+                        } else if event == "restored" {
+                            "room changed during restoration"
+                        } else {
+                            "state disappeared"
+                        }),
+                        "{error}"
+                    );
+                }
+            }
+            drop(future);
+            assert_eq!(state.lock().unwrap().drops, 1);
+            assert!(!source.live.is_open());
+            assert_eq!(
+                source
+                    .events
+                    .iter()
+                    .filter(|seen| seen.as_str() == event)
+                    .count(),
+                1
+            );
+            assert_eq!(
+                source
+                    .events
+                    .iter()
+                    .filter(|seen| seen.starts_with("cancel:"))
+                    .count(),
+                usize::from(!succeeds)
+            );
+            if succeeds {
+                assert!(source.events.last().is_some_and(|event| event == "close"));
+            } else {
+                assert!(state.lock().unwrap().outgoing.is_empty());
+                assert!(!source.events.iter().any(|event| event == "writable"));
+            }
+            if event == "restored" || succeeds {
+                let reclaimed = hub
+                    .join(
+                        "/ws".into(),
+                        "/reclaimed".into(),
+                        4,
+                        &pair,
+                        Some(("room1".into(), 2)),
+                    )
+                    .unwrap();
+                drop(reclaimed);
+            } else {
+                assert!(hub
+                    .join(
+                        "/ws".into(),
+                        "/missing".into(),
+                        4,
+                        &pair,
+                        Some(("room1".into(), 2))
+                    )
+                    .is_err());
+                let fresh = hub
+                    .join("/ws".into(), "/fresh".into(), 4, &pair, None)
+                    .unwrap();
+                assert_eq!(fresh.outbound.try_recv().unwrap(), "waiting");
+            }
+        }
+    }
 }

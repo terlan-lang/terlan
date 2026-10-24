@@ -3,8 +3,12 @@
 use serde::{Deserialize, Serialize};
 
 mod namespace;
+mod selection;
+mod source;
 mod validation;
 pub use namespace::validate_route_namespace;
+pub use selection::{Endpoint, EndpointMatch, RouteTable};
+pub use source::{has_route_entrypoints, Routes};
 pub use validation::*;
 
 #[cfg(test)]
@@ -35,6 +39,7 @@ pub struct WebSocketRoute {
     #[serde(default)]
     pub module: String,
     pub route: String,
+    /// Empty for source-owned endpoints that declare no application subprotocol.
     pub protocol: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<SourceSpan>,

@@ -1,8 +1,8 @@
 module=std.js.Dom.RemotePlayback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7892096779707682361
-interface_hash=9782016907384211806
-interface_doc_hash=9782016907384211806
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=7111662180506744726
+interface_hash=3985061230449041027
+interface_doc_hash=3985061230449041027
 deps=0

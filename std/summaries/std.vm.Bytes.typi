@@ -33,14 +33,17 @@ pub opaque type Bytes.
 /// Transformation: asks the selected VM runtime to join binary buffers without copying
 /// byte lists through portable collection code.
 
+@pure
 pub concat(left: Bytes, right: Bytes): Bytes.
 
 /// Returns whether this buffer contains the complete needle buffer.
 
+@pure
 pub (bytes: Bytes) contains(needle: Bytes): Bool.
 
 /// Returns the first non-ASCII-whitespace byte index, or `-1` when absent.
 
+@pure
 pub (bytes: Bytes) first_non_ascii_whitespace(): Int.
 
 /// Builds a byte buffer from unsigned octets.
@@ -50,6 +53,7 @@ pub (bytes: Bytes) first_non_ascii_whitespace(): Int.
 /// Transformation: asks the selected VM runtime to validate each octet and pack
 /// the values into a binary protocol frame.
 
+@pure
 pub from_list(values: List[Byte]): Bytes.
 
 /// Returns the byte length of a buffer.
@@ -59,6 +63,7 @@ pub from_list(values: List[Byte]): Bytes.
 /// Transformation: delegates to the runtime binary size operation while preserving
 /// the opaque source-level representation.
 
+@pure
 pub (bytes: Bytes) length(): Int.
 
 /// Reads one signed big-endian integer from an arbitrary bit range.
@@ -113,6 +118,7 @@ pub (bytes: Bytes) slice(start: Int, length: Int): Bytes.
 
 /// Returns whether this buffer begins with the complete prefix buffer.
 
+@pure
 pub (bytes: Bytes) starts_with(prefix: Bytes): Bool.
 
 /// Returns a byte buffer as unsigned octets.
@@ -122,4 +128,5 @@ pub (bytes: Bytes) starts_with(prefix: Bytes): Bool.
 /// Transformation: asks the selected VM runtime to unpack the binary into a
 /// typed Terlan list without exposing backend bit syntax.
 
+@pure
 pub (bytes: Bytes) to_list(): List[Byte].

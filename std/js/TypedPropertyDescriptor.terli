@@ -12,7 +12,7 @@
  */
 module std.js.TypedPropertyDescriptor.
 
-import type std.core.{Option}.
+import type std.core.Option.{Option}.
 
 pub opaque type TypedPropertyDescriptor[T].
 
@@ -23,3 +23,7 @@ pub (receiver: TypedPropertyDescriptor[T]) configurable(): Option[Bool].
 pub (receiver: TypedPropertyDescriptor[T]) writable(): Option[Bool].
 
 pub (receiver: TypedPropertyDescriptor[T]) value(): Option[T].
+
+pub (receiver: TypedPropertyDescriptor[T]) get(): Option[() -> T].
+
+pub (receiver: TypedPropertyDescriptor[T]) set(): Option[(T) -> std.core.Unit].

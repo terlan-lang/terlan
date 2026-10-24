@@ -1,130 +1,55 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin
+ * The `scroll-margin` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets all of the scroll margins of an element at once, assigning values much like the
+ * `margin` property does for margins of an element.
+ *
+ * Initial: scroll-margin-bottom: 0; scroll-margin-left: 0; scroll-margin-right: 0;
+ * scroll-margin-top: 0. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <length>{1,4}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-margin
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollMargin.
 
-import std.css.Values.
-import std.css.Values.{length_css}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, Unset}.
 
-import type std.core.Option.
-import type std.css.Values.{Length}.
+pub type Component = Length.
 
-/**
- * A nominal, specification-constrained scroll-margin value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = {Atom["css_parts"], List[Component]}.
 
-/**
- * A single non-global scroll-margin shorthand component.
- */
-pub opaque type Component = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    scroll_margin: Value,
+    scroll_margin: Length | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Applies to all four sides.
  */
-pub struct OptionalProperty {
-    scroll_margin: std.core.Option[Value],
-}.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Returns the CSS keyword inherit.
+ * First sets top/bottom; second sets left/right.
  */
-pub inherit(): Value ->
-    Value(Token {property: "scroll-margin", css: "inherit"}).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).
 
 /**
- * Returns the CSS keyword initial.
+ * First sets top; second sets left/right; third sets bottom.
  */
-pub initial(): Value ->
-    Value(Token {property: "scroll-margin", css: "initial"}).
+pub triple(first: Component, second: Component, third: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third]}).
 
 /**
- * Returns the CSS keyword revert.
+ * Sets top, right, bottom, and left in that order.
  */
-pub revert(): Value ->
-    Value(Token {property: "scroll-margin", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scroll-margin", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scroll-margin", css: "unset"}).
-
-/**
- * Constructs a scroll-margin value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "scroll-margin", css: length_css(value)}).
-
-/**
- * Constructs a scroll-margin value from a typed length.
- */
-pub component_length(value: Length): Component ->
-    Component(Token {property: "scroll-margin", css: length_css(value)}).
-
-/**
- * Serializes a library-owned shorthand component.
- */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
-
-/**
- * Combines 1 typed components in specification order.
- */
-pub single(first: Component): Value ->
-    Value(Token {property: "scroll-margin", css: component_css(first)}).
-
-/**
- * Combines 2 typed components in specification order.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {property: "scroll-margin", css: component_css(first) + " " + component_css(second)},
-    ).
-
-/**
- * Combines 3 typed components in specification order.
- */
-pub triple(first: Component, second: Component, third: Component): Value ->
-    Value(
-        Token {
-            property: "scroll-margin",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third),
-        },
-    ).
-
-/**
- * Combines 4 typed components in specification order.
- */
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value ->
-    Value(
-        Token {
-            property: "scroll-margin",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third) + " " + component_css(fourth),
-        },
-    ).
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third, fourth]}).

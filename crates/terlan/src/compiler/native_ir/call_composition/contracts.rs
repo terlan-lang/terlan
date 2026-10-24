@@ -15,12 +15,13 @@ impl ComposedCallProfile {
         &mut self,
         other: &Self,
     ) {
-        self.entries.extend(other.entries.iter().copied());
-        self.entries.sort_unstable();
-        self.entries.dedup();
-        for continuation in &other.continuations {
-            if let Some(existing) = self
-                .continuations
+        let entries = std::sync::Arc::make_mut(&mut self.entries);
+        entries.extend(other.entries.iter().copied());
+        entries.sort_unstable();
+        entries.dedup();
+        let continuations = std::sync::Arc::make_mut(&mut self.continuations);
+        for continuation in other.continuations.iter() {
+            if let Some(existing) = continuations
                 .iter_mut()
                 .find(|existing| existing.id == continuation.id)
             {
@@ -29,11 +30,12 @@ impl ComposedCallProfile {
                 existing.completion_result &= continuation.completion_result;
                 merge_expr_contracts(&mut existing.body, &continuation.body);
             } else {
-                self.continuations.push(continuation.clone());
+                continuations.push(continuation.clone());
             }
         }
-        for (target, entries) in &other.tail_entries {
-            let merged = self.tail_entries.entry(*target).or_default();
+        let tail_entries = std::sync::Arc::make_mut(&mut self.tail_entries);
+        for (target, entries) in other.tail_entries.iter() {
+            let merged = tail_entries.entry(*target).or_default();
             merged.extend(entries.iter().copied());
             merged.sort_unstable();
             merged.dedup();
@@ -58,10 +60,11 @@ impl ComposedCallProfile {
         if entries.is_empty() {
             return entries;
         }
+        let tail_entries = std::sync::Arc::make_mut(&mut self.tail_entries);
         for function in functions {
-            self.tail_entries.insert(*function, entries.clone());
+            tail_entries.insert(*function, entries.clone());
         }
-        for continuation in &mut self.continuations {
+        for continuation in std::sync::Arc::make_mut(&mut self.continuations) {
             for function in functions {
                 refresh_recursive_call_contract(&mut continuation.body, *function, &entries);
             }
@@ -424,7 +427,7 @@ pub(in crate::compiler::native_ir) fn close_call_contracts(
             });
             let route = uniform_route.unwrap_or((*completion_continuation_id, 0));
             if resumes.is_empty() || uniform_route.is_some() {
-                for entry in &profile.entries {
+                for entry in profile.entries.iter() {
                     if resumes
                         .iter()
                         .any(|resume| resume.callee_continuation_id == *entry)
@@ -457,7 +460,7 @@ pub(in crate::compiler::native_ir) fn close_call_contracts(
         };
         if let Some(targets) = dynamic.get(&signature) {
             for target in targets {
-                for entry in &target.profile.entries {
+                for entry in target.profile.entries.iter() {
                     if resumes.iter().any(|resume| {
                         resume.callee_export_id == target.export_id
                             && resume.callee_continuation_id == *entry
@@ -637,7 +640,7 @@ pub(in crate::compiler::native_ir) fn validate_call_then_contracts_with_destinat
             .iter()
             .map(|continuation| (continuation.id, continuation.params.len()))
             .collect::<HashMap<_, _>>();
-        for entry in &profile.entries {
+        for entry in profile.entries.iter() {
             let Some(expected_capture_count) = capture_counts.get(entry) else {
                 failure = Some(format!(
                     "callee {function} ({label}) advertises continuation {entry} without a body"

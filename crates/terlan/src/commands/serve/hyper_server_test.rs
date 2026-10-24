@@ -28,11 +28,16 @@ mod tls_transport;
 #[path = "hyper_server_json_body_test.rs"]
 mod json_body;
 
+#[path = "hyper_server_sse_source_test.rs"]
+mod sse_source;
+
 #[path = "hyper_server_request_abi_test.rs"]
 mod request_abi;
 
 #[path = "hyper_server_paired_source_test.rs"]
 mod paired_source;
+#[path = "hyper_server_websocket_admission_source_test.rs"]
+mod websocket_admission_source;
 
 #[path = "hyper_server_source_protocol_test_support.rs"]
 mod source_protocol;

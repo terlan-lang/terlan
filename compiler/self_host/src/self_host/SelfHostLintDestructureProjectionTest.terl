@@ -1,0 +1,54 @@
+/** Scope contracts for self-hosted destructure lint projection. */
+module self_host.SelfHostLintDestructureProjectionTest.
+
+import self_host.SelfHostLintDestructureProjection.
+import self_host.SelfHostLintReadability.
+import self_host.SelfHostToolingDocument.
+
+diagnostics(source: String): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
+    SelfHostLintDestructureProjection.diagnostics(
+        "Sample.terl",
+        SelfHostToolingDocument.build(source),
+    ).
+
+@test
+pub reports_only_unused_tuple_bindings(): Bool ->
+    case diagnostics(
+        "module sample.\nlabel(pair: {Int, String}): String -> let {id, label} = pair; label.\n",
+    ) {
+        [value] -> value.rule_id == "TL0004";
+        _ -> false
+    }.
+
+@test
+pub accepts_used_and_intentionally_ignored_bindings(): Bool ->
+    diagnostics(
+        "module sample.\nlabel(pair: {Int, String}): String -> let {_id, label} = pair; label.\n",
+    ) == []
+        and diagnostics(
+            "module sample.\nrender(pair: {Int, String}): String -> let {id, label} = pair; id.to_string() + label.\n",
+        ) == [].
+
+@test
+pub covers_clause_patterns(): Bool ->
+    case diagnostics(
+        "module sample.\nlabel(pair: {Int, String}): String -> case pair { {id, label} -> label }.\n",
+    ) {
+        [value] -> value.rule_id == "TL0004";
+        _ -> false
+    }.
+
+@test
+pub grouped_bindings_see_later_initializers(): Bool ->
+    diagnostics(
+        "module sample.\nvalue(input: Result[Int, String]): Int -> let { Ok(first) <- input; Ok(second) <- next(first) } else { _ -> 0 }; second.\n",
+    ) == [].
+
+@test
+pub grouped_bindings_exclude_own_initializer_and_shared_fallback(): Bool ->
+    case diagnostics(
+        "module sample.\nvalue(unused: Int): Int -> let { Ok(unused) <- next(unused); Ok(second) <- next(1) } else { _ -> unused }; second.\n",
+    ) {
+        [value] -> value.rule_id == "TL0004";
+        _ -> false
+    }.

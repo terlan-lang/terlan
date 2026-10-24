@@ -288,6 +288,14 @@ mod model_test;
 #[cfg(test)]
 mod native_object_test_support;
 mod scalar_replacement;
+mod self_host_adapter;
+mod self_host_actor_adapter;
+mod self_host_managed_layouts;
+mod self_host_pattern_ir;
+pub(crate) use self_host_adapter::{
+    lower_self_hosted_actor_envelope, lower_self_hosted_application, lower_self_hosted_envelope,
+    lower_self_hosted_typed_actor_application,
+};
 #[cfg(test)]
 #[path = "native_ir/scalar_replacement_index_test.rs"]
 #[cfg(test)]
@@ -406,11 +414,104 @@ pub(crate) use model::{
     NativeBinaryOperator, NativeCallResume, NativeDynamicCallResume, NativeExpr,
     NativeTransitionOperation, NativeType,
 };
+
+/// Emits a development-policy Cranelift object directly from self-hosted ABI-1.
+#[cfg(feature = "native-codegen")]
+pub(crate) fn emit_self_hosted_envelope_object(
+    envelope: &crate::self_host_ir::BackendEnvelope,
+) -> Result<Vec<u8>, String> {
+    let module = lower_self_hosted_envelope(envelope)?;
+    let application = module.name.clone();
+    emit_native_application_object_with_policy(
+        &application,
+        &[module],
+        NativeCodegenPolicy::Development,
+    )
+    .map_err(|error| error.to_string())
+}
+
+/// Emits one actor-aware object from admitted Core IR and scheduler metadata.
+#[cfg(feature = "native-codegen")]
+pub(crate) fn emit_self_hosted_actor_envelope_object(
+    envelope: &crate::self_host_ir::BackendEnvelope,
+    plan: crate::self_host_actor_ir::RuntimeActorPlan,
+) -> Result<Vec<u8>, String> {
+    let module = lower_self_hosted_actor_envelope(envelope, plan)?;
+    let application = module.name.clone();
+    emit_native_application_object_with_policy(
+        &application,
+        &[module],
+        NativeCodegenPolicy::Development,
+    )
+    .map_err(|error| error.to_string())
+}
+
+/// Emits one actor-aware object with authoritative finite-sum layouts.
+#[cfg(feature = "native-codegen")]
+pub(crate) fn emit_self_hosted_typed_actor_envelope_object(
+    envelope: &crate::self_host_ir::BackendEnvelope,
+    plan: crate::self_host_actor_ir::RuntimeActorPlan,
+    variants: crate::self_host_variant_ir::VariantCatalog,
+) -> Result<Vec<u8>, String> {
+    let module = self_host_adapter::lower_self_hosted_typed_actor_envelope(
+        envelope,
+        plan,
+        variants,
+    )?;
+    let application = module.name.clone();
+    emit_native_application_object_with_policy(
+        &application,
+        &[module],
+        NativeCodegenPolicy::Development,
+    )
+    .map_err(|error| error.to_string())
+}
+
+/// Emits one complete application object from an ordered self-hosted ABI closure.
+#[cfg(feature = "native-codegen")]
+pub(crate) fn emit_self_hosted_application_object(
+    envelopes: &[crate::self_host_ir::BackendEnvelope],
+) -> Result<Vec<u8>, String> {
+    let modules = lower_self_hosted_application(envelopes)?;
+    let application = modules
+        .iter()
+        .map(|module| module.name.as_str())
+        .collect::<Vec<_>>()
+        .join("+");
+    emit_native_application_object_with_policy(
+        &application,
+        &modules,
+        NativeCodegenPolicy::Development,
+    )
+    .map_err(|error| error.to_string())
+}
+
+/// Emits one typed actor-aware application object from an ordered module closure.
+#[cfg(feature = "native-codegen")]
+pub(crate) fn emit_self_hosted_typed_actor_application_object(
+    envelopes: &[crate::self_host_ir::BackendEnvelope],
+    plans: Vec<crate::self_host_actor_ir::RuntimeActorPlan>,
+    variants: crate::self_host_variant_ir::VariantCatalog,
+) -> Result<Vec<u8>, String> {
+    let modules = lower_self_hosted_typed_actor_application(envelopes, plans, variants)?;
+    let application = modules
+        .iter()
+        .map(|module| module.name.as_str())
+        .collect::<Vec<_>>()
+        .join("+");
+    emit_native_application_object_with_policy(
+        &application,
+        &modules,
+        NativeCodegenPolicy::Development,
+    )
+    .map_err(|error| error.to_string())
+}
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use nominal_identity::qualify_application_nominal_types;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use open_std_pruning::{
     prune_application_to_function_roots, rooted_application_to_function_roots,
+    ApplicationReachabilityGraph,
 };
 use transitions::is_process_transition;
 

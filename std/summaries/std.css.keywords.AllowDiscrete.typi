@@ -1,0 +1,6 @@
+//! Shared CSS keyword allow-discrete. Generated; do not edit.
+
+module std.css.keywords.AllowDiscrete.
+
+pub type AllowDiscrete =
+    Atom["allow-discrete"].

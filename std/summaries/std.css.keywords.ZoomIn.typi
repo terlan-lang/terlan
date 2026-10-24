@@ -1,0 +1,6 @@
+//! Shared CSS keyword zoom-in. Generated; do not edit.
+
+module std.css.keywords.ZoomIn.
+
+pub type ZoomIn =
+    Atom["zoom-in"].

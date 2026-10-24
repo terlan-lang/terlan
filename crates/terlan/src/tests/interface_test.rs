@@ -49,9 +49,9 @@ fn run_interface_success_and_error_paths() {
     assert!(emitted.contains("/// Cache handle."));
     assert!(emitted.contains("/// Reads a value from the cache."));
     assert!(emitted.contains("pub opaque type Cache."));
-    assert!(emitted.contains(
-        "pub get(Cache: Cache, Key: Binary): std.core.Result.Result[Binary, not_found]."
-    ));
+    assert!(
+        emitted.contains("pub get(Cache: Cache, Key: Binary): std.core.Result[Binary, not_found].")
+    );
     assert!(emitted.contains("/// Trait for logging values."));
     assert!(emitted.contains("pub trait Logger[A]"));
     assert!(emitted.contains("log(V: A): Dynamic."));

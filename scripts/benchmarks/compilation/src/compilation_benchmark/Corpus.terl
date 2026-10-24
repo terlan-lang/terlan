@@ -1,0 +1,125 @@
+module compilation_benchmark.Corpus.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Directory.{create_all}.
+import std.io.File.{write_text}.
+
+save(path: String, text: String): Bool ->
+    case write_text(path, text) {
+        Ok(_) -> true;
+        Err(_) -> false
+    }.
+
+functions(index: Int, count: Int, accumulated: String, records: Bool): String ->
+    if {
+        index == count -> accumulated;
+        true -> let name = Int.to_string(index);
+        let body =
+            if {
+                index == 0 and records -> "let item = Row(value = seed(value)); identity(item).value";
+                index == 0 -> "seed(value)";
+                true -> String.concat(["f", Int.to_string(index - 1), "(value) + 1"])
+            };
+        functions(
+            index + 1,
+            count,
+            String.concat([accumulated, "pub f", name, "(value: Int): Int -> ", body, ".\n"]),
+            records,
+        )
+    }.
+
+modules(root: String, index: Int, count: Int, width: Int, records: Bool): Bool ->
+    if {
+        index == count -> true;
+        true -> let name = Int.to_string(index);
+        let text =
+            String.concat(
+                [
+                    "module app.M",
+                    name,
+                    ".\nimport app.Shared.{seed}.\n",
+                    if {
+                        records -> "import app.Shared.{identity}.\npub struct Row { value: Int }.\n";
+                        true -> ""
+                    },
+                    functions(0, width, "", records),
+                ],
+            );
+        save(String.concat([root, "/src/app/M", name, ".terl"]), text)
+            and modules(root, index + 1, count, width, records)
+    }.
+
+imports(index: Int, count: Int, width: Int, accumulated: String): String ->
+    if {
+        index == count -> accumulated;
+        true -> let name = Int.to_string(index);
+        imports(
+            index + 1,
+            count,
+            width,
+            String.concat(
+                [
+                    accumulated,
+                    "import app.M",
+                    name,
+                    ".{f",
+                    Int.to_string(width - 1),
+                    " as m",
+                    name,
+                    "}.\n",
+                ],
+            ),
+        )
+    }.
+
+calls(index: Int, count: Int, accumulated: String): String ->
+    if {
+        index == count -> accumulated;
+        true -> calls(index + 1, count, String.concat([accumulated, " + m", Int.to_string(index), "(0)"]))
+    }.
+
+pub generate(root: String, count: Int, width: Int, records: Bool): Bool ->
+    let Ok(_) <- create_all(String.append(root, "/src/app")) else {
+        _ -> false
+    };
+    (let manifest = "[package]\nname = \"app\"\nversion = \"0.0.1\"\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n";
+let main =
+    String.concat(
+        [
+            "module app.Main.\nimport std.core.Int.\nimport std.io.Console.{println}.\n",
+            imports(0, count, width, ""),
+            "pub main(): Unit -> println(Int.to_string(",
+            calls(0, count, "0"),
+            ")).\n",
+        ],
+    );
+save(String.append(root, "/terlan.toml"), manifest)
+    and save(String.append(root, "/src/app/Shared.terl"), shared(false, false))
+    and save(String.append(root, "/src/app/Main.terl"), main)
+    and modules(root, 0, count, width, records)).
+
+pub shared(changed: Bool, expanded: Bool): String ->
+    String.concat(
+        [
+            "module app.Shared.\npub identity[T](value: T): T -> value.\n",
+            if {
+                changed -> "pub seed(value: Int): Int -> value + 2.\n";
+                true -> "pub seed(value: Int): Int -> value + 1.\n"
+            },
+            if {
+                expanded -> "pub added(value: Int): Int -> value + 3.\n";
+                true -> ""
+            },
+        ],
+    ).
+
+pub edit(root: String, changed: Bool, expanded: Bool): Bool ->
+    save(String.append(root, "/src/app/Shared.terl"), shared(changed, expanded)).
+
+pub break_interface(root: String): Bool ->
+    save(
+        String.append(root, "/src/app/Shared.terl"),
+        "module app.Shared.\npub identity[T](value: T): T -> value.\npub seed(value: Int): String -> \"invalid\".\n",
+    ).

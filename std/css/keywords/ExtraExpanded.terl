@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword extra-expanded. Generated; do not edit.
+ */
+module std.css.keywords.ExtraExpanded.
+
+pub type ExtraExpanded = Atom["extra-expanded"].

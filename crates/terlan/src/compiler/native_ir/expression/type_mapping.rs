@@ -58,7 +58,7 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
         Some(CoreType::Named(name))
             if matches!(
                 name.as_str(),
-                "Bytes" | "std.binary.Bytes" | "std.vm.Bytes" | "std.vm.Bytes.Bytes"
+                "Bytes" | "std.binary.Bytes" | "std.vm.Bytes.Bytes"
             ) =>
         {
             Some(NativeType::BytesRef)
@@ -119,11 +119,7 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
         None if text == "Bool" => Some(NativeType::Bool),
         None if text == "Atom" => Some(NativeType::Atom),
         None if text == "String" => Some(NativeType::StringRef),
-        None if matches!(
-            text,
-            "Bytes" | "std.binary.Bytes" | "std.vm.Bytes" | "std.vm.Bytes.Bytes"
-        ) =>
-        {
+        None if matches!(text, "Bytes" | "std.binary.Bytes" | "std.vm.Bytes.Bytes") => {
             Some(NativeType::BytesRef)
         }
         None if matches!(text, "Binary" | "BitString" | "std.binary.Binary") => {
@@ -164,12 +160,8 @@ fn tuple_element_type(element: &CoreTupleTypeElem) -> &CoreType {
 pub(in crate::compiler::native_ir) fn core_string_runtime_value(
     value: &str,
 ) -> Result<String, String> {
-    if value.starts_with('"') && value.ends_with('"') {
-        serde_json::from_str(value)
-            .map_err(|error| format!("error[native_ir.string_literal]: {error}"))
-    } else {
-        Ok(value.to_string())
-    }
+    super::super::self_host_adapter::decoded_string_literal(value)
+        .map_err(|error| format!("error[native_ir.string_literal]: {error}"))
 }
 
 fn managed_reference_type(core: &CoreType) -> Option<NativeType> {
@@ -184,7 +176,7 @@ fn managed_reference_type(core: &CoreType) -> Option<NativeType> {
 /// use this same spelling or a value can have the right native kind but the
 /// wrong heap semantic identity.
 pub(in crate::compiler::native_ir) fn managed_semantic_contract(core: &CoreType) -> String {
-    match core {
+    let canonical = match core {
         // Concrete generic declarations retained by struct_instances already
         // carry their complete application contract as the internal name.
         CoreType::Struct { name, .. } if name.starts_with("Apply(") => name.clone(),
@@ -193,7 +185,13 @@ pub(in crate::compiler::native_ir) fn managed_semantic_contract(core: &CoreType)
             "Apply(Option;String)".to_string()
         }
         _ => normalize_recursive_managed_type(core).contract_text(),
+    };
+    if canonical.len() <= 4 * 1024 {
+        return canonical;
     }
+    SemanticTypeId::from_canonical(&canonical)
+        .map(SemanticTypeId::canonical_token)
+        .unwrap_or(canonical)
 }
 
 /// Collapses repeated structural unrolling of the same recursive list union.

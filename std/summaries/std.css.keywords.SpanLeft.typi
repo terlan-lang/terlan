@@ -1,0 +1,6 @@
+//! Shared CSS keyword span-left. Generated; do not edit.
+
+module std.css.keywords.SpanLeft.
+
+pub type SpanLeft =
+    Atom["span-left"].

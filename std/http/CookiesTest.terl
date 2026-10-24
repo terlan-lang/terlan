@@ -152,6 +152,28 @@ pub decoded_pairs_keep_first_values_without_sharing_pending_headers(): Bool ->
         and assert_equal(5, pairs.length()).
 
 @test
+pub raw_headers_decode_only_wire_syntax_and_preserve_source_precedence(): Bool ->
+    each(
+        [
+            row("absent", "", "<missing>"),
+            row("malformed", "invalid; =unnamed", "<missing>"),
+            row("empty first value", "sid=; sid=later", ""),
+            row("first duplicate", "sid=first; sid=later", "first"),
+            row("case sensitive", "SID=upper", "<missing>"),
+            row("whitespace and invalid pair", "invalid; sid= value ; sid=last", "value"),
+        ],
+        (sample: Row[String, String]) ->
+            let {_name, header, expected} = sample;
+            let jar = Cookies.parse(header);
+            let actual =
+                case jar.get("sid") {
+                    Some(value) -> value;
+                    None -> "<missing>"
+                };
+            assert_equal(expected, actual) and assert_equal([], jar.headers()),
+    ).
+
+@test
 pub duplicate_wire_cookie_values_agree_between_request_and_jar(): Bool ->
     let request = request_fixture("sid=first; empty=; sid=second; SID=upper; empty=later");
     let jar = request.cookies();

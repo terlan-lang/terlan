@@ -1,105 +1,49 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-display-4/#propdef-reading-flow
+ * The `reading-flow` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property enables
+ * modifying the `reading order` of child elements of a
+ * [block](https://developer.mozilla.org/en-US/docs/Glossary/Block/CSS),
+ * [flex](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout), or
+ * [grid](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout) layout. This affects
+ * the order in which they are rendered to speech and navigated to when using sequential navigation
+ * such as tabbing to links or buttons.
+ *
+ * Initial: normal. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - flex-flow: Only affects flex containers. The reading order follows the `flex-flow` direction.
+ * - flex-visual: Only affects `flex containers`. The reading order follows the visual order of the
+ * `flex` items, taking the `writing-mode` into account. Therefore, a document in English with
+ * `flex-direction: row-reverse` and `reading-flow: flex-visual` set would have a reading order of
+ * left-to-right.
+ * - grid-columns: Only affects `grid containers`. The reading order follows the visual order of
+ * grid items, column by column, taking the writing mode into account.
+ * - grid-order: Only affects grid containers. if the `order` property is applied to any of the
+ * container's children, the reading order follows the modified item order. If the `order` property
+ * is not applied to the grid items, `grid-order` behaves as `normal`.
+ * - grid-rows: Only affects grid containers. The reading order follows the visual order of grid
+ * items, row by row, taking the writing mode into account.
+ * - normal: The default value. The reading order follows the order of elements in the DOM.
+ * - source-order: Affects grid, flex, and block containers. Has no effect on its own — the
+ * container's reading order continues to follow the order of elements in the DOM — but allows the
+ * reading order to be modified by setting the `reading-order` property on the container's children.
+ *
  * Grammar: normal | source-order | flex-visual | flex-flow | grid-rows | grid-columns | grid-order
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-display-4/#propdef-reading-flow
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/reading-flow
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ReadingFlow.
 
-import type std.core.Option.
+import std.css.keywords.{FlexFlow, FlexVisual, GridColumns, GridOrder, GridRows, Normal, SourceOrder}.
 
-/**
- * A nominal, specification-constrained reading-flow value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    reading_flow: Value,
+    reading_flow: Normal | SourceOrder | FlexVisual | FlexFlow | GridRows | GridColumns | GridOrder | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    reading_flow: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword flex-flow.
- */
-pub flex_flow(): Value ->
-    Value(Token {property: "reading-flow", css: "flex-flow"}).
-
-/**
- * Returns the CSS keyword flex-visual.
- */
-pub flex_visual(): Value ->
-    Value(Token {property: "reading-flow", css: "flex-visual"}).
-
-/**
- * Returns the CSS keyword grid-columns.
- */
-pub grid_columns(): Value ->
-    Value(Token {property: "reading-flow", css: "grid-columns"}).
-
-/**
- * Returns the CSS keyword grid-order.
- */
-pub grid_order(): Value ->
-    Value(Token {property: "reading-flow", css: "grid-order"}).
-
-/**
- * Returns the CSS keyword grid-rows.
- */
-pub grid_rows(): Value ->
-    Value(Token {property: "reading-flow", css: "grid-rows"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "reading-flow", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "reading-flow", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "reading-flow", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "reading-flow", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "reading-flow", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword source-order.
- */
-pub source_order(): Value ->
-    Value(Token {property: "reading-flow", css: "source-order"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "reading-flow", css: "unset"}).

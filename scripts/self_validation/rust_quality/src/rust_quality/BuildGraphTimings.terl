@@ -166,7 +166,8 @@ execute_and_restore(root: String, scenario: Scenario, accessed: Int, modified: I
         Err(reason) -> restore_failure(scenario.edited, reason.message);
         Ok(_restored) ->
             case completed {
-                Err(reason) -> failure(String.concat([scenario.name, ": ", reason.message]));
+                Err(reason) ->
+                    failure(String.concat([scenario.name, ": ", reason.message]));
                 Ok(output) ->
                     if {
                         output.status != 0 -> failure(
@@ -213,7 +214,8 @@ run_scenario(root: String, scenario: Scenario): Measurement ->
                     original.accessed_unix_ns,
                     original.modified_unix_ns + 1000000000,
                 ) {
-                    Err(reason) -> failure(String.concat([scenario.name, ": ", reason.message]));
+                    Err(reason) ->
+                        failure(String.concat([scenario.name, ": ", reason.message]));
                     Ok(_touched) ->
                         execute_and_restore(
                             root,

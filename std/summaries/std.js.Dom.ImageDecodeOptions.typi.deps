@@ -1,8 +1,8 @@
 module=std.js.Dom.ImageDecodeOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=12899768743754526273
-interface_hash=5569690523030661866
-interface_doc_hash=5569690523030661866
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=11268407606737690127
+interface_hash=3048130786029356516
+interface_doc_hash=3048130786029356516
 deps=0

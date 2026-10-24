@@ -22,6 +22,35 @@ pub(in crate::commands::serve) fn clear_vm_handler_module_cache_for_test() {
     super::invalidate_vm_handler_cache();
 }
 
+/// Resolves one source-selected cookie decode through the real package binding.
+pub(in crate::commands::serve) fn resume_cookie_decode(
+    step: super::invocation::AotHandlerInvocationStep,
+    helpers: &mut crate::runtime::vm::package_native_helper::VmPackageNativeHelpers,
+) -> super::invocation::AotHandlerInvocationStep {
+    resume_value_codec(step, helpers, "std.http.cookies.decode")
+}
+
+/// Resolves one expected package value codec through the real binding registry.
+pub(in crate::commands::serve) fn resume_value_codec(
+    step: super::invocation::AotHandlerInvocationStep,
+    helpers: &mut crate::runtime::vm::package_native_helper::VmPackageNativeHelpers,
+    operation: &str,
+) -> super::invocation::AotHandlerInvocationStep {
+    use crate::runtime::vm::pure_native::repl_value_to_boundary_term;
+    use crate::terlan_native_boundary::term::NativeBoundaryReplyTerm;
+    let super::invocation::AotHandlerInvocationStep::CapabilityWaiting(invocation) = step else {
+        panic!("{operation} must reach the package codec");
+    };
+    let request = invocation.request().unwrap();
+    assert_eq!(request.operation, operation);
+    let value = helpers.call(1, request, &[]).unwrap();
+    invocation
+        .resume(NativeBoundaryReplyTerm::Ok(
+            repl_value_to_boundary_term(value).unwrap(),
+        ))
+        .unwrap()
+}
+
 /// Compiles one Terlan module into a reusable native handler fixture.
 pub(in crate::commands::serve) fn compile_native_handler_fixture(
     fixture: &str,

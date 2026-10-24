@@ -1,0 +1,6 @@
+//! Shared CSS keyword progress. Generated; do not edit.
+
+module std.css.keywords.Progress.
+
+pub type Progress =
+    Atom["progress"].

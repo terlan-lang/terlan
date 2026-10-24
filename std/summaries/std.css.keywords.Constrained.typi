@@ -1,0 +1,6 @@
+//! Shared CSS keyword constrained. Generated; do not edit.
+
+module std.css.keywords.Constrained.
+
+pub type Constrained =
+    Atom["constrained"].

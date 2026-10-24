@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword ideograph-alpha. Generated; do not edit.
+ */
+module std.css.keywords.IdeographAlpha.
+
+pub type IdeographAlpha = Atom["ideograph-alpha"].

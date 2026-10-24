@@ -1,0 +1,29 @@
+/** Atomic typed Core IR module ownership, including finite-sum layouts. */
+module self_host.SelfHostTypedCoreModule.
+
+import self_host.ProjectedVariantLayout.{VariantLayoutPlan}.
+import self_host.SelfHostIrSyntax.{IrModule, IrVariantLayout}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import self_host.ProjectedVariantIr.
+
+
+pub struct TypedCoreModule {
+    ir_module: IrModule,
+    variant_layouts: List[IrVariantLayout],
+}.
+
+pub constructor TypedCoreModule {
+    (ir_module: IrModule, variant_layouts: List[IrVariantLayout]): TypedCoreModule ->
+        TypedCoreModule { ir_module: ir_module, variant_layouts: variant_layouts }
+}.
+
+
+/** Attaches only complete, diagnostic-free variant authority to a Core IR module. */
+@pure
+pub attach(ir_module: IrModule, variants: VariantLayoutPlan): Option[TypedCoreModule] ->
+    case ProjectedVariantIr.lower(variants) {
+        Some(layouts) -> Some(TypedCoreModule(ir_module, layouts));
+        None -> None
+    }.

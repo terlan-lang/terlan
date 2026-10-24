@@ -29,33 +29,19 @@ pub struct Coverage {
 }.
 
 pub struct SiteSummary {
-    /**
-     * Version of the installed documentation site.
-     */
+    /** Version of the installed documentation site. */
     version: String,
-    /**
-     * Number of generated module reference pages.
-     */
+    /** Number of generated module reference pages. */
     module_pages: Int,
-    /**
-     * Total number of generated site files.
-     */
+    /** Total number of generated site files. */
     generated_files: Int,
-    /**
-     * Number of entries in the generated search index.
-     */
+    /** Number of entries in the generated search index. */
     search_entries: Int,
-    /**
-     * Counts of documented API declarations by category.
-     */
+    /** Counts of documented API declarations by category. */
     api_coverage: Coverage,
-    /**
-     * Number of CLI commands covered by generated help.
-     */
+    /** Number of CLI commands covered by generated help. */
     command_help_coverage: Int,
-    /**
-     * Runtime metadata embedded in the documentation site.
-     */
+    /** Runtime metadata embedded in the documentation site. */
     runtime: Json,
 }.
 
@@ -63,17 +49,11 @@ pub struct SiteSummary {
  * Bounded API-model projection retained between documentation stages.
  */
 pub struct SiteProjection {
-    /**
-     * Counts of API declarations retained for site generation.
-     */
+    /** Counts of API declarations retained for site generation. */
     api_coverage: Coverage,
-    /**
-     * Projected module and declaration rows used to build the search index.
-     */
+    /** Projected module and declaration rows used to build the search index. */
     search_rows: Json,
-    /**
-     * Number of projected search-index entries.
-     */
+    /** Number of projected search-index entries. */
     search_entries: Int,
 }.
 

@@ -113,3 +113,23 @@ fn collection_abi_rejects_wrong_shape_and_bounds() {
         Err(ManagedMemoryError::InvalidAggregateAbi)
     );
 }
+#[test]
+fn compact_semantic_tokens_support_distinct_derived_collection_profiles() {
+    let semantic = SemanticTypeId::from_canonical("List(app.WideRecord)").unwrap();
+    let token = semantic.canonical_token();
+    let descriptor = ManagedCollectionDescriptor::list(&token, ManagedFieldType::Int).unwrap();
+    let encoded = encode_collection_layout(&descriptor).unwrap();
+    let decoded = decode_collection_layout(&encoded).unwrap();
+    assert_eq!(descriptor, decoded);
+    assert_eq!(decoded.list_descriptor().unwrap().semantic_id(), semantic);
+    assert_ne!(
+        SemanticTypeId::from_canonical(&format!("{token}#rrb-leaf")).unwrap(),
+        semantic
+    );
+    assert_ne!(
+        SemanticTypeId::from_canonical(&format!("{token}#rrb-leaf")).unwrap(),
+        SemanticTypeId::from_canonical(&format!("{token}#rrb-node")).unwrap()
+    );
+    assert!(SemanticTypeId::from_canonical(&format!("{token}#")).is_err());
+    assert!(SemanticTypeId::from_canonical("$semantic:broken#rrb-leaf").is_err());
+}

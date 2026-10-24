@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword grammar-error. Generated; do not edit.
+ */
+module std.css.keywords.GrammarError.
+
+pub type GrammarError = Atom["grammar-error"].

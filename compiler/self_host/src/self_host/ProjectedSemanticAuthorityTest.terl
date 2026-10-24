@@ -1,0 +1,42 @@
+/** End-to-end projected type and guard authority contracts. */
+module self_host.ProjectedSemanticAuthorityTest.
+
+import self_host.CanonicalLexer.
+import self_host.ProjectedFrontend.
+import self_host.ProjectedSemanticAnalysis.
+import std.collections.List.
+
+analyze(source: String): self_host.ProjectedSemanticSyntax.ProjectedSemanticModule ->
+    let lexed = CanonicalLexer.lex(source);
+    ProjectedSemanticAnalysis.analyze(
+        ProjectedFrontend.compile(source, lexed.tokens),
+        List.new[String](),
+    ).
+
+declared_generic_is_scoped(): Bool ->
+    analyze("module test.Generic.\nid[Value](value: Value): Value -> value.").type_resolution.valid.
+
+undeclared_type_is_rejected(): Bool ->
+    not analyze("module test.Unknown.\nid(value: T): T -> value.").type_resolution.valid.
+
+non_boolean_guard_is_rejected(): Bool ->
+    not analyze("module test.Guard.\nvalue(): Int where 1 -> 1.").expression_typecheck.valid.
+
+known_result_mismatch_is_rejected(): Bool ->
+    not analyze("module test.Result.\nvalue(): Bool -> 1.").expression_typecheck.valid.
+
+@test
+pub typed_parameters_resolve_binary_results(): Bool ->
+    analyze("module test.Arithmetic.\nadd(left: Int, right: Int): Int -> left + right.").expression_typecheck.valid.
+
+@test
+pub typed_let_bindings_resolve_results(): Bool ->
+    analyze("module test.Binding.\nchoose(value: Int): Int -> let next = value; next.").expression_typecheck.valid.
+
+pub self_test(): Bool ->
+    declared_generic_is_scoped()
+        and undeclared_type_is_rejected()
+        and non_boolean_guard_is_rejected()
+        and known_result_mismatch_is_rejected()
+        and typed_parameters_resolve_binary_results()
+        and typed_let_bindings_resolve_results().

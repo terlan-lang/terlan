@@ -28,6 +28,7 @@ pub(crate) fn split_private_field_spelling(field: &str) -> (&str, bool) {
 /// - `struct_field_visibility`: local and imported visibility metadata keyed
 ///   by local struct name.
 /// - `imported_type_names`: imported type metadata keyed by local type name.
+/// - `current_module`: canonical identity of the module being checked.
 ///
 /// Output:
 /// - `Some(message)` when source violates field visibility, otherwise `None`.
@@ -41,6 +42,7 @@ pub(crate) fn struct_field_visibility_error(
     requested_private: bool,
     struct_field_visibility: &HashMap<String, HashMap<String, StructFieldVisibility>>,
     imported_type_names: &HashMap<String, QualifiedTypeName>,
+    current_module: &str,
 ) -> Option<String> {
     let is_private = struct_field_visibility
         .get(struct_name)
@@ -63,18 +65,13 @@ pub(crate) fn struct_field_visibility_error(
     }
 
     if requested_private {
-        if let Some(imported) = imported_type_names
-            .get(struct_name)
-            .filter(|ty| ty.module.is_some())
-        {
-            return Some(format!(
-                "private field {} on imported struct {} cannot be accessed outside defining module",
-                field_name,
-                crate::terlan_hir::public_type_path(
-                    imported.module.as_deref().unwrap_or_default(),
-                    &imported.name
-                )
-            ));
+        if let Some(imported) = imported_type_names.get(struct_name) {
+            if imported.module != current_module {
+                return Some(format!(
+                    "private field {} on imported struct {}.{} cannot be accessed outside defining module",
+                    field_name, imported.module, imported.name
+                ));
+            }
         }
     }
 

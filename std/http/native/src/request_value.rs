@@ -12,25 +12,24 @@ pub fn request_descriptor(request: RequestParts, projection: Projection) -> Nati
         params,
         body,
         query_string,
-        query,
         headers,
         cookies,
         body_file_path,
     } = request;
     let method = projected_string(projection, Projection::METHOD, method);
     let path = projected_string(projection, Projection::PATH, path);
-    let params = projected_pairs(projection, Projection::PARAMS, params);
+    let params = projected_list(projection, Projection::PARAMS, params);
     let body = projected_string(projection, Projection::BODY, body);
     let query_string = projected_string(projection, Projection::QUERY_STRING, query_string);
-    let query = projected_pairs(projection, Projection::QUERY, query);
-    let headers = projected_pairs(projection, Projection::HEADERS, headers);
-    let cookies = projected_pairs(projection, Projection::COOKIES, cookies);
+    let headers = projected_list(projection, Projection::HEADERS, headers);
+    let cookies = projected_list(projection, Projection::COOKIES, cookies);
     let body_file_path = projected_string(projection, Projection::BODY_FILE_PATH, body_file_path);
-    native_record!(Request, { method, path, params, body, query_string, query, headers, cookies, body_file_path })
+    native_record!(Request, { method, path, params, body, query_string, headers, cookies, body_file_path })
 }
 
 /// The source-visible request tuple used by pattern-head route handlers.
 pub fn source_request_tuple(request: RequestParts) -> NativeValue {
+    let query = terlan_net_native::query_pairs(&request.query_string);
     NativeValue::Tuple(vec![
         NativeValue::Atom("request".into()),
         request.method.into(),
@@ -38,15 +37,22 @@ pub fn source_request_tuple(request: RequestParts) -> NativeValue {
         string_map(request.params),
         request.body.into(),
         request.query_string.into(),
-        string_map(request.query),
+        string_map(query),
         string_map(request.headers),
-        first_cookie_map(request.cookies),
+        first_cookie_map(crate::parse_request_cookie_header(
+            request
+                .cookies
+                .first()
+                .map(String::as_str)
+                .unwrap_or_default(),
+        )),
         request.body_file_path.into(),
     ])
 }
 
 // Tuple pattern handlers retain their map-shaped public contract. Ordinary
-// Request records carry all pairs so Terlan owns jar and lookup precedence.
+// Request records carry raw query text and headers so Terlan owns header and pair
+// precedence. The legacy tuple ABI still requires an eagerly materialized map.
 fn first_cookie_map(mut cookies: Vec<(String, String)>) -> NativeValue {
     let mut names = std::collections::HashSet::new();
     cookies.retain(|(name, _)| names.insert(name.clone()));
@@ -61,11 +67,7 @@ fn projected_string(projection: Projection, field: usize, value: String) -> Stri
     }
 }
 
-fn projected_pairs(
-    projection: Projection,
-    field: usize,
-    entries: Vec<(String, String)>,
-) -> Vec<(String, String)> {
+fn projected_list<T>(projection: Projection, field: usize, entries: Vec<T>) -> Vec<T> {
     if projection.requires(field) {
         entries
     } else {

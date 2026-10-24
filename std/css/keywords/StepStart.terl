@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword step-start. Generated; do not edit.
+ */
+module std.css.keywords.StepStart.
+
+pub type StepStart = Atom["step-start"].

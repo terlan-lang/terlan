@@ -1,0 +1,6 @@
+//! Shared CSS keyword keep-all. Generated; do not edit.
+
+module std.css.keywords.KeepAll.
+
+pub type KeepAll =
+    Atom["keep-all"].

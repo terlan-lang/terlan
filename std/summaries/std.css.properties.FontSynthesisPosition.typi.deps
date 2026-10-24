@@ -1,9 +1,11 @@
 module=std.css.properties.FontSynthesisPosition
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=722234178213696013
-interface_hash=8486178971777884855
-interface_doc_hash=12945854574537647541
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3293825075391754076
+interface_hash=14012564392290369683
+interface_doc_hash=16399378528065210366
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722
+std.css.keywords.None=3400229744369726074

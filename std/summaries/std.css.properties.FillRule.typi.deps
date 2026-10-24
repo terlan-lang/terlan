@@ -1,9 +1,11 @@
 module=std.css.properties.FillRule
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14683460066354665122
-interface_hash=12092893603433329978
-interface_doc_hash=16906685775553240724
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=8752720499366938750
+interface_hash=16633954860874540194
+interface_doc_hash=17682901751529421962
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Evenodd=15249164862407450904
+std.css.keywords.Nonzero=5760343649178218636

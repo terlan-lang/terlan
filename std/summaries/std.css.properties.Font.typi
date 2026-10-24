@@ -1,68 +1,36 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `font` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets all the different properties of an element's font. Alternatively, it sets an
+//! element's font to a system font.
+//!
+//! Initial: font-style: normal; font-variant: normal; font-weight: normal; font-stretch: normal;
+//! font-size: medium; line-height: normal; font-family: dependsOnUserAgent. Inherited: yes.
+//! Percentages: font-size: refer to the parent element's font size; line-height: refer to the font
+//! size of the element itself.
+//!
+//! Keyword effects:
+//! - caption: The font used for captioned controls (e.g., buttons, drop-downs, etc.).
+//! - icon: The font used to label icons.
+//! - menu: The font used in menus (e.g., dropdown menus and menu lists).
+//! - message-box: The font used in dialog boxes.
+//! - small-caption: The font used for labeling small controls.
+//! - status-bar: The font used in window status bars.
+//!
+//! Grammar: [ [ <'font-style'> || <font-variant-css2> || <'font-weight'> || <font-width-css3> ]?
+//! <'font-size'> [ / <'line-height'> ]? <'font-family'># ] | <system-font-family-name>
+//!
 //! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font
-//! Grammar: [ [ <'font-style'> || <font-variant-css2> || <'font-weight'> || <font-width-css3> ]? <'font-size'> [ / <'line-height'> ]? <'font-family'># ] | <system-font-family-name>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Font.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    font: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    font: Value
+    font: Caption | Icon | Menu | MessageBox | SmallCaption | StatusBar | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained font value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword caption.
-
-pub caption(): Value.
-
-/// Returns the CSS keyword icon.
-
-pub icon(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword menu.
-
-pub menu(): Value.
-
-/// Returns the CSS keyword message-box.
-
-pub message_box(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword small-caption.
-
-pub small_caption(): Value.
-
-/// Returns the CSS keyword status-bar.
-
-pub status_bar(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

@@ -1,0 +1,6 @@
+//! Shared CSS keyword normal. Generated; do not edit.
+
+module std.css.keywords.Normal.
+
+pub type Normal =
+    Atom["normal"].

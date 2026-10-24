@@ -1,0 +1,41 @@
+/** Integration contracts for build-once readability linting. */
+module self_host.SelfHostLintReadabilityAllTest.
+
+import self_host.SelfHostLintReadabilityAll.
+import self_host.SelfHostLintReadability.
+
+rule_ids(values: List[SelfHostLintReadability.ReadabilityDiagnostic]): List[String] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [value.rule_id | rule_ids(rest)]
+    }.
+
+@test
+pub emits_transferred_rules_in_canonical_order(): Bool ->
+    let source = "module sample.\n"
+        + "deep(input: Int): Int -> wrap(wrap(wrap(wrap(wrap(wrap(wrap(wrap(wrap(input))))))))).\n"
+        + "callback(values: List[Int]): Unit -> values.each((x) -> let doubled = x + x; consume(doubled)).\n"
+        + "destructure(pair: {Int, String}): String -> let {id, label} = pair; label.\n"
+        + "comment(value: Int): Int ->\n    // value.\n    value.\n"
+        + "pub undocumented(): Int -> 1.\n"
+        + "/**\n*bad spacing\n */\n"
+        + "pub documented(): Int -> 1.\n"
+        + "branch(a: Bool, b: Bool, c: Bool): Bool -> if { a and b or c -> true; _ -> false }.\n"
+        + "forward(generator: Gen[Int]): Bool -> for_all(generator, (width) -> generated(width)).\n";
+    rule_ids(SelfHostLintReadabilityAll.diagnostics("Sample.terl", source)) == [
+        "TL0002",
+        "TL0003",
+        "TL0004",
+        "TL0005",
+        "TL0006",
+        "TL0007",
+        "TL0008",
+        "TL0010",
+    ].
+
+@test
+pub clean_source_remains_clean_through_the_shared_document(): Bool ->
+    SelfHostLintReadabilityAll.diagnostics(
+        "Sample.terl",
+        "module sample.\n/** Returns one. */\npub one(): Int -> 1.\n",
+    ) == [].

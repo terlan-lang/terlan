@@ -43,12 +43,103 @@ fn last(
 }
 
 #[test]
+fn pairing_callbacks_suspend_once_and_release_their_invocation_when_dropped() {
+    use crate::callback_test_support::Suspension;
+    use std::future::Future;
+    use std::sync::{Arc, Mutex};
+    use std::task::{Context, Waker};
+
+    for event in [
+        WebSocketEvent::PairRoomIdentity,
+        WebSocketEvent::PairMatched,
+        WebSocketEvent::PairRestored,
+        WebSocketEvent::Inbound,
+    ] {
+        for abandon in [false, true] {
+            let mut session = session();
+            if event == WebSocketEvent::Inbound {
+                session.enqueue_inbound("frame".into()).unwrap();
+            }
+            session
+                .invocation
+                .returns(if event == WebSocketEvent::PairMatched {
+                    V::Tuple(vec!["first".into(), "second".into()])
+                } else {
+                    "value".into()
+                });
+            let trace = Arc::new(Mutex::new(Suspension::default()));
+            session.invocation.suspension = Some(trace.clone());
+            let mut future = Box::pin(async {
+                match event {
+                    WebSocketEvent::PairRoomIdentity => {
+                        assert_eq!(session.room_identity(7).await.unwrap(), "value");
+                    }
+                    WebSocketEvent::PairMatched => {
+                        assert_eq!(
+                            session
+                                .matched("room".into(), "a".into(), "b".into())
+                                .await
+                                .unwrap(),
+                            ("first".into(), "second".into())
+                        );
+                    }
+                    WebSocketEvent::PairRestored => {
+                        assert_eq!(
+                            session
+                                .restored("room".into(), "state".into(), 2, "a".into(), "b".into())
+                                .await
+                                .unwrap(),
+                            "value"
+                        );
+                    }
+                    WebSocketEvent::Inbound => {
+                        assert_eq!(
+                            session
+                                .dispatch_next_paired_inbound_output(None)
+                                .await
+                                .unwrap(),
+                            (true, Some("value".into()))
+                        );
+                    }
+                    _ => unreachable!(),
+                }
+            });
+            for _ in 0..2 {
+                assert!(future
+                    .as_mut()
+                    .poll(&mut Context::from_waker(Waker::noop()))
+                    .is_pending());
+            }
+            assert_eq!(trace.lock().unwrap().events, [format!("{event:?}")]);
+            if !abandon {
+                trace.lock().unwrap().released = true;
+                ready(&mut future);
+            }
+            drop(future);
+            assert_eq!(
+                trace.lock().unwrap().events,
+                [format!("{event:?}"), "future dropped".into()]
+            );
+            assert_eq!(
+                session
+                    .executor()
+                    .calls
+                    .iter()
+                    .filter(|(seen, _, _)| *seen == event)
+                    .count(),
+                1
+            );
+        }
+    }
+}
+
+#[test]
 fn package_builds_admission_arguments_and_validates_each_output() {
     let mut session = session();
     assert!(session.is_open());
     assert_eq!(session.plan().max_pending_frames(), 2);
     session.invocation.returns("room".into());
-    assert_eq!(session.room_identity(7).unwrap(), "room");
+    assert_eq!(ready(session.room_identity(7)).unwrap(), "room");
     last(
         &session,
         WebSocketEvent::PairRoomIdentity,
@@ -59,9 +150,7 @@ fn package_builds_admission_arguments_and_validates_each_output() {
         .invocation
         .returns(V::Tuple(vec!["first".into(), "second".into()]));
     assert_eq!(
-        session
-            .matched("room".into(), "a".into(), "b".into())
-            .unwrap(),
+        ready(session.matched("room".into(), "a".into(), "b".into())).unwrap(),
         ("first".into(), "second".into())
     );
     last(
@@ -72,9 +161,7 @@ fn package_builds_admission_arguments_and_validates_each_output() {
     );
     session.invocation.returns("view".into());
     assert_eq!(
-        session
-            .restored("room".into(), "state".into(), 2, "a".into(), "b".into())
-            .unwrap(),
+        ready(session.restored("room".into(), "state".into(), 2, "a".into(), "b".into())).unwrap(),
         "view"
     );
     last(
@@ -90,10 +177,10 @@ fn package_builds_admission_arguments_and_validates_each_output() {
         ],
     );
     session.invocation.returns("wait".into());
-    assert_eq!(session.waiting().unwrap(), "wait");
+    assert_eq!(ready(session.waiting()).unwrap(), "wait");
     last(&session, WebSocketEvent::PairWaiting, 7, vec![]);
     session.invocation.returns("left".into());
-    assert_eq!(session.peer_left().unwrap(), "left");
+    assert_eq!(ready(session.peer_left()).unwrap(), "left");
     last(&session, WebSocketEvent::PairPeerLeft, 8, vec![]);
     session.invocation.returns(V::Record {
         name: "Ok".into(),
@@ -107,22 +194,32 @@ fn package_builds_admission_arguments_and_validates_each_output() {
         vec!["/ws".into()],
     );
     assert!(ready(session.identity("/ws".into())).is_err());
-    assert!(session
-        .room_identity(1)
+    assert!(ready(session.room_identity(1))
         .unwrap_err()
         .to_string()
         .contains("expected String"));
-    assert!(session.matched("r".into(), "a".into(), "b".into()).is_err());
+    assert!(ready(session.matched("r".into(), "a".into(), "b".into())).is_err());
     session
         .invocation
         .results
         .push_back(Ok(State::Waiting(Wait::Text)));
-    assert!(session
-        .waiting()
+    assert!(ready(session.waiting())
         .unwrap_err()
         .to_string()
-        .contains("suspended"));
+        .contains("still waiting"));
     session.cancel("cleanup".into()).unwrap();
+    let mut session = self::session();
+    session
+        .invocation
+        .results
+        .push_back(Ok(State::Waiting(Wait::Text)));
+    assert!(
+        ready(session.restored("room".into(), "state".into(), 1, "a".into(), "b".into()))
+            .unwrap_err()
+            .to_string()
+            .contains("still waiting")
+    );
+    session.cancel("failed restoration".into()).unwrap();
     let mut empty = WebSocketCallbacks::open(
         Executor::<WebSocketEvent>::default(),
         Session::open(WebSocketEndpointPlan::new(2, 64).unwrap()),
@@ -153,11 +250,17 @@ fn incompatible_wakes_preserve_queue_order_and_text_wakes_consume_once() {
             .unwrap_err()
             .to_string()
             .contains("wake_type"));
-        assert!(session
-            .dispatch_next_paired_inbound_output(Some(("s".into(), 1, "a".into(), "b".into())))
-            .unwrap_err()
-            .to_string()
-            .contains("wake_type"));
+        assert!(crate::callback_test_support::ready(
+            session.dispatch_next_paired_inbound_output(Some((
+                "s".into(),
+                1,
+                "a".into(),
+                "b".into()
+            )))
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("wake_type"));
         assert_eq!(session.inspect(), before);
     }
     session.invocation.pending = Some(Wait::Text);
@@ -167,19 +270,106 @@ fn incompatible_wakes_preserve_queue_order_and_text_wakes_consume_once() {
     );
     session.invocation.pending = Some(Wait::Text);
     assert_eq!(
-        session
-            .dispatch_next_paired_inbound_output(Some(("s".into(), 1, "a".into(), "b".into())))
-            .unwrap(),
+        crate::callback_test_support::ready(session.dispatch_next_paired_inbound_output(Some((
+            "s".into(),
+            1,
+            "a".into(),
+            "b".into()
+        ))))
+        .unwrap(),
         (true, Some("second".into()))
     );
     assert!(!session.is_waiting());
     assert!(!session.dispatch_next_inbound().unwrap());
     assert_eq!(
-        session
-            .next_paired(Some(("s".into(), 1, "a".into(), "b".into())))
-            .unwrap(),
+        crate::callback_test_support::ready(session.next_paired(Some((
+            "s".into(),
+            1,
+            "a".into(),
+            "b".into()
+        ))))
+        .unwrap(),
         None
     );
+}
+
+#[test]
+fn synchronous_dispatch_preserves_results_waits_and_callback_errors() {
+    let mut session = session();
+    session.invocation.returns("reply".into());
+    session.enqueue_inbound("request".into()).unwrap();
+    assert_eq!(
+        session.dispatch_next_inbound_output().unwrap(),
+        (true, Some("reply".into()))
+    );
+    last(&session, WebSocketEvent::Inbound, 1, vec!["request".into()]);
+    assert!(matches!(
+        session.writable().unwrap(),
+        State::Complete(V::Unit)
+    ));
+    assert_eq!(
+        session.executor().calls.last().unwrap(),
+        &(WebSocketEvent::Writable, None, vec![])
+    );
+    session
+        .invocation
+        .results
+        .push_back(Ok(State::Waiting(Wait::Text)));
+    session.enqueue_inbound("park".into()).unwrap();
+    assert_eq!(
+        session.dispatch_next_inbound_output().unwrap(),
+        (true, None)
+    );
+    let calls = session.executor().calls.len();
+    assert!(session.writable().unwrap_err().to_string().contains("busy"));
+    assert_eq!(session.executor().calls.len(), calls);
+    session.enqueue_inbound("wake".into()).unwrap();
+    assert_eq!(
+        session.dispatch_next_inbound_output().unwrap(),
+        (true, Some("wake".into()))
+    );
+    session
+        .invocation
+        .results
+        .push_back(Err("callback failed".into()));
+    session.enqueue_inbound("bad".into()).unwrap();
+    assert!(session
+        .dispatch_next_inbound_output()
+        .unwrap_err()
+        .to_string()
+        .contains("callback failed"));
+    assert_eq!(session.inspect().pending_frames, 0);
+    assert!(!session.dispatch_next_inbound().unwrap());
+    session.invocation.pending = Some(Wait::Text);
+    session.invocation.resume_error = true;
+    session.enqueue_inbound("failed wake".into()).unwrap();
+    assert!(session
+        .dispatch_next_inbound_output()
+        .unwrap_err()
+        .to_string()
+        .contains("resume failed"));
+    assert!(!session.is_waiting());
+    assert_eq!(session.inspect().pending_frames, 0);
+}
+
+#[test]
+fn paired_text_resume_that_waits_again_cannot_commit_a_partial_transition() {
+    let mut session = session();
+    session.invocation.pending = Some(Wait::Text);
+    session.invocation.resume_wait = Some(Wait::Text);
+    session.enqueue_inbound("consumed once".into()).unwrap();
+    session.enqueue_inbound("not consumed".into()).unwrap();
+    let calls = session.executor().calls.len();
+    assert!(ready(session.next_paired(None))
+        .unwrap_err()
+        .to_string()
+        .contains("suspended without producing a transition"));
+    assert_eq!(session.executor().calls.len(), calls);
+    assert_eq!(session.inspect().pending_frames, 1);
+    assert!(session.is_waiting());
+    session.cancel("connection cleanup".into()).unwrap();
+    assert!(!session.is_waiting());
+    assert!(!session.is_open());
 }
 
 #[test]
@@ -193,13 +383,12 @@ fn package_transport_distinguishes_unit_empty_text_and_bad_or_suspended_transiti
     ] {
         session.invocation.returns(value);
         session.enqueue("input".into()).unwrap();
-        assert_eq!(session.next_inbound().unwrap(), (true, expected));
+        assert_eq!(ready(session.next_inbound()).unwrap(), (true, expected));
         last(&session, WebSocketEvent::Inbound, 1, vec!["input".into()]);
     }
     session.invocation.returns(V::Bool(false));
     session.enqueue("bad".into()).unwrap();
-    assert!(session
-        .next_inbound()
+    assert!(ready(session.next_inbound())
         .unwrap_err()
         .to_string()
         .contains("String or Unit"));
@@ -213,9 +402,13 @@ fn package_transport_distinguishes_unit_empty_text_and_bad_or_suspended_transiti
     );
     session.enqueue("frame".into()).unwrap();
     assert_eq!(
-        session
-            .next_paired(Some(("state".into(), 2, "a".into(), "b".into())))
-            .unwrap(),
+        crate::callback_test_support::ready(session.next_paired(Some((
+            "state".into(),
+            2,
+            "a".into(),
+            "b".into()
+        ))))
+        .unwrap(),
         Some(("next".into(), None, None))
     );
     last(
@@ -234,18 +427,25 @@ fn package_transport_distinguishes_unit_empty_text_and_bad_or_suspended_transiti
         ],
     );
     session.enqueue("bad".into()).unwrap();
-    assert!(session
-        .next_paired(Some(("s".into(), 1, "a".into(), "b".into())))
-        .is_err());
+    assert!(
+        crate::callback_test_support::ready(session.next_paired(Some((
+            "s".into(),
+            1,
+            "a".into(),
+            "b".into()
+        ))))
+        .is_err()
+    );
     session
         .invocation
         .returns(Err::<V, _>("source requires peer".to_string()).into());
     session.enqueue("early".into()).unwrap();
-    assert!(session
-        .next_paired(None)
-        .unwrap_err()
-        .to_string()
-        .contains("source requires peer"));
+    assert!(
+        crate::callback_test_support::ready(session.next_paired(None))
+            .unwrap_err()
+            .to_string()
+            .contains("source requires peer")
+    );
     last(
         &session,
         WebSocketEvent::Inbound,
@@ -257,16 +457,62 @@ fn package_transport_distinguishes_unit_empty_text_and_bad_or_suspended_transiti
         .results
         .push_back(Ok(State::Waiting(Wait::Text)));
     session.enqueue("park".into()).unwrap();
-    assert!(session
-        .next_paired(Some(("s".into(), 1, "a".into(), "b".into())))
+    assert!(
+        crate::callback_test_support::ready(session.next_paired(Some((
+            "s".into(),
+            1,
+            "a".into(),
+            "b".into()
+        ))))
         .unwrap_err()
         .to_string()
-        .contains("suspended"));
+        .contains("still waiting")
+    );
     let calls = session.executor().calls.len();
-    Callbacks::writable(&mut session).unwrap();
+    ready(Callbacks::writable(&mut session)).unwrap();
     assert_eq!(session.executor().calls.len(), calls);
     Callbacks::cancel(&mut session, "stop".into()).unwrap();
     assert!(!session.is_open());
+}
+
+#[test]
+fn streaming_dispatch_retains_text_waits_without_replaying_or_consuming_extra_frames() {
+    let mut executor = Executor::<WebSocketEvent>::default();
+    drop(executor.invoke_streaming(WebSocketEvent::Inbound, None, vec![]));
+    assert!(executor.calls.is_empty());
+    executor.pending = Some(Wait::Text);
+    drop(executor.resume_streaming((Wait::Text, "not consumed".into())));
+    assert!(executor.is_waiting());
+    let mut session = session();
+    assert_eq!(ready(session.next_inbound()).unwrap(), (false, None));
+    session
+        .invocation
+        .results
+        .push_back(Ok(State::Waiting(Wait::Text)));
+    session.enqueue("first".into()).unwrap();
+    assert_eq!(ready(session.next_inbound()).unwrap(), (true, None));
+    let calls = session.executor().calls.len();
+    session.invocation.resume_wait = Some(Wait::Text);
+    for text in ["second", "third"] {
+        session.enqueue(text.into()).unwrap();
+    }
+    assert_eq!(ready(session.next_inbound()).unwrap(), (true, None));
+    assert_eq!(session.inspect().pending_frames, 1);
+    ready(Callbacks::writable(&mut session)).unwrap();
+    assert_eq!(
+        ready(session.next_inbound()).unwrap(),
+        (true, Some("third".into()))
+    );
+    assert_eq!(session.executor().calls.len(), calls);
+    assert_eq!(ready(session.next_inbound()).unwrap(), (false, None));
+    session.enqueue("retained".into()).unwrap();
+    session.invocation.pending = Some(Wait::Bytes);
+    assert!(ready(session.next_inbound())
+        .unwrap_err()
+        .to_string()
+        .contains("cannot wake Bytes"));
+    assert_eq!(session.inspect().pending_frames, 1);
+    session.cancel("wrong wait".into()).unwrap();
 }
 
 #[test]
@@ -288,18 +534,22 @@ fn terminal_failures_always_close_transport_admission() {
                     .push_back(Ok(State::Waiting(Wait::Text)));
             }
             let result = if cancel {
-                session.cancel("end".into())
+                session.cancel("end".into()).map(|_| ())
             } else {
-                session.close()
+                ready(Callbacks::close(&mut session))
             };
             assert!(result.is_err());
             assert!(!session.is_open());
+            assert!(!session.is_waiting());
             assert!(session.enqueue("late".into()).is_err());
+            let calls = session.executor().calls.len();
+            ready(Callbacks::close(&mut session)).unwrap();
+            assert_eq!(session.executor().calls.len(), calls);
         }
     }
     let mut session = session();
-    Callbacks::writable(&mut session).unwrap();
-    Callbacks::close(&mut session).unwrap();
+    ready(Callbacks::writable(&mut session)).unwrap();
+    ready(Callbacks::close(&mut session)).unwrap();
     assert!(!session.is_open());
 }
 
@@ -336,11 +586,15 @@ fn host_failures_are_propagated_without_replaying_callbacks() {
                     .push_back(Err("invoke failed".into()));
             }
             let result = if stateful {
-                session
-                    .next_paired(Some(("s".into(), 1, "a".into(), "b".into())))
-                    .map(|_| ())
+                crate::callback_test_support::ready(session.next_paired(Some((
+                    "s".into(),
+                    1,
+                    "a".into(),
+                    "b".into(),
+                ))))
+                .map(|_| ())
             } else {
-                session.next_inbound().map(|_| ())
+                ready(session.next_inbound()).map(|_| ())
             };
             assert!(result.unwrap_err().to_string().contains("failed"));
             assert_eq!(session.inspect().pending_frames, 0);
@@ -351,7 +605,7 @@ fn host_failures_are_propagated_without_replaying_callbacks() {
         .invocation
         .results
         .push_back(Err("invoke failed".into()));
-    assert!(Callbacks::writable(&mut session)
+    assert!(ready(Callbacks::writable(&mut session))
         .unwrap_err()
         .to_string()
         .contains("invoke failed"));
@@ -367,8 +621,7 @@ fn host_failures_are_propagated_without_replaying_callbacks() {
         .invocation
         .results
         .push_back(Err("name failed".into()));
-    assert!(session
-        .room_identity(1)
+    assert!(ready(session.room_identity(1))
         .unwrap_err()
         .to_string()
         .contains("name failed"));
@@ -376,8 +629,7 @@ fn host_failures_are_propagated_without_replaying_callbacks() {
         .invocation
         .results
         .push_back(Err("match failed".into()));
-    assert!(session
-        .matched("r".into(), "a".into(), "b".into())
+    assert!(ready(session.matched("r".into(), "a".into(), "b".into()))
         .unwrap_err()
         .to_string()
         .contains("match failed"));
@@ -385,10 +637,140 @@ fn host_failures_are_propagated_without_replaying_callbacks() {
         .invocation
         .results
         .push_back(Ok(State::Waiting(Wait::Text)));
-    assert!(session
-        .matched("r".into(), "a".into(), "b".into())
+    assert!(ready(session.matched("r".into(), "a".into(), "b".into()))
         .unwrap_err()
         .to_string()
-        .contains("suspended"));
+        .contains("still waiting"));
     session.cancel("stop".into()).unwrap();
+}
+
+#[test]
+fn failed_open_cancels_its_session_and_retains_cleanup_errors() {
+    for (cancel_error, terminal, expected) in [
+        (false, Ok(State::Complete(V::Unit)), "open failed"),
+        (
+            true,
+            Ok(State::Complete(V::Unit)),
+            "open failed; cancellation failed: cancel failed",
+        ),
+        (
+            false,
+            Err("cancellation callback failed".into()),
+            "open failed; cancellation failed: cancellation callback failed",
+        ),
+    ] {
+        let executor = Executor::<WebSocketEvent> {
+            results: [Err("open failed".into()), terminal].into(),
+            cancel_error,
+            ..Executor::default()
+        };
+        let error = WebSocketCallbacks::open(
+            executor,
+            Session::open(WebSocketEndpointPlan::new(2, 64).unwrap()),
+        )
+        .unwrap_err();
+        assert_eq!(error.to_string(), expected);
+    }
+    let mut live = Session::open(WebSocketEndpointPlan::new(2, 64).unwrap());
+    live.close();
+    let mut executor = Executor::<WebSocketEvent>::default();
+    executor
+        .results
+        .push_back(Err("must not execute open".into()));
+    assert_eq!(
+        WebSocketCallbacks::open(executor, live)
+            .unwrap_err()
+            .to_string(),
+        "error[serve.websocket.closed]: connection is closed"
+    );
+}
+
+#[test]
+fn paired_payloads_await_source_validate_results_and_drop_owned_work() {
+    use crate::callback_test_support::Suspension;
+    use std::future::Future;
+    use std::sync::{Arc, Mutex};
+    use std::task::{Context, Waker};
+
+    for peer_left in [false, true] {
+        for outcome in ["complete", "empty", "invalid", "failure", "drop"] {
+            let mut session = session();
+            let trace = Arc::new(Mutex::new(Suspension::default()));
+            session.invocation.suspension = Some(trace.clone());
+            session.invocation.results.push_back(match outcome {
+                "failure" => Err("source payload failed".into()),
+                "invalid" => Ok(State::Complete(V::Unit)),
+                "empty" => Ok(State::Complete("".into())),
+                _ => Ok(State::Complete("source payload".into())),
+            });
+            let mut future = Box::pin(async {
+                if peer_left {
+                    session.peer_left().await
+                } else {
+                    session.waiting().await
+                }
+            });
+            for _ in 0..2 {
+                assert!(future
+                    .as_mut()
+                    .poll(&mut Context::from_waker(Waker::noop()))
+                    .is_pending());
+            }
+            assert_eq!(
+                trace.lock().unwrap().events,
+                [if peer_left {
+                    "PairPeerLeft"
+                } else {
+                    "PairWaiting"
+                }]
+            );
+            if outcome != "drop" {
+                trace.lock().unwrap().released = true;
+                let result = ready(&mut future);
+                match outcome {
+                    "failure" => {
+                        assert_eq!(result.unwrap_err().to_string(), "source payload failed")
+                    }
+                    "invalid" => {
+                        assert!(result.unwrap_err().to_string().contains("expected String"))
+                    }
+                    "empty" => assert_eq!(result.unwrap(), ""),
+                    _ => assert_eq!(result.unwrap(), "source payload"),
+                }
+            }
+            drop(future);
+            assert_eq!(
+                trace.lock().unwrap().events.last().unwrap(),
+                "future dropped"
+            );
+            assert_eq!(
+                session.executor().calls.len(),
+                2,
+                "open plus one payload invocation"
+            );
+            session.cancel("owner cleanup".into()).unwrap();
+            assert_eq!(
+                &trace.lock().unwrap().events[1..],
+                ["future dropped", "cancel pending", "Cancellation"]
+            );
+            assert!(!session.is_open());
+        }
+        let mut empty = WebSocketCallbacks::open(
+            Executor::<WebSocketEvent>::default(),
+            Session::open(WebSocketEndpointPlan::new(2, 64).unwrap()),
+        )
+        .unwrap();
+        let error = if peer_left {
+            ready(empty.peer_left())
+        } else {
+            ready(empty.waiting())
+        }
+        .unwrap_err();
+        assert!(error.to_string().contains("no paired"));
+        assert_eq!(
+            empty.executor().calls.len(),
+            1,
+            "missing callback never dispatched"
+        );
+    }
 }

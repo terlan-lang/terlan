@@ -1,56 +1,41 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-left
+//! The `scroll-padding-left` property defines offsets for the left of the _optimal viewing region_
+//! of the scrollport: the region used as the target region for placing things in view of the user.
+//! This allows the author to exclude regions of the scrollport that are obscured by other content
+//! (such as fixed-positioned toolbars or sidebars) or to put more breathing room between a targeted
+//! element and the edges of the scrollport.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: relative to the scroll container's scrollport.
+//!
+//! Keyword effects:
+//! - auto: The offset is determined by the user agent. This will generally be 0px, but a user agent
+//! is able to detect and do something else if a non-zero value is more appropriate.
+//!
 //! Grammar: auto | <length-percentage [0,∞]>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-left
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-padding-left
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollPaddingLeft.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    scroll_padding_left: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    scroll_padding_left: Value
+    scroll_padding_left: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained scroll-padding-left value.
+/// Checks the scroll-padding-left length range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub opaque type Value.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Returns the CSS keyword auto.
+/// Checks the scroll-padding-left percentage range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a scroll-padding-left value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Checks the specification range and constructs a scroll-padding-left value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

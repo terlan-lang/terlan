@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword uppercase. Generated; do not edit.
+ */
+module std.css.keywords.Uppercase.
+
+pub type Uppercase.

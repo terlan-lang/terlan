@@ -1,0 +1,134 @@
+/** Artifact-derived parity evidence for self-hosted lint authority. */
+module self_host.SelfHostLintParityTool.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.File.
+import self_host.SelfHostLintAuthorityEvidence.
+
+non_empty_lines(values: List[String]): List[String] ->
+    case values {
+        [] -> [];
+        [value | rest] -> if {
+            String.trim(value) == "" -> non_empty_lines(rest);
+            true -> [value | non_empty_lines(rest)]
+        }
+    }.
+
+lines(value: String): List[String] -> non_empty_lines(String.split(value, "\n")).
+
+length[T](values: List[T], count: Int): Int ->
+    case values { [] -> count; [_ | rest] -> length(rest, count + 1) }.
+
+occurrences(target: String, values: List[String], count: Int): Int ->
+    case values {
+        [] -> count;
+        [value | rest] -> occurrences(
+            target,
+            rest,
+            if { value == target -> count + 1; true -> count },
+        )
+    }.
+
+same_counts(values: List[String], left: List[String], right: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            occurrences(value, left, 0) == occurrences(value, right, 0)
+                and same_counts(rest, left, right)
+    }.
+
+/** Compares diagnostic records without trusting their emission order. */
+pub diagnostic_multiset_equal(left: String, right: String): Bool ->
+    let left_lines = lines(left);
+    let right_lines = lines(right);
+    length(left_lines, 0) == length(right_lines, 0)
+        and same_counts(left_lines, left_lines, right_lines).
+
+/** Compares exact diagnostic order while ignoring only terminal blank lines. */
+pub diagnostic_order_equal(left: String, right: String): Bool ->
+    lines(left) == lines(right).
+
+pub bootstrap_complete(value: String): Bool -> String.trim(value) == "complete".
+
+/** Derives the strict v1 evidence artifact exclusively from compared artifacts. */
+pub evidence(
+    native_diagnostics: String,
+    self_host_diagnostics: String,
+    native_fixed: String,
+    self_host_fixed: String,
+    native_corpus: String,
+    self_host_corpus: String,
+    bootstrap_marker: String,
+): String -> SelfHostLintAuthorityEvidence.render(
+    diagnostic_multiset_equal(native_diagnostics, self_host_diagnostics),
+    diagnostic_order_equal(native_diagnostics, self_host_diagnostics),
+    native_fixed == self_host_fixed,
+    native_corpus == self_host_corpus,
+    bootstrap_complete(bootstrap_marker),
+).
+
+read_all(paths: List[String]): Result[List[String], String] ->
+    case paths {
+        [] -> Ok(List.new[String]());
+        [path | rest] -> case File.read_text(path) {
+            Err(_) -> Err("cannot read lint parity artifact: " + path);
+            Ok(value) -> case read_all(rest) {
+                Err(reason) -> Err(reason);
+                Ok(values) -> Ok([value | values])
+            }
+        }
+    }.
+
+/** Writes evidence first and a last-written completion marker second. */
+pub write(
+    native_diagnostics_path: String,
+    self_host_diagnostics_path: String,
+    native_fixed_path: String,
+    self_host_fixed_path: String,
+    native_corpus_path: String,
+    self_host_corpus_path: String,
+    bootstrap_marker_path: String,
+    evidence_path: String,
+    completion_marker_path: String,
+): Bool ->
+    let _removed = File.delete(completion_marker_path);
+    case read_all([
+        native_diagnostics_path,
+        self_host_diagnostics_path,
+        native_fixed_path,
+        self_host_fixed_path,
+        native_corpus_path,
+        self_host_corpus_path,
+        bootstrap_marker_path,
+    ]) {
+        Err(_) -> false;
+        Ok([
+            native_diagnostics,
+            self_host_diagnostics,
+            native_fixed,
+            self_host_fixed,
+            native_corpus,
+            self_host_corpus,
+            bootstrap_marker
+        ]) -> case File.write_text(
+            evidence_path,
+            evidence(
+                native_diagnostics,
+                self_host_diagnostics,
+                native_fixed,
+                self_host_fixed,
+                native_corpus,
+                self_host_corpus,
+                bootstrap_marker,
+            ),
+        ) {
+            Err(_) -> false;
+            Ok(_) -> case File.write_text(completion_marker_path, "complete\n") {
+                Err(_) -> false;
+                Ok(_) -> true
+            }
+        };
+        Ok(_) -> false
+    }.

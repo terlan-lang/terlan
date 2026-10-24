@@ -1,6 +1,8 @@
 /** Canonical parameter parser shared by all callable declaration families. */
 module self_host.ParameterParser.
 
+import std.core.String.
+
 import self_host.ParameterSyntax.{ParameterSyntax}.
 
 import std.collections.List.

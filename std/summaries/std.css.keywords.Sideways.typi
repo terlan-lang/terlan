@@ -1,0 +1,6 @@
+//! Shared CSS keyword sideways. Generated; do not edit.
+
+module std.css.keywords.Sideways.
+
+pub type Sideways =
+    Atom["sideways"].

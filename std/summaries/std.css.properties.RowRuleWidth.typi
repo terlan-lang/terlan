@@ -1,64 +1,27 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-width
+//! The `row-rule-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! widths of the lines drawn between rows in multi-row grid, flex, and multi-col layouts.
+//!
+//! Keyword effects:
+//! - medium: Same as `3px`. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+//! - thick: Same as `5px`. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+//! - thin: Same as `1px`. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+//!
 //! Grammar: <line-width-list> | <auto-line-width-list>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-width
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/row-rule-width
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RowRuleWidth.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    row_rule_width: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    row_rule_width: Value
+    row_rule_width: Thin | Medium | Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained row-rule-width value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword hairline.
-
-pub hairline(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a row-rule-width value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Returns the CSS keyword medium.
-
-pub medium(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword thick.
-
-pub thick(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

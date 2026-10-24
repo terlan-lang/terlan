@@ -1,0 +1,411 @@
+/** Tooling-document projection for TL0401-TL0404 test rules. */
+module self_host.SelfHostLintTestsProjection.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import self_host.ProjectedBodySyntax.ProjectedBody.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedParserSyntax.ProjectedSurfaceDeclaration.
+import self_host.ProjectedSignatureSyntax.ProjectedCallableSignature.
+import self_host.SelfHostLintTests.{FakeTestFinding, TestDeclaration}.
+import self_host.SelfHostLintTests.
+import self_host.SelfHostToolingDocument.{ToolingDocument, ToolingToken}.
+import self_host.Syntax.{FunctionDeclaration, MethodDeclaration}.
+
+struct CallInfo {
+    valid: Bool,
+    name: String,
+    remote: String,
+    args: List[ProjectedExpressionNode],
+    has_named_args: Bool,
+    has_type_args: Bool,
+}.
+
+constructor CallInfo {
+    (
+        valid: Bool,
+        name: String,
+        remote: String,
+        args: List[ProjectedExpressionNode],
+        has_named_args: Bool,
+        has_type_args: Bool,
+    ): CallInfo -> CallInfo {
+        valid: valid,
+        name: name,
+        remote: remote,
+        args: args,
+        has_named_args: has_named_args,
+        has_type_args: has_type_args,
+    }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+callable_surface(value: ProjectedSurfaceDeclaration): Bool ->
+    case value.class {
+        FunctionDeclaration -> true;
+        MethodDeclaration -> true;
+        _ -> false
+    }.
+
+identifier_token(value: ToolingToken): Bool ->
+    value.terminal == "var" or value.terminal == "upper-ident".
+
+next_depth(value: ToolingToken, depth: Int): Int ->
+    if {
+        value.text == "(" -> depth + 1;
+        value.text == ")" -> depth - 1;
+        true -> depth
+    }.
+
+callable_name_token(
+    values: List[ToolingToken],
+    start_byte: Int,
+    end_byte: Int,
+    depth: Int,
+): Option[ToolingToken] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.end_byte <= start_byte ->
+                    callable_name_token(rest, start_byte, end_byte, depth);
+                value.start_byte >= end_byte -> None;
+                depth == 0 and identifier_token(value) -> Some(value);
+                true -> callable_name_token(
+                    rest,
+                    start_byte,
+                    end_byte,
+                    next_depth(value, depth),
+                )
+            }
+    }.
+
+find_signature(
+    surface: ProjectedSurfaceDeclaration,
+    values: List[ProjectedCallableSignature],
+): Option[ProjectedCallableSignature] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.span.start_byte >= surface.span.start_byte
+                    and value.span.start_byte < surface.span.end_byte -> Some(value);
+                true -> find_signature(surface, rest)
+            }
+    }.
+
+find_body(head: String, values: List[ProjectedBody]): Option[ProjectedExpressionNode] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if { value.declaration_head == head -> value.expression.node; true -> find_body(head, rest) }
+    }.
+
+test_annotation(source: String, start_byte: Int, name_byte: Int): Bool ->
+    if {
+        name_byte <= start_byte -> false;
+        true -> annotation_lines(String.split(
+            String.utf8_slice(source, start_byte, name_byte - start_byte),
+            "\n",
+        ))
+    }.
+
+annotation_lines(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> String.trim(value) == "@test" or annotation_lines(rest)
+    }.
+
+remote_text(value: ProjectedExpressionNode): String ->
+    if {
+        value.kind == "identifier" or value.kind == "constructor" -> value.text;
+        value.kind == "field" -> case value.children {
+            [receiver] ->
+                let prefix = remote_text(receiver);
+                if { prefix == "" -> ""; true -> prefix + "." + value.text };
+            _ -> ""
+        };
+        true -> ""
+    }.
+
+contains_named(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.kind == "named-argument" or contains_named(rest)
+    }.
+
+call_info(value: ProjectedExpressionNode): CallInfo ->
+    if {
+        value.kind != "call" -> CallInfo(false, "", "", [], false, false);
+        true -> case value.children {
+            [callee, arguments] where arguments.kind == "call-arguments" ->
+                if {
+                    callee.kind == "identifier" -> CallInfo(
+                        true,
+                        callee.text,
+                        "",
+                        arguments.children,
+                        contains_named(arguments.children),
+                        false,
+                    );
+                    callee.kind == "field" -> case callee.children {
+                        [receiver] -> CallInfo(
+                            remote_text(receiver) != "",
+                            callee.text,
+                            remote_text(receiver),
+                            arguments.children,
+                            contains_named(arguments.children),
+                            false,
+                        );
+                        _ -> CallInfo(false, "", "", [], false, false)
+                    };
+                    callee.kind == "index" -> CallInfo(
+                        false, "", "", arguments.children,
+                        contains_named(arguments.children), true,
+                    );
+                    true -> CallInfo(false, "", "", [], false, false)
+                };
+            _ -> CallInfo(false, "", "", [], false, false)
+        }
+    }.
+
+allowed_test_remote(value: String): Bool ->
+    value == "" or value == "std.test.Test".
+
+assertion_call(value: ProjectedExpressionNode, name: String, arity: Int): Bool ->
+    let call = call_info(value);
+    call.valid
+        and call.name == name
+        and List.length(call.args) == arity
+        and allowed_test_remote(call.remote).
+
+assertion_count(value: ProjectedExpressionNode): Int ->
+    let local = if {
+        assertion_call(value, "assert", 1)
+            or assertion_call(value, "assert_equal", 2) -> 1;
+        true -> 0
+    };
+    local + assertion_count_at(value.children).
+
+assertion_count_at(values: List[ProjectedExpressionNode]): Int ->
+    case values {
+        [] -> 0;
+        [value | rest] -> assertion_count(value) + assertion_count_at(rest)
+    }.
+
+assert_equal_count(value: ProjectedExpressionNode): Int ->
+    let local = if { assertion_call(value, "assert_equal", 2) -> 1; true -> 0 };
+    local + assert_equal_count_at(value.children).
+
+assert_equal_count_at(values: List[ProjectedExpressionNode]): Int ->
+    case values {
+        [] -> 0;
+        [value | rest] -> assert_equal_count(value) + assert_equal_count_at(rest)
+    }.
+
+property_runner(value: ProjectedExpressionNode): Bool ->
+    let call = call_info(value);
+    call.valid
+        and SelfHostLintTests.property_runner(call.name, call.remote).
+
+has_property_runner(value: ProjectedExpressionNode): Bool ->
+    property_runner(value) or has_property_runner_at(value.children).
+
+has_property_runner_at(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> has_property_runner(value) or has_property_runner_at(rest)
+    }.
+
+true_literal(value: ProjectedExpressionNode): Bool ->
+    (
+        value.kind == "atom"
+            or value.kind == "identifier"
+            or value.kind == "constructor"
+    ) and value.text == "true".
+
+nodes_equal(left: ProjectedExpressionNode, right: ProjectedExpressionNode): Bool ->
+    left.kind == right.kind
+        and left.text == right.text
+        and node_lists_equal(left.children, right.children).
+
+node_lists_equal(
+    left: List[ProjectedExpressionNode],
+    right: List[ProjectedExpressionNode],
+): Bool ->
+    case {left, right} {
+        {[], []} -> true;
+        {[left_value | left_rest], [right_value | right_rest]} ->
+            nodes_equal(left_value, right_value)
+                and node_lists_equal(left_rest, right_rest);
+        _ -> false
+    }.
+
+identity_safe(value: ProjectedExpressionNode): Bool ->
+    value.kind != "named-argument"
+        and value.kind != "index"
+        and identity_safe_at(value.children).
+
+identity_safe_at(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> identity_safe(value) and identity_safe_at(rest)
+    }.
+
+literal_true_assertion(value: ProjectedExpressionNode): Bool ->
+    if {
+        not assertion_call(value, "assert", 1) -> false;
+        true -> case call_info(value).args {
+            [argument] -> true_literal(argument);
+            _ -> false
+        }
+    }.
+
+identity_assertion(value: ProjectedExpressionNode): Bool ->
+    let call = call_info(value);
+    if {
+        not assertion_call(value, "assert_equal", 2)
+            or call.has_named_args
+            or call.has_type_args -> false;
+        true -> case call.args {
+            [left, right] ->
+                identity_safe(left)
+                    and identity_safe(right)
+                    and nodes_equal(left, right);
+            _ -> false
+        }
+    }.
+
+fake_message(value: ProjectedExpressionNode, allow_literal_body: Bool): String ->
+    if {
+        allow_literal_body and true_literal(value) ->
+            "literal true test body does not prove behavior";
+        literal_true_assertion(value) ->
+            "literal true assertion does not prove behavior";
+        identity_assertion(value) ->
+            "identity assertion does not prove behavior";
+        true -> ""
+    }.
+
+fake_findings(
+    value: ProjectedExpressionNode,
+    allow_literal_body: Bool,
+): List[FakeTestFinding] ->
+    let message = fake_message(value, allow_literal_body);
+    let nested = fake_findings_at(value.children);
+    if {
+        message == "" -> nested;
+        true -> [FakeTestFinding(value.start_byte, message) | nested]
+    }.
+
+fake_findings_at(values: List[ProjectedExpressionNode]): List[FakeTestFinding] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            fake_findings(value, false),
+            fake_findings_at(rest),
+        )
+    }.
+
+declaration(
+    surface: ProjectedSurfaceDeclaration,
+    previous_end: Int,
+    signatures: List[ProjectedCallableSignature],
+    bodies: List[ProjectedBody],
+    source: String,
+    tokens: List[ToolingToken],
+): Option[TestDeclaration] ->
+    if {
+        not callable_surface(surface) -> None;
+        true -> case find_signature(surface, signatures) {
+            None -> None;
+            Some(signature) -> case callable_name_token(
+                tokens,
+                signature.span.start_byte,
+                signature.span.end_byte,
+                0,
+            ) {
+                None -> None;
+                Some(name) -> case find_body(signature.declaration_head, bodies) {
+                    None -> Some(TestDeclaration(
+                        name.text,
+                        surface.span.start_byte,
+                        test_annotation(source, previous_end, name.start_byte),
+                        0,
+                        0,
+                        false,
+                        [],
+                    ));
+                    Some(body) -> Some(TestDeclaration(
+                        name.text,
+                        surface.span.start_byte,
+                        test_annotation(source, previous_end, name.start_byte),
+                        assertion_count(body),
+                        assert_equal_count(body),
+                        has_property_runner(body),
+                        fake_findings(body, true),
+                    ))
+                }
+            }
+        }
+    }.
+
+declarations_at(
+    values: List[ProjectedSurfaceDeclaration],
+    previous_end: Int,
+    signatures: List[ProjectedCallableSignature],
+    bodies: List[ProjectedBody],
+    source: String,
+    tokens: List[ToolingToken],
+): List[TestDeclaration] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let following = declarations_at(
+                rest,
+                value.span.end_byte,
+                signatures,
+                bodies,
+                source,
+                tokens,
+            );
+            case declaration(
+                value,
+                previous_end,
+                signatures,
+                bodies,
+                source,
+                tokens,
+            ) {
+                None -> following;
+                Some(found) -> [found | following]
+            }
+    }.
+
+/** Projects annotated test declarations and recursive expression facts. */
+pub declarations(value: ToolingDocument): List[TestDeclaration] ->
+    if {
+        value.valid
+            and value.frontend.surface.valid
+            and value.frontend.signatures.valid
+            and value.frontend.bodies.valid -> declarations_at(
+                value.frontend.surface.declarations,
+                0,
+                value.frontend.signatures.callables,
+                value.frontend.bodies.values,
+                value.source,
+                value.tokens,
+            );
+        true -> []
+    }.
+
+/** Runs TL0401-TL0404 without native AST projection. */
+@pure
+pub diagnostics(
+    path: String,
+    value: ToolingDocument,
+): List[SelfHostLintTests.TestDiagnostic] ->
+    SelfHostLintTests.diagnostics(path, value.source, declarations(value)).

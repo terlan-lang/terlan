@@ -117,43 +117,58 @@ pub(super) fn collect_syntax_import_maps(
 /// - Repackages resolver import metadata into the typechecker's compact
 ///   qualified-name representation.
 pub(super) fn imported_type_names(resolved: &ResolvedModule) -> HashMap<String, QualifiedTypeName> {
-    let mut names = resolved
+    resolved
         .imported_types
         .iter()
         .map(|(local_name, imported)| {
             (
                 local_name.clone(),
                 QualifiedTypeName {
-                    module: Some(imported.source_module.clone()),
+                    module: imported.source_module.clone(),
                     name: imported.source_name.clone(),
                 },
             )
         })
-        .collect::<HashMap<_, _>>();
-    // Qualified primary paths are resolved from actual exported declarations,
-    // never inferred by splitting the path at an arbitrary package boundary.
-    for interface in resolved.interface_map.values() {
-        let Some(name) = interface.module.rsplit('.').next() else {
+        .collect()
+}
+
+/// Collects imported type identities, including names qualified through a
+/// source-visible module alias.
+///
+/// A module import such as `import self_host.Document.` permits annotations
+/// such as `Document.Node`. Interface signatures carry the canonical identity
+/// `self_host.Document.Node`; recording the alias-qualified spelling here lets
+/// declaration loading normalize both forms before nominal unification.
+pub(super) fn imported_type_names_for_module(
+    module: &SyntaxModuleOutput,
+    resolved: &ResolvedModule,
+) -> HashMap<String, QualifiedTypeName> {
+    let mut names = imported_type_names(resolved);
+    for name in resolved.local_type_names.keys() {
+        names.insert(
+            name.clone(),
+            QualifiedTypeName {
+                module: resolved.name.clone(),
+                name: name.clone(),
+            },
+        );
+    }
+    for (alias, provider) in collect_syntax_module_aliases(module, &resolved.interface_map) {
+        let Some(interface) = resolved.interface_map.get(&provider) else {
             continue;
         };
-        if interface.public_types.contains(name) || interface.opaque_types.contains(name) {
+        for name in interface
+            .public_types
+            .iter()
+            .chain(interface.opaque_types.iter())
+        {
             names.insert(
-                interface.module.clone(),
+                format!("{alias}.{name}"),
                 QualifiedTypeName {
-                    module: Some(interface.module.clone()),
-                    name: name.to_string(),
+                    module: provider.clone(),
+                    name: name.clone(),
                 },
             );
-        }
-    }
-    for name in resolved.local_type_names.keys() {
-        let local = QualifiedTypeName {
-            module: None,
-            name: name.clone(),
-        };
-        names.insert(format!("{}.{name}", resolved.name), local.clone());
-        if resolved.name.rsplit('.').next() == Some(name.as_str()) {
-            names.insert(resolved.name.clone(), local);
         }
     }
     names

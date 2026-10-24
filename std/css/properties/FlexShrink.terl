@@ -1,75 +1,45 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-shrink
+ * The `flex-shrink` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the flex
+ * shrink factor of a flex item. If the size of all flex items is larger than the flex container,
+ * the [flex items can
+ * shrink](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Controlling_flex_item_ratios#the_flex-shrink_property)
+ * to fit according to their `flex-shrink` value. Each flex line's [negative free
+ * space](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Controlling_flex_item_ratios#positive_and_negative_free_space)
+ * is distributed between the line's flex items that have a `flex-shrink` value greater than `0`.
+ *
+ * Initial: 1. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <number [0,∞]>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-shrink
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-shrink
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FlexShrink.
 
 import std.core.Float.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
+import std.css.Values.{serialize}.
 
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained flex-shrink value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    flex_shrink: Value,
+    flex_shrink: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the flex-shrink number range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub struct OptionalProperty {
-    flex_shrink: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "flex-shrink", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "flex-shrink", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "flex-shrink", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "flex-shrink", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "flex-shrink", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a flex-shrink value.
- */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(Token {property: "flex-shrink", css: std.core.Float.to_string(value)}));
-        false -> None
+        true -> Some(Checked(serialize("flex-shrink", std.core.Float.to_string(value))));
+        false -> Absent
     }.

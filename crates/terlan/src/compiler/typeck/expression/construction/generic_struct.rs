@@ -39,6 +39,7 @@ pub(in super::super) fn infer_generic_struct_construction(
             requested_private,
             ctx.struct_field_visibility,
             ctx.imported_type_names,
+            ctx.current_module,
         ) {
             errors.push(message);
         }

@@ -1,6 +1,10 @@
 /** Command entrypoint for the first self-hosted compiler frontend slice. */
 module self_host.Main.
 
+import std.core.String.
+
+
+
 import std.core.Result.{Err, Ok, Result}.
 import std.core.Option.{None, Option, Some}.
 import self_host.Evidence.
@@ -11,15 +15,30 @@ import self_host.ProjectedFragmentEvidence.
 import self_host.ProjectedParityEvidence.
 import self_host.ProjectedBackendEvidence.
 import self_host.ProjectedBodyEvidence.
+import self_host.ProjectedActorInterfaceCatalog.
 import self_host.ProjectedInterfaceCatalog.
 import self_host.ProjectedStageEvidence.
 import self_host.SelfHostBootstrapTool.
+import self_host.SelfHostActorProfileCatalog.
 import self_host.SelfHostSourceClosure.
 import self_host.ProjectedParserEvidence.
 import self_host.ProjectedSemanticEvidence.
 import self_host.ProjectedTokenEvidence.
 import self_host.TokenEvidence.
 import self_host.ParserErrorEvidence.
+import self_host.SelfHostSeedStage.
+import self_host.SelfHostParallelBackendDriver.
+import self_host.SelfHostParallelBackendDriver.{BackendWorkerJob}.
+import self_host.SelfHostLintTool.
+import self_host.SelfHostLintParityTool.
+import self_host.SelfHostLintAuthorityPipeline.
+import self_host.SelfHostLintAuthorityTool.
+import self_host.ProductionEvidencePipeline.
+import self_host.SelfHostConvergenceMaterialize.
+import self_host.SelfHostDocumentationTool.
+import self_host.SelfHostFormatterTool.
+import self_host.SelfHostCompilerTraceTool.
+import self_host.SelfHostCoreOptimizeEvidenceTool.
 import std.collections.List.
 import std.core.{String, Unit}.
 import std.data.Json.
@@ -303,6 +322,12 @@ main_mode(mode: String): Unit ->
 main_source_closure_mode(mode: String): Unit ->
     if {
         mode == "source-closure" -> main_source_closure();
+        true -> main_affected_closure_mode(mode)
+    }.
+
+main_affected_closure_mode(mode: String): Unit ->
+    if {
+        mode == "affected-closure" -> main_affected_closure();
         true -> main_stage_evidence_mode(mode)
     }.
 
@@ -321,6 +346,12 @@ main_stage_unit_mode(mode: String): Unit ->
 main_stage_layer_mode(mode: String): Unit ->
     if {
         mode == "stage-layer" -> main_stage_layer();
+        true -> main_stage_complete_mode(mode)
+    }.
+
+main_stage_complete_mode(mode: String): Unit ->
+    if {
+        mode == "stage-complete" -> main_stage_complete();
         true -> main_interface_unit_mode(mode)
     }.
 
@@ -339,12 +370,173 @@ main_interface_diagnostics_mode(mode: String): Unit ->
 main_backend_unit_mode(mode: String): Unit ->
     if {
         mode == "backend-unit" -> main_backend_unit();
+        mode == "actor-backend-unit" -> main_actor_backend_unit();
+        mode == "interface-units" -> main_interface_units();
+        mode == "backend-units" -> main_backend_units();
+        mode == "parallel-backend-units" -> main_parallel_backend_units();
+        mode == "lint-unit" -> main_lint_unit();
+        mode == "lint-fix-unit" -> main_lint_fix_unit();
+        mode == "lint-parity-unit" -> main_lint_parity_unit();
+        mode == "lint-authority-unit" -> main_lint_authority_unit();
+        mode == "production-evidence" -> main_production_evidence();
+        mode == "convergence-evidence-unit" -> main_convergence_evidence_unit();
+        mode == "doc-unit" -> main_doc_unit();
+        mode == "format-unit" -> main_format_unit();
+        mode == "trace-unit" -> main_trace_unit();
+        mode == "optimizer-evidence" -> main_optimizer_evidence();
+        true -> main_seed_stage_mode(mode)
+    }.
+
+main_optimizer_evidence(): Unit ->
+    case Arguments.get(1) {
+        Some(root) -> main_optimizer_evidence_output(root);
+        None -> report_unit(
+            "usage: terlan-self-host optimizer-evidence <artifact-root> <evidence.tsv> <marker>",
+        )
+    }.
+
+main_optimizer_evidence_output(root: String): Unit ->
+    case Arguments.get(2) {
+        Some(output) -> main_optimizer_evidence_marker(root, output);
+        None -> report_unit("optimizer-evidence requires an evidence output path")
+    }.
+
+main_optimizer_evidence_marker(root: String, output: String): Unit ->
+    case Arguments.get(3) {
+        Some(marker) -> run_optimizer_evidence(root, output, marker);
+        None -> report_unit("optimizer-evidence requires a completion marker path")
+    }.
+
+run_optimizer_evidence(root: String, output: String, marker: String): Unit ->
+    let _completed = SelfHostCoreOptimizeEvidenceTool.write(root, output, marker);
+    Unit.
+
+main_trace_unit(): Unit ->
+    case Arguments.get(1) {
+        Some(source) -> main_trace_output(source);
+        None -> report_unit(
+            "usage: terlan-self-host trace-unit <source.terl> <trace.tsv> <marker>",
+        )
+    }.
+
+main_trace_output(source: String): Unit ->
+    case Arguments.get(2) {
+        Some(output) -> main_trace_marker(source, output);
+        None -> report_unit("trace-unit requires a trace output path")
+    }.
+
+main_trace_marker(source: String, output: String): Unit ->
+    case Arguments.get(3) {
+        Some(marker) -> run_trace_unit(source, output, marker);
+        None -> report_unit("trace-unit requires a completion marker path")
+    }.
+
+run_trace_unit(source: String, output: String, marker: String): Unit ->
+    let _completed = SelfHostCompilerTraceTool.write(source, output, marker);
+    Unit.
+
+main_format_unit(): Unit ->
+    case Arguments.get(1) {
+        Some(source) -> main_format_output(source);
+        None -> report_unit(
+            "usage: terlan-self-host format-unit <source.terl> <formatted.terl> <diagnostics> <marker>",
+        )
+    }.
+
+main_format_output(source: String): Unit ->
+    case Arguments.get(2) {
+        Some(output) -> main_format_diagnostics(source, output);
+        None -> report_unit("format-unit requires a formatted-source output path")
+    }.
+
+main_format_diagnostics(source: String, output: String): Unit ->
+    case Arguments.get(3) {
+        Some(diagnostics) -> main_format_marker(source, output, diagnostics);
+        None -> report_unit("format-unit requires a diagnostics output path")
+    }.
+
+main_format_marker(source: String, output: String, diagnostics: String): Unit ->
+    case Arguments.get(4) {
+        Some(marker) -> run_format_unit(source, output, diagnostics, marker);
+        None -> report_unit("format-unit requires a completion marker path")
+    }.
+
+run_format_unit(
+    source: String,
+    output: String,
+    diagnostics: String,
+    marker: String,
+): Unit ->
+    let _completed = SelfHostFormatterTool.write(
+        source,
+        output,
+        diagnostics,
+        marker,
+    );
+    Unit.
+
+actor_backend_usage(): Unit ->
+    report_unit(
+        "usage: terlan-self-host actor-backend-unit <source.terl> <interfaces.manifest> <actor-profiles.manifest> <actor-dynamic-evidence.manifest> <core-ir.json> <variant-ir.json> <actor-ir.json> <diagnostics> <completion-marker>",
+    ).
+
+main_actor_backend_unit(): Unit ->
+    let Some(source) <- Arguments.get(1) else {
+        None -> actor_backend_usage()
+    };
+    let Some(interface_manifest) <- Arguments.get(2) else {
+        None -> actor_backend_usage()
+    };
+    let Some(actor_profile_manifest) <- Arguments.get(3) else {
+        None -> actor_backend_usage()
+    };
+    let Some(actor_dynamic_evidence_manifest) <- Arguments.get(4) else {
+        None -> actor_backend_usage()
+    };
+    let Some(core_output) <- Arguments.get(5) else {
+        None -> actor_backend_usage()
+    };
+    let Some(variant_output) <- Arguments.get(6) else {
+        None -> actor_backend_usage()
+    };
+    let Some(actor_output) <- Arguments.get(7) else {
+        None -> actor_backend_usage()
+    };
+    let Some(diagnostics_output) <- Arguments.get(8) else {
+        None -> actor_backend_usage()
+    };
+    let Some(completion_marker) <- Arguments.get(9) else {
+        None -> actor_backend_usage()
+    };
+    let _completed = ProjectedActorInterfaceCatalog.write_actor_backend(
+        source,
+        interface_manifest,
+        actor_profile_manifest,
+        actor_dynamic_evidence_manifest,
+        core_output,
+        variant_output,
+        actor_output,
+        diagnostics_output,
+        completion_marker,
+    );
+    Unit.
+
+main_seed_stage_mode(mode: String): Unit ->
+    if {
+        mode == "seed-stage" -> main_seed_stage();
         true -> main_bootstrap_compare_mode(mode)
     }.
 
 main_bootstrap_compare_mode(mode: String): Unit ->
     if {
         mode == "bootstrap-compare" -> main_bootstrap_compare();
+        mode == "bootstrap-converge" -> main_bootstrap_converge();
+        true -> main_actor_profiles_mode(mode)
+    }.
+
+main_actor_profiles_mode(mode: String): Unit ->
+    if {
+        mode == "actor-profiles-check" -> main_actor_profiles_check();
         true -> main_analyze(mode)
     }.
 
@@ -375,6 +567,40 @@ main_source_closure(): Unit ->
 
 run_source_closure(output: String): Unit ->
     let _completed = SelfHostSourceClosure.write(output);
+    Unit.
+
+main_affected_closure(): Unit ->
+    case Arguments.get(1) {
+        Some(sources) -> main_affected_changed(sources);
+        None -> report_unit(
+            "usage: terlan-self-host affected-closure <sources.manifest> <changed.manifest> <output.manifest>",
+        )
+    }.
+
+main_affected_changed(sources: String): Unit ->
+    case Arguments.get(2) {
+        Some(changed) -> main_affected_output(sources, changed);
+        None -> report_unit("affected-closure requires a changed-source manifest")
+    }.
+
+main_affected_output(sources: String, changed: String): Unit ->
+    case Arguments.get(3) {
+        Some(output) -> run_affected_closure(sources, changed, output);
+        None -> report_unit("affected-closure requires an output manifest")
+    }.
+
+run_affected_closure(sources: String, changed: String, output: String): Unit ->
+    let _completed = SelfHostSourceClosure.write_affected(sources, changed, output);
+    Unit.
+
+main_seed_stage(): Unit ->
+    case Arguments.get(1) {
+        Some(output) -> run_seed_stage(output);
+        None -> report_unit("usage: terlan-self-host seed-stage <output-directory>")
+    }.
+
+run_seed_stage(output: String): Unit ->
+    let _completed = SelfHostSeedStage.run(output);
     Unit.
 
 main_stage_evidence(): Unit ->
@@ -458,6 +684,69 @@ run_stage_layer(layer: String, input: String, output: String): Unit ->
         and ProjectedStageEvidence.write_layer(input, layer, output);
     Unit.
 
+main_stage_complete(): Unit ->
+    case Arguments.get(1) {
+        Some(input) -> main_stage_complete_tokens(input);
+        None -> report_unit(
+            "usage: terlan-self-host stage-complete <source.terl> <tokens> <syntax> <common> <supplemental>",
+        )
+    }.
+
+main_stage_complete_tokens(input: String): Unit ->
+    case Arguments.get(2) {
+        Some(tokens) -> main_stage_complete_syntax(input, tokens);
+        None -> report_unit("stage-complete requires a tokens output")
+    }.
+
+main_stage_complete_syntax(input: String, tokens: String): Unit ->
+    case Arguments.get(3) {
+        Some(syntax) -> main_stage_complete_common(input, tokens, syntax);
+        None -> report_unit("stage-complete requires a syntax output")
+    }.
+
+main_stage_complete_common(input: String, tokens: String, syntax: String): Unit ->
+    case Arguments.get(4) {
+        Some(common) -> main_stage_complete_supplemental(input, tokens, syntax, common);
+        None -> report_unit("stage-complete requires a common semantics output")
+    }.
+
+main_stage_complete_supplemental(
+    input: String,
+    tokens: String,
+    syntax: String,
+    common: String,
+): Unit ->
+    case Arguments.get(5) {
+        Some(supplemental) -> run_stage_complete(
+            input,
+            tokens,
+            syntax,
+            common,
+            supplemental,
+        );
+        None -> report_unit("stage-complete requires a supplemental semantics output")
+    }.
+
+run_stage_complete(
+    input: String,
+    tokens: String,
+    syntax: String,
+    common: String,
+    supplemental: String,
+): Unit ->
+    let _completed = ensure_directory(parent(tokens))
+        and ensure_directory(parent(syntax))
+        and ensure_directory(parent(common))
+        and ensure_directory(parent(supplemental))
+        and ProjectedStageEvidence.write_complete_unit(
+            input,
+            tokens,
+            syntax,
+            common,
+            supplemental,
+        );
+    Unit.
+
 main_interface_unit(): Unit ->
     case Arguments.get(1) {
         Some(input) -> main_interface_unit_output(input);
@@ -533,6 +822,276 @@ run_backend_unit(
         );
     Unit.
 
+run_backend_units(index: Int, catalog: self_host.ProjectedInterfaceCatalog.InterfaceCatalog): Bool ->
+    case {
+        Arguments.get(index),
+        Arguments.get(index + 1),
+        Arguments.get(index + 2)
+    } {
+        {Some(input), Some(output), Some(diagnostics)} ->
+            let completed = ensure_directory(parent(output))
+                and ensure_directory(parent(diagnostics))
+                and ProjectedInterfaceCatalog.write_backend_catalog(
+                    input,
+                    catalog,
+                    output,
+                    diagnostics,
+                );
+            completed and run_backend_units(index + 3, catalog);
+        {None, None, None} -> true;
+        _ -> false
+    }.
+
+main_backend_units(): Unit ->
+    case Arguments.get(1) {
+        Some(interface_manifest) -> let catalog = ProjectedInterfaceCatalog.load(interface_manifest);
+            let _completed = run_backend_units(2, catalog);
+            Unit;
+        None -> report_unit(
+            "usage: terlan-self-host backend-units <interfaces.manifest> [<source.terl> <output> <diagnostics>]...",
+        )
+    }.
+
+parallel_worker_limit(value: String): Option[Int] ->
+    case Json.parse(value) {
+        Err(_) -> None;
+        Ok(json) -> case json.as_int() {
+            Err(_) -> None;
+            Ok(limit) -> if { limit > 0 -> Some(limit); true -> None }
+        }
+    }.
+
+parallel_backend_jobs(index: Int): Result[List[BackendWorkerJob], String] ->
+    case {
+        Arguments.get(index),
+        Arguments.get(index + 1),
+        Arguments.get(index + 2),
+        Arguments.get(index + 3)
+    } {
+        {Some(identity), Some(input), Some(output), Some(diagnostics)} -> if {
+            not ensure_directory(parent(output)) or not ensure_directory(parent(diagnostics)) ->
+                Err("cannot create parallel backend output directories");
+            true -> case parallel_backend_jobs(index + 4) {
+                Err(reason) -> Err(reason);
+                Ok(rest) -> Ok([BackendWorkerJob(identity, input, output, diagnostics) | rest])
+            }
+        };
+        {None, None, None, None} -> Ok(List.new[BackendWorkerJob]());
+        _ -> Err("parallel backend jobs must contain identity/source/output/diagnostics groups")
+    }.
+
+parallel_backend_usage(): Unit ->
+    report_unit(
+        "usage: terlan-self-host parallel-backend-units <interfaces.manifest> <worker-limit> [<identity> <source.terl> <output> <diagnostics>]...",
+    ).
+
+main_parallel_backend_units(): Unit ->
+    case { Arguments.get(1), Arguments.get(2) } {
+        {Some(interface_manifest), Some(limit_text)} -> case parallel_worker_limit(limit_text) {
+            None -> parallel_backend_usage();
+            Some(worker_limit) -> case parallel_backend_jobs(3) {
+                Err(reason) -> report_unit(reason);
+                Ok(jobs) -> let catalog = ProjectedInterfaceCatalog.load(interface_manifest);
+                if {
+                    SelfHostParallelBackendDriver.run(jobs, catalog, worker_limit) -> Unit;
+                    true -> report_unit("parallel backend compilation failed")
+                }
+            }
+        };
+        _ -> parallel_backend_usage()
+    }.
+
+lint_unit_usage(): Unit ->
+    report_unit(
+        "usage: terlan-self-host lint-unit <source.terl> <diagnostics> <status-marker>",
+    ).
+
+main_lint_unit(): Unit ->
+    case { Arguments.get(1), Arguments.get(2), Arguments.get(3) } {
+        {Some(source), Some(diagnostics), Some(marker)} -> let _completed =
+            ensure_directory(parent(diagnostics))
+                and ensure_directory(parent(marker))
+                and SelfHostLintTool.write(source, diagnostics, marker);
+            Unit;
+        _ -> lint_unit_usage()
+    }.
+
+lint_fix_unit_usage(): Unit ->
+    report_unit(
+        "usage: terlan-self-host lint-fix-unit <source.terl> <fixed-source.terl> <status-marker>",
+    ).
+
+main_lint_fix_unit(): Unit ->
+    case { Arguments.get(1), Arguments.get(2), Arguments.get(3) } {
+        {Some(source), Some(fixed), Some(marker)} -> let _completed =
+            ensure_directory(parent(fixed))
+                and ensure_directory(parent(marker))
+                and SelfHostLintTool.write_fixed(source, fixed, marker);
+            Unit;
+        _ -> lint_fix_unit_usage()
+    }.
+
+lint_parity_unit_usage(): Unit ->
+    report_unit(
+        "usage: terlan-self-host lint-parity-unit <native-diagnostics> <self-host-diagnostics> <native-fixed> <self-host-fixed> <native-corpus> <self-host-corpus> <bootstrap-marker> <evidence> <completion-marker>",
+    ).
+
+main_lint_parity_tail(
+    native_diagnostics: String,
+    self_host_diagnostics: String,
+    native_fixed: String,
+    self_host_fixed: String,
+): Unit ->
+    case {
+        Arguments.get(5),
+        Arguments.get(6),
+        Arguments.get(7),
+        Arguments.get(8),
+        Arguments.get(9),
+    } {
+        {
+            Some(native_corpus),
+            Some(self_host_corpus),
+            Some(bootstrap_marker),
+            Some(evidence),
+            Some(marker),
+        } -> let _completed =
+            ensure_directory(parent(evidence))
+                and ensure_directory(parent(marker))
+                and SelfHostLintParityTool.write(
+                    native_diagnostics,
+                    self_host_diagnostics,
+                    native_fixed,
+                    self_host_fixed,
+                    native_corpus,
+                    self_host_corpus,
+                    bootstrap_marker,
+                    evidence,
+                    marker,
+                );
+            Unit;
+        _ -> lint_parity_unit_usage()
+    }.
+
+main_lint_parity_unit(): Unit ->
+    case {
+        Arguments.get(1),
+        Arguments.get(2),
+        Arguments.get(3),
+        Arguments.get(4),
+    } {
+        {
+            Some(native_diagnostics),
+            Some(self_host_diagnostics),
+            Some(native_fixed),
+            Some(self_host_fixed),
+        } -> main_lint_parity_tail(
+            native_diagnostics,
+            self_host_diagnostics,
+            native_fixed,
+            self_host_fixed,
+        );
+        _ -> lint_parity_unit_usage()
+    }.
+
+lint_authority_unit_usage(): Unit ->
+    report_unit(
+        "usage: terlan-self-host lint-authority-unit <parity-evidence> <registry-evidence>",
+    ).
+
+main_lint_authority_unit(): Unit ->
+    case { Arguments.get(1), Arguments.get(2) } {
+        {Some(parity), Some(registry)} -> let _completed =
+            ensure_directory(parent(SelfHostLintAuthorityTool.registry_path()))
+                and SelfHostLintAuthorityPipeline.write(parity, registry);
+            Unit;
+        _ -> lint_authority_unit_usage()
+    }.
+
+production_evidence_usage(): Unit ->
+    report_unit(
+        "usage: terlan-self-host production-evidence <plan.tsv> <authority-sources.tsv> <catalog-output> <decision-output> <completion-marker>",
+    ).
+
+main_production_evidence(): Unit ->
+    case {
+        Arguments.get(1),
+        Arguments.get(2),
+        Arguments.get(3),
+        Arguments.get(4),
+        Arguments.get(5),
+    } {
+        {
+            Some(plan),
+            Some(sources),
+            Some(catalog),
+            Some(decision),
+            Some(marker),
+        } -> let _completed =
+            ensure_directory(parent(catalog))
+                and ensure_directory(parent(decision))
+                and ensure_directory(parent(marker))
+                and ProductionEvidencePipeline.run(
+                    plan,
+                    sources,
+                    catalog,
+                    decision,
+                    marker,
+                );
+            Unit;
+        _ -> production_evidence_usage()
+    }.
+
+convergence_evidence_unit_usage(): Unit ->
+    report_unit(
+        "usage: terlan-self-host convergence-evidence-unit <layers.tsv> <stage-evidence.json> <completion-marker>",
+    ).
+
+main_convergence_evidence_unit(): Unit ->
+    case { Arguments.get(1), Arguments.get(2), Arguments.get(3) } {
+        {Some(manifest), Some(output), Some(marker)} -> let _completed =
+            ensure_directory(parent(output))
+                and ensure_directory(parent(marker))
+                and SelfHostConvergenceMaterialize.write(manifest, output, marker);
+            Unit;
+        _ -> convergence_evidence_unit_usage()
+    }.
+
+doc_unit_usage(): Unit ->
+    report_unit(
+        "usage: terlan-self-host doc-unit <source.terl> <module.md> <diagnostics> <completion-marker>",
+    ).
+
+main_doc_unit(): Unit ->
+    case {
+        Arguments.get(1),
+        Arguments.get(2),
+        Arguments.get(3),
+        Arguments.get(4)
+    } {
+        {Some(source), Some(markdown), Some(diagnostics), Some(marker)} -> let _completed =
+            ensure_directory(parent(markdown))
+                and ensure_directory(parent(diagnostics))
+                and ensure_directory(parent(marker))
+                and SelfHostDocumentationTool.write(source, markdown, diagnostics, marker);
+            Unit;
+        _ -> doc_unit_usage()
+    }.
+
+run_interface_units(index: Int): Bool ->
+    case { Arguments.get(index), Arguments.get(index + 1) } {
+        {Some(input), Some(output)} ->
+            let completed = ensure_directory(parent(output))
+                and ProjectedInterfaceCatalog.write_interface(input, output);
+            completed and run_interface_units(index + 2);
+        {None, None} -> true;
+        _ -> false
+    }.
+
+main_interface_units(): Unit ->
+    let _completed = run_interface_units(1);
+    Unit.
+
 main_bootstrap_compare(): Unit ->
     case Arguments.get(1) {
         Some(reference) -> main_bootstrap_candidate(reference);
@@ -560,6 +1119,56 @@ main_bootstrap_marker(reference: String, candidate: String): Unit ->
 run_bootstrap_compare(reference: String, candidate: String, marker: String): Unit ->
     let _completed = SelfHostBootstrapTool.compare_files(reference, candidate, marker);
     Unit.
+
+main_bootstrap_converge(): Unit ->
+    case Arguments.get(1) {
+        Some(stage0) -> main_bootstrap_converge_stage1(stage0);
+        None -> report_unit(
+            "usage: terlan-self-host bootstrap-converge <stage0.json> <stage1.json> <stage2.json> <marker>",
+        )
+    }.
+
+main_bootstrap_converge_stage1(stage0: String): Unit ->
+    case Arguments.get(2) {
+        Some(stage1) -> main_bootstrap_converge_stage2(stage0, stage1);
+        None -> report_unit(
+            "usage: terlan-self-host bootstrap-converge <stage0.json> <stage1.json> <stage2.json> <marker>",
+        )
+    }.
+
+main_bootstrap_converge_stage2(stage0: String, stage1: String): Unit ->
+    case Arguments.get(3) {
+        Some(stage2) -> main_bootstrap_converge_marker(stage0, stage1, stage2);
+        None -> report_unit(
+            "usage: terlan-self-host bootstrap-converge <stage0.json> <stage1.json> <stage2.json> <marker>",
+        )
+    }.
+
+main_bootstrap_converge_marker(stage0: String, stage1: String, stage2: String): Unit ->
+    case Arguments.get(4) {
+        Some(marker) -> let _completed = SelfHostBootstrapTool.compare_generations(stage0, stage1, stage2, marker);
+            Unit;
+        None -> report_unit(
+            "usage: terlan-self-host bootstrap-converge <stage0.json> <stage1.json> <stage2.json> <marker>",
+        )
+    }.
+
+main_actor_profiles_check(): Unit ->
+    case Arguments.get(1) {
+        Some(actor_ir) -> main_actor_profiles_marker(actor_ir);
+        None -> report_unit(
+            "usage: terlan-self-host actor-profiles-check <actor-ir.json> <marker>",
+        )
+    }.
+
+main_actor_profiles_marker(actor_ir: String): Unit ->
+    case Arguments.get(2) {
+        Some(marker) -> let _completed = SelfHostActorProfileCatalog.check_file(actor_ir, marker);
+            Unit;
+        None -> report_unit(
+            "usage: terlan-self-host actor-profiles-check <actor-ir.json> <marker>",
+        )
+    }.
 
 main_analyze(input: String): Unit ->
     let _completed = analyze_file(input, Arguments.get(1));

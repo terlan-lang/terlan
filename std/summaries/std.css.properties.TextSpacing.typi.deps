@@ -1,9 +1,0 @@
-module=std.css.properties.TextSpacing
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=3597967481585334451
-interface_hash=10782365622843335907
-interface_doc_hash=11514197583092669208
-deps=1
-std.core.Option=11539230284316612175

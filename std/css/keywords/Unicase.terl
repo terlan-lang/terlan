@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword unicase. Generated; do not edit.
+ */
+module std.css.keywords.Unicase.
+
+pub type Unicase.

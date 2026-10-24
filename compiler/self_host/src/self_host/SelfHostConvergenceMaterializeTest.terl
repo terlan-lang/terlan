@@ -1,0 +1,48 @@
+/** Ten-layer convergence materialization contracts. */
+module self_host.SelfHostConvergenceMaterializeTest.
+
+import std.core.Option.{None, Some}.
+import self_host.SelfHostConvergenceMaterialize.
+import self_host.SelfHostConvergenceTool.
+
+manifest(): String ->
+    "schema\tterlan.self-host.convergence-input/v1\n"
+        + "tokens\ttokens.digest\n"
+        + "syntax\tsyntax.digest\n"
+        + "interfaces\tinterfaces.digest\n"
+        + "diagnostics\tdiagnostics.digest\n"
+        + "typed-syntax\ttyped-syntax.digest\n"
+        + "core-ir\tcore-ir.digest\n"
+        + "actor-ir\tactor-ir.digest\n"
+        + "managed-layouts\tmanaged-layouts.digest\n"
+        + "runtime-behavior\truntime-behavior.digest\n"
+        + "executable-artifacts\texecutable-artifacts.digest\n".
+
+@test
+pub accepts_only_the_complete_ordered_layer_manifest(): Bool ->
+    case SelfHostConvergenceMaterialize.decode_paths(manifest()) {
+        Some(paths) -> case paths {
+            ["tokens.digest", _, _, _, _, _, _, _, _, "executable-artifacts.digest"] -> true;
+            _ -> false
+        };
+        None -> false
+    }.
+
+@test
+pub rejects_missing_or_reordered_layers(): Bool ->
+    SelfHostConvergenceMaterialize.decode_paths(
+        "schema\tterlan.self-host.convergence-input/v1\nsyntax\tsyntax.digest\n",
+    ) == None.
+
+@test
+pub renders_decodable_v2_evidence(): Bool ->
+    case SelfHostConvergenceMaterialize.render_values([
+        "tokens", "syntax", "interfaces", "diagnostics", "typed-syntax",
+        "core-ir", "actor-ir", "managed-layouts", "runtime", "executable",
+    ]) {
+        None -> false;
+        Some(source) -> case SelfHostConvergenceTool.decode(source) {
+            None -> false;
+            Some(value) -> value.actor_ir == "actor-ir" and value.core_ir == "core-ir"
+        }
+    }.

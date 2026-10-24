@@ -1,0 +1,31 @@
+/** End-to-end lint authority evidence planning contracts. */
+module self_host.SelfHostLintAuthorityPipelineTest.
+
+import std.core.Result.{Err, Ok}.
+import self_host.SelfHostLintAuthorityEvidence.
+import self_host.SelfHostLintAuthorityPipeline.
+import self_host.SelfHostLintRegistry.
+
+@test
+pub canonical_evidence_reaches_the_live_authority_plan(): Bool ->
+    case SelfHostLintAuthorityPipeline.prepare(
+        SelfHostLintAuthorityEvidence.render(true, true, true, true, true),
+        SelfHostLintRegistry.render(),
+    ) {
+        Ok(plan) ->
+            if {
+                SelfHostLintRegistry.projection_rule_count() == 0 -> plan.ready;
+                true -> not plan.ready
+            };
+        Err(_) -> false
+    }.
+
+@test
+pub malformed_evidence_never_produces_a_write_plan(): Bool ->
+    case SelfHostLintAuthorityPipeline.prepare(
+        "terlan.self-host.lint-parity/v1\n",
+        SelfHostLintRegistry.render(),
+    ) {
+        Err(_) -> true;
+        Ok(_) -> false
+    }.

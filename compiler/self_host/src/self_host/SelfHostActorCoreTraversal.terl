@@ -1,0 +1,324 @@
+/** Derives canonical actor call observations directly from typed Core IR. */
+module self_host.SelfHostActorCoreTraversal.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+
+import std.core.{Bool, Int, String}.
+import self_host.SelfHostActorCallAnalysis.{ActorCallObservation}.
+import self_host.SelfHostActorCallFacts.{ActorCallTarget, ActorSuspensionProfile}.
+import self_host.SelfHostActorEffects.{ActorCallableIdentity}.
+import self_host.SelfHostIrSyntax.{IrBlock, IrFunction, IrInstruction}.
+import self_host.SelfHostActorCallFacts.
+
+
+/** Typed effect evidence required for every closure call. */
+pub struct ActorDynamicCallEvidence {
+    result_name: String,
+    arity: Int,
+    targets: List[ActorCallableIdentity],
+    suspends: Bool,
+    profile: Option[ActorSuspensionProfile],
+}.
+
+pub constructor ActorDynamicCallEvidence {
+    (result_name: String, suspends: Bool, profile: Option[ActorSuspensionProfile]): ActorDynamicCallEvidence ->
+        ActorDynamicCallEvidence {
+            result_name: result_name,
+            arity: 0,
+            targets: List.new[ActorCallableIdentity](),
+            suspends: suspends,
+            profile: profile,
+        };
+    (result_name: String, arity: Int, targets: List[ActorCallableIdentity], suspends: Bool, profile: Option[ActorSuspensionProfile]): ActorDynamicCallEvidence ->
+        ActorDynamicCallEvidence {
+            result_name: result_name,
+            arity: arity,
+            targets: targets,
+            suspends: suspends,
+            profile: profile,
+        }
+}.
+
+
+/** Ordered traversal output accepted by actor call analysis. */
+pub struct ActorCoreTraversal {
+    observations: List[ActorCallObservation],
+    native_call_count: Int,
+    continuation_ordinals: List[Int],
+}.
+
+pub constructor ActorCoreTraversal {
+    (observations: List[ActorCallObservation], native_call_count: Int, continuation_ordinals: List[Int]): ActorCoreTraversal ->
+        ActorCoreTraversal {
+            observations: observations,
+            native_call_count: native_call_count,
+            continuation_ordinals: continuation_ordinals,
+        }
+}.
+
+
+struct ActorTraversalState {
+    observations: List[ActorCallObservation],
+    next_native_call_index: Int,
+    continuation_ordinals: List[Int],
+    used_dynamic_results: List[String],
+}.
+
+constructor ActorTraversalState {
+    (observations: List[ActorCallObservation], next_native_call_index: Int, continuation_ordinals: List[Int], used_dynamic_results: List[String]): ActorTraversalState ->
+        ActorTraversalState {
+            observations: observations,
+            next_native_call_index: next_native_call_index,
+            continuation_ordinals: continuation_ordinals,
+            used_dynamic_results: used_dynamic_results,
+        }
+}.
+
+
+@pure
+append[T](values: List[T], value: T): List[T] ->
+    case values {
+        [] -> [value];
+        [head | rest] -> [head | append(rest, value)]
+    }.
+
+@pure
+contains_int(value: Int, values: List[Int]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> current == value or contains_int(value, rest)
+    }.
+
+@pure
+contains_string(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> current == value or contains_string(value, rest)
+    }.
+
+
+@pure
+record_ordinal(instruction: IrInstruction, state: ActorTraversalState): Result[ActorTraversalState, String] ->
+    case instruction.continuation_ordinal {
+        None -> Ok(state);
+        Some(ordinal) -> if {
+            ordinal < 0 -> Err("typed Core IR has a negative continuation ordinal");
+            contains_int(ordinal, state.continuation_ordinals) -> Err("typed Core IR repeats a continuation ordinal");
+            true -> Ok(ActorTraversalState(
+                state.observations,
+                state.next_native_call_index,
+                append(state.continuation_ordinals, ordinal),
+                state.used_dynamic_results,
+            ))
+        }
+    }.
+
+
+@pure
+dynamic_evidence_named(result_name: String, values: List[ActorDynamicCallEvidence], found: Option[ActorDynamicCallEvidence]): Result[ActorDynamicCallEvidence, String] ->
+    case values {
+        [] -> case found {
+            None -> Err("call-value has no typed dynamic-call evidence");
+            Some(value) -> Ok(value)
+        };
+        [value | rest] -> if {
+            value.result_name != result_name -> dynamic_evidence_named(result_name, rest, found);
+            true -> case found {
+                None -> dynamic_evidence_named(result_name, rest, Some(value));
+                Some(_) -> Err("call-value has ambiguous typed dynamic-call evidence")
+            }
+        }
+    }.
+
+@pure
+validated_dynamic_evidence(value: ActorDynamicCallEvidence): Result[ActorDynamicCallEvidence, String] ->
+    if {
+        value.result_name == "" -> Err("dynamic-call evidence has no result name");
+        value.suspends -> case value.profile {
+            None -> Err("suspending call-value has no continuation profile");
+            Some(_) -> Ok(value)
+        };
+        true -> case value.profile {
+            None -> Ok(value);
+            Some(_) -> Err("non-suspending call-value cannot carry a continuation profile")
+        }
+    }.
+
+
+@pure
+continuation_label(block_label: String, result_name: String): String ->
+    String.append(block_label, String.append("__actor_cont__", result_name)).
+
+@pure
+observation(function: IrFunction, block: IrBlock, instruction: IrInstruction, result_name: String, target: ActorCallTarget, dynamic: Option[ActorDynamicCallEvidence], state: ActorTraversalState): Result[ActorTraversalState, String] ->
+    case dynamic {
+        Some(value) -> case validated_dynamic_evidence(value) {
+            Err(reason) -> Err(reason);
+            Ok(evidence) -> Ok(ActorTraversalState(
+                append(state.observations, ActorCallObservation(
+                    function.module_name,
+                    function.name,
+                    function.arity,
+                    block.label,
+                    result_name,
+                    continuation_label(block.label, result_name),
+                    instruction.opcode,
+                    instruction.operands,
+                    state.next_native_call_index,
+                    instruction.continuation_ordinal,
+                    evidence.suspends,
+                    evidence.profile,
+                )),
+                state.next_native_call_index + 1,
+                state.continuation_ordinals,
+                append(state.used_dynamic_results, result_name),
+            ))
+        };
+        None -> Ok(ActorTraversalState(
+            append(state.observations, ActorCallObservation(
+                function.module_name,
+                function.name,
+                function.arity,
+                block.label,
+                result_name,
+                continuation_label(block.label, result_name),
+                instruction.opcode,
+                instruction.operands,
+                state.next_native_call_index,
+                instruction.continuation_ordinal,
+                false,
+                None,
+            )),
+            state.next_native_call_index + 1,
+            state.continuation_ordinals,
+            state.used_dynamic_results,
+        ))
+    }.
+
+
+@pure
+call_instruction(function: IrFunction, block: IrBlock, instruction: IrInstruction, target: ActorCallTarget, dynamic_values: List[ActorDynamicCallEvidence], state: ActorTraversalState): Result[ActorTraversalState, String] ->
+    case instruction.result {
+        None -> Err("typed Core IR call instruction has no SSA result");
+        Some(result_name) -> if {
+            result_name == "" -> Err("typed Core IR call instruction has an empty SSA result");
+            target.dynamic -> case dynamic_evidence_named(result_name, dynamic_values, None) {
+                Err(reason) -> Err(reason);
+                Ok(dynamic) -> observation(
+                    function,
+                    block,
+                    instruction,
+                    result_name,
+                    target,
+                    Some(dynamic),
+                    state,
+                )
+            };
+            true -> observation(
+                function,
+                block,
+                instruction,
+                result_name,
+                target,
+                None,
+                state,
+            )
+        }
+    }.
+
+
+@pure
+visit_instruction(function: IrFunction, block: IrBlock, instruction: IrInstruction, dynamic_values: List[ActorDynamicCallEvidence], state: ActorTraversalState): Result[ActorTraversalState, String] ->
+    case record_ordinal(instruction, state) {
+        Err(reason) -> Err(reason);
+        Ok(with_ordinal) -> case SelfHostActorCallFacts.target(
+            function.module_name,
+            instruction.opcode,
+            instruction.operands,
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(None) -> Ok(with_ordinal);
+            Ok(Some(target)) -> call_instruction(
+                function,
+                block,
+                instruction,
+                target,
+                dynamic_values,
+                with_ordinal,
+            )
+        }
+    }.
+
+@pure
+visit_instructions(function: IrFunction, block: IrBlock, values: List[IrInstruction], dynamic_values: List[ActorDynamicCallEvidence], state: ActorTraversalState): Result[ActorTraversalState, String] ->
+    case values {
+        [] -> Ok(state);
+        [instruction | rest] -> case visit_instruction(
+            function,
+            block,
+            instruction,
+            dynamic_values,
+            state,
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(next) -> visit_instructions(function, block, rest, dynamic_values, next)
+        }
+    }.
+
+@pure
+visit_blocks(function: IrFunction, values: List[IrBlock], dynamic_values: List[ActorDynamicCallEvidence], state: ActorTraversalState): Result[ActorTraversalState, String] ->
+    case values {
+        [] -> Ok(state);
+        [block | rest] -> case visit_instructions(
+            function,
+            block,
+            block.instructions,
+            dynamic_values,
+            state,
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(next) -> visit_blocks(function, rest, dynamic_values, next)
+        }
+    }.
+
+
+@pure
+unused_dynamic_evidence(values: List[ActorDynamicCallEvidence], used: List[String]): Result[Bool, String] ->
+    case values {
+        [] -> Ok(false);
+        [value | rest] -> if {
+            value.result_name == "" -> Err("dynamic-call evidence has no result name");
+            !contains_string(value.result_name, used) -> Err("dynamic-call evidence does not belong to call-value");
+            true -> unused_dynamic_evidence(rest, used)
+        }
+    }.
+
+
+/** Walks block/instruction order while preserving canonical source ordinals. */
+@pure
+pub function(value: IrFunction, dynamic_values: List[ActorDynamicCallEvidence]): Result[ActorCoreTraversal, String] ->
+    if {
+        value.module_name == "" -> Err("actor Core IR traversal has no module name");
+        value.name == "" -> Err("actor Core IR traversal has no function name");
+        value.arity < 0 -> Err("actor Core IR traversal has a negative function arity");
+        true -> case visit_blocks(
+            value,
+            value.blocks,
+            dynamic_values,
+            ActorTraversalState([], 0, [], []),
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(state) -> case unused_dynamic_evidence(dynamic_values, state.used_dynamic_results) {
+                Err(reason) -> Err(reason);
+                Ok(_) -> Ok(ActorCoreTraversal(
+                    state.observations,
+                    state.next_native_call_index,
+                    state.continuation_ordinals,
+                ))
+            }
+        }
+    }.

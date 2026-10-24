@@ -1,0 +1,12 @@
+# role	path	required-token
+compiler-package	compiler/self_host/scripts/package_stage.sh	target/bootstrap/terlc1/terlc
+source-closure	compiler/self_host/scripts/source_closure.sh	target/bootstrap/terlc1/terlc
+bounded-backend	compiler/self_host/scripts/bounded_package_stage.sh	SELF_HOST_IMAGE
+native-object	compiler/self_host/scripts/native_object_stage.sh	actor-backend-unit
+native-application	compiler/self_host/scripts/native_application_stage.sh	actor-backend-unit
+hardening-evidence	compiler/self_host/scripts/hardening_evidence.sh	target/bootstrap/terlc1/terlc
+production-authority	compiler/self_host/scripts/production_authority.sh	production-evidence
+bootstrap-seed	compiler/self_host/scripts/seed_stage.sh	TERLAN_SELF_HOST_IMAGE
+bootstrap-comparison	compiler/self_host/scripts/bootstrap_convergence.sh	TERLAN_SELF_HOST_IMAGE
+fixed-point-comparison	compiler/self_host/scripts/bootstrap_fixed_point.sh	TERLAN_SELF_HOST_IMAGE
+post-cleanup-convergence	compiler/self_host/scripts/post_cleanup_convergence.sh	TERLAN_SELF_HOST_IMAGE

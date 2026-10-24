@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword avoid-page. Generated; do not edit.
+ */
+module std.css.keywords.AvoidPage.
+
+pub type AvoidPage = Atom["avoid-page"].

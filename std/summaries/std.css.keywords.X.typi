@@ -1,0 +1,6 @@
+//! Shared CSS keyword x. Generated; do not edit.
+
+module std.css.keywords.X.
+
+pub type X =
+    Atom["x"].

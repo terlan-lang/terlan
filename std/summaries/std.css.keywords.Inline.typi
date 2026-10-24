@@ -1,0 +1,6 @@
+//! Shared CSS keyword inline. Generated; do not edit.
+
+module std.css.keywords.Inline.
+
+pub type Inline =
+    Atom["inline"].

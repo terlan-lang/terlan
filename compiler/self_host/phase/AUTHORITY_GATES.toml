@@ -1,5 +1,5 @@
 schema = "terlan.self-host.authority-gates/v1"
-status = "open"
+status = "in-progress"
 
 [[gate]]
 id = "token-parity"
@@ -7,6 +7,7 @@ producer = "terlc syntax-contract --tokens"
 candidate = "self_host.TokenEvidence.authority_document"
 comparison = "byte-for-byte"
 required = true
+status = "pass"
 
 [[gate]]
 id = "accepted-parser-parity"
@@ -15,6 +16,7 @@ candidate = "self_host.CanonicalParser.parse"
 corpus = "corpus/CORPUS_PHASE_2.tsv"
 comparison = "normalized-tree"
 required = true
+status = "pass"
 
 [[gate]]
 id = "rejected-parser-parity"
@@ -23,6 +25,7 @@ candidate = "self_host.CanonicalParser.parse"
 corpus = "corpus/CORPUS_PHASE_2.tsv"
 comparison = "error-class-and-span"
 required = true
+status = "pass"
 
 [[gate]]
 id = "semantic-parity"
@@ -30,6 +33,7 @@ producer = "rust-semantic-pipeline"
 candidate = "self_host.CompilerPipeline.analyze"
 comparison = "normalized-symbols-and-diagnostics"
 required = true
+status = "pending-v4-regeneration"
 
 [[gate]]
 id = "backend-contract-parity"
@@ -38,6 +42,48 @@ candidate = "self_host.Compiler.compile"
 schema = "terlan.self-host.backend/v1"
 comparison = "byte-for-byte"
 required = true
+status = "pending-v4-regeneration"
+
+[[gate]]
+id = "typed-backend-admission"
+producer = "rust-typed-abi1-adapter"
+candidate = "self_host.Compiler.compile"
+comparison = "closed-opcode-and-resolved-cfg"
+required = true
+status = "pass"
+
+[[gate]]
+id = "native-image-consumption"
+producer = "self-host-abi1-cranelift-consumer"
+candidate = "terlan-vm-native-image"
+comparison = "executable-behavior"
+required = true
+status = "pending-validation"
+
+[[gate]]
+id = "actor-ir-parity"
+producer = "rust-actor-continuation-lowering"
+candidate = "self_host.SelfHostActorBackendCompile.compile"
+schema = "terlan.self-host.actor-ir/v2"
+comparison = "canonical-byte-for-byte"
+required = true
+status = "pending-regeneration"
+
+[[gate]]
+id = "actor-backend-admission"
+producer = "self-host-actor-ir-decoder"
+candidate = "self-host-actor-native-adapter"
+comparison = "closed-call-sites-identities-and-capture-layouts"
+required = true
+status = "pending-validation"
+
+[[gate]]
+id = "actor-native-consumption"
+producer = "terlc emit-self-hosted-actor-object"
+candidate = "actor-aware-cranelift-object"
+comparison = "executable-behavior"
+required = true
+status = "pending-validation"
 
 [[gate]]
 id = "bootstrap-fixed-point"
@@ -45,8 +91,269 @@ stage0 = "rust-compiled-self-host"
 stage1 = "self-host-compiled-self-host"
 comparison = "reproducible-artifact"
 required = true
+status = "pending-v4-regeneration"
+evidence = "target/quality/self-host-phase4-current-stage1-55/bootstrap-artifact.json"
+
+[[gate]]
+id = "actor-bootstrap-fixed-point"
+stage0 = "rust-compiled-self-host-actor-sidecar"
+stage1 = "self-host-compiled-self-host-actor-sidecar"
+comparison = "canonical-actor-digest-and-native-object"
+required = true
+status = "pending-regeneration"
+evidence = "target/quality/self-host-phase8/actor-bootstrap-artifact.json"
+
+[[gate]]
+id = "actor-profile-catalog-authority"
+producer = "self-host-actor-profile-derivation"
+candidate = "actor-ir-v2-profile-catalog"
+comparison = "outward-continuation-entry-set"
+required = true
+status = "pending-regeneration-and-validation"
+evidence = "target/quality/self-host-phase8/stage2-actor-profiles.marker"
+
+[[gate]]
+id = "actor-profile-projection-fixed-point"
+producer = "bounded-self-host-actor-profile-convergence"
+candidate = "stage2-outward-continuation-profile-set"
+comparison = "seed-to-derived-profile-fixed-point"
+required = true
+status = "implemented-unverified"
+evidence = "target/quality/self-host-phase8/stage2-actor-profiles.marker"
+
+[[gate]]
+id = "actor-driver-publication"
+producer = "terlan-self-host actor-backend-unit"
+candidate = "committed-core-variant-actor-artifact-set"
+comparison = "completion-marker-and-strict-sidecar-admission"
+required = true
+status = "implemented-unverified"
+evidence = "target/quality/self-host-actor-unit/complete.marker"
+
+[[gate]]
+id = "interface-generation-fixed-point"
+producer = "stage0-self-hosted-compiler"
+candidate = "stage1-self-hosted-compiler"
+comparison = "byte-for-byte"
+required = true
+status = "pending-v4-regeneration"
+evidence = "target/quality/self-host-phase4-current-stage1-55/package/interfaces"
+artifact_count = 200
+seeded_units = []
+seeded_unit_byte_parity = false
+seeded_unit_evidence = "target/quality/self-host-interface-image-41/proof/interfaces"
+
+[[gate]]
+id = "compiler-performance-regression"
+producer = "self-host-performance-benchmark"
+candidate = "self-hosted-compiler"
+comparison = "checked-in-regression-budget"
+required = true
+status = "pending-v4-regeneration"
+evidence = "target/quality/self-host-phase4-performance/quick.tsv"
+
+[[gate]]
+id = "incremental-compilation"
+producer = "self-host-incremental-benchmark"
+candidate = "self-hosted-compiler"
+comparison = "affected-dependency-closure-only"
+required = true
+status = "pending-v4-regeneration"
+evidence = "target/quality/self-host-phase4-performance/incremental.tsv"
+
+[[gate]]
+id = "parallel-bootstrap-throughput"
+producer = "self-host-bootstrap-benchmark"
+candidate = "self-hosted-compiler"
+comparison = "deterministic-bounded-throughput"
+required = true
+status = "pending-v4-regeneration"
+evidence = "target/quality/self-host-phase4-performance/full.tsv"
 
 [authority_transfer]
-allowed_when_all_required_gates_pass = true
+status = "blocked-on-phases-5-through-9"
+allowed_when_all_required_gates_pass = false
+production_decision_function = "self_host.ProductionAuthority.evaluate"
 fallback_remains_available_for_one_release = true
 rust_frontend_deletion_requires_follow_up_release = true
+
+[dynamic_call_target_authority]
+required = true
+owner = "compiler/self_host/src/self_host/SelfHostActorDynamicDiscovery.terl"
+requirements = [
+    "every Core call-value has a finite target set or compilation fails closed",
+    "closure targets propagate through move, phi, select, and local-call parameters",
+    "dynamic targets participate in actor effect and suspension-profile convergence",
+    "opaque and imported higher-order values require explicit compile evidence",
+]
+
+[persisted_dynamic_call_evidence]
+required = true
+schema = "terlan.self-host.actor-dynamic-evidence/v1"
+owner = "compiler/self_host/src/self_host/SelfHostActorDynamicEvidenceCatalog.terl"
+requirements = [
+    "strict finite target sets",
+    "exact local function identities",
+    "duplicate function, call-site, and target rejection",
+    "self-hosted actor driver admission",
+]
+[target_independent_core_optimization]
+required = true
+owner = "compiler/self_host/src/self_host/SelfHostCoreOptimize.terl"
+requirements = [
+    "target-independent transformation",
+    "validation before and after optimization",
+    "deterministic block ordering",
+    "no dangling successor or predecessor relationships",
+    "semantic equivalence evidence before production authority",
+]
+
+[bounded_parallel_backend_workers]
+required = true
+owner = "compiler/self_host/src/self_host/SelfHostParallelBackendDriver.terl"
+requirements = [
+    "positive worker bound",
+    "unique job and output identities",
+    "VM-process execution",
+    "correlated completion replies",
+    "first-failure sibling cancellation",
+    "no later-batch dispatch after failure",
+]
+
+[self_hosted_lint_tool]
+required = true
+owner = "compiler/self_host/src/self_host/SelfHostLintTool.terl"
+requirements = [
+    "shared canonical tooling document",
+    "stable public diagnostic schema",
+    "positive and negative rule coverage",
+    "diagnostics-before-marker publication",
+    "clean, findings, and invalid terminal states",
+    "full Rust lint rule parity before production authority",
+    "TL0301-TL0304 canonical ASCII naming predicates and collision semantics",
+    "TL0301-TL0304 rule-order diagnostics over normalized declarations and bindings",
+    "Rust-compatible byte-based source positions and exact public rule metadata",
+    "TL0501-TL0504 Rust-compatible source-order and declaration-block scanners",
+    "comment-state, indentation, script exemption, severity, and byte-column parity",
+    "TL0505 canonical std path derivation and first-real-module matching",
+    "TL0506 exact singleton named-atom extraction and raw literal diagnostics",
+    "TL1002 conservative normalized-expression candidate and canonical replacement authority",
+    "remote, proven-local, receiver, positional-only, non-generic, and first-argument chain parity",
+    "TL1002 span-authenticated diagnostics and descending indentation-preserving source fixes",
+    "TL0901 and TL0902 exact clause/file thresholds, Rust line counting, and generated-source exemption",
+    "TL0903 nested case/if context, brace-depth, inline-body, and counted-line parity",
+    "TL0904 string/comment-aware debug-call scanning and production/test path parity",
+    "TL0907 embedded-SQL state and 100-Unicode-scalar-column parity",
+    "TL0702 comment-aware target import parsing, VM/native coexistence, and first-conflict parity",
+    "TL0001 escaped-string/comment-aware diagnostics and indentation-preserving safe fixes",
+    "source-only lint aggregation in public registry order and semicolon-before-pipe fix order",
+    "TL0905 and TL0906 normalized actor handler, tag equality, lifecycle state, and test-exemption parity",
+    "TL0804-TL0806 generated source, lint suppression, and skip manifest authority",
+    "TL0401-TL0404 normalized fake-test, assertion-volume, table, and property candidate authority",
+]
+
+[self_hosted_documentation_tool]
+required = true
+owner = "compiler/self_host/src/self_host/SelfHostDocumentationTool.terl"
+requirements = [
+    "shared canonical tooling document",
+    "public API filtering",
+    "missing public documentation rejection",
+    "source-shaped signatures",
+    "diagnostics-before-marker publication",
+    "link, fence, doctest, and renderer parity before production authority",
+    "self-hosted local-link and fence extraction from normalized documentation text",
+    "per-block fence validation preventing cross-declaration balancing",
+    "stable executable Terlan fence extraction for self-hosted doctests",
+    "unclosed executable and ignored fence rejection",
+    "self-hosted lexical and syntax frontend admission for every Terlan doctest",
+    "backend execution parity remains mandatory after frontend admission",
+    "one fail-closed model, link, fence, extraction, and frontend admission boundary",
+    "rendering publication only after unified documentation admission",
+    "versioned ordered doctest handoff with byte length and SHA-256 source identity",
+    "no backend handoff artifact when frontend admission fails",
+    "strict backend-side schema, count, index, byte-bound, delimiter, and hash verification",
+    "no source block exposure before complete handoff authentication",
+    "stable authenticated doctest source-unit materialization",
+    "source files before hashed unit manifest before completion marker",
+    "stale backend-unit completion invalidation before evidence reads",
+]
+
+[production_hardening_evidence]
+required = true
+owner = "compiler/self_host/src/self_host/ProductionAuthority.terl"
+requirements = [
+    "pattern semantic authority",
+    "backend language completeness",
+    "self-hosted tooling authority",
+    "complete nested control flow and pattern surface",
+    "bootstrap workaround removal and idiomatic source restoration",
+    "bounded self-analysis and complete compiler regression corpus",
+    "minimal documented trusted base",
+    "Rust frontend removed from normal paths while terlc0 remains recovery-only",
+    "post-cleanup bootstrap convergence",
+    "finite dynamic call target authority",
+    "target-independent optimizer authority",
+    "bounded parallel backend authority",
+]
+
+[persisted_production_authority_evidence]
+required = true
+schema = "terlan.self-host.production-authority/v1"
+owner = "compiler/self_host/src/self_host/ProductionAuthorityEvidence.terl"
+requirements = [
+    "one strict row per production gate",
+    "duplicate, malformed, and unknown row rejection",
+    "missing gates fail closed",
+    "non-empty converged compiler and actor identities",
+    "direct projection into self_host.ProductionAuthority.evaluate",
+    "deterministic decision artifact before completion-marker publication",
+    "no completion marker for denied authority",
+    "stale completion marker invalidation before evidence admission",
+]
+
+[production_authority_source_aggregation]
+required = true
+schema = "terlan.self-host.production-authority-sources/v1"
+owner = "compiler/self_host/src/self_host/ProductionAuthorityCatalog.terl"
+manifest = "compiler/self_host/phase/PRODUCTION_AUTHORITY_SOURCES.tsv"
+requirements = [
+    "strict named mapping from Phase 4-8 artifacts to production gates",
+    "actual marker-content admission instead of path existence",
+    "missing markers emit explicit gate failure",
+    "missing and empty identity artifacts reject publication",
+    "unknown and duplicate source declarations reject publication",
+    "single self-hosted aggregation-to-publication pipeline",
+]
+
+[production_gate_marker_production]
+required = true
+owner = "compiler/self_host/src/self_host/ProductionGateMarker.terl"
+requirements = [
+    "non-empty canonical reference evidence",
+    "byte-identical self-hosted candidate evidence",
+    "stale marker invalidation before comparison",
+    "completion publication only after successful comparison",
+]
+
+[production_bootstrap_identity_production]
+required = true
+owner = "compiler/self_host/src/self_host/ProductionArtifactIdentity.terl"
+requirements = [
+    "non-empty normalized bootstrap artifact",
+    "canonical SHA-256 identity",
+    "identical algorithm for compiler and actor artifacts",
+]
+
+[production_evidence_orchestration]
+required = true
+schema = "terlan.self-host.production-evidence-plan/v1"
+owner = "compiler/self_host/src/self_host/ProductionEvidencePipeline.terl"
+plan = "compiler/self_host/phase/PRODUCTION_EVIDENCE_PLAN.tsv"
+requirements = [
+    "one named producer job per production gate and identity",
+    "unknown and duplicate job rejection",
+    "fail-fast execution",
+    "final authority invalidation before the first evidence job",
+    "catalog aggregation only after every evidence job succeeds",
+]

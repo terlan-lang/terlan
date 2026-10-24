@@ -709,6 +709,13 @@ fn check_template_component_element(
     }
 
     let Some(component) = templates_by_tag.get(&element.name) else {
+        if element
+            .attrs
+            .iter()
+            .any(|attr| attr.name == "data-custom-element")
+        {
+            return;
+        }
         diagnostics.push(Diagnostic {
             span: template.span,
             message: format!(

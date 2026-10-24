@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword most-width. Generated; do not edit.
+ */
+module std.css.keywords.MostWidth.
+
+pub type MostWidth = Atom["most-width"].

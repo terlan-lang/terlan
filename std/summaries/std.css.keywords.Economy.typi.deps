@@ -1,0 +1,8 @@
+module=std.css.keywords.Economy
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=311290525337431795
+interface_hash=17151594924773466696
+interface_doc_hash=12910299448234016608
+deps=0

@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword jis04. Generated; do not edit.
+ */
+module std.css.keywords.Jis04.
+
+pub type Jis04 = Atom["jis04"].

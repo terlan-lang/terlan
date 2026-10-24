@@ -82,6 +82,25 @@ pub list_tail(): Int -> let callback = make_list(30); callback(5).
 }
 
 #[test]
+fn record_callback_contracts_preserve_captures_and_case_results_across_yields() {
+    check_callbacks(
+        r#"module closure_record.
+import std.vm.Process.
+struct Handler { callback: () -> Int }.
+pause(value: Int): Int -> let _parked = Process.yield_now(); value.
+make(flag: Bool, seed: Int): Handler ->
+    Handler {callback: (() -> case flag {
+        true -> pause(seed + 1);
+        false -> pause(seed + 2)
+    })}.
+pub first(): Int -> let handler = make(true, 40); let callback = handler.callback; callback().
+pub second(): Int -> let handler = make(false, 40); let callback = handler.callback; callback().
+"#,
+        &[("first", 41), ("second", 42)],
+    );
+}
+
+#[test]
 fn escaping_callbacks_preserve_captured_callable_contracts() {
     check_callbacks(
         r#"

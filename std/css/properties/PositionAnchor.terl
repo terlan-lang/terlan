@@ -1,87 +1,43 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-anchor
+ * The `position-anchor` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+ * the default anchor element for a positioned element. This default is used by `position-area` and
+ * `position-try`, and by anchor functions (`anchor()` and `anchor-size()`) when no `<anchor-name>`
+ * argument is provided to those functions.
+ *
+ * Initial: normal. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: Associates a positioned element with its implicit anchor element, if it has one — for
+ * example as set by the non-standard HTML
+ * [`anchor`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/anchor)
+ * attribute.
+ * - match-parent: Uses the same default anchor element as the parent element, or the originating
+ * element if this is a
+ * [pseudo-element](https://developer.mozilla.org/en-US/docs/Glossary/Pseudo-element), provided that
+ * would be an acceptable anchor element (that is [part of the
+ * tree](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/Pseudo-elements#tree-abiding_pseudo-elements)).
+ * Otherwise, it has no default anchor element.
+ * - none: The positioned element is not associated with an anchor element.
+ * - normal: If `position-area` is `none`, it behaves as `none`. Otherwise it behaves as `auto`.
+ *
  * Grammar: normal | none | auto | <anchor-name> | match-parent
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-anchor
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position-anchor
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PositionAnchor.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, MatchParent, None, Normal}.
 
-/**
- * A nominal, specification-constrained position-anchor value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    position_anchor: Value,
+    position_anchor: Normal | None | Auto | MatchParent | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    position_anchor: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "position-anchor", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "position-anchor", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "position-anchor", css: "initial"}).
-
-/**
- * Returns the CSS keyword match-parent.
- */
-pub match_parent(): Value ->
-    Value(Token {property: "position-anchor", css: "match-parent"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "position-anchor", css: "none"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "position-anchor", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "position-anchor", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "position-anchor", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "position-anchor", css: "unset"}).

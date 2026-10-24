@@ -1,0 +1,305 @@
+/** Semantic coverage and binding checks for projected patterns. */
+module self_host.ProjectedPatternSemantics.
+
+import std.core.String.
+
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+
+import std.collections.List.
+import std.core.{Bool, Int, String}.
+
+
+pub struct ProjectedPatternClause {
+    pattern: ProjectedExpressionNode,
+    has_guard: Bool,
+}.
+
+pub constructor ProjectedPatternClause {
+    (pattern: ProjectedExpressionNode, has_guard: Bool): ProjectedPatternClause ->
+        ProjectedPatternClause { pattern: pattern, has_guard: has_guard }
+}.
+
+
+pub struct ProjectedPatternCoverage {
+    exhaustive: Bool,
+    unreachable_clause: Int,
+    missing_constructors: List[String],
+    duplicate_binding: String,
+}.
+
+pub constructor ProjectedPatternCoverage {
+    (exhaustive: Bool, unreachable_clause: Int, missing_constructors: List[String], duplicate_binding: String): ProjectedPatternCoverage ->
+        ProjectedPatternCoverage {
+            exhaustive: exhaustive,
+            unreachable_clause: unreachable_clause,
+            missing_constructors: missing_constructors,
+            duplicate_binding: duplicate_binding,
+        }
+}.
+
+
+pub struct ProjectedCaseSemantics {
+    valid: Bool,
+    coverage: ProjectedPatternCoverage,
+    message: String,
+}.
+
+pub constructor ProjectedCaseSemantics {
+    (valid: Bool, coverage: ProjectedPatternCoverage, message: String): ProjectedCaseSemantics ->
+        ProjectedCaseSemantics {
+            valid: valid,
+            coverage: coverage,
+            message: message,
+        }
+}.
+
+
+struct CoverageState {
+    catch_all: Bool,
+    covered: List[String],
+    unreachable_clause: Int,
+}.
+
+constructor CoverageState {
+    (catch_all: Bool, covered: List[String], unreachable_clause: Int): CoverageState ->
+        CoverageState {
+            catch_all: catch_all,
+            covered: covered,
+            unreachable_clause: unreachable_clause,
+        }
+}.
+
+
+struct ClauseCollection {
+    valid: Bool,
+    clauses: List[ProjectedPatternClause],
+    message: String,
+}.
+
+constructor ClauseCollection {
+    (valid: Bool, clauses: List[ProjectedPatternClause], message: String): ClauseCollection ->
+        ClauseCollection { valid: valid, clauses: clauses, message: message }
+}.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+@pure
+all_irrefutable(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> irrefutable(value) and all_irrefutable(rest)
+    }.
+
+/** Returns whether a pattern accepts every value admitted by its position. */
+@pure
+pub irrefutable(value: ProjectedExpressionNode): Bool ->
+    value.kind == "wildcard-pattern"
+        or value.kind == "binding-pattern"
+        or (value.kind == "pattern" and wrapper_irrefutable(value.children))
+        or (value.kind == "typed-pattern" and value.children == [])
+        or (value.kind == "patterns" and all_irrefutable(value.children)).
+
+@pure
+wrapper_irrefutable(values: List[ProjectedExpressionNode]): Bool ->
+    case values { [value] -> irrefutable(value); _ -> false }.
+
+@pure
+total_constructor(value: ProjectedExpressionNode): Bool ->
+    if {
+        value.kind == "pattern" -> case value.children {
+            [child] -> total_constructor(child);
+            _ -> false
+        };
+        true -> value.kind == "constructor-pattern" and all_irrefutable(value.children)
+    }.
+
+@pure
+covered_key(value: ProjectedExpressionNode): String ->
+    if {
+        value.kind == "pattern" -> case value.children {
+            [child] -> covered_key(child);
+            _ -> ""
+        };
+        total_constructor(value) -> value.text;
+        true -> ""
+    }.
+
+@pure
+next_covered(state: CoverageState, key: String): List[String] ->
+    if {
+        key == "" or contains(state.covered, key) -> state.covered;
+        true -> [key | state.covered]
+    }.
+
+@pure
+already_unreachable(state: CoverageState, index: Int): Int ->
+    if { state.unreachable_clause >= 0 -> state.unreachable_clause; true -> index }.
+
+@pure
+clause_unreachable(state: CoverageState, clause: ProjectedPatternClause, key: String): Bool ->
+    state.catch_all or (not clause.has_guard and key != "" and contains(state.covered, key)).
+
+@pure
+advance_coverage(state: CoverageState, clause: ProjectedPatternClause, index: Int): CoverageState ->
+    let key = covered_key(clause.pattern);
+    let unreachable = clause_unreachable(state, clause, key);
+    let catch_all = state.catch_all or (not clause.has_guard and irrefutable(clause.pattern));
+    let covered = if { clause.has_guard -> state.covered; true -> next_covered(state, key) };
+    CoverageState(
+        catch_all,
+        covered,
+        if { unreachable -> already_unreachable(state, index); true -> state.unreachable_clause },
+    ).
+
+@pure
+coverage_state(values: List[ProjectedPatternClause], index: Int, state: CoverageState): CoverageState ->
+    case values {
+        [] -> state;
+        [value | rest] -> coverage_state(rest, index + 1, advance_coverage(state, value, index))
+    }.
+
+@pure
+missing(values: List[String], covered: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> if {
+            contains(covered, value) -> missing(rest, covered);
+            true -> [value | missing(rest, covered)]
+        }
+    }.
+
+@pure
+typed_binding_name(value: ProjectedExpressionNode): String ->
+    case String.split(value.text, ":") {
+        [name | _rest] -> String.trim(name);
+        [] -> ""
+    }.
+
+@pure
+binding_name(value: ProjectedExpressionNode): String ->
+    if {
+        value.kind == "binding-pattern" -> value.text;
+        value.kind == "typed-pattern" or value.kind == "string-capture-segment" ->
+            typed_binding_name(value);
+        true -> ""
+    }.
+
+@pure
+pub binding_names(value: ProjectedExpressionNode): List[String] ->
+    let name = binding_name(value);
+    if {
+        name != "" and name != "_" -> [name];
+        true -> child_binding_names(value.children)
+    }.
+
+@pure
+child_binding_names(values: List[ProjectedExpressionNode]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(binding_names(value), child_binding_names(rest))
+    }.
+
+@pure
+first_duplicate(values: List[String], seen: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if {
+            contains(seen, value) -> value;
+            true -> first_duplicate(rest, [value | seen])
+        }
+    }.
+
+@pure
+first_clause_duplicate(values: List[ProjectedPatternClause]): String ->
+    case values {
+        [] -> "";
+        [value | rest] ->
+            let duplicate = first_duplicate(binding_names(value.pattern), List.new[String]());
+            if { duplicate == "" -> first_clause_duplicate(rest); true -> duplicate }
+    }.
+
+/** Computes finite-constructor coverage without counting guarded clauses as total. */
+@pure
+pub analyze(
+    clauses: List[ProjectedPatternClause],
+    constructors: List[String],
+): ProjectedPatternCoverage ->
+    let state = coverage_state(
+        clauses,
+        0,
+        CoverageState(false, List.new[String](), -1),
+    );
+    let missing_constructors = if {
+        state.catch_all -> List.new[String]();
+        true -> missing(constructors, state.covered)
+    };
+    ProjectedPatternCoverage(
+        state.catch_all or (constructors != [] and missing_constructors == []),
+        state.unreachable_clause,
+        missing_constructors,
+        first_clause_duplicate(clauses),
+    ).
+
+@pure
+collect_clause(value: ProjectedExpressionNode, rest: List[ProjectedExpressionNode]): ClauseCollection ->
+    if {
+        value.kind != "clause" -> ClauseCollection(false, List.new[ProjectedPatternClause](), "case child is not a clause");
+        true -> case value.children {
+            [] -> ClauseCollection(false, List.new[ProjectedPatternClause](), "case clause has no pattern");
+            [pattern | _children] ->
+                let remaining = collect_clauses(rest);
+                ClauseCollection(
+                    remaining.valid,
+                    [ProjectedPatternClause(pattern, value.text == "where") | remaining.clauses],
+                    remaining.message,
+                )
+        }
+    }.
+
+@pure
+collect_clauses(values: List[ProjectedExpressionNode]): ClauseCollection ->
+    case values {
+        [] -> ClauseCollection(true, List.new[ProjectedPatternClause](), "");
+        [value | rest] -> collect_clause(value, rest)
+    }.
+
+@pure
+invalid_case(message: String): ProjectedCaseSemantics ->
+    ProjectedCaseSemantics(
+        false,
+        ProjectedPatternCoverage(false, -1, List.new[String](), ""),
+        message,
+    ).
+
+/** Applies pattern semantics directly to one projected case-expression tree. */
+@pure
+pub analyze_case(
+    value: ProjectedExpressionNode,
+    constructors: List[String],
+): ProjectedCaseSemantics ->
+    if {
+        value.kind != "case" -> invalid_case("expression is not a case");
+        true -> case value.children {
+            [] -> invalid_case("case expression has no subject");
+            [_subject | clauses] ->
+                let collected = collect_clauses(clauses);
+                if {
+                    not collected.valid -> invalid_case(collected.message);
+                    collected.clauses == [] -> invalid_case("case expression has no clauses");
+                    true -> ProjectedCaseSemantics(true, analyze(collected.clauses, constructors), "")
+                }
+        }
+    }.

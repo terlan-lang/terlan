@@ -69,8 +69,7 @@ pub(super) fn prepare(root: &Path) {
                 "import std.core.Option.{None, Some}.",
                 "import std.system.Arguments.\nimport std.core.Option.{None, Some}.",
             );
-            probe.push_str(
-                r#"
+            probe.push_str(r#"
 pub main(): Bool ->
 let repository = Environment.current_directory();
 let selector = case Arguments.get(0) { Some(value) -> value; None -> "missing" };
@@ -80,8 +79,7 @@ case Process.run(rust_oracle_command(repository, selector)) {
         rust_oracle_output_holds(output.status, output.stdout, rust_coverage_requested());
     Err(reason) -> let _diagnostic = println(reason.message); false
 }.
-"#,
-            );
+"#);
             probe
         };
         let source_path = if name == "Semantic" {

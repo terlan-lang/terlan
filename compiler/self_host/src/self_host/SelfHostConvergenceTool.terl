@@ -1,0 +1,145 @@
+/** JSON and filesystem adapter for ten-layer bootstrap convergence. */
+module self_host.SelfHostConvergenceTool.
+
+import std.core.Int.
+
+import std.core.String.
+
+import self_host.SelfHostConvergenceEvidence.{ConvergenceEvidence, StageEvidence}.
+import self_host.SelfHostConvergenceEvidence.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.File.
+
+import type std.data.Json.Json.
+
+const SCHEMA: String = "terlan.self-host.convergence-evidence/v2".
+
+document(value: StageEvidence): Json ->
+    Json.object()
+        .put("schema", Json.string(SCHEMA))
+        .put("tokens", Json.string(value.tokens))
+        .put("syntax", Json.string(value.syntax))
+        .put("interfaces", Json.string(value.interfaces))
+        .put("diagnostics", Json.string(value.diagnostics))
+        .put("typed_syntax", Json.string(value.typed_syntax))
+        .put("core_ir", Json.string(value.core_ir))
+        .put("actor_ir", Json.string(value.actor_ir))
+        .put("managed_layouts", Json.string(value.managed_layouts))
+        .put("runtime_behavior", Json.string(value.runtime_behavior))
+        .put("executable_artifacts", Json.string(value.executable_artifacts)).
+
+/** Renders canonical compact stage evidence. */
+pub render(value: StageEvidence): Option[String] ->
+    case Json.stringify(document(value)) {
+        Ok(text) -> Some(text);
+        Err(_reason) -> None
+    }.
+
+string_value(value: Json): Option[String] ->
+    case value.as_string() {
+        Ok(text) -> if { text == "" -> None; true -> Some(text) };
+        Err(_reason) -> None
+    }.
+
+string_field(document: Json, name: String): Option[String] ->
+    case document.get(name) {
+        Ok(value) -> string_value(value);
+        Err(_reason) -> None
+    }.
+
+fields(document: Json, names: List[String]): Option[List[String]] ->
+    case names {
+        [] -> Some(List.new[String]());
+        [name | rest] -> case string_field(document, name) {
+            None -> None;
+            Some(value) -> case fields(document, rest) {
+                None -> None;
+                Some(values) -> Some([value | values])
+            }
+        }
+    }.
+
+decode_document(document: Json): Option[StageEvidence] ->
+    case string_field(document, "schema") {
+        Some(schema) where schema == SCHEMA -> case fields(document, [
+            "tokens",
+            "syntax",
+            "interfaces",
+            "diagnostics",
+            "typed_syntax",
+            "core_ir",
+            "actor_ir",
+            "managed_layouts",
+            "runtime_behavior",
+            "executable_artifacts",
+        ]) {
+            Some([tokens, syntax, interfaces, diagnostics, typed_syntax, core_ir, actor_ir, managed_layouts, runtime_behavior, executable_artifacts]) ->
+                Some(StageEvidence(
+                    tokens,
+                    syntax,
+                    interfaces,
+                    diagnostics,
+                    typed_syntax,
+                    core_ir,
+                    actor_ir,
+                    managed_layouts,
+                    runtime_behavior,
+                    executable_artifacts,
+                ));
+            _ -> None
+        };
+        _ -> None
+    }.
+
+/** Decodes only the exact versioned evidence schema with non-empty digests. */
+pub decode(text: String): Option[StageEvidence] ->
+    case Json.parse(text) {
+        Ok(document) -> decode_document(document);
+        Err(_reason) -> None
+    }.
+
+read(path: String): Option[StageEvidence] ->
+    case File.read_text(path) {
+        Ok(text) -> decode(text);
+        Err(_reason) -> None
+    }.
+
+@pure
+difference_lines(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat(["difference\t", value, "\n", difference_lines(rest)])
+    }.
+
+@pure
+report(value: ConvergenceEvidence): String ->
+    String.concat([
+        "schema\tterlan.self-host.convergence-report/v1\n",
+        "converged\t", if { value.converged -> "true"; true -> "false" }, "\n",
+        "compared_layers\t", Int.to_string(value.compared_layers), "\n",
+        "first_difference\t", value.first_difference, "\n",
+        difference_lines(value.differences),
+    ]).
+
+write_report(path: String, value: ConvergenceEvidence): Bool ->
+    case File.write_text(path, report(value)) {
+        Ok(_unit) -> true;
+        Err(_reason) -> false
+    }.
+
+compare_candidate(reference: StageEvidence, candidate: Option[StageEvidence], output: String): Bool ->
+    case candidate {
+        None -> false;
+        Some(value) -> let comparison = SelfHostConvergenceEvidence.compare(reference, value);
+            write_report(output, comparison) and comparison.converged
+    }.
+
+/** Compares two retained stage files and writes ordered mismatch evidence. */
+pub compare_files(reference: String, candidate: String, output: String): Bool ->
+    case read(reference) {
+        None -> false;
+        Some(value) -> compare_candidate(value, read(candidate), output)
+    }.

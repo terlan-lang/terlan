@@ -1,0 +1,45 @@
+/** Ordered source-only lint aggregation contracts. */
+module self_host.SelfHostLintSourceRulesTest.
+
+import self_host.SelfHostLintComplexity.{ClauseSpan}.
+import self_host.SelfHostLintSourceRules.
+import std.core.String.
+
+repeat(value: String, count: Int, output: String): String ->
+    if { count <= 0 -> output; true -> repeat(value, count - 1, String.concat([output, value])) }.
+
+@test
+pub preserves_registry_order_across_source_families(): Bool ->
+    let source = String.concat([
+        "debug(value); done().\n",
+        "import std.js.Promise.\n",
+        "import std.vm.Task.\n",
+        repeat("step().\n", 41, ""),
+    ]);
+    let diagnostics = SelfHostLintSourceRules.diagnostics(
+        "Sample.terl",
+        source,
+        [ClauseSpan(0, String.byte_size(source))],
+    );
+    case diagnostics {
+        [semicolon, function_size, debug_call, module_order, target] ->
+            semicolon.rule_id == "TL0001"
+                and function_size.rule_id == "TL0901"
+                and debug_call.rule_id == "TL0904"
+                and module_order.rule_id == "TL0501"
+                and target.rule_id == "TL0702";
+        _ -> false
+    }.
+
+@test
+pub canonical_source_has_no_source_rule_diagnostics(): Bool ->
+    SelfHostLintSourceRules.diagnostics(
+        "Sample.terl",
+        "module sample.\npub value(): Int ->\n    1.\n",
+        [ClauseSpan(15, 39)],
+    ) == [].
+
+@test
+pub safe_fix_order_runs_semicolon_before_pipe(): Bool ->
+    SelfHostLintSourceRules.fix("    first(); second().", []) ==
+        "    first();\n    second().".

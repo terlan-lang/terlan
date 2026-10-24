@@ -1,76 +1,40 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `text-emphasis-style` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! the appearance of emphasis marks. It can also be set, and reset, using the `text-emphasis`
+//! shorthand.
+//!
+//! Initial: none. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - circle: Display large circles as marks. The filled circle is `'●'` (`U+25CF`), and the open
+//! circle is `'○'` (`U+25CB`).
+//! - dot: Display small circles as marks. The filled dot is `'•'` (`U+2022`), and the open dot is
+//! `'◦'` (`U+25E6`).
+//! - double-circle: Display double circles as marks. The filled double-circle is `'◉'` (`U+25C9`),
+//! and the open double-circle is `'◎'` (`U+25CE`).
+//! - filled: The shape is filled with solid color. If neither `filled` nor `open` is present, this
+//! is the default.
+//! - none: No emphasis marks.
+//! - open: The shape is hollow.
+//! - sesame: Display sesames as marks. The filled sesame is `'﹅'` (`U+FE45`), and the open sesame is
+//! `'﹆'` (`U+FE46`).
+//! - triangle: Display triangles as marks. The filled triangle is `'▲'` (`U+25B2`), and the open
+//! triangle is `'△'` (`U+25B3`).
+//!
+//! Grammar: none | [ [ filled | open ] || [ dot | circle | double-circle | triangle | sesame ] ] |
+//! <string>
+//!
 //! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-emphasis-style
-//! Grammar: none | [ [ filled | open ] || [ dot | circle | double-circle | triangle | sesame ] ] | <string>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-emphasis-style
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextEmphasisStyle.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    text_emphasis_style: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    text_emphasis_style: Value
+    text_emphasis_style: None | Filled | Open | Dot | Circle | DoubleCircle | Triangle | Sesame | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained text-emphasis-style value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword circle.
-
-pub circle(): Value.
-
-/// Returns the CSS keyword dot.
-
-pub dot(): Value.
-
-/// Returns the CSS keyword double-circle.
-
-pub double_circle(): Value.
-
-/// Returns the CSS keyword filled.
-
-pub filled(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword open.
-
-pub open(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword sesame.
-
-pub sesame(): Value.
-
-/// Returns the CSS keyword triangle.
-
-pub triangle(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

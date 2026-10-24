@@ -1,52 +1,24 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/svgwg/svg2-draft/geometry.html#XProperty
+//! The `x` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the x-axis
+//! coordinate of the top left corner of the SVG `rect` shape, `image` image, `foreignObject`
+//! viewport or nested `svg` viewport relative to the nearest `<svg>` ancestor's user [coordinate
+//! system](https://developer.mozilla.org/en-US/docs/Web/API/CSSOM_view_API/Coordinate_systems). If
+//! present, it overrides the element's `x` attribute.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: refer to the width of the current SVG viewport.
+//!
 //! Grammar: <length-percentage>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/geometry.html#XProperty
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/x
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.X.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    x: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    x: Value
+    x: std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained x value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a x value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Constructs a x value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

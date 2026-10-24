@@ -1,0 +1,6 @@
+//! Shared CSS keyword icon. Generated; do not edit.
+
+module std.css.keywords.Icon.
+
+pub type Icon =
+    Atom["icon"].

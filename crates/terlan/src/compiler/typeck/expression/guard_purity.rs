@@ -6,6 +6,7 @@ use super::{
     apply_subst, infer_syntax_expr, primitive_receiver_method_scheme, ExprInferContext,
     SyntaxExprKind, SyntaxExprOutput, TemplateScheme, Type, TypeVarId,
 };
+use super::calls::infer_receiver_method_candidate;
 
 #[derive(Clone, Copy, Default)]
 pub(crate) struct EffectfulCallFacts<'a> {
@@ -45,7 +46,7 @@ pub(crate) fn check_clause_guard_purity(
     errors: &mut Vec<String>,
 ) {
     let mut proven_pure_receiver_calls = Vec::new();
-    collect_proven_pure_primitive_receiver_calls(
+    collect_proven_pure_receiver_calls(
         guard,
         locals,
         ctx,
@@ -65,7 +66,7 @@ pub(crate) fn check_clause_guard_purity(
 /// the exact call span prevents an unrelated impure method with the same name
 /// and arity from poisoning a guard while preserving conservative treatment for
 /// user-defined receivers.
-fn collect_proven_pure_primitive_receiver_calls(
+pub(in crate::compiler::typeck) fn collect_proven_pure_receiver_calls(
     expr: &SyntaxExprOutput,
     locals: &HashMap<String, Type>,
     ctx: &ExprInferContext<'_>,
@@ -79,35 +80,78 @@ fn collect_proven_pure_primitive_receiver_calls(
             &infer_syntax_expr(receiver, locals, ctx, &mut trial_subst, &mut trial_errors),
             &trial_subst,
         );
-        if trial_errors.is_empty()
-            && is_primitive_dispatch_receiver(&receiver_type)
-            && primitive_receiver_method_scheme(&receiver_type, method, expr.arity).is_some()
-        {
+        let primitive = is_primitive_dispatch_receiver(&receiver_type)
+            && primitive_receiver_method_scheme(&receiver_type, method, expr.arity).is_some();
+        let imported = if !matches!(receiver_type, Type::Dynamic) {
+            let mut argument_errors = Vec::new();
+            let argument_types = expr
+                .children
+                .iter()
+                .skip(1)
+                .map(|argument| {
+                    infer_syntax_expr(
+                        argument,
+                        locals,
+                        ctx,
+                        &mut trial_subst,
+                        &mut argument_errors,
+                    )
+                })
+                .collect::<Vec<_>>();
+            if argument_types
+                .iter()
+                .all(|argument| !matches!(argument, Type::Dynamic))
+            {
+                let matching = ctx
+                    .receiver_methods
+                    .get(&(method.to_string(), expr.arity))
+                    .into_iter()
+                    .flatten()
+                    .filter(|candidate| {
+                        infer_receiver_method_candidate(
+                            candidate,
+                            Some(method),
+                            &receiver_type,
+                            &argument_types,
+                            ctx,
+                            &mut trial_subst.clone(),
+                        )
+                        .is_ok()
+                    })
+                    .collect::<Vec<_>>();
+                !matching.is_empty() && matching.iter().all(|candidate| candidate.pure)
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+        if primitive || imported {
             calls.push((expr.span.start, expr.span.end));
         }
     }
 
     expr.children.iter().for_each(|child| {
-        collect_proven_pure_primitive_receiver_calls(child, locals, ctx, subst, calls)
+        collect_proven_pure_receiver_calls(child, locals, ctx, subst, calls)
     });
     expr.fields.iter().for_each(|field| {
-        collect_proven_pure_primitive_receiver_calls(&field.value, locals, ctx, subst, calls)
+        collect_proven_pure_receiver_calls(&field.value, locals, ctx, subst, calls)
     });
     expr.clauses.iter().for_each(|clause| {
         if let Some(guard) = clause.guard.as_deref() {
-            collect_proven_pure_primitive_receiver_calls(guard, locals, ctx, subst, calls);
+            collect_proven_pure_receiver_calls(guard, locals, ctx, subst, calls);
         }
-        collect_proven_pure_primitive_receiver_calls(&clause.body, locals, ctx, subst, calls);
+        collect_proven_pure_receiver_calls(&clause.body, locals, ctx, subst, calls);
     });
     expr.catch_clauses.iter().for_each(|clause| {
         if let Some(guard) = clause.guard.as_deref() {
-            collect_proven_pure_primitive_receiver_calls(guard, locals, ctx, subst, calls);
+            collect_proven_pure_receiver_calls(guard, locals, ctx, subst, calls);
         }
-        collect_proven_pure_primitive_receiver_calls(&clause.body, locals, ctx, subst, calls);
+        collect_proven_pure_receiver_calls(&clause.body, locals, ctx, subst, calls);
     });
     if let Some(after) = expr.try_after.as_ref() {
-        collect_proven_pure_primitive_receiver_calls(&after.trigger, locals, ctx, subst, calls);
-        collect_proven_pure_primitive_receiver_calls(&after.body, locals, ctx, subst, calls);
+        collect_proven_pure_receiver_calls(&after.trigger, locals, ctx, subst, calls);
+        collect_proven_pure_receiver_calls(&after.body, locals, ctx, subst, calls);
     }
 }
 

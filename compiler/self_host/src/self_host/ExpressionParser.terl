@@ -1,7 +1,9 @@
 /** Precedence-aligned, lossless parser for complete Terlan expressions. */
 module self_host.ExpressionParser.
 
-import self_host.ExpressionSyntax.{AddExpression, AndExpression, AssignmentExpression, BinaryExpression, BinaryLayoutExpression, CallExpression, CaseExpression, CastExpression, CompareExpression, ConstructorChainExpression, ExpressionClass, ExpressionParse, ExpressionSyntax, FixedArrayExpression, FloatExpression, GroupExpression, IfExpression, IntegerExpression, InvalidExpression, LambdaExpression, LetExpression, ListComprehensionExpression, ListConsExpression, ListExpression, MacroExpression, MapExpression, MultiplyExpression, NameExpression, NominalKeyedExpression, OrExpression, PipeExpression, QuoteExpression, RefutableLetExpression, SequenceExpression, StringExpression, TryExpression, TupleExpression, UnaryExpression, UnquoteExpression}.
+import std.core.String.
+
+import self_host.ExpressionSyntax.{AddExpression, AndExpression, AssignmentExpression, BinaryExpression, BinaryLayoutExpression, CallExpression, CaseExpression, CastExpression, CompareExpression, ConstructorChainExpression, ExpressionClass, ExpressionParse, ExpressionSyntax, ArrayExpression, FloatExpression, GroupExpression, IfExpression, IntegerExpression, InvalidExpression, LambdaExpression, LetExpression, ListComprehensionExpression, ListConsExpression, ListExpression, MacroExpression, MapExpression, MultiplyExpression, NameExpression, NominalKeyedExpression, OrExpression, PipeExpression, QuoteExpression, RefutableLetExpression, SequenceExpression, StringExpression, TryExpression, TupleExpression, UnaryExpression, UnquoteExpression}.
 
 import std.collections.List.
 import std.core.{Int, String}.
@@ -29,13 +31,19 @@ inner(source: String): String ->
 
 @pure
 starts_digit(source: String): Bool ->
-    source != "" and source.utf8_byte_at(0) >= 48 and source.utf8_byte_at(0) <= 57.
+    if {
+        source == "" -> false;
+        true -> let byte = source.utf8_byte_at(0); byte >= 48 and byte <= 57
+    }.
 
 @pure
 is_quoted(source: String): Bool ->
-    source.byte_size() >= 2
-        and ((source.utf8_byte_at(0) == 34 and source.utf8_byte_at(source.byte_size() - 1) == 34)
-            or (source.utf8_byte_at(0) == 39 and source.utf8_byte_at(source.byte_size() - 1) == 39)).
+    if {
+        source.byte_size() < 2 -> false;
+        true -> let first = source.utf8_byte_at(0);
+            let last = source.utf8_byte_at(source.byte_size() - 1);
+            (first == 34 and last == 34) or (first == 39 and last == 39)
+    }.
 
 @pure
 has_compare(source: String): Bool ->
@@ -205,12 +213,12 @@ classify_layout(source: String, sequence: List[String]): ExpressionClass ->
     if { is_binary_layout(source) -> BinaryLayoutExpression; true -> classify_nominal(source, sequence) }.
 
 @pure
-classify_fixed_array(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "#[") -> FixedArrayExpression; true -> classify_layout(source, sequence) }.
+classify_array(source: String, sequence: List[String]): ExpressionClass ->
+    if { String.starts_with(source, "#[") -> ArrayExpression; true -> classify_layout(source, sequence) }.
 
 @pure
 classify_binary(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "<<") -> BinaryExpression; true -> classify_fixed_array(source, sequence) }.
+    if { String.starts_with(source, "<<") -> BinaryExpression; true -> classify_array(source, sequence) }.
 
 @pure
 classify_string(source: String, sequence: List[String]): ExpressionClass ->

@@ -1,0 +1,251 @@
+/** Connects typed call authority to the actor CFG/liveness projection. */
+module self_host.SelfHostActorAuthorityProjection.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+
+import std.core.{Bool, String}.
+import self_host.SelfHostActorCallAnalysis.{ActorCallAnalysis, ActorCallObservation, ActorResolvedCall}.
+import self_host.SelfHostActorCallFacts.{ActorCallTarget, ActorSuspendingCallFact, ActorSuspensionProfile}.
+import self_host.SelfHostActorCallPlan.{ActorCalleeEntry}.
+import self_host.SelfHostActorCfgSplit.{ActorSplitRequest}.
+import self_host.SelfHostActorLiveness.{ActorResolvedCallee}.
+import self_host.SelfHostActorProjection.{ActorFunctionProjection, ActorFunctionRequest}.
+import self_host.SelfHostIrSyntax.{IrFunction}.
+import self_host.SelfHostActorCallAnalysis.
+import self_host.SelfHostActorProjection.
+
+
+/** Complete authority input for one Core IR function. */
+pub struct ActorFunctionAuthorityRequest {
+    function: IrFunction,
+    calls: List[ActorCallObservation],
+    suspension_profiles: List[ActorSuspensionProfile],
+}.
+
+pub constructor ActorFunctionAuthorityRequest {
+    (function: IrFunction, calls: List[ActorCallObservation], suspension_profiles: List[ActorSuspensionProfile]): ActorFunctionAuthorityRequest ->
+        ActorFunctionAuthorityRequest {
+            function: function,
+            calls: calls,
+            suspension_profiles: suspension_profiles,
+        }
+}.
+
+
+struct ActorProjectionInputs {
+    split_requests: List[ActorSplitRequest],
+    callees: List[ActorResolvedCallee],
+}.
+
+constructor ActorProjectionInputs {
+    (split_requests: List[ActorSplitRequest], callees: List[ActorResolvedCallee]): ActorProjectionInputs ->
+        ActorProjectionInputs {
+            split_requests: split_requests,
+            callees: callees,
+        }
+}.
+
+
+@pure
+append[T](values: List[T], value: T): List[T] ->
+    case values {
+        [] -> [value];
+        [head | rest] -> [head | append(rest, value)]
+    }.
+
+@pure
+same_size[T, U](left: List[T], right: List[U]): Bool ->
+    case left {
+        [] -> case right { [] -> true; _ -> false };
+        [_ | left_rest] -> case right {
+            [_ | right_rest] -> same_size(left_rest, right_rest);
+            _ -> false
+        }
+    }.
+
+@pure
+same_entry(left: ActorCalleeEntry, right: ActorCalleeEntry): Bool ->
+    left.export_identity == right.export_identity
+        and left.continuation_identity == right.continuation_identity
+        and left.capture_count == right.capture_count.
+
+@pure
+entry_present(value: ActorCalleeEntry, values: List[ActorCalleeEntry]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same_entry(value, current) or entry_present(value, rest)
+    }.
+
+
+@pure
+valid_direct_entry(entry: ActorCalleeEntry, suspension: ActorSuspendingCallFact): Result[ActorCalleeEntry, String] ->
+    case entry.export_identity {
+        Some(_) -> Err("static actor call entry cannot have an export identity");
+        None -> if {
+            entry.continuation_identity == "" -> Err("static actor call entry has no continuation identity");
+            entry.capture_count < 0 -> Err("static actor call entry has a negative capture count");
+            not entry_present(entry, suspension.profile.entries) -> Err("static actor call entry is outside its suspension profile");
+            true -> Ok(entry)
+        }
+    }.
+
+@pure
+direct_entries_at(values: List[ActorCalleeEntry], suspension: ActorSuspendingCallFact, result: List[ActorCalleeEntry]): Result[List[ActorCalleeEntry], String] ->
+    case values {
+        [] -> Ok(result);
+        [entry | rest] -> if {
+            entry_present(entry, result) -> Err("static actor call has duplicate callee entries");
+            true -> case valid_direct_entry(entry, suspension) {
+                Err(reason) -> Err(reason);
+                Ok(valid) -> direct_entries_at(rest, suspension, append(result, valid))
+            }
+        }
+    }.
+
+@pure
+direct_entries(values: List[ActorCalleeEntry], suspension: ActorSuspendingCallFact): Result[List[ActorCalleeEntry], String] ->
+    case values {
+        [] -> Err("static actor call has no callee entry");
+        [_ | _] -> case direct_entries_at(values, suspension, List.new[ActorCalleeEntry]()) {
+            Err(reason) -> Err(reason);
+            Ok(valid) -> if {
+                not same_size(valid, suspension.profile.entries) -> Err("static actor call does not cover its complete suspension profile");
+                true -> Ok(valid)
+            }
+        }
+    }.
+
+
+@pure
+valid_dynamic_entry(entry: ActorCalleeEntry): Result[ActorCalleeEntry, String] ->
+    case entry.export_identity {
+        None -> Err("dynamic actor call entry has no export identity");
+        Some(export_identity) -> if {
+            export_identity == "" -> Err("dynamic actor call entry has an empty export identity");
+            entry.continuation_identity == "" -> Err("dynamic actor call entry has no continuation identity");
+            entry.capture_count < 0 -> Err("dynamic actor call entry has a negative capture count");
+            true -> Ok(entry)
+        }
+    }.
+
+@pure
+dynamic_entries_at(values: List[ActorCalleeEntry], result: List[ActorCalleeEntry]): Result[List[ActorCalleeEntry], String] ->
+    case values {
+        [] -> Ok(result);
+        [entry | rest] -> case valid_dynamic_entry(entry) {
+            Err(reason) -> Err(reason);
+            Ok(valid) -> dynamic_entries_at(rest, append(result, valid))
+        }
+    }.
+
+@pure
+dynamic_entries(values: List[ActorCalleeEntry]): Result[List[ActorCalleeEntry], String] ->
+    case values {
+        [] -> Err("dynamic actor call has no dispatch entries");
+        _ -> dynamic_entries_at(values, [])
+    }.
+
+@pure
+validated_entries(target: ActorCallTarget, values: List[ActorCalleeEntry], suspension: ActorSuspendingCallFact): Result[List[ActorCalleeEntry], String] ->
+    if {
+        target.dynamic -> dynamic_entries(values);
+        true -> direct_entries(values, suspension)
+    }.
+
+
+@pure
+callee(target: ActorCallTarget, suspension: ActorSuspendingCallFact, result_name: String, entries: List[ActorCalleeEntry]): Result[ActorResolvedCallee, String] ->
+    if {
+        target.dynamic -> if {
+            suspension.profile.module_name == "" -> Err("dynamic actor profile has no logical module identity");
+            suspension.profile.callable_name == "" -> Err("dynamic actor profile has no logical callable identity");
+            true -> Ok(ActorResolvedCallee(
+                result_name,
+                suspension.profile.module_name,
+                suspension.profile.callable_name,
+                target.arity,
+                entries,
+            ))
+        };
+        true -> case target.module_name {
+            Some(module_name) -> case target.callable_name {
+                Some(callable_name) -> Ok(ActorResolvedCallee(
+                    result_name,
+                    module_name,
+                    callable_name,
+                    target.arity,
+                    entries,
+                ));
+                _ -> Err("static actor call has no callable identity")
+            };
+            _ -> Err("static actor call has no callable identity")
+        }
+    }.
+
+
+@pure
+split(call: ActorResolvedCall, suspension: ActorSuspendingCallFact): ActorSplitRequest ->
+    ActorSplitRequest(
+        call.observation.block_label,
+        call.observation.result_name,
+        call.observation.continuation_label,
+        suspension.global_continuation_ordinal,
+        suspension.native_call_index,
+    ).
+
+
+@pure
+add_suspension(call: ActorResolvedCall, suspension: ActorSuspendingCallFact, inputs: ActorProjectionInputs): Result[ActorProjectionInputs, String] ->
+    case validated_entries(call.target, suspension.profile.entries, suspension) {
+        Err(reason) -> Err(reason);
+        Ok(entries) -> case callee(
+            call.target,
+            suspension,
+            call.observation.result_name,
+            entries,
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(resolved) -> Ok(ActorProjectionInputs(
+                append(inputs.split_requests, split(call, suspension)),
+                append(inputs.callees, resolved),
+            ))
+        }
+    }.
+
+@pure
+inputs_at(values: List[ActorResolvedCall], inputs: ActorProjectionInputs): Result[ActorProjectionInputs, String] ->
+    case values {
+        [] -> Ok(inputs);
+        [call | rest] -> case call.suspension {
+            None -> inputs_at(rest, inputs);
+            Some(suspension) -> case add_suspension(call, suspension, inputs) {
+                Err(reason) -> Err(reason);
+                Ok(next) -> inputs_at(rest, next)
+            }
+        }
+    }.
+
+@pure
+project_analysis(function: IrFunction, analysis: ActorCallAnalysis): Result[ActorFunctionProjection, String] ->
+    case inputs_at(
+        analysis.calls,
+        ActorProjectionInputs([], []),
+    ) {
+        Err(reason) -> Err(reason);
+        Ok(inputs) -> Ok(SelfHostActorProjection.function(ActorFunctionRequest(
+            function,
+            inputs.split_requests,
+            inputs.callees,
+        )))
+    }.
+
+
+/** Runs call authority, CFG splitting, liveness, and continuation planning. */
+@pure
+pub function(value: ActorFunctionAuthorityRequest): Result[ActorFunctionProjection, String] ->
+    case SelfHostActorCallAnalysis.analyze(value.calls, value.suspension_profiles) {
+        Err(reason) -> Err(reason);
+        Ok(analysis) -> project_analysis(value.function, analysis)
+    }.

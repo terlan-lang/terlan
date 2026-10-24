@@ -1,52 +1,28 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-transitions-1/#propdef-transition-property
+//! The `transition-property` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! the CSS properties to which a [transition
+//! effect](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Transitions/Using) should be
+//! applied.
+//!
+//! Initial: all. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - all: All properties that can transition will.
+//! - none: No properties will transition.
+//!
 //! Grammar: none | <single-transition-property>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-transitions-1/#propdef-transition-property
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transition-property
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TransitionProperty.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    transition_property: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    transition_property: Value
+    transition_property: None | All | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained transition-property value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword all.
-
-pub all(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

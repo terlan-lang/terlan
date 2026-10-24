@@ -1,0 +1,97 @@
+/** Explicit resource admission for compiling and analysing the Terlan compiler. */
+module self_host.SelfHostAnalysisResources.
+
+import std.core.{Bool, Int, String}.
+
+
+pub struct AnalysisResourceLimits {
+    modules: Int,
+    tokens: Int,
+    syntax_nodes: Int,
+    type_constraints: Int,
+    core_instructions: Int,
+    actor_continuations: Int,
+    native_bytes: Int,
+}.
+
+pub constructor AnalysisResourceLimits {
+    (
+        modules: Int,
+        tokens: Int,
+        syntax_nodes: Int,
+        type_constraints: Int,
+        core_instructions: Int,
+        actor_continuations: Int,
+        native_bytes: Int,
+    ): AnalysisResourceLimits -> AnalysisResourceLimits {
+        modules: modules,
+        tokens: tokens,
+        syntax_nodes: syntax_nodes,
+        type_constraints: type_constraints,
+        core_instructions: core_instructions,
+        actor_continuations: actor_continuations,
+        native_bytes: native_bytes,
+    }
+}.
+
+pub struct AnalysisResourceUsage {
+    modules: Int,
+    tokens: Int,
+    syntax_nodes: Int,
+    type_constraints: Int,
+    core_instructions: Int,
+    actor_continuations: Int,
+    native_bytes: Int,
+}.
+
+pub constructor AnalysisResourceUsage {
+    (
+        modules: Int,
+        tokens: Int,
+        syntax_nodes: Int,
+        type_constraints: Int,
+        core_instructions: Int,
+        actor_continuations: Int,
+        native_bytes: Int,
+    ): AnalysisResourceUsage -> AnalysisResourceUsage {
+        modules: modules,
+        tokens: tokens,
+        syntax_nodes: syntax_nodes,
+        type_constraints: type_constraints,
+        core_instructions: core_instructions,
+        actor_continuations: actor_continuations,
+        native_bytes: native_bytes,
+    }
+}.
+
+@pure
+metric_within(used: Int, limit: Int): Bool ->
+    used >= 0 and limit >= 0 and used <= limit.
+
+/** Admits only complete, non-negative observations within every explicit limit. */
+@pure
+pub within_limits(usage: AnalysisResourceUsage, limits: AnalysisResourceLimits): Bool ->
+    metric_within(usage.modules, limits.modules)
+        and metric_within(usage.tokens, limits.tokens)
+        and metric_within(usage.syntax_nodes, limits.syntax_nodes)
+        and metric_within(usage.type_constraints, limits.type_constraints)
+        and metric_within(usage.core_instructions, limits.core_instructions)
+        and metric_within(usage.actor_continuations, limits.actor_continuations)
+        and metric_within(usage.native_bytes, limits.native_bytes).
+
+@pure
+metric(name: String, used: Int, limit: Int): String ->
+    name + "\t" + used.to_string() + "\t" + limit.to_string() + "\n".
+
+/** Renders comparable evidence after the observation has been admitted. */
+@pure
+pub render(usage: AnalysisResourceUsage, limits: AnalysisResourceLimits): String ->
+    "terlan.self-host.analysis-resources/v1\n"
+        + "metric\tused\tlimit\n"
+        + metric("modules", usage.modules, limits.modules)
+        + metric("tokens", usage.tokens, limits.tokens)
+        + metric("syntax-nodes", usage.syntax_nodes, limits.syntax_nodes)
+        + metric("type-constraints", usage.type_constraints, limits.type_constraints)
+        + metric("core-instructions", usage.core_instructions, limits.core_instructions)
+        + metric("actor-continuations", usage.actor_continuations, limits.actor_continuations)
+        + metric("native-bytes", usage.native_bytes, limits.native_bytes).

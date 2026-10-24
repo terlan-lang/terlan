@@ -1,0 +1,6 @@
+//! Shared CSS keyword row-over-column. Generated; do not edit.
+
+module std.css.keywords.RowOverColumn.
+
+pub type RowOverColumn =
+    Atom["row-over-column"].

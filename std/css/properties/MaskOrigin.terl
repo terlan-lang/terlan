@@ -1,99 +1,46 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-origin
+ * The `mask-origin` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * origin of a mask. This property determines the mask positioning area: the area within which a
+ * mask image is positioned. HTML elements can have masks contained within their content border box,
+ * padding box, or content box, whereas SVG elements (which don't have the associated CSS layout
+ * boxes) can have masks contained inside their fill, stroke, or view box. For elements rendered as
+ * multiple boxes, such as a `span` of text that spans more than one line, the `mask-origin`
+ * property specifies which boxes the `box-decoration-break` property operates on to determine the
+ * mask positioning area.
+ *
+ * Initial: border-box. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - border-box: The position is relative to the [border
+ * box](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Shapes/From_box_values#border-box).
+ * - content-box: The position is relative to the [content
+ * box](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Shapes/From_box_values#content-box).
+ * - fill-box: The position is relative to the object bounding box.
+ * - padding-box: The position is relative to the [padding
+ * box](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Shapes/From_box_values#padding-box).
+ * - stroke-box: The position is relative to the stroke bounding box.
+ * - view-box: Uses the nearest SVG viewport as reference box. If a `viewBox` attribute is specified
+ * for the element creating the SVG viewport, the reference box is positioned at the origin of the
+ * coordinate system established by the `viewBox` attribute and the dimension of the reference box
+ * is set to the width and height values of the `viewBox` attribute.
+ *
  * Grammar: <coord-box>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-origin
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-origin
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskOrigin.
 
-import type std.core.Option.
+import std.css.keywords.{BorderBox, ContentBox, FillBox, PaddingBox, StrokeBox, ViewBox}.
 
-/**
- * A nominal, specification-constrained mask-origin value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    mask_origin: Value,
+    mask_origin: ContentBox | PaddingBox | BorderBox | FillBox | StrokeBox | ViewBox | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    mask_origin: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword border-box.
- */
-pub border_box(): Value ->
-    Value(Token {property: "mask-origin", css: "border-box"}).
-
-/**
- * Returns the CSS keyword content-box.
- */
-pub content_box(): Value ->
-    Value(Token {property: "mask-origin", css: "content-box"}).
-
-/**
- * Returns the CSS keyword fill-box.
- */
-pub fill_box(): Value ->
-    Value(Token {property: "mask-origin", css: "fill-box"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "mask-origin", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask-origin", css: "initial"}).
-
-/**
- * Returns the CSS keyword padding-box.
- */
-pub padding_box(): Value ->
-    Value(Token {property: "mask-origin", css: "padding-box"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-origin", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-origin", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword stroke-box.
- */
-pub stroke_box(): Value ->
-    Value(Token {property: "mask-origin", css: "stroke-box"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-origin", css: "unset"}).
-
-/**
- * Returns the CSS keyword view-box.
- */
-pub view_box(): Value ->
-    Value(Token {property: "mask-origin", css: "view-box"}).

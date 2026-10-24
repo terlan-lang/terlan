@@ -1,7 +1,7 @@
 module typed_css.WrongBorderParts.
 
-import std.css.Values.{transparent}.
+import std.css.Values.{Transparent}.
 import std.css.properties.Border.
-
-pub invalid(): Border.Value ->
-    Border.compose(Border.line_style_solid(), Border.line_width_thin(), transparent()).
+import std.css.keywords.Solid.{Solid}.
+import std.css.keywords.Thin.{Thin}.
+pub invalid(): Border.Checked -> Border.compose(Solid, Thin, Transparent).

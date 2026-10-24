@@ -1,8 +1,8 @@
 module=std.js.RegExpMatchArray
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6852400420883838429
-interface_hash=8830888803173430455
-interface_doc_hash=8830888803173430455
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5893745165508794628
+interface_hash=18388665430149707664
+interface_doc_hash=18388665430149707664
 deps=0

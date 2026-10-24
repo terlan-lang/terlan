@@ -23,7 +23,7 @@ enum ConstValue {
     Binary(String),
     Tuple(Vec<ConstValue>),
     List(Vec<ConstValue>),
-    FixedArray(Vec<ConstValue>),
+    Array(Vec<ConstValue>),
     Map(BTreeMap<String, ConstValue>),
     Record {
         name: String,
@@ -48,7 +48,7 @@ impl ConstValue {
             Self::Binary(_) => "String",
             Self::Tuple(_) => "Tuple",
             Self::List(_) => "List",
-            Self::FixedArray(_) => "FixedArray",
+            Self::Array(_) => "Array",
             Self::Map(_) => "Map",
             Self::Record { name, .. } => name,
             Self::Union { name, .. } => name,
@@ -59,7 +59,7 @@ impl ConstValue {
         match self {
             Self::Int(_) | Self::Float(_) | Self::Bool(_) => 8,
             Self::Atom(value) | Self::Binary(value) => value.len(),
-            Self::Tuple(values) | Self::List(values) | Self::FixedArray(values) => {
+            Self::Tuple(values) | Self::List(values) | Self::Array(values) => {
                 values.iter().map(Self::size).sum()
             }
             Self::Map(values) => values
@@ -100,7 +100,7 @@ impl ConstValue {
                     .collect::<Vec<_>>()
                     .join(",")
             ),
-            Self::FixedArray(values) => format!(
+            Self::Array(values) => format!(
                 "#[{}]",
                 values
                     .iter()
@@ -537,9 +537,9 @@ impl Evaluator {
             SyntaxExprKind::List => self
                 .evaluate_sequence(&expr.children, locals)
                 .map(ConstValue::List),
-            SyntaxExprKind::FixedArray => self
+            SyntaxExprKind::Array => self
                 .evaluate_sequence(&expr.children, locals)
-                .map(ConstValue::FixedArray),
+                .map(ConstValue::Array),
             SyntaxExprKind::Map => {
                 let mut values = BTreeMap::new();
                 for field in &expr.fields {
@@ -577,15 +577,13 @@ impl Evaluator {
                 match collection {
                     ConstValue::Tuple(values)
                     | ConstValue::List(values)
-                    | ConstValue::FixedArray(values) => {
-                        values.get(index).cloned().ok_or_else(|| {
-                            diagnostic(
-                                "CONST_INDEX_BOUNDS",
-                                "constant aggregate index is out of bounds",
-                                expr.span,
-                            )
-                        })
-                    }
+                    | ConstValue::Array(values) => values.get(index).cloned().ok_or_else(|| {
+                        diagnostic(
+                            "CONST_INDEX_BOUNDS",
+                            "constant aggregate index is out of bounds",
+                            expr.span,
+                        )
+                    }),
                     _ => Err(not_const(expr.span, "indexing a non-sequence constant")),
                 }
             }

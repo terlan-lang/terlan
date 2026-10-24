@@ -1,147 +1,59 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `break-after` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how page,
+ * column, or region breaks should behave after a generated box. If there is no generated box, the
+ * property is ignored.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - all: Forces a page break right after the principal box. Breaking through all possible
+ * fragmentation contexts. So a break inside a multicol container, which was inside a page container
+ * would force a column and page break.
+ * - always: Forces a page break right after the principal box. The type of this break is that of
+ * the immediately-containing fragmentation context. If we are inside a multicol container then it
+ * would force a column break, inside paged media (but not inside a multicol container) a page
+ * break.
+ * - auto: Allows, but does not force, any break (page, column, or region) to be inserted right
+ * after the principal box.
+ * - avoid: Avoids any break (page, column, or region) from being inserted right after the principal
+ * box.
+ * - avoid-column: Avoids any column break right after the principal box.
+ * - avoid-page: Avoids any page break right after the principal box.
+ * - avoid-region: Avoids any region break right after the principal box.
+ * - column: Forces a column break right after the principal box.
+ * - left: Forces one or two page breaks right after the principal box, whichever will make the next
+ * page into a left page. It's the page placed on the left side of the spine of the book or the back
+ * side of the page in duplex printing.
+ * - page: Forces a page break right after the principal box.
+ * - recto: Forces one or two page breaks right after the principal box, whichever will make the
+ * next page into a recto page. (A recto page is a right page in a left-to-right spread or a left
+ * page in a right-to-left spread.)
+ * - region: Forces a region break right after the principal box.
+ * - right: Forces one or two page breaks right after the principal box, whichever will make the
+ * next page into a right page. It's the page placed on the right side of the spine of the book or
+ * the front side of the page in duplex printing.
+ * - verso: Forces one or two page breaks right after the principal box, whichever will make the
+ * next page into a verso page. (A verso page is a left page in a left-to-right spread or a right
+ * page in a right-to-left spread.)
+ *
+ * Grammar: auto | avoid | always | all | avoid-page | page | left | right | recto | verso |
+ * avoid-column | column | avoid-region | region
+ *
  * Specification: https://drafts.csswg.org/css-break-4/#propdef-break-after
- * Grammar: auto | avoid | always | all | avoid-page | page | left | right | recto | verso | avoid-column | column | avoid-region | region
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/break-after
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BreakAfter.
 
-import type std.core.Option.
+import std.css.keywords.{All, Always, Auto, Avoid, AvoidColumn, AvoidPage, AvoidRegion, Column, Left, Page, Recto, Region, Right, Verso}.
 
-/**
- * A nominal, specification-constrained break-after value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    break_after: Value,
+    break_after: Auto | Avoid | Always | All | AvoidPage | Page | Left | Right | Recto | Verso | AvoidColumn | Column | AvoidRegion | Region | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    break_after: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword all.
- */
-pub all(): Value ->
-    Value(Token {property: "break-after", css: "all"}).
-
-/**
- * Returns the CSS keyword always.
- */
-pub always(): Value ->
-    Value(Token {property: "break-after", css: "always"}).
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "break-after", css: "auto"}).
-
-/**
- * Returns the CSS keyword avoid.
- */
-pub avoid(): Value ->
-    Value(Token {property: "break-after", css: "avoid"}).
-
-/**
- * Returns the CSS keyword avoid-column.
- */
-pub avoid_column(): Value ->
-    Value(Token {property: "break-after", css: "avoid-column"}).
-
-/**
- * Returns the CSS keyword avoid-page.
- */
-pub avoid_page(): Value ->
-    Value(Token {property: "break-after", css: "avoid-page"}).
-
-/**
- * Returns the CSS keyword avoid-region.
- */
-pub avoid_region(): Value ->
-    Value(Token {property: "break-after", css: "avoid-region"}).
-
-/**
- * Returns the CSS keyword column.
- */
-pub column(): Value ->
-    Value(Token {property: "break-after", css: "column"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "break-after", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "break-after", css: "initial"}).
-
-/**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "break-after", css: "left"}).
-
-/**
- * Returns the CSS keyword page.
- */
-pub page(): Value ->
-    Value(Token {property: "break-after", css: "page"}).
-
-/**
- * Returns the CSS keyword recto.
- */
-pub recto(): Value ->
-    Value(Token {property: "break-after", css: "recto"}).
-
-/**
- * Returns the CSS keyword region.
- */
-pub region(): Value ->
-    Value(Token {property: "break-after", css: "region"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "break-after", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "break-after", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "break-after", css: "right"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "break-after", css: "unset"}).
-
-/**
- * Returns the CSS keyword verso.
- */
-pub verso(): Value ->
-    Value(Token {property: "break-after", css: "verso"}).

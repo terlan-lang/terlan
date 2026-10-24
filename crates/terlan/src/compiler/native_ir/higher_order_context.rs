@@ -105,7 +105,7 @@ impl ContextSpecializer<'_> {
                     self.rewrite(argument)?;
                 }
             }
-            CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+            CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
                 for item in items {
                     self.rewrite(item)?;
                 }

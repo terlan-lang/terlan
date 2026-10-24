@@ -1,56 +1,30 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-text-combine-upright
+//! The `text-combine-upright` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! the combination of characters into the space of a single character. If the combined text is wider
+//! than 1em, the user agent must fit the contents within 1em. The resulting composition is treated
+//! as a single upright glyph for layout and decoration. This property only has an effect in vertical
+//! writing modes.
+//!
+//! Initial: none. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - all: Attempts to typeset all consecutive characters within the box horizontally, such that they
+//! take up the space of a single character within the vertical line of the box.
+//! - none: There is no special processing.
+//!
 //! Grammar: none | all | [ digits <integer [2,4]>? ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-text-combine-upright
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-combine-upright
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextCombineUpright.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    text_combine_upright: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    text_combine_upright: Value
+    text_combine_upright: None | All | Digits | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained text-combine-upright value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword all.
-
-pub all(): Value.
-
-/// Returns the CSS keyword digits.
-
-pub digits(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

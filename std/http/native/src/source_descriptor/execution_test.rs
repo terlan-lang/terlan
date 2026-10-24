@@ -20,7 +20,6 @@ fn response() -> V {
 
 fn pipeline(recovery: bool) -> HandlerPipeline<'static, usize> {
     HandlerPipeline {
-        handler: &0,
         middleware: &[1, 2],
         response_middleware: &[3, 4],
         recovery: recovery.then_some(&5),
@@ -34,7 +33,7 @@ fn callbacks_preserve_order_short_circuit_and_reverse_unwind() {
         let value = pipeline(false)
             .execute(
                 V::Int(42),
-                vec![V::Int(42)],
+                || Ok((0, vec![V::Int(42)])),
                 |id, args| {
                     calls.borrow_mut().push(id);
                     assert_eq!(args[0], V::Int(42));
@@ -75,7 +74,7 @@ fn failure_at_each_stage_recovers_once_without_replaying_completed_callbacks() {
             let value = pipeline(true)
                 .execute(
                     V::Unit,
-                    vec![V::Unit],
+                    || Ok((0, vec![V::Unit])),
                     |id, args| {
                         calls.borrow_mut().push(id);
                         if id == 5 {
@@ -122,7 +121,7 @@ fn malformed_middleware_and_response_values_fail_closed() {
         assert!(pipeline(false)
             .execute(
                 V::Unit,
-                vec![V::Unit],
+                || Ok((0, vec![V::Unit])),
                 |_, _| ready(Ok(bad.clone())),
                 failure_message
             )
@@ -134,7 +133,7 @@ fn malformed_middleware_and_response_values_fail_closed() {
         assert!(pipeline(false)
             .execute(
                 V::Unit,
-                vec![V::Unit],
+                || Ok((0, vec![V::Unit])),
                 |id, _| ready(Ok(if id == failed {
                     V::Unit
                 } else if id == 1 || id == 2 {
@@ -170,7 +169,7 @@ fn dropping_pipeline_drops_pending_host_call_without_starting_next_callback() {
     let value = pipeline(false)
         .execute(
             V::Unit,
-            vec![V::Unit],
+            || Ok((0, vec![V::Unit])),
             |id, _| {
                 assert_eq!(id, 1);
                 events.borrow_mut().push("started");

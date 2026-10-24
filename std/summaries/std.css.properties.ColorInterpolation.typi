@@ -1,56 +1,28 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#ColorInterpolationProperty
+//! The `color-interpolation` CSS property is used in SVG to specify which color space to use for
+//! `linearGradient` and `radialGradient` SVG elements.
+//!
+//! Keyword effects:
+//! - auto: Indicates that the user agent can choose either the `sRGB` or `linearRGB` spaces for
+//! color interpolation. This option indicates that the author doesn't require that color
+//! interpolation occur in a particular color space.
+//! - linearRGB: Indicates that color interpolation should occur in the linearized RGB color space as
+//! described in [the sRGB specification](https://webstore.iec.ch/en/publication/6169).
+//! - sRGB: Indicates that color interpolation should occur in the sRGB color space. Defaults to this
+//! initial value if no `color-interpolation` property is set.
+//!
 //! Grammar: auto | sRGB | linearRGB
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#ColorInterpolationProperty
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/color-interpolation
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ColorInterpolation.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    color_interpolation: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    color_interpolation: Value
+    color_interpolation: Auto | SRGB | LinearRGB | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained color-interpolation value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword linearRGB.
-
-pub linearRGB(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword sRGB.
-
-pub sRGB(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

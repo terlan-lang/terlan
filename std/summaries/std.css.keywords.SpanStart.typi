@@ -1,0 +1,6 @@
+//! Shared CSS keyword span-start. Generated; do not edit.
+
+module std.css.keywords.SpanStart.
+
+pub type SpanStart =
+    Atom["span-start"].

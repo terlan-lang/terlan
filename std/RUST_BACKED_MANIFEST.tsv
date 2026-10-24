@@ -59,6 +59,7 @@ std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_framed	sha256_f
 std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_domain_framed	sha256_domain_framed	2
 std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_nul_separated	sha256_nul_separated	1
 std.crypto.Ed25519	std/crypto/Ed25519.terl	rustls	std.crypto.ed25519.verify	verify	3
+std.crypto.Entropy	std/crypto/Entropy.terl	getrandom	std.crypto.entropy.bytes	bytes	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode	encode	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.decode_text	decode_text	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode_url	encode_url	1
@@ -66,6 +67,7 @@ std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.decode_u
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode_bytes	encode_bytes	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.decode_octets	decode_octets	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode_url_bytes	encode_url_bytes	1
+std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.encode_url_unpadded_bytes	encode_url_unpadded_bytes	1
 std.encoding.Base64	std/encoding/Base64.terl	base64	std.encoding.base64.decode_url_octets	decode_url_octets	1
 std.encoding.Md5	std/encoding/Md5.terl	md-5	std.encoding.md5.digest	digest	1
 std.io.Path	std/io/Path.terl	std::path	std.io.path.from_string	from_string	1
@@ -100,12 +102,13 @@ std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.replace	replace	3
 std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.split	split	2
 std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.escape	escape	1
 std.http.Cookies	std/http/Cookies.terl	terlan-http-native	std.http.cookies.encode	encode	9
+std.http.Cookies	std/http/Cookies.terl	terlan-http-native	std.http.cookies.decode	decode	1
 std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.lookup	lookup	1
-std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.create	create	2
+std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.try_create	try_create	2
 std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.get	read	2
 std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.set	write	3
 std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.delete	remove	2
-std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.rotate	renew	2
+std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.try_rotate	try_rotate	3
 std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.expire	invalidate	1
 std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.is_live	is_live	1
 std.http.Sse	std/http/Sse.terl	axum	std.http.sse.encode_event	encode	4

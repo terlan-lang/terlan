@@ -1,0 +1,44 @@
+/** Contracts for direct Terlan readability source projection. */
+module self_host.SelfHostLintReadabilitySourceTest.
+
+import self_host.SelfHostLintReadabilitySource.
+
+@test
+pub projects_restatement_doc_spacing_and_branch_rules(): Bool ->
+    let values = SelfHostLintReadabilitySource.diagnostics(
+        "Example.terl",
+        "// value.\nvalue;\n/**\n*bad spacing\n */\nif { ready and valid or forced -> ok\n",
+    );
+    case values {
+        [comment, spacing, branch] ->
+            comment.rule_id == "TL0005"
+                and comment.line == 1
+                and spacing.rule_id == "TL0007"
+                and spacing.line == 4
+                and branch.rule_id == "TL0008"
+                and branch.line == 6;
+        _ -> false
+    }.
+
+@test
+pub preserves_token_boundaries_when_normalizing_comments(): Bool ->
+    SelfHostLintReadabilitySource.normalize_restatement("call   foo.;") == "call foo"
+        and SelfHostLintReadabilitySource.normalize_restatement("callfoo") == "callfoo"
+        and SelfHostLintReadabilitySource.diagnostics(
+            "Example.terl",
+            "// call foo\ncallfoo\n",
+        ) == [].
+
+@test
+pub honors_comment_and_block_exemptions(): Bool ->
+    SelfHostLintReadabilitySource.diagnostics(
+        "Example.terl",
+        "// TODO value\nvalue\n/**\n * good spacing\n */\n/*\nif { a and b or c -> hidden\n*/\nif { a and b -> visible\n",
+    ) == [].
+
+@test
+pub counts_boolean_words_not_identifier_fragments(): Bool ->
+    SelfHostLintReadabilitySource.diagnostics(
+        "Example.terl",
+        "if { android or orbit -> value\n",
+    ) == [].

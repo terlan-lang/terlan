@@ -40,6 +40,7 @@ type Calls = Rc<RefCell<Vec<(String, Bytes)>>>;
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Handler {
     Reply,
+    Reject,
     Upgrade,
     ParkBeforeUpgrade,
     WrongResponse,
@@ -66,6 +67,14 @@ fn connection<const KIND: u8>(
                     return response(200, "answer");
                 }
                 assert_eq!(request.uri().path_and_query().unwrap(), "/ws?token=value");
+                if handler == Handler::Reject {
+                    drop(hyper::upgrade::on(&mut request));
+                    let mut denied = response(403, "denied");
+                    denied
+                        .headers_mut()
+                        .insert("connection", "close".parse().unwrap());
+                    return denied;
+                }
                 let upgrade = if handler == Handler::WrongUpgrade {
                     hyper::upgrade::on(Request::new(()))
                 } else {
@@ -109,40 +118,43 @@ fn connection<const KIND: u8>(
 
 #[test]
 fn keep_alive_dispatches_each_complete_request_once_without_transport_waiting() {
-    let state = Arc::new(Mutex::new(State {
-        incoming: b"POST /first HTTP/1.1\r\nHost: local\r\nContent-Length: 3\r\n\r\nonePOST /second HTTP/1.1\r\nHost: local\r\nConnection: close\r\nContent-Length: 3\r\n\r\ntwo".to_vec().into(),
+    for upgrade in ["", "Upgrade: websocket\r\n"] {
+        let state = Arc::new(Mutex::new(State {
+        incoming: format!("POST /first HTTP/1.1\r\nHost: local\r\n{upgrade}Content-Length: 3\r\n\r\nonePOST /second HTTP/1.1\r\nHost: local\r\nConnection: close\r\nContent-Length: 3\r\n\r\ntwo").into_bytes().into(),
         ..State::default()
     }));
-    let calls = Rc::new(RefCell::new(Vec::new()));
-    complete(connection::<0>(
-        state.clone(),
-        Handler::Reply,
-        Events::default(),
-        calls.clone(),
-        &Arc::default(),
-    ))
-    .unwrap();
-    assert_eq!(
-        *calls.borrow(),
-        [
-            ("/first".into(), Bytes::from_static(b"one")),
-            ("/second".into(), Bytes::from_static(b"two")),
-        ]
-    );
-    let state = state.lock().unwrap();
-    assert_eq!(
-        String::from_utf8_lossy(&state.outgoing)
-            .matches("HTTP/1.1 200")
-            .count(),
-        2
-    );
-    assert_eq!(
-        String::from_utf8_lossy(&state.outgoing)
-            .matches("answer")
-            .count(),
-        2
-    );
-    assert_eq!(state.drops, 1);
+        let calls = Rc::new(RefCell::new(Vec::new()));
+        complete(connection::<0>(
+            state.clone(),
+            Handler::Reply,
+            Events::default(),
+            calls.clone(),
+            &Arc::default(),
+        ))
+        .unwrap();
+        assert_eq!(
+            *calls.borrow(),
+            [
+                ("/first".into(), Bytes::from_static(b"one")),
+                ("/second".into(), Bytes::from_static(b"two")),
+            ]
+        );
+        let state = state.lock().unwrap();
+        assert_eq!(
+            String::from_utf8_lossy(&state.outgoing)
+                .matches("HTTP/1.1 200")
+                .count(),
+            2
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&state.outgoing)
+                .matches("answer")
+                .count(),
+            2
+        );
+        assert_eq!(state.drops, 1);
+        assert_eq!(state.shutdowns, 1);
+    }
 }
 
 #[test]
@@ -270,4 +282,67 @@ fn failed_handoff_reports_upgrade_error_instead_of_protocol_context() {
     assert_eq!(events.lock().unwrap().len(), 1);
     assert!(events.lock().unwrap()[0].starts_with("cancel:"));
     assert_eq!(state.lock().unwrap().drops, 1);
+}
+
+#[test]
+fn rejected_upgrade_shuts_down_transport_after_response_and_preserves_errors() {
+    for handler in [Handler::Reject, Handler::WrongResponse] {
+        for failure in [false, true] {
+            let state = upgrade_request(vec![]);
+            state.lock().unwrap().shutdown_error = failure.then_some(io::ErrorKind::BrokenPipe);
+            let result = complete(connection::<0>(
+                state.clone(),
+                handler,
+                Events::default(),
+                Calls::default(),
+                &Arc::default(),
+            ));
+            if failure {
+                assert!(result
+                    .unwrap_err()
+                    .to_string()
+                    .contains("serve_http.upgrade_shutdown"));
+            } else {
+                result.unwrap();
+            }
+            let state = state.lock().unwrap();
+            let status = if handler == Handler::Reject {
+                b"HTTP/1.1 403"
+            } else {
+                b"HTTP/1.1 500"
+            };
+            assert!(state.outgoing.starts_with(status));
+            assert_eq!(state.shutdowns, 1);
+            assert_eq!(state.drops, 1);
+        }
+    }
+}
+
+#[test]
+fn rejected_upgrade_shutdown_can_suspend_resume_or_be_cancelled() {
+    for cancel in [false, true] {
+        let state = upgrade_request(vec![]);
+        state.lock().unwrap().shutdown_pending = true;
+        let hub = Arc::default();
+        let mut future = Box::pin(connection::<0>(
+            state.clone(),
+            Handler::WrongResponse,
+            Events::default(),
+            Calls::default(),
+            &hub,
+        ));
+        assert!(future
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop()))
+            .is_pending());
+        assert_eq!(state.lock().unwrap().shutdowns, 1);
+        assert_eq!(state.lock().unwrap().drops, 0);
+        if !cancel {
+            state.lock().unwrap().shutdown_pending = false;
+            complete(&mut future).unwrap();
+            assert_eq!(state.lock().unwrap().shutdowns, 2);
+        }
+        drop(future);
+        assert_eq!(state.lock().unwrap().drops, 1);
+    }
 }

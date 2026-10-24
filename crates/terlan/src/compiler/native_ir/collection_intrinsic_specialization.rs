@@ -26,7 +26,9 @@ pub(super) mod receiver_intrinsics;
 use receiver_intrinsics::*;
 mod type_helpers;
 use type_helpers::*;
-pub(super) use type_helpers::{is_std_map_constructor, option_element, positional_map_type};
+pub(super) use type_helpers::{
+    is_std_map_constructor, named_field_type, option_element, positional_map_type,
+};
 
 #[derive(Clone)]
 pub(super) struct FunctionSignature {

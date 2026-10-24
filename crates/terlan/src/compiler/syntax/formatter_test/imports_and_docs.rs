@@ -372,8 +372,9 @@ pub handle(request: Request, callback: Handler): Response -> callback(request).
         crate::terlan_hir::syntax_module_output_to_interface(&module).to_terlan_interface_text()
     };
     let expected = interface(source);
-    assert!(expected.contains("std.http.Request.Request"));
-    assert!(expected.contains("std.http.Response.Response"));
+    assert!(expected.contains("pub type Handler =\n    (std.http.Request) -> std.http.Response."));
+    assert!(expected
+        .contains("pub handle(request: std.http.Request, callback: Handler): std.http.Response."));
     let formatted = format_source_module(source).expect("format callback types");
     assert_eq!(interface(&formatted), expected);
     assert_eq!(format_source_module(&formatted).unwrap(), formatted);

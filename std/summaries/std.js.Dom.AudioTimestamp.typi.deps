@@ -1,8 +1,8 @@
 module=std.js.Dom.AudioTimestamp
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=13504128647011031922
-interface_hash=4204726943350226765
-interface_doc_hash=4204726943350226765
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=451450009881575610
+interface_hash=5497641466773049842
+interface_doc_hash=5497641466773049842
 deps=0

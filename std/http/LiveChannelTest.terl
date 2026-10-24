@@ -31,7 +31,28 @@ pub application_router(): Router ->
     Router.group(router, "/live", live_channels).
 
 @test
-pub live_channel_sse_handler_records_queued_events(): Bool -> true.
+pub live_channel_sse_handler_records_queued_events(): Bool ->
+    counter_events_response() == Response.stream(
+    [
+        "id: 1\nevent: counter\nretry: 1500\ndata: counter:1\n\n",
+        "id: 2\nevent: counter\ndata: counter:2\n\n",
+    ],
+    200,
+    "text/event-stream; charset=utf-8",
+    16384,
+    128,
+).
 
 @test
-pub live_channel_group_records_sse_and_websocket_endpoints(): Bool -> true.
+pub live_channel_group_records_sse_and_websocket_endpoints(): Bool ->
+    let empty = Router.new();
+    let sse_only =
+        Router.sse(
+            Router.use(empty, require_user),
+            "/events/counter",
+            Sse.endpoint_with_keep_alive(32, 8192, 10000),
+        );
+    let channels = live_channels(empty);
+    channels != empty
+        and channels != sse_only
+        and application_router() != Router.get(Router.new(), "/", home).

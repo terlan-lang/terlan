@@ -12,7 +12,7 @@ use crate::commands::emit_js::target_contract::{
     JS_TARGET_PROFILE_FILE,
 };
 use crate::commands::emit_js::{
-    emit_core_module_to_typescript_declarations, emit_core_module_with_template_runtime,
+    emit_core_module_to_typescript_declarations_at, emit_core_module_with_template_runtime,
     validate_js_module_with_oxc,
 };
 use crate::formal_pipeline::CheckedSyntaxModuleArtifacts;
@@ -554,7 +554,7 @@ fn write_js_module_artifact(
     contract: JsTargetContract,
     emit_declarations: bool,
 ) -> Result<JsModuleArtifact, String> {
-    let js = emit_release_js_module(source_path, compiled, contract)?;
+    let js = emit_release_js_module(source_path, compiled, contract, state.cache_dir.as_deref())?;
     validate_release_js_module(source_path, compiled, contract, &js)?;
     let asset_imports =
         collect_syntax_asset_imports(&compiled.syntax_output, Path::new(source_path))?;
@@ -611,12 +611,14 @@ pub(super) fn emit_release_js_module(
     source_path: &str,
     compiled: &CheckedSyntaxModuleArtifacts,
     contract: JsTargetContract,
+    cache_dir: Option<&Path>,
 ) -> Result<String, String> {
     emit_core_module_with_template_runtime(
         &compiled.core,
         &compiled.syntax_output,
         Path::new(source_path),
         contract.profile,
+        cache_dir,
     )?
     .ok_or_else(|| {
         format!(
@@ -734,7 +736,8 @@ fn write_js_declaration_artifact(
         })?;
     }
 
-    let declarations = emit_core_module_to_typescript_declarations(&compiled.core);
+    let declarations =
+        emit_core_module_to_typescript_declarations_at(&compiled.core, &artifact_path);
     write_build_file(&artifact_path, declarations.as_bytes(), state.incremental)?;
 
     Ok(Some(JsDeclarationArtifact {

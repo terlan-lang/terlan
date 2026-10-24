@@ -1,0 +1,6 @@
+//! Shared CSS keyword literal-punctuation. Generated; do not edit.
+
+module std.css.keywords.LiteralPunctuation.
+
+pub type LiteralPunctuation =
+    Atom["literal-punctuation"].

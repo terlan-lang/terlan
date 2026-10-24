@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword inline-flex. Generated; do not edit.
+ */
+module std.css.keywords.InlineFlex.
+
+pub type InlineFlex = Atom["inline-flex"].

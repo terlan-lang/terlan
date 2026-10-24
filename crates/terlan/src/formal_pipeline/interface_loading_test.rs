@@ -105,19 +105,14 @@ fn scoped_loading_admits_fully_qualified_remote_modules_without_imports() {
     assert!(!interfaces.contains_key("std.db.Postgres"));
 }
 
-/// Qualified primary annotations load their provider even without an import.
 #[test]
-fn scoped_loading_admits_primary_type_annotations_without_imports() {
+fn scoped_loading_admits_shared_entropy_and_encoding_interfaces() {
     let module = crate::terlan_syntax::parse_module_as_syntax_output(
-        "module primary_annotation. pub identity(value: std.vm.Bytes): std.vm.Bytes -> value.",
+        "module scoped_entropy_interfaces. import std.crypto.Entropy. import std.encoding.Base64.
+         pub token(): String -> Base64.encode_url_unpadded_bytes(Entropy.bytes(32)).",
     )
-    .expect("primary annotation");
+    .unwrap();
     let interfaces = load_external_interfaces_for_module("fixture.terl", None, &module);
-    assert!(interfaces.contains_key("std.vm.Bytes"));
-    assert!(!interfaces.contains_key("std.db.Postgres"));
-    let resolved =
-        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&module, &interfaces)
-            .module;
-    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&module, &resolved);
-    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
+    assert!(interfaces.contains_key("std.crypto.Entropy"));
+    assert!(interfaces.contains_key("std.encoding.Base64"));
 }

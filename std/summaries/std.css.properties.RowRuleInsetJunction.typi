@@ -1,56 +1,27 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-junction
+//! The `row-rule-inset-junction` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property can be used to offset both the left and right endpoints of row rule segments that are
+//! [junction
+//! endpoints](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-inset-junction-end#understanding_junction_endpoints);
+//! that is, endpoints at gap junctions where rule segments intersect.
+//!
+//! Keyword effects:
+//! - overlap-join: Specifies that the junction segment should extend across the column-rule,
+//! resolving to half the `column-gap` value plus half the used `column-rule-width` value.
+//!
 //! Grammar: <inset-value> <inset-value>?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-inset-junction
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/row-rule-inset-junction
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RowRuleInsetJunction.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    row_rule_inset_junction: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    row_rule_inset_junction: Value
+    row_rule_inset_junction: OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained row-rule-inset-junction value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a row-rule-inset-junction value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Returns the CSS keyword overlap-join.
-
-pub overlap_join(): Value.
-
-/// Constructs a row-rule-inset-junction value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

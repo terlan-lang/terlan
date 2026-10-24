@@ -1,0 +1,199 @@
+/** Derives suspension-effect call edges from canonical typed Core IR traversal. */
+module self_host.SelfHostActorCoreEffects.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, String}.
+
+import self_host.SelfHostActorCallAnalysis.{ActorCallObservation}.
+import self_host.SelfHostActorCallFacts.{ActorStaticCallEdge}.
+import self_host.SelfHostActorCoreAuthority.{ActorCoreFunctionRequest}.
+import self_host.SelfHostActorCoreTraversal.{ActorDynamicCallEvidence}.
+import self_host.SelfHostActorEffectProjection.{ActorCallableSeed}.
+import self_host.SelfHostActorEffects.{ActorCallableIdentity}.
+import self_host.SelfHostActorCallFacts.
+import self_host.SelfHostActorCoreTraversal.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+observation_edges(
+    values: List[ActorCallObservation],
+    output: List[ActorStaticCallEdge],
+): Result[List[ActorStaticCallEdge], String] ->
+    case values {
+        [] -> Ok(output);
+        [value | rest] -> case SelfHostActorCallFacts.target(
+            value.caller_module,
+            value.opcode,
+            value.operands,
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(None) -> Err("actor Core traversal produced a non-call observation");
+            Ok(Some(target)) -> case SelfHostActorCallFacts.static_edge(
+                value.caller_module,
+                value.caller_name,
+                value.caller_arity,
+                target,
+            ) {
+                None -> observation_edges(rest, output);
+                Some(edge) -> observation_edges(rest, [edge | output])
+            }
+        }
+    }.
+
+@pure
+reverse_edges(
+    values: List[ActorStaticCallEdge],
+    output: List[ActorStaticCallEdge],
+): List[ActorStaticCallEdge] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_edges(rest, [value | output])
+    }.
+
+@pure
+function_edges(value: ActorCoreFunctionRequest): Result[List[ActorStaticCallEdge], String] ->
+    case SelfHostActorCoreTraversal.function(value.function, value.dynamic_calls) {
+        Err(reason) -> Err(reason);
+        Ok(traversal) -> case observation_edges(
+            traversal.observations,
+            List.new[ActorStaticCallEdge](),
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(reversed) -> Ok(append(
+                reverse_edges(reversed, List.new[ActorStaticCallEdge]()),
+                dynamic_edges(value, value.dynamic_calls),
+            ))
+        }
+    }.
+
+@pure
+dynamic_edges(
+    request: ActorCoreFunctionRequest,
+    values: List[ActorDynamicCallEvidence],
+): List[ActorStaticCallEdge] ->
+    case values {
+        [] -> List.new[ActorStaticCallEdge]();
+        [value | rest] -> append(
+            target_edges(request, value.targets),
+            dynamic_edges(request, rest),
+        )
+    }.
+
+@pure
+target_edges(
+    request: ActorCoreFunctionRequest,
+    values: List[ActorCallableIdentity],
+): List[ActorStaticCallEdge] ->
+    case values {
+        [] -> List.new[ActorStaticCallEdge]();
+        [value | rest] -> [ActorStaticCallEdge(
+            request.function.module_name,
+            request.function.name,
+            request.function.arity,
+            value.module_name,
+            value.function_name,
+            value.arity,
+        ) | target_edges(request, rest)]
+    }.
+
+/** Emits ordered static edges for the exact Core functions being compiled. */
+@pure
+pub build_module(values: List[ActorCoreFunctionRequest]): Result[List[ActorStaticCallEdge], String] ->
+    case values {
+        [] -> Ok(List.new[ActorStaticCallEdge]());
+        [value | rest] -> case function_edges(value) {
+            Err(reason) -> Err(reason);
+            Ok(current) -> case build_module(rest) {
+                Err(reason) -> Err(reason);
+                Ok(remaining) -> Ok(append(current, remaining))
+            }
+        }
+    }.
+
+@pure
+same(left: ActorCallableIdentity, right: ActorCallableIdentity): Bool ->
+    left.module_name == right.module_name
+        and left.function_name == right.function_name
+        and left.arity == right.arity.
+
+@pure
+request_identity(value: ActorCoreFunctionRequest): ActorCallableIdentity ->
+    ActorCallableIdentity(value.function.module_name, value.function.name, value.function.arity).
+
+@pure
+dynamic_suspends(values: List[ActorDynamicCallEvidence]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.suspends or dynamic_suspends(rest)
+    }.
+
+/** Derives one local effect seed from each exact Core function request. */
+@pure
+pub seeds(
+    values: List[ActorCoreFunctionRequest],
+): List[ActorCallableSeed] ->
+    case values {
+        [] -> List.new[ActorCallableSeed]();
+        [value | rest] -> [ActorCallableSeed(
+            request_identity(value),
+            dynamic_suspends(value.dynamic_calls),
+        ) | seeds(rest)]
+    }.
+
+@pure
+edge_callee(value: ActorStaticCallEdge): ActorCallableIdentity ->
+    ActorCallableIdentity(value.callee_module, value.callee_name, value.callee_arity).
+
+@pure
+local_identity(value: ActorCallableIdentity, functions: List[ActorCoreFunctionRequest]): Bool ->
+    case functions {
+        [] -> false;
+        [function | rest] -> same(value, request_identity(function))
+            or local_identity(value, rest)
+    }.
+
+@pure
+identity_present(value: ActorCallableIdentity, values: List[ActorCallableIdentity]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same(value, current) or identity_present(value, rest)
+    }.
+
+@pure
+append_identity(value: ActorCallableIdentity, values: List[ActorCallableIdentity]): List[ActorCallableIdentity] ->
+    if { identity_present(value, values) -> values; true -> [value | values] }.
+
+@pure
+imported_at(
+    edges: List[ActorStaticCallEdge],
+    functions: List[ActorCoreFunctionRequest],
+    output: List[ActorCallableIdentity],
+): List[ActorCallableIdentity] ->
+    case edges {
+        [] -> output;
+        [edge | rest] -> let identity = edge_callee(edge);
+        if {
+            local_identity(identity, functions) -> imported_at(rest, functions, output);
+            true -> imported_at(rest, functions, append_identity(identity, output))
+        }
+    }.
+
+/**
+ * Conservatively treats every statically imported callee as suspension-capable
+ * until an actor interface can prove otherwise.
+ */
+@pure
+pub imported_suspending(
+    edges: List[ActorStaticCallEdge],
+    functions: List[ActorCoreFunctionRequest],
+): List[ActorCallableIdentity] ->
+    imported_at(edges, functions, List.new[ActorCallableIdentity]()).

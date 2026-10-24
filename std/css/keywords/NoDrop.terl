@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword no-drop. Generated; do not edit.
+ */
+module std.css.keywords.NoDrop.
+
+pub type NoDrop = Atom["no-drop"].

@@ -1,0 +1,102 @@
+/** Semantic core for consistency rule TL0506. */
+module self_host.SelfHostLintNamedAtom.
+
+import self_host.SelfHostLintConsistency.{ConsistencyDiagnostic}.
+import std.core.Option.{None, Some}.
+import std.core.String.
+
+pub struct NamedAtomType {
+    type_name: String,
+    atom_name: String,
+}.
+
+pub constructor NamedAtomType {
+    (type_name: String, atom_name: String): NamedAtomType ->
+        NamedAtomType { type_name: type_name, atom_name: atom_name }
+}.
+
+pub struct AtomLiteralUse {
+    atom_name: String,
+    start_byte: Int,
+    raw_literal: Bool,
+}.
+
+pub constructor AtomLiteralUse {
+    (atom_name: String, start_byte: Int, raw_literal: Bool): AtomLiteralUse ->
+        AtomLiteralUse {
+            atom_name: atom_name,
+            start_byte: start_byte,
+            raw_literal: raw_literal,
+        }
+}.
+
+/** Extracts an atom from exactly `Atom["name"]` singleton variant text. */
+@pure
+pub atom_literal_name(text: String): Option[String] ->
+    if {
+        not String.starts_with(text, "Atom[\"") -> None;
+        not String.ends_with(text, "\"]") -> None;
+        true -> Some(String.utf8_slice(text, 6, String.byte_size(text) - 8))
+    }.
+
+named_atom(atom: String, types: List[NamedAtomType]): Bool ->
+    case types {
+        [] -> false;
+        [value | rest] ->
+            if { value.atom_name == atom -> true; true -> named_atom(atom, rest) }
+    }.
+
+struct SourcePosition {
+    line: Int,
+    column: Int,
+}.
+
+constructor SourcePosition {
+    (line: Int, column: Int): SourcePosition ->
+        SourcePosition { line: line, column: column }
+}.
+
+position_at(source: String, target: Int, offset: Int, line: Int, column: Int): SourcePosition ->
+    if {
+        offset >= target or offset >= String.byte_size(source) -> SourcePosition(line, column);
+        String.utf8_byte_at(source, offset) == 10 ->
+            position_at(source, target, offset + 1, line + 1, 1);
+        true -> position_at(source, target, offset + 1, line, column + 1)
+    }.
+
+diagnostics_at(
+    source: String,
+    path: String,
+    types: List[NamedAtomType],
+    uses: List[AtomLiteralUse],
+): List[ConsistencyDiagnostic] ->
+    case uses {
+        [] -> [];
+        [value | rest] ->
+            let remaining = diagnostics_at(source, path, types, rest);
+            if {
+                not value.raw_literal or not named_atom(value.atom_name, types) -> remaining;
+                true ->
+                    let position = position_at(source, value.start_byte, 0, 1, 1);
+                    [ConsistencyDiagnostic(
+                        path,
+                        position.line,
+                        position.column,
+                        "TL0506",
+                        "consistency.inline-named-atom",
+                        "error",
+                        "inline atom literal duplicates a local singleton type; use its named constructor",
+                        false,
+                    ) | remaining]
+            }
+    }.
+
+/** Reports raw inline atoms duplicated by local singleton named-atom types. */
+@pure
+pub diagnostics(
+    source: String,
+    path: String,
+    types: List[NamedAtomType],
+    uses: List[AtomLiteralUse],
+): List[ConsistencyDiagnostic] ->
+    diagnostics_at(source, path, types, uses).

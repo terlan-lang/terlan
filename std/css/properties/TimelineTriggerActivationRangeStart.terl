@@ -1,94 +1,38 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-activation-range-start
+ * The `timeline-trigger-activation-range-start`
+ * [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies the start of a
+ * [scroll-triggered
+ * animation](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animation_triggers/Using_scroll-triggered_animations)
+ * trigger's activation range.
+ *
+ * Initial: normal. Inherited: no.
+ * Percentages: Relative to the specified named timeline range if specified, otherwise relative to
+ * the entire timeline.
+ *
+ * Keyword effects:
+ * - normal: A `<length>` or `<percentage>` value specifies an offset from the beginning of the
+ * `normal` timeline, which again defaults to `cover 0%` for a view progress timeline source, and
+ * `scroll 0%` for a scroll progress timeline source. Negative values outset the start, resulting in
+ * a longer activation range. Positive values inset the start, making the activation range shorter.
+ *
  * Grammar: [ normal | <length-percentage> | <timeline-range-name> <length-percentage>? ]#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification:
+ * https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-activation-range-start
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/timeline-trigger-activation-range-start
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TimelineTriggerActivationRangeStart.
 
-import std.css.Values.
+import std.css.keywords.Normal.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained timeline-trigger-activation-range-start value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    timeline_trigger_activation_range_start: Value,
+    timeline_trigger_activation_range_start: Normal | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    timeline_trigger_activation_range_start: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range-start", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range-start", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range-start", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range-start", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range-start", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range-start", css: "unset"}).
-
-/**
- * Constructs a timeline-trigger-activation-range-start value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(
-        Token {
-            property: "timeline-trigger-activation-range-start",
-            css: std.css.Values.length_css(value),
-        },
-    ).
-
-/**
- * Constructs a timeline-trigger-activation-range-start value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(
-        Token {
-            property: "timeline-trigger-activation-range-start",
-            css: std.css.Values.percentage_css(value),
-        },
-    ).

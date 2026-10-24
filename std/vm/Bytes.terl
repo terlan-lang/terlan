@@ -39,6 +39,7 @@ pub opaque type Bytes.
  * Transformation: asks the selected VM runtime to validate each octet and pack
  * the values into a binary protocol frame.
  */
+@pure
 @target.vm {process_mailbox: true}
 pub from_list(values: List[Byte]): Bytes ->
     native.
@@ -51,6 +52,7 @@ pub from_list(values: List[Byte]): Bytes ->
  * Transformation: asks the selected VM runtime to unpack the binary into a
  * typed Terlan list without exposing backend bit syntax.
  */
+@pure
 @target.vm {process_mailbox: true}
 pub (bytes: Bytes) to_list(): List[Byte] ->
     native.
@@ -63,6 +65,7 @@ pub (bytes: Bytes) to_list(): List[Byte] ->
  * Transformation: delegates to the runtime binary size operation while preserving
  * the opaque source-level representation.
  */
+@pure
 @target.vm {process_mailbox: true}
 pub (bytes: Bytes) length(): Int ->
     native.
@@ -70,6 +73,7 @@ pub (bytes: Bytes) length(): Int ->
 /**
  * Returns whether this buffer begins with the complete prefix buffer.
  */
+@pure
 @target.vm {process_mailbox: true}
 pub (bytes: Bytes) starts_with(prefix: Bytes): Bool ->
     native.
@@ -77,6 +81,7 @@ pub (bytes: Bytes) starts_with(prefix: Bytes): Bool ->
 /**
  * Returns whether this buffer contains the complete needle buffer.
  */
+@pure
 @target.vm {process_mailbox: true}
 pub (bytes: Bytes) contains(needle: Bytes): Bool ->
     native.
@@ -84,6 +89,7 @@ pub (bytes: Bytes) contains(needle: Bytes): Bool ->
 /**
  * Returns the first non-ASCII-whitespace byte index, or `-1` when absent.
  */
+@pure
 @target.vm {process_mailbox: true}
 pub (bytes: Bytes) first_non_ascii_whitespace(): Int ->
     native.
@@ -96,6 +102,7 @@ pub (bytes: Bytes) first_non_ascii_whitespace(): Int ->
  * Transformation: asks the selected VM runtime to join binary buffers without copying
  * byte lists through portable collection code.
  */
+@pure
 @target.vm {process_mailbox: true}
 pub concat(left: Bytes, right: Bytes): Bytes ->
     native.

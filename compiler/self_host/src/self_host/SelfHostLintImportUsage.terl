@@ -1,0 +1,390 @@
+/** Canonical grouped and unused import lint rules TL0605 through TL0607. */
+module self_host.SelfHostLintImportUsage.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+
+import self_host.CanonicalToken.{CanonicalToken, CommentToken, ContextualKeywordToken, DocCommentToken, LowerIdentifierToken, ModuleDocCommentToken, UpperIdentifierToken}.
+import self_host.SelfHostLintSyntax.{LintDiagnostic}.
+import self_host.SelfHostToolingDocument.{ToolingDocument}.
+import self_host.TokenSegment.{TokenSegment}.
+import self_host.TokenSegmenter.
+
+
+struct SelectedBinding {
+    key: String,
+    binding: String,
+}.
+
+constructor SelectedBinding {
+    (key: String, binding: String): SelectedBinding ->
+        SelectedBinding { key: key, binding: binding }
+}.
+
+struct UsageImport {
+    selected_module: String,
+    selected: List[SelectedBinding],
+    module_binding: String,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+constructor UsageImport {
+    (
+        selected_module: String,
+        selected: List[SelectedBinding],
+        module_binding: String,
+        start_byte: Int,
+        end_byte: Int,
+    ): UsageImport -> UsageImport {
+        selected_module: selected_module,
+        selected: selected,
+        module_binding: module_binding,
+        start_byte: start_byte,
+        end_byte: end_byte,
+    }
+}.
+
+struct SourcePosition {
+    line: Int,
+    column: Int,
+}.
+
+constructor SourcePosition {
+    (line: Int, column: Int): SourcePosition -> SourcePosition { line: line, column: column }
+}.
+
+@pure
+is_trivia(value: CanonicalToken): Bool ->
+    value.category == CommentToken
+        or value.category == DocCommentToken
+        or value.category == ModuleDocCommentToken.
+
+@pure
+is_identifier(value: CanonicalToken): Bool ->
+    value.category == LowerIdentifierToken
+        or value.category == UpperIdentifierToken
+        or value.category == ContextualKeywordToken.
+
+@pure
+import_tokens(values: List[CanonicalToken], found: Bool): List[CanonicalToken] ->
+    case values {
+        [] -> List.new[CanonicalToken]();
+        [value | rest] -> if {
+            found -> [value | import_tokens(rest, true)];
+            value.terminal == "import" -> [value | import_tokens(rest, true)];
+            true -> import_tokens(rest, false)
+        }
+    }.
+
+@pure
+first(values: List[CanonicalToken]): Option[CanonicalToken] ->
+    case values { [] -> None; [value | _] -> Some(value) }.
+
+@pure
+selected_module(values: List[CanonicalToken], output: String): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if {
+            value.terminal == "{" or value.terminal == "nominal-keyed-{" -> output;
+            is_trivia(value) -> selected_module(rest, output);
+            true -> selected_module(rest, String.concat([output, value.text]))
+        }
+    }.
+
+@pure
+finish_selected(
+    key: String,
+    original: String,
+    alias: String,
+    values: List[SelectedBinding],
+): List[SelectedBinding] ->
+    if {
+        key == "" -> values;
+        alias != "" -> [SelectedBinding(key, alias) | values];
+        true -> [SelectedBinding(key, original) | values]
+    }.
+
+@pure
+reverse_selected(values: List[SelectedBinding], output: List[SelectedBinding]): List[SelectedBinding] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_selected(rest, [value | output])
+    }.
+
+@pure
+selected_values(
+    values: List[CanonicalToken],
+    key: String,
+    original: String,
+    alias: String,
+    saw_alias: Bool,
+    output: List[SelectedBinding],
+): List[SelectedBinding] ->
+    case values {
+        [] -> reverse_selected(finish_selected(key, original, alias, output), []);
+        [value | rest] -> if {
+            value.terminal == "}" -> reverse_selected(finish_selected(key, original, alias, output), []);
+            value.terminal == "," -> selected_values(
+                rest,
+                "",
+                "",
+                "",
+                false,
+                finish_selected(key, original, alias, output),
+            );
+            is_trivia(value) -> selected_values(rest, key, original, alias, saw_alias, output);
+            value.terminal == "as" -> selected_values(
+                rest,
+                String.concat([key, value.text]),
+                original,
+                alias,
+                true,
+                output,
+            );
+            is_identifier(value) and saw_alias -> selected_values(
+                rest,
+                String.concat([key, value.text]),
+                original,
+                value.text,
+                saw_alias,
+                output,
+            );
+            is_identifier(value) -> selected_values(
+                rest,
+                String.concat([key, value.text]),
+                value.text,
+                alias,
+                saw_alias,
+                output,
+            );
+            true -> selected_values(
+                rest,
+                String.concat([key, value.text]),
+                original,
+                alias,
+                saw_alias,
+                output,
+            )
+        }
+    }.
+
+@pure
+selected_after_open(values: List[CanonicalToken]): List[SelectedBinding] ->
+    case values {
+        [] -> List.new[SelectedBinding]();
+        [value | rest] -> if {
+            value.terminal == "{" or value.terminal == "nominal-keyed-{" ->
+                selected_values(rest, "", "", "", false, []);
+            true -> selected_after_open(rest)
+        }
+    }.
+
+@pure
+module_binding_at(
+    values: List[CanonicalToken],
+    last_identifier: String,
+    alias: String,
+    saw_alias: Bool,
+): String ->
+    case values {
+        [] -> if { alias != "" -> alias; true -> last_identifier };
+        [value | rest] -> if {
+            value.terminal == "{" or value.terminal == "nominal-keyed-{" -> "";
+            is_trivia(value) -> module_binding_at(rest, last_identifier, alias, saw_alias);
+            value.terminal == "as" -> module_binding_at(rest, last_identifier, alias, true);
+            is_identifier(value) and saw_alias -> module_binding_at(rest, last_identifier, value.text, saw_alias);
+            is_identifier(value) and value.terminal != "import" and value.terminal != "type" ->
+                module_binding_at(rest, value.text, alias, saw_alias);
+            true -> module_binding_at(rest, last_identifier, alias, saw_alias)
+        }
+    }.
+
+@pure
+usage_import(value: TokenSegment): Option[UsageImport] ->
+    let tokens = import_tokens(value.tokens, false);
+    case first(tokens) {
+        None -> None;
+        Some(import_token) -> Some(UsageImport(
+            selected_module(tokens, ""),
+            selected_after_open(tokens),
+            module_binding_at(tokens, "", "", false),
+            import_token.start_byte,
+            value.end_byte,
+        ))
+    }.
+
+@pure
+imports(values: List[TokenSegment]): List[UsageImport] ->
+    case values {
+        [] -> List.new[UsageImport]();
+        [value | rest] -> case usage_import(value) {
+            None -> imports(rest);
+            Some(import_value) -> [import_value | imports(rest)]
+        }
+    }.
+
+@pure
+position_at(source: String, target: Int, index: Int, line: Int, column: Int): SourcePosition ->
+    if {
+        index >= target -> SourcePosition(line, column);
+        source.utf8_byte_at(index) == 10 -> position_at(source, target, index + 1, line + 1, 1);
+        true -> position_at(source, target, index + 1, line, column + 1)
+    }.
+
+@pure
+diagnostic(
+    path: String,
+    source: String,
+    value: UsageImport,
+    rule_id: String,
+    rule_name: String,
+    message: String,
+): LintDiagnostic ->
+    let position = position_at(source, value.start_byte, 0, 1, 1);
+    LintDiagnostic(
+        path,
+        position.line,
+        position.column,
+        value.start_byte,
+        value.end_byte,
+        rule_id,
+        rule_name,
+        "warning",
+        message,
+        false,
+    ).
+
+@pure
+contains(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> current == value or contains(value, rest)
+    }.
+
+@pure
+grouped(values: List[UsageImport], seen: List[String], path: String, source: String): List[LintDiagnostic] ->
+    case values {
+        [] -> List.new[LintDiagnostic]();
+        [value | rest] -> if {
+            value.selected_module == "" -> grouped(rest, seen, path, source);
+            contains(value.selected_module, seen) -> [diagnostic(
+                path,
+                source,
+                value,
+                "TL0605",
+                "imports.grouped-selected",
+                "selected imports from the same module should be grouped",
+            ) | grouped(rest, seen, path, source)];
+            true -> grouped(rest, [value.selected_module | seen], path, source)
+        }
+    }.
+
+@pure
+segment_uses(binding: String, values: List[CanonicalToken]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            is_trivia(value) -> segment_uses(binding, rest);
+            value.text == binding -> true;
+            true -> segment_uses(binding, rest)
+        }
+    }.
+
+@pure
+used(binding: String, values: List[TokenSegment]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> case usage_import(value) {
+            Some(_) -> used(binding, rest);
+            None -> segment_uses(binding, value.tokens) or used(binding, rest)
+        }
+    }.
+
+@pure
+constructor_shaped(value: String): Bool ->
+    value != "" and value.utf8_byte_at(0) >= 65 and value.utf8_byte_at(0) <= 90.
+
+@pure
+unused_selected_bindings(
+    import_value: UsageImport,
+    values: List[SelectedBinding],
+    segments: List[TokenSegment],
+    path: String,
+    source: String,
+): List[LintDiagnostic] ->
+    case values {
+        [] -> List.new[LintDiagnostic]();
+        [value | rest] -> if {
+            constructor_shaped(value.binding) or used(value.binding, segments) ->
+                unused_selected_bindings(import_value, rest, segments, path, source);
+            true -> [diagnostic(
+                path,
+                source,
+                import_value,
+                "TL0606",
+                "imports.unused-selected",
+                "selected import name is unused",
+            ) | unused_selected_bindings(import_value, rest, segments, path, source)]
+        }
+    }.
+
+@pure
+unused_selected(
+    values: List[UsageImport],
+    segments: List[TokenSegment],
+    path: String,
+    source: String,
+): List[LintDiagnostic] ->
+    case values {
+        [] -> List.new[LintDiagnostic]();
+        [value | rest] -> append(
+            unused_selected_bindings(value, value.selected, segments, path, source),
+            unused_selected(rest, segments, path, source),
+        )
+    }.
+
+@pure
+unused_modules(
+    values: List[UsageImport],
+    segments: List[TokenSegment],
+    path: String,
+    source: String,
+): List[LintDiagnostic] ->
+    case values {
+        [] -> List.new[LintDiagnostic]();
+        [value | rest] -> if {
+            value.module_binding == "" or used(value.module_binding, segments) ->
+                unused_modules(rest, segments, path, source);
+            true -> [diagnostic(
+                path,
+                source,
+                value,
+                "TL0607",
+                "imports.unused-module",
+                "module import is unused",
+            ) | unused_modules(rest, segments, path, source)]
+        }
+    }.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+pub lint(path: String, document: ToolingDocument): List[LintDiagnostic] ->
+    let segments = TokenSegmenter.split(document.canonical_tokens).segments;
+    let import_values = imports(segments);
+    append(
+        grouped(import_values, [], path, document.source),
+        append(
+            unused_selected(import_values, segments, path, document.source),
+            unused_modules(import_values, segments, path, document.source),
+        ),
+    ).

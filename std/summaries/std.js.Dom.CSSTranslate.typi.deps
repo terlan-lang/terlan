@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSTranslate
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=10204047075718698271
-interface_hash=157882279271750507
-interface_doc_hash=157882279271750507
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=8765923288676331492
+interface_hash=11567768383443089256
+interface_doc_hash=11567768383443089256
 deps=0

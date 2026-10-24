@@ -1,0 +1,277 @@
+/** Infers concrete homogeneous array literal types after binding merges. */
+module self_host.ProjectedArrayTypeMerge.
+
+import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
+import self_host.ProjectedExpressionSupportIrPlan.node_size.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedLocalSemanticSyntax.LocalSemanticResult.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import std.collections.List.
+import std.core.Int.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+
+struct ElementRef {
+    node_id: Int,
+    byte_offset: Int,
+}.
+
+constructor ElementRef {
+    (node_id: Int, byte_offset: Int): ElementRef ->
+        ElementRef { node_id: node_id, byte_offset: byte_offset }
+}.
+
+struct ArraySite {
+    node_id: Int,
+    byte_offset: Int,
+    elements: List[ElementRef],
+}.
+
+constructor ArraySite {
+    (node_id: Int, byte_offset: Int, elements: List[ElementRef]): ArraySite ->
+        ArraySite { node_id: node_id, byte_offset: byte_offset, elements: elements }
+}.
+
+struct ArrayScan {
+    next_id: Int,
+    sites: List[ArraySite],
+}.
+
+constructor ArrayScan {
+    (next_id: Int, sites: List[ArraySite]): ArrayScan ->
+        ArrayScan { next_id: next_id, sites: sites }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+element_refs(
+    values: List[ProjectedExpressionNode],
+    node_id: Int,
+): List[ElementRef] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [ElementRef(node_id, value.start_byte)
+            | element_refs(rest, node_id + node_size(value))]
+    }.
+
+array_elements(value: ProjectedExpressionNode, node_id: Int): List[ElementRef] ->
+    case value.children {
+        [sequence] where sequence.kind == "sequence" ->
+            element_refs(sequence.children, node_id + 2);
+        values -> element_refs(values, node_id + 1)
+    }.
+
+scan_children(values: List[ProjectedExpressionNode], next_id: Int): ArrayScan ->
+    case values {
+        [] -> ArrayScan(next_id, []);
+        [value | rest] ->
+            let current = scan_node(value, next_id);
+            let remaining = scan_children(rest, current.next_id);
+            ArrayScan(
+                remaining.next_id,
+                append(current.sites, remaining.sites),
+            )
+    }.
+
+scan_node(value: ProjectedExpressionNode, node_id: Int): ArrayScan ->
+    let nested = scan_children(value.children, node_id + 1);
+    if {
+        value.kind == "array" -> ArrayScan(
+            nested.next_id,
+            [ArraySite(
+                node_id,
+                value.start_byte,
+                array_elements(value, node_id),
+            ) | nested.sites],
+        );
+        true -> nested
+    }.
+
+body_sites(values: List[ProjectedBody]): List[ArraySite] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.expression.node {
+            None -> body_sites(rest);
+            Some(node) -> append(scan_node(node, 0).sites, body_sites(rest))
+        }
+    }.
+
+fact_type(
+    node_id: Int,
+    byte_offset: Int,
+    values: List[InferredTypeFact],
+): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.node_id == node_id and value.byte_offset == byte_offset -> value.type_name;
+            true -> fact_type(node_id, byte_offset, rest)
+        }
+    }.
+
+size[T](values: List[T]): Int ->
+    case values { [] -> 0; [_value | rest] -> 1 + size(rest) }.
+
+first_type(
+    values: List[ElementRef],
+    facts: List[InferredTypeFact],
+): Option[String] ->
+    case values {
+        [] -> None;
+        [value | _rest] -> fact_type(value.node_id, value.byte_offset, facts)
+    }.
+
+all_type(
+    values: List[ElementRef],
+    expected: String,
+    facts: List[InferredTypeFact],
+): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> case fact_type(value.node_id, value.byte_offset, facts) {
+            None -> false;
+            Some(actual) -> actual == expected and all_type(rest, expected, facts)
+        }
+    }.
+
+has_unresolved(values: List[ElementRef], facts: List[InferredTypeFact]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> fact_type(value.node_id, value.byte_offset, facts) == None
+            or has_unresolved(rest, facts)
+    }.
+
+inferred_type(
+    site: ArraySite,
+    facts: List[InferredTypeFact],
+): Option[String] ->
+    case first_type(site.elements, facts) {
+        None -> fact_type(site.node_id, site.byte_offset, facts);
+        Some(element_type) -> if {
+            all_type(site.elements, element_type, facts) -> Some(String.concat([
+                "Array[",
+                Int.to_string(size(site.elements)),
+                ", ",
+                element_type,
+                "]",
+            ]));
+            true -> None
+        }
+    }.
+
+site_at(
+    node_id: Int,
+    byte_offset: Int,
+    values: List[ArraySite],
+): Option[ArraySite] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.node_id == node_id and value.byte_offset == byte_offset -> Some(value);
+            true -> site_at(node_id, byte_offset, rest)
+        }
+    }.
+
+merge_fact(
+    value: InferredTypeFact,
+    sites: List[ArraySite],
+    facts: List[InferredTypeFact],
+): InferredTypeFact ->
+    case site_at(value.node_id, value.byte_offset, sites) {
+        None -> value;
+        Some(site) -> case inferred_type(site, facts) {
+            None -> value;
+            Some(type_name) -> InferredTypeFact(value.node_id, Some(type_name), value.byte_offset)
+        }
+    }.
+
+merge_facts(
+    values: List[InferredTypeFact],
+    sites: List[ArraySite],
+    facts: List[InferredTypeFact],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [merge_fact(value, sites, facts) | merge_facts(rest, sites, facts)]
+    }.
+
+site_diagnostic(
+    value: ArraySite,
+    facts: List[InferredTypeFact],
+): Option[TypeConstraintDiagnostic] ->
+    if {
+        value.elements == [] and fact_type(value.node_id, value.byte_offset, facts) == None ->
+            Some(TypeConstraintDiagnostic(
+                "unresolved-empty-array",
+                "empty fixed array requires a contextual element type",
+                value.byte_offset,
+            ));
+        has_unresolved(value.elements, facts) -> Some(TypeConstraintDiagnostic(
+            "unresolved-array-element",
+            "fixed array element type is unresolved",
+            value.byte_offset,
+        ));
+        inferred_type(value, facts) == None -> Some(TypeConstraintDiagnostic(
+            "heterogeneous-array",
+            "fixed array elements must have one type",
+            value.byte_offset,
+        ));
+        true -> None
+    }.
+
+site_diagnostics(
+    values: List[ArraySite],
+    facts: List[InferredTypeFact],
+): List[TypeConstraintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case site_diagnostic(value, facts) {
+            None -> site_diagnostics(rest, facts);
+            Some(diagnostic) -> [diagnostic | site_diagnostics(rest, facts)]
+        }
+    }.
+
+site_offset(byte_offset: Int, values: List[ArraySite]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.byte_offset == byte_offset or site_offset(byte_offset, rest)
+    }.
+
+without_deferred_diagnostics(
+    values: List[TypeConstraintDiagnostic],
+    sites: List[ArraySite],
+): List[TypeConstraintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] -> if {
+            value.code == "unknown-type-constraint" and site_offset(value.byte_offset, sites) ->
+                without_deferred_diagnostics(rest, sites);
+            true -> [value | without_deferred_diagnostics(rest, sites)]
+        }
+    }.
+
+merge_sites(
+    value: TypeConstraintResolution,
+    sites: List[ArraySite],
+): TypeConstraintResolution -> TypeConstraintResolution(
+    merge_facts(value.facts, sites, value.facts),
+    append(
+        without_deferred_diagnostics(value.diagnostics, sites),
+        site_diagnostics(sites, value.facts),
+    ),
+).
+
+pub merge_expression(
+    value: TypeConstraintResolution,
+    expression: ProjectedExpressionNode,
+): TypeConstraintResolution -> merge_sites(value, scan_node(expression, 0).sites).
+
+pub merge(
+    bodies: ProjectedBodies,
+    semantics: LocalSemanticResult,
+): LocalSemanticResult -> LocalSemanticResult(
+    semantics.bindings,
+    semantics.callables,
+    merge_sites(semantics.types, body_sites(bodies.values)),
+).

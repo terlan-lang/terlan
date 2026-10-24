@@ -1,87 +1,36 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-wrap
+ * The `flex-wrap` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether
+ * flex items are forced onto one line or can wrap onto multiple lines. If wrapping is allowed, it
+ * sets the direction that lines are stacked.
+ *
+ * Initial: nowrap. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - balance: Specifies that flex items broken across multiple lines are distributed so that the
+ * line lengths are as similar as possible. If `balance` is specified as the only keyword, the other
+ * keyword defaults to `wrap`.
+ * - nowrap: The flex items are laid out in a single line which may cause the flex container to
+ * overflow. This is the initial value.
+ * - wrap: The flex items can break into multiple lines.
+ * - wrap-reverse: Behaves the same as `wrap`, but with the lines laid out in reverse order.
+ *
  * Grammar: nowrap | [ wrap | wrap-reverse ] || balance
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-wrap
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-wrap
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FlexWrap.
 
-import type std.core.Option.
+import std.css.keywords.{Balance, Nowrap, Wrap, WrapReverse}.
 
-/**
- * A nominal, specification-constrained flex-wrap value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    flex_wrap: Value,
+    flex_wrap: Nowrap | Wrap | WrapReverse | Balance | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    flex_wrap: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword balance.
- */
-pub balance(): Value ->
-    Value(Token {property: "flex-wrap", css: "balance"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "flex-wrap", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "flex-wrap", css: "initial"}).
-
-/**
- * Returns the CSS keyword nowrap.
- */
-pub nowrap(): Value ->
-    Value(Token {property: "flex-wrap", css: "nowrap"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "flex-wrap", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "flex-wrap", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "flex-wrap", css: "unset"}).
-
-/**
- * Returns the CSS keyword wrap.
- */
-pub wrap(): Value ->
-    Value(Token {property: "flex-wrap", css: "wrap"}).
-
-/**
- * Returns the CSS keyword wrap-reverse.
- */
-pub wrap_reverse(): Value ->
-    Value(Token {property: "flex-wrap", css: "wrap-reverse"}).

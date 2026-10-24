@@ -1,0 +1,239 @@
+/** Atomic attachment of validated actor continuation metadata to typed Core IR. */
+module self_host.SelfHostActorTypedCoreModule.
+
+import self_host.SelfHostActorIrSyntax.{ActorContinuation, ActorIrPlan, ActorResumeEdge, ActorSuspensionSite}.
+import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
+import self_host.SelfHostActorCallPlan.{ActorCalleeEntry}.
+import self_host.SelfHostTypedCoreModule.{TypedCoreModule}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import self_host.SelfHostActorIrValidation.
+import self_host.SelfHostActorCallFacts.
+
+
+pub struct ActorTypedCoreModule {
+    core: TypedCoreModule,
+    actors: ActorIrPlan,
+    profiles: List[ActorSuspensionProfile],
+}.
+
+pub constructor ActorTypedCoreModule {
+    (core: TypedCoreModule, actors: ActorIrPlan, profiles: List[ActorSuspensionProfile]): ActorTypedCoreModule ->
+        ActorTypedCoreModule { core: core, actors: actors, profiles: profiles }
+}.
+
+@pure
+profiles_valid(values: List[ActorSuspensionProfile]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> SelfHostActorCallFacts.profile_valid(value)
+            and profiles_valid(rest)
+    }.
+
+@pure
+same_profile(left: ActorSuspensionProfile, right: ActorSuspensionProfile): Bool ->
+    left.module_name == right.module_name
+        and left.callable_name == right.callable_name
+        and left.arity == right.arity.
+
+@pure
+profile_present(value: ActorSuspensionProfile, values: List[ActorSuspensionProfile]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same_profile(value, current) or profile_present(value, rest)
+    }.
+
+@pure
+profiles_unique(values: List[ActorSuspensionProfile]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> not profile_present(value, rest) and profiles_unique(rest)
+    }.
+
+@pure
+entry_continuation_valid(
+    profile: ActorSuspensionProfile,
+    entry: ActorCalleeEntry,
+    values: List[ActorContinuation],
+): Bool ->
+    case entry.export_identity {
+        Some(_) -> false;
+        None -> case values {
+            [] -> false;
+            [value | rest] -> if {
+                value.id == entry.continuation_identity ->
+                    value.outward_entry
+                        and value.source_module == profile.module_name
+                        and value.source_function == profile.callable_name
+                        and value.source_arity == profile.arity
+                        and List.length(value.capture_names) == entry.capture_count;
+                true -> entry_continuation_valid(profile, entry, rest)
+            }
+        }
+    }.
+
+@pure
+continuation_profiled(
+    value: ActorContinuation,
+    profiles: List[ActorSuspensionProfile],
+): Bool ->
+    case profiles {
+        [] -> false;
+        [profile | rest] -> if {
+            profile.module_name == value.source_module
+                and profile.callable_name == value.source_function
+                and profile.arity == value.source_arity ->
+                    entry_has_resume(
+                        ActorCalleeEntry(None, value.id, List.length(value.capture_names)),
+                        profile_entries_as_resumes(profile.entries),
+                    );
+            true -> continuation_profiled(value, rest)
+        }
+    }.
+
+@pure
+profile_entries_as_resumes(values: List[ActorCalleeEntry]): List[ActorResumeEdge] ->
+    case values {
+        [] -> List.new[ActorResumeEdge]();
+        [value | rest] -> [ActorResumeEdge(
+            value.export_identity,
+            value.continuation_identity,
+            value.capture_count,
+            value.continuation_identity,
+            0,
+        ) | profile_entries_as_resumes(rest)]
+    }.
+
+@pure
+outward_continuations_profiled(
+    values: List[ActorContinuation],
+    profiles: List[ActorSuspensionProfile],
+): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> if {
+            value.outward_entry -> continuation_profiled(value, profiles)
+                and outward_continuations_profiled(rest, profiles);
+            true -> outward_continuations_profiled(rest, profiles)
+        }
+    }.
+
+@pure
+profile_continuations_valid(
+    profile: ActorSuspensionProfile,
+    entries: List[ActorCalleeEntry],
+    continuations: List[ActorContinuation],
+): Bool ->
+    if {
+        profile.runtime_owned -> true;
+        true -> case entries {
+            [] -> true;
+            [entry | rest] -> entry_continuation_valid(profile, entry, continuations)
+                and profile_continuations_valid(profile, rest, continuations)
+        }
+    }.
+
+@pure
+all_profile_continuations_valid(
+    profiles: List[ActorSuspensionProfile],
+    continuations: List[ActorContinuation],
+): Bool ->
+    case profiles {
+        [] -> true;
+        [profile | rest] -> profile_continuations_valid(
+            profile,
+            profile.entries,
+            continuations,
+        ) and all_profile_continuations_valid(rest, continuations)
+    }.
+
+@pure
+profile_for(
+    site: ActorSuspensionSite,
+    values: List[ActorSuspensionProfile],
+): Option[ActorSuspensionProfile] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.module_name == site.callee_module
+                and value.callable_name == site.callee_function
+                and value.arity == site.callee_arity -> Some(value);
+            true -> profile_for(site, rest)
+        }
+    }.
+
+@pure
+entry_matches_resume(entry: ActorCalleeEntry, resume: ActorResumeEdge): Bool ->
+    entry.export_identity == resume.callee_export_id
+        and entry.continuation_identity == resume.callee_continuation_id
+        and entry.capture_count == resume.callee_capture_count.
+
+@pure
+entry_has_resume(entry: ActorCalleeEntry, values: List[ActorResumeEdge]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> entry_matches_resume(entry, value) or entry_has_resume(entry, rest)
+    }.
+
+@pure
+resume_has_entry(resume: ActorResumeEdge, values: List[ActorCalleeEntry]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> entry_matches_resume(value, resume) or resume_has_entry(resume, rest)
+    }.
+
+@pure
+entries_covered(values: List[ActorCalleeEntry], resumes: List[ActorResumeEdge]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> entry_has_resume(value, resumes) and entries_covered(rest, resumes)
+    }.
+
+@pure
+resumes_covered(values: List[ActorResumeEdge], entries: List[ActorCalleeEntry]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> resume_has_entry(value, entries) and resumes_covered(rest, entries)
+    }.
+
+@pure
+same_size[T, U](left: List[T], right: List[U]): Bool ->
+    case left {
+        [] -> case right { [] -> true; _ -> false };
+        [_ | left_rest] -> case right {
+            [_ | right_rest] -> same_size(left_rest, right_rest);
+            _ -> false
+        }
+    }.
+
+@pure
+site_profile_valid(site: ActorSuspensionSite, profiles: List[ActorSuspensionProfile]): Bool ->
+    case profile_for(site, profiles) {
+        None -> true;
+        Some(profile) -> same_size(site.resumes, profile.entries)
+            and entries_covered(profile.entries, site.resumes)
+            and resumes_covered(site.resumes, profile.entries)
+    }.
+
+@pure
+sites_valid(values: List[ActorSuspensionSite], profiles: List[ActorSuspensionProfile]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> site_profile_valid(value, profiles) and sites_valid(rest, profiles)
+    }.
+
+
+/** Invalid suspension metadata cannot cross the typed Core IR boundary. */
+@pure
+pub attach(core: TypedCoreModule, actors: ActorIrPlan, profiles: List[ActorSuspensionProfile]): Option[ActorTypedCoreModule] ->
+    if {
+        SelfHostActorIrValidation.valid(actors)
+            and profiles_valid(profiles)
+            and profiles_unique(profiles)
+            and all_profile_continuations_valid(profiles, actors.continuations)
+            and outward_continuations_profiled(actors.continuations, profiles)
+            and sites_valid(actors.suspension_sites, profiles) ->
+            Some(ActorTypedCoreModule(core, actors, profiles));
+        true -> None
+    }.

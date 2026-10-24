@@ -1,0 +1,21 @@
+/** End-to-end artifact aggregation and production-authority publication. */
+module self_host.ProductionAuthorityPipeline.
+
+import self_host.ProductionAuthorityCatalog.
+import self_host.ProductionAuthorityTool.
+
+/** Builds canonical evidence before evaluating and publishing authority. */
+pub run(
+    source_manifest: String,
+    catalog_output: String,
+    decision_output: String,
+    complete_marker: String,
+): Bool ->
+    case ProductionAuthorityCatalog.write(source_manifest, catalog_output) {
+        false -> false;
+        true -> ProductionAuthorityTool.run(
+            catalog_output,
+            decision_output,
+            complete_marker,
+        )
+    }.

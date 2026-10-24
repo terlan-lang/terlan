@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword no-repeat. Generated; do not edit.
+ */
+module std.css.keywords.NoRepeat.
+
+pub type NoRepeat = Atom["no-repeat"].

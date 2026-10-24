@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword n-resize. Generated; do not edit.
+ */
+module std.css.keywords.NResize.
+
+pub type NResize = Atom["n-resize"].

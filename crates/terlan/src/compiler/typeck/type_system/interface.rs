@@ -67,17 +67,57 @@ pub(crate) fn parse_interface_signature(
     interface: &ModuleInterface,
     global_aliases: &HashMap<String, TypeAlias>,
 ) -> Option<FunctionScheme> {
+    InterfaceSignatureContext::new(interface, global_aliases).parse(signature)
+}
+
+/// Immutable alias tables shared by signatures from the same interface.
+pub(crate) struct InterfaceSignatureContext<'a> {
+    global_aliases: &'a HashMap<String, TypeAlias>,
+    local_type_names: HashSet<String>,
+    alias_names: HashSet<String>,
+    qualified_names: HashMap<String, QualifiedTypeName>,
+    interface_aliases: HashMap<String, TypeAlias>,
+}
+
+impl<'a> InterfaceSignatureContext<'a> {
+    /// Resolves provider names once while keeping dependency aliases borrowed.
+    pub(crate) fn new(
+        interface: &ModuleInterface,
+        global_aliases: &'a HashMap<String, TypeAlias>,
+    ) -> Self {
+        let local_type_names = interface_type_names(interface);
+        let mut alias_names = local_type_names.clone();
+        alias_names.extend(unique_global_alias_short_names(global_aliases));
+        Self {
+            global_aliases,
+            local_type_names,
+            alias_names,
+            qualified_names: interface_qualified_type_names(interface),
+            interface_aliases: interface_type_aliases(interface),
+        }
+    }
+
+    /// Parses each signature with fresh generic variables and shared name tables.
+    pub(crate) fn parse(&self, signature: &FunctionSignature) -> Option<FunctionScheme> {
+        parse_interface_signature_in_context(signature, self)
+    }
+}
+
+fn parse_interface_signature_in_context(
+    signature: &FunctionSignature,
+    context: &InterfaceSignatureContext<'_>,
+) -> Option<FunctionScheme> {
     let mut vars = HashMap::new();
     let mut next_var: TypeVarId = 0;
     for param in &signature.generic_params {
         vars.insert(normalize_type_param_name(param), next_var);
         next_var += 1;
     }
-    let local_type_names = interface_type_names(interface);
-    let mut alias_names = local_type_names.clone();
-    alias_names.extend(unique_global_alias_short_names(global_aliases));
-    let qualified_names = interface_qualified_type_names(interface);
-    let interface_aliases = interface_type_aliases(interface);
+    let global_aliases = context.global_aliases;
+    let local_type_names = &context.local_type_names;
+    let alias_names = &context.alias_names;
+    let qualified_names = &context.qualified_names;
+    let interface_aliases = &context.interface_aliases;
 
     let params = signature
         .params
@@ -85,9 +125,9 @@ pub(crate) fn parse_interface_signature(
         .enumerate()
         .filter_map(|(index, param)| {
             let visible_type_names = if signature.receiver_method && index == 0 {
-                &local_type_names
+                local_type_names
             } else {
-                &alias_names
+                alias_names
             };
             parse_type_expr(
                 &param.annotation,
@@ -96,25 +136,25 @@ pub(crate) fn parse_interface_signature(
                 &mut next_var,
             )
         })
-        .map(|param| expand_type_aliases(&param, &interface_aliases))
+        .map(|param| expand_type_aliases(&param, interface_aliases))
         .map(|param| expand_interface_global_aliases(&param, global_aliases))
-        .map(|param| qualify_type_names(&param, &qualified_names))
+        .map(|param| qualify_type_names(&param, qualified_names))
         .collect::<Vec<_>>();
 
     let ret = parse_type_expr(
         &signature.return_type,
-        &alias_names,
+        alias_names,
         &mut vars,
         &mut next_var,
     )?;
-    let ret = expand_type_aliases(&ret, &interface_aliases);
+    let ret = expand_type_aliases(&ret, interface_aliases);
     let ret = expand_interface_global_aliases(&ret, global_aliases);
-    let ret = qualify_type_names(&ret, &qualified_names);
-    let mut parsed_bounds = parse_generic_bounds(&signature.generic_bounds, &vars, &alias_names);
+    let ret = qualify_type_names(&ret, qualified_names);
+    let mut parsed_bounds = parse_generic_bounds(&signature.generic_bounds, &vars, alias_names);
     parsed_bounds.extend(parse_structural_implication_bounds(
         &signature.generic_params,
         &vars,
-        &alias_names,
+        alias_names,
     ));
     let bounds = parsed_bounds
         .into_iter()
@@ -123,9 +163,9 @@ pub(crate) fn parse_interface_signature(
             trait_args: bound
                 .trait_args
                 .into_iter()
-                .map(|arg| expand_type_aliases(&arg, &interface_aliases))
+                .map(|arg| expand_type_aliases(&arg, interface_aliases))
                 .map(|arg| expand_interface_global_aliases(&arg, global_aliases))
-                .map(|arg| qualify_type_names(&arg, &qualified_names))
+                .map(|arg| qualify_type_names(&arg, qualified_names))
                 .collect(),
         })
         .collect();
@@ -311,7 +351,7 @@ fn expand_interface_global_aliases_inner(
                 active_aliases,
             )),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: *size,
             elem: Box::new(expand_interface_global_aliases_inner(
                 elem,
@@ -409,7 +449,8 @@ pub(crate) fn parse_interface_constructor_schemes(
     global_aliases: &HashMap<String, TypeAlias>,
 ) -> Option<Vec<ConstructorScheme>> {
     let signatures = signatures?;
-    let alias_names = interface_type_names(interface);
+    let mut alias_names = interface_type_names(interface);
+    alias_names.extend(unique_global_alias_short_names(global_aliases));
     let qualified_names = interface_qualified_type_names(interface);
     let mut interface_aliases = interface_type_aliases(interface);
     for (name, alias) in interface_aliases.clone() {
@@ -431,8 +472,8 @@ pub(crate) fn parse_interface_constructor_schemes(
                         .unwrap_or(Type::Dynamic)
                 })
                 .map(|param| expand_type_aliases(&param, &interface_aliases))
+                .map(|param| expand_interface_global_aliases(&param, global_aliases))
                 .map(|param| qualify_type_names(&param, &qualified_names))
-                .map(|param| expand_type_aliases(&param, global_aliases))
                 .collect::<Vec<_>>();
             let param_names = signature
                 .params
@@ -445,8 +486,8 @@ pub(crate) fn parse_interface_constructor_schemes(
                     parse_type_expr(&param.annotation, &alias_names, &mut vars, &mut next_var)
                         .unwrap_or(Type::Dynamic);
                 let parsed = expand_type_aliases(&parsed, &interface_aliases);
-                let parsed = qualify_type_names(&parsed, &qualified_names);
-                expand_type_aliases(&parsed, global_aliases)
+                let parsed = expand_interface_global_aliases(&parsed, global_aliases);
+                qualify_type_names(&parsed, &qualified_names)
             });
 
             let ret = parse_type_expr(
@@ -457,8 +498,8 @@ pub(crate) fn parse_interface_constructor_schemes(
             )
             .unwrap_or(Type::Dynamic);
             let ret = expand_type_aliases(&ret, &interface_aliases);
+            let ret = expand_interface_global_aliases(&ret, global_aliases);
             let ret = qualify_type_names(&ret, &qualified_names);
-            let ret = expand_type_aliases(&ret, global_aliases);
 
             ConstructorScheme {
                 param_names,
@@ -596,23 +637,20 @@ fn parse_interface_type_aliases(interface: &ModuleInterface) -> HashMap<String, 
 pub(crate) fn interface_qualified_type_names(
     interface: &ModuleInterface,
 ) -> HashMap<String, QualifiedTypeName> {
-    let mut names = HashMap::new();
-    for name in interface
+    interface
         .public_types
         .iter()
         .chain(interface.opaque_types.iter())
-    {
-        let qualified = QualifiedTypeName {
-            module: Some(interface.module.clone()),
-            name: name.clone(),
-        };
-        names.insert(name.clone(), qualified.clone());
-        names.insert(
-            crate::terlan_hir::public_type_path(&interface.module, name),
-            qualified,
-        );
-    }
-    names
+        .map(|name| {
+            (
+                name.clone(),
+                QualifiedTypeName {
+                    module: interface.module.clone(),
+                    name: name.clone(),
+                },
+            )
+        })
+        .collect()
 }
 
 /// Qualifies local named types using an interface-owned type map.
@@ -643,7 +681,7 @@ pub(crate) fn qualify_type_names(
                 .collect();
             if let Some(qualified) = qualified_names.get(name) {
                 Type::Named {
-                    module: qualified.module.clone(),
+                    module: Some(qualified.module.clone()),
                     name: qualified.name.clone(),
                     args,
                 }
@@ -660,14 +698,23 @@ pub(crate) fn qualify_type_names(
             name,
             args,
         } => {
-            let qualified = qualified_names.get(&format!("{module}.{name}"));
-            Type::Named {
-                module: qualified.map_or_else(|| Some(module.clone()), |ty| ty.module.clone()),
-                name: qualified.map_or(name, |ty| &ty.name).clone(),
-                args: args
-                    .iter()
-                    .map(|arg| qualify_type_names(arg, qualified_names))
-                    .collect(),
+            let args = args
+                .iter()
+                .map(|arg| qualify_type_names(arg, qualified_names))
+                .collect();
+            let visible_name = format!("{module}.{name}");
+            if let Some(qualified) = qualified_names.get(&visible_name) {
+                Type::Named {
+                    module: Some(qualified.module.clone()),
+                    name: qualified.name.clone(),
+                    args,
+                }
+            } else {
+                Type::Named {
+                    module: Some(module.clone()),
+                    name: name.clone(),
+                    args,
+                }
             }
         }
         Type::List(inner) => Type::List(Box::new(qualify_type_names(inner, qualified_names))),
@@ -700,7 +747,7 @@ pub(crate) fn qualify_type_names(
                 .collect(),
             ret: Box::new(qualify_type_names(ret, qualified_names)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: *size,
             elem: Box::new(qualify_type_names(elem, qualified_names)),
         },

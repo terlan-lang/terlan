@@ -12,6 +12,7 @@ mod checked_cache;
 mod checked_cache_test;
 mod compile;
 mod linker_identity;
+mod low_memory;
 mod native_cache;
 #[cfg(test)]
 #[path = "vm_artifact/native_cache_test.rs"]
@@ -41,9 +42,11 @@ mod parallel_compile_test;
 pub(crate) mod source_exports;
 mod std_source;
 
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+pub(crate) use orchestration::compile_serve_application;
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+pub(crate) use orchestration::compile_source_application;
 pub(super) use orchestration::{
     build_one_vm_artifact, build_vm_application_artifacts,
     build_vm_application_artifacts_with_entry,
 };
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-pub(crate) use orchestration::{compile_serve_application, compile_source_application};

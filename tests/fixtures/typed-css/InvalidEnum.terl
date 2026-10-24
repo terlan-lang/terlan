@@ -1,0 +1,4 @@
+module typed_css.InvalidEnum.
+
+import std.css.properties.Width.{Property}.
+pub invalid(): Property -> Property {width: Atom["not-a-width-value"]}.

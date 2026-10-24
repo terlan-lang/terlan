@@ -54,6 +54,7 @@ fn check_record_pattern_field_visibility(
         requested_private,
         ctx.struct_field_visibility,
         ctx.imported_type_names,
+        ctx.current_module,
     ) {
         Err(message)
     } else {

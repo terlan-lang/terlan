@@ -29,6 +29,7 @@ idle(): Unit -> Unit.
 consume(_value: String): Unit -> Unit.
 not_called(): Unit -> Process.yield_now().
 not_consumed(_value: String): Unit -> Process.yield_now().
+no_event(): Option[Event] -> None.
 pub check(): Bool ->
     let original = endpoint_with_keep_alive(7, 251, 101);
     let first = original.callbacks(idle, consume, idle, idle, consume);
@@ -46,8 +47,14 @@ pub check(): Bool ->
         _ -> false
     };
     let duplicate = case second.#callbacks { [_, _] -> true; _ -> false };
+    let expected = [{"cache-control", "no-cache"}, {"x-content-type-options", "nosniff"}];
+    let pulled = second.producer(no_event);
+    let defaults = endpoint(128, 65536);
     empty and stored and duplicate and second.max_pending_events == 7
-        and second.max_event_bytes == 251 and second.keep_alive_ms == Some(101).
+        and second.max_event_bytes == 251 and second.keep_alive_ms == Some(101)
+        and original.#response_headers == expected and first.#response_headers == expected
+        and second.#response_headers == expected and pulled.#response_headers == expected
+        and defaults.#response_headers == expected.
 "#;
     for owner in ["std.http.Sse", "app.Events"] {
         let source = format!(
@@ -55,7 +62,13 @@ pub check(): Bool ->
             include_str!("../../../../../std/http/Sse.terl")
         )
         .replace("std.http.Sse", owner);
-        check_sources(&[&source]);
+        check_sources(&[&source, include_str!("../../../../../std/core/Option.terl")]);
+        let changed = source.replace("\"no-cache\"", "\"private\"");
+        assert_ne!(source, changed);
+        check_sources(&[
+            &changed,
+            include_str!("../../../../../std/core/Option.terl"),
+        ]);
     }
 }
 

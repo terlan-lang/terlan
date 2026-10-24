@@ -1,75 +1,28 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ui-4/#propdef-window-drag
+ * Marks a region that can move an application window when dragged. A move region consumes the drag
+ * gesture instead of delivering normal pointer and mouse events.
+ *
+ * Initial: none. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - move: Uses this element as an area for dragging the window.
+ * - none: Leaves this element available for ordinary interaction.
+ *
  * Grammar: none | move
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-window-drag
+ *
+ * Author guide: https://drafts.csswg.org/css-ui-4/#propdef-window-drag
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.WindowDrag.
 
-import type std.core.Option.
+import std.css.keywords.{Move, None}.
 
-/**
- * A nominal, specification-constrained window-drag value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    window_drag: Value,
+    window_drag: None | Move | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    window_drag: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "window-drag", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "window-drag", css: "initial"}).
-
-/**
- * Returns the CSS keyword move.
- */
-pub move(): Value ->
-    Value(Token {property: "window-drag", css: "move"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "window-drag", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "window-drag", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "window-drag", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "window-drag", css: "unset"}).

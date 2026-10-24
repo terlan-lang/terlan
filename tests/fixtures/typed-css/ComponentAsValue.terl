@@ -1,6 +1,4 @@
 module typed_css.ComponentAsValue.
 
-import std.css.properties.Margin.
-
-pub invalid(): Margin.Value ->
-    Margin.component_auto().
+import std.css.properties.Padding.{CheckedComponent, Property}.
+pub invalid(component: CheckedComponent): Property -> Property {padding: component}.

@@ -1,0 +1,47 @@
+/** Resolved callable argument type contracts. */
+module self_host.ProjectedCallableArgumentTypecheckTest.
+
+import self_host.ProjectedCallableArgumentTypecheck.
+import self_host.ProjectedCallableSyntax.{CallableDeclaration, CallableResolution, CallableUse, ResolvedCallableUse}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+
+@pure
+resolution(parameters: List[String], expected: List[Option[String]]): CallableResolution ->
+    let declaration = CallableDeclaration("test", "call", 2, "function", parameters, expected, Some("Unit"), 0);
+    let use_site = CallableUse(None, "call", 2, [10, 20], 5);
+    CallableResolution([ResolvedCallableUse(use_site, Some(declaration))], []).
+
+@pure
+facts(left: String, right: String): TypeConstraintResolution ->
+    TypeConstraintResolution([
+        InferredTypeFact(1, Some(left), 10),
+        InferredTypeFact(2, Some(right), 20),
+    ], []).
+
+@pure
+concrete_mismatch_is_rejected(): Bool ->
+    ProjectedCallableArgumentTypecheck.check(
+        resolution(List.new[String](), [Some("String"), Some("Bool")]),
+        facts("String", "Int"),
+    ).diagnostics.length() == 1.
+
+@pure
+repeated_generic_must_unify(): Bool ->
+    ProjectedCallableArgumentTypecheck.check(
+        resolution(["Value"], [Some("Value"), Some("Value")]),
+        facts("String", "Int"),
+    ).diagnostics.length() == 1.
+
+@pure
+matching_arguments_pass(): Bool ->
+    ProjectedCallableArgumentTypecheck.check(
+        resolution(List.new[String](), [Some("String"), Some("Int")]),
+        facts("String", "Int"),
+    ).diagnostics == [].
+
+pub self_test(): Bool ->
+    concrete_mismatch_is_rejected()
+        and repeated_generic_must_unify()
+        and matching_arguments_pass().

@@ -1,8 +1,8 @@
 module=std.js.Dom.GetRootNodeOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7217833558058216930
-interface_hash=1456866033045854269
-interface_doc_hash=1456866033045854269
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15677553203434827405
+interface_hash=361881721106702079
+interface_doc_hash=361881721106702079
 deps=0

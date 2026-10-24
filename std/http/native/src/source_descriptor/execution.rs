@@ -9,7 +9,6 @@ mod tests;
 
 /// An admitted route's callback chain, independent of transport and VM types.
 pub struct HandlerPipeline<'a, C> {
-    pub handler: &'a C,
     pub middleware: &'a [C],
     pub response_middleware: &'a [C],
     pub recovery: Option<&'a C>,
@@ -17,11 +16,12 @@ pub struct HandlerPipeline<'a, C> {
 
 impl<C: Clone> HandlerPipeline<'_, C> {
     /// Runs middleware in declaration order and unwinds response middleware.
+    /// Handler preparation runs only after continuation; admission errors are terminal.
     /// Dropping this future drops the host's pending invocation as well.
     pub async fn execute<V, F>(
         &self,
         request: V,
-        handler_args: Vec<V>,
+        prepare_handler: impl FnOnce() -> Result<(C, Vec<V>)>,
         mut invoke: impl FnMut(C, Vec<V>) -> F,
         error_value: impl Fn(&NativeAdapterError) -> V,
     ) -> Result<V>
@@ -43,13 +43,14 @@ impl<C: Clone> HandlerPipeline<'_, C> {
         }
         let mut response = match response {
             Some(value) => value,
-            None => match invoke(self.handler.clone(), handler_args)
-                .await
-                .and_then(response_value)
-            {
-                Ok(value) => value,
-                Err(error) => self.recover(error, &mut invoke, &error_value).await?,
-            },
+            None => {
+                // Source middleware may reject without admitting the handler.
+                let (handler, handler_args) = prepare_handler()?;
+                match invoke(handler, handler_args).await.and_then(response_value) {
+                    Ok(value) => value,
+                    Err(error) => self.recover(error, &mut invoke, &error_value).await?,
+                }
+            }
         };
         for middleware in self.response_middleware.iter().rev() {
             let result = invoke(middleware.clone(), vec![request.clone(), response]).await;

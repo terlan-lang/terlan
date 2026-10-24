@@ -171,6 +171,10 @@ append_policy(endpoint: Endpoint, policy: Policy): Endpoint ->
  * Output: the endpoint with one callback set attached.
  * Transformation: retains callbacks as ordinary source values without invoking
  * them. Duplicate/conflicting declarations remain visible to route admission.
+ * Open, inbound, writable, and graceful-close callbacks may wait on VM timers
+ * and native work. Inbound and writable callbacks may also retain a text receive
+ * for the next frame; writable notifications never replace a parked callback.
+ * Cancellation notifications must complete without waiting.
  */
 pub (endpoint: Endpoint) callbacks(
     open: () -> Unit,
@@ -220,6 +224,10 @@ pub (endpoint: Endpoint) paired_callbacks(
  * independently addressed payloads for the first and second peer.
  * An empty payload suppresses delivery to that peer. This source adapter
  * translates that convention into explicit optional transport payloads.
+ * Callbacks may wait on VM timers or native operations. Execution is serialized
+ * per room, without holding the shared registry lock. A membership change
+ * during execution rejects the stale result without replaying source effects;
+ * task cancellation releases the room's execution permit.
  */
 pub (endpoint: Endpoint) stateful_paired_callbacks(
     waiting: String,
@@ -251,6 +259,11 @@ pub (endpoint: Endpoint) stateful_paired_callbacks(
  * request carrying the declared room and
  * player query parameters can reclaim a disconnected seat; the restored
  * callback receives the retained opaque state and creates its current view.
+ * Naming, matched, and restored callbacks may wait on VM timers or native
+ * workers without holding the room registry lock. If a room changes while its
+ * restored view is being computed, that connection is rejected rather than
+ * publishing a stale view or replaying the callback. Cancellation releases the
+ * reserved seat and does not publish partial match payloads.
  * Fully disconnected rooms remain reclaimable for `retention_ms`, with the
  * oldest disconnected room evicted when `retained_room_capacity` is exceeded.
  */

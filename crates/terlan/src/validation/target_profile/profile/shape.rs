@@ -841,7 +841,7 @@ impl TargetProfile {
                         && self.allows_expr_shape(receiver)
                         && args.iter().all(|arg| self.allows_expr_shape(arg))
                 }
-                CoreExpr::FixedArray(_)
+                CoreExpr::Array(_)
                 | CoreExpr::Index { .. }
                 | CoreExpr::ListComprehension { .. }
                 | CoreExpr::Map(_)

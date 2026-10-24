@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword ruby-text. Generated; do not edit.
+ */
+module std.css.keywords.RubyText.
+
+pub type RubyText = Atom["ruby-text"].

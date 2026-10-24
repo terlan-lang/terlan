@@ -1,0 +1,6 @@
+//! Shared CSS keyword stacked-fractions. Generated; do not edit.
+
+module std.css.keywords.StackedFractions.
+
+pub type StackedFractions =
+    Atom["stacked-fractions"].

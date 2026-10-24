@@ -56,4 +56,39 @@ impl<Event: Copy + Debug + Send> CallbackInvocation<Event> for AotChannelInvocat
     fn cancel_pending(&mut self, reason: String) -> Result<(), String> {
         self.cancel_pending(reason)
     }
+
+    async fn invoke_streaming(
+        &mut self,
+        event: Event,
+        callback: Option<&ReplValue>,
+        args: Vec<NativeValue>,
+    ) -> Result<AotChannelCallbackState, String> {
+        self.require_idle(event)?;
+        let Some(callback) = callback else {
+            return self.invoke(event, None, Vec::new());
+        };
+        let step = self
+            .runtime
+            .begin_callable_invocation(
+                &self.router_module,
+                callback,
+                args.into_iter().map(from_native).collect(),
+            )
+            .map_err(|error| self.callback_error(event, error))?;
+        let step = AotHandlerRuntime::advance_suspendable_step(step)
+            .await
+            .map_err(|error| self.callback_error(event, error))?;
+        self.finish_step(event, step)
+    }
+
+    async fn resume_streaming(
+        &mut self,
+        wake: Self::Wake,
+    ) -> Result<AotChannelCallbackState, String> {
+        let (event, invocation) = self.take_pending()?;
+        let step = AotHandlerRuntime::advance_suspendable_step(invocation.resume(wake)?)
+            .await
+            .map_err(|error| self.callback_error(event, error))?;
+        self.finish_step(event, step)
+    }
 }

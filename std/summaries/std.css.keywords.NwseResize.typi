@@ -1,0 +1,6 @@
+//! Shared CSS keyword nwse-resize. Generated; do not edit.
+
+module std.css.keywords.NwseResize.
+
+pub type NwseResize =
+    Atom["nwse-resize"].

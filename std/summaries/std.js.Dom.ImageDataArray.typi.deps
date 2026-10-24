@@ -1,8 +1,8 @@
 module=std.js.Dom.ImageDataArray
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=18073739048945057292
-interface_hash=6029409874887016493
-interface_doc_hash=6029409874887016493
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3195995321719328143
+interface_hash=5297896487200683792
+interface_doc_hash=5297896487200683792
 deps=0

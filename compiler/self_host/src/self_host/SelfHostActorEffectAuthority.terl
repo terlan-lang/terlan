@@ -1,0 +1,154 @@
+/** Connects fixed-point callable effects to actor backend suspension profiles. */
+module self_host.SelfHostActorEffectAuthority.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, Int, String}.
+
+import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
+import self_host.SelfHostActorEffects.{ActorCallableEffect, ActorCallableIdentity, ActorSuspensionCatalog}.
+import self_host.SelfHostIrSyntax.{IrFunction}.
+import self_host.SelfHostActorEffects.
+import self_host.SelfHostActorCallFacts.
+
+
+@pure
+same_identity(left: ActorCallableIdentity, right: ActorCallableIdentity): Bool ->
+    left.module_name == right.module_name
+        and left.function_name == right.function_name
+        and left.arity == right.arity.
+
+@pure
+profile_matches(identity: ActorCallableIdentity, profile: ActorSuspensionProfile): Bool ->
+    identity.module_name == profile.module_name
+        and identity.function_name == profile.callable_name
+        and identity.arity == profile.arity.
+
+@pure
+identity_count(value: ActorCallableIdentity, values: List[ActorCallableIdentity]): Int ->
+    case values {
+        [] -> 0;
+        [current | rest] -> if {
+            same_identity(value, current) -> 1 + identity_count(value, rest);
+            true -> identity_count(value, rest)
+        }
+    }.
+
+@pure
+effect_identity_count(value: ActorCallableIdentity, values: List[ActorCallableEffect]): Int ->
+    case values {
+        [] -> 0;
+        [current | rest] -> if {
+            same_identity(value, current.identity) -> 1 + effect_identity_count(value, rest);
+            true -> effect_identity_count(value, rest)
+        }
+    }.
+
+@pure
+profile_count(value: ActorCallableIdentity, profiles: List[ActorSuspensionProfile]): Int ->
+    case profiles {
+        [] -> 0;
+        [current | rest] -> if {
+            profile_matches(value, current) -> 1 + profile_count(value, rest);
+            true -> profile_count(value, rest)
+        }
+    }.
+
+@pure
+catalog_contains(profile: ActorSuspensionProfile, identities: List[ActorCallableIdentity]): Bool ->
+    case identities {
+        [] -> false;
+        [current | rest] -> profile_matches(current, profile) or catalog_contains(profile, rest)
+    }.
+
+@pure
+effect_identities_unique(values: List[ActorCallableEffect], all: List[ActorCallableEffect]): Bool ->
+    case values {
+        [] -> true;
+        [current | rest] -> effect_identity_count(current.identity, all) == 1
+            and effect_identities_unique(rest, all)
+    }.
+
+@pure
+imported_identities_unique(values: List[ActorCallableIdentity], all: List[ActorCallableIdentity]): Bool ->
+    case values {
+        [] -> true;
+        [current | rest] -> identity_count(current, all) == 1
+            and imported_identities_unique(rest, all)
+    }.
+
+@pure
+catalog_profiles_complete(
+    identities: List[ActorCallableIdentity],
+    profiles: List[ActorSuspensionProfile],
+): Bool ->
+    case identities {
+        [] -> true;
+        [current | rest] -> profile_count(current, profiles) == 1
+            and catalog_profiles_complete(rest, profiles)
+    }.
+
+@pure
+profiles_authorized(
+    profiles: List[ActorSuspensionProfile],
+    catalog: ActorSuspensionCatalog,
+): Bool ->
+    case profiles {
+        [] -> true;
+        [current | rest] -> SelfHostActorCallFacts.profile_valid(current)
+            and catalog_contains(current, catalog.identities)
+            and profiles_authorized(rest, catalog)
+    }.
+
+@pure
+runtime_ownership_valid(profile: ActorSuspensionProfile, functions: List[IrFunction]): Bool ->
+    case functions {
+        [] -> true;
+        [function | rest] -> if {
+            function.module_name == profile.module_name
+                and function.name == profile.callable_name
+                and function.arity == profile.arity -> case function.native_symbol {
+                    None -> not profile.runtime_owned;
+                    Some(_) -> profile.runtime_owned
+                };
+            true -> runtime_ownership_valid(profile, rest)
+        }
+    }.
+
+@pure
+runtime_ownerships_valid(
+    profiles: List[ActorSuspensionProfile],
+    functions: List[IrFunction],
+): Bool ->
+    case profiles {
+        [] -> true;
+        [profile | rest] -> runtime_ownership_valid(profile, functions)
+            and runtime_ownerships_valid(rest, functions)
+    }.
+
+/**
+ * Returns continuation profiles only after fixed-point effect authority proves
+ * that they exactly cover the suspending callables.
+ */
+@pure
+pub authorize(
+    profiles: List[ActorSuspensionProfile],
+    effects: List[ActorCallableEffect],
+    imported_suspending: List[ActorCallableIdentity],
+    functions: List[IrFunction],
+): Result[List[ActorSuspensionProfile], String] ->
+    let catalog = SelfHostActorEffects.catalog(effects, imported_suspending);
+    if {
+        not effect_identities_unique(effects, effects) ->
+            Err("actor effect authority has duplicate callable identities");
+        not imported_identities_unique(imported_suspending, imported_suspending) ->
+            Err("actor effect authority has duplicate imported suspension identities");
+        not catalog_profiles_complete(catalog.identities, profiles) ->
+            Err("actor suspension profiles do not exactly cover the fixed-point effect catalog");
+        not profiles_authorized(profiles, catalog) ->
+            Err("actor suspension profile is not authorized by callable effects");
+        not runtime_ownerships_valid(profiles, functions) ->
+            Err("actor suspension profile runtime ownership contradicts Core function provenance");
+        true -> Ok(profiles)
+    }.

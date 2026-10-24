@@ -2,26 +2,51 @@
 
 Status: implementation in progress on main
 Created: 2026-08-29
+Latest implementation checkpoint: 2026-10-22
 
 ## Implementation Status
 
-Phase 0 and Phase 1 have started in `compiler/self_host` with Terlan-owned
-source spans, token and lexical-error types, deterministic UTF-8 tokenization,
-module/import/public-interface extraction, canonical JSON evidence, and a
-maintained positive and negative corpus. The package also provides a runnable
-file-to-evidence driver that binds source SHA-256, token spans, extracted public
-interface, and typed diagnostics into `terlan.self-host.source-evidence.v1`.
-The standalone implementation gate is `make self-host-source-slice-check`.
+The implementation now extends beyond the original source-interface slice. The
+Terlan package contains canonical lexing, projected concrete and expression
+parsing, callable and binding resolution, local type-constraint propagation,
+semantic IR planning, ABI-1 backend emission, interface-catalog production,
+and a runnable compiler driver. Guarded `case` clauses now survive both parser
+paths and lower through the general root control-flow planner.
 
-Rust remains authoritative until canonical Rust frontend evidence is connected
-and the differential gates pass. The current slice does not claim parser or
-compiler replacement.
+The current ABI-1 execution checkpoint is `image39`. Its two compiler modules
+changed after closure 22 were rebuilt by the ABI-1-hosted `image38`, and those
+artifacts and interfaces are byte-identical to the recovery-compiler outputs.
+The promoted slice passes guarded-case backend emission and public-interface
+filtering. This is a fixed point for the changed slice, not a full 200-unit
+bootstrap-convergence claim.
+
+Rust remains authoritative until every phase gate passes and a complete clean
+stage-1/stage-2 build converges. The current implementation must not be
+described as parser, type-system, compiler, or authority replacement yet.
 
 Phase 0 bootstrap artifact locations and canonical comparison layers are now
 declared in `compiler/self_host/bootstrap/BOOTSTRAP.toml`. Cross-language
 schemas are owned by `compiler/self_host/SCHEMAS.md`, and the maintained corpus
 has an explicit acceptance/rejection inventory in
 `compiler/self_host/corpus/CORPUS.tsv`.
+
+### Current ABI-1 checkpoint
+
+- Recovery compiler: `target/quality/self-host-bootstrap-guard-recovery-36`.
+- Last complete recovery-built closure: `target/quality/self-host-current-production-closure-22-recovery`.
+- ABI-1 fixed-point compiler: `target/quality/self-host-bootstrap-current-39`.
+- Self-produced changed-unit overlay: `target/quality/self-host-current-production-overlay-24`.
+- Changed units at this checkpoint: `ProjectedBindingTypeMerge` and
+  `ProjectedTypeConstraintResolution`.
+- Fixed-point evidence: 2/2 backend artifacts and 2/2 interfaces are
+  byte-identical across the recovery-built and ABI-1-built changed slice;
+  diagnostics are empty.
+- Promotion smoke evidence: guarded root `case` lowering contains
+  `root_case_guard_1`, and the visibility fixture exports only `value/0`.
+
+Target-directory paths are working evidence, not release provenance. A release
+promotion record must replace them with source revision, source-closure digest,
+artifact digest, compiler ancestry, target identity, and recovery identity.
 
 ## Objective
 
@@ -31,7 +56,9 @@ unsafe platform integration, and initial bootstrap.
 
 Self-hosting is complete when a compiler written primarily in Terlan can build
 its own source and the resulting compiler can repeat that build with equivalent
-canonical outputs.
+canonical outputs. Completion also requires the self-hosted compiler to meet
+the compilation-performance gates below; correctness convergence is not enough
+if normal development builds remain operationally impractical.
 
 Self-hosting does not require rewriting the VM, Cranelift, operating-system
 adapters, or NativeBoundary in Terlan.
@@ -92,6 +119,27 @@ release gate must reject implicit use of a compiler found elsewhere on `PATH`.
 `terlc0` remains available after self-hosting for clean bootstrap, bisecting,
 recovery, and verification. It does not remain the authoritative implementation
 of migrated language semantics.
+
+## Compilation Performance Requirements
+
+Compilation performance is part of authority transfer, not deferred cleanup.
+The self-hosted compiler must provide reproducible benchmark evidence for:
+
+- Cold compiler startup and one-module compilation.
+- Warm unchanged-package compilation with no repeated parsing, semantic
+  analysis, or backend emission.
+- Single-module edits that invalidate only the affected dependency closure.
+- Deterministic parallel compilation of independent package modules.
+- Full bootstrap and parity evidence without launching one fresh VM process per
+  module and evidence layer.
+- Peak memory and wall-clock regression budgets on the maintained bootstrap
+  corpus.
+
+The benchmark manifest must record source-closure identity, compiler ancestry,
+VM identity, host target, worker count, elapsed time, and peak resident memory.
+Release gates compare against an explicit checked-in baseline and fail on an
+unapproved regression. Performance work must not bypass canonical evidence,
+reduce corpus coverage, or weaken bootstrap fixed-point comparison.
 
 ## Backend Contract
 
@@ -366,24 +414,27 @@ only for bootstrap and substrate components.
 3. Compile the maintained language, standard-library, package, and web corpora
    with both compilers.
 4. Compare canonical tokens, syntax, interfaces, diagnostics, typed Core IR,
-   descriptors, and runtime behavior.
-5. Compare normalized build artifacts after removing only documented variable
-   metadata.
+   actor continuation IR, descriptors, and runtime behavior.
+5. Compare normalized build artifacts and actor-aware native objects after
+   removing only documented variable metadata.
 
 ### Exit gates
 
 - `self-host-stage1-build-check`
 - `self-host-stage2-build-check`
 - `self-host-bootstrap-convergence-check`
+- `self-host-actor-bootstrap-convergence-check`
+- `self-host-actor-profile-catalog-check`
+- `self-host-actor-native-object-check`
 - `self-host-clean-machine-bootstrap-check`
 - `self-host-recovery-bootstrap-check`
 - `self-host-release-corpus-check`
 
 ### Completion condition
 
-`terlc1` and `terlc2` are semantically equivalent, the clean bootstrap is
-reproducible, and no normal compiler path depends on Rust-owned language
-semantics.
+`terlc1` and `terlc2` are semantically equivalent across Core IR and actor
+continuation IR, the clean bootstrap is reproducible, and no normal compiler
+path depends on Rust-owned language semantics.
 
 ## Phase 9: Authority Transfer And Architecture Hardening
 
@@ -421,6 +472,17 @@ self-hosted compiler.
 - Promotion metadata that names the authoritative Terlan compiler image, its
   source closure, canonical artifact digest, bootstrap ancestry, and recovery
   compiler identity.
+- Self-hosted authority for actor effect propagation, continuation ordinals,
+  CFG splitting, capture liveness, actor sidecar emission, and actor-aware
+  native object tooling, with stage-1/stage-2 actor artifact convergence.
+- Actor IR v2 profile catalogs derived from outward continuations, consumed as
+  dependency interfaces, and converged independently across bootstrap stages.
+- Bounded in-compiler actor profile iteration must replace provisional local
+  seeds with liveness-derived outward-entry sets before sidecar publication;
+  imported and runtime-owned native profiles remain explicit ABI evidence.
+- `actor-backend-unit` must compile through the self-hosted projected frontend
+  and publish Core, variant, and actor sidecars behind a last-written commit
+  marker; Phase 9 tooling authority cannot rely on a Rust-only artifact driver.
 
 ### Architectural invariants
 
@@ -436,6 +498,41 @@ self-hosted compiler.
 - Restoring idiomatic source must preserve deterministic bootstrap convergence.
 - Performance exceptions for self-analysis must be explicit, bounded, and
   covered by release gates; pathological units cannot be silently excluded.
+
+### Current workaround inventory
+
+- `ProjectedBindingTypeMerge` now uses typed `Map` indexes constructed from
+  canonical entries; its association-list bootstrap substitution is removed.
+- `ProjectedTypeConstraintResolution` now uses
+  `Map[Int, Option[String]]` and the mutable-receiver `put` command contract;
+  repeated node facts replace the indexed value while fact and diagnostic
+  lists retain source order.
+- Callable metadata, typed semantic IR, and ABI lowering now preserve mutable
+  receiver identity and command-return projection. The restored compiler
+  source therefore exercises the same managed `Map` contract as applications.
+- Source restoration is implemented, but the idiomatic-source and post-cleanup
+  convergence gates remain pending until reference and candidate artifacts
+  prove token, syntax, interface, diagnostic, typed Core IR, backend-request,
+  native-object, and runtime equivalence.
+- The bounded package stage reuses stable interfaces and invalidates backend
+  artifacts when source, interface manifests, or the compiler image changes.
+  Full convergence still requires measured per-unit time and memory limits plus
+  complete stage-1/stage-2 closure evidence before this path can become a
+  release gate.
+
+### Immediate implementation order
+
+1. Materialize canonical reference evidence for the last recovery-built
+   association-list image and candidate evidence for the restored `Map` image.
+2. Compare tokens, syntax, interfaces, diagnostics, typed Core IR, backend
+   requests, native objects, and runtime behavior for both restored modules.
+3. Record measured compile-time and memory bounds for the restored modules and
+   the complete compiler source closure.
+4. Produce complete stage-1 and stage-2 closures through the self-hosted driver.
+5. Run every Phase 8 and Phase 9 production evidence-plan row, including
+   `post-cleanup-converged`, with last-written completion markers.
+6. Change authority metadata only after the production evidence pipeline emits
+   a ready decision from those persisted artifacts.
 
 ### Exit gates
 
@@ -542,6 +639,8 @@ Terlan is self-hosting when all of the following are true:
   `terlc2`.
 - Cross-target native images are produced through the validated Rust backend
   adapter.
+- Actor-aware native objects are produced from matching self-hosted Core IR and
+  actor sidecars, and both artifacts converge independently across stages.
 - Differential and recovery gates remain part of every release candidate.
 - Rust-owned code no longer defines user-visible language semantics outside the
   documented bootstrap implementation.
@@ -551,3 +650,93 @@ Terlan is self-hosting when all of the following are true:
   deterministic interface and backend artifacts without ad hoc exclusions.
 - Self-analysis compile time, memory use, recursion, and diagnostic growth stay
   within the Phase 9 release bounds.
+
+### Phase 2 authority checkpoint (2026-10-16)
+
+The lexer/parser authority gates now have concrete targets and complete checked-in
+corpora:
+
+- `self-host-lexer-complete-check`
+- `self-host-parser-differential-check`
+- `self-host-parser-recovery-check`
+- `self-host-parser-fuzz-check`
+- `self-host-syntax-roundtrip-check`
+- aggregate `self-host-phase2-complete-check`
+
+Current component evidence is token parity 4/4, accepted surface parity 4/4,
+concrete syntax parity 4/4, exact normalized rejection diagnostics 11/11,
+fragment parity 17/17, recoverable token-stream continuation, and formatter
+roundtrip/idempotence 4/4. The deterministic rejected corpus includes minimized
+unclosed-call, unclosed-list, invalid-case, invalid-generic, and recovery-tail
+mutations. Corpus integrity requires every accepted/rejected fixture to be
+listed, preventing silent coverage shrinkage.
+
+Projected evidence execution now supports batched error, surface, and mixed
+fragment requests. Error and surface evidence are content-addressed, so a cold
+self-host compile is paid once per relevant source identity rather than once per
+fixture. Rejection parity delegates to the stronger exact parser-error gate.
+
+The expanded corpus exposed and fixed three implementation defects: empty
+generic argument lists were accepted by `ProjectedTypeParser`; unbalanced
+expression groups were misclassified as generic unterminated declarations; and
+the Rust formatter emitted invalid `try` clauses and separated raw-macro names
+from their opening brace.
+
+The optimized ABI-1 runner still has a distinct runtime defect: selected
+same-module `CallImport` instructions can report `MissingExport` even though
+`loaded_program` resolves the same MFA before execution. `CallLocal` is not a
+valid workaround because it is a raw jump and does not establish managed call
+frames. Until VM import dispatch is repaired, affected authority gates use the
+trusted projected executor; token and concrete modes continue to use image 39.
+## Phase 2 image authority correction (2026-10-16)
+
+- The previously suspected VM import defect was diagnosed as an incomplete bootstrap native surface: `std.data.Json` constructors and stringifiers were absent from the self-host runner.
+- The VM runner now supplies the required persistent JSON values and `Result`-returning stringifiers.
+- `target/quality/self-host-current-production-overlay-25/artifacts.manifest` replaces the projected type parser and parser-error evidence modules with their current self-hosted artifacts.
+- `target/quality/self-host-bootstrap-current-40/bin/terlan-self-host` is the current root image and executes the Phase 2 authorities directly.
+- `make --no-print-directory self-host-phase2-complete-check` passes: 15 corpus fixtures, 4 token fixtures, 4 accepted surface fixtures, 4 concrete-syntax fixtures, 11 exact rejection diagnostics, 17 fragments, recoverable token streams, deterministic parser mutations, and 4 formatter round trips.
+- Phase 2 is complete. Subsequent bootstrap work must consume image40 or a proven fixed-point successor rather than the projected fallback.
+
+## Phase 3 authority checkpoint (2026-10-17)
+
+- `target/quality/self-host-phase3-image-21/bin/terlan-self-host-semantic-evidence` is the retained Phase 3 image.
+- Common semantic evidence is byte-identical to the Rust oracle for all 5 semantic and accepted fixtures; supplemental inferred-type evidence is emitted for each fixture.
+- The self-hosted signature path now preserves guards, exact arity, explicit and implicit return types, and Rust-compatible callable offsets.
+- Local semantic events cover keyword-valued dynamic callees, record access, comprehensions, conditional clauses, and refutable lets without fixture-specific source parsing.
+- All 8 backend fixtures emit canonical ABI-1 JSON accepted by the current VM consumer.
+- `make --no-print-directory self-host-phase3-complete-check` is the aggregate Phase 3 authority gate and writes retained evidence under `target/quality/self-host-phase3-evidence-21`.
+- Phase 3 is validated. The remaining operational risk is self-hosted `backend-unit` latency for large modules; authority transfer must add batched or memoized unit compilation rather than returning to on-demand full package builds.
+
+## Phase 4 correctness checkpoint (2026-10-20)
+
+- `target/quality/self-host-phase4-image-24/bin/terlan-self-host` is the retained self-hosted compiler image.
+- Stage 1 produced 200 token, 200 syntax, 200 common-semantic, and 200 supplemental-semantic artifacts without projected-oracle substitution.
+- All 800 Stage 1 artifacts are byte-identical to the Rust-seeded Stage 0 evidence.
+- The Stage 0 and Stage 1 bootstrap artifacts are byte-identical with token digest `fnv1a64:52845676e94371f1`, syntax digest `fnv1a64:ae00f4c5f777c686`, semantic digest `fnv1a64:1edcb317e734f67d`, and backend digest `fnv1a64:ab8783086770e0c0`.
+- The self-hosted `SelfHostBootstrapTool` fixed-point comparator passes through the retained image.
+- Managed-call sparse register restoration now preserves register liveness. On `ProjectedParser.syntax`, the repaired runner reduced elapsed time from 84.77 seconds to 12.06 seconds and peak RSS from 86,612 KiB to 45,172 KiB while retaining byte parity.
+- `make --no-print-directory self-host-phase4-correctness-check` is the aggregate correctness and fixed-point gate.
+- Final authority transfer remains open until cold, warm incremental, parallel-package, bootstrap-throughput, and checked regression-budget performance gates pass. Correctness convergence does not waive those gates.
+
+
+### Dynamic-call target authority
+
+Production authority requires finite target evidence for every typed Core
+`call-value`. The self-hosted actor compiler derives closure identities from
+`make-closure`, propagates them through `move`, `phi`, `select`, and local-call
+parameters to a module-wide fixed point, and feeds those targets back into
+effect and suspension-profile convergence. Compilation fails closed when a
+target remains opaque. Imported higher-order contracts may satisfy that case
+only through explicit compile evidence; an unconstrained dynamic dispatch is
+not an authority-bearing fallback.
+
+#### Persisted opaque higher-order evidence
+
+The self-hosted `actor-backend-unit` command accepts an
+`actor-dynamic-evidence.manifest`. Each non-empty manifest line names a strict
+`terlan.self-host.actor-dynamic-evidence/v1` JSON document. A document contains
+exact local function identities and, for each overridden `call-value` result,
+a non-empty finite list of callable identities. Duplicate functions, result
+names, or callable targets are rejected. The backend still resolves those
+identities against the converged actor suspension-profile catalog; the artifact
+cannot directly claim suspension behavior or continuation metadata.

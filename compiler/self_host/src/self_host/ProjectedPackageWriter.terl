@@ -1,18 +1,48 @@
 /** Filesystem writer for deterministic multi-module ABI-1 packages. */
 module self_host.ProjectedPackageWriter.
 
+import std.core.String.
 
 
-import std.core.Result.{Err, Ok, Result}.
-import std.core.Option.{None, Option, Some}.
-import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
-import self_host.ProjectedPackageSyntax.{ProjectedPackageArtifact, ProjectedPackageCompilation}.
 
 import self_host.ProjectedPackageCompile.
+import self_host.SelfHostDiagnosticRendering.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.ProjectedPackageSyntax.{ProjectedPackageArtifact, ProjectedPackageCompilation}.
 import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
 import std.core.{String}.
 import std.io.Directory.
 import std.io.File.
+
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+source_manifest_entries_at(paths: List[String], output: List[String]): List[String] ->
+    case paths {
+        [] -> reverse(output);
+        [path | rest] -> let normalized = String.trim(path);
+            if {
+                normalized == "" or String.starts_with(normalized, "#") ->
+                    source_manifest_entries_at(rest, output);
+                true -> source_manifest_entries_at(rest, [normalized | output])
+            }
+    }.
+
+/** Returns normalized source paths in their declared manifest order. */
+@pure
+pub source_manifest_entries(paths: String): List[String] ->
+    source_manifest_entries_at(String.split(paths, "\n"), List.new[String]()).
 
 
 read_source_file(normalized: String, rest: List[String], output: List[String]): Option[List[String]] ->
@@ -23,12 +53,8 @@ read_source_file(normalized: String, rest: List[String], output: List[String]): 
 
 read_sources(paths: List[String], output: List[String]): Option[List[String]] ->
     case paths {
-        [] -> Some(output);
-        [path | rest] -> let normalized = String.trim(path);
-            if {
-                normalized == "" or String.starts_with(normalized, "#") -> read_sources(rest, output);
-                true -> read_source_file(normalized, rest, output)
-            }
+        [] -> Some(reverse(output));
+        [path | rest] -> read_source_file(path, rest, output)
     }.
 
 @pure
@@ -56,7 +82,7 @@ package_bundle(package: ProjectedPackageCompilation): Option[String] ->
     }.
 
 render_paths(paths: String): Option[String] ->
-    case read_sources(String.split(paths, "\n"), List.new[String]()) {
+    case read_sources(source_manifest_entries(paths), List.new[String]()) {
         None -> None;
         Some(sources) -> package_bundle(ProjectedPackageCompile.compile(
             sources,
@@ -78,10 +104,37 @@ write_bundle(output: String, bundle: String): Bool ->
         Ok(_unit) -> true
     }.
 
-/** Writes a rendered package bundle for non-native tooling entry points. */
+write_diagnostics(output: String, diagnostics: String): Bool ->
+    case File.write_text(String.append(output, "/package.diagnostics"), diagnostics) {
+        Err(_reason) -> false;
+        Ok(_unit) -> true
+    }.
+
+write_marker(output: String): Bool ->
+    case File.write_text(String.append(output, "/package.complete"), "complete\n") {
+        Err(_reason) -> false;
+        Ok(_unit) -> true
+    }.
+
+write_failure(output: String, message: String): Bool ->
+    let _diagnostics = write_diagnostics(
+        output,
+        SelfHostDiagnosticRendering.render_messages("package", [message]),
+    );
+    false.
+
+write_success(output: String, bundle: String): Bool ->
+    if {
+        not write_bundle(output, bundle) -> write_failure(output, "cannot write package bundle");
+        not write_diagnostics(output, "") -> false;
+        true -> write_marker(output)
+    }.
+
+/** Writes a stale-safe package publication with its completion marker last. */
 pub write(manifest: String, output: String): Bool ->
+    let _created = Directory.create_all(output);
+    let _removed = File.delete(String.append(output, "/package.complete"));
     case render(manifest) {
-        None -> false;
-        Some(bundle) -> let _created = Directory.create_all(output);
-            write_bundle(output, bundle)
+        None -> write_failure(output, "cannot render package manifest");
+        Some(bundle) -> write_success(output, bundle)
     }.

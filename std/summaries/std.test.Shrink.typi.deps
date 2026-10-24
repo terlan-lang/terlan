@@ -1,11 +1,11 @@
 module=std.test.Shrink
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=13796601298673167997
-interface_hash=9041463056520688918
+interface_hash=6984124518502953018
 interface_doc_hash=4926186584420849229
 deps=3
-std.collections.List=11851348535083755949
+std.collections.List=17926552303886713136
 std.core.Option=11539230284316612175
 std.core.Result=11040488711914238385

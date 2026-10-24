@@ -1,0 +1,5 @@
+module typed_css.ForgedValue.
+
+import std.css.Values.{serialize}.
+import std.css.properties.Width.{Checked}.
+pub invalid(): Checked -> Checked(serialize("width", "arbitrary CSS")).

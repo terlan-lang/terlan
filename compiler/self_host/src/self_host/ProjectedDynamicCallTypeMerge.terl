@@ -1,0 +1,254 @@
+/** Resolves dynamic-call results after binding and callable types are final. */
+module self_host.ProjectedDynamicCallTypeMerge.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedTypeConstraintResolution.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+
+struct DynamicCallSite {
+    call_offset: Int,
+    callee_offset: Int,
+    argument_offsets: List[Int],
+}.
+
+constructor DynamicCallSite {
+    (call_offset: Int, callee_offset: Int, argument_offsets: List[Int]): DynamicCallSite ->
+        DynamicCallSite {
+            call_offset: call_offset,
+            callee_offset: callee_offset,
+            argument_offsets: argument_offsets,
+        }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+argument_offset(value: ProjectedExpressionNode): Int ->
+    if {
+        value.kind == "named-argument" -> case value.children {
+            [expression] -> expression.start_byte;
+            _ -> value.start_byte
+        };
+        true -> value.start_byte
+    }.
+
+argument_offsets(values: List[ProjectedExpressionNode]): List[Int] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [argument_offset(value) | argument_offsets(rest)]
+    }.
+
+call_argument_offsets(values: List[ProjectedExpressionNode]): List[Int] ->
+    case values {
+        [_callee | [arguments | _rest]] -> argument_offsets(arguments.children);
+        _ -> []
+    }.
+
+node_sites(value: ProjectedExpressionNode): List[DynamicCallSite] ->
+    let nested = nodes_sites(value.children);
+    if {
+        value.kind == "dynamic-call" -> case value.children {
+            [callee | _arguments] -> [DynamicCallSite(
+                value.start_byte,
+                callee.start_byte,
+                call_argument_offsets(value.children),
+            ) | nested];
+            _ -> nested
+        };
+        true -> nested
+    }.
+
+nodes_sites(values: List[ProjectedExpressionNode]): List[DynamicCallSite] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(node_sites(value), nodes_sites(rest))
+    }.
+
+body_sites(values: List[ProjectedBody]): List[DynamicCallSite] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.expression.node {
+            Some(node) -> append(node_sites(node), body_sites(rest));
+            None -> body_sites(rest)
+        }
+    }.
+
+fact_type(byte_offset: Int, values: List[InferredTypeFact]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.byte_offset == byte_offset -> case value.type_name {
+                Some(name) -> Some(name);
+                None -> fact_type(byte_offset, rest)
+            };
+            true -> fact_type(byte_offset, rest)
+        }
+    }.
+
+site_at(byte_offset: Int, values: List[DynamicCallSite]): Option[DynamicCallSite] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.call_offset == byte_offset -> Some(value);
+            true -> site_at(byte_offset, rest)
+        }
+    }.
+
+merge_fact(
+    value: InferredTypeFact,
+    sites: List[DynamicCallSite],
+    all: List[InferredTypeFact],
+): InferredTypeFact ->
+    case site_at(value.byte_offset, sites) {
+        None -> value;
+        Some(site) -> case fact_type(site.callee_offset, all) {
+            None -> value;
+            Some(callable_type) -> case ProjectedTypeConstraintResolution.function_return(callable_type) {
+                None -> value;
+                Some(return_type) -> InferredTypeFact(
+                    value.node_id,
+                    Some(return_type),
+                    value.byte_offset,
+                )
+            }
+        }
+    }.
+
+merge_facts(
+    values: List[InferredTypeFact],
+    sites: List[DynamicCallSite],
+    all: List[InferredTypeFact],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [merge_fact(value, sites, all) | merge_facts(rest, sites, all)]
+    }.
+
+diagnostic_exists(
+    code: String,
+    byte_offset: Int,
+    values: List[TypeConstraintDiagnostic],
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            (value.byte_offset == byte_offset and value.code == code)
+                or diagnostic_exists(code, byte_offset, rest)
+    }.
+
+size[T](values: List[T]): Int ->
+    case values { [] -> 0; [_value | rest] -> 1 + size(rest) }.
+
+type_matches(expected: String, actual: String): Bool ->
+    expected == actual
+        or String.starts_with(expected, String.append(actual, "["))
+        or String.starts_with(actual, String.append(expected, "[")).
+
+argument_diagnostics(
+    expected: List[String],
+    offsets: List[Int],
+    facts: List[InferredTypeFact],
+    existing: List[TypeConstraintDiagnostic],
+): List[TypeConstraintDiagnostic] ->
+    case {expected, offsets} {
+        {[], _} -> [];
+        {_, []} -> [];
+        {[expected_type | expected_rest], [offset | offset_rest]} ->
+            let rest = argument_diagnostics(expected_rest, offset_rest, facts, existing);
+            case fact_type(offset, facts) {
+                None -> if {
+                    diagnostic_exists("unresolved-call-argument-type", offset, existing) -> rest;
+                    true -> [TypeConstraintDiagnostic(
+                        "unresolved-call-argument-type",
+                        "call argument type is unresolved",
+                        offset,
+                    ) | rest]
+                };
+                Some(actual_type) -> if {
+                    type_matches(expected_type, actual_type)
+                        or diagnostic_exists("call-argument-type-mismatch", offset, existing) -> rest;
+                    true -> [TypeConstraintDiagnostic(
+                        "call-argument-type-mismatch",
+                        String.concat([
+                            "call argument type mismatch: expected ",
+                            expected_type,
+                            ", found ",
+                            actual_type,
+                        ]),
+                        offset,
+                    ) | rest]
+                }
+            }
+    }.
+
+callable_diagnostics(
+    site: DynamicCallSite,
+    callable_type: String,
+    facts: List[InferredTypeFact],
+    existing: List[TypeConstraintDiagnostic],
+): List[TypeConstraintDiagnostic] ->
+    case ProjectedTypeConstraintResolution.function_parameters(callable_type) {
+        None -> if {
+            diagnostic_exists("invalid-dynamic-call-target", site.call_offset, existing) -> [];
+            true -> [TypeConstraintDiagnostic(
+                "invalid-dynamic-call-target",
+                "dynamic call target does not have a function type",
+                site.call_offset,
+            )]
+        };
+        Some(expected) -> if {
+            size(expected) != size(site.argument_offsets) -> if {
+                diagnostic_exists("dynamic-call-arity-mismatch", site.call_offset, existing) -> [];
+                true -> [TypeConstraintDiagnostic(
+                    "dynamic-call-arity-mismatch",
+                    "dynamic call argument count does not match the function type",
+                    site.call_offset,
+                )]
+            };
+            true -> argument_diagnostics(expected, site.argument_offsets, facts, existing)
+        }
+    }.
+
+site_diagnostics(
+    sites: List[DynamicCallSite],
+    facts: List[InferredTypeFact],
+    existing: List[TypeConstraintDiagnostic],
+): List[TypeConstraintDiagnostic] ->
+    case sites {
+        [] -> [];
+        [value | rest] -> case fact_type(value.callee_offset, facts) {
+            Some(callable_type) -> append(
+                callable_diagnostics(value, callable_type, facts, existing),
+                site_diagnostics(rest, facts, existing),
+            );
+            None -> site_diagnostics(rest, facts, existing)
+        }
+    }.
+
+merge_sites(
+    value: TypeConstraintResolution,
+    sites: List[DynamicCallSite],
+): TypeConstraintResolution -> TypeConstraintResolution(
+    merge_facts(value.facts, sites, value.facts),
+    append(
+        value.diagnostics,
+        site_diagnostics(sites, value.facts, value.diagnostics),
+    ),
+).
+
+/** Testable single-expression merge boundary. */
+pub merge_expression(
+    value: TypeConstraintResolution,
+    expression: ProjectedExpressionNode,
+): TypeConstraintResolution -> merge_sites(value, node_sites(expression)).
+
+/** Applies dependent dynamic-call typing to every projected body. */
+pub merge(
+    value: TypeConstraintResolution,
+    bodies: ProjectedBodies,
+): TypeConstraintResolution -> merge_sites(value, body_sites(bodies.values)).

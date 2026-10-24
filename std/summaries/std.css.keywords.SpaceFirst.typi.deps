@@ -1,0 +1,8 @@
+module=std.css.keywords.SpaceFirst
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=5171282486019165193
+interface_hash=11940095701453485422
+interface_doc_hash=12444624600786696395
+deps=0

@@ -25,8 +25,13 @@ pub(in crate::commands::serve) fn open(
     module: String,
     live: SseSession<ReplValue>,
 ) -> Result<AotSseCallbackSession, String> {
-    AotSseCallbackSession::open(AotChannelInvocation::new("sse", runtime, module), live)
-        .map_err(String::from)
+    let invocation = AotChannelInvocation::new("sse", runtime, module);
+    if live.plan().supports_pull_transport() {
+        AotSseCallbackSession::prepare_pull(invocation, live)
+    } else {
+        AotSseCallbackSession::open(invocation, live)
+    }
+    .map_err(String::from)
 }
 
 #[cfg(test)]

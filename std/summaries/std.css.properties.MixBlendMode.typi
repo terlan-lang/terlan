@@ -1,112 +1,53 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/compositing-2/#propdef-mix-blend-mode
+//! The `mix-blend-mode` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how an
+//! element's content should blend with its _backdrop_ — the content rendered behind the element
+//! within the same [stacking
+//! context](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Positioned_layout/Stacking_context).
+//!
+//! Initial: normal. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - color: Creates a color with the hue and saturation of the source color and the luminosity of
+//! the backdrop color.
+//! - color-burn: Darkens the backdrop color to reflect the source color.
+//! - color-dodge: Brightens the backdrop color to reflect the source color.
+//! - darken: Selects the darker of the backdrop and source colors.
+//! - difference: Subtracts the darker of the two constituent colors from the lighter color..
+//! - exclusion: Produces an effect similar to that of the Difference mode but lower in contrast.
+//! - hard-light: Multiplies or screens the colors, depending on the source color value.
+//! - hue: Creates a color with the hue of the source color and the saturation and luminosity of the
+//! backdrop color.
+//! - lighten: Selects the lighter of the backdrop and source colors.
+//! - luminosity: Creates a color with the luminosity of the source color and the hue and saturation
+//! of the backdrop color.
+//! - multiply: The source color is multiplied by the destination color and replaces the destination.
+//! - normal: Default attribute which specifies no blending
+//! - overlay: Multiplies or screens the colors, depending on the backdrop color value.
+//! - plus-lighter: Blending using the [_plus-lighter_ compositing
+//! operator](https://drafts.csswg.org/compositing-2/#porterduffcompositingoperators_plus_lighter).
+//! Useful for cross-fade effects (prevents unwanted blinking when two overlaying elements animate
+//! their opacity in opposite directions).
+//! - saturation: Creates a color with the saturation of the source color and the hue and luminosity
+//! of the backdrop color.
+//! - screen: Multiplies the complements of the backdrop and source color values, then complements
+//! the result.
+//! - soft-light: Darkens or lightens the colors, depending on the source color value.
+//!
 //! Grammar: <blend-mode> | plus-lighter
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/compositing-2/#propdef-mix-blend-mode
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mix-blend-mode
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MixBlendMode.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    mix_blend_mode: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    mix_blend_mode: Value
+    mix_blend_mode: Normal | Darken | Multiply | ColorBurn | Lighten | Screen | ColorDodge | Overlay | SoftLight | HardLight | Difference | Exclusion | Hue | Saturation | ColorKeyword | Luminosity | PlusLighter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained mix-blend-mode value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword color.
-
-pub color(): Value.
-
-/// Returns the CSS keyword color-burn.
-
-pub color_burn(): Value.
-
-/// Returns the CSS keyword color-dodge.
-
-pub color_dodge(): Value.
-
-/// Returns the CSS keyword darken.
-
-pub darken(): Value.
-
-/// Returns the CSS keyword difference.
-
-pub difference(): Value.
-
-/// Returns the CSS keyword exclusion.
-
-pub exclusion(): Value.
-
-/// Returns the CSS keyword hard-light.
-
-pub hard_light(): Value.
-
-/// Returns the CSS keyword hue.
-
-pub hue(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword lighten.
-
-pub lighten(): Value.
-
-/// Returns the CSS keyword luminosity.
-
-pub luminosity(): Value.
-
-/// Returns the CSS keyword multiply.
-
-pub multiply(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword overlay.
-
-pub overlay(): Value.
-
-/// Returns the CSS keyword plus-lighter.
-
-pub plus_lighter(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword saturation.
-
-pub saturation(): Value.
-
-/// Returns the CSS keyword screen.
-
-pub screen(): Value.
-
-/// Returns the CSS keyword soft-light.
-
-pub soft_light(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

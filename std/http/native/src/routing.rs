@@ -114,6 +114,11 @@ impl<C: DescriptorValue + Clone> MiddlewareResult<C> {
 }
 
 impl<C: Clone> MiddlewareContinuation<C> {
+    /// Captures from the materialized match, shared by every middleware stage.
+    pub fn route_params(&self) -> &[(String, String)] {
+        &self.dispatch.route_params
+    }
+
     fn new(dispatch: RouteDispatch<C>) -> Self {
         Self {
             dispatch,

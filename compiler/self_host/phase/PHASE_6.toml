@@ -1,0 +1,62 @@
+schema = "terlan.self-host.phase/v1"
+phase = 6
+name = "rust-backend-adapter"
+status = "in-progress"
+
+[request]
+schema = "terlan.self-host.backend/v1"
+abi_major = 1
+abi_minor = 6
+canonical_codec = true
+structural_validation = true
+typed_operand_validation = true
+capture_prefix_validation = true
+resource_bounds = true
+
+[adapter]
+scalar_operations = true
+direct_calls = true
+mutable_receiver_calls = true
+closure_allocation = true
+closure_invocation = true
+captured_closures = true
+list_construction = true
+tuple_construction_and_projection = true
+recursive_tuple_patterns = true
+typed_list_patterns = "implemented-validation-pending"
+string_literals = "implemented-unverified"
+map_construction = "implemented-unverified"
+string_keyed_map_field_projection = true
+array_construction = "implemented-including-contextual-zero-length-layout-validation-pending"
+record_construction_projection_and_update = "implemented-unverified"
+struct_field_projection = true
+constructor_patterns = "implemented-validation-pending"
+actor_suspension_and_continuations = "implemented-validation-pending"
+structured_try_regions = "implemented-recursive-cfg-adapter-validation-pending"
+sealed_native_image_publication = true
+typed_variant_single_module_native_path = "implemented-sidecar-required-validation-pending"
+typed_variant_application_native_path = "implemented-shared-catalog-object-and-image-validation-pending"
+
+[[gate]]
+id = "self-host-backend-request-check"
+status = "maintained-corpus-abi-1.6-regenerated-full-adapter-corpus-pending"
+
+[[gate]]
+id = "self-host-backend-admission-check"
+status = "maintained-corpus-pass-full-adapter-corpus-pending"
+
+[[gate]]
+id = "self-host-cranelift-equivalence-check"
+status = "pending"
+
+[[gate]]
+id = "self-host-backend-resource-bound-check"
+status = "pending"
+
+[[gate]]
+id = "self-host-backend-cross-target-check"
+status = "pending"
+
+[next]
+implementation = "cross-target-actor-and-variant-adapter-equivalence"
+reason = "single-module and application object/image staging now require Core, variant, and actor sidecars; production authority requires regeneration and cross-target equivalence evidence"

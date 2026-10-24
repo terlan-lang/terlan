@@ -4,6 +4,7 @@ use std::process::ExitCode;
 
 mod cast_semantics;
 mod core_lowering;
+mod constructors;
 mod declarations;
 mod direct_ast;
 mod direct_helpers;
@@ -16,7 +17,9 @@ mod tail_recursion;
 pub(crate) mod target_contract;
 mod template_runtime;
 
+#[cfg(test)]
 pub(crate) use declarations::emit_core_module_to_typescript_declarations;
+pub(crate) use declarations::emit_core_module_to_typescript_declarations_at;
 #[cfg(test)]
 pub(crate) use declarations::{split_top_level_args, typer_type_to_typescript};
 #[cfg(test)]
@@ -34,9 +37,11 @@ pub(crate) fn emit_core_module_with_template_runtime(
     syntax: &crate::terlan_syntax::SyntaxModuleOutput,
     source_path: &Path,
     profile: crate::validation::target_profile::TargetProfile,
+    cache_dir: Option<&Path>,
 ) -> Result<Option<String>, String> {
-    let mut linked = source_linking::link_libraries_with_profile(core, source_path, profile)
-        .map_err(|error| error.to_string())?;
+    let mut linked =
+        source_linking::link_libraries_with_profile(core, source_path, profile, cache_dir)
+            .map_err(|error| error.to_string())?;
     let bindings = js_bindings::lower(&mut linked).map_err(|error| error.to_string())?;
     let core = &linked;
     let module_source = if let Some(source) = tail_recursion::emit_stack_safe_tail_module(core) {
@@ -118,6 +123,7 @@ pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
         &artifacts.syntax_output,
         Path::new(&args.path),
         state.target_profile,
+        state.cache_dir.as_deref(),
     ) {
         Ok(Some(js)) => js,
         Ok(None) => match oxc_backend::emit_core_module_with_oxc_codegen(&artifacts.core) {
@@ -141,8 +147,10 @@ pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
         let declarations_target = state
             .out_dir
             .join(format!("{}.d.ts", artifacts.core.module));
-        let declarations =
-            declarations::emit_core_module_to_typescript_declarations(&artifacts.core);
+        let declarations = declarations::emit_core_module_to_typescript_declarations_at(
+            &artifacts.core,
+            &declarations_target,
+        );
         if let Err(err) = write_if_changed_or_forced(
             &declarations_target,
             declarations.as_bytes(),

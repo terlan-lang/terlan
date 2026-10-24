@@ -4,6 +4,19 @@ module self_host.ProjectedTypeResolutionSyntax.
 import std.collections.List.
 import std.core.String.
 
+pub struct TypeIdentityBinding {
+    visible_name: String,
+    canonical_name: String,
+}.
+
+pub constructor TypeIdentityBinding {
+    (visible_name: String, canonical_name: String): TypeIdentityBinding ->
+        TypeIdentityBinding {
+            visible_name: visible_name,
+            canonical_name: canonical_name,
+        }
+}.
+
 pub struct ProjectedTypeDiagnostic {
     type_name: String,
     message: String,
@@ -22,15 +35,17 @@ pub struct ProjectedTypeResolution {
     valid: Bool,
     local_types: List[String],
     external_types: List[String],
+    bindings: List[self_host.ProjectedTypeResolutionSyntax.TypeIdentityBinding],
     diagnostics: List[self_host.ProjectedTypeResolutionSyntax.ProjectedTypeDiagnostic],
 }.
 
 pub constructor ProjectedTypeResolution {
-    (valid: Bool, local_types: List[String], external_types: List[String], diagnostics: List[self_host.ProjectedTypeResolutionSyntax.ProjectedTypeDiagnostic]): ProjectedTypeResolution ->
+    (valid: Bool, local_types: List[String], external_types: List[String], bindings: List[self_host.ProjectedTypeResolutionSyntax.TypeIdentityBinding], diagnostics: List[self_host.ProjectedTypeResolutionSyntax.ProjectedTypeDiagnostic]): ProjectedTypeResolution ->
         ProjectedTypeResolution {
             valid: valid,
             local_types: local_types,
             external_types: external_types,
+            bindings: bindings,
             diagnostics: diagnostics,
         }
 }.

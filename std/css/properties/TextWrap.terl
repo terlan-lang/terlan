@@ -1,174 +1,61 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-wrap
+ * The `text-wrap` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property controls how text inside an element is wrapped. The different values provide:
+ *
+ * Initial: wrap. Inherited: yes.
+ * Percentages: text-wrap-mode: no; text-wrap-style: no.
+ *
+ * Keyword effects:
+ * - auto: Text is wrapped in the most performant way for the browser and does not take into account
+ * the number of characters. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-wrap-style
+ * - balance: Text is wrapped in a way that best balances the number of characters on each line,
+ * enhancing layout quality and legibility. Because counting characters and balancing them across
+ * multiple lines is computationally expensive, this value is only supported for blocks of text
+ * spanning a limited number of lines (six or less for Chromium and ten or less for Firefox).
+ * - nowrap: Text does not wrap across lines. It will overflow its containing element rather than
+ * breaking onto a new line.
+ * - pretty: Results in the same behavior as `wrap`, except that the user agent will use a slower
+ * algorithm that favors better layout over speed. This is intended for body copy where good
+ * typography is favored over performance (for example, when the number of
+ * [orphans](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/orphans) should
+ * be kept to a minimum).
+ * - stable: Results in the same behavior as `wrap`, except that when the user is editing the
+ * content, the lines that come before the lines they are editing remain static rather than the
+ * whole block of text re-wrapping.
+ * - wrap: Text is wrapped across lines at appropriate characters (for example spaces, in languages
+ * like English that use space separators) to minimize overflow. This is the default value.
+ *
  * Grammar: <'text-wrap-mode'> || <'text-wrap-style'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-wrap
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-wrap
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextWrap.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, Balance, Nowrap, Pretty, Stable, Wrap}.
 
-/**
- * A nominal, specification-constrained text-wrap value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-/**
- * A non-global text-wrap-mode component of text-wrap.
- */
-pub opaque type TextWrapModePart = String.
+pub type TextWrapModePart = Wrap | Nowrap.
 
-/**
- * A non-global text-wrap-style component of text-wrap.
- */
-pub opaque type TextWrapStylePart = String.
+pub type TextWrapStylePart = Auto | Balance | Stable | Pretty.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Checked = {Atom["css_parts"], {TextWrapModePart, TextWrapStylePart}}.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_wrap: Value,
+    text_wrap: Wrap | Nowrap | Auto | Balance | Stable | Pretty | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Combines text-wrap-mode, text-wrap-style for text-wrap. Each parameter accepts its own keyword or
+ * typed unit choices directly.
  */
-pub struct OptionalProperty {
-    text_wrap: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "text-wrap", css: "auto"}).
-
-/**
- * Returns the CSS keyword avoid-short-last-line.
- */
-pub avoid_short_last_line(): Value ->
-    Value(Token {property: "text-wrap", css: "avoid-short-last-line"}).
-
-/**
- * Returns the CSS keyword balance.
- */
-pub balance(): Value ->
-    Value(Token {property: "text-wrap", css: "balance"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-wrap", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-wrap", css: "initial"}).
-
-/**
- * Returns the CSS keyword nowrap.
- */
-pub nowrap(): Value ->
-    Value(Token {property: "text-wrap", css: "nowrap"}).
-
-/**
- * Returns the CSS keyword pretty.
- */
-pub pretty(): Value ->
-    Value(Token {property: "text-wrap", css: "pretty"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-wrap", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-wrap", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword stable.
- */
-pub stable(): Value ->
-    Value(Token {property: "text-wrap", css: "stable"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-wrap", css: "unset"}).
-
-/**
- * Returns the CSS keyword wrap.
- */
-pub wrap(): Value ->
-    Value(Token {property: "text-wrap", css: "wrap"}).
-
-/**
- * Constructs the text-wrap-mode keyword nowrap.
- */
-pub text_wrap_mode_nowrap(): TextWrapModePart ->
-    TextWrapModePart("nowrap").
-
-/**
- * Constructs the text-wrap-mode keyword wrap.
- */
-pub text_wrap_mode_wrap(): TextWrapModePart ->
-    TextWrapModePart("wrap").
-
-text_wrap_mode_css(value: TextWrapModePart): String ->
-    value.
-
-/**
- * Constructs the text-wrap-style keyword auto.
- */
-pub text_wrap_style_auto(): TextWrapStylePart ->
-    TextWrapStylePart("auto").
-
-/**
- * Constructs the text-wrap-style keyword avoid-short-last-line.
- */
-pub text_wrap_style_avoid_short_last_line(): TextWrapStylePart ->
-    TextWrapStylePart("avoid-short-last-line").
-
-/**
- * Constructs the text-wrap-style keyword balance.
- */
-pub text_wrap_style_balance(): TextWrapStylePart ->
-    TextWrapStylePart("balance").
-
-/**
- * Constructs the text-wrap-style keyword pretty.
- */
-pub text_wrap_style_pretty(): TextWrapStylePart ->
-    TextWrapStylePart("pretty").
-
-/**
- * Constructs the text-wrap-style keyword stable.
- */
-pub text_wrap_style_stable(): TextWrapStylePart ->
-    TextWrapStylePart("stable").
-
-text_wrap_style_css(value: TextWrapStylePart): String ->
-    value.
-
-/**
- * Combines every named specification group in canonical order.
- */
-pub compose(text_wrap_mode: TextWrapModePart, text_wrap_style: TextWrapStylePart): Value ->
-    Value(
-        Token {
-            property: "text-wrap",
-            css: text_wrap_mode_css(text_wrap_mode) + " " + text_wrap_style_css(text_wrap_style),
-        },
-    ).
+pub compose(text_wrap_mode: TextWrapModePart, text_wrap_style: TextWrapStylePart): Checked ->
+    Checked({Atom["css_parts"], {text_wrap_mode, text_wrap_style}}).

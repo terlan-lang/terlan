@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword flex-start. Generated; do not edit.
+ */
+module std.css.keywords.FlexStart.
+
+pub type FlexStart = Atom["flex-start"].

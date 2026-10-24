@@ -1,6 +1,8 @@
 /** Self-hosted lowering for nominal valued-union arms. */
 module self_host.ValuedUnionLowering.
 
+import std.core.String.
+
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.ExpressionSyntax.{ExpressionParse}.
 import self_host.Syntax.{TypeDeclaration}.

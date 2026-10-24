@@ -1,99 +1,41 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `font` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets all the different properties of an element's font. Alternatively, it sets an
+ * element's font to a system font.
+ *
+ * Initial: font-style: normal; font-variant: normal; font-weight: normal; font-stretch: normal;
+ * font-size: medium; line-height: normal; font-family: dependsOnUserAgent. Inherited: yes.
+ * Percentages: font-size: refer to the parent element's font size; line-height: refer to the font
+ * size of the element itself.
+ *
+ * Keyword effects:
+ * - caption: The font used for captioned controls (e.g., buttons, drop-downs, etc.).
+ * - icon: The font used to label icons.
+ * - menu: The font used in menus (e.g., dropdown menus and menu lists).
+ * - message-box: The font used in dialog boxes.
+ * - small-caption: The font used for labeling small controls.
+ * - status-bar: The font used in window status bars.
+ *
+ * Grammar: [ [ <'font-style'> || <font-variant-css2> || <'font-weight'> || <font-width-css3> ]?
+ * <'font-size'> [ / <'line-height'> ]? <'font-family'># ] | <system-font-family-name>
+ *
  * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font
- * Grammar: [ [ <'font-style'> || <font-variant-css2> || <'font-weight'> || <font-width-css3> ]? <'font-size'> [ / <'line-height'> ]? <'font-family'># ] | <system-font-family-name>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Font.
 
-import type std.core.Option.
+import std.css.keywords.{Caption, Icon, Menu, MessageBox, SmallCaption, StatusBar}.
 
-/**
- * A nominal, specification-constrained font value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    font: Value,
+    font: Caption | Icon | Menu | MessageBox | SmallCaption | StatusBar | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    font: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword caption.
- */
-pub caption(): Value ->
-    Value(Token {property: "font", css: "caption"}).
-
-/**
- * Returns the CSS keyword icon.
- */
-pub icon(): Value ->
-    Value(Token {property: "font", css: "icon"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font", css: "initial"}).
-
-/**
- * Returns the CSS keyword menu.
- */
-pub menu(): Value ->
-    Value(Token {property: "font", css: "menu"}).
-
-/**
- * Returns the CSS keyword message-box.
- */
-pub message_box(): Value ->
-    Value(Token {property: "font", css: "message-box"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword small-caption.
- */
-pub small_caption(): Value ->
-    Value(Token {property: "font", css: "small-caption"}).
-
-/**
- * Returns the CSS keyword status-bar.
- */
-pub status_bar(): Value ->
-    Value(Token {property: "font", css: "status-bar"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font", css: "unset"}).

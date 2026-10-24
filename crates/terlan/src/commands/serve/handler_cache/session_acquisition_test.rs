@@ -5,9 +5,12 @@ use crate::commands::serve::handler::request_materialization::vm_request_descrip
 use crate::runtime::vm::package_native_helper::{execute_call, VmPackageNativeHelpers};
 use crate::runtime::vm::pure_native::PureNativeExecutionImage;
 use crate::runtime::vm::ReplValue;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use std::sync::{Arc, Mutex};
 use terlan_http_native::{Request, RequestFieldProjection, RequestMetadata};
-use terlan_runtime_abi::{BoundaryError, ErrorDomain, NativeContextBinding, NativeServices};
+use terlan_runtime_abi::{
+    BoundaryError, ErrorDomain, NativeContextBinding, NativeServices, NativeValue,
+};
 
 struct Storage {
     found: Option<String>,
@@ -30,9 +33,10 @@ pub healthy(): Int -> 42.
     );
     for (found, fail, expected_calls) in [
         (Some("id"), "", vec!["lookup"]),
-        (None, "", vec!["lookup", "create"]),
+        (None, "", vec!["lookup", "candidate", "create"]),
         (None, "lookup", vec!["lookup"]),
-        (None, "create", vec!["lookup", "create"]),
+        (None, "candidate", vec!["lookup", "candidate"]),
+        (None, "create", vec!["lookup", "candidate", "create"]),
     ] {
         let storage = Arc::new(Mutex::new(Storage {
             found: found.map(str::to_string),
@@ -49,18 +53,34 @@ pub healthy(): Int -> 42.
                 }
                 Ok(state.found.clone().into())
             }),
-            NativeContextBinding::new("std.http.session.create", 2, |state: &mut Storage, args| {
-                state.calls.push("create");
-                assert_eq!(
-                    args,
-                    &["id".into(), 86400_i64.into()],
-                    "exclude the untrusted requested identity"
-                );
-                if state.fail == "create" {
-                    return Err(failure());
-                }
-                Ok("issued".into())
-            }),
+            NativeContextBinding::new(
+                "std.crypto.entropy.bytes",
+                1,
+                |state: &mut Storage, args| {
+                    state.calls.push("candidate");
+                    assert_eq!(args, &[32_i64.into()]);
+                    if state.fail == "candidate" {
+                        return Err(failure());
+                    }
+                    Ok(NativeValue::Bytes(vec![255; 32]))
+                },
+            ),
+            NativeContextBinding::new(
+                "std.http.session.try_create",
+                2,
+                |state: &mut Storage, args| {
+                    state.calls.push("create");
+                    assert_eq!(
+                        args,
+                        &[URL_SAFE_NO_PAD.encode([255; 32]).into(), 86400_i64.into()],
+                        "reserve only the source-generated identity"
+                    );
+                    if state.fail == "create" {
+                        return Err(failure());
+                    }
+                    Ok(true.into())
+                },
+            ),
         ];
         services
             .register_context(Arc::clone(&storage), bindings)
@@ -75,7 +95,7 @@ pub healthy(): Int -> 42.
             "/",
             "",
             RequestMetadata {
-                cookies: vec![("terlan_session".into(), " \u{2003}id\u{2003} ".into())],
+                cookies: vec!["terlan_session= \u{2003}id\u{2003} ".into()],
                 ..Default::default()
             },
         );
@@ -90,7 +110,8 @@ pub healthy(): Int -> 42.
             )],
         );
         if fail.is_empty() {
-            let identity = found.unwrap_or("issued");
+            let issued = URL_SAFE_NO_PAD.encode([255; 32]);
+            let identity = found.unwrap_or(&issued);
             assert_eq!(
                 result.unwrap(),
                 ReplValue::Record {

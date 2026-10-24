@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword last. Generated; do not edit.
+ */
+module std.css.keywords.Last.
+
+pub type Last.

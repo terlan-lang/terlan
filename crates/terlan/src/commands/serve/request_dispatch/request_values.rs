@@ -1,8 +1,6 @@
 //! Package metadata imports and in-memory HTTP/1 test exchanges.
 
-pub(in crate::commands::serve) use terlan_http_native::{
-    query_pairs, request_cookie_pairs, request_header_pairs,
-};
+pub(in crate::commands::serve) use terlan_http_native::request_header_pairs;
 
 use super::*;
 
@@ -80,32 +78,4 @@ pub(in crate::commands::serve) fn vm_stream_bad_request_response(
     let mut wire = Vec::new();
     write_http1_response(&mut wire, &response, true)?;
     Ok(wire)
-}
-
-/// Reads a Hyper request body into source-visible UTF-8 text.
-///
-/// Inputs:
-/// - `request`: Hyper request whose metadata has already been captured.
-///
-/// Output:
-/// - UTF-8-lossy body text for Terlan request handlers.
-/// - Stable runtime diagnostic when Hyper body collection fails.
-///
-/// Transformation:
-/// - Uses Hyper/http-body-util collection and only decodes bytes at the VM
-///   request boundary, keeping protocol mechanics out of Terlan source.
-pub(in crate::commands::serve) async fn request_body_text<B>(
-    request: Request<B>,
-) -> Result<String, String>
-where
-    B: hyper::body::Body<Data = Bytes> + Send + 'static,
-    B::Error: std::fmt::Display,
-{
-    let body = request
-        .into_body()
-        .collect()
-        .await
-        .map_err(|err| format!("error[serve_request]: failed to read request body: {err}"))?
-        .to_bytes();
-    Ok(String::from_utf8_lossy(&body).into_owned())
 }

@@ -48,11 +48,29 @@ fn invalid_lifetimes_do_not_issue_identities_or_mutate_live_or_expired_resources
     );
     assert_eq!(resources.next, 0);
     assert!(registry.entries().is_empty());
+    for identity in ["", "candidate"] {
+        assert_eq!(
+            registry.try_create(identity, 0, &mut resources),
+            Err(SessionError::ZeroTtl)
+        );
+    }
+    assert_eq!(resources.next, 0);
+    assert!(registry.entries().is_empty());
 
     let first = registry.create("", 2, &mut resources).unwrap();
     for elapsed in [0, 2] {
         registry.advance_ticks(elapsed);
         for identity in [&first.id, "unknown"] {
+            assert_eq!(
+                registry.try_create(identity, 0, &mut resources),
+                Err(SessionError::ZeroTtl)
+            );
+            for replacement in ["", "replacement", first.id.as_str()] {
+                assert_eq!(
+                    registry.try_rotate(identity, replacement, 0, &mut resources),
+                    Err(SessionError::ZeroTtl)
+                );
+            }
             assert_eq!(
                 registry.rotate_with(identity, 0, &mut resources, |_| {
                     panic!("unexpected identity issuance")

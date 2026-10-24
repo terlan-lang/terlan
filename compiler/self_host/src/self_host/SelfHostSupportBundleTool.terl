@@ -1,0 +1,70 @@
+/** Stale-safe filesystem publication for deterministic support bundles. */
+module self_host.SelfHostSupportBundleTool.
+
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, String}.
+import std.io.File.
+
+import self_host.SelfHostSupportBundle.
+
+
+read(path: String): Option[String] ->
+    case File.read_text(path) {
+        Err(_) -> None;
+        Ok(value) -> Some(value)
+    }.
+
+render_from_paths(
+    diagnostics_path: String,
+    lint_path: String,
+    trace_path: String,
+    configuration_path: String,
+): Option[String] ->
+    case read(diagnostics_path) {
+        None -> None;
+        Some(diagnostics) -> case read(lint_path) {
+            None -> None;
+            Some(lint) -> case read(trace_path) {
+                None -> None;
+                Some(trace) -> case read(configuration_path) {
+                    None -> None;
+                    Some(configuration) -> Some(SelfHostSupportBundle.render(
+                        diagnostics,
+                        lint,
+                        trace,
+                        configuration,
+                    ))
+                }
+            }
+        }
+    }.
+
+write_marker(marker_path: String): Bool ->
+    case File.write_text(marker_path, "complete\n") {
+        Err(_) -> false;
+        Ok(_) -> true
+    }.
+
+/** Publishes the bundle before its completion marker and leaves failures unmarked. */
+pub write(
+    diagnostics_path: String,
+    lint_path: String,
+    trace_path: String,
+    configuration_path: String,
+    output_path: String,
+    marker_path: String,
+): Bool ->
+    let _removed = File.delete(marker_path);
+    case render_from_paths(
+        diagnostics_path,
+        lint_path,
+        trace_path,
+        configuration_path,
+    ) {
+        None -> false;
+        Some(bundle) -> case File.write_text(output_path, bundle) {
+            Err(_) -> false;
+            Ok(_) -> write_marker(marker_path)
+        }
+    }.

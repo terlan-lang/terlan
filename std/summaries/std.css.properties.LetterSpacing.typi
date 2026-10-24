@@ -1,56 +1,28 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-letter-spacing
+//! The `letter-spacing` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! spacing between text characters. This value is added to the natural spacing between characters
+//! while rendering the text. Positive values of `letter-spacing` spread characters further apart,
+//! while negative values of `letter-spacing` bring characters closer together.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - normal: The normal letter spacing for the current font. Unlike a value of `0`, this keyword
+//! allows the `user agent` to alter the space between characters in order to justify text.
+//!
 //! Grammar: normal | <length-percentage>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-letter-spacing
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/letter-spacing
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.LetterSpacing.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    letter_spacing: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    letter_spacing: Value
+    letter_spacing: Normal | std.css.Values.Length | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained letter-spacing value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a letter-spacing value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Constructs a letter-spacing value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

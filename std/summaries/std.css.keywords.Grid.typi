@@ -1,0 +1,6 @@
+//! Shared CSS keyword grid. Generated; do not edit.
+
+module std.css.keywords.Grid.
+
+pub type Grid =
+    Atom["grid"].

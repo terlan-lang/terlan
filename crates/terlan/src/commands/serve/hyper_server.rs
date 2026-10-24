@@ -8,8 +8,6 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
-use hyper::body::Incoming;
-use hyper::service::service_fn;
 use hyper::{Request, Response};
 use terlan_http_native::request_pipeline::{self, Application};
 use terlan_http_native::websocket::upgrade::UpgradeSlot;
@@ -23,7 +21,8 @@ use crate::runtime::vm::protocol_task_executor::{
     protocol_sleep_until, serve_protocol_tasks, VmProtocolTaskFactory, VmReadyStream,
 };
 
-mod http2;
+mod channels;
+mod connection_tasks;
 mod tls_io;
 use terlan_http_native::response_body::ResponseBody;
 use terlan_http_native::websocket::hub::WebSocketHub;
@@ -108,34 +107,35 @@ fn tls_factory(
                         route.scheduler.index()
                     )
                 })?;
-            match io
-                .negotiated_protocol()
-                .map_err(|error| error.to_string())?
-            {
-                tls_io::HttpProtocol::Http1 => {
-                    serve_http1(io, web_root, max_body_bytes, websocket_hub, |error| {
-                        format!("Hyper HTTP/1.1 TLS connection failed: {error}")
-                    })
-                    .await
-                }
-                tls_io::HttpProtocol::Http2 => {
-                    let service = service_fn(move |request| {
+            let capacity =
+                std::num::NonZeroUsize::new(terlan_http_native::http2::CONNECTION_TASK_CAPACITY)
+                    .expect("HTTP package declares a positive connection capacity");
+            connection_tasks::drive_connection(capacity, move |spawner| async move {
+                terlan_http_native::server_connection::serve_tls(
+                    io,
+                    move |request, slot| {
                         let web_root = Rc::clone(&web_root);
                         async move {
-                            Ok::<_, std::convert::Infallible>(
-                                handle_request(
-                                    request,
-                                    web_root.as_ref().as_path(),
-                                    max_body_bytes,
-                                    None,
-                                )
-                                .await,
+                            handle_request(
+                                request,
+                                web_root.as_path(),
+                                max_body_bytes,
+                                slot.as_deref(),
                             )
+                            .await
                         }
-                    });
-                    http2::serve_connection(io, service).await
-                }
-            }
+                    },
+                    &websocket_hub,
+                    websocket_transport_wait,
+                    move |task| {
+                        // Admission loss poisons the owner; it cancels the root
+                        // and every child in the same poll.
+                        let _ = spawner.spawn(task);
+                    },
+                )
+                .await
+            })
+            .await
         })
     })
 }
@@ -202,6 +202,14 @@ impl Application for CompiledApplication<'_> {
         request_requires_file_body(self.0, method, path)
     }
 
+    async fn handle_channel(
+        &self,
+        request: &Request<String>,
+        channel: &mut Option<VmHttpChannelTransport>,
+    ) -> Result<Option<Response<Bytes>>, String> {
+        channels::handle(self.0, request, channel).await
+    }
+
     async fn handle_suspendable(
         &self,
         request: &Request<String>,
@@ -218,12 +226,16 @@ impl Application for CompiledApplication<'_> {
     }
 }
 
-async fn handle_request(
-    request: Request<Incoming>,
+pub(super) async fn handle_request<B>(
+    request: Request<B>,
     web_root: &Path,
     max_body_bytes: u64,
     upgrade_slot: Option<&PendingHyperUpgradeSlot>,
-) -> Response<ResponseBody> {
+) -> Response<ResponseBody>
+where
+    B: hyper::body::Body<Data = Bytes> + Unpin,
+    B::Error: std::fmt::Display,
+{
     let upload_root = std::env::var("TERLAN_SERVE_UPLOAD_ROOT")
         .ok()
         .map(PathBuf::from);

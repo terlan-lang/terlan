@@ -1,75 +1,33 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-stop
+ * The `scroll-snap-stop` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+ * whether or not the scroll container is allowed to "pass over" possible snap positions.
+ *
+ * Initial: normal. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - always: The scroll container must not "pass over" a possible snap position; and must snap to
+ * the first of this elements' snap positions.
+ * - normal: When the visual `viewport` of this element's scroll container is scrolled, it may "pass
+ * over" possible snap positions.
+ *
  * Grammar: normal | always
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-stop
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-snap-stop
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollSnapStop.
 
-import type std.core.Option.
+import std.css.keywords.{Always, Normal}.
 
-/**
- * A nominal, specification-constrained scroll-snap-stop value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    scroll_snap_stop: Value,
+    scroll_snap_stop: Normal | Always | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    scroll_snap_stop: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword always.
- */
-pub always(): Value ->
-    Value(Token {property: "scroll-snap-stop", css: "always"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "scroll-snap-stop", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scroll-snap-stop", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "scroll-snap-stop", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scroll-snap-stop", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scroll-snap-stop", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scroll-snap-stop", css: "unset"}).

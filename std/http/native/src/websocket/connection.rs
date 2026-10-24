@@ -19,17 +19,19 @@ pub trait Callbacks: AdmissionCallbacks {
         &mut self,
         target: String,
     ) -> impl Future<Output = Result<Option<(String, i64)>, crate::ServiceError>>;
-    fn waiting(&mut self) -> Result<String, crate::ServiceError>;
-    fn peer_left(&mut self) -> Result<String, crate::ServiceError>;
+    fn waiting(&mut self) -> impl Future<Output = Result<String, crate::ServiceError>>;
+    fn peer_left(&mut self) -> impl Future<Output = Result<String, crate::ServiceError>>;
     fn enqueue(&mut self, text: Utf8Bytes) -> Result<(), crate::ServiceError>;
-    fn next_inbound(&mut self) -> Result<(bool, Option<String>), crate::ServiceError>;
+    fn next_inbound(
+        &mut self,
+    ) -> impl Future<Output = Result<(bool, Option<String>), crate::ServiceError>>;
     fn next_paired(
         &mut self,
         context: Option<PairContext>,
-    ) -> Result<Option<PairedTransition>, crate::ServiceError>;
+    ) -> impl Future<Output = Result<Option<PairedTransition>, crate::ServiceError>>;
     /// Notify source code only when no callback is parked.
-    fn writable(&mut self) -> Result<(), crate::ServiceError>;
-    fn close(&mut self) -> Result<(), crate::ServiceError>;
+    fn writable(&mut self) -> impl Future<Output = Result<(), crate::ServiceError>>;
+    fn close(&mut self) -> impl Future<Output = Result<(), crate::ServiceError>>;
     fn cancel(&mut self, reason: String) -> Result<(), crate::ServiceError>;
 }
 
@@ -76,9 +78,9 @@ struct Lifecycle<'a, C: Callbacks> {
 }
 
 impl<C: Callbacks> Lifecycle<'_, C> {
-    fn close(&mut self) -> Result<(), crate::ServiceError> {
+    async fn close(&mut self) -> Result<(), crate::ServiceError> {
         self.terminal = true;
-        self.callbacks.close()
+        self.callbacks.close().await
     }
 }
 
@@ -113,8 +115,8 @@ where
     if let Some(pairing) = &mut pairing {
         if pairing.restoration.is_some() {
             identity = live.callbacks.identity(target.clone()).await?;
-            pairing.waiting = live.callbacks.waiting()?;
-            pairing.peer_left = live.callbacks.peer_left()?;
+            pairing.waiting = live.callbacks.waiting().await?;
+            pairing.peer_left = live.callbacks.peer_left().await?;
         }
     }
     let mut lease = pairing
@@ -122,32 +124,33 @@ where
         .map(|pairing| hub.join(route, target, capacity, pairing, identity))
         .transpose()?;
     if let Some(lease) = &mut lease {
-        lease.dispatch_admission(live.callbacks)?;
+        lease.dispatch_admission(live.callbacks).await?;
     }
-    live.callbacks.writable()?;
+    live.callbacks.writable().await?;
     let mut received = 0;
     loop {
         if let Some(lease) = &lease {
             if !output::drain(&mut socket, &lease.outbound, &mut wait).await? {
-                return live.close();
+                return live.close().await;
             }
         }
         match socket.read() {
             Ok(Message::Text(text)) => {
                 live.callbacks.enqueue(text)?;
-                dispatch_inbound(live.callbacks, lease.as_ref())?;
+                dispatch_inbound(live.callbacks, lease.as_ref()).await?;
             }
             Ok(Message::Ping(_)) => {
                 if !output::flush(&mut socket, &mut wait).await? {
-                    return live.close();
+                    return live.close().await;
                 }
-                live.callbacks.writable()?;
+                live.callbacks.writable().await?;
             }
             Ok(Message::Pong(_)) => {}
             Ok(Message::Close(_)) => {
-                let callback = live.close();
-                let flush = output::flush(&mut socket, &mut wait).await.map(|_| ());
-                return callback.and(flush);
+                let (callback, flush) =
+                    futures_util::future::join(live.close(), output::flush(&mut socket, &mut wait))
+                        .await;
+                return callback.and(flush.map(|_| ()));
             }
             Ok(Message::Binary(_)) => {
                 return Err(
@@ -163,7 +166,7 @@ where
                 ErrorKind::WouldBlock | ErrorKind::Interrupted => {
                     wait().await;
                 }
-                ErrorKind::Closed | ErrorKind::Disconnected => return live.close(),
+                ErrorKind::Closed | ErrorKind::Disconnected => return live.close().await,
                 ErrorKind::Failed => {
                     return Err(format!("error[serve.websocket.transport]: {error}").into())
                 }
@@ -177,33 +180,35 @@ where
     }
 }
 
-fn dispatch_inbound<C: Callbacks>(
+async fn dispatch_inbound<C: Callbacks>(
     callbacks: &mut C,
     lease: Option<&WebSocketHubLease>,
 ) -> Result<(), crate::ServiceError> {
     if let Some(lease) = lease {
         loop {
             let mut dispatched = false;
-            lease.transition(|context| {
-                let state = context
-                    .as_ref()
-                    .map(|(state, _, _, _)| state.clone())
-                    .unwrap_or_default();
-                match callbacks.next_paired(context)? {
-                    Some(transition) => {
-                        dispatched = true;
-                        Ok(transition)
+            lease
+                .transition(|context| async {
+                    let state = context
+                        .as_ref()
+                        .map(|(state, _, _, _)| state.clone())
+                        .unwrap_or_default();
+                    match callbacks.next_paired(context).await? {
+                        Some(transition) => {
+                            dispatched = true;
+                            Ok(transition)
+                        }
+                        None => Ok((state, None, None)),
                     }
-                    None => Ok((state, None, None)),
-                }
-            })?;
+                })
+                .await?;
             if !dispatched {
                 return Ok(());
             }
         }
     }
     loop {
-        let (dispatched, _) = callbacks.next_inbound()?;
+        let (dispatched, _) = callbacks.next_inbound().await?;
         if !dispatched {
             return Ok(());
         }

@@ -22,6 +22,7 @@ pub(super) fn link_libraries(
         root,
         source_path,
         crate::validation::target_profile::TargetProfile::JsShared,
+        None,
     )
 }
 
@@ -30,6 +31,7 @@ pub(super) fn link_libraries_with_profile(
     root: &CoreModule,
     source_path: &Path,
     profile: crate::validation::target_profile::TargetProfile,
+    cache_dir: Option<&Path>,
 ) -> Result<CoreModule, SourceLinkError> {
     let mut cores = vec![root.clone()];
     super::js_bindings::materialize(&mut cores[0]);
@@ -88,7 +90,7 @@ pub(super) fn link_libraries_with_profile(
                 &path.to_string_lossy(),
                 &source,
                 crate::DiagnosticFormat::default(),
-                None,
+                cache_dir,
                 crate::validation::native_policy::NativePolicy::default(),
                 profile,
             )
@@ -141,6 +143,7 @@ fn link_cores(mut cores: Vec<CoreModule>) -> Result<CoreModule, SourceLinkError>
             }
         }
     }
+    super::constructors::lower_tagged_tuples(&mut cores);
     crate::compiler::native_ir::qualify_application_nominal_types(&mut cores);
     let roots = cores[0]
         .functions

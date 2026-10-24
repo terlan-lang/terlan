@@ -116,6 +116,26 @@ pub fn lower_syntax_module_output_to_core(
         }
     }
     canonicalize_core_module_aliases(&mut prepared_module, &import_maps.module_aliases);
+    // Qualified function values need the same checked provider identity as
+    // selected imports; their module alias is not a lexical closure capture.
+    for (alias, provider) in &import_maps.module_aliases {
+        if let Some(interface) = resolved.interface_map.get(provider) {
+            for ((name, arity), signature) in &interface.functions {
+                if signature.public {
+                    import_maps
+                        .function_imports
+                        .entry(format!("{alias}.{name}"))
+                        .or_default()
+                        .push(ImportedFunctionTarget {
+                            module: provider.clone(),
+                            function: name.clone(),
+                            arity: Some(*arity),
+                            span: Span { start: 0, end: 0 },
+                        });
+                }
+            }
+        }
+    }
     canonicalize_core_selected_function_imports(
         &mut prepared_module,
         &import_maps.function_imports,
@@ -543,6 +563,25 @@ fn canonicalize_core_expr_selected_function_imports(
     imports: &HashMap<String, Vec<ImportedFunctionTarget>>,
     bound: &std::collections::HashSet<String>,
 ) {
+    if expr.kind == SyntaxExprKind::FieldAccess {
+        if let (Some(base), Some(field)) = (expr.children.first(), expr.text.as_deref()) {
+            if base.kind == SyntaxExprKind::Var {
+                if let Some(alias) = base.text.as_deref().filter(|alias| !bound.contains(*alias)) {
+                    if let Some([target]) =
+                        imports.get(&format!("{alias}.{field}")).map(Vec::as_slice)
+                    {
+                        if let Some(arity) = target.arity {
+                            expr.kind = SyntaxExprKind::RemoteFunRef;
+                            expr.remote = Some(target.module.clone());
+                            expr.text = Some(target.function.clone());
+                            expr.arity = arity;
+                            expr.children.clear();
+                        }
+                    }
+                }
+            }
+        }
+    }
     if expr.kind == SyntaxExprKind::Var {
         if let Some(local_name) = expr.text.as_deref() {
             if !bound.contains(local_name) {
@@ -613,7 +652,10 @@ fn canonicalize_core_expr_selected_function_imports(
         }
     }
     for (index, child) in expr.children.iter_mut().enumerate() {
-        if expr.kind == SyntaxExprKind::Call && index == 0 {
+        if expr.kind == SyntaxExprKind::Call
+            && index == 0
+            && matches!(child.kind, SyntaxExprKind::Var | SyntaxExprKind::Atom)
+        {
             continue;
         }
         canonicalize_core_expr_selected_function_imports(child, imports, bound);

@@ -30,7 +30,9 @@ pub use interface_loading::{
     load_interfaces_from_dir, load_interfaces_from_file_set, parse_interface_dependency_entries,
     parse_interface_file,
 };
-pub(crate) use interface_parse_cache::{interface_parse_counts, parse_interface_text};
+pub(crate) use interface_parse_cache::{
+    clear_interface_parse_cache, interface_parse_counts, parse_interface_text,
+};
 pub use model::{
     ConstFunctionSignature, ConstantSignature, ConstructorSignature, Diagnostic,
     ExpressionMacroSignature, FunctionSignature, FunctionSymbol, ImportedItem, ModuleInterface,

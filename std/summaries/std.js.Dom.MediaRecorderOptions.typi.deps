@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaRecorderOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=1789072203488024860
-interface_hash=5373121942831481189
-interface_doc_hash=5373121942831481189
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=6158670510338533519
+interface_hash=14402889592417613147
+interface_doc_hash=14402889592417613147
 deps=0

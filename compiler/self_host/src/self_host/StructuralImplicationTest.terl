@@ -1,0 +1,49 @@
+/** Contracts for self-hosted structural implication evidence. */
+module self_host.StructuralImplicationTest.
+
+import self_host.StructuralImplication.{StructuralField}.
+
+import std.collections.List.
+import self_host.StructuralImplication.
+
+
+@pure
+parses_implication(): Bool ->
+    let parsed = StructuralImplication.parse("Value => {name: String, age: Int}");
+    parsed.valid and parsed.subject == "Value" and List.length(parsed.fields) == 2.
+
+@pure
+rejects_duplicate_requirement(): Bool ->
+    let parsed = StructuralImplication.parse("Value => {name: String, name: String}");
+    not parsed.valid and parsed.message == "duplicate structural field `name`".
+
+@pure
+width_evidence_accepts_extra_fields(): Bool ->
+    StructuralImplication.entails(
+        [StructuralField("age", "Int"), StructuralField("name", "String")],
+        [StructuralField("name", "String")],
+    ).valid.
+
+@pure
+missing_field_is_rejected(): Bool ->
+    let evidence = StructuralImplication.entails(
+        [StructuralField("age", "Int")],
+        [StructuralField("name", "String")],
+    );
+    not evidence.valid and evidence.message == "missing required structural field `name`".
+
+@pure
+incompatible_field_is_rejected(): Bool ->
+    let evidence = StructuralImplication.entails(
+        [StructuralField("name", "Int")],
+        [StructuralField("name", "String")],
+    );
+    not evidence.valid
+        and evidence.message == "structural field `name` expects String, found Int".
+
+pub self_test(): Bool ->
+    parses_implication()
+        and rejects_duplicate_requirement()
+        and width_evidence_accepts_extra_fields()
+        and missing_field_is_rejected()
+        and incompatible_field_is_rejected().

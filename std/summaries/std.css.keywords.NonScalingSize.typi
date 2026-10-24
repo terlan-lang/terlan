@@ -1,0 +1,6 @@
+//! Shared CSS keyword non-scaling-size. Generated; do not edit.
+
+module std.css.keywords.NonScalingSize.
+
+pub type NonScalingSize =
+    Atom["non-scaling-size"].

@@ -1,0 +1,206 @@
+/** Canonical package qualification for resolved projected type trees. */
+module self_host.ProjectedCanonicalType.
+
+import self_host.ProjectedTypeResolution.{canonical_name}.
+import self_host.ProjectedTypeResolutionSyntax.{ProjectedTypeResolution}.
+import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.String.
+
+@pure
+contains(values: List[String], name: String): Bool ->
+    case values { [] -> false; [value | rest] -> value == name or contains(rest, name) }.
+
+@pure
+is_builtin(name: String): Bool ->
+    name == "Int"
+        or name == "Float"
+        or name == "Bool"
+        or name == "String"
+        or name == "Binary"
+        or name == "Unit"
+        or name == "Dynamic"
+        or name == "Atom"
+        or name == "Never"
+        or name == "Any"
+        or name == "List"
+        or name == "Map"
+        or name == "Set"
+        or name == "Vector"
+        or name == "Option"
+        or name == "Result"
+        or name == "Html".
+
+@pure
+qualify_name(
+    name: String,
+    resolution: ProjectedTypeResolution,
+    parameters: List[String],
+): Result[String, String] ->
+    if {
+        is_builtin(name) or contains(parameters, name) -> Ok(name);
+        true -> case canonical_name(resolution, name) {
+            Some(canonical) -> Ok(canonical);
+            None -> if {
+                resolution.valid -> Ok(name);
+                true -> Err(String.append("unresolved canonical type identity: ", name))
+            }
+        }
+    }.
+
+@pure
+join(values: List[String], separator: String): String ->
+    case values {
+        [] -> "";
+        [value] -> value;
+        [value | rest] -> String.concat([value, separator, join(rest, separator)])
+    }.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+qualify_nodes_at(
+    values: List[ProjectedTypeNode],
+    resolution: ProjectedTypeResolution,
+    parameters: List[String],
+    output: List[String],
+): Result[List[String], String] ->
+    case values {
+        [] -> Ok(reverse_at(output, List.new[String]()));
+        [value | rest] -> case qualify(value, resolution, parameters) {
+            Err(message) -> Err(message);
+            Ok(canonical) -> qualify_nodes_at(rest, resolution, parameters, [canonical | output])
+        }
+    }.
+
+@pure
+qualify_generic(
+    value: ProjectedTypeNode,
+    resolution: ProjectedTypeResolution,
+    parameters: List[String],
+): Result[String, String] ->
+    case qualify_name(value.text, resolution, parameters) {
+        Err(message) -> Err(message);
+        Ok(generic_name) -> case qualify_nodes_at(
+            value.children,
+            resolution,
+            parameters,
+            List.new[String](),
+        ) {
+            Err(message) -> Err(message);
+            Ok(arguments) -> Ok(String.concat([generic_name, "[", join(arguments, ", "), "]"]))
+        }
+    }.
+
+@pure
+qualify_children(
+    value: ProjectedTypeNode,
+    resolution: ProjectedTypeResolution,
+    parameters: List[String],
+    opening: String,
+    separator: String,
+    closing: String,
+): Result[String, String] ->
+    case qualify_nodes_at(value.children, resolution, parameters, List.new[String]()) {
+        Err(message) -> Err(message);
+        Ok(children) -> Ok(String.concat([opening, join(children, separator), closing]))
+    }.
+
+@pure
+qualify_single_child(
+    value: ProjectedTypeNode,
+    resolution: ProjectedTypeResolution,
+    parameters: List[String],
+): Result[String, String] ->
+    case value.children {
+        [child] -> qualify(child, resolution, parameters);
+        _ -> Err(String.concat(["invalid canonical type child count for `", value.kind, "`"]))
+    }.
+
+@pure
+qualify_record_field(
+    value: ProjectedTypeNode,
+    resolution: ProjectedTypeResolution,
+    parameters: List[String],
+): Result[String, String] ->
+    case qualify_single_child(value, resolution, parameters) {
+        Err(message) -> Err(message);
+        Ok(field_type) -> Ok(String.concat([value.text, ": ", field_type]))
+    }.
+
+@pure
+qualify_function_reversed(
+    values: List[ProjectedTypeNode],
+    resolution: ProjectedTypeResolution,
+    parameters: List[String],
+): Result[String, String] ->
+    case values {
+        [] -> Err("function type has no return type");
+        [return_type | reversed_parameters] -> case qualify(
+            return_type,
+            resolution,
+            parameters,
+        ) {
+            Err(message) -> Err(message);
+            Ok(result) -> case qualify_nodes_at(
+                reverse_at(reversed_parameters, List.new[ProjectedTypeNode]()),
+                resolution,
+                parameters,
+                List.new[String](),
+            ) {
+                Err(message) -> Err(message);
+                Ok(inputs) -> Ok(String.concat(["(", join(inputs, ", "), ") -> ", result]))
+            }
+        }
+    }.
+
+@pure
+qualify_function(
+    value: ProjectedTypeNode,
+    resolution: ProjectedTypeResolution,
+    parameters: List[String],
+): Result[String, String] -> qualify_function_reversed(
+    reverse_at(value.children, List.new[ProjectedTypeNode]()),
+    resolution,
+    parameters,
+).
+
+@pure
+qualify_existential(
+    value: ProjectedTypeNode,
+    resolution: ProjectedTypeResolution,
+    parameters: List[String],
+): Result[String, String] ->
+    case qualify_single_child(value, resolution, [value.text | parameters]) {
+        Err(message) -> Err(message);
+        Ok(body) -> Ok(String.concat(["exists ", value.text, ". ", body]))
+    }.
+
+/** Emits one resolved, package-qualified ABI type spelling. */
+@pure
+pub qualify(
+    value: ProjectedTypeNode,
+    resolution: ProjectedTypeResolution,
+    parameters: List[String],
+): Result[String, String] ->
+    if {
+        value.kind == "named-type" -> qualify_name(value.text, resolution, parameters);
+        value.kind == "generic-type" -> qualify_generic(value, resolution, parameters);
+        value.kind == "atom-type" -> Ok(value.text);
+        value.kind == "union-type" -> qualify_children(value, resolution, parameters, "", " | ", "");
+        value.kind == "tuple-type" -> qualify_children(value, resolution, parameters, "(", ", ", ")");
+        value.kind == "record-or-tuple-type" -> qualify_children(value, resolution, parameters, "{", ", ", "}");
+        value.kind == "item" -> qualify_single_child(value, resolution, parameters);
+        value.kind == "field" -> qualify_record_field(value, resolution, parameters);
+        value.kind == "function-type" -> qualify_function(value, resolution, parameters);
+        value.kind == "existential-type" -> qualify_existential(value, resolution, parameters);
+        true -> Err(String.concat([
+            "canonical ABI type lowering does not support projected kind `",
+            value.kind,
+            "`",
+        ]))
+    }.

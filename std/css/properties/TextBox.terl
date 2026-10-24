@@ -1,117 +1,45 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box
+ * The `text-box` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property corresponds to the `text-box-trim` and `text-box-edge` properties, which together
+ * specify the amount of space to trim from the block-start edge and block-end edge of a text
+ * element's block container.
+ *
+ * Initial: normal. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: The default value. Equivalent to the `text-edge` value `text`. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-edge
+ * - none: The default value. No space is trimmed from the text. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-trim
+ * - text: The font's over edge is its text-over baseline (includes the font's ascenders but
+ * excludes the over edge half-leading), or its under edge is its text-under baseline (includes the
+ * font's descenders but excludes the under edge half-leading), depending on which edge the value is
+ * set for. See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/text-edge
+ * - trim-both: The start (over) and end (under) edges are both trimmed. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-trim
+ * - trim-end: The end (under) edge is trimmed. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-trim
+ * - trim-start: The start (over) edge is trimmed. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-trim
+ *
  * Grammar: normal | <'text-box-trim'> || <'text-box-edge'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextBox.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, Ideographic, IdeographicInk, None, Normal, TextKeyword, TrimBoth, TrimEnd, TrimStart}.
 
-/**
- * A nominal, specification-constrained text-box value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_box: Value,
+    text_box: Normal | None | TrimStart | TrimEnd | TrimBoth | Auto | TextKeyword | Ideographic | IdeographicInk | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    text_box: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "text-box", css: "auto"}).
-
-/**
- * Returns the CSS keyword ideographic.
- */
-pub ideographic(): Value ->
-    Value(Token {property: "text-box", css: "ideographic"}).
-
-/**
- * Returns the CSS keyword ideographic-ink.
- */
-pub ideographic_ink(): Value ->
-    Value(Token {property: "text-box", css: "ideographic-ink"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-box", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-box", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "text-box", css: "none"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "text-box", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-box", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-box", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword text.
- */
-pub text(): Value ->
-    Value(Token {property: "text-box", css: "text"}).
-
-/**
- * Returns the CSS keyword trim-both.
- */
-pub trim_both(): Value ->
-    Value(Token {property: "text-box", css: "trim-both"}).
-
-/**
- * Returns the CSS keyword trim-end.
- */
-pub trim_end(): Value ->
-    Value(Token {property: "text-box", css: "trim-end"}).
-
-/**
- * Returns the CSS keyword trim-start.
- */
-pub trim_start(): Value ->
-    Value(Token {property: "text-box", css: "trim-start"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-box", css: "unset"}).

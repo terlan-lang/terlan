@@ -1,88 +1,71 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding
+//! The `scroll-padding` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets scroll padding on all sides of an element at once. It specifies offsets that define
+//! the optimal viewing region of a scrollport within a `scroll container`.
+//!
+//! Initial: scroll-padding-bottom: auto; scroll-padding-left: auto; scroll-padding-right: auto;
+//! scroll-padding-top: auto. Inherited: no.
+//! Percentages: relative to the scroll container's scrollport.
+//!
+//! Keyword effects:
+//! - auto: The offset is determined by the user agent. This will generally be `0px`, but the user
+//! agent is free to detect and do something else if a non-zero value is more appropriate.
+//!
 //! Grammar: [ auto | <length-percentage [0,∞]> ]{1,4}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-padding
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollPadding.
 
-/// A single non-global scroll-padding shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
+pub opaque type CheckedComponent.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    scroll_padding: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    Auto
+  | CheckedComponent.
 
 pub struct Property {
-    scroll_padding: Value
+    scroll_padding: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained scroll-padding value.
+/// Checks the scroll-padding length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-/// Returns the CSS keyword auto.
+/// Checks the scroll-padding percentage range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub auto(): Value.
+pub component_percentage(value: std.css.Values.Percentage): Option[CheckedComponent].
 
-/// Constructs one scroll-padding shorthand component.
+/// Checks the scroll-padding length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub component_auto(): Component.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Checks the specification range and constructs a scroll-padding value.
+/// First sets top/bottom; second sets left/right.
 
-pub component_length(value: std.css.Values.Length): Option[Component].
+pub pair(first: Component, second: Component): Checked.
 
-/// Checks the specification range and constructs a scroll-padding value.
+/// Checks the scroll-padding percentage range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub component_percentage(value: std.css.Values.Percentage): Option[Component].
+pub percentage(value: std.css.Values.Percentage): Option[Checked].
 
-/// Returns the CSS keyword inherit.
+/// Sets top, right, bottom, and left in that order.
 
-pub inherit(): Value.
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
-/// Returns the CSS keyword initial.
+/// Applies to all four sides.
 
-pub initial(): Value.
+pub single(first: Component): Checked.
 
-/// Checks the specification range and constructs a scroll-padding value.
+/// First sets top; second sets left/right; third sets bottom.
 
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Combines 2 typed components in specification order.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Checks the specification range and constructs a scroll-padding value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Combines 4 typed components in specification order.
-
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Combines 3 typed components in specification order.
-
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub triple(first: Component, second: Component, third: Component): Checked.

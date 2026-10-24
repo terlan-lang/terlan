@@ -8,8 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{CliCommand, CliState};
 use terlan_http_native::api_contract::{ApiContract, API_CONTRACT_SCHEMA, OPENAPI_VERSION};
 
-pub(crate) mod router_syntax;
-pub(crate) mod source_contract;
+pub(crate) mod evaluated_contract;
 
 const API_OUTPUT_DIR: &str = "api";
 const API_CONTRACT_FILE: &str = "api-contract.json";
@@ -354,7 +353,7 @@ fn emit_api_artifacts(out_dir: &Path, args: &ApiEmitArgs) -> Result<ApiArtifactP
         )
     })?;
 
-    let contract = api_contract_from_emit_args(args)?;
+    let contract = api_contract_from_emit_args(out_dir, args)?;
     let openapi = contract.to_openapi();
     let contract_json = serde_json::to_string_pretty(&contract)
         .map_err(|err| format!("cannot serialize API contract: {err}"))?;
@@ -381,15 +380,14 @@ fn emit_api_artifacts(out_dir: &Path, args: &ApiEmitArgs) -> Result<ApiArtifactP
 /// Transformation:
 /// - Reads the source file at the command boundary and delegates route
 ///   extraction to the CLI adapter and projection to the std.http package.
-fn api_contract_from_emit_args(args: &ApiEmitArgs) -> Result<ApiContract, String> {
+fn api_contract_from_emit_args(out_dir: &Path, args: &ApiEmitArgs) -> Result<ApiContract, String> {
     if let Some(source) = &args.source {
-        let text = fs::read_to_string(source).map_err(|err| {
-            format!(
-                "error[api_emit]: cannot read API source {}: {err}",
-                source.display()
-            )
-        })?;
-        source_contract::from_router_source(&text, &args.service_name, &args.service_version)
+        evaluated_contract::from_router_file(
+            source,
+            &out_dir.join("api-build"),
+            &args.service_name,
+            &args.service_version,
+        )
     } else {
         Ok(ApiContract::empty(
             &args.service_name,

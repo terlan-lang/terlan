@@ -85,3 +85,22 @@ pub view(title: Binary): Html ->
         "{js}"
     );
 }
+
+#[test]
+fn typescript_declarations_bind_generic_function_parameters() {
+    let artifacts = compile_syntax_module_through_phases_with_profile(
+        "generic_declaration.terl",
+        "module generic_declaration.\npub identity[T](value: T): T -> value.\n",
+        DiagnosticFormat::default(),
+        None,
+        NativePolicy::default(),
+        TargetProfile::JsShared,
+    )
+    .expect("compile generic function");
+    let declaration =
+        super::declarations::emit_core_module_to_typescript_declarations(&artifacts.core);
+    assert!(
+        declaration.contains("export function identity<T>(value: T): T;"),
+        "{declaration}"
+    );
+}

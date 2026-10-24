@@ -10,59 +10,35 @@ import std.core.String.
 import std.io.File.
 
 pub struct Duplicate {
-    /**
-     * Crate name present at multiple resolved versions.
-     */
+    /** Crate name present at multiple resolved versions. */
     name: String,
-    /**
-     * Resolved versions of the duplicated crate.
-     */
+    /** Resolved versions of the duplicated crate. */
     versions: List[String],
 }.
 
 pub struct Classification {
-    /**
-     * Duplicated crate covered by this policy entry.
-     */
+    /** Duplicated crate covered by this policy entry. */
     name: String,
-    /**
-     * Crate versions covered by this classification.
-     */
+    /** Crate versions covered by this classification. */
     versions: String,
-    /**
-     * Policy classification assigned to the duplicate dependency.
-     */
+    /** Policy classification assigned to the duplicate dependency. */
     classification: String,
-    /**
-     * Team or component responsible for resolving the duplicate.
-     */
+    /** Team or component responsible for resolving the duplicate. */
     owner: String,
-    /**
-     * Reason the duplicate dependency is currently accepted.
-     */
+    /** Reason the duplicate dependency is currently accepted. */
     rationale: String,
-    /**
-     * Milestone planned for resolving the duplicate.
-     */
+    /** Milestone planned for resolving the duplicate. */
     milestone: String,
 }.
 
 pub struct ClassificationResult {
-    /**
-     * Whether all duplicate-dependency classifications satisfy policy.
-     */
+    /** Whether all duplicate-dependency classifications satisfy policy. */
     valid: Bool,
-    /**
-     * Validated duplicate-dependency classifications.
-     */
+    /** Validated duplicate-dependency classifications. */
     rows: List[Classification],
-    /**
-     * Policy failures found while validating classifications.
-     */
+    /** Policy failures found while validating classifications. */
     diagnostics: List[String],
-    /**
-     * Summary of the classification validation result.
-     */
+    /** Summary of the classification validation result. */
     message: String,
 }.
 

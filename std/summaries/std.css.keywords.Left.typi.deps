@@ -1,0 +1,9 @@
+module=std.css.keywords.Left
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=13733614500885122927
+interface_hash=1941959934413185913
+interface_doc_hash=15642865640605488063
+deps=1
+std.core.Atom=1622392358921716353

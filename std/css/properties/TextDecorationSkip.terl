@@ -1,75 +1,33 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip
+ * The `text-decoration-skip` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * what parts of an element's content any text decoration affecting the element must skip over. It
+ * controls all text decoration lines drawn by the element and also any text decoration lines drawn
+ * by its ancestors.
+ *
+ * Initial: objects. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - none: Nothing is skipped. Thus, text decoration is drawn for all text content and across atomic
+ * inline-level boxes.
+ *
  * Grammar: none | auto
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-skip
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextDecorationSkip.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, None}.
 
-/**
- * A nominal, specification-constrained text-decoration-skip value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_decoration_skip: Value,
+    text_decoration_skip: None | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    text_decoration_skip: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "text-decoration-skip", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-decoration-skip", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-decoration-skip", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "text-decoration-skip", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-decoration-skip", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-decoration-skip", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-decoration-skip", css: "unset"}).

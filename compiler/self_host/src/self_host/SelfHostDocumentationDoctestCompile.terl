@@ -1,0 +1,43 @@
+/** Admits extracted documentation examples through the self-hosted frontend. */
+module self_host.SelfHostDocumentationDoctestCompile.
+
+import self_host.CanonicalLexer.
+import self_host.ProjectedFrontend.
+import self_host.SelfHostDocumentationDoctest.{DoctestExtraction}.
+import std.collections.List.
+
+pub struct DoctestAdmission {
+    valid: Bool,
+    count: Int,
+    message: String,
+}.
+
+pub constructor DoctestAdmission {
+    (valid: Bool, count: Int, message: String): DoctestAdmission ->
+        DoctestAdmission { valid: valid, count: count, message: message }
+}.
+
+admit_blocks(blocks: List[String], count: Int): DoctestAdmission ->
+    case blocks {
+        [] -> DoctestAdmission(true, count, "");
+        [source | rest] ->
+            let lexed = CanonicalLexer.lex(source);
+            if {
+                not List.is_empty(lexed.errors) ->
+                    DoctestAdmission(false, count, "documentation example has lexical errors");
+                true ->
+                    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+                    if {
+                        not frontend.surface.valid ->
+                            DoctestAdmission(false, count, "documentation example has syntax errors");
+                        true -> admit_blocks(rest, count + 1)
+                    }
+            }
+    }.
+
+/** Requires every extracted example to pass the self-hosted lexical and syntax frontend. */
+pub admit(extraction: DoctestExtraction): DoctestAdmission ->
+    if {
+        not extraction.valid -> DoctestAdmission(false, 0, extraction.message);
+        true -> admit_blocks(extraction.blocks, 0)
+    }.

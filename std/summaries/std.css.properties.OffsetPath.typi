@@ -1,72 +1,30 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/motion-1/#propdef-offset-path
+//! The `offset-path` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies a
+//! path for an element to follow and determines the element's positioning within the path's parent
+//! container or the SVG coordinate system. The path is a line, a curve, or a geometrical shape along
+//! which the element gets positioned or moves.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - none: Specifies that the element does not follow any offset path. The `none` value is
+//! equivalent to the element not having any [offset
+//! transform](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset). The
+//! element's movement in this case is determined by its default position properties, such as `top`
+//! and `left`, instead of an offset path. This is the default value.
+//!
 //! Grammar: none | <offset-path> || <coord-box>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/motion-1/#propdef-offset-path
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-path
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OffsetPath.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    offset_path: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    offset_path: Value
+    offset_path: None | ContentBox | PaddingBox | BorderBox | FillBox | StrokeBox | ViewBox | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained offset-path value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword border-box.
-
-pub border_box(): Value.
-
-/// Returns the CSS keyword content-box.
-
-pub content_box(): Value.
-
-/// Returns the CSS keyword fill-box.
-
-pub fill_box(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword padding-box.
-
-pub padding_box(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stroke-box.
-
-pub stroke_box(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword view-box.
-
-pub view_box(): Value.
-
-export type Token.

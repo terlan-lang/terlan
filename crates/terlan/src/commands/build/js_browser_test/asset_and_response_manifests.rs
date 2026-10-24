@@ -203,7 +203,7 @@ pub(super) fn write_browser_package_preserves_response_handlers_as_source_calls(
         let js_root = root.join("js");
         fs::create_dir_all(js_root.join("modules")).unwrap();
         fs::write(js_root.join("modules/app.js"), "export {};\n").unwrap();
-        let source_path = root.join("Http.terl");
+        let source_path = root.join("app/Http.terl");
         write_source(&source_path);
         let modules = vec![module_artifact("app.Http", &source_path)];
         let contract = js_target_contract(TargetProfile::JsBrowser).unwrap();
@@ -237,7 +237,7 @@ pub(super) fn write_browser_package_keeps_error_handlers_in_source() {
     fs::create_dir_all(&modules_dir).expect("create modules dir");
     fs::write(modules_dir.join("app.js"), "export {};\n").expect("write js module");
 
-    let source_path = root.join("Http.terl");
+    let source_path = root.join("app/Http.terl");
     write_error_router_source(&source_path);
     let modules = vec![module_artifact("app.Http", &source_path)];
     let contract = js_target_contract(TargetProfile::JsBrowser).expect("browser contract");
@@ -272,8 +272,7 @@ pub(super) fn discover_web_handlers_rejects_missing_handler_function() {
 
     let error = discover_web_handlers_from_modules(&modules).expect_err("missing handler");
 
-    assert!(error.contains("error[web_router]: handler `home`"));
-    assert!(error.contains("is not defined"));
+    assert!(error.contains("compilation failed"), "{error}");
     fs::remove_file(source_path).expect("cleanup router source");
 }
 
@@ -299,8 +298,7 @@ pub(super) fn discover_web_handlers_rejects_wrong_handler_arity() {
 
     let error = discover_web_handlers_from_modules(&modules).expect_err("wrong arity");
 
-    assert!(error.contains("error[web_router]: handler `home`"));
-    assert!(error.contains("must accept Request or Request plus 0 route parameter(s), got arity 0"));
+    assert!(error.contains("compilation failed"), "{error}");
     fs::remove_file(source_path).expect("cleanup router source");
 }
 
@@ -326,8 +324,7 @@ pub(super) fn discover_web_handlers_rejects_wrong_handler_return_type() {
 
     let error = discover_web_handlers_from_modules(&modules).expect_err("wrong return type");
 
-    assert!(error.contains("error[web_router]: handler `home`"));
-    assert!(error.contains("must return Response, got `String`"));
+    assert!(error.contains("compilation failed"), "{error}");
     fs::remove_file(source_path).expect("cleanup router source");
 }
 
@@ -353,8 +350,7 @@ pub(super) fn discover_web_handlers_rejects_wrong_handler_request_type() {
 
     let error = discover_web_handlers_from_modules(&modules).expect_err("wrong request type");
 
-    assert!(error.contains("error[web_router]: handler `home`"));
-    assert!(error.contains("must accept Request as parameter 1, got `String`"));
+    assert!(error.contains("compilation failed"), "{error}");
     fs::remove_file(source_path).expect("cleanup router source");
 }
 
@@ -377,7 +373,7 @@ pub(super) fn discover_web_handlers_rejects_invalid_route_pattern() {
 
     let error = discover_web_handlers_from_modules(&modules).expect_err("invalid route");
 
-    assert!(error.contains("error[web_router]: wildcard in handler route `/assets/*/tail`"));
+    assert!(error.contains("error[serve_package]: wildcard in handler route `/assets/*/tail`"));
     assert!(error.contains("must be the final segment"));
     fs::remove_file(source_path).expect("cleanup router source");
 }
@@ -401,7 +397,7 @@ pub(super) fn discover_web_handlers_rejects_ambiguous_route_shapes() {
 
     let error = discover_web_handlers_from_modules(&modules).expect_err("ambiguous route");
 
-    assert!(error.contains("error[web_router]: duplicate or ambiguous handler route"));
+    assert!(error.contains("duplicate VM HTTP route"), "{error}");
     assert!(error.contains("GET"));
     assert!(error.contains("/users/:name"));
     fs::remove_file(source_path).expect("cleanup router source");

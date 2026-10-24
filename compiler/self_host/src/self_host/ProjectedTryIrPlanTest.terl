@@ -1,0 +1,123 @@
+/** Structured try-region planning contracts. */
+module self_host.ProjectedTryIrPlanTest.
+
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedSemanticIrPlan.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
+import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan}.
+import self_host.SelfHostIrSyntax.{IrParameter}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Bool, Int, String}.
+
+
+node(
+    kind: String,
+    text: String,
+    start: Int,
+    children: List[ProjectedExpressionNode],
+): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, start, start + 1, children).
+
+try_expression(): ProjectedExpressionNode ->
+    node("try", "try", 0, [
+        node("integer", "1", 1, []),
+        node("success-clauses", "", 2, []),
+        node("catch-clauses", "", 3, [
+            node("clause", "->", 4, [
+                node("wildcard-pattern", "_", 5, []),
+                node("integer", "2", 6, []),
+            ]),
+        ]),
+    ]).
+
+planned(): List[SemanticBlockPlan] ->
+    case ProjectedSemanticIrPlan.root_try_blocks(
+        try_expression(),
+        [
+            InferredTypeFact(0, Some("Int"), 0),
+            InferredTypeFact(1, Some("Int"), 1),
+            InferredTypeFact(6, Some("Int"), 6),
+        ],
+        [],
+    ) {
+        Some(blocks) -> blocks;
+        None -> []
+    }.
+
+/** A typed try produces role-correct protected, success, and failure regions. */
+@test
+pub typed_try_uses_structured_regions(): Bool ->
+    case planned() {
+        [block] -> case block.instructions {
+            [instruction] -> instruction.opcode == "try-region"
+                and instruction.operands == []
+                and case instruction.try_region {
+                    None -> false;
+                    Some(regions) ->
+                        regions.protected.parameters == []
+                            and regions.protected.resolved_type == Some("Int")
+                            and regions.success.parameters == [
+                                IrParameter(
+                                    "%try_success_value",
+                                    "Int",
+                                ),
+                            ]
+                            and regions.success.result == "%try_success_value"
+                            and regions.failure.parameters == [
+                                IrParameter(
+                                    "%try_failure_status",
+                                    "Int",
+                                ),
+                            ]
+                            and regions.cleanup == []
+                };
+            _ -> false
+        };
+        _ -> false
+    }.
+
+/** Malformed try shape is not admitted and retains a positive companion. */
+@test
+pub malformed_try_shape_is_rejected(): Bool ->
+    typed_try_uses_structured_regions()
+        and ProjectedSemanticIrPlan.root_try_blocks(
+            node("try", "try", 0, []),
+            [],
+            [],
+        ) == None.
+
+contains_try_region(values: List[SemanticBlockPlan]): Bool ->
+    case values {
+        [] -> false;
+        [block | rest] -> contains_try_instruction(block.instructions)
+            or contains_try_region(rest)
+    }.
+
+contains_try_instruction(
+    values: List[self_host.SelfHostSemanticIrSyntax.SemanticInstructionPlan],
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.opcode == "try-region"
+            or contains_try_instruction(rest)
+    }.
+
+/** A try nested in a scalar expression is lifted instead of evaluated eagerly. */
+@test
+pub nested_try_is_lifted_into_the_parent_expression_plan(): Bool ->
+    let expression = node("binary", "+", 10, [
+        try_expression(),
+        node("integer", "3", 8, []),
+    ]);
+    contains_try_region(ProjectedSemanticIrPlan.expression_blocks_with_try(
+        expression,
+        [
+            InferredTypeFact(0, Some("Int"), 10),
+            InferredTypeFact(1, Some("Int"), 0),
+            InferredTypeFact(2, Some("Int"), 1),
+            InferredTypeFact(7, Some("Int"), 6),
+            InferredTypeFact(8, Some("Int"), 8),
+        ],
+        [],
+    )).

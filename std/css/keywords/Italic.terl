@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword italic. Generated; do not edit.
+ */
+module std.css.keywords.Italic.
+
+pub type Italic.

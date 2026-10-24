@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword extra-condensed. Generated; do not edit.
+ */
+module std.css.keywords.ExtraCondensed.
+
+pub type ExtraCondensed = Atom["extra-condensed"].

@@ -232,7 +232,10 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
     if !source_entry.is_file() && !config.angular_ts && config.styles.is_empty() {
         return Ok(false);
     }
-    let template = config.source_dir.join("index.html");
+    let template = config
+        .html_template
+        .clone()
+        .unwrap_or_else(|| config.source_dir.join("index.html"));
     if !template.is_file() {
         return Err(format!(
             "project manifest [web.assets] Rsbuild entrypoint requires {}",

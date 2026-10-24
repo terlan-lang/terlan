@@ -44,6 +44,20 @@ pub sse_callbacks_are_retained_without_mutating_the_original(): Bool ->
         and configured.keep_alive_ms == Some(15000).
 
 @test
+pub sse_producer_construction_is_lazy_and_preserves_policy(): Bool ->
+    let original = bounded_endpoint();
+    let configured = original.producer(() -> Some(Sse.data("payload").with_name("bad\nname")));
+    let repeated = configured.producer(() -> None);
+    let callbacks = configured.callbacks(idle, consume, idle, idle, consume);
+    original == bounded_endpoint()
+        and configured != original
+        and repeated != configured
+        and callbacks != configured
+        and callbacks.max_pending_events == 16
+        and callbacks.max_event_bytes == 4096
+        and callbacks.keep_alive_ms == Some(15000).
+
+@test
 pub sse_event_metadata_builders_record_typed_descriptor(): Bool ->
     let original = Sse.data("tick");
     let tagged = original.with_id("42").with_name("counter").with_retry_ms(1500);

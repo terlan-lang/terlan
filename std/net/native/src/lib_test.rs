@@ -101,6 +101,19 @@ fn native_entrypoint_validates_arity_and_types() {
 fn query_binding_preserves_wire_order_duplicates_and_maintained_decoding() {
     for (query, expected) in [
         ("", vec![]),
+        ("&&", vec![]),
+        (
+            "flag&=empty&eq=a=b&flag=last",
+            vec![("flag", ""), ("", "empty"), ("eq", "a=b"), ("flag", "last")],
+        ),
+        (
+            "a%26b=c%3Dd&plus=%2B+%20",
+            vec![("a&b", "c=d"), ("plus", "+  ")],
+        ),
+        (
+            "bad=%GG%&utf8=%FF&zero=%00",
+            vec![("bad", "%GG%"), ("utf8", "\u{fffd}"), ("zero", "\0")],
+        ),
         ("a=1&a=2", vec![("a", "1"), ("a", "2")]),
         (
             "room=a+b&player=one%2Btwo",

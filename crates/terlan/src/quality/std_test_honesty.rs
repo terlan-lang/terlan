@@ -64,8 +64,33 @@ fn run_std_test_honesty_for_dir(
             .map_err(|err| format!("{}: failed to read test file: {err}", path.display()))?;
         let module = parse_module_as_syntax_output(&text)
             .map_err(|err| format!("{}: failed to parse test module: {err:?}", path.display()))?;
+        let constant_helpers = module
+            .declarations
+            .iter()
+            .filter_map(|declaration| {
+                let SyntaxDeclarationPayload::Function { name, clauses, .. } = &declaration.payload
+                else {
+                    return None;
+                };
+                let [clause] = clauses.as_slice() else {
+                    return None;
+                };
+                (!clause.has_guard
+                    && clause.guard.is_none()
+                    && literal_bool_or_trivial_bool_conjunction(&clause.body) == Some(true))
+                .then(|| name.clone())
+            })
+            .collect::<std::collections::HashSet<_>>();
         for declaration in &module.declarations {
             if !has_test_annotation(declaration) {
+                if let SyntaxDeclarationPayload::Function { name, .. } = &declaration.payload {
+                    if constant_helpers.contains(name) {
+                        diagnostics.push(format!(
+                            "{}: helper `{name}` unconditionally returns true",
+                            path.display()
+                        ));
+                    }
+                }
                 continue;
             }
             checked_test_count += 1;
@@ -81,6 +106,22 @@ fn run_std_test_honesty_for_dir(
                         )
                     }),
             );
+            if let SyntaxDeclarationPayload::Function { name, clauses, .. } = &declaration.payload {
+                for clause in clauses {
+                    let mut body = &clause.body;
+                    while body.kind == SyntaxExprKind::Let {
+                        let Some(last) = body.children.last() else {
+                            break;
+                        };
+                        body = last;
+                    }
+                    if let Some(helper) =
+                        call_name(body).filter(|helper| constant_helpers.contains(*helper))
+                    {
+                        diagnostics.push(format!("{}: @test `{name}` returns constant helper `{helper}` instead of checking behavior", path.display()));
+                    }
+                }
+            }
         }
     }
 

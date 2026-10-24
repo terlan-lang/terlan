@@ -14,60 +14,36 @@ import type std.data.Json.
 import type std.data.Json.RequiredFieldRow.
 
 pub struct DomainMetric {
-    /**
-     * Source domain represented by these metrics.
-     */
+    /** Source domain represented by these metrics. */
     name: String,
-    /**
-     * Number of Rust source files in this domain.
-     */
+    /** Number of Rust source files in this domain. */
     rust_files: Int,
-    /**
-     * Number of physical source lines in this domain.
-     */
+    /** Number of physical source lines in this domain. */
     physical_lines: Int,
 }.
 
 pub struct Edge {
-    /**
-     * Domain containing the dependency references.
-     */
+    /** Domain containing the dependency references. */
     source: String,
-    /**
-     * Domain referenced by the source domain.
-     */
+    /** Domain referenced by the source domain. */
     target: String,
-    /**
-     * Number of source references contributing to this dependency edge.
-     */
+    /** Number of source references contributing to this dependency edge. */
     reference_sites: Int,
 }.
 
 pub struct SourceAnalysis {
-    /**
-     * Whether source dependency analysis completed successfully.
-     */
+    /** Whether source dependency analysis completed successfully. */
     valid: Bool,
-    /**
-     * Source metrics for production domains.
-     */
+    /** Source metrics for production domains. */
     production_domains: List[DomainMetric],
-    /**
-     * Dependency edges between production domains.
-     */
+    /** Dependency edges between production domains. */
     production_edges: List[Edge],
-    /**
-     * Source metrics for test domains.
-     */
+    /** Source metrics for test domains. */
     test_domains: List[DomainMetric],
-    /**
-     * Dependency edges between test domains.
-     */
+    /** Dependency edges between test domains. */
     test_edges: List[Edge],
     directory_domains: List[String],
-    /**
-     * Diagnostic explaining a source dependency analysis failure.
-     */
+    /** Diagnostic explaining a source dependency analysis failure. */
     message: String,
 }.
 

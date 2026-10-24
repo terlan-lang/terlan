@@ -1,0 +1,41 @@
+/** Function-span complexity projection contracts. */
+module self_host.SelfHostLintComplexityProjectionTest.
+
+import std.core.String.
+import self_host.SelfHostLintComplexityProjection.
+import self_host.SelfHostToolingDocument.
+
+repeat(value: String, remaining: Int, output: String): String ->
+    if {
+        remaining <= 0 -> output;
+        true -> repeat(value, remaining - 1, output + value)
+    }.
+
+@test
+pub reports_function_declarations_over_forty_lines(): Bool ->
+    let source = "module sample.\nlong(value: Int): Int ->\n"
+        + repeat("    value;\n", 40, "")
+        + "    value.\n";
+    let document = SelfHostToolingDocument.build(source);
+    case SelfHostLintComplexityProjection.diagnostics("Sample.terl", document) {
+        [value] -> value.rule_id == "TL0901" and value.line == 2;
+        _ -> false
+    }.
+
+@test
+pub accepts_function_declarations_at_the_threshold(): Bool ->
+    let source = "module sample.\nshort(value: Int): Int ->\n"
+        + repeat("    value;\n", 38, "")
+        + "    value.\n";
+    let document = SelfHostToolingDocument.build(source);
+    SelfHostLintComplexityProjection.diagnostics("Sample.terl", document) == [].
+
+@test
+pub excludes_non_function_surface_declarations(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nstruct Value { item: Int }.\nvalue(input: Int): Int -> input.\n",
+    );
+    case SelfHostLintComplexityProjection.spans(document) {
+        [_function] -> true;
+        _ -> false
+    }.

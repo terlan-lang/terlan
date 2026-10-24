@@ -1,128 +1,89 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation
+//! The `animation` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property applies an animation between styles. It is a shorthand for `animation-name`,
+//! `animation-duration`, `animation-timing-function`, `animation-delay`,
+//! `animation-iteration-count`, `animation-direction`, `animation-fill-mode`,
+//! `animation-play-state`, and `animation-timeline`.
+//!
+//! Initial: animation-name: none; animation-duration: 0s; animation-timing-function: ease;
+//! animation-delay: 0s; animation-iteration-count: 1; animation-direction: normal;
+//! animation-fill-mode: none; animation-play-state: running; animation-timeline: auto. Inherited:
+//! no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - alternate: The animation cycle iterations that are odd counts are played in the normal
+//! direction, and the animation cycle iterations that are even counts are played in a reverse
+//! direction.
+//! - alternate-reverse: The animation cycle iterations that are odd counts are played in the reverse
+//! direction, and the animation cycle iterations that are even counts are played in a normal
+//! direction.
+//! - auto: For time-based animations, `auto` is equivalent to a value of `0s` (see below). For [CSS
+//! scroll-driven
+//! animations](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations),
+//! `auto` fills the entire timeline with the animation. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-duration
+//! - backwards: The beginning property value (as defined in the first @keyframes at-rule) is applied
+//! before the animation is displayed, during the period defined by 'animation-delay'.
+//! - both: Both forwards and backwards fill modes are applied.
+//! - ease-in: Represents the easing function `cubic-bezier(0.42, 0, 1, 1)`. It indicates that the
+//! interpolation starts slowly, then progressively speeds up until the end, at which point it stops
+//! abruptly. See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+//! - ease-in-out: Represents the easing function `cubic-bezier(0.42, 0, 0.58, 1)`. It indicates that
+//! the interpolation starts slowly, speeds up, and then slows down towards the end. At the
+//! beginning, it behaves like the `ease-in` keyword; at the end, it is like the `ease-out` keyword.
+//! See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+//! - ease-out: Represents the easing function `cubic-bezier(0, 0, 0.58, 1)`. It indicates that the
+//! interpolation starts abruptly and then progressively slows down towards the end. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+//! - forwards: The final property value (as defined in the last @keyframes at-rule) is maintained
+//! after the animation completes.
+//! - infinite: Causes the animation to repeat forever.
+//! - linear: Equal to `cubic-bezier(0.0, 0.0, 1.0, 1.0)`, animates at an even speed. - `ease` - :
+//! Equal to `cubic-bezier(0.25, 0.1, 0.25, 1.0)`, the default value, increases in velocity towards
+//! the middle of the animation, slowing back down at the end. - `ease-in` - : Equal to
+//! `cubic-bezier(0.42, 0, 1.0, 1.0)`, starts off slowly, with the speed of the transition of the
+//! animating property increasing until complete. - `ease-out` - : Equal to `cubic-bezier(0, 0, 0.58,
+//! 1.0)`, starts quickly, slowing down the animation continues. - `ease-in-out` - : Equal to
+//! `cubic-bezier(0.42, 0, 0.58, 1.0)`, with the animating properties slowly transitioning, speeding
+//! up, and then slowing down again. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-timing-function
+//! - none: The name of a `@keyframes` at-rules that specifies the animation to apply to an element.
+//! The initial value for `animation-name` is `none`.
+//! - normal: Normal playback.
+//! - paused: The animation is currently paused. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-play-state
+//! - reverse: All iterations of the animation are played in the reverse direction from the way they
+//! were specified.
+//! - running: The animation is currently playing. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-play-state
+//! - step-end: Represents the easing function `steps(1, jump-end)` or `steps(1, end)`. It indicates
+//! that the interpolation stays in its initial state until the end, at which point it jumps directly
+//! to its final state. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+//! - step-start: Equal to `steps(1, jump-start)` - `step-end` - : Equal to `steps(1, jump-end)` See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-timing-function
+//!
 //! Grammar: <single-animation>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Animation.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    animation: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    animation: Value
+    animation: Auto | Linear | Ease | EaseIn | EaseOut | EaseInOut | StepStart | StepEnd | Infinite | Normal | Reverse | Alternate | AlternateReverse | None | Forwards | Backwards | Both | Running | Paused | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained animation value.
+/// Checks the animation number range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
-
-/// Returns the CSS keyword alternate.
-
-pub alternate(): Value.
-
-/// Returns the CSS keyword alternate-reverse.
-
-pub alternate_reverse(): Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword backwards.
-
-pub backwards(): Value.
-
-/// Returns the CSS keyword both.
-
-pub both(): Value.
-
-/// Returns the CSS keyword ease.
-
-pub ease(): Value.
-
-/// Returns the CSS keyword ease-in.
-
-pub ease_in(): Value.
-
-/// Returns the CSS keyword ease-in-out.
-
-pub ease_in_out(): Value.
-
-/// Returns the CSS keyword ease-out.
-
-pub ease_out(): Value.
-
-/// Returns the CSS keyword forwards.
-
-pub forwards(): Value.
-
-/// Returns the CSS keyword infinite.
-
-pub infinite(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword linear.
-
-pub linear(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Checks the specification range and constructs a animation value.
-
-pub number(value: Float): Option[Value].
-
-/// Returns the CSS keyword paused.
-
-pub paused(): Value.
-
-/// Returns the CSS keyword reverse.
-
-pub reverse(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword running.
-
-pub running(): Value.
-
-/// Returns the CSS keyword step-end.
-
-pub step_end(): Value.
-
-/// Returns the CSS keyword step-start.
-
-pub step_start(): Value.
-
-/// Constructs a animation value from a typed time.
-
-pub time(value: std.css.Values.Time): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub number(value: Float): Option[Checked].

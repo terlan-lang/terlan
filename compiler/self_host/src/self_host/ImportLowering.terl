@@ -1,6 +1,8 @@
 /** Self-hosted lowering for module, type, selected, and asset imports. */
 module self_host.ImportLowering.
 
+import std.core.String.
+
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.ImportSyntax.{CssImport, FileImport, ImportItemSyntax, ImportKind, ImportSyntax, MarkdownImport, ModuleImport}.
 import self_host.Syntax.{ImportDeclaration}.
@@ -23,11 +25,14 @@ strip_terminal_dot(source: String): String ->
 strip_quotes(source: String): String ->
     let value = String.trim(source);
     if {
-        value.byte_size() >= 2
-            and ((value.utf8_byte_at(0) == 34 and value.utf8_byte_at(value.byte_size() - 1) == 34)
-                or (value.utf8_byte_at(0) == 39 and value.utf8_byte_at(value.byte_size() - 1) == 39)) ->
+        value.byte_size() < 2 -> value;
+        true -> let first = value.utf8_byte_at(0);
+            let last = value.utf8_byte_at(value.byte_size() - 1);
+            if {
+                (first == 34 and last == 34) or (first == 39 and last == 39) ->
                     value.utf8_slice(1, value.byte_size() - 2);
-        true -> value
+                true -> value
+            }
     }.
 
 @pure

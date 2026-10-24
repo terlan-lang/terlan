@@ -1,0 +1,8 @@
+module=std.css.keywords.Paint
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=14176318406549802997
+interface_hash=11898769359013685510
+interface_doc_hash=8787607903978922070
+deps=0

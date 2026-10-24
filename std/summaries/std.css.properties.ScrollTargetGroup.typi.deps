@@ -1,9 +1,11 @@
 module=std.css.properties.ScrollTargetGroup
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=9201905693894254488
-interface_hash=5705279211081122557
-interface_doc_hash=14328599311693666270
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=10266815583856590756
+interface_hash=10096353801799189218
+interface_doc_hash=12202506752284199762
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Auto=5111240432937122722
+std.css.keywords.None=3400229744369726074

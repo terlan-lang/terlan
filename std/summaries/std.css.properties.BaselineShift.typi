@@ -1,72 +1,28 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-baseline-shift
+//! The `baseline-shift` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property repositions
+//! the dominant-baseline of a text element relative to the dominant-baseline of its parent text
+//! content element. The shifted element might be a sub- or superscript. If the property is present,
+//! the value overrides the element's `baseline-shift` attribute.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: refer to the used value of `line-height`.
+//!
+//! Keyword effects:
+//! - sub: The dominant-baseline is shifted to the default position for subscripts.
+//! - super: The dominant-baseline is shifted to the default position for superscripts.
+//!
 //! Grammar: <length-percentage> | sub | super | top | center | bottom
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-baseline-shift
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/baseline-shift
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BaselineShift.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    baseline_shift: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    baseline_shift: Value
+    baseline_shift: Sub | Super | Top | Center | Bottom | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained baseline-shift value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword bottom.
-
-pub bottom(): Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a baseline-shift value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Constructs a baseline-shift value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword sub.
-
-pub sub(): Value.
-
-/// Returns the CSS keyword super.
-
-pub super(): Value.
-
-/// Returns the CSS keyword top.
-
-pub top(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

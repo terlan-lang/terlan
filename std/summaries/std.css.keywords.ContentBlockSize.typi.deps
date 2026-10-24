@@ -1,0 +1,8 @@
+module=std.css.keywords.ContentBlockSize
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=13732964269346117234
+interface_hash=13443810878884382679
+interface_doc_hash=15503261558462842033
+deps=0

@@ -1,11 +1,11 @@
-// contract before the generator command is wired to real `.d.ts` inputs.
+//! Maps parsed TypeScript declaration types to checked Terlan signatures.
 
 use crate::terlan_hir::source_name_to_terlan_identifier;
 
 /// TypeScript primitive type names accepted by the binding mapper.
 ///
 /// Inputs:
-/// - Values are produced by a future TypeScript declaration adapter.
+/// - Values are produced by the TypeScript declaration parser.
 ///
 /// Output:
 /// - A closed primitive vocabulary that can be mapped into Terlan type text.
@@ -149,8 +149,7 @@ pub(super) fn map_ts_type_to_terlan(ty: &TsTypeRef) -> TsTypeMapping {
 ///
 /// Transformation:
 /// - Delegates union handling to the optional/simple-union mapper and keeps
-///   scalar mapping local and deterministic. Callback types are skipped until
-///   Terlan's public function-type syntax is stable in generated interfaces.
+///   scalar and callback mapping local and deterministic.
 fn map_ts_type_inner(ty: &TsTypeRef) -> Result<String, TsTypeSkip> {
     match ty {
         TsTypeRef::Primitive(TsPrimitiveType::String) => Ok("std.js.String.JsString".to_string()),
@@ -166,9 +165,19 @@ fn map_ts_type_inner(ty: &TsTypeRef) -> Result<String, TsTypeSkip> {
         TsTypeRef::Union(items) => map_ts_union_to_terlan(items),
         TsTypeRef::Record(fields) => map_ts_record_to_terlan(fields),
         TsTypeRef::Callback {
-            params: _,
-            return_type: _,
-        } => Err(skip_type("ts_bindgen.unsupported_callback_type", ty)),
+            params,
+            return_type,
+        } => {
+            let parameters = params
+                .iter()
+                .map(map_ts_type_inner)
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(format!(
+                "({}) -> {}",
+                parameters.join(", "),
+                map_ts_type_inner(return_type)?
+            ))
+        }
         #[cfg(test)]
         TsTypeRef::OverloadSet(_) => Err(skip_type("ts_bindgen.overload_requires_resolution", ty)),
         TsTypeRef::Null | TsTypeRef::Undefined => {

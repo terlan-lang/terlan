@@ -1,0 +1,61 @@
+/** Comprehension-generated lambda binders retain typed Core identity. */
+module self_host.ProjectedComprehensionTypedCoreTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import self_host.ProjectedComprehensionDesugar.
+import self_host.ProjectedExpressionSupportIrPlan.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+
+node(kind: String, text: String, children: List[ProjectedExpressionNode]): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, 10, 40, children).
+
+@test
+pub generated_lambda_parameter_desugars_to_typed_binding_core(): Bool ->
+    let comprehension = node("list-comprehension", "|", [
+        node("identifier", "rendered", []),
+        node("generator", "<-", [
+            node("binding-pattern", "item", []),
+            node("identifier", "items", []),
+        ]),
+    ]);
+    let projected = ProjectedComprehensionDesugar.expression(comprehension);
+    case projected.children {
+        [_source, callback] -> projected.kind == "list-flat-map"
+            and case {callback.children, ProjectedExpressionSupportIrPlan.lambda_parameters(callback)} {
+                {[patterns, _body], [parameter]} -> case patterns.children {
+                    [pattern] ->
+                        let metadata = ProjectedExpressionSupportIrPlan.shallow_pattern_operands(
+                            "%subject",
+                            pattern,
+                        );
+                        case ProjectedExpressionSupportIrPlan.shallow_pattern_bindings(
+                            pattern,
+                            "%environment",
+                            [],
+                            [parameter],
+                        ) {
+                            [binding] -> case binding.result {
+                                Some(name) ->
+                                    pattern.kind == "typed-pattern"
+                                        and parameter.name == "_comprehension_10"
+                                        and parameter.type_name == "Dynamic"
+                                        and name == parameter.name
+                                        and binding.resolved_type == Some(parameter.type_name)
+                                        and metadata == [
+                                            "%subject",
+                                            "pattern-v2",
+                                            "binding-pattern",
+                                            "_comprehension_10",
+                                            "0",
+                                        ];
+                                None -> false
+                            };
+                            _ -> false
+                        };
+                    _ -> false
+                };
+                _ -> false
+            };
+        _ -> false
+    }.

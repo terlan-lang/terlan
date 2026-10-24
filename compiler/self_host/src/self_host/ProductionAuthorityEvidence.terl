@@ -1,0 +1,181 @@
+/** Strict persisted evidence projection for the production-authority decision. */
+module self_host.ProductionAuthorityEvidence.
+
+import self_host.ProductionAuthority.{ProductionDecision, ProductionEvidence, ProductionHardeningEvidence}.
+import self_host.ProductionAuthority.
+import std.collections.List.
+import std.core.String.
+
+struct CatalogValue {
+    valid: Bool,
+    found: Bool,
+    value: String,
+}.
+
+constructor CatalogValue {
+    (valid: Bool, found: Bool, value: String): CatalogValue ->
+        CatalogValue { valid: valid, found: found, value: value }
+}.
+
+@pure
+lookup_at(
+    lines: List[String],
+    key: String,
+    found: Bool,
+    value: String,
+): CatalogValue ->
+    case lines {
+        [] -> CatalogValue(true, found, value);
+        [line | rest] ->
+            let normalized = String.trim(line);
+            if {
+                normalized == "" -> lookup_at(rest, key, found, value);
+                true ->
+                    case String.split(normalized, "\t") {
+                        [row_key, row_value] ->
+                            if {
+                                row_key != key -> lookup_at(rest, key, found, value);
+                                found -> CatalogValue(false, true, "");
+                                true -> lookup_at(rest, key, true, row_value)
+                            };
+                        _ -> CatalogValue(false, found, "")
+                    }
+            }
+    }.
+
+@pure
+lookup(lines: List[String], key: String): CatalogValue ->
+    lookup_at(lines, key, false, "").
+
+@pure
+pub known_key(key: String): Bool ->
+    case key {
+        "schema" -> true;
+        "frontend-authority" -> true;
+        "type-system-authority" -> true;
+        "core-ir-authority" -> true;
+        "actor-ir-authority" -> true;
+        "backend-complete" -> true;
+        "actor-backend-complete" -> true;
+        "driver-authority" -> true;
+        "actor-tooling-authority" -> true;
+        "actor-profile-catalog-authority" -> true;
+        "actor-profile-projection-converged" -> true;
+        "bootstrap-converged" -> true;
+        "actor-bootstrap-converged" -> true;
+        "performance-within-budget" -> true;
+        "recovery-bootstrap" -> true;
+        "trusted-base-documented" -> true;
+        "no-ad-hoc-exclusions" -> true;
+        "stage1-identity" -> true;
+        "stage2-identity" -> true;
+        "stage1-actor-identity" -> true;
+        "stage2-actor-identity" -> true;
+        "pattern-semantics-authority" -> true;
+        "backend-language-complete" -> true;
+        "tooling-authority" -> true;
+        "nested-control-flow-complete" -> true;
+        "complete-pattern-surface" -> true;
+        "bootstrap-workarounds-removed" -> true;
+        "idiomatic-source-restored" -> true;
+        "pattern-decision-tree-complete" -> true;
+        "self-analysis-resource-bounds" -> true;
+        "compiler-regression-corpus-complete" -> true;
+        "minimal-trusted-base" -> true;
+        "rust-frontend-removed-from-normal-paths" -> true;
+        "post-cleanup-converged" -> true;
+        "dynamic-call-target-authority" -> true;
+        "target-independent-optimizer-authority" -> true;
+        "bounded-parallel-backend-authority" -> true;
+        _ -> false
+    }.
+
+@pure
+rows_valid(lines: List[String]): Bool ->
+    case lines {
+        [] -> true;
+        [line | rest] ->
+            let normalized = String.trim(line);
+            if {
+                normalized == "" -> rows_valid(rest);
+                true ->
+                    case String.split(normalized, "\t") {
+                        [key, _value] ->
+                            if { known_key(key) -> rows_valid(rest); true -> false };
+                        _ -> false
+                    }
+            }
+    }.
+
+@pure
+schema_valid(lines: List[String]): Bool ->
+    let schema = lookup(lines, "schema");
+    rows_valid(lines)
+        and schema.valid
+        and schema.found
+        and schema.value == "terlan.self-host.production-authority/v1".
+
+@pure
+passed(lines: List[String], schema_ok: Bool, key: String): Bool ->
+    let value = lookup(lines, key);
+    schema_ok and value.valid and value.found and value.value == "pass".
+
+@pure
+identity(lines: List[String], schema_ok: Bool, key: String): String ->
+    let value = lookup(lines, key);
+    if {
+        schema_ok and value.valid and value.found -> value.value;
+        true -> ""
+    }.
+
+/** Projects strict persisted gate rows into the final production evidence model. */
+@pure
+pub project(source: String): ProductionEvidence ->
+    let lines = String.split(source, "\n");
+    let schema_ok = schema_valid(lines);
+    let hardening = ProductionHardeningEvidence(
+        passed(lines, schema_ok, "pattern-semantics-authority"),
+        passed(lines, schema_ok, "backend-language-complete"),
+        passed(lines, schema_ok, "tooling-authority"),
+        passed(lines, schema_ok, "nested-control-flow-complete"),
+        passed(lines, schema_ok, "complete-pattern-surface"),
+        passed(lines, schema_ok, "bootstrap-workarounds-removed"),
+        passed(lines, schema_ok, "idiomatic-source-restored"),
+        passed(lines, schema_ok, "pattern-decision-tree-complete"),
+        passed(lines, schema_ok, "self-analysis-resource-bounds"),
+        passed(lines, schema_ok, "compiler-regression-corpus-complete"),
+        passed(lines, schema_ok, "minimal-trusted-base"),
+        passed(lines, schema_ok, "rust-frontend-removed-from-normal-paths"),
+        passed(lines, schema_ok, "post-cleanup-converged"),
+        passed(lines, schema_ok, "dynamic-call-target-authority"),
+        passed(lines, schema_ok, "target-independent-optimizer-authority"),
+        passed(lines, schema_ok, "bounded-parallel-backend-authority"),
+    );
+    ProductionEvidence(
+        passed(lines, schema_ok, "frontend-authority"),
+        passed(lines, schema_ok, "type-system-authority"),
+        passed(lines, schema_ok, "core-ir-authority"),
+        passed(lines, schema_ok, "actor-ir-authority"),
+        passed(lines, schema_ok, "backend-complete"),
+        passed(lines, schema_ok, "actor-backend-complete"),
+        passed(lines, schema_ok, "driver-authority"),
+        passed(lines, schema_ok, "actor-tooling-authority"),
+        passed(lines, schema_ok, "actor-profile-catalog-authority"),
+        passed(lines, schema_ok, "actor-profile-projection-converged"),
+        passed(lines, schema_ok, "bootstrap-converged"),
+        passed(lines, schema_ok, "actor-bootstrap-converged"),
+        passed(lines, schema_ok, "performance-within-budget"),
+        passed(lines, schema_ok, "recovery-bootstrap"),
+        passed(lines, schema_ok, "trusted-base-documented"),
+        passed(lines, schema_ok, "no-ad-hoc-exclusions"),
+        identity(lines, schema_ok, "stage1-identity"),
+        identity(lines, schema_ok, "stage2-identity"),
+        identity(lines, schema_ok, "stage1-actor-identity"),
+        identity(lines, schema_ok, "stage2-actor-identity"),
+        hardening,
+    ).
+
+/** Evaluates one persisted production evidence catalog. */
+@pure
+pub evaluate(source: String): ProductionDecision ->
+    ProductionAuthority.evaluate(project(source)).

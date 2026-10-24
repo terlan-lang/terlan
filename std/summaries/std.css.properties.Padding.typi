@@ -1,80 +1,63 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-box-4/#propdef-padding
+//! The `padding` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets the [padding
+//! area](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Box_model/Introduction#padding_area)
+//! on all four sides of an element at once.
+//!
+//! Initial: padding-bottom: 0; padding-left: 0; padding-right: 0; padding-top: 0. Inherited: no.
+//! Percentages: refer to the width of the containing block.
+//!
 //! Grammar: <'padding-top'>{1,4}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-box-4/#propdef-padding
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/padding
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Padding.
 
-/// A single non-global padding shorthand component.
+pub opaque type Checked.
 
-pub opaque type Component.
+pub opaque type CheckedComponent.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    padding: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub type Component =
+    CheckedComponent.
 
 pub struct Property {
-    padding: Value
+    padding: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained padding value.
+/// Checks the padding length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub opaque type Value.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-/// Checks the specification range and constructs a padding value.
+/// Checks the padding percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub component_length(value: std.css.Values.Length): Option[Component].
+pub component_percentage(value: std.css.Values.Percentage): Option[CheckedComponent].
 
-/// Checks the specification range and constructs a padding value.
+/// Checks the padding length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub component_percentage(value: std.css.Values.Percentage): Option[Component].
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Returns the CSS keyword inherit.
+/// First sets top/bottom; second sets left/right.
 
-pub inherit(): Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Returns the CSS keyword initial.
+/// Checks the padding percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub initial(): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].
 
-/// Checks the specification range and constructs a padding value.
+/// Sets top, right, bottom, and left in that order.
 
-pub length(value: std.css.Values.Length): Option[Value].
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
-/// Combines 2 typed components in specification order.
+/// Applies to all four sides.
 
-pub pair(first: Component, second: Component): Value.
+pub single(first: Component): Checked.
 
-/// Checks the specification range and constructs a padding value.
+/// First sets top; second sets left/right; third sets bottom.
 
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Combines 4 typed components in specification order.
-
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
-
-pub single(first: Component): Value.
-
-/// Combines 3 typed components in specification order.
-
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub triple(first: Component, second: Component, third: Component): Checked.

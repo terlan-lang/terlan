@@ -1,0 +1,6 @@
+//! Shared CSS keyword no-open-quote. Generated; do not edit.
+
+module std.css.keywords.NoOpenQuote.
+
+pub type NoOpenQuote =
+    Atom["no-open-quote"].

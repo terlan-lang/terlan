@@ -321,8 +321,8 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
             Vec::new(),
             span,
         ),
-        Expr::FixedArray(items) => expr_node!(
-            SyntaxExprKind::FixedArray,
+        Expr::Array(items) => expr_node!(
+            SyntaxExprKind::Array,
             None,
             None,
             None,

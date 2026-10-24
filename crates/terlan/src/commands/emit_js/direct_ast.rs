@@ -262,6 +262,12 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
         {
             Some(ast.expression_boolean_literal(SPAN, value == "true"))
         }
+        crate::terlan_typeck::CoreExpr::Atom(value)
+        | crate::terlan_typeck::CoreExpr::Var(value)
+            if value == "Unit" =>
+        {
+            Some(ast.expression_string_literal(SPAN, oxc_string_value(ast, "unit"), None))
+        }
         crate::terlan_typeck::CoreExpr::Binary(value)
         | crate::terlan_typeck::CoreExpr::Atom(value) => {
             Some(ast.expression_string_literal(SPAN, oxc_string_value(ast, value.as_str()), None))
@@ -271,7 +277,7 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
         }
         crate::terlan_typeck::CoreExpr::Tuple(items)
         | crate::terlan_typeck::CoreExpr::List(items)
-        | crate::terlan_typeck::CoreExpr::FixedArray(items) => {
+        | crate::terlan_typeck::CoreExpr::Array(items) => {
             let mut elements = ast.vec();
             for item in items {
                 elements.push(ArrayExpressionElement::from(core_expr_to_oxc_expression(
@@ -518,6 +524,55 @@ fn core_intrinsic_call_expr_to_oxc_expression<'a>(
     call: &crate::terlan_typeck::CoreIntrinsicCall,
 ) -> Option<oxc_ast::ast::Expression<'a>> {
     match &call.id {
+        crate::terlan_typeck::CoreIntrinsicId::Primitive(
+            crate::terlan_typeck::CorePrimitiveIntrinsic::IntToString,
+        ) => {
+            let [value] = call.args.as_slice() else {
+                return None;
+            };
+            Some(ast.expression_call(
+                oxc_span::SPAN,
+                ast.expression_identifier(oxc_span::SPAN, oxc_ident_name(ast, "String")),
+                oxc_ast::NONE,
+                ast.vec1(oxc_ast::ast::Argument::from(core_expr_to_oxc_expression(
+                    ast, value,
+                )?)),
+                false,
+            ))
+        }
+        crate::terlan_typeck::CoreIntrinsicId::Primitive(
+            intrinsic @ (crate::terlan_typeck::CorePrimitiveIntrinsic::FloatFloor
+            | crate::terlan_typeck::CorePrimitiveIntrinsic::FloatCeil),
+        ) => {
+            let [value] = call.args.as_slice() else {
+                return None;
+            };
+            let method = if matches!(
+                intrinsic,
+                crate::terlan_typeck::CorePrimitiveIntrinsic::FloatFloor
+            ) {
+                "floor"
+            } else {
+                "ceil"
+            };
+            let callee = ast
+                .member_expression_static(
+                    oxc_span::SPAN,
+                    ast.expression_identifier(oxc_span::SPAN, oxc_ident_name(ast, "Math")),
+                    ast.identifier_name(oxc_span::SPAN, oxc_ident_name(ast, method)),
+                    false,
+                )
+                .into();
+            Some(ast.expression_call(
+                oxc_span::SPAN,
+                callee,
+                oxc_ast::NONE,
+                ast.vec1(oxc_ast::ast::Argument::from(core_expr_to_oxc_expression(
+                    ast, value,
+                )?)),
+                false,
+            ))
+        }
         crate::terlan_typeck::CoreIntrinsicId::Primitive(intrinsic) => {
             super::std_core_string_intrinsics::core_string_intrinsic_call_to_oxc_expression(
                 ast,

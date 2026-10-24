@@ -13,6 +13,7 @@ import std.core.Result.{Err, Ok}.
 import std.core.{Error, String}.
 import std.data.Json.
 import std.http.Cookies.
+import std.net.Uri.
 
 import type std.core.{Option, Result}.
 import type std.http.Cookies.Jar.
@@ -32,9 +33,8 @@ pub struct Request {
     #params: List[{String, String}],
     #body: String,
     #query_string: String,
-    #query: List[{String, String}],
     #headers: List[{String, String}],
-    #cookies: List[{String, String}],
+    #cookies: List[String],
     #body_file_path: String,
 }.
 
@@ -79,10 +79,14 @@ pub (request: Request) param(name: String): Option[String] ->
  * Output: `Some(value)` when the request query included `name`, otherwise
  * `None`.
  * Transformation: selects the last decoded pair for the exact name in Terlan.
- * Empty values remain present; query decoding stays in the maintained codec.
+ * Empty values remain present. Decoding runs only when queried, through
+ * std.net.Uri's maintained codec; ingress stores only the original text.
  */
 pub (request: Request) query(name: String): Option[String] ->
-    last_value(request.#query, name, None).
+    if {
+        request.#query_string == "" -> None;
+        true -> last_value(Uri.query_pairs(request.#query_string), name, None)
+    }.
 
 last_value(pairs: List[{String, String}], name: String, initial: Option[String]): Option[String] ->
     Enumerable[List].fold(
@@ -142,11 +146,17 @@ pub (request: Request) cookie(name: String): Option[String] ->
  * Output: a fresh source-owned `Cookies.Jar` for reading incoming cookies
  * and recording response cookie mutations.
  * Transformation: initializes an empty pending-header list in Terlan from the
- * decoded incoming pairs, retaining the first value per case-sensitive name.
+ * raw Cookie headers. The first header wins, including an
+ * empty or invalid header; within it, the first value per case-sensitive name
+ * wins. Terlan selects the header before calling the maintained decoder;
+ * unselected headers are never decoded. Duplicate precedence is source-owned.
  * Separate calls never share outgoing mutations.
  */
 pub (request: Request) cookies(): Jar ->
-    Cookies.from_pairs(request.#cookies).
+    case request.#cookies {
+        [] -> Cookies.from_pairs([]);
+        [header | _] -> Cookies.parse(header)
+    }.
 
 /**
  * Returns the request body as text.

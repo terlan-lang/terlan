@@ -1,0 +1,94 @@
+/** Stale-safe artifact planning for self-hosted lint authority. */
+module self_host.SelfHostLintAuthorityTool.
+
+import self_host.SelfHostLintAuthority.{LintAuthorityDecision, LintAuthorityEvidence}.
+import self_host.SelfHostLintAuthority.
+import self_host.SelfHostLintRegistry.
+
+pub struct LintAuthorityArtifact {
+    path: String,
+    contents: String,
+}.
+
+pub constructor LintAuthorityArtifact {
+    (path: String, contents: String): LintAuthorityArtifact ->
+        LintAuthorityArtifact { path: path, contents: contents }
+}.
+
+pub struct LintAuthorityWritePlan {
+    remove_before_write: List[String],
+    writes: List[LintAuthorityArtifact],
+    ready: Bool,
+}.
+
+pub constructor LintAuthorityWritePlan {
+    (
+        remove_before_write: List[String],
+        writes: List[LintAuthorityArtifact],
+        ready: Bool,
+    ): LintAuthorityWritePlan -> LintAuthorityWritePlan {
+        remove_before_write: remove_before_write,
+        writes: writes,
+        ready: ready,
+    }
+}.
+
+pub registry_path(): String ->
+    "target/quality/self-host/lint/registry.tsv".
+
+pub decision_path(): String ->
+    "target/quality/self-host/lint/authority.tsv".
+
+pub complete_marker_path(): String ->
+    "target/quality/self-host/lint/complete".
+
+render_missing(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> "missing\t" + value + "\n" + render_missing(rest)
+    }.
+
+render_decision(value: LintAuthorityDecision): String ->
+    "terlan.self-host.lint-authority/v1\n"
+        + "status\t"
+        + if { value.ready -> "ready"; true -> "pending" }
+        + "\nremaining_projection_rules\t"
+        + value.remaining_projection_rules.to_string()
+        + "\n"
+        + render_missing(value.missing).
+
+/** Builds a deterministic plan with an injectable projection count. */
+pub plan_with_projection_count(
+    evidence: LintAuthorityEvidence,
+    projection_count: Int,
+): LintAuthorityWritePlan ->
+    let decision = SelfHostLintAuthority.decide_with_projection_count(
+        evidence,
+        projection_count,
+    );
+    let writes = if {
+        decision.ready -> [
+            LintAuthorityArtifact(registry_path(), SelfHostLintRegistry.render()),
+            LintAuthorityArtifact(decision_path(), render_decision(decision)),
+            LintAuthorityArtifact(
+                complete_marker_path(),
+                SelfHostLintRegistry.render(),
+            ),
+        ];
+        true -> [
+            LintAuthorityArtifact(registry_path(), SelfHostLintRegistry.render()),
+            LintAuthorityArtifact(decision_path(), render_decision(decision)),
+        ]
+    };
+    LintAuthorityWritePlan(
+        [complete_marker_path()],
+        writes,
+        decision.ready,
+    ).
+
+/** Builds the production plan against current registry authority. */
+pub plan(evidence: LintAuthorityEvidence): LintAuthorityWritePlan ->
+    plan_with_projection_count(
+        evidence,
+        SelfHostLintRegistry.projection_rule_count(),
+    ).

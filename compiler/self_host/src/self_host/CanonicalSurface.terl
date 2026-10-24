@@ -1,6 +1,8 @@
 /** Token-driven surface module construction. */
 module self_host.CanonicalSurface.
 
+import std.core.String.
+
 import self_host.CanonicalToken.{CanonicalLexError}.
 import self_host.Syntax.{LexicalParseError, ParseError, SurfaceDeclaration, SurfaceModule, SyntaxSpan, UnterminatedDeclaration}.
 import self_host.TokenSegment.{TokenSegment}.

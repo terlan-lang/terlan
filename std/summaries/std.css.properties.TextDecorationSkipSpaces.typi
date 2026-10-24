@@ -1,60 +1,22 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip-spaces
+//! Controls whether underline, overline, and line-through decorations cross spaces, including
+//! decorations inherited from ancestors.
+//!
+//! Keyword effects:
+//! - all: Omits decorations across all spaces.
+//! - end: Omits decorations across spaces at the end of each line.
+//! - none: Draws decorations across spaces.
+//! - start: Omits decorations across spaces at the start of each line.
+//!
 //! Grammar: none | all | [ start || end ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip-spaces
+//!
+//! Author guide: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip-spaces
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextDecorationSkipSpaces.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    text_decoration_skip_spaces: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    text_decoration_skip_spaces: Value
+    text_decoration_skip_spaces: None | All | Start | End | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained text-decoration-skip-spaces value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword all.
-
-pub all(): Value.
-
-/// Returns the CSS keyword end.
-
-pub end_value(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword start.
-
-pub start(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

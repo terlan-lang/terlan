@@ -1,0 +1,79 @@
+/** Positive and negative actor/VM lint contracts. */
+module self_host.SelfHostLintActorVmTest.
+
+import self_host.SelfHostLintActorVm.{ActorFunction, ActorParameter, TagEquality, TagOperand}.
+import self_host.SelfHostLintActorVm.
+
+@pure
+message_kind(): TagOperand -> TagOperand("field-access", "", "message", "kind").
+
+@pure
+join_tag(): TagOperand -> TagOperand("binary", "join", "", "").
+
+@test
+pub reports_manual_tag_equality_and_noncanonical_state_name(): Bool ->
+    let values = SelfHostLintActorVm.diagnostics(
+        "ChatActor.terl",
+        "message.kind == \"join\"",
+        [ActorFunction(
+            "handle_message",
+            [ActorParameter("current", "ChatState", 0)],
+            [TagEquality(message_kind(), join_tag(), 0)],
+        )],
+    );
+    case values {
+        [tag, state] ->
+            tag.rule_id == "TL0905"
+                and state.rule_id == "TL0906"
+                and tag.severity == "warning"
+                and state.severity == "warning";
+        _ -> false
+    }.
+
+@test
+pub accepts_pattern_handlers_and_canonical_state_names(): Bool ->
+    SelfHostLintActorVm.diagnostics(
+        "ChatActor.terl",
+        "state",
+        [ActorFunction(
+            "handle_message",
+            [ActorParameter("state", "ChatState", 0)],
+            [],
+        )],
+    ) == [].
+
+@test
+pub ignores_actor_shapes_outside_handler_lifecycle_names(): Bool ->
+    SelfHostLintActorVm.diagnostics(
+        "Classifier.terl",
+        "message.kind == Join",
+        [ActorFunction(
+            "classify",
+            [ActorParameter("current", "ChatState", 0)],
+            [TagEquality(
+                message_kind(),
+                TagOperand("var", "Join", "", ""),
+                0,
+            )],
+        )],
+    ) == [].
+
+@test
+pub exempts_test_sources(): Bool ->
+    SelfHostLintActorVm.diagnostics(
+        "ChatActorTest.terl",
+        "message.kind == \"join\"",
+        [ActorFunction(
+            "handle_message",
+            [ActorParameter("current", "ChatState", 0)],
+            [TagEquality(message_kind(), join_tag(), 0)],
+        )],
+    ) == [].
+
+@test
+pub recognizes_lifecycle_and_state_type_conventions(): Bool ->
+    SelfHostLintActorVm.lifecycle_name("on_start")
+        and SelfHostLintActorVm.lifecycle_name("route_message")
+        and SelfHostLintActorVm.state_type("app.ChatState")
+        and SelfHostLintActorVm.state_type("Actor[State]")
+        and SelfHostLintActorVm.state_name("session_state").

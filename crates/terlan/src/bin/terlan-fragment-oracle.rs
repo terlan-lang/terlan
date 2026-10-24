@@ -22,7 +22,7 @@ fn normalized_kind(kind: LalrpopSyntaxNodeKind) -> &'static str {
         Binding => "binding",
         Group | Tuple => "group",
         List => "list",
-        FixedArray => "fixed_array",
+        Array => "array",
         Map => "map",
         MapField => "map_field",
         ListCons => "list_cons",

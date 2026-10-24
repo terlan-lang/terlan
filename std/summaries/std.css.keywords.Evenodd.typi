@@ -1,0 +1,6 @@
+//! Shared CSS keyword evenodd. Generated; do not edit.
+
+module std.css.keywords.Evenodd.
+
+pub type Evenodd =
+    Atom["evenodd"].

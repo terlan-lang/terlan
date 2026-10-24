@@ -94,6 +94,7 @@ where
         "debug" => commands::debug::run(cmd, state.diagnostic_format),
         "doctest" => commands::doc::run_doctest(cmd, state),
         "emit-native-metadata" => commands::emit_native_metadata::run(cmd, state),
+        "emit-self-hosted-actor-object" => commands::emit_self_hosted_actor_object::run(&cmd.args),
         "repl" => repl(cmd, state),
         "fmt" => commands::fmt::run(&cmd.args),
         "lint" => commands::lint::run(&cmd.args),

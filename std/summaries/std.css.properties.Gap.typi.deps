@@ -1,10 +1,11 @@
 module=std.css.properties.Gap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16279802188151032411
-interface_hash=12667426442447541309
-interface_doc_hash=13827146171039630776
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=8342752760166170375
+interface_hash=5798739237120359444
+interface_doc_hash=16050766397662670094
+deps=3
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.Normal=15467599898019431818

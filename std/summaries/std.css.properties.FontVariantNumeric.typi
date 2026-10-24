@@ -1,80 +1,38 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `font-variant-numeric` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! controls the usage of alternate glyphs for numbers, fractions, and ordinal markers.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - diagonal-fractions: Enables display of lining diagonal fractions.
+//! - lining-nums: Enables display of lining numerals.
+//! - normal: This keyword leads to the deactivation of the use of such alternate glyphs.
+//! - oldstyle-nums: Enables display of old-style numerals.
+//! - ordinal: This keyword forces the use of special glyphs for the ordinal markers, like 1st, 2nd,
+//! 3rd, 4th in English or a 1a in Italian. It corresponds to the OpenType values `ordn`.
+//! - proportional-nums: Enables display of proportional numerals.
+//! - slashed-zero: This keyword forces the use of a 0 with a slash; this is useful when a clear
+//! distinction between O and 0 is needed. It corresponds to the OpenType values `zero`.
+//! - stacked-fractions: Enables display of lining stacked fractions.
+//! - tabular-nums: Enables display of tabular numerals.
+//!
+//! Grammar: normal | [ <numeric-figure-values> || <numeric-spacing-values> ||
+//! <numeric-fraction-values> || ordinal || slashed-zero ]
+//!
 //! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-numeric
-//! Grammar: normal | [ <numeric-figure-values> || <numeric-spacing-values> || <numeric-fraction-values> || ordinal || slashed-zero ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-variant-numeric
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantNumeric.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    font_variant_numeric: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    font_variant_numeric: Value
+    font_variant_numeric: Normal | LiningNums | OldstyleNums | ProportionalNums | TabularNums | DiagonalFractions | StackedFractions | Ordinal | SlashedZero | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained font-variant-numeric value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword diagonal-fractions.
-
-pub diagonal_fractions(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword lining-nums.
-
-pub lining_nums(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword oldstyle-nums.
-
-pub oldstyle_nums(): Value.
-
-/// Returns the CSS keyword ordinal.
-
-pub ordinal(): Value.
-
-/// Returns the CSS keyword proportional-nums.
-
-pub proportional_nums(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword slashed-zero.
-
-pub slashed_zero(): Value.
-
-/// Returns the CSS keyword stacked-fractions.
-
-pub stacked_fractions(): Value.
-
-/// Returns the CSS keyword tabular-nums.
-
-pub tabular_nums(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

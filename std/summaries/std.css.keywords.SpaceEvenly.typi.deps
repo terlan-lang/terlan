@@ -1,0 +1,8 @@
+module=std.css.keywords.SpaceEvenly
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=4724389453162267188
+interface_hash=1030865357302591275
+interface_doc_hash=6359108049989047025
+deps=0

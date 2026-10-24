@@ -33,36 +33,67 @@ fn with_source_project(source: &str, routes: &[&str], check: impl FnOnce(&Path))
 fn package_upload_lease_survives_source_projection_and_releases_after_dispatch() {
     use terlan_http_native::request_ingress::RequestBodyFile;
 
-    with_source_project(
+    with_source_handler_project(
         r#"module app.Api.
 import std.http.Response.
+import std.vm.Process.
 import type std.http.Request.Request.
 import type std.http.Response.Response.
 pub handle(request: Request): Response -> Response.text(request.body_file_path()).with_status(202).
+pub suspended(request: Request): Response ->
+    let path = request.body_file_path();
+    Process.sleep(Process.timer(1));
+    Response.text(path).with_status(202).
+pub retained(request: Request): Response -> Process.sleep(Process.timer(1)); handle(request).
 "#,
-        &["/json"],
+        &[
+            ("/json", "handle", 1),
+            ("/suspended", "suspended", 1),
+            ("/retained", "retained", 1),
+        ],
         |web| {
-            assert!(request_requires_file_body(web, "POST", "/json").unwrap());
             let root = tempfile::tempdir().unwrap();
-            let request = Request::post("/json")
-                .body(Full::new(Bytes::from_static(b"\0\xff")))
-                .unwrap();
-            let request =
-                block_on(prepare_request(request, 2, BodyStorage::File(root.path()))).unwrap();
-            let path = request
-                .extensions()
-                .get::<RequestBodyFile>()
-                .unwrap()
-                .path()
-                .to_owned();
-            assert_eq!(std::fs::read(&path).unwrap(), b"\0\xff");
-            let mut channel = None;
-            let response = handle_vm_stream_request(request, web, &mut channel, false).unwrap();
-            assert_eq!(response.status(), 202);
-            assert_eq!(response.body().as_ref(), path.as_bytes());
-            assert!(channel.is_none());
-            assert!(!Path::new(&path).exists());
-            assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+            assert!(
+                !request_requires_file_body(web, "POST", "/retained").unwrap(),
+                "a request retained across suspension still requires complete ingress"
+            );
+            for route in ["/json", "/suspended"] {
+                assert!(
+                    request_requires_file_body(web, "POST", route).unwrap(),
+                    "{route}"
+                );
+                let request = Request::post(route)
+                    .body(Full::new(Bytes::from_static(b"\0\xff")))
+                    .unwrap();
+                let request =
+                    block_on(prepare_request(request, 2, BodyStorage::File(root.path()))).unwrap();
+                let path = request
+                    .extensions()
+                    .get::<RequestBodyFile>()
+                    .unwrap()
+                    .path()
+                    .to_owned();
+                assert_eq!(std::fs::read(&path).unwrap(), b"\0\xff");
+                let mut channel = None;
+                let response = if route == "/suspended" {
+                    let response = block_on(handle_suspendable_vm_stream_request(&request, web))
+                        .unwrap()
+                        .expect("suspendable handler executed");
+                    assert!(
+                        Path::new(&path).exists(),
+                        "borrowed dispatch retains its upload lease"
+                    );
+                    drop(request);
+                    response
+                } else {
+                    handle_vm_stream_request(request, web, &mut channel, false).unwrap()
+                };
+                assert_eq!(response.status(), 202);
+                assert_eq!(response.body().as_ref(), path.as_bytes());
+                assert!(channel.is_none());
+                assert!(!Path::new(&path).exists());
+                assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+            }
         },
     );
 }
@@ -343,6 +374,51 @@ pub router(): Router ->
                     "{response}"
                 );
             }
+        },
+    );
+}
+
+#[test]
+fn source_router_suspended_rejection_precedes_stale_manifest_binding() {
+    with_source_handler_project(
+        r#"module app.Api.
+import std.http.{Router, Request, Response}.
+import std.http.Router.{Continue, Respond, MiddlewareResult}.
+import std.vm.Process.
+import type std.http.Router.Router.
+import type std.http.Request.Request.
+import type std.http.Response.Response.
+pub handle(_request: Request): Response -> Response.text("handler must not run").
+pub gate(request: Request): MiddlewareResult ->
+    Process.sleep(Process.timer(1));
+    if {
+        request.body_text() == "deny" -> Respond(Response.text("denied").with_status(403));
+        true -> Continue
+    }.
+pub router(): Router ->
+    Router.new().use(gate).post("/json", handle)
+        .map_response((_request: Request, response: Response) ->
+            response.with_header("X-Source", "unwound")).
+"#,
+        &[("/{path:String}", "handle", 1)],
+        |web| {
+            with_source_protocol_server(web.to_path_buf(), |send| {
+                for body in ["deny", "pass", "deny"] {
+                    let response = send(&format!(
+                        "POST /json HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{body}",
+                        body.len()
+                    ));
+                    if body == "deny" {
+                        assert!(response.starts_with("HTTP/1.1 403 "), "{response}");
+                        assert!(response.contains("x-source: unwound\r\n"), "{response}");
+                        assert!(response.ends_with("\r\n\r\ndenied"), "{response}");
+                    } else {
+                        assert!(response.starts_with("HTTP/1.1 500 "), "{response}");
+                        assert!(!response.contains("x-source:"), "{response}");
+                    }
+                    assert!(!response.contains("handler must not run"), "{response}");
+                }
+            });
         },
     );
 }

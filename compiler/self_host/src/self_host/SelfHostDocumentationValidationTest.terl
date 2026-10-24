@@ -1,0 +1,117 @@
+/** Tests for self-hosted documentation validation policy. */
+module self_host.SelfHostDocumentationValidationTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import self_host.SelfHostDocumentationValidation.{
+    allowed_fence_language,
+    callable_arity,
+    fence_events,
+    local_link_targets,
+    validate,
+    validate_fences,
+    validate_local_anchors
+}.
+
+@test
+accepts_documented_fence_languages(): Bool ->
+    case allowed_fence_language("") {
+        false -> false;
+        true ->
+            case allowed_fence_language("terlan") {
+                false -> false;
+                true ->
+                    case allowed_fence_language("erlang") {
+                        false -> false;
+                        true ->
+                            case allowed_fence_language("text") {
+                                false -> false;
+                                true ->
+                                    case allowed_fence_language("rust") {
+                                        true -> false;
+                                        false -> true
+                                    }
+                            }
+                    }
+            }
+    }.
+
+@test
+accepts_resolved_local_links(): Bool ->
+    validate_local_anchors(
+        ["Module", "run", "run/1"],
+        ["Module", "run", "run/1", "run-1"]
+    ) == Ok(true).
+
+@test
+rejects_broken_local_links(): Bool ->
+    validate_local_anchors(["missing"], ["Module", "run"]) ==
+        Err("broken intra-doc link").
+
+@test
+accepts_balanced_fences(): Bool ->
+    validate_fences([Some("terlan"), None, Some("text"), None]) ==
+        Ok(true).
+
+@test
+rejects_unsupported_fences(): Bool ->
+    validate_fences([Some("rust"), None]) ==
+        Err("unsupported doc code fence language").
+
+@test
+rejects_unclosed_fences(): Bool ->
+    validate_fences([Some("terlan")]) ==
+        Err("unclosed doc code fence").
+
+@test
+rejects_unmatched_closing_fences(): Bool ->
+    validate_fences([None]) ==
+        Err("closing doc code fence without an opening fence").
+
+@test
+accepts_empty_documentation_validation_input(): Bool ->
+    validate([], [], []) == Ok(true).
+
+@test
+validates_links_before_fences(): Bool ->
+    validate(
+        ["run/1"],
+        ["Module", "run", "run/1"],
+        [Some("terlan"), None]
+    ) == Ok(true).
+
+@test
+extracts_local_link_targets(): Bool ->
+    local_link_targets("See [run](#run) and [arity](#run/1).") ==
+        ["run", "run/1"].
+
+@test
+extracts_balanced_fence_events(): Bool ->
+    fence_events("before\n``` terlan\nrun().\n```\nafter") ==
+        [Some("terlan"), None].
+
+@test
+preserves_unsupported_fence_language_for_rejection(): Bool ->
+    fence_events("```rust\nfn main() {}\n```") == [Some("```rust"), None].
+
+@test
+extracts_zero_arity_callable_signature(): Bool ->
+    callable_arity("pub ready(): Bool") == Some(0).
+
+@test
+ignores_nested_type_and_shape_commas(): Bool ->
+    callable_arity(
+        "pub map(values: Map[String, List[{left: Int, right: Int}]], f: Fn[(Int, Int), Bool]): Bool",
+    ) == Some(2).
+
+@test
+ignores_commas_in_literal_parameter_patterns(): Bool ->
+    callable_arity("pub classify(\"a,b\", value: String): Bool") == Some(2).
+
+@test
+rejects_non_callable_struct_signature(): Bool ->
+    callable_arity("pub struct Point { x: Int, y: Int }") == None.
+
+@test
+rejects_non_callable_type_signature(): Bool ->
+    callable_arity("pub type Callback -> Fn[(Int, Int), Bool]") == None.

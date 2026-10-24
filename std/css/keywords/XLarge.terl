@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword x-large. Generated; do not edit.
+ */
+module std.css.keywords.XLarge.
+
+pub type XLarge = Atom["x-large"].

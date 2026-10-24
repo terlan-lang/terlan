@@ -1,0 +1,8 @@
+module=std.css.keywords.Checkbox
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=3533745920989886367
+interface_hash=3458782606805371494
+interface_doc_hash=5908120684870555758
+deps=0

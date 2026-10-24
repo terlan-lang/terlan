@@ -1,7 +1,7 @@
 schema = "terlan.self-host.phase/v1"
 phase = 4
 name = "bootstrap-parity-and-authority-transfer"
-status = "validated-candidate"
+status = "backend-authority-in-progress"
 
 [candidate]
 entry_point = "self_host.Compiler.compile"
@@ -20,7 +20,32 @@ failed_gate_retains_rust_frontend = true
 explicitly_run = true
 projected_semantic_ir_planner = true
 projected_checked_backend_compile = true
-abi_1_canonical_byte_parity = true
-external_vm_consumption = true
-retained_image = "target/quality/self-host-phase4-image-13/bin/terlan-self-host-semantic-evidence"
-retained_artifact = "target/quality/self-host-phase4-backend-13/projected.json"
+abi_1_canonical_byte_parity = false
+external_vm_consumption = false
+retained_image = "target/quality/self-host-phase4-current-image-55/bin/terlan-self-host"
+retained_artifact = "target/quality/self-host-phase4-current-stage1-55/bootstrap-artifact.json"
+reference_artifact = "target/quality/self-host-phase4-current-stage0-54/bootstrap-artifact.json"
+evidence_root = "target/quality/self-host-phase4-current-stage1-55/evidence"
+evidence_artifact_count = 800
+evidence_byte_parity = false
+backend_artifact_count = 200
+backend_byte_parity = false
+bootstrap_fixed_point = false
+interface_fixed_point = false
+interface_artifact_count = 200
+seeded_interface_count = 0
+seeded_interfaces = []
+seeded_interface_byte_parity = false
+seeded_interface_proof = "target/quality/self-host-interface-image-41/proof/interfaces"
+source_closure_export = true
+
+[performance]
+required_for_authority_transfer = true
+status = "requires-v4-regeneration"
+cold_compile_evidence = false
+warm_incremental_evidence = false
+parallel_package_evidence = false
+bootstrap_throughput_evidence = false
+regression_budget_evidence = false
+affected_incremental_evidence = false
+affected_incremental_result = "target/quality/self-host-phase4-performance/incremental.tsv"

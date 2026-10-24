@@ -846,7 +846,7 @@ policy_json(policy: Policy): Json ->
         .put("owner_change_window", Json.int(policy.owner_change_window))
         .put("unresolved_warning_ttl_days", Json.int(policy.unresolved_warning_ttl_days)).
 
-exceptions(source: String, today: std.time.Date): Option[List[Exception]] ->
+exceptions(source: String, today: std.time.Date.Date): Option[List[Exception]] ->
     let {
         Ok(payload) <- Json.parse(source);
         Some(schema) <- json_string(payload, "schema");
@@ -867,7 +867,7 @@ exception_rows(
     rows: Json,
     index: Int,
     length: Int,
-    today: std.time.Date,
+    today: std.time.Date.Date,
     reversed: List[Exception],
 ): Option[List[Exception]] ->
     if {
@@ -908,8 +908,8 @@ if {
 
 exception_holds(
     exception: Exception,
-    expiry: std.time.Date,
-    today: std.time.Date,
+    expiry: std.time.Date.Date,
+    today: std.time.Date.Date,
     prior: List[Exception],
 ): Bool ->
     all_nonempty(

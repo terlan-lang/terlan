@@ -1,0 +1,284 @@
+/** Self-hosted lint pipeline over one shared canonical tooling document. */
+module self_host.SelfHostLint.
+
+import std.collections.List.
+import std.core.String.
+import self_host.SelfHostLintSyntax.{LintDiagnostic, LintReport}.
+import self_host.SelfHostToolingDocument.
+import self_host.SelfHostLintActorVmProjection.
+import self_host.SelfHostLintComplexity.
+import self_host.SelfHostLintComplexityProjection.
+import self_host.SelfHostLintConsistency.
+import self_host.SelfHostLintDestructureProjection.
+import self_host.SelfHostLintGenerated.
+import self_host.SelfHostLintGroupedBindingProjection.
+import self_host.SelfHostLintImports.
+import self_host.SelfHostLintImportRecommendations.
+import self_host.SelfHostLintImportUsage.
+import self_host.SelfHostLintLambdaProjection.
+import self_host.SelfHostLintMaintainability.
+import self_host.SelfHostLintNamedAtomProjection.
+import self_host.SelfHostLintNamingProjection.
+import self_host.SelfHostLintPipeProjection.
+import self_host.SelfHostLintPublicDocsSource.
+import self_host.SelfHostLintReadabilityDocument.
+import self_host.SelfHostLintReadabilitySource.
+import self_host.SelfHostLintSemicolon.
+import self_host.SelfHostLintTargets.
+import self_host.SelfHostLintTestsProjection.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+concat[T](values: List[List[T]]): List[T] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(value, concat(rest))
+    }.
+
+diagnostic_offset(
+    source: String,
+    target_line: Int,
+    target_column: Int,
+    offset: Int,
+    line: Int,
+    column: Int,
+): Int ->
+    if {
+        offset >= String.byte_size(source) -> offset;
+        line == target_line and column >= target_column -> offset;
+        String.utf8_byte_at(source, offset) == 10 ->
+            diagnostic_offset(source, target_line, target_column, offset + 1, line + 1, 1);
+        true -> diagnostic_offset(
+            source,
+            target_line,
+            target_column,
+            offset + 1,
+            line,
+            column + 1,
+        )
+    }.
+
+from_semicolon(
+    source: String,
+    values: List[self_host.SelfHostLintSemicolon.SemicolonDiagnostic],
+): List[LintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let start = diagnostic_offset(source, value.line, value.column, 0, 1, 1);
+            [LintDiagnostic(
+                value.path, value.line, value.column, start, start, value.rule_id,
+                value.rule_name, value.severity, value.message, value.fix_available,
+            ) | from_semicolon(source, rest)]
+    }.
+
+from_complexity(
+    source: String,
+    values: List[self_host.SelfHostLintComplexity.ComplexityDiagnostic],
+): List[LintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let start = diagnostic_offset(source, value.line, value.column, 0, 1, 1);
+            [LintDiagnostic(
+                value.path, value.line, value.column, start, start, value.rule_id,
+                value.rule_name, value.severity, value.message, value.fix_available,
+            ) | from_complexity(source, rest)]
+    }.
+
+from_actor(
+    source: String,
+    values: List[self_host.SelfHostLintActorVm.ActorVmDiagnostic],
+): List[LintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let start = diagnostic_offset(source, value.line, value.column, 0, 1, 1);
+            [LintDiagnostic(
+                value.path, value.line, value.column, start, start, value.rule_id,
+                value.rule_name, value.severity, value.message, value.fix_available,
+            ) | from_actor(source, rest)]
+    }.
+
+from_maintainability(
+    source: String,
+    values: List[self_host.SelfHostLintMaintainability.MaintainabilityDiagnostic],
+): List[LintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let start = diagnostic_offset(source, value.line, value.column, 0, 1, 1);
+            [LintDiagnostic(
+                value.path, value.line, value.column, start, start, value.rule_id,
+                value.rule_name, value.severity, value.message, value.fix_available,
+            ) | from_maintainability(source, rest)]
+    }.
+
+from_consistency(
+    source: String,
+    values: List[self_host.SelfHostLintConsistency.ConsistencyDiagnostic],
+): List[LintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let start = diagnostic_offset(source, value.line, value.column, 0, 1, 1);
+            [LintDiagnostic(
+                value.path, value.line, value.column, start, start, value.rule_id,
+                value.rule_name, value.severity, value.message, value.fix_available,
+            ) | from_consistency(source, rest)]
+    }.
+
+readability_rule(
+    values: List[self_host.SelfHostLintReadability.ReadabilityDiagnostic],
+    rule_id: String,
+): List[self_host.SelfHostLintReadability.ReadabilityDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] -> if {
+            value.rule_id == rule_id -> [value | readability_rule(rest, rule_id)];
+            true -> readability_rule(rest, rule_id)
+        }
+    }.
+
+from_readability(
+    source: String,
+    values: List[self_host.SelfHostLintReadability.ReadabilityDiagnostic],
+): List[LintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let start = diagnostic_offset(source, value.line, value.column, 0, 1, 1);
+            [LintDiagnostic(
+                value.path, value.line, value.column, start, start, value.rule_id,
+                value.rule_name, value.severity, value.message, value.fix_available,
+            ) | from_readability(source, rest)]
+    }.
+
+from_pipe(
+    source: String,
+    values: List[self_host.SelfHostLintPipeFix.PipeDiagnostic],
+): List[LintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let start = diagnostic_offset(source, value.line, value.column, 0, 1, 1);
+            [LintDiagnostic(
+                value.path, value.line, value.column, start, start, value.rule_id,
+                value.rule_name, value.severity, value.message, value.fix_available,
+            ) | from_pipe(source, rest)]
+    }.
+
+from_tests(
+    source: String,
+    values: List[self_host.SelfHostLintTests.TestDiagnostic],
+): List[LintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let start = diagnostic_offset(source, value.line, value.column, 0, 1, 1);
+            [LintDiagnostic(
+                value.path, value.line, value.column, start, start, value.rule_id,
+                value.rule_name, value.severity, value.message, value.fix_available,
+            ) | from_tests(source, rest)]
+    }.
+
+from_naming(
+    source: String,
+    values: List[self_host.SelfHostLintNamingDiagnostics.NamingDiagnostic],
+): List[LintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let start = diagnostic_offset(source, value.line, value.column, 0, 1, 1);
+            [LintDiagnostic(
+                value.path, value.line, value.column, start, start, value.rule_id,
+                value.rule_name, value.severity, value.message, value.fix_available,
+            ) | from_naming(source, rest)]
+    }.
+
+from_generated(
+    source: String,
+    values: List[self_host.SelfHostLintGenerated.GeneratedDiagnostic],
+): List[LintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let start = diagnostic_offset(source, value.line, value.column, 0, 1, 1);
+            [LintDiagnostic(
+                value.path, value.line, value.column, start, start, value.rule_id,
+                value.rule_name, value.severity, value.message, value.fix_available,
+            ) | from_generated(source, rest)]
+    }.
+
+from_targets(
+    source: String,
+    values: List[self_host.SelfHostLintTargets.TargetDiagnostic],
+): List[LintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let start = diagnostic_offset(source, value.line, value.column, 0, 1, 1);
+            [LintDiagnostic(
+                value.path, value.line, value.column, start, start, value.rule_id,
+                value.rule_name, value.severity, value.message, value.fix_available,
+            ) | from_targets(source, rest)]
+    }.
+
+/** Runs all 45 rules in native dispatcher order over one shared document. */
+@pure
+pub lint(path: String, source: String): LintReport ->
+    let document = SelfHostToolingDocument.build(source);
+    if {
+        not document.valid -> LintReport(false, [], document.message);
+        true ->
+            let lambda = SelfHostLintLambdaProjection.diagnostics(path, document);
+            let readability_source = SelfHostLintReadabilitySource.diagnostics(path, source);
+            LintReport(
+                true,
+                concat([
+                    from_semicolon(source, SelfHostLintSemicolon.diagnostics(path, source)),
+                    from_complexity(source, SelfHostLintComplexityProjection.diagnostics(path, document)),
+                    from_complexity(source, SelfHostLintComplexity.match_arm_size(path, source)),
+                    from_complexity(source, SelfHostLintComplexity.file_size(path, source)),
+                    from_actor(source, SelfHostLintActorVmProjection.diagnostics(path, document)),
+                    from_maintainability(source, SelfHostLintMaintainability.debug_calls(path, source)),
+                    from_maintainability(source, SelfHostLintMaintainability.sql_line_width(path, source)),
+                    from_consistency(source, SelfHostLintConsistency.diagnostics(path, source)),
+                    from_consistency(source, SelfHostLintNamedAtomProjection.diagnostics(path, document)),
+                    from_readability(source, SelfHostLintReadabilityDocument.diagnostics(path, document)),
+                    from_readability(source, SelfHostLintGroupedBindingProjection.diagnostics(path, document)),
+                    from_readability(source, readability_rule(lambda, "TL0010")),
+                    from_readability(source, readability_rule(lambda, "TL0003")),
+                    from_readability(source, SelfHostLintDestructureProjection.diagnostics(path, document)),
+                    from_readability(source, readability_rule(readability_source, "TL0005")),
+                    from_readability(source, SelfHostLintPublicDocsSource.diagnostics(path, source)),
+                    from_readability(source, readability_rule(readability_source, "TL0007")),
+                    from_readability(source, readability_rule(readability_source, "TL0008")),
+                    from_pipe(source, SelfHostLintPipeProjection.diagnostics(path, document)),
+                    from_tests(source, SelfHostLintTestsProjection.diagnostics(path, document)),
+                    SelfHostLintImports.lint(path, document),
+                    SelfHostLintImportUsage.lint(path, document),
+                    SelfHostLintImportRecommendations.lint(path, document),
+                    from_naming(source, SelfHostLintNamingProjection.diagnostics(path, document)),
+                    from_generated(source, SelfHostLintGenerated.diagnostics(path, source)),
+                    from_targets(source, SelfHostLintTargets.diagnostics(path, source)),
+                ]),
+                "ok",
+            )
+    }.
+
+/** Applies authenticated safe fixes in native order. */
+@pure
+pub fix(source: String): String ->
+    let semicolon_fixed = SelfHostLintSemicolon.fix(source);
+    let document = SelfHostToolingDocument.build(semicolon_fixed);
+    if {
+        not document.valid -> semicolon_fixed;
+        true -> SelfHostLintPipeProjection.apply(document)
+    }.

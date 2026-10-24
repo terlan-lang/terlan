@@ -448,8 +448,8 @@ fn trait_bound_type_is_concrete(ty: &Type) -> bool {
         Type::Var(_) | Type::Apply { .. } | Type::Placeholder | Type::Existential { .. } => false,
         Type::Named { args, .. } => args.iter().all(trait_bound_type_is_concrete),
         Type::List(inner) => trait_bound_type_is_concrete(inner),
-        Type::FixedArray { size, elem } => {
-            matches!(size, crate::terlan_typeck::types::FixedArraySize::Known(_))
+        Type::Array { size, elem } => {
+            matches!(size, crate::terlan_typeck::types::ArraySize::Known(_))
                 && trait_bound_type_is_concrete(elem)
         }
         Type::Tuple(items) | Type::Union(items) => items.iter().all(trait_bound_type_is_concrete),

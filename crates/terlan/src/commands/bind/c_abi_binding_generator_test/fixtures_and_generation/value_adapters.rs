@@ -292,6 +292,14 @@ pub(super) fn c_abi_value_only_package_builds_without_an_opaque_resource() {
     let summary =
         generate_c_abi_bindings(&manifest, &out_dir).expect("generate a value-only C ABI package");
     assert_eq!(summary.function_count, 1);
+    let consumer = fs::read_to_string(out_dir.join("tests/c_abi_fixture/NativeBoundaryTest.terl"))
+        .expect("read package-owned consumer");
+    assert!(
+        !consumer.contains("@test"),
+        "package-owned validation must not claim placeholder coverage"
+    );
+    assert!(!consumer.contains("-> true"));
+
     let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs"))
         .expect("read value-only adapter");
     assert!(adapter.contains("pub fn live_count() -> i64"));

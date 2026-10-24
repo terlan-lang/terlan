@@ -21,6 +21,14 @@ pub record(request: Request, id: Int, enabled: Bool): Response ->
 pub suspended(request: Request, id: Int, enabled: Bool): Response ->
     Process.sleep(Process.timer(1)); record(request, id, enabled).
 
+pub cookie_only(request: Request): Response ->
+    Response.text(with_default(request.cookie("sid"), "missing")).with_status(202).
+
+pub immediate(request: Request, id: Int, enabled: Bool): Response ->
+    Response.text(request.method() + "|" + request.body_text() + "|" +
+        with_default(request.param("id"), "missing") + "|" +
+        Int.to_string(id) + "|" + Bool.to_string(enabled)).with_status(202).
+
 pub tuple(
     {Atom["request"], method, _path, params, body, _raw_query, query, headers, cookies, _file}:
         {Atom["request"], String, String, Map[String, String], String, String,
@@ -53,18 +61,20 @@ fn source_request_abi_is_independent_of_arity_and_suspension() {
         SOURCE,
         &[
             ("/record/{id:Int}/{enabled:Bool}", "record", 3),
+            ("/immediate/{id:Int}/{enabled:Bool}", "immediate", 3),
             ("/suspended/{id:Int}/{enabled:Bool}", "suspended", 3),
             ("/tuple/{id:Int}/{enabled:Bool}", "tuple", 3),
             ("/tuple-only", "tuple_only", 1),
             ("/tuple-only/{id:Int}", "tuple_only", 1),
+            ("/cookie-only", "cookie_only", 1),
         ],
         |web| {
-            let request = wire("/record/42/true");
+            let request = wire("/immediate/42/true");
             let immediate = handle_vm_stream_http1_request(web, request.as_bytes()).unwrap();
             let immediate = String::from_utf8(immediate).unwrap();
             assert!(immediate.starts_with("HTTP/1.1 202 "), "{immediate}");
             assert!(
-                immediate.ends_with("\r\n\r\nPOST|body|42|last|header|first|42|true"),
+                immediate.ends_with("\r\n\r\nPOST|body|42|42|true"),
                 "{immediate}"
             );
             let tuple =
@@ -74,6 +84,34 @@ fn source_request_abi_is_independent_of_arity_and_suspension() {
             assert!(tuple.ends_with("\r\n\r\nPOST|body|42"), "{tuple}");
 
             with_source_protocol_server(web.to_path_buf(), |send| {
+                for first in ["sid=first; sid=second", "", "invalid"] {
+                    for route in [
+                        "/record/42/true",
+                        "/suspended/42/true",
+                        "/tuple/42/true",
+                        "/cookie-only",
+                    ] {
+                        let request = wire(route).replace(
+                            "Cookie: sid=first; sid=second",
+                            &format!("Cookie: {first}\r\nCookie: sid=ignored"),
+                        );
+                        let response = send(&request);
+                        let cookie = if first.starts_with("sid=") {
+                            "first"
+                        } else {
+                            "missing"
+                        };
+                        let expected = if route == "/cookie-only" {
+                            cookie.to_owned()
+                        } else {
+                            format!("POST|body|42|last|header|{cookie}|42|true")
+                        };
+                        assert!(
+                            response.ends_with(&format!("\r\n\r\n{expected}")),
+                            "{route}: {response}"
+                        );
+                    }
+                }
                 for (route, status, expected) in [
                     (
                         "/record/42/true",

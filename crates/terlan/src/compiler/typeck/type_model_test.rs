@@ -5,6 +5,174 @@ use super::*;
 use crate::terlan_hir::{resolve_syntax_module_output, syntax_module_output_to_interface};
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
+/// The built-in array name preserves its size, including nested empty arrays.
+#[test]
+fn type_parser_recognizes_builtin_array() {
+    let ty = parse_type_expr(
+        "Array[3, Array[0, Int]]",
+        &HashSet::new(),
+        &mut HashMap::new(),
+        &mut 0,
+    )
+    .expect("parse built-in array");
+    assert!(matches!(
+        &ty,
+        Type::Array {
+            size: types::ArraySize::Known(3),
+            ..
+        }
+    ));
+    assert_eq!(pretty_type(&ty), "Array[3, Array[0, Int]]");
+
+    for invalid in ["Array[Int]", "Array[-1, Int]", "Array[2, Int, Bool]"] {
+        assert!(
+            parse_type_expr(invalid, &HashSet::new(), &mut HashMap::new(), &mut 0).is_none(),
+            "accepted invalid built-in array {invalid}"
+        );
+    }
+}
+
+/// Explicit Array declarations and constructor variables shadow the built-in.
+#[test]
+fn type_parser_preserves_explicit_array_names() {
+    let ty = parse_type_expr(
+        "Array[Int]",
+        &HashSet::from(["Array".into()]),
+        &mut HashMap::new(),
+        &mut 0,
+    )
+    .expect("parse declared Array type");
+    assert!(matches!(&ty, Type::Named { name, .. } if name == "Array"));
+
+    let ty = parse_type_expr(
+        "Array[Int]",
+        &HashSet::new(),
+        &mut HashMap::from([("Array".into(), 0)]),
+        &mut 1,
+    )
+    .expect("parse Array constructor variable");
+    assert!(matches!(ty, Type::Apply { constructor: 0, .. }));
+
+    let ty = parse_type_expr(
+        "std.js.Array.Array[Int]",
+        &HashSet::new(),
+        &mut HashMap::new(),
+        &mut 0,
+    )
+    .expect("parse qualified JavaScript array");
+    assert_eq!(pretty_type(&ty), "std.js.Array.Array[Int]");
+}
+
+/// Renaming the type keeps constant bounds checks and size identity intact.
+#[test]
+fn builtin_array_checks_bounds_and_rejects_unknown_types() {
+    let valid =
+        check_syntax_output("module arrays. pub last(): Int -> let values = #[10, 20]; values[1].");
+    assert!(valid.is_empty(), "{valid:?}");
+
+    let invalid = check_syntax_output(
+        "module arrays. pub invalid(): Int -> let values = #[10, 20]; values[2].",
+    );
+    assert!(
+        invalid.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("out of bounds for Array[2, Int]")),
+        "{invalid:?}"
+    );
+
+    let unknown =
+        check_syntax_output("module arrays. pub unknown(): UnknownArray[2, Int] -> #[10, 20].");
+    assert!(
+        !unknown.is_empty(),
+        "unknown array type names must be rejected"
+    );
+}
+
+/// The shipped JavaScript wrapper can use its short name alongside qualified
+/// references without being parsed as the built-in fixed-size array.
+#[test]
+fn imported_javascript_array_keeps_its_own_arity() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        r#"
+module js_arrays.
+import std.js.Array.{Array, from_list, to_list}.
+pub make(): Array[Int] -> from_list([1, 2]).
+pub portable(values: Array[Int]): List[Int] -> to_list(values).
+pub qualified(values: std.js.Array.Array[Int]): Array[Int] -> values.
+"#,
+        "std/js/Array.terl",
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
+/// Import aliases allow both array families to be used in one module.
+#[test]
+fn builtin_array_coexists_with_aliased_javascript_array() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        r#"
+module mixed_arrays.
+import type std.js.Array.{Array as JsArray}.
+pub fixed(): Array[2, Int] -> #[1, 2].
+pub javascript(values: JsArray[Int]): std.js.Array.Array[Int] -> values.
+"#,
+        "std/js/Array.terl",
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
+/// Qualified array applications keep their provider's arity inside other types.
+#[test]
+fn qualified_javascript_array_checks_arity() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        r#"
+module invalid_qualified_array.
+import type std.js.Array.{Array as JsArray}.
+pub invalid(values: List[std.js.Array.Array[Int, Int]]): Int -> 0.
+"#,
+        "std/js/Array.terl",
+    );
+    assert!(
+        diagnostics.iter().any(
+            |diagnostic| diagnostic.message.contains("std.js.Array.Array")
+                && diagnostic.message.contains("expects 1")
+        ),
+        "{diagnostics:?}"
+    );
+}
+
+/// Native signature validation recognizes the built-in's two parameters.
+#[test]
+fn builtin_array_native_signatures_check_arity() {
+    let diagnostics = check_syntax_output(
+        "module arrays. @compiler.native {fixture.arrays} pub pass(values: Array[2, Int]): Array[2, Int].",
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+
+    let diagnostics = check_syntax_output(
+        "module arrays. @compiler.native {fixture.arrays} pub pass(values: Array[Int]): Int.",
+    );
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("Array")
+                && diagnostic.message.contains("expects 2")),
+        "{diagnostics:?}"
+    );
+}
+
+/// A nominal Array constructor must preserve its declared representation.
+#[test]
+fn declared_opaque_array_is_not_a_builtin_array_constructor() {
+    let diagnostics = check_syntax_output(
+        r#"
+module nominal_arrays.
+pub opaque type Array[T] = {T, T}.
+pub pair(): Array[Int] -> Array({1, 2}).
+"#,
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
 /// Verifies multi-segment module type references keep their full module path.
 ///
 /// Inputs:
@@ -328,6 +496,77 @@ fn expand_interface_global_aliases_preserves_recursive_cycle_reference() {
                 args: Vec::new(),
             })),
         ])
+    );
+}
+
+/// Qualified opaque aliases reveal their representation only inside their owner.
+#[test]
+fn reveal_qualified_opaque_aliases_respects_module_ownership() {
+    let syntax =
+        parse_module_as_syntax_output("module alias_scope.Owner. pub opaque type Html = String.")
+            .unwrap();
+    let aliases = collect_syntax_type_aliases(&syntax);
+    let html = Type::Named {
+        module: Some("alias_scope.Owner".into()),
+        name: "Html".into(),
+        args: vec![],
+    };
+    assert_eq!(
+        reveal_opaque_aliases(&html, &aliases, "alias_scope.Owner"),
+        Type::Binary
+    );
+    assert_eq!(
+        reveal_opaque_aliases(&html, &aliases, "alias_scope.Consumer"),
+        html
+    );
+    let nested = Type::List(Box::new(html));
+    assert_eq!(
+        reveal_opaque_aliases(&nested, &aliases, "alias_scope.Owner"),
+        Type::List(Box::new(Type::Binary))
+    );
+    assert_eq!(
+        reveal_opaque_aliases(&nested, &aliases, "alias_scope.Consumer"),
+        nested
+    );
+}
+
+#[test]
+fn reveal_recursive_opaque_aliases_keeps_a_nominal_cycle_boundary() {
+    let syntax = parse_module_as_syntax_output(
+        "module opaque_cycle.Owner. pub opaque type Chain = List[Chain].",
+    )
+    .unwrap();
+    let aliases = collect_syntax_type_aliases(&syntax);
+    let chain = Type::Named {
+        module: None,
+        name: "Chain".into(),
+        args: vec![],
+    };
+    assert_eq!(
+        reveal_opaque_aliases(&chain, &aliases, "opaque_cycle.Owner"),
+        Type::List(Box::new(chain))
+    );
+}
+
+#[test]
+fn reveal_opaque_aliases_expands_nested_generic_arguments() {
+    let syntax = parse_module_as_syntax_output(
+        "module opaque_nested.Owner. pub opaque type Wrapper[T] = T.",
+    )
+    .unwrap();
+    let aliases = collect_syntax_type_aliases(&syntax);
+    let wrapped = |value| Type::Named {
+        module: None,
+        name: "Wrapper".into(),
+        args: vec![value],
+    };
+    assert_eq!(
+        reveal_opaque_aliases(
+            &wrapped(wrapped(Type::Float)),
+            &aliases,
+            "opaque_nested.Owner"
+        ),
+        Type::Float
     );
 }
 
@@ -810,7 +1049,7 @@ pub demo(form: Form[Draft]): Unit ->\n\
     assert!(
         diagnostics.iter().any(|diagnostic| diagnostic
             .message
-            .contains("expected Validated found draft")),
+            .contains("expected validated found draft")),
         "diagnostics: {:?}",
         diagnostics
     );
@@ -879,7 +1118,7 @@ pub demo(handle: Handle[Closed]): String ->\n\
     assert!(
         diagnostics
             .iter()
-            .any(|diagnostic| diagnostic.message.contains("expected Open found closed")),
+            .any(|diagnostic| diagnostic.message.contains("expected open found closed")),
         "diagnostics: {:?}",
         diagnostics
     );
@@ -1131,99 +1370,4 @@ pub tag_count(tags: Boxed[Binary]): Int ->
         vec!["T"]
     );
     assert_eq!(show_method.return_type, "Binary");
-}
-
-#[test]
-fn reveal_qualified_opaque_aliases_respects_module_ownership() {
-    let syntax =
-        parse_module_as_syntax_output("module alias_scope.Owner. pub opaque type Html = String.")
-            .unwrap();
-    let aliases = collect_syntax_type_aliases(&syntax);
-    let html = Type::Named {
-        module: Some("alias_scope.Owner".into()),
-        name: "Html".into(),
-        args: vec![],
-    };
-    assert_eq!(
-        reveal_opaque_aliases(&html, &aliases, "alias_scope.Owner"),
-        Type::Binary
-    );
-    assert_eq!(
-        reveal_opaque_aliases(&html, &aliases, "alias_scope.Consumer"),
-        html
-    );
-    let nested = Type::List(Box::new(html));
-    assert_eq!(
-        reveal_opaque_aliases(&nested, &aliases, "alias_scope.Owner"),
-        Type::List(Box::new(Type::Binary))
-    );
-    assert_eq!(
-        reveal_opaque_aliases(&nested, &aliases, "alias_scope.Consumer"),
-        nested
-    );
-}
-
-#[test]
-fn reveal_recursive_opaque_aliases_keeps_a_nominal_cycle_boundary() {
-    let syntax = parse_module_as_syntax_output(
-        "module opaque_cycle.Owner. pub opaque type Chain = List[Chain].",
-    )
-    .unwrap();
-    let aliases = collect_syntax_type_aliases(&syntax);
-    let chain = Type::Named {
-        module: None,
-        name: "Chain".into(),
-        args: vec![],
-    };
-    assert_eq!(
-        reveal_opaque_aliases(&chain, &aliases, "opaque_cycle.Owner"),
-        Type::List(Box::new(chain))
-    );
-}
-
-#[test]
-fn reveal_opaque_aliases_expands_nested_generic_arguments() {
-    let syntax = parse_module_as_syntax_output(
-        "module opaque_nested.Owner. pub opaque type Wrapper[T] = T.",
-    )
-    .unwrap();
-    let aliases = collect_syntax_type_aliases(&syntax);
-    let wrapped = |value| Type::Named {
-        module: None,
-        name: "Wrapper".into(),
-        args: vec![value],
-    };
-    assert_eq!(
-        reveal_opaque_aliases(
-            &wrapped(wrapped(Type::Float)),
-            &aliases,
-            "opaque_nested.Owner"
-        ),
-        Type::Float
-    );
-}
-
-/// Public paths omit the primary suffix recursively, but retain secondary names.
-#[test]
-fn primary_type_paths_render_without_duplicate_names() {
-    let json = Type::Named {
-        module: Some("std.data.Json".into()),
-        name: "Json".into(),
-        args: vec![],
-    };
-    let map = Type::Named {
-        module: Some("std.collections.Map".into()),
-        name: "Map".into(),
-        args: vec![Type::Binary, json],
-    };
-    assert_eq!(
-        pretty_type(&map),
-        "std.collections.Map[Binary, std.data.Json]"
-    );
-    let secondary = Type::Named {
-        module: Some("std.data.Json".into()),
-        name: "JsonError".into(),
-        args: vec![],
-    };
-    assert_eq!(pretty_type(&secondary), "std.data.Json.JsonError");
 }

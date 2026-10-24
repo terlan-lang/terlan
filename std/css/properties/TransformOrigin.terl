@@ -1,108 +1,29 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `transform-origin` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * origin for an element's transformations.
+ *
+ * Initial: 50% 50% 0. Inherited: no.
+ * Percentages: refer to the size of bounding box.
+ *
+ * Grammar: [ left | center | right | top | bottom | <length-percentage> ] | [ left | center | right
+ * | <length-percentage> ] [ top | center | bottom | <length-percentage> ] <length>? | [ [ center |
+ * left | right ] && [ center | top | bottom ] ] <length>?
+ *
  * Specification: https://drafts.csswg.org/css-transforms-1/#propdef-transform-origin
- * Grammar: [ left | center | right | top | bottom | <length-percentage> ] | [ left | center | right | <length-percentage> ] [ top | center | bottom | <length-percentage> ] <length>? | [ [ center | left | right ] && [ center | top | bottom ] ] <length>?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transform-origin
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TransformOrigin.
 
-import std.css.Values.
+import std.css.keywords.{Bottom, Center, Left, Right, Top}.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained transform-origin value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    transform_origin: Value,
+    transform_origin: Left | Center | Right | Top | Bottom | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    transform_origin: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword bottom.
- */
-pub bottom(): Value ->
-    Value(Token {property: "transform-origin", css: "bottom"}).
-
-/**
- * Returns the CSS keyword center.
- */
-pub center(): Value ->
-    Value(Token {property: "transform-origin", css: "center"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "transform-origin", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "transform-origin", css: "initial"}).
-
-/**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "transform-origin", css: "left"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "transform-origin", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "transform-origin", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "transform-origin", css: "right"}).
-
-/**
- * Returns the CSS keyword top.
- */
-pub top(): Value ->
-    Value(Token {property: "transform-origin", css: "top"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "transform-origin", css: "unset"}).
-
-/**
- * Constructs a transform-origin value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "transform-origin", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a transform-origin value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "transform-origin", css: std.css.Values.percentage_css(value)}).

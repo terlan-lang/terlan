@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword break-spaces. Generated; do not edit.
+ */
+module std.css.keywords.BreakSpaces.
+
+pub type BreakSpaces = Atom["break-spaces"].

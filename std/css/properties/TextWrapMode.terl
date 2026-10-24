@@ -1,75 +1,33 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-wrap-mode
+ * The `text-wrap-mode` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property controls
+ * whether the text inside an element is wrapped.
+ *
+ * Initial: wrap. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - nowrap: Text does not wrap across lines. It will overflow its containing element rather than
+ * breaking onto a new line.
+ * - wrap: Text is wrapped across lines at appropriate characters (for example spaces, in languages
+ * like English that use space separators) to minimize overflow. This is the default value.
+ *
  * Grammar: wrap | nowrap
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-wrap-mode
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-wrap-mode
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextWrapMode.
 
-import type std.core.Option.
+import std.css.keywords.{Nowrap, Wrap}.
 
-/**
- * A nominal, specification-constrained text-wrap-mode value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    text_wrap_mode: Value,
+    text_wrap_mode: Wrap | Nowrap | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    text_wrap_mode: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-wrap-mode", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-wrap-mode", css: "initial"}).
-
-/**
- * Returns the CSS keyword nowrap.
- */
-pub nowrap(): Value ->
-    Value(Token {property: "text-wrap-mode", css: "nowrap"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-wrap-mode", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-wrap-mode", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-wrap-mode", css: "unset"}).
-
-/**
- * Returns the CSS keyword wrap.
- */
-pub wrap(): Value ->
-    Value(Token {property: "text-wrap-mode", css: "wrap"}).

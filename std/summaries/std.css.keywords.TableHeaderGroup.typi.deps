@@ -1,0 +1,8 @@
+module=std.css.keywords.TableHeaderGroup
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=16568635421406901379
+interface_hash=9293004761332914934
+interface_doc_hash=17503497731008186321
+deps=0

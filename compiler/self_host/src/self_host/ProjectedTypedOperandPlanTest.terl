@@ -1,0 +1,47 @@
+module self_host.ProjectedTypedOperandPlanTest.
+
+import self_host.ProjectedTypedOperandPlan.{annotate}.
+import self_host.SelfHostIrSyntax.{IrParameter}.
+import self_host.SelfHostSemanticIrSyntax.{
+    SemanticBlockPlan,
+    SemanticFunctionPlan,
+    SemanticInstructionPlan,
+    SemanticModulePlan,
+    SemanticTerminatorPlan
+}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+
+@test
+pub operand_types_are_derived_from_parameters_ssa_results_and_literals(): Bool ->
+    let first = SemanticInstructionPlan("add-small", Some("sum"), ["left", "1"], Some("Int"));
+    let second = SemanticInstructionPlan("put-tuple", Some("pair"), ["sum", "name"], Some("(Int, String)"));
+    let plan = SemanticModulePlan(
+        "sample.Typed",
+        List.new[self_host.SelfHostIrSyntax.IrStructLayout](),
+        [SemanticFunctionPlan(
+            "sample.Typed",
+            "pair",
+            2,
+            [IrParameter("left", "Int"), IrParameter("name", "String")],
+            Some("(Int, String)"),
+            [SemanticBlockPlan(
+                "entry",
+                [first, second],
+                SemanticTerminatorPlan("return", ["pair"], List.new[String]()),
+            )],
+            None,
+        )],
+    );
+    let typed = annotate(plan);
+    case typed.functions {
+        [function] -> case function.blocks {
+            [block] -> case block.instructions {
+                [left, right] -> left.operand_types == [Some("Int"), Some("Int")]
+                    and right.operand_types == [Some("Int"), Some("String")];
+                _ -> false
+            };
+            _ -> false
+        };
+        _ -> false
+    }.

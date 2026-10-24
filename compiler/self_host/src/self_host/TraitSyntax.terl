@@ -36,6 +36,7 @@ pub struct TraitMethodSyntax {
     valid: Bool,
     name: String,
     parameters: List[ParameterSyntax],
+    constraints: List[TypeParse],
     return_type: TypeParse,
     has_default: Bool,
     default_body: ExpressionParse,
@@ -43,11 +44,12 @@ pub struct TraitMethodSyntax {
 }.
 
 pub constructor TraitMethodSyntax {
-    (valid: Bool, name: String, parameters: List[ParameterSyntax], return_type: TypeParse, has_default: Bool, default_body: ExpressionParse, message: String): TraitMethodSyntax ->
+    (valid: Bool, name: String, parameters: List[ParameterSyntax], constraints: List[TypeParse], return_type: TypeParse, has_default: Bool, default_body: ExpressionParse, message: String): TraitMethodSyntax ->
         TraitMethodSyntax {
             valid: valid,
             name: name,
             parameters: parameters,
+            constraints: constraints,
             return_type: return_type,
             has_default: has_default,
             default_body: default_body,
@@ -59,6 +61,8 @@ pub constructor TraitMethodSyntax {
 pub struct TraitSyntax {
     valid: Bool,
     name: String,
+    type_parameters: List[String],
+    parents: List[String],
     constants: List[self_host.TraitSyntax.TraitConstantSyntax],
     methods: List[self_host.TraitSyntax.TraitMethodSyntax],
     is_public: Bool,
@@ -67,10 +71,12 @@ pub struct TraitSyntax {
 }.
 
 pub constructor TraitSyntax {
-    (valid: Bool, name: String, constants: List[self_host.TraitSyntax.TraitConstantSyntax], methods: List[self_host.TraitSyntax.TraitMethodSyntax], is_public: Bool, span: SyntaxSpan, message: String): TraitSyntax ->
+    (valid: Bool, name: String, type_parameters: List[String], parents: List[String], constants: List[self_host.TraitSyntax.TraitConstantSyntax], methods: List[self_host.TraitSyntax.TraitMethodSyntax], is_public: Bool, span: SyntaxSpan, message: String): TraitSyntax ->
         TraitSyntax {
             valid: valid,
             name: name,
+            type_parameters: type_parameters,
+            parents: parents,
             constants: constants,
             methods: methods,
             is_public: is_public,

@@ -31,10 +31,11 @@ pub expire(session: Session): Response ->
 "#,
     );
     let sessions = super::super::session_service::new_session_service();
-    let pending = sessions
-        .with_storage(|state| state.create("", 86400))
+    let pending = "cookie-fixture".to_string();
+    assert!(sessions
+        .with_storage(|state| state.try_create(&pending, 86400))
         .unwrap()
-        .unwrap();
+        .unwrap());
     let runtime = AotHandlerRuntime {
         module: "app.SessionCookies".into(),
         generation: Arc::new(

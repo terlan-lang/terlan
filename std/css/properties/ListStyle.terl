@@ -1,144 +1,56 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-lists-3/#propdef-list-style
+ * The `list-style` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property allows you to set all the list style properties at once.
+ *
+ * Initial: list-style-type: disc; list-style-position: outside; list-style-image: none. Inherited:
+ * yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - inside: The marker box is outside the principal block box, as described in the section on the
+ * ::marker pseudo-element below.
+ * - none: No list style is used.
+ * - outside: The ::marker pseudo-element is an inline element placed immediately before all
+ * ::before pseudo-elements in the principal block box, after which the element's content flows.
+ *
  * Grammar: <'list-style-position'> || <'list-style-image'> || <'list-style-type'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-lists-3/#propdef-list-style
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/list-style
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ListStyle.
 
-import type std.core.Option.
+import std.css.keywords.{Inside, None, Outside}.
 
-/**
- * A nominal, specification-constrained list-style value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-/**
- * A non-global list-style-position component of list-style.
- */
-pub opaque type ListStylePositionPart = String.
+pub type ListStylePositionPart = Inside | Outside.
 
-/**
- * A non-global list-style-image component of list-style.
- */
-pub opaque type ListStyleImagePart = String.
+pub type ListStyleImagePart = None.
 
-/**
- * A non-global list-style-type component of list-style.
- */
-pub opaque type ListStyleTypePart = String.
+pub type ListStyleTypePart = None.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Checked = {Atom["css_parts"], {ListStylePositionPart, ListStyleImagePart, ListStyleTypePart}}.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    list_style: Value,
+    list_style: Inside | Outside | None | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    list_style: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "list-style", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "list-style", css: "initial"}).
-
-/**
- * Returns the CSS keyword inside.
- */
-pub inside(): Value ->
-    Value(Token {property: "list-style", css: "inside"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "list-style", css: "none"}).
-
-/**
- * Returns the CSS keyword outside.
- */
-pub outside(): Value ->
-    Value(Token {property: "list-style", css: "outside"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "list-style", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "list-style", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "list-style", css: "unset"}).
-
-/**
- * Constructs the list-style-position keyword inside.
- */
-pub list_style_position_inside(): ListStylePositionPart ->
-    ListStylePositionPart("inside").
-
-/**
- * Constructs the list-style-position keyword outside.
- */
-pub list_style_position_outside(): ListStylePositionPart ->
-    ListStylePositionPart("outside").
-
-list_style_position_css(value: ListStylePositionPart): String ->
-    value.
-
-/**
- * Constructs the list-style-image keyword none.
- */
-pub list_style_image_none(): ListStyleImagePart ->
-    ListStyleImagePart("none").
-
-list_style_image_css(value: ListStyleImagePart): String ->
-    value.
-
-/**
- * Constructs the list-style-type keyword none.
- */
-pub list_style_type_none(): ListStyleTypePart ->
-    ListStyleTypePart("none").
-
-list_style_type_css(value: ListStyleTypePart): String ->
-    value.
-
-/**
- * Combines every named specification group in canonical order.
+ * Combines list-style-position, list-style-image, list-style-type for list-style. Each parameter
+ * accepts its own keyword or typed unit choices directly.
  */
 pub compose(
     list_style_position: ListStylePositionPart,
     list_style_image: ListStyleImagePart,
     list_style_type: ListStyleTypePart,
-): Value ->
-    Value(
-        Token {
-            property: "list-style",
-            css: list_style_position_css(list_style_position) + " " + list_style_image_css(list_style_image) + " " + list_style_type_css(list_style_type),
-        },
-    ).
+): Checked ->
+    Checked({Atom["css_parts"], {list_style_position, list_style_image, list_style_type}}).

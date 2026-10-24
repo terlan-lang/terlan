@@ -1,0 +1,6 @@
+//! Shared CSS keyword space-all. Generated; do not edit.
+
+module std.css.keywords.SpaceAll.
+
+pub type SpaceAll =
+    Atom["space-all"].

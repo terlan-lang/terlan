@@ -13,7 +13,8 @@ const compiler = process.env.TERLC ?? path.join(root, 'target/debug/terlc');
 const source = path.join(root, 'std/css');
 const files = (await readdir(path.join(source, 'properties'))).filter(name => name.endsWith('.terl')).sort();
 const temporary = await mkdtemp(path.join(tmpdir(), 'terlan-css-types-'));
-const batches = Array.from({length: Math.ceil(files.length / 64)}, (_, index) => files.slice(index * 64, (index + 1) * 64));
+const batchSize = 16;
+const batches = Array.from({length: Math.ceil(files.length / batchSize)}, (_, index) => files.slice(index * batchSize, (index + 1) * batchSize));
 let next = 0;
 try {
   const results = await Promise.allSettled(Array.from({length: 4}, async () => {

@@ -1,0 +1,679 @@
+/** Discovers finite closure target sets from typed Core SSA construction flows. */
+module self_host.SelfHostActorDynamicDiscovery.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, Int, String}.
+
+import self_host.SelfHostActorCoreTraversal.{ActorDynamicCallEvidence}.
+import self_host.SelfHostActorEffects.{ActorCallableIdentity}.
+import self_host.SelfHostIrSyntax.{IrBlock, IrFunction, IrInstruction, IrParameter}.
+
+
+struct ClosureBinding {
+    name: String,
+    targets: List[ActorCallableIdentity],
+}.
+
+constructor ClosureBinding {
+    (name: String, targets: List[ActorCallableIdentity]): ClosureBinding ->
+        ClosureBinding { name: name, targets: targets }
+}.
+
+@pure
+same_target(left: ActorCallableIdentity, right: ActorCallableIdentity): Bool ->
+    left.module_name == right.module_name
+        and left.function_name == right.function_name
+        and left.arity == right.arity.
+
+@pure
+target_present(value: ActorCallableIdentity, values: List[ActorCallableIdentity]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> same_target(value, current) or target_present(value, rest)
+    }.
+
+@pure
+append_target(value: ActorCallableIdentity, values: List[ActorCallableIdentity]): List[ActorCallableIdentity] ->
+    if { target_present(value, values) -> values; true -> [value | values] }.
+
+@pure
+merge_targets(left: List[ActorCallableIdentity], right: List[ActorCallableIdentity]): List[ActorCallableIdentity] ->
+    case left {
+        [] -> right;
+        [value | rest] -> merge_targets(rest, append_target(value, right))
+    }.
+
+@pure
+binding_targets(name: String, values: List[ClosureBinding]): Option[List[ActorCallableIdentity]] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.name == name -> Some(value.targets);
+            true -> binding_targets(name, rest)
+        }
+    }.
+
+@pure
+binding_present(name: String, values: List[ClosureBinding]): Bool ->
+    case binding_targets(name, values) { None -> false; Some(_) -> true }.
+
+@pure
+target_function(
+    module_name: String,
+    name: String,
+    values: List[IrFunction],
+    found: Option[ActorCallableIdentity],
+): Result[ActorCallableIdentity, String] ->
+    case values {
+        [] -> case found {
+            None -> Err("make-closure target is absent from typed Core functions");
+            Some(value) -> Ok(value)
+        };
+        [value | rest] -> if {
+            value.module_name != module_name or value.name != name ->
+                target_function(module_name, name, rest, found);
+            true -> case found {
+                None -> target_function(
+                    module_name,
+                    name,
+                    rest,
+                    Some(ActorCallableIdentity(value.module_name, value.name, value.arity)),
+                );
+                Some(_) -> Err("make-closure target identity is ambiguous")
+            }
+        }
+    }.
+
+@pure
+make_closure_binding(
+    owner: IrFunction,
+    instruction: IrInstruction,
+    functions: List[IrFunction],
+): Result[Option[ClosureBinding], String] ->
+    if {
+        instruction.opcode != "make-closure" -> Ok(None);
+        true -> case instruction.result {
+            Some(result_name) -> case instruction.operands {
+                [target_name | _] -> case target_function(
+                    owner.module_name,
+                    target_name,
+                    functions,
+                    None,
+                ) {
+                    Err(reason) -> Err(reason);
+                    Ok(target) -> Ok(Some(ClosureBinding(result_name, [target])))
+                };
+                _ -> Err("make-closure has no result or target identity")
+            };
+            _ -> Err("make-closure has no result or target identity")
+        }
+    }.
+
+@pure
+initial_instructions(
+    owner: IrFunction,
+    values: List[IrInstruction],
+    functions: List[IrFunction],
+    output: List[ClosureBinding],
+): Result[List[ClosureBinding], String] ->
+    case values {
+        [] -> Ok(output);
+        [value | rest] -> case make_closure_binding(owner, value, functions) {
+            Err(reason) -> Err(reason);
+            Ok(None) -> initial_instructions(owner, rest, functions, output);
+            Ok(Some(binding)) -> if {
+                binding_present(binding.name, output) -> Err("closure SSA result is defined more than once");
+                true -> initial_instructions(owner, rest, functions, [binding | output])
+            }
+        }
+    }.
+
+@pure
+initial_blocks(
+    owner: IrFunction,
+    values: List[IrBlock],
+    functions: List[IrFunction],
+    output: List[ClosureBinding],
+): Result[List[ClosureBinding], String] ->
+    case values {
+        [] -> Ok(output);
+        [value | rest] -> case initial_instructions(owner, value.instructions, functions, output) {
+            Err(reason) -> Err(reason);
+            Ok(next) -> initial_blocks(owner, rest, functions, next)
+        }
+    }.
+
+@pure
+source_targets(name: String, bindings: List[ClosureBinding]): Option[List[ActorCallableIdentity]] ->
+    binding_targets(name, bindings).
+
+@pure
+phi_sources(
+    values: List[String],
+    bindings: List[ClosureBinding],
+    output: List[ActorCallableIdentity],
+): Option[List[ActorCallableIdentity]] ->
+    case values {
+        [] -> Some(output);
+        [_label | [value | rest]] -> case source_targets(value, bindings) {
+            None -> None;
+            Some(targets) -> phi_sources(rest, bindings, merge_targets(targets, output))
+        };
+        _ -> None
+    }.
+
+@pure
+select_sources(values: List[String], bindings: List[ClosureBinding]): Option[List[ActorCallableIdentity]] ->
+    case values {
+        [_condition, left, right] -> case source_targets(left, bindings) {
+            Some(left_targets) -> case source_targets(right, bindings) {
+                Some(right_targets) -> Some(merge_targets(left_targets, right_targets));
+                _ -> None
+            };
+            _ -> None
+        };
+        _ -> None
+    }.
+
+@pure
+propagated_targets(instruction: IrInstruction, bindings: List[ClosureBinding]): Option[List[ActorCallableIdentity]] ->
+    if {
+        instruction.opcode == "move" -> case instruction.operands {
+            [source] -> source_targets(source, bindings);
+            _ -> None
+        };
+        instruction.opcode == "phi" -> phi_sources(instruction.operands, bindings, List.new[ActorCallableIdentity]());
+        instruction.opcode == "select" -> select_sources(instruction.operands, bindings);
+        true -> None
+    }.
+
+@pure
+propagate_instructions(values: List[IrInstruction], bindings: List[ClosureBinding]): List[ClosureBinding] ->
+    case values {
+        [] -> bindings;
+        [value | rest] -> case value.result {
+            None -> propagate_instructions(rest, bindings);
+            Some(result_name) -> if {
+                binding_present(result_name, bindings) -> propagate_instructions(rest, bindings);
+                true -> case propagated_targets(value, bindings) {
+                    None -> propagate_instructions(rest, bindings);
+                    Some(targets) -> propagate_instructions(rest, [ClosureBinding(result_name, targets) | bindings])
+                }
+            }
+        }
+    }.
+
+@pure
+propagate_blocks(values: List[IrBlock], bindings: List[ClosureBinding]): List[ClosureBinding] ->
+    case values {
+        [] -> bindings;
+        [value | rest] -> propagate_blocks(
+            rest,
+            propagate_instructions(value.instructions, bindings),
+        )
+    }.
+
+@pure
+fixed_point(values: List[IrBlock], bindings: List[ClosureBinding], remaining: Int): List[ClosureBinding] ->
+    let expanded = propagate_blocks(values, bindings);
+    if {
+        List.length(expanded) == List.length(bindings) or remaining <= 0 -> expanded;
+        true -> fixed_point(values, expanded, remaining - 1)
+    }.
+
+@pure
+call_evidence(instruction: IrInstruction, bindings: List[ClosureBinding]): Result[Option[ActorDynamicCallEvidence], String] ->
+    if {
+        instruction.opcode != "call-value" -> Ok(None);
+        true -> case instruction.result {
+            Some(result_name) -> case instruction.operands {
+                [callee | arguments] -> case binding_targets(callee, bindings) {
+                    None -> Err("call-value target set cannot be proven from typed Core SSA");
+                    Some(targets) -> Ok(Some(ActorDynamicCallEvidence(
+                        result_name,
+                        List.length(arguments),
+                        targets,
+                        false,
+                        None,
+                    )))
+                };
+                _ -> Err("call-value has no result or callee operand")
+            };
+            _ -> Err("call-value has no result or callee operand")
+        }
+    }.
+
+@pure
+calls_instructions(
+    values: List[IrInstruction],
+    bindings: List[ClosureBinding],
+    output: List[ActorDynamicCallEvidence],
+): Result[List[ActorDynamicCallEvidence], String] ->
+    case values {
+        [] -> Ok(output);
+        [value | rest] -> case call_evidence(value, bindings) {
+            Err(reason) -> Err(reason);
+            Ok(None) -> calls_instructions(rest, bindings, output);
+            Ok(Some(evidence)) -> calls_instructions(rest, bindings, [evidence | output])
+        }
+    }.
+
+@pure
+calls_blocks(
+    values: List[IrBlock],
+    bindings: List[ClosureBinding],
+    output: List[ActorDynamicCallEvidence],
+): Result[List[ActorDynamicCallEvidence], String] ->
+    case values {
+        [] -> Ok(output);
+        [value | rest] -> case calls_instructions(value.instructions, bindings, output) {
+            Err(reason) -> Err(reason);
+            Ok(next) -> calls_blocks(rest, bindings, next)
+        }
+    }.
+
+@pure
+reverse(values: List[ActorDynamicCallEvidence], output: List[ActorDynamicCallEvidence]): List[ActorDynamicCallEvidence] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse(rest, [value | output])
+    }.
+
+/** Discovers all finite call-value target sets or fails closed. */
+@pure
+intraprocedural_function(
+    value: IrFunction,
+    functions: List[IrFunction],
+): Result[List[ActorDynamicCallEvidence], String] ->
+    case initial_blocks(value, value.blocks, functions, List.new[ClosureBinding]()) {
+        Err(reason) -> Err(reason);
+        Ok(initial) -> let bindings = fixed_point(value.blocks, initial, 64);
+        case calls_blocks(value.blocks, bindings, List.new[ActorDynamicCallEvidence]()) {
+            Err(reason) -> Err(reason);
+            Ok(reversed) -> Ok(reverse(reversed, List.new[ActorDynamicCallEvidence]()))
+        }
+    }.
+
+
+/** Finite target sets inferred for closure-valued parameters. */
+pub struct ParameterTargets {
+    module_name: String,
+    function_name: String,
+    arity: Int,
+    parameter_name: String,
+    targets: List[ActorCallableIdentity],
+}.
+
+constructor ParameterTargets {
+    (module_name: String, function_name: String, arity: Int, parameter_name: String, targets: List[ActorCallableIdentity]): ParameterTargets ->
+        ParameterTargets {
+            module_name: module_name,
+            function_name: function_name,
+            arity: arity,
+            parameter_name: parameter_name,
+            targets: targets,
+        }
+}.
+
+
+/** Reusable module-wide closure-target fixed point. */
+pub struct DynamicTargetEnvironment {
+    functions: List[IrFunction],
+    targets: List[ParameterTargets],
+}.
+
+constructor DynamicTargetEnvironment {
+    (functions: List[IrFunction], targets: List[ParameterTargets]): DynamicTargetEnvironment ->
+        DynamicTargetEnvironment {
+            functions: functions,
+            targets: targets,
+        }
+}.
+
+
+/** Dynamic call evidence discovered for one exact Core function. */
+pub struct DiscoveredDynamicFunction {
+    module_name: String,
+    function_name: String,
+    arity: Int,
+    calls: List[ActorDynamicCallEvidence],
+}.
+
+pub constructor DiscoveredDynamicFunction {
+    (module_name: String, function_name: String, arity: Int, calls: List[ActorDynamicCallEvidence]): DiscoveredDynamicFunction ->
+        DiscoveredDynamicFunction {
+            module_name: module_name,
+            function_name: function_name,
+            arity: arity,
+            calls: calls,
+        }
+}.
+
+
+@pure
+same_parameter(
+    value: ParameterTargets,
+    function: IrFunction,
+    parameter_name: String,
+): Bool ->
+    value.module_name == function.module_name
+        and value.function_name == function.name
+        and value.arity == function.arity
+        and value.parameter_name == parameter_name.
+
+@pure
+parameter_targets(
+    function: IrFunction,
+    parameter_name: String,
+    values: List[ParameterTargets],
+): List[ActorCallableIdentity] ->
+    case values {
+        [] -> List.new[ActorCallableIdentity]();
+        [value | rest] -> if {
+            same_parameter(value, function, parameter_name) -> value.targets;
+            true -> parameter_targets(function, parameter_name, rest)
+        }
+    }.
+
+@pure
+parameter_bindings(
+    function: IrFunction,
+    values: List[IrParameter],
+    targets: List[ParameterTargets],
+    output: List[ClosureBinding],
+): List[ClosureBinding] ->
+    case values {
+        [] -> output;
+        [parameter | rest] -> let found = parameter_targets(function, parameter.name, targets);
+        case found {
+            [] -> parameter_bindings(function, rest, targets, output);
+            [_ | _] -> parameter_bindings(
+                function,
+                rest,
+                targets,
+                [ClosureBinding(parameter.name, found) | output],
+            )
+        }
+    }.
+
+@pure
+function_bindings(
+    function: IrFunction,
+    functions: List[IrFunction],
+    targets: List[ParameterTargets],
+): Result[List[ClosureBinding], String] ->
+    case initial_blocks(function, function.blocks, functions, List.new[ClosureBinding]()) {
+        Err(reason) -> Err(reason);
+        Ok(initial) -> Ok(fixed_point(
+            function.blocks,
+            parameter_bindings(function, function.parameters, targets, initial),
+            64,
+        ))
+    }.
+
+@pure
+local_callee(
+    owner: IrFunction,
+    name: String,
+    arity: Int,
+    values: List[IrFunction],
+    found: Option[IrFunction],
+): Result[IrFunction, String] ->
+    case values {
+        [] -> case found {
+            None -> Err("local closure-argument call target is absent");
+            Some(value) -> Ok(value)
+        };
+        [value | rest] -> if {
+            value.module_name != owner.module_name
+                or value.name != name
+                or value.arity != arity -> local_callee(owner, name, arity, rest, found);
+            true -> case found {
+                None -> local_callee(owner, name, arity, rest, Some(value));
+                Some(_) -> Err("local closure-argument call target is ambiguous")
+            }
+        }
+    }.
+
+@pure
+put_parameter(
+    function: IrFunction,
+    parameter_name: String,
+    targets: List[ActorCallableIdentity],
+    values: List[ParameterTargets],
+): List[ParameterTargets] ->
+    case values {
+        [] -> [ParameterTargets(
+            function.module_name,
+            function.name,
+            function.arity,
+            parameter_name,
+            targets,
+        )];
+        [value | rest] -> if {
+            same_parameter(value, function, parameter_name) -> [ParameterTargets(
+                value.module_name,
+                value.function_name,
+                value.arity,
+                value.parameter_name,
+                merge_targets(targets, value.targets),
+            ) | rest];
+            true -> [value | put_parameter(function, parameter_name, targets, rest)]
+        }
+    }.
+
+@pure
+propagate_arguments(
+    callee: IrFunction,
+    parameters: List[IrParameter],
+    arguments: List[String],
+    bindings: List[ClosureBinding],
+    targets: List[ParameterTargets],
+): Result[List[ParameterTargets], String] ->
+    case parameters {
+        [] -> case arguments {
+            [] -> Ok(targets);
+            _ -> Err("local closure-argument call arity does not match Core parameters")
+        };
+        [parameter | parameter_rest] -> case arguments {
+            [argument | argument_rest] ->
+                let next = case binding_targets(argument, bindings) {
+                    None -> targets;
+                    Some(found) -> put_parameter(callee, parameter.name, found, targets)
+                };
+                propagate_arguments(callee, parameter_rest, argument_rest, bindings, next);
+            _ -> Err("local closure-argument call arity does not match Core parameters")
+        }
+    }.
+
+@pure
+propagate_instruction(
+    owner: IrFunction,
+    instruction: IrInstruction,
+    functions: List[IrFunction],
+    bindings: List[ClosureBinding],
+    targets: List[ParameterTargets],
+): Result[List[ParameterTargets], String] ->
+    if {
+        instruction.opcode != "call-local" -> Ok(targets);
+        true -> case instruction.operands {
+            [name | arguments] -> case local_callee(
+                owner,
+                name,
+                List.length(arguments),
+                functions,
+                None,
+            ) {
+                Err(reason) -> Err(reason);
+                Ok(callee) -> propagate_arguments(
+                    callee,
+                    callee.parameters,
+                    arguments,
+                    bindings,
+                    targets,
+                )
+            };
+            [] -> Err("call-local has no callable identity")
+        }
+    }.
+
+@pure
+propagate_call_instructions(
+    owner: IrFunction,
+    values: List[IrInstruction],
+    functions: List[IrFunction],
+    bindings: List[ClosureBinding],
+    targets: List[ParameterTargets],
+): Result[List[ParameterTargets], String] ->
+    case values {
+        [] -> Ok(targets);
+        [value | rest] -> case propagate_instruction(owner, value, functions, bindings, targets) {
+            Err(reason) -> Err(reason);
+            Ok(next) -> propagate_call_instructions(owner, rest, functions, bindings, next)
+        }
+    }.
+
+@pure
+propagate_call_blocks(
+    owner: IrFunction,
+    values: List[IrBlock],
+    functions: List[IrFunction],
+    bindings: List[ClosureBinding],
+    targets: List[ParameterTargets],
+): Result[List[ParameterTargets], String] ->
+    case values {
+        [] -> Ok(targets);
+        [value | rest] -> case propagate_call_instructions(
+            owner,
+            value.instructions,
+            functions,
+            bindings,
+            targets,
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(next) -> propagate_call_blocks(owner, rest, functions, bindings, next)
+        }
+    }.
+
+@pure
+propagate_functions(
+    values: List[IrFunction],
+    functions: List[IrFunction],
+    targets: List[ParameterTargets],
+): Result[List[ParameterTargets], String] ->
+    case values {
+        [] -> Ok(targets);
+        [value | rest] -> case function_bindings(value, functions, targets) {
+            Err(reason) -> Err(reason);
+            Ok(bindings) -> case propagate_call_blocks(
+                value,
+                value.blocks,
+                functions,
+                bindings,
+                targets,
+            ) {
+                Err(reason) -> Err(reason);
+                Ok(next) -> propagate_functions(rest, functions, next)
+            }
+        }
+    }.
+
+@pure
+target_weight(values: List[ParameterTargets]): Int ->
+    case values {
+        [] -> 0;
+        [value | rest] -> List.length(value.targets) + target_weight(rest)
+    }.
+
+@pure
+parameter_fixed_point(
+    functions: List[IrFunction],
+    targets: List[ParameterTargets],
+    remaining: Int,
+): Result[List[ParameterTargets], String] ->
+    case propagate_functions(functions, functions, targets) {
+        Err(reason) -> Err(reason);
+        Ok(expanded) -> if {
+            target_weight(expanded) == target_weight(targets) -> Ok(expanded);
+            remaining <= 0 -> Err("interprocedural closure target inference did not converge");
+            true -> parameter_fixed_point(functions, expanded, remaining - 1)
+        }
+    }.
+
+@pure
+module_calls(
+    values: List[IrFunction],
+    functions: List[IrFunction],
+    targets: List[ParameterTargets],
+): Result[List[DiscoveredDynamicFunction], String] ->
+    case values {
+        [] -> Ok(List.new[DiscoveredDynamicFunction]());
+        [value | rest] -> case function_bindings(value, functions, targets) {
+            Err(reason) -> Err(reason);
+            Ok(bindings) -> case calls_blocks(
+                value.blocks,
+                bindings,
+                List.new[ActorDynamicCallEvidence](),
+            ) {
+                Err(reason) -> Err(reason);
+                Ok(reversed) -> case module_calls(rest, functions, targets) {
+                    Err(reason) -> Err(reason);
+                    Ok(remaining) -> Ok([DiscoveredDynamicFunction(
+                        value.module_name,
+                        value.name,
+                        value.arity,
+                        reverse(reversed, List.new[ActorDynamicCallEvidence]()),
+                    ) | remaining])
+                }
+            }
+        }
+    }.
+
+/** Computes the closure-parameter fixed point once for reuse by every function. */
+@pure
+pub environment(values: List[IrFunction]): Result[DynamicTargetEnvironment, String] ->
+    case parameter_fixed_point(values, List.new[ParameterTargets](), 64) {
+        Err(reason) -> Err(reason);
+        Ok(targets) -> Ok(DynamicTargetEnvironment(values, targets))
+    }.
+
+@pure
+pub function_in(
+    value: IrFunction,
+    environment: DynamicTargetEnvironment,
+): Result[List[ActorDynamicCallEvidence], String] ->
+    case function_bindings(value, environment.functions, environment.targets) {
+        Err(reason) -> Err(reason);
+        Ok(bindings) -> case calls_blocks(
+            value.blocks,
+            bindings,
+            List.new[ActorDynamicCallEvidence](),
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(reversed) -> Ok(reverse(reversed, List.new[ActorDynamicCallEvidence]()))
+        }
+    }.
+
+/** Computes module-wide closure parameter and call-value target sets. */
+@pure
+pub build_module(values: List[IrFunction]): Result[List[DiscoveredDynamicFunction], String] ->
+    case environment(values) {
+        Err(reason) -> Err(reason);
+        Ok(discovered) -> module_calls(values, discovered.functions, discovered.targets)
+    }.
+
+/**
+ * Discovers dynamic call targets with module-wide parameter propagation.
+ * Imported and opaque higher-order contracts still require explicit evidence.
+ */
+@pure
+pub function(
+    value: IrFunction,
+    functions: List[IrFunction],
+): Result[List[ActorDynamicCallEvidence], String] ->
+    case environment(functions) {
+        Err(reason) -> Err(reason);
+        Ok(discovered) -> function_in(value, discovered)
+    }.

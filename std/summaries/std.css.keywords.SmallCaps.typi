@@ -1,0 +1,6 @@
+//! Shared CSS keyword small-caps. Generated; do not edit.
+
+module std.css.keywords.SmallCaps.
+
+pub type SmallCaps =
+    Atom["small-caps"].

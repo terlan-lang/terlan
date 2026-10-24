@@ -1,0 +1,253 @@
+/** Final production-authority gate above bootstrap convergence. */
+module self_host.ProductionAuthority.
+
+import std.collections.List.
+
+/** Phase-nine hardening evidence that cannot be inferred from bootstrap identity. */
+pub struct ProductionHardeningEvidence {
+    pattern_semantics_authority: Bool,
+    backend_language_complete: Bool,
+    tooling_authority: Bool,
+    nested_control_flow_complete: Bool,
+    complete_pattern_surface: Bool,
+    bootstrap_workarounds_removed: Bool,
+    idiomatic_source_restored: Bool,
+    pattern_decision_tree_complete: Bool,
+    self_analysis_resource_bounds: Bool,
+    compiler_regression_corpus_complete: Bool,
+    minimal_trusted_base: Bool,
+    rust_frontend_removed_from_normal_paths: Bool,
+    post_cleanup_converged: Bool,
+    dynamic_call_target_authority: Bool,
+    target_independent_optimizer_authority: Bool,
+    bounded_parallel_backend_authority: Bool,
+}.
+
+pub constructor ProductionHardeningEvidence {
+    (pattern_semantics_authority: Bool, backend_language_complete: Bool, tooling_authority: Bool, nested_control_flow_complete: Bool, complete_pattern_surface: Bool, bootstrap_workarounds_removed: Bool, idiomatic_source_restored: Bool, pattern_decision_tree_complete: Bool, self_analysis_resource_bounds: Bool, compiler_regression_corpus_complete: Bool, minimal_trusted_base: Bool, rust_frontend_removed_from_normal_paths: Bool, post_cleanup_converged: Bool, dynamic_call_target_authority: Bool, target_independent_optimizer_authority: Bool, bounded_parallel_backend_authority: Bool): ProductionHardeningEvidence ->
+        ProductionHardeningEvidence {
+            pattern_semantics_authority: pattern_semantics_authority,
+            backend_language_complete: backend_language_complete,
+            tooling_authority: tooling_authority,
+            nested_control_flow_complete: nested_control_flow_complete,
+            complete_pattern_surface: complete_pattern_surface,
+            bootstrap_workarounds_removed: bootstrap_workarounds_removed,
+            idiomatic_source_restored: idiomatic_source_restored,
+            pattern_decision_tree_complete: pattern_decision_tree_complete,
+            self_analysis_resource_bounds: self_analysis_resource_bounds,
+            compiler_regression_corpus_complete: compiler_regression_corpus_complete,
+            minimal_trusted_base: minimal_trusted_base,
+            rust_frontend_removed_from_normal_paths: rust_frontend_removed_from_normal_paths,
+            post_cleanup_converged: post_cleanup_converged,
+            dynamic_call_target_authority: dynamic_call_target_authority,
+            target_independent_optimizer_authority: target_independent_optimizer_authority,
+            bounded_parallel_backend_authority: bounded_parallel_backend_authority,
+        }
+}.
+
+@pure
+pending_hardening(): ProductionHardeningEvidence ->
+    ProductionHardeningEvidence(
+        false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false,
+    ).
+
+pub struct ProductionEvidence {
+    frontend_authority: Bool,
+    type_system_authority: Bool,
+    core_ir_authority: Bool,
+    actor_ir_authority: Bool,
+    backend_complete: Bool,
+    actor_backend_complete: Bool,
+    driver_authority: Bool,
+    actor_tooling_authority: Bool,
+    actor_profile_catalog_authority: Bool,
+    actor_profile_projection_converged: Bool,
+    bootstrap_converged: Bool,
+    actor_bootstrap_converged: Bool,
+    performance_within_budget: Bool,
+    recovery_bootstrap: Bool,
+    trusted_base_documented: Bool,
+    no_ad_hoc_exclusions: Bool,
+    stage1_identity: String,
+    stage2_identity: String,
+    stage1_actor_identity: String,
+    stage2_actor_identity: String,
+    hardening: ProductionHardeningEvidence,
+}.
+
+pub constructor ProductionEvidence {
+    (frontend_authority: Bool, type_system_authority: Bool, core_ir_authority: Bool, backend_complete: Bool, driver_authority: Bool, bootstrap_converged: Bool, performance_within_budget: Bool, recovery_bootstrap: Bool, trusted_base_documented: Bool, no_ad_hoc_exclusions: Bool, stage1_identity: String, stage2_identity: String): ProductionEvidence ->
+        ProductionEvidence {
+            frontend_authority: frontend_authority,
+            type_system_authority: type_system_authority,
+            core_ir_authority: core_ir_authority,
+            actor_ir_authority: false,
+            backend_complete: backend_complete,
+            actor_backend_complete: false,
+            driver_authority: driver_authority,
+            actor_tooling_authority: false,
+            actor_profile_catalog_authority: false,
+            actor_profile_projection_converged: false,
+            bootstrap_converged: bootstrap_converged,
+            actor_bootstrap_converged: false,
+            performance_within_budget: performance_within_budget,
+            recovery_bootstrap: recovery_bootstrap,
+            trusted_base_documented: trusted_base_documented,
+            no_ad_hoc_exclusions: no_ad_hoc_exclusions,
+            stage1_identity: stage1_identity,
+            stage2_identity: stage2_identity,
+            stage1_actor_identity: "",
+            stage2_actor_identity: "",
+            hardening: pending_hardening(),
+        };
+    (frontend_authority: Bool, type_system_authority: Bool, core_ir_authority: Bool, actor_ir_authority: Bool, backend_complete: Bool, actor_backend_complete: Bool, driver_authority: Bool, actor_tooling_authority: Bool, bootstrap_converged: Bool, actor_bootstrap_converged: Bool, performance_within_budget: Bool, recovery_bootstrap: Bool, trusted_base_documented: Bool, no_ad_hoc_exclusions: Bool, stage1_identity: String, stage2_identity: String, stage1_actor_identity: String, stage2_actor_identity: String): ProductionEvidence ->
+        ProductionEvidence {
+            frontend_authority: frontend_authority,
+            type_system_authority: type_system_authority,
+            core_ir_authority: core_ir_authority,
+            actor_ir_authority: actor_ir_authority,
+            backend_complete: backend_complete,
+            actor_backend_complete: actor_backend_complete,
+            driver_authority: driver_authority,
+            actor_tooling_authority: actor_tooling_authority,
+            actor_profile_catalog_authority: false,
+            actor_profile_projection_converged: false,
+            bootstrap_converged: bootstrap_converged,
+            actor_bootstrap_converged: actor_bootstrap_converged,
+            performance_within_budget: performance_within_budget,
+            recovery_bootstrap: recovery_bootstrap,
+            trusted_base_documented: trusted_base_documented,
+            no_ad_hoc_exclusions: no_ad_hoc_exclusions,
+            stage1_identity: stage1_identity,
+            stage2_identity: stage2_identity,
+            stage1_actor_identity: stage1_actor_identity,
+            stage2_actor_identity: stage2_actor_identity,
+            hardening: pending_hardening(),
+        }
+    ;
+    (frontend_authority: Bool, type_system_authority: Bool, core_ir_authority: Bool, actor_ir_authority: Bool, backend_complete: Bool, actor_backend_complete: Bool, driver_authority: Bool, actor_tooling_authority: Bool, actor_profile_catalog_authority: Bool, actor_profile_projection_converged: Bool, bootstrap_converged: Bool, actor_bootstrap_converged: Bool, performance_within_budget: Bool, recovery_bootstrap: Bool, trusted_base_documented: Bool, no_ad_hoc_exclusions: Bool, stage1_identity: String, stage2_identity: String, stage1_actor_identity: String, stage2_actor_identity: String): ProductionEvidence ->
+        ProductionEvidence {
+            frontend_authority: frontend_authority,
+            type_system_authority: type_system_authority,
+            core_ir_authority: core_ir_authority,
+            actor_ir_authority: actor_ir_authority,
+            backend_complete: backend_complete,
+            actor_backend_complete: actor_backend_complete,
+            driver_authority: driver_authority,
+            actor_tooling_authority: actor_tooling_authority,
+            actor_profile_catalog_authority: actor_profile_catalog_authority,
+            actor_profile_projection_converged: actor_profile_projection_converged,
+            bootstrap_converged: bootstrap_converged,
+            actor_bootstrap_converged: actor_bootstrap_converged,
+            performance_within_budget: performance_within_budget,
+            recovery_bootstrap: recovery_bootstrap,
+            trusted_base_documented: trusted_base_documented,
+            no_ad_hoc_exclusions: no_ad_hoc_exclusions,
+            stage1_identity: stage1_identity,
+            stage2_identity: stage2_identity,
+            stage1_actor_identity: stage1_actor_identity,
+            stage2_actor_identity: stage2_actor_identity,
+            hardening: pending_hardening(),
+        }
+    ;
+    (frontend_authority: Bool, type_system_authority: Bool, core_ir_authority: Bool, actor_ir_authority: Bool, backend_complete: Bool, actor_backend_complete: Bool, driver_authority: Bool, actor_tooling_authority: Bool, actor_profile_catalog_authority: Bool, actor_profile_projection_converged: Bool, bootstrap_converged: Bool, actor_bootstrap_converged: Bool, performance_within_budget: Bool, recovery_bootstrap: Bool, trusted_base_documented: Bool, no_ad_hoc_exclusions: Bool, stage1_identity: String, stage2_identity: String, stage1_actor_identity: String, stage2_actor_identity: String, hardening: ProductionHardeningEvidence): ProductionEvidence ->
+        ProductionEvidence {
+            frontend_authority: frontend_authority,
+            type_system_authority: type_system_authority,
+            core_ir_authority: core_ir_authority,
+            actor_ir_authority: actor_ir_authority,
+            backend_complete: backend_complete,
+            actor_backend_complete: actor_backend_complete,
+            driver_authority: driver_authority,
+            actor_tooling_authority: actor_tooling_authority,
+            actor_profile_catalog_authority: actor_profile_catalog_authority,
+            actor_profile_projection_converged: actor_profile_projection_converged,
+            bootstrap_converged: bootstrap_converged,
+            actor_bootstrap_converged: actor_bootstrap_converged,
+            performance_within_budget: performance_within_budget,
+            recovery_bootstrap: recovery_bootstrap,
+            trusted_base_documented: trusted_base_documented,
+            no_ad_hoc_exclusions: no_ad_hoc_exclusions,
+            stage1_identity: stage1_identity,
+            stage2_identity: stage2_identity,
+            stage1_actor_identity: stage1_actor_identity,
+            stage2_actor_identity: stage2_actor_identity,
+            hardening: hardening,
+        }
+}.
+
+pub struct ProductionDecision {
+    transferable: Bool,
+    retain_terlc0: Bool,
+    failures: List[String],
+}.
+
+pub constructor ProductionDecision {
+    (transferable: Bool, retain_terlc0: Bool, failures: List[String]): ProductionDecision ->
+        ProductionDecision {
+            transferable: transferable,
+            retain_terlc0: retain_terlc0,
+            failures: failures,
+        }
+}.
+
+@pure
+require(passed: Bool, name: String, failures: List[String]): List[String] ->
+    if { passed -> failures; true -> [name | failures] }.
+
+@pure
+reverse_at(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+/** Denies transfer unless every production and recovery invariant is proven. */
+@pure
+pub evaluate(evidence: ProductionEvidence): ProductionDecision ->
+    let fixed_point = evidence.stage1_identity != ""
+        and evidence.stage1_identity == evidence.stage2_identity;
+    let actor_fixed_point = evidence.stage1_actor_identity != ""
+        and evidence.stage1_actor_identity == evidence.stage2_actor_identity;
+    let failures0 = List.new[String]();
+    let failures1 = require(evidence.frontend_authority, "frontend-authority", failures0);
+    let failures2 = require(evidence.type_system_authority, "type-system-authority", failures1);
+    let failures3 = require(evidence.core_ir_authority, "core-ir-authority", failures2);
+    let failures4 = require(evidence.actor_ir_authority, "actor-ir-authority", failures3);
+    let failures5 = require(evidence.backend_complete, "backend-complete", failures4);
+    let failures6 = require(evidence.actor_backend_complete, "actor-backend-complete", failures5);
+    let failures7 = require(evidence.driver_authority, "driver-authority", failures6);
+    let failures8 = require(evidence.actor_tooling_authority, "actor-tooling-authority", failures7);
+    let failures9 = require(evidence.actor_profile_catalog_authority, "actor-profile-catalog-authority", failures8);
+    let failures10 = require(evidence.actor_profile_projection_converged, "actor-profile-projection-converged", failures9);
+    let failures11 = require(evidence.bootstrap_converged, "bootstrap-converged", failures10);
+    let failures12 = require(evidence.actor_bootstrap_converged, "actor-bootstrap-converged", failures11);
+    let failures13 = require(evidence.performance_within_budget, "performance-within-budget", failures12);
+    let failures14 = require(evidence.recovery_bootstrap, "recovery-bootstrap", failures13);
+    let failures15 = require(evidence.trusted_base_documented, "trusted-base-documented", failures14);
+    let failures16 = require(evidence.no_ad_hoc_exclusions, "no-ad-hoc-exclusions", failures15);
+    let failures17 = require(fixed_point, "stage-fixed-point", failures16);
+    let failures18 = require(actor_fixed_point, "actor-stage-fixed-point", failures17);
+    let failures19 = require(evidence.hardening.pattern_semantics_authority, "pattern-semantics-authority", failures18);
+    let failures20 = require(evidence.hardening.backend_language_complete, "backend-language-complete", failures19);
+    let failures21 = require(evidence.hardening.tooling_authority, "tooling-authority", failures20);
+    let failures22 = require(evidence.hardening.nested_control_flow_complete, "nested-control-flow-complete", failures21);
+    let failures23 = require(evidence.hardening.complete_pattern_surface, "complete-pattern-surface", failures22);
+    let failures24 = require(evidence.hardening.bootstrap_workarounds_removed, "bootstrap-workarounds-removed", failures23);
+    let failures25 = require(evidence.hardening.idiomatic_source_restored, "idiomatic-source-restored", failures24);
+    let failures26 = require(evidence.hardening.pattern_decision_tree_complete, "pattern-decision-tree-complete", failures25);
+    let failures27 = require(evidence.hardening.self_analysis_resource_bounds, "self-analysis-resource-bounds", failures26);
+    let failures28 = require(evidence.hardening.compiler_regression_corpus_complete, "compiler-regression-corpus-complete", failures27);
+    let failures29 = require(evidence.hardening.minimal_trusted_base, "minimal-trusted-base", failures28);
+    let failures30 = require(evidence.hardening.rust_frontend_removed_from_normal_paths, "rust-frontend-removed-from-normal-paths", failures29);
+    let failures31 = require(evidence.hardening.post_cleanup_converged, "post-cleanup-converged", failures30);
+    let failures32 = require(evidence.hardening.dynamic_call_target_authority, "dynamic-call-target-authority", failures31);
+    let failures33 = require(evidence.hardening.target_independent_optimizer_authority, "target-independent-optimizer-authority", failures32);
+    let failures34 = require(evidence.hardening.bounded_parallel_backend_authority, "bounded-parallel-backend-authority", failures33);
+    let failures = reverse_at(failures34, List.new[String]());
+    ProductionDecision(
+        List.is_empty(failures),
+        true,
+        failures,
+    ).

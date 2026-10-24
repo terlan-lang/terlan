@@ -1,0 +1,166 @@
+/** Fail-closed structural validation for actor continuation Core IR. */
+module self_host.SelfHostActorIrValidation.
+
+import self_host.SelfHostActorIrSyntax.{ActorContinuation, ActorIrPlan, ActorResumeEdge, ActorSuspensionSite}.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Bool, Int, String}.
+
+
+pub struct ActorIrDiagnostic {
+    code: String,
+    source_function: String,
+    block_label: String,
+    message: String,
+}.
+
+pub constructor ActorIrDiagnostic {
+    (code: String, source_function: String, block_label: String, message: String): ActorIrDiagnostic ->
+        ActorIrDiagnostic {
+            code: code,
+            source_function: source_function,
+            block_label: block_label,
+            message: message,
+        }
+}.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+contains_id(id: String, values: List[ActorContinuation]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.id == id or contains_id(id, rest)
+    }.
+
+@pure
+duplicate_ids(values: List[ActorContinuation]): List[ActorIrDiagnostic] ->
+    case values {
+        [] -> List.new[ActorIrDiagnostic]();
+        [value | rest] -> append(
+            if {
+                contains_id(value.id, rest) -> [ActorIrDiagnostic(
+                    "duplicate-continuation-id",
+                    value.source_function,
+                    value.entry_block,
+                    "continuation identifiers must be unique within a module",
+                )];
+                true -> List.new[ActorIrDiagnostic]()
+            },
+            duplicate_ids(rest),
+        )
+    }.
+
+@pure
+identity_kind_valid(value: String): Bool ->
+    value == "continuation"
+        or value == "composed-completion"
+        or value == "reduction-continuation"
+        or value == "reduction-completion".
+
+@pure
+identity_ordinal_valid(value: ActorContinuation): Bool ->
+    case value.ordinal {
+        Some(ordinal) ->
+            ordinal >= 0 and (value.identity_kind == "continuation" or value.identity_kind == "composed-completion");
+        None -> value.identity_kind == "reduction-continuation" or value.identity_kind == "reduction-completion"
+    }.
+
+@pure
+continuation_diagnostics(value: ActorContinuation): List[ActorIrDiagnostic] ->
+    if {
+        value.id == "" -> [ActorIrDiagnostic("missing-continuation-id", value.source_function, value.entry_block, "continuation identity must be explicit")];
+        value.source_module == "" or value.source_function == "" -> [ActorIrDiagnostic("missing-continuation-owner", value.source_function, value.entry_block, "continuation source owner must be explicit")];
+        value.source_arity < 0 -> [ActorIrDiagnostic("negative-source-arity", value.source_function, value.entry_block, "continuation source arity must be non-negative")];
+        not identity_kind_valid(value.identity_kind) -> [ActorIrDiagnostic("unknown-continuation-identity-kind", value.source_function, value.entry_block, "continuation identity kind is not supported")];
+        not identity_ordinal_valid(value) -> [ActorIrDiagnostic("invalid-continuation-identity-ordinal", value.source_function, value.entry_block, "continuation identity ordinal does not match its domain")];
+        value.entry_block == "" -> [ActorIrDiagnostic("missing-continuation-entry", value.source_function, value.entry_block, "continuation entry block must be explicit")];
+        value.return_type == "" -> [ActorIrDiagnostic("missing-continuation-return-type", value.source_function, value.entry_block, "continuation return type must be explicit")];
+        value.capture_names.length() != value.capture_types.length() -> [ActorIrDiagnostic("continuation-capture-layout-mismatch", value.source_function, value.entry_block, "capture names and capture types must have equal lengths")];
+        value.parameter_names.length() != value.parameter_types.length() -> [ActorIrDiagnostic("continuation-parameter-layout-mismatch", value.source_function, value.entry_block, "continuation parameter names and types must have equal lengths")];
+        true -> List.new[ActorIrDiagnostic]()
+    }.
+
+@pure
+continuations_diagnostics(values: List[ActorContinuation]): List[ActorIrDiagnostic] ->
+    case values {
+        [] -> List.new[ActorIrDiagnostic]();
+        [value | rest] -> append(continuation_diagnostics(value), continuations_diagnostics(rest))
+    }.
+
+@pure
+edge_diagnostics(
+    value: ActorResumeEdge,
+    site: ActorSuspensionSite,
+    continuations: List[ActorContinuation],
+): List[ActorIrDiagnostic] ->
+    if {
+        value.callee_continuation_id == "" or value.continuation_id == "" -> [ActorIrDiagnostic("missing-resume-id", site.source_function, site.block_label, "resume continuation identities must be explicit")];
+        value.callee_capture_count < 0 or value.caller_value_start < 0 -> [ActorIrDiagnostic("negative-resume-offset", site.source_function, site.block_label, "resume capture counts and offsets must be non-negative")];
+        value.caller_value_start > site.value_names.length() -> [ActorIrDiagnostic("resume-offset-out-of-bounds", site.source_function, site.block_label, "caller value start exceeds the suspension value vector")];
+        not contains_id(value.continuation_id, continuations) -> [ActorIrDiagnostic("unknown-resume-continuation", site.source_function, site.block_label, "resume edge references a continuation outside this module")];
+        true -> List.new[ActorIrDiagnostic]()
+    }.
+
+@pure
+edges_diagnostics(
+    values: List[ActorResumeEdge],
+    site: ActorSuspensionSite,
+    continuations: List[ActorContinuation],
+): List[ActorIrDiagnostic] ->
+    case values {
+        [] -> List.new[ActorIrDiagnostic]();
+        [value | rest] -> append(
+            edge_diagnostics(value, site, continuations),
+            edges_diagnostics(rest, site, continuations),
+        )
+    }.
+
+@pure
+site_diagnostics(
+    value: ActorSuspensionSite,
+    continuations: List[ActorContinuation],
+): List[ActorIrDiagnostic] ->
+    let own = if {
+        value.source_function == "" or value.block_label == "" -> [ActorIrDiagnostic("missing-suspension-owner", value.source_function, value.block_label, "suspension site owner and block must be explicit")];
+        value.source_arity < 0 -> [ActorIrDiagnostic("negative-suspension-source-arity", value.source_function, value.block_label, "suspension source arity must be non-negative")];
+        value.native_call_index < 0 -> [ActorIrDiagnostic("negative-native-call-index", value.source_function, value.block_label, "native call index must be non-negative")];
+        value.callee_module == "" or value.callee_function == "" -> [ActorIrDiagnostic("missing-suspending-callee", value.source_function, value.block_label, "suspending callee identity must be explicit")];
+        value.callee_arity < 0 -> [ActorIrDiagnostic("negative-callee-arity", value.source_function, value.block_label, "suspending callee arity must be non-negative")];
+        value.completion_continuation_id == "" -> [ActorIrDiagnostic("missing-completion-continuation", value.source_function, value.block_label, "suspension site must name its completion continuation")];
+        not contains_id(value.completion_continuation_id, continuations) -> [ActorIrDiagnostic("unknown-completion-continuation", value.source_function, value.block_label, "suspension site references an unknown completion continuation")];
+        true -> List.new[ActorIrDiagnostic]()
+    };
+    append(own, edges_diagnostics(value.resumes, value, continuations)).
+
+@pure
+sites_diagnostics(
+    values: List[ActorSuspensionSite],
+    continuations: List[ActorContinuation],
+): List[ActorIrDiagnostic] ->
+    case values {
+        [] -> List.new[ActorIrDiagnostic]();
+        [value | rest] -> append(
+            site_diagnostics(value, continuations),
+            sites_diagnostics(rest, continuations),
+        )
+    }.
+
+/** Returns every structural actor-continuation violation in source order. */
+@pure
+pub diagnostics(value: ActorIrPlan): List[ActorIrDiagnostic] ->
+    append(
+        duplicate_ids(value.continuations),
+        append(
+            continuations_diagnostics(value.continuations),
+            sites_diagnostics(value.suspension_sites, value.continuations),
+        ),
+    ).
+
+/** Actor Core IR is admissible only when every ownership and layout check passes. */
+@pure
+pub valid(value: ActorIrPlan): Bool -> diagnostics(value) == [].

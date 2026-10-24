@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword span-self-block-end. Generated; do not edit.
+ */
+module std.css.keywords.SpanSelfBlockEnd.
+
+pub type SpanSelfBlockEnd = Atom["span-self-block-end"].

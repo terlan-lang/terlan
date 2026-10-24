@@ -1,0 +1,74 @@
+/** Positive and negative maintainability lint contracts. */
+module self_host.SelfHostLintMaintainabilityTest.
+
+import self_host.SelfHostLintMaintainability.
+import std.core.String.
+
+repeat(value: String, count: Int, output: String): String ->
+    if { count <= 0 -> output; true -> repeat(value, count - 1, String.concat([output, value])) }.
+
+@test
+pub reports_first_unstructured_debug_call_per_line(): Bool ->
+    case SelfHostLintMaintainability.debug_calls(
+        "Debug.terl",
+        "module sample.\n    debug(value); dump(other).\n",
+    ) {
+        [value] ->
+            value.rule_id == "TL0904"
+                and value.rule_name == "maintainability.debug-call"
+                and value.severity == "warning"
+                and value.line == 2
+                and value.column == 5;
+        _ -> false
+    }.
+
+@test
+pub ignores_debug_words_in_strings_comments_and_structured_logs(): Bool ->
+    SelfHostLintMaintainability.debug_calls(
+        "Strings.terl",
+        "\"debug(value)\"; Logger.debug(value); Log.dump(value); // inspect(value)\n",
+    ) == [].
+
+@test
+pub exempts_test_paths_and_test_filenames(): Bool ->
+    SelfHostLintMaintainability.test_source_path("compiler/tests/Debug.terl")
+        and SelfHostLintMaintainability.test_source_path("compiler/test/Debug.terl")
+        and SelfHostLintMaintainability.test_source_path("compiler/DebugTest.terl")
+        and SelfHostLintMaintainability.debug_calls(
+            "DebugTest.terl",
+            "debug(value).",
+        ) == [].
+
+@test
+pub reports_embedded_sql_over_one_hundred_columns(): Bool ->
+    let source = String.concat([
+        "module sample.\nsql[Row] {\n",
+        repeat("x", 101, ""),
+        "\n}.\n",
+    ]);
+    case SelfHostLintMaintainability.sql_line_width("Query.terl", source) {
+        [value] ->
+            value.rule_id == "TL0907"
+                and value.severity == "error"
+                and value.line == 3
+                and value.column == 101;
+        _ -> false
+    }.
+
+@test
+pub accepts_wrapped_sql_at_one_hundred_columns(): Bool ->
+    let source = String.concat([
+        "sql[Row] {\n",
+        repeat("x", 100, ""),
+        "\n}\n",
+    ]);
+    SelfHostLintMaintainability.sql_line_width("Query.terl", source) == [].
+
+@test
+pub measures_sql_width_in_unicode_scalars_not_utf8_bytes(): Bool ->
+    let source = String.concat([
+        "sql[Row] {\n",
+        repeat("é", 100, ""),
+        "\n}\n",
+    ]);
+    SelfHostLintMaintainability.sql_line_width("Query.terl", source) == [].

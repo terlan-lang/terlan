@@ -1,0 +1,52 @@
+/** Fast Phase 5 ordinary-backend harness without actor or optimizer tooling. */
+module self_host.Main.
+
+import std.core.Option.{None, Some}.
+import std.core.{Unit}.
+import std.io.Console.eprintln.
+import std.system.Arguments.
+import self_host.ProjectedInterfaceCatalog.
+
+usage(): Unit ->
+    let _reported = eprintln(
+        "usage: terlan-self-host backend-unit <source.terl> <interfaces.manifest> <core-ir.json> <diagnostics> | optimizer-artifacts <source.terl> <interfaces.manifest> <artifact-root>",
+    );
+    Unit.
+
+main_backend_unit(): Unit ->
+    let Some(source) <- Arguments.get(1) else { None -> usage() };
+    let Some(interfaces) <- Arguments.get(2) else { None -> usage() };
+    let Some(output) <- Arguments.get(3) else { None -> usage() };
+    let Some(diagnostics) <- Arguments.get(4) else { None -> usage() };
+    let _completed = ProjectedInterfaceCatalog.write_backend(source, interfaces, output, diagnostics);
+    Unit.
+
+main_optimizer_artifacts(): Unit ->
+    let Some(source) <- Arguments.get(1) else { None -> usage() };
+    let Some(interfaces) <- Arguments.get(2) else { None -> usage() };
+    let Some(output) <- Arguments.get(3) else { None -> usage() };
+    let _completed = ProjectedInterfaceCatalog.write_optimizer_artifacts(source, interfaces, output);
+    Unit.
+
+main_optimizer_cross_target(): Unit ->
+    let Some(source) <- Arguments.get(1) else { None -> usage() };
+    let Some(interfaces) <- Arguments.get(2) else { None -> usage() };
+    let Some(target_a) <- Arguments.get(3) else { None -> usage() };
+    let Some(target_b) <- Arguments.get(4) else { None -> usage() };
+    let Some(output) <- Arguments.get(5) else { None -> usage() };
+    let _completed = ProjectedInterfaceCatalog.write_optimizer_cross_target(
+        source,
+        interfaces,
+        target_a,
+        target_b,
+        output,
+    );
+    Unit.
+
+pub main(): Unit ->
+    case Arguments.get(0) {
+        Some("backend-unit") -> main_backend_unit();
+        Some("optimizer-artifacts") -> main_optimizer_artifacts();
+        Some("optimizer-cross-target") -> main_optimizer_cross_target();
+        _ -> usage()
+    }.

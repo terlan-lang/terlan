@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword ui-rounded. Generated; do not edit.
+ */
+module std.css.keywords.UiRounded.
+
+pub type UiRounded = Atom["ui-rounded"].

@@ -1,58 +1,43 @@
-/**
- * Solves projected expression constraints in dependency order.
- */
+/** Solves projected expression constraints without collapsing user types. */
 module self_host.ProjectedTypeConstraintResolution.
 
-
-
-import std.core.Option.{None, Option, Some}.
-import std.collections.List.
-import std.collections.Map.
-import self_host.ProjectedTypeConstraintSyntax.
+import std.core.String.
 
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintEvent, TypeConstraintResolution}.
+import std.collections.List.
+import std.collections.Map.
+import type std.collections.Map.
+import std.core.Option.{None, Option, Some}.
+
 struct ConstraintState {
     facts: List[InferredTypeFact],
     diagnostics: List[TypeConstraintDiagnostic],
-    index: Map[Int, Int],
+    index: Map[Int, Option[String]],
 }.
 
 constructor ConstraintState {
     (
         facts: List[InferredTypeFact],
         diagnostics: List[TypeConstraintDiagnostic],
-        index: Map[Int, Int],
+        index: Map[Int, Option[String]],
     ): ConstraintState ->
-        ConstraintState {
-            facts: facts,
-            diagnostics: diagnostics,
-            index: index,
-        }
+        ConstraintState { facts: facts, diagnostics: diagnostics, index: index }
 }.
 
-name_code(name: String): Int ->
-    if {
-        name == "Int" -> 1;
-        name == "Float" -> 2;
-        name == "String" -> 3;
-        name == "Bool" -> 4;
-        name == "Unit" -> 5;
-        name == "List" -> 6;
-        true -> 0
-    }.
-
 @pure
-type_code(value: Option[String]): Int ->
-    case value {
-        Some(name) -> name_code(name);
-        None -> 0
+find_type(node_id: Int, index: Map[Int, Option[String]]): Option[String] ->
+    case index.get(node_id) {
+        Some(value) -> value;
+        None -> None
     }.
 
-find_code(node_id: Int, index: Map[Int, Int]): Int ->
-    case index.get(node_id) {
-        Some(code) -> code;
-        None -> 0
-    }.
+put_type(
+    index: Map[Int, Option[String]],
+    node_id: Int,
+    type_name: Option[String],
+): Map[Int, Option[String]] ->
+    let _inserted = index.put(node_id, type_name);
+    index.
 
 @pure
 reverse_facts(values: List[InferredTypeFact], result: List[InferredTypeFact]): List[InferredTypeFact] ->
@@ -62,48 +47,223 @@ reverse_facts(values: List[InferredTypeFact], result: List[InferredTypeFact]): L
     }.
 
 @pure
-reverse_diagnostics(
-    values: List[TypeConstraintDiagnostic],
-    result: List[TypeConstraintDiagnostic],
-): List[TypeConstraintDiagnostic] ->
+reverse_diagnostics(values: List[TypeConstraintDiagnostic], result: List[TypeConstraintDiagnostic]): List[TypeConstraintDiagnostic] ->
     case values {
         [] -> result;
         [value | rest] -> reverse_diagnostics(rest, [value | result])
     }.
 
 @pure
-expect_code(
-    actual: Int,
-    expected: Int,
-    event: TypeConstraintEvent,
-    diagnostics: List[TypeConstraintDiagnostic],
-): List[TypeConstraintDiagnostic] ->
-    if {
-        actual == 0 or actual == expected -> diagnostics;
-        true -> [TypeConstraintDiagnostic(
-            code = "type-mismatch",
-            message = "expression type does not satisfy its constraint",
-            byte_offset = event.byte_offset,
-        ) | diagnostics]
+type_matches(left: String, right: String): Bool ->
+    left == right
+        or String.starts_with(left, String.append(right, "["))
+        or String.starts_with(right, String.append(left, "[")).
+
+@pure
+types_compatible(left: Option[String], right: Option[String]): Bool ->
+    case {left, right} {
+        {Some(left_name), Some(right_name)} -> type_matches(left_name, right_name);
+        _ -> true
     }.
 
 @pure
-merged_code(left: Int, right: Int): Int ->
+more_specific(left: String, right: String): String ->
+    if { left.byte_size() >= right.byte_size() -> left; true -> right }.
+
+@pure
+merged_type(left: Option[String], right: Option[String]): Option[String] ->
+    case left {
+        Some(left_name) -> case right {
+            Some(right_name) -> if {
+                type_matches(left_name, right_name) -> Some(more_specific(left_name, right_name));
+                true -> None
+            };
+            None -> Some(left_name)
+        };
+        None -> right
+    }.
+
+function_return_at(
+    value: String,
+    index: Int,
+    round_depth: Int,
+    square_depth: Int,
+    brace_depth: Int,
+): Option[String] ->
     if {
-        left == 0 -> right;
-        right == 0 or left == right -> left;
-        true -> 0
+        index + 1 >= String.byte_size(value) -> None;
+        String.utf8_byte_at(value, index) == 40 ->
+            function_return_at(value, index + 1, round_depth + 1, square_depth, brace_depth);
+        String.utf8_byte_at(value, index) == 41 ->
+            function_return_at(value, index + 1, round_depth - 1, square_depth, brace_depth);
+        String.utf8_byte_at(value, index) == 91 ->
+            function_return_at(value, index + 1, round_depth, square_depth + 1, brace_depth);
+        String.utf8_byte_at(value, index) == 93 ->
+            function_return_at(value, index + 1, round_depth, square_depth - 1, brace_depth);
+        String.utf8_byte_at(value, index) == 123 ->
+            function_return_at(value, index + 1, round_depth, square_depth, brace_depth + 1);
+        String.utf8_byte_at(value, index) == 125 ->
+            function_return_at(value, index + 1, round_depth, square_depth, brace_depth - 1);
+        round_depth == 0
+            and square_depth == 0
+            and brace_depth == 0
+            and String.utf8_byte_at(value, index) == 45
+            and String.utf8_byte_at(value, index + 1) == 62 ->
+                let result = String.trim(String.utf8_slice(
+                    value,
+                    index + 2,
+                    String.byte_size(value) - index - 2,
+                ));
+                if { result == "" -> None; true -> Some(result) };
+        true -> function_return_at(
+            value,
+            index + 1,
+            round_depth,
+            square_depth,
+            brace_depth,
+        )
+    }.
+
+pub function_return(value: String): Option[String] ->
+    function_return_at(String.trim(value), 0, 0, 0, 0).
+
+function_arrow_at(
+    value: String,
+    index: Int,
+    round_depth: Int,
+    square_depth: Int,
+    brace_depth: Int,
+): Option[Int] ->
+    if {
+        index + 1 >= String.byte_size(value) -> None;
+        String.utf8_byte_at(value, index) == 40 ->
+            function_arrow_at(value, index + 1, round_depth + 1, square_depth, brace_depth);
+        String.utf8_byte_at(value, index) == 41 ->
+            function_arrow_at(value, index + 1, round_depth - 1, square_depth, brace_depth);
+        String.utf8_byte_at(value, index) == 91 ->
+            function_arrow_at(value, index + 1, round_depth, square_depth + 1, brace_depth);
+        String.utf8_byte_at(value, index) == 93 ->
+            function_arrow_at(value, index + 1, round_depth, square_depth - 1, brace_depth);
+        String.utf8_byte_at(value, index) == 123 ->
+            function_arrow_at(value, index + 1, round_depth, square_depth, brace_depth + 1);
+        String.utf8_byte_at(value, index) == 125 ->
+            function_arrow_at(value, index + 1, round_depth, square_depth, brace_depth - 1);
+        round_depth == 0
+            and square_depth == 0
+            and brace_depth == 0
+            and String.utf8_byte_at(value, index) == 45
+            and String.utf8_byte_at(value, index + 1) == 62 -> Some(index);
+        true -> function_arrow_at(
+            value,
+            index + 1,
+            round_depth,
+            square_depth,
+            brace_depth,
+        )
+    }.
+
+reverse_strings(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_strings(rest, [value | output])
+    }.
+
+parameter_parts_at(
+    value: String,
+    start: Int,
+    index: Int,
+    round_depth: Int,
+    square_depth: Int,
+    brace_depth: Int,
+    output: List[String],
+): List[String] ->
+    if {
+        index >= String.byte_size(value) -> reverse_strings([
+            String.trim(String.utf8_slice(value, start, index - start)) | output
+        ], []);
+        String.utf8_byte_at(value, index) == 40 -> parameter_parts_at(
+            value, start, index + 1, round_depth + 1, square_depth, brace_depth, output,
+        );
+        String.utf8_byte_at(value, index) == 41 -> parameter_parts_at(
+            value, start, index + 1, round_depth - 1, square_depth, brace_depth, output,
+        );
+        String.utf8_byte_at(value, index) == 91 -> parameter_parts_at(
+            value, start, index + 1, round_depth, square_depth + 1, brace_depth, output,
+        );
+        String.utf8_byte_at(value, index) == 93 -> parameter_parts_at(
+            value, start, index + 1, round_depth, square_depth - 1, brace_depth, output,
+        );
+        String.utf8_byte_at(value, index) == 123 -> parameter_parts_at(
+            value, start, index + 1, round_depth, square_depth, brace_depth + 1, output,
+        );
+        String.utf8_byte_at(value, index) == 125 -> parameter_parts_at(
+            value, start, index + 1, round_depth, square_depth, brace_depth - 1, output,
+        );
+        round_depth == 0
+            and square_depth == 0
+            and brace_depth == 0
+            and String.utf8_byte_at(value, index) == 44 -> parameter_parts_at(
+                value,
+                index + 1,
+                index + 1,
+                round_depth,
+                square_depth,
+                brace_depth,
+                [String.trim(String.utf8_slice(value, start, index - start)) | output],
+            );
+        true -> parameter_parts_at(
+            value, start, index + 1, round_depth, square_depth, brace_depth, output,
+        )
+    }.
+
+function_parameters_before(value: String, arrow: Int): Option[List[String]] ->
+    let prefix = String.trim(String.utf8_slice(value, 0, arrow));
+    let size = String.byte_size(prefix);
+    if {
+        size < 2
+            or String.utf8_byte_at(prefix, 0) != 40
+            or String.utf8_byte_at(prefix, size - 1) != 41 -> None;
+        size == 2 -> Some([]);
+        true -> let body = String.utf8_slice(prefix, 1, size - 2);
+            Some(parameter_parts_at(body, 0, 0, 0, 0, 0, []))
+    }.
+
+/** Returns the top-level parameter types of a canonical function type. */
+pub function_parameters(value: String): Option[List[String]] ->
+    let trimmed = String.trim(value);
+    case function_arrow_at(trimmed, 0, 0, 0, 0) {
+        None -> None;
+        Some(arrow) -> function_parameters_before(trimmed, arrow)
+    }.
+
+@pure
+expect_type(
+    actual: Option[String],
+    expected: String,
+    event: TypeConstraintEvent,
+    diagnostics: List[TypeConstraintDiagnostic],
+): List[TypeConstraintDiagnostic] ->
+    case actual {
+        None -> diagnostics;
+        Some(name) -> if {
+            type_matches(name, expected) -> diagnostics;
+            true -> [TypeConstraintDiagnostic(
+                code = "type-mismatch",
+                message = "expression type does not satisfy its constraint",
+                byte_offset = event.byte_offset,
+            ) | diagnostics]
+        }
     }.
 
 @pure
 merge_diagnostics(
-    left: Int,
-    right: Int,
+    left: Option[String],
+    right: Option[String],
     event: TypeConstraintEvent,
     diagnostics: List[TypeConstraintDiagnostic],
 ): List[TypeConstraintDiagnostic] ->
     if {
-        left == 0 or right == 0 or left == right -> diagnostics;
+        types_compatible(left, right) -> diagnostics;
         true -> [TypeConstraintDiagnostic(
             code = "incompatible-branches",
             message = "expression branches infer different types",
@@ -112,132 +272,128 @@ merge_diagnostics(
     }.
 
 prepend_fact(fact: InferredTypeFact, state: ConstraintState): ConstraintState ->
-    let _stored = state.index.put(fact.node_id, type_code(fact.type_name));
-    ConstraintState(facts = [fact | state.facts], diagnostics = state.diagnostics, index = state.index).
+    ConstraintState(
+        facts = [fact | state.facts],
+        diagnostics = state.diagnostics,
+        index = put_type(state.index, fact.node_id, fact.type_name),
+    ).
 
-type_name_after_five(code: Int): Option[String] ->
-    if {
-        code == 6 -> Some("List");
-        true -> None
-    }.
-
-type_name_after_four(code: Int): Option[String] ->
-    if {
-        code == 5 -> Some("Unit");
-        true -> type_name_after_five(code)
-    }.
-
-type_name_after_three(code: Int): Option[String] ->
-    if {
-        code == 4 -> Some("Bool");
-        true -> type_name_after_four(code)
-    }.
-
-type_name_after_two(code: Int): Option[String] ->
-    if {
-        code == 3 -> Some("String");
-        true -> type_name_after_three(code)
-    }.
-
-type_name_after_one(code: Int): Option[String] ->
-    if {
-        code == 2 -> Some("Float");
-        true -> type_name_after_two(code)
-    }.
-
-type_name_for_code(code: Int): Option[String] ->
-    if {
-        code == 1 -> Some("Int");
-        true -> type_name_after_one(code)
-    }.
-
-prepend_code_fact(
+prepend_type_fact(
     node_id: Int,
-    code: Int,
+    type_name: Option[String],
     byte_offset: Int,
     state: ConstraintState,
 ): ConstraintState ->
-    let _stored = state.index.put(node_id, code);
-    let fact = InferredTypeFact(node_id = node_id, type_name = type_name_for_code(code), byte_offset = byte_offset);
-    ConstraintState(facts = [fact | state.facts], diagnostics = state.diagnostics, index = state.index).
+    prepend_fact(InferredTypeFact(node_id, type_name, byte_offset), state).
 
 step_unknown_event(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
-    prepend_fact(InferredTypeFact(node_id = event.node_id, type_name = None, byte_offset = event.byte_offset), ConstraintState(facts = state.facts, diagnostics = [TypeConstraintDiagnostic(
+    prepend_type_fact(event.node_id, None, event.byte_offset, ConstraintState(
+        facts = state.facts,
+        diagnostics = [TypeConstraintDiagnostic(
             code = "unknown-type-constraint",
             message = "expression adapter emitted an unsupported type constraint",
             byte_offset = event.byte_offset,
-        ) | state.diagnostics], index = state.index)).
+        ) | state.diagnostics],
+        index = state.index,
+    )).
+
+step_call_result(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    case find_type(event.left_node, state.index) {
+        None -> prepend_type_fact(event.node_id, None, event.byte_offset, state);
+        Some(callable_type) -> case function_return(callable_type) {
+            Some(return_type) -> prepend_type_fact(
+                event.node_id,
+                Some(return_type),
+                event.byte_offset,
+                state,
+            );
+            None -> prepend_type_fact(
+                event.node_id,
+                None,
+                event.byte_offset,
+                ConstraintState(
+                    facts = state.facts,
+                    diagnostics = [TypeConstraintDiagnostic(
+                        code = "invalid-dynamic-call-target",
+                        message = "dynamic call target does not have a function type",
+                        byte_offset = event.byte_offset,
+                    ) | state.diagnostics],
+                    index = state.index,
+                ),
+            )
+        }
+    }.
 
 step_logical(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
-    let left_checked = expect_code(
-        find_code(event.left_node, state.index),
-        4,
+    let left_checked = expect_type(
+        find_type(event.left_node, state.index),
+        "Bool",
         event,
         state.diagnostics,
     );
-    prepend_code_fact(event.node_id, 4, event.byte_offset, ConstraintState(facts = state.facts, diagnostics = expect_code(
-            find_code(event.right_node, state.index),
-            4,
+    prepend_type_fact(event.node_id, Some("Bool"), event.byte_offset, ConstraintState(
+        facts = state.facts,
+        diagnostics = expect_type(
+            find_type(event.right_node, state.index),
+            "Bool",
             event,
             left_checked,
-        ), index = state.index)).
+        ),
+        index = state.index,
+    )).
 
 step_compare_same(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
-    let left = find_code(event.left_node, state.index);
-    let right = find_code(event.right_node, state.index);
-    prepend_code_fact(event.node_id, 4, event.byte_offset, ConstraintState(
+    let left = find_type(event.left_node, state.index);
+    let right = find_type(event.right_node, state.index);
+    prepend_type_fact(event.node_id, Some("Bool"), event.byte_offset, ConstraintState(
         facts = state.facts,
         diagnostics = merge_diagnostics(left, right, event, state.diagnostics),
         index = state.index,
     )).
 
 step_same(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
-    let left = find_code(event.left_node, state.index);
-    let right = find_code(event.right_node, state.index);
-    prepend_code_fact(event.node_id, merged_code(left, right), event.byte_offset, ConstraintState(
+    let left = find_type(event.left_node, state.index);
+    let right = find_type(event.right_node, state.index);
+    prepend_type_fact(event.node_id, merged_type(left, right), event.byte_offset, ConstraintState(
         facts = state.facts,
         diagnostics = merge_diagnostics(left, right, event, state.diagnostics),
         index = state.index,
     )).
 
 step_after_compare_same(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
-    if {
-        event.kind == "logical" -> step_logical(event, state);
-        true -> step_unknown_event(event, state)
-    }.
+    if { event.kind == "logical" -> step_logical(event, state); true -> step_unknown_event(event, state) }.
 
 step_after_same(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
-    if {
-        event.kind == "compare-same" -> step_compare_same(event, state);
-        true -> step_after_compare_same(event, state)
-    }.
+    if { event.kind == "compare-same" -> step_compare_same(event, state); true -> step_after_compare_same(event, state) }.
 
 step_after_expect(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
-    if {
-        event.kind == "same" -> step_same(event, state);
-        true -> step_after_same(event, state)
-    }.
+    if { event.kind == "same" -> step_same(event, state); true -> step_after_same(event, state) }.
 
 step_after_propagate(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
     if {
-        event.kind == "expect" -> prepend_fact(InferredTypeFact(
-                node_id = event.node_id,
-                type_name = Some(event.type_name),
-                byte_offset = event.byte_offset,
-            ), ConstraintState(facts = state.facts, diagnostics = expect_code(
-                find_code(event.left_node, state.index),
-                name_code(event.type_name),
-                event,
-                state.diagnostics,
-            ), index = state.index));
+        event.kind == "expect" -> prepend_type_fact(
+            event.node_id,
+            Some(event.type_name),
+            event.byte_offset,
+            ConstraintState(
+                facts = state.facts,
+                diagnostics = expect_type(
+                    find_type(event.left_node, state.index),
+                    event.type_name,
+                    event,
+                    state.diagnostics,
+                ),
+                index = state.index,
+            ),
+        );
         true -> step_after_expect(event, state)
     }.
 
 step_after_unknown(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
     if {
-        event.kind == "propagate" -> prepend_code_fact(
+        event.kind == "propagate" -> prepend_type_fact(
             event.node_id,
-            find_code(event.left_node, state.index),
+            find_type(event.left_node, state.index),
             event.byte_offset,
             state,
         );
@@ -246,17 +402,17 @@ step_after_unknown(event: TypeConstraintEvent, state: ConstraintState): Constrai
 
 step_after_known(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
     if {
-        event.kind == "unknown" -> prepend_fact(
-            InferredTypeFact(node_id = event.node_id, type_name = None, byte_offset = event.byte_offset),
-            state,
-        );
+        event.kind == "unknown" -> prepend_type_fact(event.node_id, None, event.byte_offset, state);
+        event.kind == "call-result" -> step_call_result(event, state);
         true -> step_after_unknown(event, state)
     }.
 
 step(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
     if {
-        event.kind == "known" -> prepend_fact(
-            InferredTypeFact(node_id = event.node_id, type_name = Some(event.type_name), byte_offset = event.byte_offset),
+        event.kind == "known" -> prepend_type_fact(
+            event.node_id,
+            Some(event.type_name),
+            event.byte_offset,
             state,
         );
         true -> step_after_known(event, state)
@@ -272,12 +428,9 @@ pub resolve(events: List[TypeConstraintEvent]): TypeConstraintResolution ->
     let state = walk(events, ConstraintState(
         facts = List.new[InferredTypeFact](),
         diagnostics = List.new[TypeConstraintDiagnostic](),
-        index = Map.new[Int, Int](),
+        index = Map.new[Int, Option[String]](),
     ));
     TypeConstraintResolution(
         facts = reverse_facts(state.facts, List.new[InferredTypeFact]()),
-        diagnostics = reverse_diagnostics(
-            state.diagnostics,
-            List.new[TypeConstraintDiagnostic](),
-        ),
+        diagnostics = reverse_diagnostics(state.diagnostics, List.new[TypeConstraintDiagnostic]()),
     ).

@@ -1,0 +1,275 @@
+/** Desugars list comprehensions into ordinary Terlan list, lambda, case, and if nodes. */
+module self_host.ProjectedComprehensionDesugar.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode, ProjectedExpressionResult}.
+import self_host.ProjectedExpressionSupportIrPlan.{expression_type}.
+import self_host.ProjectedTypeConstraintSyntax.InferredTypeFact.
+
+typed(name: String): String -> "$type:" + name.
+
+known_type(value: ProjectedExpressionNode, facts: List[InferredTypeFact]): String ->
+    case expression_type(value, facts, []) {
+        Some(name) -> name;
+        None -> "Dynamic"
+    }.
+
+list_element_type(value: String): String ->
+    if {
+        String.starts_with(value, "List[") and String.ends_with(value, "]") ->
+            String.utf8_slice(value, 5, String.byte_size(value) - 6);
+        true -> "Dynamic"
+    }.
+
+transform_values(
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+): List[ProjectedExpressionNode] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [expression_at(value, facts) | transform_values(rest, facts)]
+    }.
+
+empty_list(anchor: ProjectedExpressionNode, list_type: String): ProjectedExpressionNode ->
+    ProjectedExpressionNode("list", typed(list_type), anchor.start_byte, anchor.end_byte, []).
+
+singleton(value: ProjectedExpressionNode, list_type: String): ProjectedExpressionNode ->
+    ProjectedExpressionNode("list", typed(list_type), value.start_byte, value.end_byte, [value]).
+
+clause(
+    pattern: ProjectedExpressionNode,
+    body: ProjectedExpressionNode,
+): ProjectedExpressionNode -> ProjectedExpressionNode(
+    "clause",
+    "->",
+    pattern.start_byte,
+    body.end_byte,
+    [pattern, body],
+).
+
+filter_body(
+    filter: ProjectedExpressionNode,
+    condition: ProjectedExpressionNode,
+    body: ProjectedExpressionNode,
+    list_type: String,
+): ProjectedExpressionNode ->
+    let fallback = empty_list(filter, list_type);
+    ProjectedExpressionNode(
+        "if",
+        typed(list_type),
+        filter.start_byte,
+        body.end_byte,
+        [
+            clause(condition, body),
+            clause(
+                ProjectedExpressionNode("primary", "true", filter.start_byte, filter.start_byte, []),
+                fallback,
+            ),
+        ],
+    ).
+
+generator_name(value: ProjectedExpressionNode): String ->
+    "_comprehension_" + value.start_byte.to_string().
+
+generator_body(
+    generator: ProjectedExpressionNode,
+    pattern: ProjectedExpressionNode,
+    body: ProjectedExpressionNode,
+    element_type: String,
+    list_type: String,
+): {ProjectedExpressionNode, ProjectedExpressionNode} ->
+    let name = generator_name(generator);
+    let parameter = ProjectedExpressionNode(
+        "typed-pattern",
+        name + ": " + element_type,
+        generator.start_byte,
+        generator.start_byte,
+        [],
+    );
+    let subject = ProjectedExpressionNode(
+        "identifier",
+        name,
+        generator.start_byte,
+        generator.start_byte,
+        [],
+    );
+    let fallback = empty_list(generator, list_type);
+    let matching = ProjectedExpressionNode(
+        "case",
+        typed(list_type),
+        generator.start_byte,
+        body.end_byte,
+        [
+            subject,
+            clause(pattern, body),
+            clause(
+                ProjectedExpressionNode(
+                    "wildcard-pattern",
+                    "_",
+                    generator.start_byte,
+                    generator.start_byte,
+                    [],
+                ),
+                fallback,
+            ),
+        ],
+    );
+    {parameter, matching}.
+
+generator_call(
+    generator: ProjectedExpressionNode,
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    body: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    list_type: String,
+): ProjectedExpressionNode ->
+    let element_type = list_element_type(known_type(source, facts));
+    let {parameter, matching} = generator_body(
+        generator,
+        pattern,
+        body,
+        element_type,
+        list_type,
+    );
+    let parameters = ProjectedExpressionNode(
+        "parameters",
+        "",
+        generator.start_byte,
+        generator.start_byte,
+        [parameter],
+    );
+    let callback = ProjectedExpressionNode(
+        "lambda",
+        typed("(" + element_type + ") -> " + list_type),
+        generator.start_byte,
+        matching.end_byte,
+        [parameters, matching],
+    );
+    ProjectedExpressionNode(
+        "list-flat-map",
+        typed(list_type),
+        generator.start_byte,
+        body.end_byte,
+        [source, callback],
+    ).
+
+lower_qualifiers(
+    values: List[ProjectedExpressionNode],
+    result: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    list_type: String,
+): ProjectedExpressionNode ->
+    case values {
+        [] -> singleton(result, list_type);
+        [value | rest] where value.kind == "filter" -> case value.children {
+            [condition] -> filter_body(
+                value,
+                condition,
+                lower_qualifiers(rest, result, facts, list_type),
+                list_type,
+            );
+            _ -> ProjectedExpressionNode(
+                "unsupported-comprehension-filter",
+                value.text,
+                value.start_byte,
+                value.end_byte,
+                value.children,
+            )
+        };
+        [value | rest] where value.kind == "generator" -> case value.children {
+            [pattern, source] -> generator_call(
+                value,
+                pattern,
+                source,
+                lower_qualifiers(rest, result, facts, list_type),
+                facts,
+                list_type,
+            );
+            _ -> ProjectedExpressionNode(
+                "unsupported-comprehension-generator",
+                value.text,
+                value.start_byte,
+                value.end_byte,
+                value.children,
+            )
+        };
+        [value | _rest] -> ProjectedExpressionNode(
+            "unsupported-comprehension-qualifier",
+            value.text,
+            value.start_byte,
+            value.end_byte,
+            value.children,
+        )
+    }.
+
+desugar_comprehension(
+    value: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+): ProjectedExpressionNode ->
+    case value.children {
+        [result | qualifiers] ->
+            let list_type = "List[" + known_type(result, facts) + "]";
+            lower_qualifiers(qualifiers, result, facts, list_type);
+        [] -> value
+    }.
+
+expression_at(
+    value: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+): ProjectedExpressionNode ->
+    let transformed = ProjectedExpressionNode(
+        value.kind,
+        value.text,
+        value.start_byte,
+        value.end_byte,
+        transform_values(value.children, facts),
+    );
+    if {
+        transformed.kind == "list-comprehension" -> desugar_comprehension(transformed, facts);
+        true -> transformed
+    }.
+
+/** Returns an untyped semantic view for structural tooling contracts. */
+pub expression(value: ProjectedExpressionNode): ProjectedExpressionNode -> expression_at(value, []).
+
+transform_result(
+    value: ProjectedExpressionResult,
+    facts: List[InferredTypeFact],
+): ProjectedExpressionResult ->
+    case value.node {
+        Some(node) -> ProjectedExpressionResult(
+            value.valid,
+            Some(expression_at(node, facts)),
+            value.rest,
+            value.message,
+        );
+        None -> value
+    }.
+
+transform_bodies(
+    values: List[ProjectedBody],
+    facts: List[InferredTypeFact],
+): List[ProjectedBody] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [ProjectedBody(
+            value.declaration_head,
+            value.span,
+            transform_result(value.expression, facts),
+        ) | transform_bodies(rest, facts)]
+    }.
+
+pub bodies(value: ProjectedBodies): ProjectedBodies ->
+    ProjectedBodies(value.valid, transform_bodies(value.values, [])).
+
+pub bodies_with_facts(
+    value: ProjectedBodies,
+    facts: List[InferredTypeFact],
+): ProjectedBodies -> ProjectedBodies(
+    value.valid,
+    transform_bodies(value.values, facts),
+).

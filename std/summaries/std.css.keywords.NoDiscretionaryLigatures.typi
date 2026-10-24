@@ -1,0 +1,6 @@
+//! Shared CSS keyword no-discretionary-ligatures. Generated; do not edit.
+
+module std.css.keywords.NoDiscretionaryLigatures.
+
+pub type NoDiscretionaryLigatures =
+    Atom["no-discretionary-ligatures"].

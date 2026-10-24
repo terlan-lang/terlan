@@ -1,9 +1,11 @@
 module=std.css.properties.CaptionSide
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17797387446665004194
-interface_hash=15714534582523184536
-interface_doc_hash=14889669923896730627
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1897525555801121550
+interface_hash=6729051083969107097
+interface_doc_hash=12892686461064265090
+deps=3
+std.css.Values=330909209718432688
+std.css.keywords.Bottom=7138712108055134954
+std.css.keywords.Top=15471908986095771611

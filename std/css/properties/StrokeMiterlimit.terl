@@ -1,71 +1,28 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-miterlimit
+ * The `stroke-miterlimit` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+ * a limit on the ratio of the miter length to the when the shape to be used at the corners of an
+ * [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element's stroked path is a mitered join.
+ * If the limit defined by this property is exceeded, the join is converted from `miter` to `bevel`,
+ * thus making the corner appear truncated.
+ *
+ * Initial: 4. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: <number>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-miterlimit
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-miterlimit
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.StrokeMiterlimit.
 
-import std.core.Float.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-import type std.core.Option.
-
-/**
- * A nominal, specification-constrained stroke-miterlimit value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    stroke_miterlimit: Value,
+    stroke_miterlimit: Float | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    stroke_miterlimit: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "stroke-miterlimit", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "stroke-miterlimit", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "stroke-miterlimit", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "stroke-miterlimit", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "stroke-miterlimit", css: "unset"}).
-
-/**
- * Constructs a stroke-miterlimit value from a typed number.
- */
-pub number(value: Float): Value ->
-    Value(Token {property: "stroke-miterlimit", css: std.core.Float.to_string(value)}).

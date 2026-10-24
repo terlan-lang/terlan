@@ -31,6 +31,7 @@ pub(super) use interface::{
     expand_interface_global_aliases, interface_qualified_type_names, interface_type_aliases,
     interface_type_names, parse_interface_constructor_schemes, parse_interface_signature,
     parse_symbol_scheme, qualify_type_names, unique_global_alias_short_names,
+    InterfaceSignatureContext,
 };
 pub(super) use map_fields::{map_fields_is_subtype, unify_map_fields};
 pub(super) use parser::{
@@ -48,7 +49,7 @@ pub(super) use text::{
     compact_spaces, split_module_name, split_top_level_csv, split_top_level_plus,
 };
 
-use crate::terlan_typeck::types::FixedArraySize;
+use crate::terlan_typeck::types::ArraySize;
 use crate::terlan_typeck::{
     pretty_type, ConstructorScheme, MapFieldType, QualifiedTypeName, Type, TypeAlias, TypeVarId,
     Variance,
@@ -112,7 +113,7 @@ pub(super) fn normalize_union(mut types: Vec<Type>) -> Type {
 /// - `true` when `lhs` is assignable to `rhs` without conversion.
 ///
 /// Transformation:
-/// - Applies primitive widening, literal widening, Unit equivalence, fixed-array
+/// - Applies primitive widening, literal widening, Unit equivalence, array
 ///   compatibility, and structural map-field compatibility.
 pub(super) fn is_subtype(lhs: &Type, rhs: &Type) -> bool {
     if lhs == rhs {
@@ -136,11 +137,11 @@ pub(super) fn is_subtype(lhs: &Type, rhs: &Type) -> bool {
         (Type::LiteralInt(_), Type::Number) => true,
         (Type::LiteralAtom(_), Type::Atom) => true,
         (
-            Type::FixedArray {
+            Type::Array {
                 size: lhs_size,
                 elem: lhs_elem,
             },
-            Type::FixedArray {
+            Type::Array {
                 size: rhs_size,
                 elem: rhs_elem,
             },
@@ -390,25 +391,25 @@ pub(super) fn unify(
             unify(ret_a.as_ref(), ret_b.as_ref(), subst)
         }
         (
-            Type::FixedArray {
+            Type::Array {
                 size: size_a,
                 elem: elem_a,
             },
-            Type::FixedArray {
+            Type::Array {
                 size: size_b,
                 elem: elem_b,
             },
         ) => {
             let resolved_size_a = size_a.substitute(subst);
             let resolved_size_b = size_b.substitute(subst);
-            unify_fixed_array_sizes(resolved_size_a, resolved_size_b, subst).map_err(|()| {
+            unify_array_sizes(resolved_size_a, resolved_size_b, subst).map_err(|()| {
                 format!(
                     "expected {} found {}",
-                    pretty_type(&Type::FixedArray {
+                    pretty_type(&Type::Array {
                         size: resolved_size_a,
                         elem: elem_a.clone(),
                     }),
-                    pretty_type(&Type::FixedArray {
+                    pretty_type(&Type::Array {
                         size: resolved_size_b,
                         elem: elem_b.clone(),
                     })
@@ -472,33 +473,33 @@ fn unify_type_constructor_application(
     Ok(())
 }
 
-/// Unifies the compile-time size component of two fixed-array types.
+/// Unifies the compile-time size component of two array types.
 ///
 /// Const-generic parameters deliberately retain their integer singleton value;
 /// ordinary type-variable binding widens integer literals to `Int`, which would
-/// erase the array identity needed by `FixedArray[N, T]`.
-fn unify_fixed_array_sizes(
-    left: FixedArraySize,
-    right: FixedArraySize,
+/// erase the array identity needed by `Array[N, T]`.
+fn unify_array_sizes(
+    left: ArraySize,
+    right: ArraySize,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<(), ()> {
     match (left, right) {
-        (FixedArraySize::Known(left), FixedArraySize::Known(right)) if left == right => Ok(()),
-        (FixedArraySize::Param(left), FixedArraySize::Param(right)) if left == right => Ok(()),
-        (FixedArraySize::Param(id), FixedArraySize::Known(value))
-        | (FixedArraySize::Known(value), FixedArraySize::Param(id)) => bind_fixed_array_size(
+        (ArraySize::Known(left), ArraySize::Known(right)) if left == right => Ok(()),
+        (ArraySize::Param(left), ArraySize::Param(right)) if left == right => Ok(()),
+        (ArraySize::Param(id), ArraySize::Known(value))
+        | (ArraySize::Known(value), ArraySize::Param(id)) => bind_array_size(
             id,
             Type::LiteralInt(i64::try_from(value).map_err(|_| ())?),
             subst,
         ),
-        (FixedArraySize::Param(left), FixedArraySize::Param(right)) => {
-            bind_fixed_array_size(left, Type::Var(right), subst)
+        (ArraySize::Param(left), ArraySize::Param(right)) => {
+            bind_array_size(left, Type::Var(right), subst)
         }
-        (FixedArraySize::Known(_), FixedArraySize::Known(_)) => Err(()),
+        (ArraySize::Known(_), ArraySize::Known(_)) => Err(()),
     }
 }
 
-fn bind_fixed_array_size(
+fn bind_array_size(
     id: TypeVarId,
     value: Type,
     subst: &mut HashMap<TypeVarId, Type>,
@@ -509,8 +510,8 @@ fn bind_fixed_array_size(
     };
     match (existing, value) {
         (Type::LiteralInt(left), Type::LiteralInt(right)) if left == right => Ok(()),
-        (Type::Var(next), value) if next != id => bind_fixed_array_size(next, value, subst),
-        (existing, Type::Var(next)) if next != id => bind_fixed_array_size(next, existing, subst),
+        (Type::Var(next), value) if next != id => bind_array_size(next, value, subst),
+        (existing, Type::Var(next)) if next != id => bind_array_size(next, existing, subst),
         _ => Err(()),
     }
 }
@@ -634,7 +635,7 @@ pub(super) fn apply_subst(ty: &Type, subst: &HashMap<TypeVarId, Type>) -> Type {
                 .collect(),
             ret: Box::new(apply_subst(ret, subst)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: size.substitute(subst),
             elem: Box::new(apply_subst(elem, subst)),
         },

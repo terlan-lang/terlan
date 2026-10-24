@@ -1,99 +1,37 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-4/#propdef-word-break
+ * The `word-break` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether
+ * line breaks appear wherever the text would otherwise overflow its content box.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto-phrase: Has the same effect as `word-break: normal` except that language-specific analysis
+ * is performed to improve word breaks by not placing them in the middle of natural phrases.
+ * - break-all: To prevent overflow, word breaks should be inserted between any two characters
+ * (excluding Chinese/Japanese/Korean text).
+ * - break-word: Has the same effect as `overflow-wrap: anywhere` combined with `word-break:
+ * normal`, regardless of the actual value of the `overflow-wrap` property.
+ * - keep-all: Word breaks should not be used for Chinese/Japanese/Korean (CJK) text. Non-CJK text
+ * behavior is the same as for `normal`.
+ * - normal: Use the default line break rule.
+ *
  * Grammar: normal | break-all | keep-all | manual | auto-phrase | break-word
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-word-break
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/word-break
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.WordBreak.
 
-import type std.core.Option.
+import std.css.keywords.{AutoPhrase, BreakAll, BreakWord, KeepAll, Normal}.
 
-/**
- * A nominal, specification-constrained word-break value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    word_break: Value,
+    word_break: Normal | BreakAll | KeepAll | AutoPhrase | BreakWord | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    word_break: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto-phrase.
- */
-pub auto_phrase(): Value ->
-    Value(Token {property: "word-break", css: "auto-phrase"}).
-
-/**
- * Returns the CSS keyword break-all.
- */
-pub break_all(): Value ->
-    Value(Token {property: "word-break", css: "break-all"}).
-
-/**
- * Returns the CSS keyword break-word.
- */
-pub break_word(): Value ->
-    Value(Token {property: "word-break", css: "break-word"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "word-break", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "word-break", css: "initial"}).
-
-/**
- * Returns the CSS keyword keep-all.
- */
-pub keep_all(): Value ->
-    Value(Token {property: "word-break", css: "keep-all"}).
-
-/**
- * Returns the CSS keyword manual.
- */
-pub manual(): Value ->
-    Value(Token {property: "word-break", css: "manual"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "word-break", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "word-break", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "word-break", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "word-break", css: "unset"}).

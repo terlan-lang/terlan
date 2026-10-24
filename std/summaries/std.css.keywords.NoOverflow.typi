@@ -1,0 +1,6 @@
+//! Shared CSS keyword no-overflow. Generated; do not edit.
+
+module std.css.keywords.NoOverflow.
+
+pub type NoOverflow =
+    Atom["no-overflow"].

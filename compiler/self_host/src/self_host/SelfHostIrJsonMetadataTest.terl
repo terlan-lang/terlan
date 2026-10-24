@@ -1,0 +1,45 @@
+/** Typed instruction metadata survives deterministic ABI JSON encoding. */
+module self_host.SelfHostIrJsonMetadataTest.
+
+import self_host.SelfHostIrJson.
+import self_host.SelfHostIrSyntax.{BackendEnvelope, IrBlock, IrFunction, IrInstruction, IrModule, IrTerminator}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+
+@test
+pub instruction_metadata_is_serialized_at_the_abi_boundary(): Bool ->
+    let envelope = BackendEnvelope(
+        1,
+        2,
+        "native",
+        IrModule(
+            "sample.Metadata",
+            [],
+            [IrFunction(
+                "sample.Metadata",
+                "resume",
+                0,
+                [],
+                "Int",
+                [IrBlock(
+                    "entry",
+                    [IrInstruction(
+                        "copy",
+                        Some("%result"),
+                        ["%value"],
+                        [Some("Int")],
+                        "Int",
+                        Some(11),
+                    )],
+                    IrTerminator("return", ["%result"], []),
+                )],
+                None,
+            )],
+        ),
+    );
+    case SelfHostIrJson.encode(envelope) {
+        Err(_error) -> false;
+        Ok(json) -> String.contains(json, "\"operand_types\":[\"Int\"]")
+            and String.contains(json, "\"continuation_ordinal\":11")
+    }.

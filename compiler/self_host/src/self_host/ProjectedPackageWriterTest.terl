@@ -1,0 +1,17 @@
+/** Ordering and filtering contracts for self-hosted package manifests. */
+module self_host.ProjectedPackageWriterTest.
+
+import self_host.ProjectedPackageWriter.
+
+
+@test
+pub manifest_paths_preserve_declared_order(): Bool ->
+    ProjectedPackageWriter.source_manifest_entries(
+        "src/First.terl\nsrc/Second.terl\nsrc/Third.terl\n",
+    ) == ["src/First.terl", "src/Second.terl", "src/Third.terl"].
+
+@test
+pub manifest_paths_ignore_blank_and_comment_rows(): Bool ->
+    ProjectedPackageWriter.source_manifest_entries(
+        "  # generated source closure\n\n src/Main.terl \n",
+    ) == ["src/Main.terl"].

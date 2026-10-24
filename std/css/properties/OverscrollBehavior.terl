@@ -1,143 +1,54 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior
+ * The `overscroll-behavior` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * controls what happens when scrolling reaches the edge of a [scroll
+ * container](https://developer.mozilla.org/en-US/docs/Glossary/Scroll_container).
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - auto: Allows the default behavior at a scroll boundary. Scrolling may continue in another
+ * scroll container.
+ * - chain: Allows scrolling to continue outside the scroll container, but prevents overscroll
+ * "bounce" effects.
+ * - contain: Prevents scrolling from continuing outside the scroll container. "Bounce" effects may
+ * still occur.
+ * - none: Prevents scrolling from continuing outside the scroll container and also prevents
+ * overscroll "bounce" effects.
+ *
  * Grammar: [ contain | none | auto | chain ]{1,2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overscroll-behavior
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.OverscrollBehavior.
 
-import type std.core.Option.
+import std.css.keywords.{Auto, Chain, Contain, None}.
 
-/**
- * A nominal, specification-constrained overscroll-behavior value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-/**
- * A single non-global overscroll-behavior shorthand component.
- */
-pub opaque type Component = Token.
+pub type Component = Contain | None | Auto | Chain.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Checked = {Atom["css_parts"], List[Component]}.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    overscroll_behavior: Value,
+    overscroll_behavior: Contain | None | Auto | Chain | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Supplies 1 components in grammar order.
  */
-pub struct OptionalProperty {
-    overscroll_behavior: std.core.Option[Value],
-}.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Returns the CSS keyword auto.
+ * Supplies 2 components in grammar order.
  */
-pub auto(): Value ->
-    Value(Token {property: "overscroll-behavior", css: "auto"}).
-
-/**
- * Returns the CSS keyword chain.
- */
-pub chain(): Value ->
-    Value(Token {property: "overscroll-behavior", css: "chain"}).
-
-/**
- * Returns the CSS keyword contain.
- */
-pub contain(): Value ->
-    Value(Token {property: "overscroll-behavior", css: "contain"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "overscroll-behavior", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "overscroll-behavior", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "overscroll-behavior", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "overscroll-behavior", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "overscroll-behavior", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "overscroll-behavior", css: "unset"}).
-
-/**
- * Constructs one overscroll-behavior shorthand component.
- */
-pub component_auto(): Component ->
-    Component(Token {property: "overscroll-behavior", css: "auto"}).
-
-/**
- * Constructs one overscroll-behavior shorthand component.
- */
-pub component_chain(): Component ->
-    Component(Token {property: "overscroll-behavior", css: "chain"}).
-
-/**
- * Constructs one overscroll-behavior shorthand component.
- */
-pub component_contain(): Component ->
-    Component(Token {property: "overscroll-behavior", css: "contain"}).
-
-/**
- * Constructs one overscroll-behavior shorthand component.
- */
-pub component_none(): Component ->
-    Component(Token {property: "overscroll-behavior", css: "none"}).
-
-/**
- * Serializes a library-owned shorthand component.
- */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
-
-/**
- * Combines 1 typed components in specification order.
- */
-pub single(first: Component): Value ->
-    Value(Token {property: "overscroll-behavior", css: component_css(first)}).
-
-/**
- * Combines 2 typed components in specification order.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {
-            property: "overscroll-behavior",
-            css: component_css(first) + " " + component_css(second),
-        },
-    ).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

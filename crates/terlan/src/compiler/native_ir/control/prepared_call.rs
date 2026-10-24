@@ -65,10 +65,11 @@ pub(super) fn lower_prepared_call(
         let crate::terlan_typeck::CorePattern::Var(name) = &binding.pattern else {
             continue;
         };
-        if let Some(core_type) = super::super::structured_case::core_expr_type(
+        if let Some(core_type) = super::super::structured_case::core_expr_type_with_constructors(
             &binding.value,
             &call_core_types,
             function_core_types,
+            constructors,
         ) {
             call_core_types.insert(name.clone(), core_type);
         }
@@ -105,10 +106,11 @@ pub(super) fn lower_prepared_call(
                 )
             }
             CallTarget::Dynamic(callee) => {
-                let core_type = super::super::structured_case::core_expr_type(
+                let core_type = super::super::structured_case::core_expr_type_with_constructors(
                     callee,
                     &call_core_types,
                     function_core_types,
+                    constructors,
                 )
                 .ok_or_else(|| {
                     format!(
@@ -206,10 +208,11 @@ pub(super) fn lower_prepared_call(
         entry_bindings.push(value);
         entry_vars.insert(name.clone(), next_entry_local);
         entry_types.insert(name.clone(), value_type);
-        if let Some(core_type) = super::super::structured_case::core_expr_type(
+        if let Some(core_type) = super::super::structured_case::core_expr_type_with_constructors(
             &binding.value,
             &entry_core_types,
             function_core_types,
+            constructors,
         ) {
             entry_core_types.insert(name.clone(), core_type);
         }
@@ -397,7 +400,7 @@ pub(super) fn lower_prepared_call(
             .iter()
             .map(|continuation| (continuation.id, continuation))
             .collect::<HashMap<_, _>>();
-        for entry in &profile.entries {
+        for entry in profile.entries.iter() {
             let callee = profile_by_id.get(entry).copied().ok_or_else(|| {
                 format!(
                     "error[native_ir.call_then]: composed call {call_label} has an absent entry continuation {entry}"

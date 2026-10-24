@@ -1,60 +1,31 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-align
+//! The `ruby-align` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! distribution of the different ruby elements over the base.
+//!
+//! Initial: space-around. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - center: Is a keyword indicating that the ruby will be aligned at the middle of the base text.
+//! - space-around: Is a keyword indicating that the extra space will be distributed between the
+//! elements of the ruby, and around it.
+//! - space-between: Is a keyword indicating that the extra space will be distributed between the
+//! elements of the ruby.
+//! - start: Is a keyword indicating that the ruby will be aligned with the start of the base text.
+//!
 //! Grammar: start | center | space-between | space-around
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-align
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/ruby-align
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RubyAlign.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    ruby_align: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    ruby_align: Value
+    ruby_align: Start | Center | SpaceBetween | SpaceAround | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained ruby-align value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword space-around.
-
-pub space_around(): Value.
-
-/// Returns the CSS keyword space-between.
-
-pub space_between(): Value.
-
-/// Returns the CSS keyword start.
-
-pub start(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

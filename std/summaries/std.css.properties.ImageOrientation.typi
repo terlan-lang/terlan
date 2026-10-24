@@ -1,60 +1,32 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-images-3/#propdef-image-orientation
+//! The `image-orientation` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies a layout-independent correction to the orientation of an image.
+//!
+//! Initial: from-image. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - flip: After rotating by the precededing angle, the image is flipped horizontally. Defaults to
+//! 0deg if the angle is ommitted.
+//! - from-image: Default initial value. The [EXIF](https://en.wikipedia.org/wiki/EXIF) information
+//! contained in the image is used to rotate the image appropriately.
+//! - none: Does not apply any additional image rotation; the image is oriented as encoded or as
+//! other CSS property values dictate.
+//!
 //! Grammar: from-image | none | [ <angle> || flip ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-images-3/#propdef-image-orientation
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/image-orientation
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ImageOrientation.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    image_orientation: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    image_orientation: Value
+    image_orientation: FromImage | None | Flip | std.css.Values.Angle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained image-orientation value.
-
-pub opaque type Value.
-
-/// Constructs a image-orientation value from a typed angle.
-
-pub angle(value: std.css.Values.Angle): Value.
-
-/// Returns the CSS keyword flip.
-
-pub flip(): Value.
-
-/// Returns the CSS keyword from-image.
-
-pub from_image(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

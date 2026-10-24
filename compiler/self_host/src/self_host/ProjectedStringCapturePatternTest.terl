@@ -1,0 +1,71 @@
+/** Segmented string captures remain explicit through projected Core planning. */
+module self_host.ProjectedStringCapturePatternTest.
+
+import std.core.Option.{None, Some}.
+import self_host.ProjectedExpressionSupportIrPlan.
+import self_host.ProjectedPatternParser.
+import self_host.ProjectionSyntax.ProjectedCanonicalToken.
+
+@test
+pub parser_preserves_ordered_literal_and_capture_segments(): Bool ->
+    let parsed = ProjectedPatternParser.parse([
+        ProjectedCanonicalToken(
+            "string",
+            "\"users/${id: Int}/${name}.json\"",
+            0,
+            31,
+        ),
+    ]);
+    case parsed.node {
+        Some(pattern) -> case pattern.children {
+            [prefix, id, separator, name, suffix] ->
+                pattern.kind == "string-capture-pattern"
+                    and prefix.kind == "string-literal-segment"
+                    and prefix.text == "users/"
+                    and id.kind == "string-capture-segment"
+                    and id.text == "id: Int"
+                    and separator.text == "/"
+                    and name.kind == "string-capture-segment"
+                    and name.text == "name"
+                    and suffix.text == ".json";
+            _ -> false
+        };
+        None -> false
+    }.
+
+@test
+pub planner_emits_capture_bindings_with_declared_and_default_types(): Bool ->
+    let parsed = ProjectedPatternParser.parse([
+        ProjectedCanonicalToken(
+            "string",
+            "\"users/${id: Int}/${name}.json\"",
+            0,
+            31,
+        ),
+    ]);
+    case parsed.node {
+        Some(pattern) -> case ProjectedExpressionSupportIrPlan.shallow_pattern_bindings(
+            pattern,
+            "%environment",
+            [],
+            [],
+        ) {
+            [id, name] -> case {id.result, name.result} {
+                {Some(id_name), Some(name_name)} ->
+                    id_name == "id"
+                        and id.resolved_type == Some("Int")
+                        and name_name == "name"
+                        and name.resolved_type == Some("String");
+                _ -> false
+            };
+            _ -> false
+        };
+        None -> false
+    }.
+
+@test
+pub parser_rejects_adjacent_string_captures(): Bool ->
+    let parsed = ProjectedPatternParser.parse([
+        ProjectedCanonicalToken("string", "\"${left}${right}\"", 0, 18),
+    ]);
+    not parsed.valid and parsed.node == None.

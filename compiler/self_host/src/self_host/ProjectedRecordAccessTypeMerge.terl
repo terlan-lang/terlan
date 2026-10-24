@@ -1,0 +1,363 @@
+/** Resolves explicit record field reads against projected struct declarations. */
+module self_host.ProjectedRecordAccessTypeMerge.
+
+import self_host.BackendSyntax.BackendDeclaration.
+import self_host.DeclarationPayloadSyntax.{StructFieldSyntax}.
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedFrontendSyntax.ProjectedFrontendModule.
+import self_host.ProjectedLocalSemanticSyntax.LocalSemanticResult.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import self_host.ModuleInterfaceSyntax.{ExportedStructField, ExportedSymbol, ModuleInterface}.
+import self_host.Syntax.StructDeclaration.
+import self_host.TypedModuleSyntax.StructPayload.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+
+pub struct RecordFieldType {
+    name: String,
+    type_name: Option[String],
+    is_private: Bool,
+}.
+
+pub constructor RecordFieldType {
+    (name: String, type_name: Option[String]): RecordFieldType ->
+        RecordFieldType { name: name, type_name: type_name, is_private: false };
+    (name: String, type_name: Option[String], is_private: Bool): RecordFieldType ->
+        RecordFieldType { name: name, type_name: type_name, is_private: is_private }
+}.
+
+pub struct RecordLayoutType {
+    name: String,
+    qualified_name: String,
+    fields: List[RecordFieldType],
+}.
+
+pub constructor RecordLayoutType {
+    (name: String, qualified_name: String, fields: List[RecordFieldType]): RecordLayoutType ->
+        RecordLayoutType { name: name, qualified_name: qualified_name, fields: fields }
+}.
+
+struct RecordAccessSite {
+    node_id: Int,
+    byte_offset: Int,
+    type_name: String,
+    field_name: String,
+}.
+
+constructor RecordAccessSite {
+    (node_id: Int, byte_offset: Int, type_name: String, field_name: String): RecordAccessSite ->
+        RecordAccessSite {
+            node_id: node_id,
+            byte_offset: byte_offset,
+            type_name: type_name,
+            field_name: field_name,
+        }
+}.
+
+struct NodeScan {
+    next_id: Int,
+    sites: List[RecordAccessSite],
+}.
+
+constructor NodeScan {
+    (next_id: Int, sites: List[RecordAccessSite]): NodeScan ->
+        NodeScan { next_id: next_id, sites: sites }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+field_types(values: List[StructFieldSyntax]): List[RecordFieldType] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [RecordFieldType(
+            value.name,
+            if { value.annotation.valid -> Some(value.annotation.syntax.text); true -> None },
+            value.is_private,
+        ) | field_types(rest)]
+    }.
+
+layouts(
+    module_name: String,
+    values: List[BackendDeclaration],
+): List[RecordLayoutType] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.payload {
+            StructPayload(layout) -> [RecordLayoutType(
+                layout.name,
+                String.concat([module_name, ".", layout.name]),
+                field_types(layout.fields),
+            ) | layouts(module_name, rest)];
+            _ -> layouts(module_name, rest)
+        }
+    }.
+
+interface_field_types(values: List[ExportedStructField]): List[RecordFieldType] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [RecordFieldType(value.name, value.type_name, false)
+            | interface_field_types(rest)]
+    }.
+
+interface_symbol_layouts(
+    module_name: String,
+    values: List[ExportedSymbol],
+): List[RecordLayoutType] ->
+    case values {
+        [] -> [];
+        [value | rest] -> if {
+            value.class == StructDeclaration -> [RecordLayoutType(
+                value.name,
+                String.concat([module_name, ".", value.name]),
+                interface_field_types(value.record_fields),
+            ) | interface_symbol_layouts(module_name, rest)];
+            true -> interface_symbol_layouts(module_name, rest)
+        }
+    }.
+
+interface_layouts(values: List[ModuleInterface]): List[RecordLayoutType] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            interface_symbol_layouts(value.module_name, value.symbols),
+            interface_layouts(rest),
+        )
+    }.
+
+scan_children(
+    values: List[ProjectedExpressionNode],
+    next_id: Int,
+): NodeScan ->
+    case values {
+        [] -> NodeScan(next_id, []);
+        [value | rest] ->
+            let current = scan_node(value, next_id);
+            let remaining = scan_children(rest, current.next_id);
+            NodeScan(
+                remaining.next_id,
+                append(current.sites, remaining.sites),
+            )
+    }.
+
+scan_node(value: ProjectedExpressionNode, node_id: Int): NodeScan ->
+    let nested = scan_children(value.children, node_id + 1);
+    if {
+        value.kind == "record-access" -> case value.children {
+            [_source, type_name, field] -> NodeScan(
+                nested.next_id,
+                [RecordAccessSite(
+                    node_id,
+                    value.start_byte,
+                    type_name.text,
+                    field.text,
+                ) | nested.sites],
+            );
+            _ -> nested
+        };
+        true -> nested
+    }.
+
+body_sites(values: List[ProjectedBody]): List[RecordAccessSite] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.expression.node {
+            Some(node) -> append(scan_node(node, 0).sites, body_sites(rest));
+            None -> body_sites(rest)
+        }
+    }.
+
+layout_at(name: String, values: List[RecordLayoutType]): Option[RecordLayoutType] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.name == name or value.qualified_name == name -> Some(value);
+            true -> layout_at(name, rest)
+        }
+    }.
+
+private_field_name(name: String): Bool -> String.starts_with(name, "#").
+
+field_name(name: String): String ->
+    if {
+        private_field_name(name) -> String.utf8_slice(name, 1, String.byte_size(name) - 1);
+        true -> name
+    }.
+
+field_at(name: String, values: List[RecordFieldType]): Option[RecordFieldType] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.name == field_name(name) -> Some(value);
+            true -> field_at(name, rest)
+        }
+    }.
+
+field_visible(name: String, value: RecordFieldType): Bool ->
+    private_field_name(name) == value.is_private.
+
+site_at(
+    node_id: Int,
+    byte_offset: Int,
+    values: List[RecordAccessSite],
+): Option[RecordAccessSite] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.node_id == node_id and value.byte_offset == byte_offset -> Some(value);
+            true -> site_at(node_id, byte_offset, rest)
+        }
+    }.
+
+resolved_field_type(
+    site: RecordAccessSite,
+    record_layouts: List[RecordLayoutType],
+): Option[String] ->
+    case layout_at(site.type_name, record_layouts) {
+        None -> None;
+        Some(layout) -> case field_at(site.field_name, layout.fields) {
+            None -> None;
+            Some(field) -> if { field_visible(site.field_name, field) -> field.type_name; true -> None }
+        }
+    }.
+
+merge_fact(
+    value: InferredTypeFact,
+    sites: List[RecordAccessSite],
+    record_layouts: List[RecordLayoutType],
+): InferredTypeFact ->
+    case site_at(value.node_id, value.byte_offset, sites) {
+        None -> value;
+        Some(site) -> case resolved_field_type(site, record_layouts) {
+            None -> value;
+            Some(type_name) -> InferredTypeFact(value.node_id, Some(type_name), value.byte_offset)
+        }
+    }.
+
+merge_facts(
+    values: List[InferredTypeFact],
+    sites: List[RecordAccessSite],
+    record_layouts: List[RecordLayoutType],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [merge_fact(value, sites, record_layouts)
+            | merge_facts(rest, sites, record_layouts)]
+    }.
+
+site_diagnostic(
+    value: RecordAccessSite,
+    record_layouts: List[RecordLayoutType],
+): Option[TypeConstraintDiagnostic] ->
+    case layout_at(value.type_name, record_layouts) {
+        None -> Some(TypeConstraintDiagnostic(
+            "unknown-record-type",
+            String.concat(["record type is not declared: ", value.type_name]),
+            value.byte_offset,
+        ));
+        Some(layout) -> case field_at(value.field_name, layout.fields) {
+            None -> Some(TypeConstraintDiagnostic(
+                "unknown-record-field",
+                String.concat(["record field is not declared: ", value.field_name]),
+                value.byte_offset,
+            ));
+            Some(field) -> if {
+                not field_visible(value.field_name, field) -> Some(TypeConstraintDiagnostic(
+                    "record-field-visibility",
+                    if {
+                        field.is_private -> "private record field must be written with #";
+                        true -> "public record field must not be written with #"
+                    },
+                    value.byte_offset,
+                ));
+                true -> case field.type_name {
+                    None -> Some(TypeConstraintDiagnostic(
+                        "unresolved-record-field-type",
+                        "record field type is unresolved",
+                        value.byte_offset,
+                    ));
+                    Some(_) -> None
+                }
+            }
+        }
+    }.
+
+site_diagnostics(
+    values: List[RecordAccessSite],
+    record_layouts: List[RecordLayoutType],
+): List[TypeConstraintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case site_diagnostic(value, record_layouts) {
+            None -> site_diagnostics(rest, record_layouts);
+            Some(diagnostic) -> [diagnostic | site_diagnostics(rest, record_layouts)]
+        }
+    }.
+
+site_offset(byte_offset: Int, values: List[RecordAccessSite]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.byte_offset == byte_offset or site_offset(byte_offset, rest)
+    }.
+
+without_deferred_diagnostics(
+    values: List[TypeConstraintDiagnostic],
+    sites: List[RecordAccessSite],
+): List[TypeConstraintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] -> if {
+            value.code == "unknown-type-constraint" and site_offset(value.byte_offset, sites) ->
+                without_deferred_diagnostics(rest, sites);
+            true -> [value | without_deferred_diagnostics(rest, sites)]
+        }
+    }.
+
+merge_sites(
+    value: TypeConstraintResolution,
+    sites: List[RecordAccessSite],
+    record_layouts: List[RecordLayoutType],
+): TypeConstraintResolution -> TypeConstraintResolution(
+    merge_facts(value.facts, sites, record_layouts),
+    append(
+        without_deferred_diagnostics(value.diagnostics, sites),
+        site_diagnostics(sites, record_layouts),
+    ),
+).
+
+/** Test boundary for one expression and an explicit layout catalog. */
+pub merge_expression(
+    value: TypeConstraintResolution,
+    expression: ProjectedExpressionNode,
+    record_layouts: List[RecordLayoutType],
+): TypeConstraintResolution -> merge_sites(value, scan_node(expression, 0).sites, record_layouts).
+
+/** Adds declaration-authoritative record field facts to local semantics. */
+pub local_catalog(frontend: ProjectedFrontendModule): List[RecordLayoutType] ->
+    layouts(frontend.backend.module_name, frontend.backend.declarations).
+
+/** Combines local and imported public record layouts. */
+pub catalog(
+    frontend: ProjectedFrontendModule,
+    imported_interfaces: List[ModuleInterface],
+): List[RecordLayoutType] -> append(
+    local_catalog(frontend),
+    interface_layouts(imported_interfaces),
+).
+
+/** Adds declaration-authoritative record field facts to local semantics. */
+pub merge(
+    frontend: ProjectedFrontendModule,
+    semantics: LocalSemanticResult,
+    imported_interfaces: List[ModuleInterface],
+): LocalSemanticResult -> LocalSemanticResult(
+    semantics.bindings,
+    semantics.callables,
+    merge_sites(
+        semantics.types,
+        body_sites(frontend.bodies.values),
+        catalog(frontend, imported_interfaces),
+    ),
+).

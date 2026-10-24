@@ -1,0 +1,233 @@
+/** Rewrites semantic IR plan types to resolver-owned canonical spellings. */
+module self_host.ProjectedCanonicalIrPlan.
+
+import self_host.CanonicalLexer.
+import self_host.CanonicalToken.{CanonicalToken}.
+import self_host.ProjectedCanonicalType.
+import self_host.ProjectedTypeParser.
+import self_host.ProjectedTypeResolutionSyntax.{ProjectedTypeResolution}.
+import self_host.ProjectionAdapter.
+import self_host.SelfHostIrSyntax.{IrParameter, IrStructField, IrStructLayout}.
+import self_host.SelfHostSemanticIrSyntax.{
+    SemanticBlockPlan,
+    SemanticFunctionPlan,
+    SemanticInstructionPlan,
+    SemanticModulePlan
+}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.String.
+
+@pure
+without_eof(values: List[CanonicalToken]): List[CanonicalToken] ->
+    case values {
+        [] -> List.new[CanonicalToken]();
+        [value | rest] -> if {
+            value.terminal == "eof" -> without_eof(rest);
+            true -> [value | without_eof(rest)]
+        }
+    }.
+
+@pure
+canonical_type(value: String, resolution: ProjectedTypeResolution): Result[String, String] ->
+    let lexical = CanonicalLexer.lex(value);
+    if {
+        not lexical.valid -> Err(String.append("canonical ABI type lexing failed: ", value));
+        true ->
+            let projected = ProjectionAdapter.rewrite(value, without_eof(lexical.tokens));
+            let parsed = ProjectedTypeParser.parse(projected);
+            if {
+                not parsed.valid -> Err(String.concat([
+                    "canonical ABI type parsing failed for `",
+                    value,
+                    "`: ",
+                    parsed.message,
+                ]));
+                true -> case parsed.node {
+                    None -> Err(String.append("canonical ABI type is empty: ", value));
+                    Some(node) -> ProjectedCanonicalType.qualify(
+                        node,
+                        resolution,
+                        List.new[String](),
+                    )
+                }
+            }
+    }.
+
+@pure
+canonical_optional(
+    value: Option[String],
+    resolution: ProjectedTypeResolution,
+): Result[Option[String], String] ->
+    case value {
+        None -> Ok(None);
+        Some(type_name) -> case canonical_type(type_name, resolution) {
+            Err(message) -> Err(message);
+            Ok(canonical) -> Ok(Some(canonical))
+        }
+    }.
+
+@pure
+canonical_optional_types(
+    values: List[Option[String]],
+    resolution: ProjectedTypeResolution,
+): Result[List[Option[String]], String] ->
+    case values {
+        [] -> Ok(List.new[Option[String]]());
+        [value | rest] -> case canonical_optional(value, resolution) {
+            Err(message) -> Err(message);
+            Ok(canonical) -> case canonical_optional_types(rest, resolution) {
+                Err(message) -> Err(message);
+                Ok(output) -> Ok([canonical | output])
+            }
+        }
+    }.
+
+@pure
+parameters(
+    values: List[IrParameter],
+    resolution: ProjectedTypeResolution,
+): Result[List[IrParameter], String] ->
+    case values {
+        [] -> Ok(List.new[IrParameter]());
+        [value | rest] -> case canonical_type(value.type_name, resolution) {
+            Err(message) -> Err(message);
+            Ok(type_name) -> case parameters(rest, resolution) {
+                Err(message) -> Err(message);
+                Ok(output) -> Ok([IrParameter(value.name, type_name) | output])
+            }
+        }
+    }.
+
+@pure
+instructions(
+    values: List[SemanticInstructionPlan],
+    resolution: ProjectedTypeResolution,
+): Result[List[SemanticInstructionPlan], String] ->
+    case values {
+        [] -> Ok(List.new[SemanticInstructionPlan]());
+        [value | rest] -> case canonical_optional(value.resolved_type, resolution) {
+            Err(message) -> Err(message);
+            Ok(resolved_type) -> case canonical_optional_types(value.operand_types, resolution) {
+                Err(message) -> Err(message);
+                Ok(operand_types) -> case instructions(rest, resolution) {
+                    Err(message) -> Err(message);
+                    Ok(output) -> Ok([SemanticInstructionPlan(
+                        value.opcode,
+                        value.result,
+                        value.operands,
+                        operand_types,
+                        resolved_type,
+                        value.continuation_ordinal,
+                    ) | output])
+                }
+            }
+        }
+    }.
+
+@pure
+blocks(
+    values: List[SemanticBlockPlan],
+    resolution: ProjectedTypeResolution,
+): Result[List[SemanticBlockPlan], String] ->
+    case values {
+        [] -> Ok(List.new[SemanticBlockPlan]());
+        [value | rest] -> case instructions(value.instructions, resolution) {
+            Err(message) -> Err(message);
+            Ok(block_instructions) -> case blocks(rest, resolution) {
+                Err(message) -> Err(message);
+                Ok(output) -> Ok([SemanticBlockPlan(
+                    value.label,
+                    block_instructions,
+                    value.terminator,
+                ) | output])
+            }
+        }
+    }.
+
+@pure
+functions(
+    values: List[SemanticFunctionPlan],
+    resolution: ProjectedTypeResolution,
+): Result[List[SemanticFunctionPlan], String] ->
+    case values {
+        [] -> Ok(List.new[SemanticFunctionPlan]());
+        [value | rest] -> case parameters(value.parameters, resolution) {
+            Err(message) -> Err(message);
+            Ok(function_parameters) -> case canonical_optional(
+                value.resolved_return_type,
+                resolution,
+            ) {
+                Err(message) -> Err(message);
+                Ok(return_type) -> case blocks(value.blocks, resolution) {
+                    Err(message) -> Err(message);
+                    Ok(function_blocks) -> case functions(rest, resolution) {
+                        Err(message) -> Err(message);
+                        Ok(output) -> Ok([SemanticFunctionPlan(
+                            value.module_name,
+                            value.name,
+                            value.arity,
+                            value.capture_count,
+                            value.receiver_mutable,
+                            value.receiver_command,
+                            function_parameters,
+                            return_type,
+                            function_blocks,
+                            value.native_symbol,
+                        ) | output])
+                    }
+                }
+            }
+        }
+    }.
+
+@pure
+struct_fields(
+    values: List[IrStructField],
+    resolution: ProjectedTypeResolution,
+): Result[List[IrStructField], String] ->
+    case values {
+        [] -> Ok(List.new[IrStructField]());
+        [value | rest] -> case canonical_type(value.type_name, resolution) {
+            Err(message) -> Err(message);
+            Ok(type_name) -> case struct_fields(rest, resolution) {
+                Err(message) -> Err(message);
+                Ok(output) -> Ok([IrStructField(value.name, type_name) | output])
+            }
+        }
+    }.
+
+@pure
+structs(
+    values: List[IrStructLayout],
+    resolution: ProjectedTypeResolution,
+): Result[List[IrStructLayout], String] ->
+    case values {
+        [] -> Ok(List.new[IrStructLayout]());
+        [value | rest] -> case struct_fields(value.fields, resolution) {
+            Err(message) -> Err(message);
+            Ok(fields) -> case structs(rest, resolution) {
+                Err(message) -> Err(message);
+                Ok(output) -> Ok([IrStructLayout(value.name, fields) | output])
+            }
+        }
+    }.
+
+/** Canonicalizes every ABI-visible type position in one semantic plan. */
+@pure
+pub canonicalize(
+    value: SemanticModulePlan,
+    resolution: ProjectedTypeResolution,
+): Result[SemanticModulePlan, String] ->
+    case structs(value.structs, resolution) {
+        Err(message) -> Err(message);
+        Ok(module_structs) -> case functions(value.functions, resolution) {
+            Err(message) -> Err(message);
+            Ok(module_functions) -> Ok(SemanticModulePlan(
+                value.name,
+                module_structs,
+                module_functions,
+            ))
+        }
+    }.

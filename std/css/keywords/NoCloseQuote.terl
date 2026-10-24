@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword no-close-quote. Generated; do not edit.
+ */
+module std.css.keywords.NoCloseQuote.
+
+pub type NoCloseQuote = Atom["no-close-quote"].

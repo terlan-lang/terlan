@@ -1,0 +1,337 @@
+/** Tooling-document projection for TL1002 pipe candidates and fixes. */
+module self_host.SelfHostLintPipeProjection.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.String.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedSignatureSyntax.ProjectedCallableSignature.
+import self_host.SelfHostLintPipe.{PipeCandidate, PipeExpression}.
+import self_host.SelfHostLintPipe.
+import self_host.SelfHostLintPipeFix.
+import self_host.SelfHostToolingDocument.{ToolingDocument, ToolingToken}.
+
+struct LocalCallable {
+    name: String,
+    arity: Int,
+}.
+
+constructor LocalCallable {
+    (name: String, arity: Int): LocalCallable ->
+        LocalCallable { name: name, arity: arity }
+}.
+
+struct ArgumentProjection {
+    valid: Bool,
+    named: Bool,
+    values: List[PipeExpression],
+}.
+
+constructor ArgumentProjection {
+    (
+        valid: Bool,
+        named: Bool,
+        values: List[PipeExpression],
+    ): ArgumentProjection -> ArgumentProjection {
+        valid: valid,
+        named: named,
+        values: values,
+    }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+invalid(value: ProjectedExpressionNode): PipeExpression ->
+    PipeExpression(
+        "invalid", "", "", "", [], [], false, false, false,
+        value.start_byte, value.end_byte,
+    ).
+
+identifier_token(value: ToolingToken): Bool ->
+    value.terminal == "var" or value.terminal == "upper-ident".
+
+next_depth(value: ToolingToken, depth: Int): Int ->
+    if {
+        value.text == "(" -> depth + 1;
+        value.text == ")" -> depth - 1;
+        true -> depth
+    }.
+
+callable_name_at(
+    values: List[ToolingToken],
+    start_byte: Int,
+    end_byte: Int,
+    depth: Int,
+): String ->
+    case values {
+        [] -> "";
+        [value | rest] ->
+            if {
+                value.end_byte <= start_byte ->
+                    callable_name_at(rest, start_byte, end_byte, depth);
+                value.start_byte >= end_byte -> "";
+                depth == 0 and identifier_token(value) -> value.text;
+                true -> callable_name_at(
+                    rest,
+                    start_byte,
+                    end_byte,
+                    next_depth(value, depth),
+                )
+            }
+    }.
+
+local_callables(
+    values: List[ProjectedCallableSignature],
+    tokens: List[ToolingToken],
+): List[LocalCallable] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            let name = callable_name_at(
+                tokens,
+                value.span.start_byte,
+                value.span.end_byte,
+                0,
+            );
+            if {
+                name == "" -> local_callables(rest, tokens);
+                true -> [LocalCallable(
+                    name,
+                    List.length(value.parameters),
+                ) | local_callables(rest, tokens)]
+            }
+    }.
+
+local_proven(name: String, arity: Int, values: List[LocalCallable]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            (value.name == name and value.arity == arity)
+                or local_proven(name, arity, rest)
+    }.
+
+source_text(value: ProjectedExpressionNode, source: String): String ->
+    String.utf8_slice(
+        source,
+        value.start_byte,
+        value.end_byte - value.start_byte,
+    ).
+
+base_expression(value: ProjectedExpressionNode, source: String): PipeExpression ->
+    if {
+        value.kind == "identifier" or value.kind == "constructor" -> PipeExpression(
+            "var", value.text, "", "", [], [], false, false, false,
+            value.start_byte, value.end_byte,
+        );
+        value.kind == "atom" or value.kind == "atom-literal" -> PipeExpression(
+            "atom", source_text(value, source), "", "", [], [], false, false, false,
+            value.start_byte, value.end_byte,
+        );
+        value.kind == "integer" -> PipeExpression(
+            "int", source_text(value, source), "", "", [], [], false, false, false,
+            value.start_byte, value.end_byte,
+        );
+        value.kind == "float" -> PipeExpression(
+            "float", source_text(value, source), "", "", [], [], false, false, false,
+            value.start_byte, value.end_byte,
+        );
+        value.kind == "string" -> PipeExpression(
+            "binary", source_text(value, source), "", "", [], [], false, false, false,
+            value.start_byte, value.end_byte,
+        );
+        true -> invalid(value)
+    }.
+
+argument_value(
+    value: ProjectedExpressionNode,
+    source: String,
+    locals: List[LocalCallable],
+): {Bool, PipeExpression} ->
+    if {
+        value.kind == "named-argument" -> case value.children {
+            [child] -> {true, expression(child, source, locals)};
+            _ -> {true, invalid(value)}
+        };
+        true -> {false, expression(value, source, locals)}
+    }.
+
+arguments_at(
+    values: List[ProjectedExpressionNode],
+    source: String,
+    locals: List[LocalCallable],
+    named: Bool,
+    output: List[PipeExpression],
+): ArgumentProjection ->
+    case values {
+        [] -> ArgumentProjection(true, named, output);
+        [value | rest] -> case argument_value(value, source, locals) {
+            {is_named, projected} ->
+                if {
+                    projected.kind == "invalid" -> ArgumentProjection(false, named or is_named, []);
+                    true -> arguments_at(
+                        rest,
+                        source,
+                        locals,
+                        named or is_named,
+                        append(output, [projected]),
+                    )
+                }
+        }
+    }.
+
+arguments(
+    value: ProjectedExpressionNode,
+    source: String,
+    locals: List[LocalCallable],
+): ArgumentProjection ->
+    if {
+        value.kind != "call-arguments" -> ArgumentProjection(false, false, []);
+        true -> arguments_at(value.children, source, locals, false, [])
+    }.
+
+named_call(
+    value: ProjectedExpressionNode,
+    name: String,
+    remote: String,
+    args: ArgumentProjection,
+    local: Bool,
+): PipeExpression ->
+    PipeExpression(
+        "named-call", "", remote, name, args.values, [], local,
+        false, args.named, value.start_byte, value.end_byte,
+    ).
+
+receiver_call(
+    value: ProjectedExpressionNode,
+    receiver_value: ProjectedExpressionNode,
+    name: String,
+    args: ArgumentProjection,
+    source: String,
+    locals: List[LocalCallable],
+): PipeExpression ->
+    let receiver = expression(receiver_value, source, locals);
+    if {
+        receiver.kind == "invalid" -> invalid(value);
+        true -> PipeExpression(
+            "receiver-call", "", "", name, args.values, [receiver], false,
+            false, args.named, value.start_byte, value.end_byte,
+        )
+    }.
+
+call_expression(
+    value: ProjectedExpressionNode,
+    source: String,
+    locals: List[LocalCallable],
+): PipeExpression ->
+    case value.children {
+        [callee, argument_node] ->
+            let args = arguments(argument_node, source, locals);
+            if {
+                not args.valid -> invalid(value);
+                callee.kind == "identifier" -> named_call(
+                    value,
+                    callee.text,
+                    "",
+                    args,
+                    local_proven(callee.text, List.length(args.values), locals),
+                );
+                callee.kind == "field" -> case callee.children {
+                    [remote] where remote.kind == "constructor" -> named_call(
+                        value,
+                        callee.text,
+                        remote.text,
+                        args,
+                        false,
+                    );
+                    [receiver_value] -> receiver_call(
+                        value,
+                        receiver_value,
+                        callee.text,
+                        args,
+                        source,
+                        locals,
+                    );
+                    _ -> invalid(value)
+                };
+                true -> invalid(value)
+            };
+        _ -> invalid(value)
+    }.
+
+expression(
+    value: ProjectedExpressionNode,
+    source: String,
+    locals: List[LocalCallable],
+): PipeExpression ->
+    if {
+        value.kind == "call" -> call_expression(value, source, locals);
+        true -> base_expression(value, source)
+    }.
+
+node_candidates(
+    value: ProjectedExpressionNode,
+    source: String,
+    locals: List[LocalCallable],
+): List[PipeCandidate] ->
+    let candidate = SelfHostLintPipe.candidate(expression(value, source, locals));
+    if {
+        candidate.valid -> [candidate];
+        true -> nodes_candidates(value.children, source, locals)
+    }.
+
+nodes_candidates(
+    values: List[ProjectedExpressionNode],
+    source: String,
+    locals: List[LocalCallable],
+): List[PipeCandidate] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            node_candidates(value, source, locals),
+            nodes_candidates(rest, source, locals),
+        )
+    }.
+
+body_candidates(
+    values: List[self_host.ProjectedBodySyntax.ProjectedBody],
+    source: String,
+    locals: List[LocalCallable],
+): List[PipeCandidate] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.expression.node {
+            None -> body_candidates(rest, source, locals);
+            Some(body) -> append(
+                node_candidates(body, source, locals),
+                body_candidates(rest, source, locals),
+            )
+        }
+    }.
+
+/** Projects safe outermost pipe candidates in source order. */
+pub candidates(value: ToolingDocument): List[PipeCandidate] ->
+    if {
+        value.valid
+            and value.frontend.signatures.valid
+            and value.frontend.bodies.valid ->
+            let locals = local_callables(
+                value.frontend.signatures.callables,
+                value.tokens,
+            );
+            body_candidates(value.frontend.bodies.values, value.source, locals);
+        true -> []
+    }.
+
+/** Emits source-authenticated TL1002 diagnostics. */
+@pure
+pub diagnostics(
+    path: String,
+    value: ToolingDocument,
+): List[SelfHostLintPipeFix.PipeDiagnostic] ->
+    SelfHostLintPipeFix.diagnostics(value.source, path, candidates(value)).
+
+/** Applies source-authenticated TL1002 fixes from right to left. */
+@pure
+pub apply(value: ToolingDocument): String ->
+    SelfHostLintPipeFix.apply(value.source, candidates(value)).

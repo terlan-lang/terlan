@@ -3,7 +3,7 @@ use super::ts_parser_adapter::{
     TsMethodDeclaration, TsParameterDeclaration, TsPropertyDeclaration, TsTypeAliasDeclaration,
     TsUnsupportedDeclaration, TsUnsupportedMember,
 };
-use super::ts_type_mapping::{map_ts_type_to_terlan, TsTypeMapping, TsTypeSkip};
+use super::ts_type_mapping::{map_ts_type_to_terlan, TsTypeMapping, TsTypeRef, TsTypeSkip};
 use crate::terlan_hir::source_name_to_terlan_identifier;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -38,6 +38,7 @@ pub(super) struct DomModuleMapping {
 ///   exists.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct DomModulePlan {
+    pub(super) constructible: bool,
     pub(super) module_path: String,
     pub(super) source_interface: String,
     pub(super) doc: Option<String>,
@@ -49,6 +50,33 @@ pub(super) struct DomModulePlan {
     pub(super) summary_path: String,
     pub(super) test_path: String,
     pub(super) members: Vec<DomMemberPlan>,
+}
+
+impl DomModulePlan {
+    /// Required method-only interfaces can supply callbacks on an application object.
+    pub(super) fn callback_members(&self) -> Option<Vec<&DomMethodPlan>> {
+        if self.alias_target.is_some() || !self.type_params.is_empty() || self.members.is_empty() {
+            return None;
+        }
+        let mut names = BTreeSet::new();
+        self.members
+            .iter()
+            .map(|member| match member {
+                DomMemberPlan::Method(method)
+                    if !method.optional
+                        && method.terlan_name != "with_members"
+                        && names.insert(method.js_name.as_str())
+                        && method
+                            .params
+                            .iter()
+                            .all(|parameter| !parameter.optional && !parameter.rest) =>
+                {
+                    Some(method)
+                }
+                _ => None,
+            })
+            .collect()
+    }
 }
 
 /// Planned generated DOM module member.
@@ -81,11 +109,13 @@ pub(super) enum DomMemberPlan {
 /// - Converts the TypeScript type through the T0.3 mapper before generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct DomPropertyPlan {
+    pub(super) write_supported: bool,
     pub(super) js_name: String,
     pub(super) terlan_name: String,
     pub(super) doc: Option<String>,
     pub(super) readonly: bool,
     pub(super) optional: bool,
+    pub(super) undefined_only: bool,
     pub(super) terlan_type: String,
 }
 
@@ -108,6 +138,7 @@ pub(super) struct DomMethodPlan {
     pub(super) optional: bool,
     pub(super) params: Vec<DomParamPlan>,
     pub(super) return_type: String,
+    pub(super) undefined_only: bool,
 }
 
 /// Planned generated DOM method parameter.
@@ -237,7 +268,10 @@ fn merge_duplicate_modules(
         if existing.doc.is_none() {
             existing.doc = module.doc.clone();
         }
+        existing.constructible &= module.constructible;
+        let skipped_before = skipped.len();
         merge_module_members(existing, module.members, skipped);
+        existing.constructible &= skipped_before == skipped.len();
     }
     merged
 }
@@ -345,12 +379,16 @@ fn map_interface_to_module(
         return None;
     }
 
+    let skipped_before = skipped.len();
     let mut members = Vec::new();
     let mut unsupported_member_sources = BTreeMap::new();
     for member in &interface.members {
         match member {
             TsInterfaceMember::Property(property) => {
-                if let Some(plan) = map_property(&interface.name, property, skipped) {
+                if let Some(mut plan) =
+                    map_property(&interface.name, &interface.type_params, property, skipped)
+                {
+                    plan.write_supported &= interface.plain_record;
                     members.push(DomMemberPlan::Property(plan));
                 }
             }
@@ -375,6 +413,7 @@ fn map_interface_to_module(
     let module_path = format!("{namespace}.{type_name}");
     let source_dir = namespace_to_source_dir(namespace);
     Some(DomModulePlan {
+        constructible: interface.plain_record && skipped_before == skipped.len() && members.iter().all(|member| matches!(member, DomMemberPlan::Property(property) if property.write_supported)),
         module_path: module_path.clone(),
         source_interface: interface.name.clone(),
         doc: interface.doc.clone(),
@@ -430,6 +469,7 @@ fn map_type_alias_to_module(
     let module_path = format!("{namespace}.{type_name}");
     let source_dir = namespace_to_source_dir(namespace);
     Some(DomModulePlan {
+        constructible: false,
         module_path: module_path.clone(),
         source_interface: alias.name.clone(),
         doc: alias.doc.clone(),
@@ -603,6 +643,7 @@ fn unique_unsupported_member_source(
 ///   name while preserving the original JavaScript name.
 fn map_property(
     interface_name: &str,
+    type_params: &[String],
     property: &TsPropertyDeclaration,
     skipped: &mut Vec<DomSkippedDeclaration>,
 ) -> Option<DomPropertyPlan> {
@@ -617,11 +658,13 @@ fn map_property(
     }
 
     Some(DomPropertyPlan {
+        write_supported: writable_type(&property.ty, type_params),
         js_name: property.name.clone(),
         terlan_name: source_name_to_terlan_identifier(&property.name),
         doc: property.doc.clone(),
         readonly: property.readonly,
         optional: property.optional,
+        undefined_only: undefined_only(&property.ty, property.optional),
         terlan_type,
     })
 }
@@ -663,7 +706,21 @@ fn map_method(
         optional: method.optional,
         params,
         return_type,
+        undefined_only: undefined_only(&method.return_type, false),
     })
+}
+
+/// An optional generic value can itself be null; only its declared absence is None.
+fn undefined_only(ty: &TsTypeRef, optional: bool) -> bool {
+    fn contains(ty: &TsTypeRef, null: bool) -> bool {
+        match ty {
+            TsTypeRef::Null => null,
+            TsTypeRef::Undefined => !null,
+            TsTypeRef::Union(types) => types.iter().any(|ty| contains(ty, null)),
+            _ => false,
+        }
+    }
+    (optional || contains(ty, false)) && !contains(ty, true)
 }
 
 /// Maps one TypeScript method parameter into a DOM parameter plan.
@@ -747,5 +804,22 @@ fn skip_to_dom_skipped(source: String, skip: TsTypeSkip) -> DomSkippedDeclaratio
         source,
         reason: skip.reason,
         detail: skip.source,
+    }
+}
+
+// Read access may safely widen literal types; writes must preserve the full
+// declaration contract. Opaque generic payloads retain their original type.
+fn writable_type(ty: &TsTypeRef, type_params: &[String]) -> bool {
+    use super::ts_type_mapping::TsPrimitiveType;
+    match ty {
+        TsTypeRef::Primitive(
+            TsPrimitiveType::String | TsPrimitiveType::Number | TsPrimitiveType::Boolean,
+        ) => true,
+        TsTypeRef::Named(name) => type_params.contains(name),
+        TsTypeRef::Array(inner) => writable_type(inner, type_params),
+        TsTypeRef::Union(types) => types.iter().all(|ty| {
+            matches!(ty, TsTypeRef::Null | TsTypeRef::Undefined) || writable_type(ty, type_params)
+        }),
+        _ => false,
     }
 }

@@ -1,0 +1,393 @@
+/** Source-order consistency lint authority for TL0501-TL0504. */
+module self_host.SelfHostLintConsistency.
+
+import std.core.String.
+
+pub struct ConsistencyDiagnostic {
+    path: String,
+    line: Int,
+    column: Int,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+    fix_available: Bool,
+}.
+
+pub constructor ConsistencyDiagnostic {
+    (path: String, line: Int, column: Int, rule_id: String, rule_name: String, severity: String, message: String, fix_available: Bool): ConsistencyDiagnostic ->
+        ConsistencyDiagnostic {
+            path: path,
+            line: line,
+            column: column,
+            rule_id: rule_id,
+            rule_name: rule_name,
+            severity: severity,
+            message: message,
+            fix_available: fix_available,
+        }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+column(line: String): Int ->
+    String.byte_size(line) - String.byte_size(String.trim_start(line)) + 1.
+
+issue(
+    path: String,
+    line: String,
+    line_number: Int,
+    rule_id: String,
+    rule_name: String,
+    severity: String,
+    message: String,
+): ConsistencyDiagnostic ->
+    ConsistencyDiagnostic(
+        path,
+        line_number,
+        column(line),
+        rule_id,
+        rule_name,
+        severity,
+        message,
+        false,
+    ).
+
+module_order_at(
+    lines: List[String],
+    path: String,
+    line_number: Int,
+    in_block_comment: Bool,
+): List[ConsistencyDiagnostic] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            if {
+                trimmed == "" or String.starts_with(trimmed, "//") ->
+                    module_order_at(rest, path, line_number + 1, in_block_comment);
+                in_block_comment ->
+                    module_order_at(
+                        rest,
+                        path,
+                        line_number + 1,
+                        not String.contains(trimmed, "*/"),
+                    );
+                String.starts_with(trimmed, "/*") ->
+                    module_order_at(
+                        rest,
+                        path,
+                        line_number + 1,
+                        not String.contains(trimmed, "*/"),
+                    );
+                String.starts_with(trimmed, "module ") -> [];
+                true -> [issue(
+                    path,
+                    line,
+                    line_number,
+                    "TL0501",
+                    "consistency.module-order",
+                    "error",
+                    "module declaration must be the first non-comment declaration",
+                )]
+            }
+    }.
+
+/** Reports a non-module first declaration, except in `.terls` scripts. */
+pub module_order(path: String, source: String): List[ConsistencyDiagnostic] ->
+    if {
+        String.ends_with(path, ".terls") -> [];
+        true -> module_order_at(String.split(source, "\n"), path, 1, false)
+    }.
+
+import_order_at(
+    lines: List[String],
+    path: String,
+    line_number: Int,
+    in_block_comment: Bool,
+    seen_module: Bool,
+    seen_declaration: Bool,
+): List[ConsistencyDiagnostic] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            if {
+                trimmed == "" or String.starts_with(trimmed, "//") ->
+                    import_order_at(rest, path, line_number + 1, in_block_comment, seen_module, seen_declaration);
+                in_block_comment -> import_order_at(
+                    rest, path, line_number + 1,
+                    not String.contains(trimmed, "*/"), seen_module, seen_declaration,
+                );
+                String.starts_with(trimmed, "/*") -> import_order_at(
+                    rest, path, line_number + 1,
+                    not String.contains(trimmed, "*/"), seen_module, seen_declaration,
+                );
+                String.starts_with(trimmed, "module ") ->
+                    import_order_at(rest, path, line_number + 1, false, true, seen_declaration);
+                String.starts_with(trimmed, "import ") ->
+                    let remaining = import_order_at(
+                        rest, path, line_number + 1, false, seen_module, seen_declaration,
+                    );
+                    if {
+                        seen_declaration -> [issue(
+                            path, line, line_number,
+                            "TL0502", "consistency.import-order", "error",
+                            "imports must appear before type, trait, impl, and function declarations",
+                        ) | remaining];
+                        true -> remaining
+                    };
+                true -> import_order_at(
+                    rest, path, line_number + 1, false, seen_module,
+                    seen_declaration or seen_module,
+                )
+            }
+    }.
+
+pub import_order(path: String, source: String): List[ConsistencyDiagnostic] ->
+    import_order_at(String.split(source, "\n"), path, 1, false, false, false).
+
+single_module_at(
+    lines: List[String],
+    path: String,
+    line_number: Int,
+    in_block_comment: Bool,
+    seen_module: Bool,
+): List[ConsistencyDiagnostic] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            if {
+                trimmed == "" or String.starts_with(trimmed, "//") ->
+                    single_module_at(rest, path, line_number + 1, in_block_comment, seen_module);
+                in_block_comment -> single_module_at(
+                    rest, path, line_number + 1,
+                    not String.contains(trimmed, "*/"), seen_module,
+                );
+                String.starts_with(trimmed, "/*") -> single_module_at(
+                    rest, path, line_number + 1,
+                    not String.contains(trimmed, "*/"), seen_module,
+                );
+                not String.starts_with(trimmed, "module ") ->
+                    single_module_at(rest, path, line_number + 1, false, seen_module);
+                true ->
+                    let remaining = single_module_at(rest, path, line_number + 1, false, true);
+                    if {
+                        seen_module -> [issue(
+                            path, line, line_number,
+                            "TL0503", "consistency.single-module", "error",
+                            "a source file may declare exactly one module",
+                        ) | remaining];
+                        true -> remaining
+                    }
+            }
+    }.
+
+pub single_module(path: String, source: String): List[ConsistencyDiagnostic] ->
+    single_module_at(String.split(source, "\n"), path, 1, false, false).
+
+without_public(line: String): String ->
+    if {
+        String.starts_with(line, "pub ") ->
+            String.utf8_slice(line, 4, String.byte_size(line) - 4);
+        true -> line
+    }.
+
+declaration_block(line: String): Int ->
+    let value = without_public(line);
+    if {
+        String.starts_with(value, "type ")
+            or String.starts_with(value, "struct ")
+            or String.starts_with(value, "shape ")
+            or String.starts_with(value, "trait ") -> 0;
+        String.starts_with(value, "impl ") -> 1;
+        String.contains(value, "->") -> 2;
+        true -> -1
+    }.
+
+declaration_order_at(
+    lines: List[String],
+    path: String,
+    line_number: Int,
+    in_block_comment: Bool,
+    current_block: Int,
+): List[ConsistencyDiagnostic] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            if {
+                trimmed == "" or String.starts_with(trimmed, "//") ->
+                    declaration_order_at(rest, path, line_number + 1, in_block_comment, current_block);
+                String.byte_size(line) != String.byte_size(String.trim_start(line)) ->
+                    declaration_order_at(rest, path, line_number + 1, in_block_comment, current_block);
+                in_block_comment -> declaration_order_at(
+                    rest, path, line_number + 1,
+                    not String.contains(trimmed, "*/"), current_block,
+                );
+                String.starts_with(trimmed, "/*") -> declaration_order_at(
+                    rest, path, line_number + 1,
+                    not String.contains(trimmed, "*/"), current_block,
+                );
+                true ->
+                    let block = declaration_block(trimmed);
+                    if {
+                        block < 0 -> declaration_order_at(rest, path, line_number + 1, false, current_block);
+                        true ->
+                            let next_block = if { block > current_block -> block; true -> current_block };
+                            let remaining = declaration_order_at(
+                                rest, path, line_number + 1, false, next_block,
+                            );
+                            if {
+                                current_block >= 0 and block < current_block -> [issue(
+                                    path, line, line_number,
+                                    "TL0504", "consistency.declaration-order", "warning",
+                                    "declarations should be ordered as types/shapes/traits, impls, then functions",
+                                ) | remaining];
+                                true -> remaining
+                            }
+                    }
+            }
+    }.
+
+pub declaration_order(path: String, source: String): List[ConsistencyDiagnostic] ->
+    declaration_order_at(String.split(source, "\n"), path, 1, false, -1).
+
+struct ExpectedModule {
+    valid: Bool,
+    value: String,
+}.
+
+constructor ExpectedModule {
+    (valid: Bool, value: String): ExpectedModule ->
+        ExpectedModule { valid: valid, value: value }
+}.
+
+strip_source_extension(component: String): String ->
+    if {
+        String.ends_with(component, ".terli") ->
+            String.utf8_slice(component, 0, String.byte_size(component) - 6);
+        String.ends_with(component, ".terl") ->
+            String.utf8_slice(component, 0, String.byte_size(component) - 5);
+        true -> component
+    }.
+
+expected_module_at(
+    components: List[String],
+    found_std: Bool,
+    output: String,
+): ExpectedModule ->
+    case components {
+        [] -> ExpectedModule(found_std, output);
+        [component | rest] ->
+            if {
+                not found_std and component != "std" ->
+                    expected_module_at(rest, false, output);
+                true ->
+                    let part = strip_source_extension(component);
+                    if {
+                        part == "" -> ExpectedModule(false, "");
+                        output == "" -> expected_module_at(rest, true, part);
+                        true -> expected_module_at(
+                            rest,
+                            true,
+                            String.concat([output, ".", part]),
+                        )
+                    }
+            }
+    }.
+
+/** Returns the canonical module path, or empty when the path is not std-owned. */
+pub expected_std_module(path: String): String ->
+    let expected = expected_module_at(String.split(path, "/"), false, "");
+    if { expected.valid -> expected.value; true -> "" }.
+
+struct ModuleDeclaration {
+    found: Bool,
+    line: Int,
+    column: Int,
+    name: String,
+}.
+
+constructor ModuleDeclaration {
+    (found: Bool, line: Int, column: Int, name: String): ModuleDeclaration ->
+        ModuleDeclaration { found: found, line: line, column: column, name: name }
+}.
+
+first_module_at(
+    lines: List[String],
+    line_number: Int,
+    in_block_comment: Bool,
+): ModuleDeclaration ->
+    case lines {
+        [] -> ModuleDeclaration(false, 0, 0, "");
+        [line | rest] ->
+            let trimmed = String.trim(line);
+            if {
+                trimmed == "" or String.starts_with(trimmed, "//") ->
+                    first_module_at(rest, line_number + 1, in_block_comment);
+                in_block_comment -> first_module_at(
+                    rest,
+                    line_number + 1,
+                    not String.contains(trimmed, "*/"),
+                );
+                String.starts_with(trimmed, "/*") -> first_module_at(
+                    rest,
+                    line_number + 1,
+                    not String.contains(trimmed, "*/"),
+                );
+                String.starts_with(trimmed, "module ") and String.ends_with(trimmed, ".") ->
+                    ModuleDeclaration(
+                        true,
+                        line_number,
+                        column(line),
+                        String.trim(String.utf8_slice(
+                            trimmed,
+                            7,
+                            String.byte_size(trimmed) - 8,
+                        )),
+                    );
+                true -> first_module_at(rest, line_number + 1, false)
+            }
+    }.
+
+/** Implements TL0505 for std-owned source paths. */
+pub std_module_path(path: String, source: String): List[ConsistencyDiagnostic] ->
+    let expected = expected_std_module(path);
+    if {
+        expected == "" -> [];
+        true ->
+            let actual = first_module_at(String.split(source, "\n"), 1, false);
+            if {
+                not actual.found or actual.name == expected -> [];
+                true -> [ConsistencyDiagnostic(
+                    path,
+                    actual.line,
+                    actual.column,
+                    "TL0505",
+                    "consistency.std-module-path",
+                    "error",
+                    "std module declaration must match the canonical source path",
+                    false,
+                )]
+            }
+    }.
+
+/** Emits source-layout consistency diagnostics in Rust rule order. */
+@pure
+pub diagnostics(path: String, source: String): List[ConsistencyDiagnostic] ->
+    append(
+        module_order(path, source),
+        append(
+            import_order(path, source),
+            append(
+                single_module(path, source),
+                append(declaration_order(path, source), std_module_path(path, source)),
+            ),
+        ),
+    ).

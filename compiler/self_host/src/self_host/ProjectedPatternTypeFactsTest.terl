@@ -1,0 +1,79 @@
+module self_host.ProjectedPatternTypeFactsTest.
+
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedPatternAuthority.{FiniteSumContract, PatternAuthorityCatalog, PatternConstructorContract}.
+import self_host.ProjectedPatternTypeFacts.{check_expression}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
+import std.collections.List.
+import std.core.Option.{Option, Some}.
+
+@pure
+case_expression(constructor_name: String): ProjectedExpressionNode ->
+    let subject = ProjectedExpressionNode("identifier", "value", 10, 15, List.new[ProjectedExpressionNode]());
+    let pattern = ProjectedExpressionNode("constructor-pattern", constructor_name, 20, 24, List.new[ProjectedExpressionNode]());
+    let clause = ProjectedExpressionNode("clause", "->", 20, 30, [pattern]);
+    ProjectedExpressionNode("case", "case", 5, 31, [subject, clause]).
+
+@pure
+catalog(): PatternAuthorityCatalog -> PatternAuthorityCatalog(
+    [
+        PatternConstructorContract("None", 0, ["T"], List.new[Option[String]]()),
+        PatternConstructorContract("Some", 1, ["T"], [Some("T")]),
+    ],
+    [FiniteSumContract("Option", ["None", "Some"])],
+).
+
+@test
+pub identifier_subject_fact_rejects_constructor_from_another_sum(): Bool ->
+    check_expression(
+        "check(value)",
+        case_expression("Err"),
+        [InferredTypeFact(1, Some("Option[Int]"), 10)],
+        catalog(),
+    ).length() == 1.
+
+@test
+pub identifier_subject_fact_accepts_constructor_from_its_sum(): Bool ->
+    check_expression(
+        "check(value)",
+        case_expression("Some"),
+        [InferredTypeFact(1, Some("Option[Int]"), 10)],
+        catalog(),
+    ) == [].
+
+@test
+pub primitive_identifier_subject_rejects_constructor_pattern(): Bool ->
+    check_expression(
+        "check(value)",
+        case_expression("Some"),
+        [InferredTypeFact(1, Some("Int"), 10)],
+        catalog(),
+    ).length() == 1.
+
+@test
+pub instantiated_constructor_payload_rejects_wrong_literal_type(): Bool ->
+    let subject = ProjectedExpressionNode("identifier", "value", 10, 15, List.new[ProjectedExpressionNode]());
+    let literal = ProjectedExpressionNode("literal-pattern", "\"wrong\"", 25, 32, List.new[ProjectedExpressionNode]());
+    let pattern = ProjectedExpressionNode("constructor-pattern", "Some", 20, 33, [literal]);
+    let clause = ProjectedExpressionNode("clause", "->", 20, 40, [pattern]);
+    let expression = ProjectedExpressionNode("case", "case", 5, 41, [subject, clause]);
+    check_expression(
+        "check(value)",
+        expression,
+        [InferredTypeFact(1, Some("Option[Int]"), 10)],
+        catalog(),
+    ).length() == 1.
+
+@test
+pub instantiated_constructor_payload_accepts_matching_literal_type(): Bool ->
+    let subject = ProjectedExpressionNode("identifier", "value", 10, 15, List.new[ProjectedExpressionNode]());
+    let literal = ProjectedExpressionNode("literal-pattern", "42", 25, 27, List.new[ProjectedExpressionNode]());
+    let pattern = ProjectedExpressionNode("constructor-pattern", "Some", 20, 28, [literal]);
+    let clause = ProjectedExpressionNode("clause", "->", 20, 35, [pattern]);
+    let expression = ProjectedExpressionNode("case", "case", 5, 36, [subject, clause]);
+    check_expression(
+        "check(value)",
+        expression,
+        [InferredTypeFact(1, Some("Option[Int]"), 10)],
+        catalog(),
+    ) == [].

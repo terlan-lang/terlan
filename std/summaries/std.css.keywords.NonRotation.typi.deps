@@ -1,0 +1,8 @@
+module=std.css.keywords.NonRotation
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=9268834506333408191
+interface_hash=13204061452396282210
+interface_doc_hash=9833818749900914656
+deps=0

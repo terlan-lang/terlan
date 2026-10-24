@@ -3,8 +3,10 @@
  */
 module self_host.ProjectedEmbeddedControlIrPlan.
 
+import std.core.String.
+
 import self_host.ProjectedExpressionIrPlan.{lower_expression, matching_plan_result_type}.
-import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, concat_blocks, concat_instructions, expression_type, node_size, register, resolved_or_dynamic, shallow_pattern_bindings, shallow_pattern_operands, shallow_pattern_supported, some_string}.
+import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, append_ir_parameters, binding_pattern, concat_blocks, concat_instructions, expression_type, node_size, pattern_parameters, register, resolved_or_dynamic, shallow_pattern_bindings, shallow_pattern_bindings_with_source, shallow_pattern_operands, shallow_pattern_supported, some_string}.
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
 import self_host.ProjectedLocalSemanticSyntax.{LocalSemanticResult}.
 import self_host.ProjectedNestedControlIrPlan.{ExpressionNodePair, ExpressionNodeQuad, ExpressionNodeTriple, expression_node_pair, expression_node_quad, expression_node_triple, linear_binding}.
@@ -1003,7 +1005,7 @@ embedded_if_let_at(
     case expression_node_triple(node.children) {
         Some(parts) ->
             embedded_if_let_parts(
-                parts.first.kind == "binding-pattern",
+                binding_pattern(parts.first),
                 parts.first,
                 parts.second,
                 parts.third,
@@ -1398,10 +1400,18 @@ embedded_case_two_direct_bound(
     let subject_plan = lower_expression(subject, node_id + 1, facts, parameters);
     let first_id = node_id + 1 + node_size(subject);
     let first_body_id = first_id + 1 + node_size(first_pattern);
-    let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+    let first_parameters = append_ir_parameters(
+        parameters,
+        pattern_parameters(first_pattern, subject_plan.result_type, facts, parameters),
+    );
+    let first_body_plan = lower_expression(first_body, first_body_id, facts, first_parameters);
     let second_id = first_id + node_size(first_clause);
     let second_body_id = second_id + 1 + node_size(second_pattern);
-    let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+    let second_parameters = append_ir_parameters(
+        parameters,
+        pattern_parameters(second_pattern, subject_plan.result_type, facts, parameters),
+    );
+    let second_body_plan = lower_expression(second_body, second_body_id, facts, second_parameters);
     Some(
         embedded_case_two_blocks(
             node,
@@ -1459,8 +1469,20 @@ embedded_case_two_blocks(
             shallow_pattern_operands(subject_plan.result, second_pattern),
             some_string("PatternMatch"),
         );
-    let first_bindings = shallow_pattern_bindings(first_pattern, first_environment);
-    let second_bindings = shallow_pattern_bindings(second_pattern, second_environment);
+    let first_bindings = shallow_pattern_bindings_with_source(
+        first_pattern,
+        first_environment,
+        subject_plan.result_type,
+        facts,
+        parameters,
+    );
+    let second_bindings = shallow_pattern_bindings_with_source(
+        second_pattern,
+        second_environment,
+        subject_plan.result_type,
+        facts,
+        parameters,
+    );
     let result = register(node_id);
     let result_type =
         matching_plan_result_type(
@@ -1592,7 +1614,7 @@ embedded_case_two_let_at(
     case expression_node_triple(node.children) {
         Some(parts) ->
             embedded_case_two_let_parts(
-                parts.first.kind == "binding-pattern",
+                binding_pattern(parts.first),
                 parts.first,
                 parts.second,
                 parts.third,
@@ -1692,6 +1714,7 @@ embedded_case_two_nonlet_at(
 struct GeneralCaseClausePlan {
     index: Int,
     pattern: ProjectedExpressionNode,
+    guard: Option[ExpressionPlan],
     bindings: List[SemanticInstructionPlan],
     body: ExpressionPlan,
     embedded: Option[EmbeddedBranchPlan],
@@ -1701,6 +1724,7 @@ constructor GeneralCaseClausePlan {
     (
         index: Int,
         pattern: ProjectedExpressionNode,
+        guard: Option[ExpressionPlan],
         bindings: List[SemanticInstructionPlan],
         body: ExpressionPlan,
         embedded: Option[EmbeddedBranchPlan],
@@ -1708,6 +1732,7 @@ constructor GeneralCaseClausePlan {
         GeneralCaseClausePlan {
             index: index,
             pattern: pattern,
+            guard: guard,
             bindings: bindings,
             body: body,
             embedded: embedded,
@@ -1775,103 +1800,138 @@ general_case_clause_plans(
     clause_id: Int,
     label_prefix: String,
     join_label: String,
+    source_type: Option[String],
     facts: List[InferredTypeFact],
     parameters: List[IrParameter],
 ): Option[List[GeneralCaseClausePlan]] ->
     case values {
         [] -> Some(List.new[GeneralCaseClausePlan]());
-        [clause | rest] -> general_case_clause_pair(
-            expression_node_pair(clause.children),
-            clause,
-            rest,
-            index,
-            clause_id,
-            label_prefix,
-            join_label,
-            facts,
-            parameters,
-        )
-    }.
-
-general_case_clause_pair(
-    parts: Option[ExpressionNodePair],
-    clause: ProjectedExpressionNode,
-    rest: List[ProjectedExpressionNode],
-    index: Int,
-    clause_id: Int,
-    label_prefix: String,
-    join_label: String,
-    facts: List[InferredTypeFact],
-    parameters: List[IrParameter],
-): Option[List[GeneralCaseClausePlan]] ->
-    case parts {
-        Some(value) -> general_case_clause_supported(
-            shallow_pattern_supported(value.first),
-            value,
-            clause,
-            rest,
-            index,
-            clause_id,
-            label_prefix,
-            join_label,
-            facts,
-            parameters,
-        );
-        None -> None
+        [clause | rest] -> case clause.children {
+            [pattern, body] -> general_case_clause_supported(
+                shallow_pattern_supported(pattern),
+                pattern,
+                None,
+                body,
+                clause,
+                rest,
+                index,
+                clause_id,
+                label_prefix,
+                join_label,
+                source_type,
+                facts,
+                parameters,
+            );
+            [pattern, guard, body] -> general_case_clause_supported(
+                shallow_pattern_supported(pattern),
+                pattern,
+                Some(guard),
+                body,
+                clause,
+                rest,
+                index,
+                clause_id,
+                label_prefix,
+                join_label,
+                source_type,
+                facts,
+                parameters,
+            );
+            _ -> None
+        }
     }.
 
 general_case_clause_supported(
     valid: Bool,
-    parts: ExpressionNodePair,
+    pattern: ProjectedExpressionNode,
+    guard: Option[ProjectedExpressionNode],
+    body: ProjectedExpressionNode,
     clause: ProjectedExpressionNode,
     rest: List[ProjectedExpressionNode],
     index: Int,
     clause_id: Int,
     label_prefix: String,
     join_label: String,
+    source_type: Option[String],
     facts: List[InferredTypeFact],
     parameters: List[IrParameter],
 ): Option[List[GeneralCaseClausePlan]] ->
     case valid {
         true -> general_case_clause_bound(
-            parts,
+            pattern,
+            guard,
+            body,
             clause,
             rest,
             index,
             clause_id,
             label_prefix,
             join_label,
+            source_type,
             facts,
             parameters,
         );
         false -> None
     }.
 
+general_case_guard_plan(
+    guard: Option[ProjectedExpressionNode],
+    guard_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[ExpressionPlan] ->
+    case guard {
+        Some(value) -> Some(lower_expression(value, guard_id, facts, parameters));
+        None -> None
+    }.
+
 general_case_clause_bound(
-    parts: ExpressionNodePair,
+    pattern: ProjectedExpressionNode,
+    guard: Option[ProjectedExpressionNode],
+    body: ProjectedExpressionNode,
     clause: ProjectedExpressionNode,
     rest: List[ProjectedExpressionNode],
     index: Int,
     clause_id: Int,
     label_prefix: String,
     join_label: String,
+    source_type: Option[String],
     facts: List[InferredTypeFact],
     parameters: List[IrParameter],
 ): Option[List[GeneralCaseClausePlan]] ->
-    let body_id = clause_id + 1 + node_size(parts.first);
-    let body_plan = lower_expression(parts.second, body_id, facts, parameters);
+    let guard_id = clause_id + 1 + node_size(pattern);
+    let body_id = case guard {
+        Some(value) -> guard_id + node_size(value);
+        None -> guard_id
+    };
+    let clause_parameters = append_ir_parameters(
+        parameters,
+        pattern_parameters(pattern, source_type, facts, parameters),
+    );
+    let guard_plan = general_case_guard_plan(guard, guard_id, facts, clause_parameters);
+    let body_plan = lower_expression(body, body_id, facts, clause_parameters);
     let body_label = general_case_label(label_prefix, "body_", index);
     let environment = general_case_environment(label_prefix, index);
-    let bindings = shallow_pattern_bindings(parts.first, environment);
+    let bindings = shallow_pattern_bindings_with_source(
+        pattern,
+        environment,
+        source_type,
+        facts,
+        parameters,
+    );
+    let body_bindings = case guard_plan {
+        Some(_) -> List.new[SemanticInstructionPlan]();
+        None -> bindings
+    };
     let embedded = general_embedded_control_at(
-        parts.second,
+        body,
         body_id,
         body_label,
         embedded_label(body_label, "_"),
-        bindings,
+        body_bindings,
         join_label,
         facts,
-        parameters,
+        clause_parameters,
     );
     case general_case_clause_plans(
         rest,
@@ -1879,11 +1939,12 @@ general_case_clause_bound(
         clause_id + node_size(clause),
         label_prefix,
         join_label,
+        source_type,
         facts,
         parameters,
     ) {
         Some(plans) -> Some([
-            GeneralCaseClausePlan(index, parts.first, bindings, body_plan, embedded)
+            GeneralCaseClausePlan(index, pattern, guard_plan, bindings, body_plan, embedded)
             | plans
         ]);
         None -> None
@@ -1904,15 +1965,52 @@ general_case_body_blocks(
     label_prefix: String,
     join_label: String,
 ): List[SemanticBlockPlan] ->
+    let body_instructions = case value.guard {
+        Some(_) -> value.body.instructions;
+        None -> concat_instructions(value.bindings, value.body.instructions)
+    };
     case value.embedded {
         Some(embedded) -> embedded.blocks;
         None -> [
             SemanticBlockPlan(
                 general_case_label(label_prefix, "body_", value.index),
-                concat_instructions(value.bindings, value.body.instructions),
+                body_instructions,
                 SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
             ),
         ]
+    }.
+
+general_case_guard_label(label_prefix: String, index: Int): String ->
+    general_case_label(label_prefix, "guard_", index).
+
+general_case_pattern_success(value: GeneralCaseClausePlan, label_prefix: String): String ->
+    case value.guard {
+        Some(_) -> general_case_guard_label(label_prefix, value.index);
+        None -> general_case_label(label_prefix, "body_", value.index)
+    }.
+
+general_case_guard_blocks(
+    value: GeneralCaseClausePlan,
+    rest: List[GeneralCaseClausePlan],
+    label_prefix: String,
+    unreachable_label: String,
+): List[SemanticBlockPlan] ->
+    case value.guard {
+        Some(guard) -> [
+            SemanticBlockPlan(
+                general_case_guard_label(label_prefix, value.index),
+                concat_instructions(value.bindings, guard.instructions),
+                SemanticTerminatorPlan(
+                    "branch",
+                    [guard.result],
+                    [
+                        general_case_label(label_prefix, "body_", value.index),
+                        general_case_next_pattern(rest, label_prefix, unreachable_label),
+                    ],
+                ),
+            ),
+        ];
+        None -> List.new[SemanticBlockPlan]()
     }.
 
 general_case_clause_blocks(
@@ -1927,7 +2025,6 @@ general_case_clause_blocks(
         [value | rest] ->
             let environment = general_case_environment(label_prefix, value.index);
             let matched = general_case_match(label_prefix, value.index);
-            let body_label = general_case_label(label_prefix, "body_", value.index);
             concat_blocks(
                 [
                     SemanticBlockPlan(
@@ -1949,18 +2046,24 @@ general_case_clause_blocks(
                         SemanticTerminatorPlan(
                             "branch",
                             [matched],
-                            [body_label, general_case_next_pattern(rest, label_prefix, unreachable_label)],
+                            [
+                                general_case_pattern_success(value, label_prefix),
+                                general_case_next_pattern(rest, label_prefix, unreachable_label),
+                            ],
                         ),
                     ),
                 ],
                 concat_blocks(
-                    general_case_body_blocks(value, label_prefix, join_label),
-                    general_case_clause_blocks(
-                        rest,
-                        subject,
-                        label_prefix,
-                        join_label,
-                        unreachable_label,
+                    general_case_guard_blocks(value, rest, label_prefix, unreachable_label),
+                    concat_blocks(
+                        general_case_body_blocks(value, label_prefix, join_label),
+                        general_case_clause_blocks(
+                            rest,
+                            subject,
+                            label_prefix,
+                            join_label,
+                            unreachable_label,
+                        ),
                     ),
                 ),
             )
@@ -2110,6 +2213,7 @@ general_case_direct_clauses(
                 node_id + 1 + node_size(subject),
                 label_prefix,
                 join_label,
+                subject_plan.result_type,
                 facts,
                 parameters,
             ) {
@@ -2161,6 +2265,35 @@ pub embedded_case_at(
             facts,
             parameters,
         )
+    }.
+
+/** Lowers a function-root case through the general case planner. */
+pub root_embedded_case_blocks(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case embedded_case_at(
+        node,
+        0,
+        "entry",
+        "root_case_",
+        List.new[SemanticInstructionPlan](),
+        "root_case_return",
+        facts,
+        parameters,
+    ) {
+        Some(embedded) -> Some(concat_blocks(
+            embedded.blocks,
+            [
+                SemanticBlockPlan(
+                    "root_case_return",
+                    List.new[SemanticInstructionPlan](),
+                    SemanticTerminatorPlan("return", [embedded.result], List.new[String]()),
+                ),
+            ],
+        ));
+        None -> None
     }.
 
 struct GeneralIfClausePlan {
@@ -2605,7 +2738,7 @@ general_if_let_at(
 ): Option[EmbeddedBranchPlan] ->
     case expression_node_triple(node.children) {
         Some(parts) -> general_if_let_parts(
-            parts.first.kind == "binding-pattern",
+            binding_pattern(parts.first),
             parts.first,
             parts.second,
             parts.third,
@@ -2855,16 +2988,26 @@ refutable_binding_plans(
     let source_id = binding_id + 1 + node_size(pair.first);
     let next_binding_id = binding_id + node_size(binding);
     let source = lower_expression(pair.second, source_id, facts, parameters);
+    let success_parameters = append_ir_parameters(
+        parameters,
+        pattern_parameters(pair.first, source.result_type, facts, parameters),
+    );
     let continuation = lower_expression(
         parts.continuation,
         parts.continuation_id,
         facts,
-        parameters,
+        success_parameters,
     );
     let join_label = embedded_label(label_prefix, "join");
     let success_label = general_case_label(label_prefix, "body_", 0);
     let environment = general_case_environment(label_prefix, 0);
-    let bindings = shallow_pattern_bindings(pair.first, environment);
+    let bindings = shallow_pattern_bindings_with_source(
+        pair.first,
+        environment,
+        source.result_type,
+        facts,
+        parameters,
+    );
     let success = refutable_success_control(
         remaining,
         next_binding_id,
@@ -2883,6 +3026,7 @@ refutable_binding_plans(
         parts.fallback_id + 1,
         label_prefix,
         join_label,
+        source.result_type,
         facts,
         parameters,
     ) {
@@ -2891,7 +3035,7 @@ refutable_binding_plans(
             binding_id,
             source,
             [
-                GeneralCaseClausePlan(0, pair.first, bindings, continuation, success)
+                GeneralCaseClausePlan(0, pair.first, None, bindings, continuation, success)
                 | fallbacks
             ],
             entry_label,

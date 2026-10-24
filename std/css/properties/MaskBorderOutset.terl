@@ -1,160 +1,104 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-outset
+ * The `mask-border-outset` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies the distance by which an element's [mask
+ * border](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border) is set
+ * out from its border box.
+ *
+ * Initial: 0. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <'border-image-outset'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-outset
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-outset
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskBorderOutset.
 
 import std.core.Float.
 import std.core.Float.{to_string}.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
-import std.css.Values.{length_amount, length_css}.
+import std.css.Values.{length_amount, length_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained mask-border-outset value.
- */
-pub opaque type Value = Token.
+pub opaque type CheckedComponent = SerializedValue.
 
-/**
- * A single non-global mask-border-outset shorthand component.
- */
-pub opaque type Component = Token.
+pub type Component = CheckedComponent.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[Component]}.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    mask_border_outset: Value,
+    mask_border_outset: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the mask-border-outset length range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub struct OptionalProperty {
-    mask_border_outset: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "mask-border-outset", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask-border-outset", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-border-outset", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-border-outset", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-border-outset", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a mask-border-outset value.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "mask-border-outset", css: length_css(value)}));
-        false -> None
+        true -> Some(Checked(serialize("mask-border-outset", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a mask-border-outset value.
+ * Checks the mask-border-outset number range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(Token {property: "mask-border-outset", css: to_string(value)}));
-        false -> None
+        true -> Some(Checked(serialize("mask-border-outset", to_string(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a mask-border-outset value.
+ * Checks the mask-border-outset length range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub component_length(value: Length): Option[Component] ->
+pub component_length(value: Length): Option[CheckedComponent] ->
     case length_amount(value) >= 0 {
-        true -> Some(Component(Token {property: "mask-border-outset", css: length_css(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("mask-border-outset", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a mask-border-outset value.
+ * Checks the mask-border-outset number range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub component_number(value: Float): Option[Component] ->
+pub component_number(value: Float): Option[CheckedComponent] ->
     case value >= 0 {
-        true -> Some(Component(Token {property: "mask-border-outset", css: to_string(value)}));
-        false -> None
+        true -> Some(CheckedComponent(serialize("mask-border-outset", to_string(value))));
+        false -> Absent
     }.
 
 /**
- * Serializes a library-owned shorthand component.
+ * Supplies 1 components in grammar order.
  */
-component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
-
-component_token(value: Component): Token ->
-    value.
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Combines 1 typed components in specification order.
+ * Supplies 2 components in grammar order.
  */
-pub single(first: Component): Value ->
-    Value(Token {property: "mask-border-outset", css: component_css(first)}).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).
 
 /**
- * Combines 2 typed components in specification order.
+ * Supplies 3 components in grammar order.
  */
-pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {
-            property: "mask-border-outset",
-            css: component_css(first) + " " + component_css(second),
-        },
-    ).
+pub triple(first: Component, second: Component, third: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third]}).
 
 /**
- * Combines 3 typed components in specification order.
+ * Supplies 4 components in grammar order.
  */
-pub triple(first: Component, second: Component, third: Component): Value ->
-    Value(
-        Token {
-            property: "mask-border-outset",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third),
-        },
-    ).
-
-/**
- * Combines 4 typed components in specification order.
- */
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value ->
-    Value(
-        Token {
-            property: "mask-border-outset",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third) + " " + component_css(fourth),
-        },
-    ).
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third, fourth]}).

@@ -1,8 +1,8 @@
 module=std.js.Dom.WindowOrWorkerGlobalScope
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=9088317654691439078
-interface_hash=1386992343167806253
-interface_doc_hash=1386992343167806253
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=16988828851466942972
+interface_hash=9495700043406272257
+interface_doc_hash=9495700043406272257
 deps=0

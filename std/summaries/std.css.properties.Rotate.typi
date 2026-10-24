@@ -1,52 +1,26 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-transforms-2/#propdef-rotate
+//! The `rotate` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows you to
+//! specify rotation transforms individually and independently of the `transform` property. This maps
+//! better to typical user interface usage, and saves having to remember the exact order of transform
+//! functions to specify in the `transform` property.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - none: Specifies that no rotation should be applied.
+//!
 //! Grammar: none | <angle> | [ x | y | z | <number>{3} ] && <angle>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-transforms-2/#propdef-rotate
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/rotate
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Rotate.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    rotate: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    rotate: Value
+    rotate: None | std.css.Values.Angle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained rotate value.
-
-pub opaque type Value.
-
-/// Constructs a rotate value from a typed angle.
-
-pub angle(value: std.css.Values.Angle): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

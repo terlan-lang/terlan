@@ -1,10 +1,9 @@
 module=std.css.properties.LightingColor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=4990092126881240665
-interface_hash=9121588397338267074
-interface_doc_hash=10920914315795080441
-deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=308517412896351192
+interface_hash=1521606260459619705
+interface_doc_hash=4588463457275175927
+deps=1
+std.css.Values=330909209718432688

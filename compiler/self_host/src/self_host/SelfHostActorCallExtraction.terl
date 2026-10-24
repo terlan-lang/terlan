@@ -1,0 +1,126 @@
+/** Extracts ordered continuation captures from typed call-site use facts. */
+module self_host.SelfHostActorCallExtraction.
+
+import self_host.SelfHostActorCallPlan.{ActorCallSitePlan, ActorCalleeEntry}.
+import self_host.SelfHostActorIrSyntax.{ActorIrPlan}.
+
+import std.collections.List.
+import std.core.{Bool, Int, String}.
+import self_host.SelfHostActorCallPlan.
+
+
+pub struct ActorVisibleValue {
+    name: String,
+    type_name: String,
+}.
+
+pub constructor ActorVisibleValue {
+    (name: String, type_name: String): ActorVisibleValue ->
+        ActorVisibleValue { name: name, type_name: type_name }
+}.
+
+
+pub struct ActorCallObservation {
+    source_module: String,
+    source_function: String,
+    source_arity: Int,
+    continuation_ordinal: Int,
+    native_call_index: Int,
+    block_label: String,
+    result_name: String,
+    callee_module: String,
+    callee_function: String,
+    callee_arity: Int,
+    visible_values: List[ActorVisibleValue],
+    continuation_uses: List[String],
+    result_type: String,
+    function_return_type: String,
+    continuation_entry_block: String,
+    callee_entries: List[ActorCalleeEntry],
+}.
+
+pub constructor ActorCallObservation {
+    (source_module: String, source_function: String, source_arity: Int, continuation_ordinal: Int, native_call_index: Int, block_label: String, result_name: String, callee_module: String, callee_function: String, callee_arity: Int, visible_values: List[ActorVisibleValue], continuation_uses: List[String], result_type: String, function_return_type: String, continuation_entry_block: String, callee_entries: List[ActorCalleeEntry]): ActorCallObservation ->
+        ActorCallObservation {
+            source_module: source_module,
+            source_function: source_function,
+            source_arity: source_arity,
+            continuation_ordinal: continuation_ordinal,
+            native_call_index: native_call_index,
+            block_label: block_label,
+            result_name: result_name,
+            callee_module: callee_module,
+            callee_function: callee_function,
+            callee_arity: callee_arity,
+            visible_values: visible_values,
+            continuation_uses: continuation_uses,
+            result_type: result_type,
+            function_return_type: function_return_type,
+            continuation_entry_block: continuation_entry_block,
+            callee_entries: callee_entries,
+        }
+}.
+
+
+@pure
+contains(name: String, values: List[String]): Bool ->
+    case values { [] -> false; [value | rest] -> value == name or contains(name, rest) }.
+
+@pure
+capture_values(
+    values: List[ActorVisibleValue],
+    uses: List[String],
+    result_name: String,
+): List[ActorVisibleValue] ->
+    case values {
+        [] -> List.new[ActorVisibleValue]();
+        [value | rest] where value.name != result_name and contains(value.name, uses) ->
+            [value | capture_values(rest, uses, result_name)];
+        [_value | rest] -> capture_values(rest, uses, result_name)
+    }.
+
+@pure
+capture_names(values: List[ActorVisibleValue]): List[String] ->
+    case values { [] -> List.new[String](); [value | rest] -> [value.name | capture_names(rest)] }.
+
+@pure
+capture_types(values: List[ActorVisibleValue]): List[String] ->
+    case values { [] -> List.new[String](); [value | rest] -> [value.type_name | capture_types(rest)] }.
+
+@pure
+call_site(value: ActorCallObservation): ActorCallSitePlan ->
+    let captures = capture_values(
+        value.visible_values,
+        value.continuation_uses,
+        value.result_name,
+    );
+    ActorCallSitePlan(
+        value.source_module,
+        value.source_function,
+        value.source_arity,
+        value.continuation_ordinal,
+        value.native_call_index,
+        value.block_label,
+        value.result_name,
+        value.callee_module,
+        value.callee_function,
+        value.callee_arity,
+        capture_names(captures),
+        capture_types(captures),
+        value.result_type,
+        value.function_return_type,
+        value.continuation_entry_block,
+        value.callee_entries,
+    ).
+
+@pure
+call_sites(values: List[ActorCallObservation]): List[ActorCallSitePlan] ->
+    case values {
+        [] -> List.new[ActorCallSitePlan]();
+        [value | rest] -> [call_site(value) | call_sites(rest)]
+    }.
+
+/** Derives captures in source slot order, then preserves supplied ordinals while deriving identities. */
+@pure
+pub plan(values: List[ActorCallObservation]): ActorIrPlan ->
+    SelfHostActorCallPlan.plan(call_sites(values)).

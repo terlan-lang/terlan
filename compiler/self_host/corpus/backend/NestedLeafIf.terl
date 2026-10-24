@@ -1,5 +1,7 @@
 module self_host_probe.NestedLeafIf.
 
+import std.core.String.
+
 pub label(flag: Bool): String ->
     String.append("status: ", if {
         flag -> "enabled";

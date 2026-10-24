@@ -1,0 +1,66 @@
+/** Tooling-document lambda lint projection contracts. */
+module self_host.SelfHostLintLambdaProjectionTest.
+
+import self_host.SelfHostLintLambdaProjection.
+import self_host.SelfHostToolingDocument.
+
+@test
+pub reports_weak_multi_expression_callback_names(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\nrender(values: List[Int]): Unit -> values.each((x) -> let doubled = x + x; Console.println(doubled)).\n",
+    );
+    case SelfHostLintLambdaProjection.diagnostics("Sample.terl", document) {
+        [value] -> value.rule_id == "TL0003" and value.line == 2;
+        _ -> false
+    }.
+
+@test
+pub accepts_meaningful_and_single_expression_callbacks(): Bool ->
+    let meaningful = SelfHostToolingDocument.build(
+        "module sample.\nrender(values: List[Int]): Unit -> values.each((value) -> let doubled = value + value; Console.println(doubled)).\n",
+    );
+    let compact = SelfHostToolingDocument.build(
+        "module sample.\ndouble(values: List[Int]): List[Int] -> values.map((x) -> x + x).\n",
+    );
+    SelfHostLintLambdaProjection.diagnostics("Sample.terl", meaningful) == []
+        and SelfHostLintLambdaProjection.diagnostics("Sample.terl", compact) == [].
+
+@test
+pub function_type_arrows_do_not_hide_callback_parameters(): Bool ->
+    let document = SelfHostToolingDocument.build(
+        "module sample.\napply(callbacks: List[(Int) -> Int]): Unit -> callbacks.each((x: (Int) -> Int) -> let first = x(1); consume(first)).\n",
+    );
+    case SelfHostLintLambdaProjection.diagnostics("Sample.terl", document) {
+        [value] -> value.rule_id == "TL0003";
+        _ -> false
+    }.
+
+@test
+pub reports_only_exact_untyped_forwarding_lambdas(): Bool ->
+    let forwarding = SelfHostToolingDocument.build(
+        "module sample.\nproperty(generator: Gen[Int]): Bool -> for_all(generator, (width) -> generated(width)).\n",
+    );
+    let transformed = SelfHostToolingDocument.build(
+        "module sample.\nproperty(generator: Gen[Int]): Bool -> for_all(generator, (width) -> generated(width + 1)).\n",
+    );
+    let typed = SelfHostToolingDocument.build(
+        "module sample.\nproperty(generator: Gen[Int]): Bool -> for_all(generator, (width: Int) -> generated(width)).\n",
+    );
+    case SelfHostLintLambdaProjection.diagnostics("Sample.terl", forwarding) {
+        [value] ->
+            value.rule_id == "TL0010"
+                and SelfHostLintLambdaProjection.diagnostics("Sample.terl", transformed) == []
+                and SelfHostLintLambdaProjection.diagnostics("Sample.terl", typed) == [];
+        _ -> false
+    }.
+
+@test
+pub rejects_argument_reordering_and_named_arguments(): Bool ->
+    let reordered = SelfHostToolingDocument.build(
+        "module sample.\nvalue(): Unit -> each((left, right) -> combine(right, left)).\n",
+    );
+    let named = SelfHostToolingDocument.build(
+        "module sample.\nvalue(): Unit -> each((left) -> combine(value: left)).\n",
+    );
+    SelfHostLintLambdaProjection.diagnostics("Sample.terl", reordered) == []
+        and SelfHostLintLambdaProjection.diagnostics("Sample.terl", named) == [].

@@ -1,99 +1,28 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-borders-4/#propdef-corner-end-start-shape
+ * The `corner-end-start-shape` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies the shape of a box's block-end and inline-start corner, within its `border-radius`
+ * area.
+ *
+ * Initial: round. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <corner-shape-value>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-corner-end-start-shape
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/corner-end-start-shape
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.CornerEndStartShape.
 
-import type std.core.Option.
+import std.css.keywords.{Bevel, Notch, Round, Scoop, Square, Squircle}.
 
-/**
- * A nominal, specification-constrained corner-end-start-shape value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    corner_end_start_shape: Value,
+    corner_end_start_shape: Round | Scoop | Bevel | Notch | Square | Squircle | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    corner_end_start_shape: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword bevel.
- */
-pub bevel(): Value ->
-    Value(Token {property: "corner-end-start-shape", css: "bevel"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "corner-end-start-shape", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "corner-end-start-shape", css: "initial"}).
-
-/**
- * Returns the CSS keyword notch.
- */
-pub notch(): Value ->
-    Value(Token {property: "corner-end-start-shape", css: "notch"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "corner-end-start-shape", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "corner-end-start-shape", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword round.
- */
-pub round(): Value ->
-    Value(Token {property: "corner-end-start-shape", css: "round"}).
-
-/**
- * Returns the CSS keyword scoop.
- */
-pub scoop(): Value ->
-    Value(Token {property: "corner-end-start-shape", css: "scoop"}).
-
-/**
- * Returns the CSS keyword square.
- */
-pub square(): Value ->
-    Value(Token {property: "corner-end-start-shape", css: "square"}).
-
-/**
- * Returns the CSS keyword squircle.
- */
-pub squircle(): Value ->
-    Value(Token {property: "corner-end-start-shape", css: "squircle"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "corner-end-start-shape", css: "unset"}).

@@ -1,0 +1,8 @@
+module=std.css.keywords.SResize
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=7408264584205903252
+interface_hash=1356481014710541642
+interface_doc_hash=4360998115162888227
+deps=0

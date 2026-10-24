@@ -156,7 +156,7 @@ pub type InboundOutcome =
 /// Left identifies a node that departed intentionally.
 
 pub type Left =
-    Atom["left"].
+    std.core.Atom.Left.
 
 /// LocalClose identifies an intentional local session shutdown.
 

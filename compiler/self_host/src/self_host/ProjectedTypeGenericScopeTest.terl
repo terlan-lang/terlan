@@ -1,0 +1,46 @@
+/** Lexical generic-scope and constructor-arity contracts. */
+module self_host.ProjectedTypeGenericScopeTest.
+
+import self_host.ProjectedSignatureSyntax.{ProjectedTypeConstructorArity}.
+import self_host.ProjectedTypeResolution.
+import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
+import std.collections.List.
+
+@pure
+named(name: String): ProjectedTypeNode ->
+    ProjectedTypeNode("named-type", name, 0, name.byte_size(), List.new[ProjectedTypeNode]()).
+
+@pure
+declared_multichar_parameter_is_known(): Bool ->
+    ProjectedTypeResolution.resolve_scoped_type(
+        named("Value"),
+        ["Value"],
+        List.new[ProjectedTypeConstructorArity](),
+    ) == [].
+
+@pure
+undeclared_single_character_name_is_unknown(): Bool ->
+    ProjectedTypeResolution.resolve_scoped_type(
+        named("T"),
+        List.new[String](),
+        List.new[ProjectedTypeConstructorArity](),
+    ).length() == 1.
+
+@pure
+primitive_cannot_take_type_arguments(): Bool ->
+    let value = ProjectedTypeNode("generic-type", "Int", 0, 11, [named("String")]);
+    ProjectedTypeResolution.resolve_scoped_type(
+        value,
+        List.new[String](),
+        List.new[ProjectedTypeConstructorArity](),
+    ).length() == 1.
+
+@pure
+duplicate_parameters_are_rejected(): Bool ->
+    ProjectedTypeResolution.validate_generic_parameters(["T", "T"]).length() == 1.
+
+pub self_test(): Bool ->
+    declared_multichar_parameter_is_known()
+        and undeclared_single_character_name_is_unknown()
+        and primitive_cannot_take_type_arguments()
+        and duplicate_parameters_are_rejected().

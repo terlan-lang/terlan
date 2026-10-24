@@ -1,0 +1,40 @@
+/** Contracts for Terlan-owned bounded worker orchestration. */
+module self_host.SelfHostWorkerOrchestratorTest.
+
+import std.core.Result.{Err, Ok}.
+import self_host.SelfHostWorkerPlan.{WorkerBatch}.
+import self_host.SelfHostWorkerOrchestrator.
+
+
+@test
+pub batches_dispatch_only_after_active_work_drains(): Bool ->
+    let Ok(initial) <- SelfHostWorkerOrchestrator.start([
+        WorkerBatch(0, ["a", "b"]),
+        WorkerBatch(1, ["c"]),
+    ]) else { Err(_) -> false };
+    let Ok(first) <- SelfHostWorkerOrchestrator.dispatch(initial) else { Err(_) -> false };
+    let Ok(after_a) <- SelfHostWorkerOrchestrator.complete(first.state, "a", true) else { Err(_) -> false };
+    let still_blocked = case SelfHostWorkerOrchestrator.dispatch(after_a) {
+        Err(_) -> true;
+        Ok(_) -> false
+    };
+    let Ok(after_b) <- SelfHostWorkerOrchestrator.complete(after_a, "b", true) else { Err(_) -> false };
+    let Ok(second) <- SelfHostWorkerOrchestrator.dispatch(after_b) else { Err(_) -> false };
+    let Ok(done) <- SelfHostWorkerOrchestrator.complete(second.state, "c", true) else { Err(_) -> false };
+    first.modules == ["a", "b"]
+        and still_blocked
+        and second.modules == ["c"]
+        and SelfHostWorkerOrchestrator.succeeded(done).
+
+@test
+pub first_failure_cancels_active_and_pending_modules(): Bool ->
+    let Ok(initial) <- SelfHostWorkerOrchestrator.start([
+        WorkerBatch(0, ["a", "b"]),
+        WorkerBatch(1, ["c"]),
+    ]) else { Err(_) -> false };
+    let Ok(first) <- SelfHostWorkerOrchestrator.dispatch(initial) else { Err(_) -> false };
+    let Ok(failed) <- SelfHostWorkerOrchestrator.complete(first.state, "a", false) else { Err(_) -> false };
+    failed.failed == ["a"]
+        and failed.cancelled == ["b", "c"]
+        and SelfHostWorkerOrchestrator.finished(failed)
+        and not SelfHostWorkerOrchestrator.succeeded(failed).

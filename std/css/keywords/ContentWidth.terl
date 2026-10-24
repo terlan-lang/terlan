@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword content-width. Generated; do not edit.
+ */
+module std.css.keywords.ContentWidth.
+
+pub type ContentWidth = Atom["content-width"].

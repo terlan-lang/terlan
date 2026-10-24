@@ -1,0 +1,53 @@
+/** Positive and negative semantic opcode capability contracts. */
+module self_host.ProjectedSemanticIrCapabilityTest.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.Option.{None}.
+import self_host.SelfHostIrSyntax.{IrParameter, IrStructLayout}.
+import self_host.SelfHostSemanticIrSyntax.{
+    SemanticBlockPlan,
+    SemanticFunctionPlan,
+    SemanticInstructionPlan,
+    SemanticModulePlan,
+    SemanticTerminatorPlan
+}.
+import self_host.ProjectedSemanticIrCapability.
+
+
+plan(opcode: String, terminator: String): SemanticModulePlan ->
+    SemanticModulePlan(
+        "sample.Capability",
+        List.new[IrStructLayout](),
+        [SemanticFunctionPlan(
+            "sample.Capability",
+            "run",
+            0,
+            List.new[IrParameter](),
+            None,
+            [SemanticBlockPlan(
+                "entry",
+                [SemanticInstructionPlan(opcode, None, [], None)],
+                SemanticTerminatorPlan(terminator, [], []),
+            )],
+            None,
+        )],
+    ).
+
+@test
+pub admitted_semantic_operations_have_no_capability_gaps(): Bool ->
+    ProjectedSemanticIrCapability.check(plan("construct-map", "return")) == [].
+
+@test
+pub fallback_instruction_is_rejected_with_location(): Bool ->
+    case ProjectedSemanticIrCapability.check(plan("unsupported-new-surface", "return")) {
+        [message] -> String.contains(message, "sample.Capability.run")
+            and String.contains(message, "block=entry")
+            and String.contains(message, "opcode=unsupported-new-surface");
+        _ -> false
+    }.
+
+@test
+pub fallback_terminator_is_also_rejected(): Bool ->
+    ProjectedSemanticIrCapability.check(plan("move", "unsupported-exit")) != [].

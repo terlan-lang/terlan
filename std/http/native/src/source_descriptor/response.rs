@@ -3,7 +3,9 @@
 use super::{error, Result};
 use crate::{validate_response_header, HttpResponseChunks};
 use bytes::Bytes;
-use terlan_runtime_abi::{native_record, DescriptorValue, NativeValue, OwnedDescriptor as D};
+use terlan_runtime_abi::{
+    native_record, native_record_fields, DescriptorValue, NativeValue, OwnedDescriptor as D,
+};
 
 /// Validated source metadata ready for a transport adapter.
 #[derive(Debug)]
@@ -47,47 +49,29 @@ pub fn cached_response(
 /// Consumes an executed Response, preserving body/header allocations and order.
 /// No filesystem or callback access is performed during admission.
 pub fn response<V: DescriptorValue>(value: V) -> Result<SourceResponse> {
-    let D::Record(name, mut fields) = value.into_descriptor() else {
+    if !matches!(
+        value.descriptor_view(),
+        terlan_runtime_abi::DescriptorView::Record(..)
+    ) {
         return Err(error("expected source Response record"));
-    };
-    fields.sort_unstable_by(|left, right| left.0.cmp(&right.0));
-    if name != "Response"
-        || !fields.iter().map(|(name, _)| name.as_str()).eq([
-            "chunk_size",
-            "chunks",
-            "content_type",
-            "default_headers",
-            "headers",
-            "kind",
-            "max_pending_writes",
-            "payload",
-            "status",
-        ])
-    {
-        return Err(error("malformed source Response record"));
     }
-    let mut fields = fields.into_iter().map(|(_, value)| value.into_descriptor());
-    let (
-        Some(D::Int(chunk_size)),
-        Some(D::List(chunks)),
-        Some(D::String(content_type)),
-        Some(D::List(default_headers)),
-        Some(D::List(headers)),
-        Some(D::Int(kind)),
-        Some(D::Int(max_pending_writes)),
-        Some(D::String(payload)),
-        Some(D::Int(status)),
-    ) = (
-        fields.next(),
-        fields.next(),
-        fields.next(),
-        fields.next(),
-        fields.next(),
-        fields.next(),
-        fields.next(),
-        fields.next(),
-        fields.next(),
+    let fields = native_record_fields!(
+        value,
+        Response {
+            chunk_size,
+            chunks,
+            content_type,
+            default_headers,
+            headers,
+            kind,
+            max_pending_writes,
+            payload,
+            status,
+        }
     )
+    .map_err(|_| error("malformed source Response record"))?;
+    let [D::Int(chunk_size), D::List(chunks), D::String(content_type), D::List(default_headers), D::List(headers), D::Int(kind), D::Int(max_pending_writes), D::String(payload), D::Int(status)] =
+        fields.map(DescriptorValue::into_descriptor)
     else {
         return Err(error("malformed source Response record"));
     };

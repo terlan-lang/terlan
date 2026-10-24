@@ -1,64 +1,41 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
+//! The `font-weight` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! weight (or boldness) of the font. The weights available depend on the `font-family` that is
+//! currently set.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - bold: Bold font weight. Same as `700`.
+//! - bolder: One relative font weight heavier than the parent element. Note that only four font
+//! weights are considered for relative weight calculation; see the [Meaning of relative
+//! weights](#meaning_of_relative_weights) section below.
+//! - lighter: One relative font weight lighter than the parent element. Note that only four font
+//! weights are considered for relative weight calculation; see the [Meaning of relative
+//! weights](#meaning_of_relative_weights) section below.
+//! - normal: Normal font weight. Same as `400`.
+//!
 //! Grammar: <font-weight-absolute> | bolder | lighter
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-weight
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontWeight.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    font_weight: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    font_weight: Value
+    font_weight: Normal | Bold | Bolder | Lighter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained font-weight value.
+/// Checks the font-weight number range. Returns Some when amount >= 1 and amount <= 1000; otherwise
+/// returns None.
 
-pub opaque type Value.
-
-/// Returns the CSS keyword bold.
-
-pub bold(): Value.
-
-/// Returns the CSS keyword bolder.
-
-pub bolder(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword lighter.
-
-pub lighter(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Checks the specification range and constructs a font-weight value.
-
-pub number(value: Float): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub number(value: Float): Option[Checked].

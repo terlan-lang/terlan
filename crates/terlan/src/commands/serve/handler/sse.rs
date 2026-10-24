@@ -29,17 +29,20 @@ pub(in crate::commands::serve) fn execute_vm_router_sse_admission_with_package_r
     output: &mut dyn FnMut(&str),
 ) -> Result<VmSseRouterAdmission, String> {
     let router = vm.execute_http_router(&endpoint.module, "router", output)?;
-    let middleware_request = vm_request_descriptor(request, &[]);
-    let outcome =
-        channel_admission::sse(&router, &endpoint.route, request.path(), |middleware, _| {
+    let outcome = channel_admission::sse(
+        &router,
+        &endpoint.route,
+        request.path(),
+        |middleware, next| {
             vm.execute_callable(
                 &endpoint.module,
                 middleware,
-                vec![middleware_request.clone()],
+                vec![vm_request_descriptor(request, next.route_params())],
                 output,
             )
             .map_err(String::from)
-        })?;
+        },
+    )?;
     match outcome {
         Admission::Respond(short) => finish_router_response(
             RouterResponseRuntime::new(&vm, &endpoint.module, request, package_root),
@@ -52,15 +55,12 @@ pub(in crate::commands::serve) fn execute_vm_router_sse_admission_with_package_r
         Admission::Open(plan) => {
             // Middleware may return a normal response even without a live
             // transport. Never run open callbacks for a stream we cannot serve.
-            if !live_transport_available {
-                return Ok(VmSseRouterAdmission::Respond(HandlerResponse {
-                    status: 501,
-                    content_type: "text/plain; charset=utf-8".into(),
-                    headers: Vec::new(),
-                    body: super::HandlerBody::Text(
-                        "error[serve_http.upgrade_adapter_missing]: maintained async Hyper adapter is required for SSE".into(),
-                    ),
-                }));
+            if let Some(response) = channel_admission::sse_transport_response(
+                &plan,
+                request.method(),
+                live_transport_available,
+            ) {
+                return Ok(VmSseRouterAdmission::Respond(response));
             }
             let session = terlan_http_native::sse_session::SseSession::open(plan);
             crate::commands::serve::handler::sse_invocation::open(

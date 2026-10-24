@@ -1,0 +1,53 @@
+/** Fail-closed lint authority admission contracts. */
+module self_host.SelfHostLintAuthorityTest.
+
+import std.core.String.
+import self_host.SelfHostLintAuthority.LintAuthorityEvidence.
+import self_host.SelfHostLintAuthority.
+import self_host.SelfHostLintRegistry.
+
+complete_evidence(): LintAuthorityEvidence ->
+    LintAuthorityEvidence(
+        SelfHostLintRegistry.render(),
+        true,
+        true,
+        true,
+        true,
+        true,
+    ).
+
+@test
+pub admits_only_complete_zero_projection_evidence(): Bool ->
+    SelfHostLintAuthority.decide_with_projection_count(
+        complete_evidence(),
+        0,
+    ).ready
+        and not SelfHostLintAuthority.decide_with_projection_count(
+            complete_evidence(),
+            1,
+        ).ready.
+
+@test
+pub rejects_stale_registry_and_every_missing_parity_dimension(): Bool ->
+    let decision = SelfHostLintAuthority.decide_with_projection_count(
+        LintAuthorityEvidence("stale", false, false, false, false, false),
+        1,
+    );
+    not decision.ready
+        and String.contains(SelfHostLintAuthority.render(
+            LintAuthorityEvidence("stale", false, false, false, false, false),
+        ), "status\tpending")
+        and String.contains(
+            SelfHostLintAuthority.render(
+                LintAuthorityEvidence("stale", false, false, false, false, false),
+            ),
+            "missing\tcanonical-registry-artifact",
+        ).
+
+@test
+pub current_registry_remains_pending_until_projection_debt_is_zero(): Bool ->
+    let decision = SelfHostLintAuthority.decide(complete_evidence());
+    if {
+        SelfHostLintRegistry.projection_rule_count() == 0 -> decision.ready;
+        true -> not decision.ready
+    }.

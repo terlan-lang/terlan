@@ -1,0 +1,37 @@
+schema	terlan.self-host.production-authority-sources/v1
+gate	frontend-authority	target/quality/self-host-phase4/frontend-authority.marker	complete
+gate	type-system-authority	target/quality/self-host-phase4/type-system-authority.marker	complete
+gate	pattern-semantics-authority	target/quality/self-host-phase4/pattern-semantics-authority.marker	complete
+gate	core-ir-authority	target/quality/self-host-phase5/core-ir-authority.marker	complete
+gate	actor-ir-authority	target/quality/self-host-phase8/actor-ir-authority.marker	complete
+gate	backend-complete	target/quality/self-host-phase6/backend-complete.marker	complete
+gate	actor-backend-complete	target/quality/self-host-phase8/actor-backend-complete.marker	complete
+gate	driver-authority	target/quality/self-host-phase6/driver-authority.marker	complete
+gate	actor-tooling-authority	target/quality/self-host-phase7/actor-tooling-authority.marker	complete
+gate	actor-profile-catalog-authority	target/quality/self-host-phase8/actor-profile-catalog-authority.marker	complete
+gate	actor-profile-projection-converged	target/quality/self-host-phase8/actor-profile-projection-converged.marker	complete
+gate	bootstrap-converged	target/quality/self-host-phase8/bootstrap-converged.marker	complete
+gate	actor-bootstrap-converged	target/quality/self-host-phase8/actor-bootstrap-converged.marker	complete
+gate	performance-within-budget	target/quality/self-host-phase4/performance-within-budget.marker	complete
+gate	recovery-bootstrap	target/quality/self-host-phase8/recovery-bootstrap.marker	complete
+gate	trusted-base-documented	target/quality/self-host-phase9/trusted-base-documented.marker	complete
+gate	no-ad-hoc-exclusions	target/quality/self-host-phase9/no-ad-hoc-exclusions.marker	complete
+gate	backend-language-complete	target/quality/self-host-phase6/backend-language-complete.marker	complete
+gate	tooling-authority	target/quality/self-host-phase7/tooling-authority.marker	complete
+gate	nested-control-flow-complete	target/quality/self-host-phase9/nested-control-flow-complete.marker	complete
+gate	complete-pattern-surface	target/quality/self-host-phase9/complete-pattern-surface.marker	complete
+gate	bootstrap-workarounds-removed	target/quality/self-host-phase9/bootstrap-workarounds-removed.marker	complete
+gate	idiomatic-source-restored	target/quality/self-host-phase9/idiomatic-source-restored.marker	complete
+gate	pattern-decision-tree-complete	target/quality/self-host-phase9/pattern-decision-tree-complete.marker	complete
+gate	self-analysis-resource-bounds	target/quality/self-host-phase9/self-analysis-resource-bounds.marker	complete
+gate	compiler-regression-corpus-complete	target/quality/self-host-phase9/compiler-regression-corpus-complete.marker	complete
+gate	minimal-trusted-base	target/quality/self-host-phase9/minimal-trusted-base.marker	complete
+gate	rust-frontend-removed-from-normal-paths	target/quality/self-host-phase9/rust-frontend-removed-from-normal-paths.marker	complete
+gate	post-cleanup-converged	target/quality/self-host-phase9/post-cleanup-converged.marker	complete
+gate	dynamic-call-target-authority	target/quality/self-host-phase8/dynamic-call-target-authority.marker	complete
+gate	target-independent-optimizer-authority	target/quality/self-host-phase6/target-independent-optimizer-authority.marker	complete
+gate	bounded-parallel-backend-authority	target/quality/self-host-phase7/bounded-parallel-backend-authority.marker	complete
+identity	stage1-identity	target/quality/self-host-phase8/stage1.identity
+identity	stage2-identity	target/quality/self-host-phase8/stage2.identity
+identity	stage1-actor-identity	target/quality/self-host-phase8/stage1-actor.identity
+identity	stage2-actor-identity	target/quality/self-host-phase8/stage2-actor.identity

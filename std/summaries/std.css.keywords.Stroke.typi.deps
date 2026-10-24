@@ -1,0 +1,8 @@
+module=std.css.keywords.Stroke
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=5202934282097469350
+interface_hash=8916815306770069277
+interface_doc_hash=2213444289294911201
+deps=0

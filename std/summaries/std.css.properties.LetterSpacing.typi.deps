@@ -1,10 +1,10 @@
 module=std.css.properties.LetterSpacing
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=5122258790366859732
-interface_hash=7377096722838306420
-interface_doc_hash=12958765775021521788
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=17088690329274223929
+interface_hash=899687781457286686
+interface_doc_hash=11378359125708090908
 deps=2
-std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=330909209718432688
+std.css.keywords.Normal=15467599898019431818

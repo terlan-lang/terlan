@@ -37,6 +37,7 @@ mod request_metadata;
 pub mod request_pipeline;
 mod request_projection;
 pub mod request_resources;
+mod request_snapshot;
 mod request_value;
 pub mod response_body;
 mod response_builder;
@@ -47,6 +48,7 @@ mod response_headers;
 #[cfg(test)]
 mod response_metadata_test;
 pub mod route_pattern;
+pub mod router_execution;
 pub mod routing;
 pub mod server_config;
 pub mod server_connection;
@@ -64,6 +66,8 @@ pub mod sse_callbacks;
 pub mod sse_session;
 pub mod static_file;
 pub mod tls;
+#[cfg(test)]
+mod tls_test_support;
 pub mod tls_config;
 pub use service_error::ServiceError;
 pub mod tls_material;
@@ -72,14 +76,14 @@ pub mod tls_runtime;
 pub mod upgrade_io;
 pub mod websocket;
 
-pub use bindings::ENCODE_COOKIE;
+pub use bindings::{DECODE_COOKIE, ENCODE_COOKIE};
 pub use content_type::content_type_for_path;
 pub use cookies::{
     parse_request_cookie_header, set_header_with_options, CookieOptions, CookieSameSite,
 };
 pub use error::HttpError;
 pub use request::{Request, RequestMetadata, RequestParts};
-pub use request_metadata::{query_pairs, request_cookie_pairs, request_header_pairs};
+pub use request_metadata::{request_cookie_headers, request_header_pairs};
 pub use request_projection::RequestFieldProjection;
 pub use request_value::{request_descriptor, source_request_tuple};
 pub use response_builder::{build_http_response, build_server_response, server_default_headers};

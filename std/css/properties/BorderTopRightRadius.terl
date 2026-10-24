@@ -1,101 +1,53 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-top-right-radius
+ * The `border-top-right-radius` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * rounds the top-right corner of an element by specifying the radius (or the radius of the
+ * semi-major and semi-minor axes) of the ellipse defining the curvature of the corner.
+ *
+ * Initial: 0. Inherited: no.
+ * Percentages: refer to the corresponding dimension of the border box.
+ *
  * Grammar: <border-radius>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-top-right-radius
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-top-right-radius
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BorderTopRightRadius.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained border-top-right-radius value.
- */
-pub opaque type Value = Token.
+pub opaque type Checked = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    border_top_right_radius: Value,
+    border_top_right_radius: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Include an optional declaration in a shared style block.
+ * Checks the border-top-right-radius length range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub struct OptionalProperty {
-    border_top_right_radius: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "border-top-right-radius", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "border-top-right-radius", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "border-top-right-radius", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "border-top-right-radius", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "border-top-right-radius", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a border-top-right-radius value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(
-                    Token {
-                        property: "border-top-right-radius",
-                        css: std.css.Values.length_css(value),
-                    },
-                ),
-            );
-        false -> None
+pub length(value: Length): Option[Checked] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Checked(serialize("border-top-right-radius", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a border-top-right-radius value.
+ * Checks the border-top-right-radius percentage range. Returns Some when amount >= 0; otherwise
+ * returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(
-                    Token {
-                        property: "border-top-right-radius",
-                        css: std.css.Values.percentage_css(value),
-                    },
-                ),
-            );
-        false -> None
+pub percentage(value: Percentage): Option[Checked] ->
+    case percentage_amount(value) >= 0 {
+        true -> Some(Checked(serialize("border-top-right-radius", percentage_css(value))));
+        false -> Absent
     }.

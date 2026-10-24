@@ -1,0 +1,6 @@
+/**
+ * Shared CSS keyword jis78. Generated; do not edit.
+ */
+module std.css.keywords.Jis78.
+
+pub type Jis78 = Atom["jis78"].

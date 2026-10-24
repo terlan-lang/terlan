@@ -1,0 +1,74 @@
+/** Positive and negative TL1002 diagnostic and fix contracts. */
+module self_host.SelfHostLintPipeFixTest.
+
+import self_host.SelfHostLintPipe.{PipeCandidate}.
+import self_host.SelfHostLintPipeFix.
+import std.core.String.
+
+@pure
+candidate(start: Int): PipeCandidate ->
+    PipeCandidate(
+        true,
+        "Iterator.each(Set.iterator(collection), cb)",
+        start,
+        start + 46,
+        ["collection", "Set.iterator()", "Iterator.each(cb)"],
+    ).
+
+@test
+pub emits_exact_suggestion_metadata_at_authenticated_span(): Bool ->
+    let prefix = "module sample.\n    ";
+    let source = String.concat([prefix, "Iterator.each(Set.iterator(collection), cb)"]);
+    let diagnostics = SelfHostLintPipeFix.diagnostics(
+        source,
+        "Sample.terl",
+        [candidate(String.byte_size(prefix))],
+    );
+    case diagnostics {
+        [value] ->
+            value.rule_id == "TL1002"
+                and value.rule_name == "format-boundary.pipe-fix"
+                and value.severity == "suggestion"
+                and value.fix_available
+                and value.line == 2
+                and value.column == 5;
+        _ -> false
+    }.
+
+@test
+pub applies_indent_preserving_fix(): Bool ->
+    let prefix = "module sample.\n    ";
+    let source = String.concat([prefix, "Iterator.each(Set.iterator(collection), cb)"]);
+    SelfHostLintPipeFix.apply(source, [candidate(String.byte_size(prefix))]) ==
+        "module sample.\n    collection\n        |> Set.iterator()\n        |> Iterator.each(cb)".
+
+@test
+pub leaves_string_lookalike_outside_authenticated_span_unchanged(): Bool ->
+    let lookalike = "\"Iterator.each(Set.iterator(collection), cb)\"\n    ";
+    let source = String.concat([
+        lookalike,
+        "Iterator.each(Set.iterator(collection), cb)",
+    ]);
+    let fixed = SelfHostLintPipeFix.apply(
+        source,
+        [candidate(String.byte_size(lookalike))],
+    );
+    String.starts_with(
+        fixed,
+        "\"Iterator.each(Set.iterator(collection), cb)\"",
+    ) and String.contains(fixed, "collection\n        |> Set.iterator()").
+
+@test
+pub rejects_mismatched_candidate_source(): Bool ->
+    let source = "Iterator.each(other, cb)";
+    SelfHostLintPipeFix.diagnostics(source, "Sample.terl", [candidate(0)]) == []
+        and SelfHostLintPipeFix.apply(source, [candidate(0)]) == source.
+
+@test
+pub applies_multiple_candidates_without_offset_drift(): Bool ->
+    let original = "Iterator.each(Set.iterator(collection), cb)";
+    let source = String.concat([original, ";\n", original]);
+    let second = String.byte_size(original) + 2;
+    let fixed = SelfHostLintPipeFix.apply(source, [candidate(0), candidate(second)]);
+    not String.contains(fixed, "Iterator.each(Set.iterator(collection), cb)")
+        and String.contains(fixed, ";\ncollection\n    |> Set.iterator()").

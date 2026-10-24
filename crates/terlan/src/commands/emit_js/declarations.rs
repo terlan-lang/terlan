@@ -13,8 +13,22 @@ use crate::terlan_typeck::{CoreModule, CoreTupleTypeElem, CoreType, CoreVisibili
 /// - Filters private CoreIR declarations, emits public type aliases when the
 ///   current CoreIR payload can describe them, and emits public function
 ///   signatures from CoreIR parameter/return metadata.
+#[cfg(test)]
 pub(crate) fn emit_core_module_to_typescript_declarations(module: &CoreModule) -> String {
-    let mut out = String::new();
+    emit_declarations(module, None)
+}
+
+pub(crate) fn emit_core_module_to_typescript_declarations_at(
+    module: &CoreModule,
+    path: &std::path::Path,
+) -> String {
+    emit_declarations(module, Some(path))
+}
+
+fn emit_declarations(module: &CoreModule, path: Option<&std::path::Path>) -> String {
+    let mut module = module.clone();
+    let mut out = qualify_typescript_imports(&mut module, path);
+    let module = &module;
     let mut declared_alias_groups = std::collections::HashSet::new();
     for type_decl in &module.types {
         if !matches!(type_decl.visibility, CoreVisibility::Public) {
@@ -127,8 +141,9 @@ pub(crate) fn emit_core_module_to_typescript_declarations(module: &CoreModule) -
             .collect::<Vec<_>>()
             .join(", ");
         out.push_str(&format!(
-            "export function {}({}): {};\n",
+            "export function {}{}({}): {};\n",
             function.name,
+            typescript_generic_params(&function.generic_params),
             params,
             core_type_or_text_to_typescript(
                 function.core_return_type.as_ref(),
@@ -137,6 +152,215 @@ pub(crate) fn emit_core_module_to_typescript_declarations(module: &CoreModule) -
         ));
     }
     out
+}
+
+fn qualify_typescript_imports(module: &mut CoreModule, path: Option<&std::path::Path>) -> String {
+    use std::collections::BTreeMap;
+    fn rewrite(
+        ty: &mut CoreType,
+        current: &str,
+        option_names: &std::collections::HashSet<String>,
+        imports: &mut BTreeMap<String, String>,
+    ) {
+        // Native options cross the JS boundary as their tagged runtime values.
+        if let CoreType::Apply { constructor, args } = ty {
+            if option_names.contains(constructor) && args.len() == 1 {
+                let value = args.remove(0);
+                let some = CoreType::Tuple(vec![
+                    CoreTupleTypeElem::Type(CoreType::AtomLiteral("some".into())),
+                    CoreTupleTypeElem::Type(value),
+                ]);
+                *ty = if constructor.ends_with("Some") {
+                    some
+                } else {
+                    CoreType::Union(vec![CoreType::AtomLiteral("none".into()), some])
+                };
+            }
+        }
+        if let CoreType::Named(name) = ty {
+            if option_names.contains(name) && name.ends_with("None") {
+                *ty = CoreType::AtomLiteral("none".into());
+            }
+        }
+        match ty {
+            CoreType::Named(name) if name == "std.js.Number.JsNumber" => *ty = CoreType::Number,
+            CoreType::Named(name) if name == "std.js.String.JsString" => *ty = CoreType::String,
+            CoreType::Named(name) if name == "std.core.Unit.Unit" => *name = "Unit".into(),
+            CoreType::Named(name) if name == "std.js.Promise.Promise" => *name = "Promise".into(),
+            CoreType::Named(name) if name.contains('.') => {
+                let (provider, local) = name.rsplit_once('.').expect("qualified type");
+                if provider == current {
+                    *name = local.to_string();
+                } else {
+                    let next = imports.len();
+                    let alias = imports
+                        .entry(name.clone())
+                        .or_insert_with(|| format!("$imported{next}"));
+                    *name = alias.clone();
+                }
+            }
+            CoreType::Apply { constructor, args } => {
+                let mut name = CoreType::Named(constructor.clone());
+                rewrite(&mut name, current, option_names, imports);
+                if let CoreType::Named(name) = name {
+                    *constructor = name;
+                }
+                for argument in args {
+                    rewrite(argument, current, option_names, imports);
+                }
+            }
+            CoreType::Union(args) => {
+                for argument in args {
+                    rewrite(argument, current, option_names, imports);
+                }
+            }
+            CoreType::List(item) => rewrite(item, current, option_names, imports),
+            CoreType::Tuple(items) => {
+                for item in items {
+                    let (CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. }) = item;
+                    rewrite(ty, current, option_names, imports);
+                }
+            }
+            CoreType::Struct { fields, .. } => {
+                for field in fields {
+                    rewrite(&mut field.ty, current, option_names, imports);
+                }
+            }
+            CoreType::Arrow {
+                params,
+                return_type,
+            } => {
+                for parameter in params {
+                    rewrite(parameter, current, option_names, imports);
+                }
+                rewrite(return_type, current, option_names, imports);
+            }
+            _ => {}
+        }
+    }
+    let mut option_names = ["Option", "Some", "None"]
+        .into_iter()
+        .map(|name| format!("std.core.Option.{name}"))
+        .collect::<std::collections::HashSet<_>>();
+    if module
+        .imports
+        .iter()
+        .any(|import| import.module == "std.core.Option")
+    {
+        for name in ["Option", "Some", "None"] {
+            if !module
+                .types
+                .iter()
+                .any(|declaration| declaration.name == name)
+            {
+                option_names.insert(name.into());
+            }
+        }
+    }
+    let mut imports = BTreeMap::new();
+    for declaration in module
+        .types
+        .iter_mut()
+        .filter(|decl| matches!(decl.visibility, CoreVisibility::Public))
+    {
+        if let Some(ty) = &mut declaration.core_body {
+            rewrite(ty, &module.module, &option_names, &mut imports);
+        }
+    }
+    for function in module
+        .functions
+        .iter_mut()
+        .filter(|function| function.public)
+    {
+        for parameter in &mut function.params {
+            if let Some(ty) = &mut parameter.core_ty {
+                rewrite(ty, &module.module, &option_names, &mut imports);
+            }
+        }
+        if let Some(ty) = &mut function.core_return_type {
+            rewrite(ty, &module.module, &option_names, &mut imports);
+        }
+    }
+    let directory = module.module.split('.').collect::<Vec<_>>();
+    let directory = &directory[..directory.len().saturating_sub(1)];
+    let mut output = String::new();
+    for (name, alias) in imports {
+        let (provider, ty) = name.rsplit_once('.').expect("qualified import");
+        if let Some((source, declaration)) = path.and_then(|path| {
+            let declaration = crate::support::js_binding_registry::typescript_type(provider)?;
+            let source = relative_typescript_source(path, &declaration.source)?;
+            Some((source, declaration))
+        }) {
+            output.push_str(&format!(
+                "import type {{ {} as {alias} }} from {};\n",
+                declaration.name,
+                typescript_string_literal(&source)
+            ));
+            continue;
+        }
+        let target = provider.split('.').collect::<Vec<_>>();
+        let common = directory
+            .iter()
+            .zip(&target)
+            .take_while(|(a, b)| a == b)
+            .count();
+        let mut path = "../".repeat(directory.len() - common);
+        if path.is_empty() {
+            path.push_str("./");
+        }
+        let mut target = target[common..]
+            .iter()
+            .map(|part| crate::terlan_hir::source_name_to_terlan_identifier(part))
+            .collect::<Vec<_>>();
+        if let Some(last) = target.last_mut() {
+            *last = provider
+                .rsplit('.')
+                .next()
+                .expect("module name")
+                .to_string();
+        }
+        path.push_str(&target.join("/"));
+        path.push_str(".js");
+        output.push_str(&format!(
+            "import type {{ {ty} as {alias} }} from {};\n",
+            typescript_string_literal(&path)
+        ));
+    }
+    if !output.is_empty() {
+        output.push('\n');
+    }
+    output
+}
+
+/// Keeps generated SDK imports relative to their original declaration source.
+fn relative_typescript_source(
+    output: &std::path::Path,
+    source: &std::path::Path,
+) -> Option<String> {
+    let output = if output.is_absolute() {
+        output.to_path_buf()
+    } else {
+        std::env::current_dir().ok()?.join(output)
+    };
+    let directory = output.parent()?.components().collect::<Vec<_>>();
+    let source = source.components().collect::<Vec<_>>();
+    let common = directory
+        .iter()
+        .zip(&source)
+        .take_while(|(left, right)| left == right)
+        .count();
+    let mut relative = "../".repeat(directory.len() - common);
+    if relative.is_empty() {
+        relative.push_str("./");
+    }
+    relative.push_str(
+        &source[common..]
+            .iter()
+            .map(|part| part.as_os_str().to_string_lossy())
+            .collect::<Vec<_>>()
+            .join("/"),
+    );
+    Some(format!("{}.js", relative.strip_suffix(".d.ts")?))
 }
 
 fn mentions_private_type(module: &CoreModule, text: &str) -> bool {
@@ -336,7 +560,8 @@ pub(crate) fn typer_type_to_typescript(input: &str) -> String {
 
     match trimmed {
         "Int" | "Float" | "Number" => "number".to_string(),
-        "Text" | "Binary" => "string".to_string(),
+        "Text" | "Binary" | "String" => "string".to_string(),
+        "Unit" => "void".to_string(),
         "Bool" => "boolean".to_string(),
         "Term" | "Dynamic" => "unknown".to_string(),
         "ok" => "\"ok\"".to_string(),

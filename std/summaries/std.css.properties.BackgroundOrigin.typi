@@ -1,56 +1,27 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-origin
+//! The `background-origin` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! background's origin: from the border start, inside the border, or inside the padding.
+//!
+//! Initial: padding-box. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - border-box: The background is positioned relative to the border box.
+//! - content-box: The background is positioned relative to the content box.
+//! - padding-box: The background is positioned relative to the padding box. Default value.
+//!
 //! Grammar: <visual-box>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-origin
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/background-origin
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BackgroundOrigin.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    background_origin: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    background_origin: Value
+    background_origin: ContentBox | PaddingBox | BorderBox | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained background-origin value.
-
-pub opaque type Value.
-
-/// Returns the CSS keyword border-box.
-
-pub border_box(): Value.
-
-/// Returns the CSS keyword content-box.
-
-pub content_box(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword padding-box.
-
-pub padding_box(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.

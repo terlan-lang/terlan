@@ -1,0 +1,780 @@
+/** Finite-sum and constructor-pattern authority for projected case expressions. */
+module self_host.ProjectedPatternAuthority.
+
+import std.core.String.
+
+import self_host.DeclarationPayloadSyntax.{TypeDeclarationSyntax}.
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.ImportSyntax.{ImportItemSyntax, ImportSyntax}.
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedPatternSemanticSyntax.{ProjectedPatternSemanticDiagnostic}.
+import self_host.TypedModuleSyntax.{ImportPayload, TypePayload, TypedDeclaration, TypedModule, ValuedUnionPayload}.
+import self_host.ValuedUnionSyntax.{ValuedUnionArmSyntax}.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+import self_host.Delimited.
+import self_host.ProjectedPatternSemantics.
+import self_host.Syntax.{TypeDeclaration}.
+
+
+pub struct PatternConstructorContract {
+    name: String,
+    arity: Int,
+    type_parameters: List[String],
+    parameter_types: List[Option[String]],
+    owner: Option[String],
+}.
+
+pub constructor PatternConstructorContract {
+    (name: String, arity: Int): PatternConstructorContract ->
+        PatternConstructorContract {
+            name: name,
+            arity: arity,
+            type_parameters: List.new[String](),
+            parameter_types: List.new[Option[String]](),
+            owner: None,
+        };
+    (name: String, arity: Int, type_parameters: List[String], parameter_types: List[Option[String]]): PatternConstructorContract ->
+        PatternConstructorContract {
+            name: name,
+            arity: arity,
+            type_parameters: type_parameters,
+            parameter_types: parameter_types,
+            owner: None,
+        };
+    (name: String, arity: Int, type_parameters: List[String], parameter_types: List[Option[String]], owner: Option[String]): PatternConstructorContract ->
+        PatternConstructorContract {
+            name: name,
+            arity: arity,
+            type_parameters: type_parameters,
+            parameter_types: parameter_types,
+            owner: owner,
+        }
+}.
+
+
+pub struct FiniteSumContract {
+    name: String,
+    members: List[String],
+}.
+
+pub constructor FiniteSumContract {
+    (name: String, members: List[String]): FiniteSumContract ->
+        FiniteSumContract { name: name, members: members }
+}.
+
+
+pub struct PatternAuthorityCatalog {
+    constructors: List[PatternConstructorContract],
+    sums: List[FiniteSumContract],
+}.
+
+pub constructor PatternAuthorityCatalog {
+    (constructors: List[PatternConstructorContract], sums: List[FiniteSumContract]): PatternAuthorityCatalog ->
+        PatternAuthorityCatalog { constructors: constructors, sums: sums }
+}.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+contains(values: List[String], expected: String): Bool ->
+    case values { [] -> false; [value | rest] -> value == expected or contains(rest, expected) }.
+
+@pure
+last_part(values: List[String], output: String): String ->
+    case values { [] -> output; [value | rest] -> last_part(rest, value) }.
+
+@pure
+unqualified(value: String): String ->
+    last_part(String.split(String.trim(value), "."), "").
+
+@pure
+type_base_at(value: String, index: Int): String ->
+    if {
+        index == value.byte_size() -> unqualified(value);
+        value.utf8_byte_at(index) == 91 -> unqualified(value.utf8_slice(0, index));
+        true -> type_base_at(value, index + 1)
+    }.
+
+@pure
+type_base(value: String): String -> type_base_at(String.trim(value), 0).
+
+@pure
+payload_part(value: String): Int ->
+    let part = String.trim(value);
+    if {
+        part == "" or String.starts_with(part, "Atom[") -> 0;
+        true -> 1
+    }.
+
+@pure
+payload_arity_parts(values: List[String]): Int ->
+    case values {
+        [] -> 0;
+        [value | rest] -> payload_part(value) + payload_arity_parts(rest)
+    }.
+
+@pure
+payload_arity_text(value: String): Int ->
+    let text = String.trim(value);
+    if {
+        not String.starts_with(text, "{") or not String.ends_with(text, "}") -> 0;
+        true -> payload_arity_parts(Delimited.split_top_level(
+            text.utf8_slice(1, text.byte_size() - 2),
+            44,
+        ))
+    }.
+
+@pure
+payload_type(value: String): Option[String] ->
+    let text = String.trim(value);
+    if {
+        text == "" or String.starts_with(text, "Atom[") -> None;
+        true ->
+            let colon = Delimited.top_level_byte(text, 58);
+            if {
+                colon < 0 -> Some(text);
+                true -> Some(String.trim(text.utf8_slice(colon + 1, text.byte_size() - colon - 1)))
+            }
+    }.
+
+@pure
+payload_types(values: List[String]): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> case payload_type(value) {
+            None -> payload_types(rest);
+            Some(name) -> [Some(name) | payload_types(rest)]
+        }
+    }.
+
+@pure
+constructor_payload_types(value: TypeDeclarationSyntax): List[Option[String]] ->
+    if {
+        not value.has_representation or not value.representation.valid -> List.new[Option[String]]();
+        true ->
+            let text = String.trim(value.representation.syntax.text);
+            if {
+                not String.starts_with(text, "{") or not String.ends_with(text, "}") -> List.new[Option[String]]();
+                true -> payload_types(Delimited.split_top_level(
+                    text.utf8_slice(1, text.byte_size() - 2),
+                    44,
+                ))
+            }
+    }.
+
+@pure
+type_constructor(value: TypeDeclarationSyntax): PatternConstructorContract ->
+    let parameters = constructor_payload_types(value);
+    PatternConstructorContract(value.name, parameters.length(), value.type_parameters, parameters).
+
+@pure
+type_members(value: TypeDeclarationSyntax): List[String] ->
+    if {
+        not value.has_representation or not value.representation.valid -> List.new[String]();
+        true ->
+            let parts = Delimited.split_top_level(value.representation.syntax.text, 124);
+            if {
+                List.length(parts) < 2 -> List.new[String]();
+                true -> member_names(parts)
+            }
+    }.
+
+@pure
+member_names(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [type_base(value) | member_names(rest)]
+    }.
+
+@pure
+arm_names(values: List[ValuedUnionArmSyntax]): List[String] ->
+    case values { [] -> List.new[String](); [value | rest] -> [value.name | arm_names(rest)] }.
+
+@pure
+arm_constructors(values: List[ValuedUnionArmSyntax]): List[PatternConstructorContract] ->
+    case values {
+        [] -> List.new[PatternConstructorContract]();
+        [value | rest] -> [PatternConstructorContract(value.name, 0) | arm_constructors(rest)]
+    }.
+
+@pure
+declaration_constructors(value: TypedDeclaration): List[PatternConstructorContract] ->
+    case value.payload {
+        TypePayload(declaration) where declaration.valid -> [type_constructor(declaration)];
+        ValuedUnionPayload(union) where union.valid -> arm_constructors(union.arms);
+        _ -> List.new[PatternConstructorContract]()
+    }.
+
+@pure
+declaration_sums(value: TypedDeclaration): List[FiniteSumContract] ->
+    case value.payload {
+        TypePayload(declaration) where declaration.valid ->
+            let members = type_members(declaration);
+            if { members == [] -> List.new[FiniteSumContract](); true -> [FiniteSumContract(declaration.name, members)] };
+        ValuedUnionPayload(union) where union.valid -> [FiniteSumContract(union.name, arm_names(union.arms))];
+        _ -> List.new[FiniteSumContract]()
+    }.
+
+@pure
+constructors(values: List[TypedDeclaration]): List[PatternConstructorContract] ->
+    case values {
+        [] -> List.new[PatternConstructorContract]();
+        [value | rest] -> append(declaration_constructors(value), constructors(rest))
+    }.
+
+@pure
+sums(values: List[TypedDeclaration]): List[FiniteSumContract] ->
+    case values {
+        [] -> List.new[FiniteSumContract]();
+        [value | rest] -> append(declaration_sums(value), sums(rest))
+    }.
+
+/** Derives finite-sum and constructor contracts from typed declarations. */
+@pure
+pub catalog(typed_module: TypedModule): PatternAuthorityCatalog ->
+    PatternAuthorityCatalog(constructors(typed_module.declarations), sums(typed_module.declarations)).
+
+@pure
+owned_type_symbol(value: ExportedSymbol): Bool ->
+    value.class == TypeDeclaration and value.owner != None.
+
+@pure
+interface_constructors(values: List[ExportedSymbol]): List[PatternConstructorContract] ->
+    case values {
+        [] -> List.new[PatternConstructorContract]();
+        [value | rest] -> if {
+            owned_type_symbol(value) -> [PatternConstructorContract(
+                value.name,
+                value.arity,
+                value.type_parameters,
+                value.parameter_types,
+                value.owner,
+            )
+                | interface_constructors(rest)];
+            true -> interface_constructors(rest)
+        }
+    }.
+
+@pure
+add_sum_member(
+    owner: String,
+    member: String,
+    values: List[FiniteSumContract],
+): List[FiniteSumContract] ->
+    case values {
+        [] -> [FiniteSumContract(owner, [member])];
+        [value | rest] -> if {
+            value.name == owner -> [FiniteSumContract(
+                owner,
+                if { contains(value.members, member) -> value.members; true -> append(value.members, [member]) },
+            ) | rest];
+            true -> [value | add_sum_member(owner, member, rest)]
+        }
+    }.
+
+@pure
+interface_sums_at(
+    values: List[ExportedSymbol],
+    output: List[FiniteSumContract],
+): List[FiniteSumContract] ->
+    case values {
+        [] -> output;
+        [value | rest] -> if {
+            not owned_type_symbol(value) -> interface_sums_at(rest, output);
+            true -> case value.owner {
+                Some(owner) -> interface_sums_at(rest, add_sum_member(owner, value.name, output));
+                None -> interface_sums_at(rest, output)
+            }
+        }
+    }.
+
+@pure
+interfaces_constructors(values: List[ModuleInterface]): List[PatternConstructorContract] ->
+    case values {
+        [] -> List.new[PatternConstructorContract]();
+        [value | rest] -> append(interface_constructors(value.symbols), interfaces_constructors(rest))
+    }.
+
+@pure
+interfaces_sums(values: List[ModuleInterface]): List[FiniteSumContract] ->
+    case values {
+        [] -> List.new[FiniteSumContract]();
+        [value | rest] -> append(
+            interface_sums_at(value.symbols, List.new[FiniteSumContract]()),
+            interfaces_sums(rest),
+        )
+    }.
+
+@pure
+selected_item(name: String, values: List[ImportItemSyntax]): Bool ->
+    case values { [] -> false; [value | rest] -> value.name == name or selected_item(name, rest) }.
+
+@pure
+selected_symbol(value: ImportSyntax, symbol: ExportedSymbol): Bool ->
+    not value.is_selected or selected_item(symbol.name, value.items).
+
+@pure
+selected_submodule(module_name: String, value: ImportSyntax): Bool ->
+    if {
+        not value.is_selected -> false;
+        true -> selected_submodule_items(module_name, value.module_name, value.items)
+    }.
+
+@pure
+selected_submodule_items(
+    module_name: String,
+    parent: String,
+    values: List[ImportItemSyntax],
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            module_name == String.concat([parent, ".", value.name])
+                or selected_submodule_items(module_name, parent, rest)
+    }.
+
+@pure
+direct_symbol(value: ImportSyntax, module_name: String, symbol_name: String): Bool ->
+    value.module_name == String.concat([module_name, ".", symbol_name]).
+
+@pure
+import_exposes(
+    value: ImportSyntax,
+    module_name: String,
+    symbol: ExportedSymbol,
+): Bool ->
+    value.valid and (
+        (value.module_name == module_name and selected_symbol(value, symbol))
+            or selected_submodule(module_name, value)
+            or direct_symbol(value, module_name, symbol.name)
+    ).
+
+@pure
+declarations_expose(
+    values: List[TypedDeclaration],
+    module_name: String,
+    symbol: ExportedSymbol,
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> case value.payload {
+            ImportPayload(imported) -> import_exposes(imported, module_name, symbol)
+                or declarations_expose(rest, module_name, symbol);
+            _ -> declarations_expose(rest, module_name, symbol)
+        }
+    }.
+
+@pure
+visible_symbols(
+    values: List[ExportedSymbol],
+    module_name: String,
+    declarations: List[TypedDeclaration],
+): List[ExportedSymbol] ->
+    case values {
+        [] -> List.new[ExportedSymbol]();
+        [value | rest] -> if {
+            declarations_expose(declarations, module_name, value) -> [value
+                | visible_symbols(rest, module_name, declarations)];
+            true -> visible_symbols(rest, module_name, declarations)
+        }
+    }.
+
+@pure
+visible_interfaces(
+    values: List[ModuleInterface],
+    declarations: List[TypedDeclaration],
+): List[ModuleInterface] ->
+    case values {
+        [] -> List.new[ModuleInterface]();
+        [value | rest] ->
+            let symbols = visible_symbols(value.symbols, value.module_name, declarations);
+            if {
+                symbols == [] -> visible_interfaces(rest, declarations);
+                true -> [ModuleInterface(value.schema, value.module_name, symbols)
+                    | visible_interfaces(rest, declarations)]
+            }
+    }.
+
+/** Extends local pattern contracts with already-filtered visible interfaces. */
+@pure
+pub catalog_from_visible_interfaces(
+    typed_module: TypedModule,
+    interfaces: List[ModuleInterface],
+): PatternAuthorityCatalog ->
+    let local = catalog(typed_module);
+    PatternAuthorityCatalog(
+        append(local.constructors, interfaces_constructors(interfaces)),
+        append(local.sums, interfaces_sums(interfaces)),
+    ).
+
+/** Applies source import visibility before extending local pattern contracts. */
+@pure
+pub catalog_with_interfaces(
+    typed_module: TypedModule,
+    interfaces: List[ModuleInterface],
+): PatternAuthorityCatalog ->
+    catalog_from_visible_interfaces(
+        typed_module,
+        visible_interfaces(interfaces, typed_module.declarations),
+    ).
+
+@pure
+find_constructor(name: String, values: List[PatternConstructorContract]): Option[PatternConstructorContract] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if { value.name == name -> Some(value); true -> find_constructor(name, rest) }
+    }.
+
+@pure
+sum_owner(name: String, values: List[FiniteSumContract], found: String): String ->
+    case values {
+        [] -> found;
+        [value | rest] -> if {
+            not contains(value.members, name) -> sum_owner(name, rest, found);
+            found == "" -> sum_owner(name, rest, value.name);
+            found == value.name -> sum_owner(name, rest, found);
+            true -> "<ambiguous>"
+        }
+    }.
+
+@pure
+find_sum(name: String, values: List[FiniteSumContract]): Option[FiniteSumContract] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if { value.name == name -> Some(value); true -> find_sum(name, rest) }
+    }.
+
+@pure
+diagnostic(head: String, value: ProjectedExpressionNode, message: String): ProjectedPatternSemanticDiagnostic ->
+    ProjectedPatternSemanticDiagnostic(head, value.start_byte, value.end_byte, message).
+
+@pure
+constructor_diagnostics(
+    value: ProjectedExpressionNode,
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    let own = if {
+        value.kind != "constructor-pattern" -> List.new[ProjectedPatternSemanticDiagnostic]();
+        true -> case find_constructor(value.text, catalog.constructors) {
+            None -> List.new[ProjectedPatternSemanticDiagnostic]();
+            Some(contract) -> if {
+                List.length(value.children) == contract.arity -> List.new[ProjectedPatternSemanticDiagnostic]();
+                true -> [diagnostic(head, value, String.concat([
+                    "constructor pattern `",
+                    value.text,
+                    "` expects ",
+                    Int.to_string(contract.arity),
+                    " fields, found ",
+                    Int.to_string(List.length(value.children)),
+                ]))]
+            }
+        }
+    };
+    append(own, constructor_children_diagnostics(value.children, catalog, head)).
+
+@pure
+constructor_children_diagnostics(
+    values: List[ProjectedExpressionNode],
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [value | rest] -> append(
+            constructor_diagnostics(value, catalog, head),
+            constructor_children_diagnostics(rest, catalog, head),
+        )
+    }.
+
+@pure
+clause_pattern(value: ProjectedExpressionNode): Option[ProjectedExpressionNode] ->
+    case value.children { [pattern | _] -> Some(unwrapped_pattern(pattern)); [] -> None }.
+
+@pure
+unwrapped_pattern(value: ProjectedExpressionNode): ProjectedExpressionNode ->
+    if {
+        value.kind == "pattern" -> case value.children {
+            [child] -> unwrapped_pattern(child);
+            _ -> value
+        };
+        true -> value
+    }.
+
+@pure
+first_known_owner(clauses: List[ProjectedExpressionNode], sums: List[FiniteSumContract]): String ->
+    case clauses {
+        [] -> "";
+        [value | rest] -> case clause_pattern(value) {
+            Some(pattern) where pattern.kind == "constructor-pattern" ->
+                let owner = sum_owner(pattern.text, sums, "");
+                if { owner == "" -> first_known_owner(rest, sums); true -> owner };
+            _ -> first_known_owner(rest, sums)
+        }
+    }.
+
+@pure
+covered_members(clauses: List[ProjectedExpressionNode], owner: String, catalog: PatternAuthorityCatalog): List[String] ->
+    case clauses {
+        [] -> List.new[String]();
+        [value | rest] -> case clause_pattern(value) {
+            Some(pattern)
+                where pattern.kind == "constructor-pattern"
+                    and value.text != "where"
+                    and sum_owner(pattern.text, catalog.sums, "") == owner ->
+                if {
+                    contains(covered_members(rest, owner, catalog), pattern.text) -> covered_members(rest, owner, catalog);
+                    true -> [pattern.text | covered_members(rest, owner, catalog)]
+                };
+            _ -> covered_members(rest, owner, catalog)
+        }
+    }.
+
+@pure
+has_catch_all(clauses: List[ProjectedExpressionNode]): Bool ->
+    case clauses {
+        [] -> false;
+        [value | rest] -> case clause_pattern(value) {
+            Some(pattern) -> (value.text != "where" and ProjectedPatternSemantics.irrefutable(pattern)) or has_catch_all(rest);
+            None -> has_catch_all(rest)
+        }
+    }.
+
+@pure
+missing_members(values: List[String], covered: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> if {
+            contains(covered, value) -> missing_members(rest, covered);
+            true -> [value | missing_members(rest, covered)]
+        }
+    }.
+
+@pure
+mixed_owner_diagnostic(
+    clauses: List[ProjectedExpressionNode],
+    owner: String,
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case clauses {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [value | rest] -> case clause_pattern(value) {
+            Some(pattern) where pattern.kind == "constructor-pattern" ->
+                let candidate = sum_owner(pattern.text, catalog.sums, "");
+                if {
+                    candidate == "" or candidate == owner -> mixed_owner_diagnostic(rest, owner, catalog, head);
+                    true -> [diagnostic(head, pattern, String.concat([
+                        "constructor pattern `",
+                        pattern.text,
+                        "` does not belong to finite sum `",
+                        owner,
+                        "`",
+                    ]))]
+                };
+            _ -> mixed_owner_diagnostic(rest, owner, catalog, head)
+        }
+    }.
+
+@pure
+literal_pattern_type(text: String): Option[String] ->
+    let value = String.trim(text);
+    if {
+        String.starts_with(value, "\"") -> Some("String");
+        value == "true" or value == "false" -> Some("Bool");
+        String.contains(value, ".") -> Some("Float");
+        value != "" and value.utf8_byte_at(0) >= 48 and value.utf8_byte_at(0) <= 57 -> Some("Int");
+        true -> None
+    }.
+
+@pure
+subject_syntax_type(value: ProjectedExpressionNode): Option[String] ->
+    if {
+        value.kind == "integer" -> Some("Int");
+        value.kind == "float" -> Some("Float");
+        value.kind == "string" -> Some("String");
+        value.kind == "atom-literal" -> Some("Atom");
+        value.kind == "primary" and (value.text == "true" or value.text == "false") -> Some("Bool");
+        value.kind == "list" or value.kind == "list-cons" -> Some("List");
+        value.kind == "tuple" or value.kind == "tuple-or-group" -> Some("Tuple");
+        true -> None
+    }.
+
+@pure
+pattern_expected_type(
+    value: ProjectedExpressionNode,
+    catalog: PatternAuthorityCatalog,
+): Option[String] ->
+    if {
+        value.kind == "literal-pattern" -> literal_pattern_type(value.text);
+        value.kind == "string-capture-pattern" -> Some("String");
+        value.kind == "list-pattern" or value.kind == "list-cons-pattern" -> Some("List");
+        value.kind == "tuple-pattern" -> Some("Tuple");
+        value.kind == "constructor-pattern" ->
+            let owner = sum_owner(value.text, catalog.sums, "");
+            if { owner == "" or owner == "<ambiguous>" -> None; true -> Some(owner) };
+        true -> None
+    }.
+
+@pure
+compatible_pattern_type(actual: String, expected: String): Bool ->
+    if {
+        expected == "List" -> type_base(actual) == "List";
+        expected == "Tuple" -> actual == "Tuple" or String.starts_with(String.trim(actual), "{");
+        true -> type_base(actual) == type_base(expected)
+    }.
+
+@pure
+clause_type_diagnostics(
+    clauses: List[ProjectedExpressionNode],
+    subject_type: String,
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case clauses {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [value | rest] -> case clause_pattern(value) {
+            None -> clause_type_diagnostics(rest, subject_type, catalog, head);
+            Some(pattern) -> case pattern_expected_type(pattern, catalog) {
+                None -> clause_type_diagnostics(rest, subject_type, catalog, head);
+                Some(expected) -> if {
+                    compatible_pattern_type(subject_type, expected) ->
+                        clause_type_diagnostics(rest, subject_type, catalog, head);
+                    true -> [diagnostic(head, pattern, String.concat([
+                        "pattern expects `",
+                        expected,
+                        "` but case subject has type `",
+                        subject_type,
+                        "`",
+                    ])) | clause_type_diagnostics(rest, subject_type, catalog, head)]
+                }
+            }
+        }
+    }.
+
+@pure
+subject_type_diagnostics(
+    subject: ProjectedExpressionNode,
+    clauses: List[ProjectedExpressionNode],
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case subject_syntax_type(subject) {
+        None -> List.new[ProjectedPatternSemanticDiagnostic]();
+        Some(name) -> clause_type_diagnostics(clauses, name, catalog, head)
+    }.
+
+@pure
+coverage_diagnostics(
+    value: ProjectedExpressionNode,
+    clauses: List[ProjectedExpressionNode],
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    let owner = first_known_owner(clauses, catalog.sums);
+    if {
+        owner == "" -> List.new[ProjectedPatternSemanticDiagnostic]();
+        owner == "<ambiguous>" -> [diagnostic(head, value, "constructor pattern has ambiguous finite-sum ownership")];
+        true ->
+            let mixed = mixed_owner_diagnostic(clauses, owner, catalog, head);
+            if {
+                mixed != [] or has_catch_all(clauses) -> mixed;
+                true -> case find_sum(owner, catalog.sums) {
+                    None -> mixed;
+                    Some(sum) ->
+                        let missing = missing_members(
+                            sum.members,
+                            covered_members(clauses, owner, catalog),
+                        );
+                        if {
+                            missing == [] -> mixed;
+                            true -> append(mixed, [diagnostic(head, value, String.concat([
+                                "non-exhaustive case for `",
+                                owner,
+                                "`; missing ",
+                                String.join(missing, ", "),
+                            ]))])
+                        }
+                }
+            }
+    }.
+
+/** Checks one projected case against an explicit constructor catalog. */
+@pure
+pub case_diagnostics(
+    value: ProjectedExpressionNode,
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case value.children {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [subject | clauses] ->
+            let constructors = constructor_children_diagnostics(clauses, catalog, head);
+            append(
+                constructors,
+                append(
+                    subject_type_diagnostics(subject, clauses, catalog, head),
+                    coverage_diagnostics(value, clauses, catalog, head),
+                ),
+            )
+    }.
+
+@pure
+node_diagnostics(
+    value: ProjectedExpressionNode,
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    append(
+        if { value.kind == "case" -> case_diagnostics(value, catalog, head); true -> List.new[ProjectedPatternSemanticDiagnostic]() },
+        nodes_diagnostics(value.children, catalog, head),
+    ).
+
+@pure
+nodes_diagnostics(
+    values: List[ProjectedExpressionNode],
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [value | rest] -> append(
+            node_diagnostics(value, catalog, head),
+            nodes_diagnostics(rest, catalog, head),
+        )
+    }.
+
+@pure
+body_diagnostics(value: ProjectedBody, catalog: PatternAuthorityCatalog): List[ProjectedPatternSemanticDiagnostic] ->
+    case value.expression.node {
+        None -> List.new[ProjectedPatternSemanticDiagnostic]();
+        Some(node) -> node_diagnostics(node, catalog, value.declaration_head)
+    }.
+
+@pure
+bodies_diagnostics(values: List[ProjectedBody], catalog: PatternAuthorityCatalog): List[ProjectedPatternSemanticDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [value | rest] -> append(body_diagnostics(value, catalog), bodies_diagnostics(rest, catalog))
+    }.
+
+/** Checks constructor arity, finite-sum consistency, and exhaustiveness. */
+@pure
+pub check(typed_module: TypedModule, bodies: List[ProjectedBody]): List[ProjectedPatternSemanticDiagnostic] ->
+    bodies_diagnostics(bodies, catalog(typed_module)).
+
+/** Checks patterns against local declarations plus visible imported contracts. */
+@pure
+pub check_with_interfaces(
+    typed_module: TypedModule,
+    bodies: List[ProjectedBody],
+    interfaces: List[ModuleInterface],
+): List[ProjectedPatternSemanticDiagnostic] ->
+    bodies_diagnostics(bodies, catalog_with_interfaces(typed_module, interfaces)).

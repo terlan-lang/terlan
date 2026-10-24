@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLPictureElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7626406251939596318
-interface_hash=11377370019606158413
-interface_doc_hash=11377370019606158413
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9335956669204125863
+interface_hash=687723424390817487
+interface_doc_hash=687723424390817487
 deps=0

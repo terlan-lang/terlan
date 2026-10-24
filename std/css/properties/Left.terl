@@ -1,84 +1,36 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-position-3/#propdef-left
+ * The `left` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property participates in
+ * specifying the horizontal position of a [positioned
+ * element](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position). This
+ * `inset property` has no effect on non-positioned elements.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: refer to the width of the containing block.
+ *
+ * Keyword effects:
+ * - auto: Specifies that: - for _absolutely positioned elements_, the position of the element is
+ * based on the `right` property, while `width: auto` is treated as a width based on the content; or
+ * if `right` is also `auto`, the element is positioned where it should horizontally be positioned
+ * if it were a static element. - for _relatively positioned elements_, the distance of the element
+ * from its normal position is based on the `right` property; or if `right` is also `auto`, the
+ * element is not moved horizontally at all.
+ *
  * Grammar: auto | <length-percentage> | <anchor()> | <anchor-size()>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-position-3/#propdef-left
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/left
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Left.
 
-import std.css.Values.
+import std.css.keywords.Auto.
 
-import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained left value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    left: Value,
+    left: Auto | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    left: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "left", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "left", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "left", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "left", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "left", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "left", css: "unset"}).
-
-/**
- * Constructs a left value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "left", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a left value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "left", css: std.css.Values.percentage_css(value)}).

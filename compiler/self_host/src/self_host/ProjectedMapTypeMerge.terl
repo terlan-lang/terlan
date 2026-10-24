@@ -1,0 +1,278 @@
+/** Adds authoritative type facts and diagnostics for standalone keyed map literals. */
+module self_host.ProjectedMapTypeMerge.
+
+import std.core.String.
+
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+
+struct MapMergeState {
+    next_id: Int,
+    facts: List[InferredTypeFact],
+    diagnostics: List[TypeConstraintDiagnostic],
+}.
+
+constructor MapMergeState {
+    (
+        next_id: Int,
+        facts: List[InferredTypeFact],
+        diagnostics: List[TypeConstraintDiagnostic],
+    ): MapMergeState -> MapMergeState {
+        next_id: next_id,
+        facts: facts,
+        diagnostics: diagnostics,
+    }
+}.
+
+struct MapValueSummary {
+    count: Int,
+    resolved: Bool,
+    homogeneous: Bool,
+    type_name: String,
+}.
+
+constructor MapValueSummary {
+    (
+        count: Int,
+        resolved: Bool,
+        homogeneous: Bool,
+        type_name: String,
+    ): MapValueSummary -> MapValueSummary {
+        count: count,
+        resolved: resolved,
+        homogeneous: homogeneous,
+        type_name: type_name,
+    }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+fact_name_at(
+    values: List[InferredTypeFact],
+    byte_offset: Int,
+    current: Option[String],
+): Option[String] ->
+    case values {
+        [] -> current;
+        [value | rest] -> if {
+            value.byte_offset == byte_offset and value.type_name != None ->
+                fact_name_at(rest, byte_offset, value.type_name);
+            true -> fact_name_at(rest, byte_offset, current)
+        }
+    }.
+
+deferred_map_diagnostic(value: TypeConstraintDiagnostic, byte_offset: Int): Bool ->
+    value.byte_offset == byte_offset
+        and String.contains(value.message, "keyed-container")
+        and String.contains(value.message, "deferred").
+
+remove_deferred_map_diagnostics(
+    values: List[TypeConstraintDiagnostic],
+    byte_offset: Int,
+): List[TypeConstraintDiagnostic] ->
+    case values {
+        [] -> List.new[TypeConstraintDiagnostic]();
+        [value | rest] -> if {
+            deferred_map_diagnostic(value, byte_offset) ->
+                remove_deferred_map_diagnostics(rest, byte_offset);
+            true -> [value | remove_deferred_map_diagnostics(rest, byte_offset)]
+        }
+    }.
+
+field_value(value: ProjectedExpressionNode): Option[ProjectedExpressionNode] ->
+    case value.children {
+        [item] -> Some(item);
+        _ -> None
+    }.
+
+merge_value_type(summary: MapValueSummary, value_type: Option[String]): MapValueSummary ->
+    case value_type {
+        None -> MapValueSummary(summary.count + 1, false, summary.homogeneous, summary.type_name);
+        Some(name) -> if {
+            summary.count == 0 -> MapValueSummary(1, true, true, name);
+            summary.type_name == name -> MapValueSummary(
+                summary.count + 1,
+                summary.resolved,
+                summary.homogeneous,
+                summary.type_name,
+            );
+            true -> MapValueSummary(summary.count + 1, summary.resolved, false, summary.type_name)
+        }
+    }.
+
+summarize_field(
+    field: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    summary: MapValueSummary,
+): MapValueSummary ->
+    case field_value(field) {
+        None -> merge_value_type(summary, None);
+        Some(value) -> merge_value_type(summary, fact_name_at(facts, value.start_byte, None))
+    }.
+
+summarize_fields(
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    summary: MapValueSummary,
+): MapValueSummary ->
+    case values {
+        [] -> summary;
+        [value | rest] -> summarize_fields(rest, facts, summarize_field(value, facts, summary))
+    }.
+
+map_values(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+): MapValueSummary ->
+    case node.children {
+        [fields] -> summarize_fields(
+            fields.children,
+            facts,
+            MapValueSummary(0, true, true, ""),
+        );
+        _ -> MapValueSummary(0, false, false, "")
+    }.
+
+map_type(value_type: String): String ->
+    String.concat(["Map[String, ", value_type, "]"]).
+
+map_diagnostic(code: String, message: String, node: ProjectedExpressionNode): TypeConstraintDiagnostic ->
+    TypeConstraintDiagnostic(code, message, node.start_byte).
+
+merge_empty_map(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    state: MapMergeState,
+): MapMergeState ->
+    case fact_name_at(state.facts, node.start_byte, None) {
+        Some(name) where String.starts_with(name, "Map[") -> MapMergeState(
+            state.next_id,
+            append(state.facts, [InferredTypeFact(node_id, Some(name), node.start_byte)]),
+            remove_deferred_map_diagnostics(state.diagnostics, node.start_byte),
+        );
+        _ -> MapMergeState(
+            state.next_id,
+            state.facts,
+            append(
+                remove_deferred_map_diagnostics(state.diagnostics, node.start_byte),
+                [map_diagnostic(
+                    "type.map_empty_context",
+                    "empty map literal requires contextual Map[String, T] type evidence",
+                    node,
+                )],
+            ),
+        )
+    }.
+
+merge_nonempty_map(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    values: MapValueSummary,
+    state: MapMergeState,
+): MapMergeState ->
+    if {
+        not values.resolved -> MapMergeState(
+            state.next_id,
+            state.facts,
+            append(
+                remove_deferred_map_diagnostics(state.diagnostics, node.start_byte),
+                [map_diagnostic(
+                    "type.map_value_unresolved",
+                    "map literal value types are unresolved",
+                    node,
+                )],
+            ),
+        );
+        not values.homogeneous -> MapMergeState(
+            state.next_id,
+            state.facts,
+            append(
+                remove_deferred_map_diagnostics(state.diagnostics, node.start_byte),
+                [map_diagnostic(
+                    "type.map_value_mismatch",
+                    "map literal values must have one homogeneous type",
+                    node,
+                )],
+            ),
+        );
+        true -> let resolved = map_type(values.type_name);
+            MapMergeState(
+                state.next_id,
+                append(state.facts, [InferredTypeFact(node_id, Some(resolved), node.start_byte)]),
+                remove_deferred_map_diagnostics(state.diagnostics, node.start_byte),
+            )
+    }.
+
+merge_map(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    state: MapMergeState,
+): MapMergeState ->
+    let values = map_values(node, state.facts);
+    if {
+        values.count == 0 -> merge_empty_map(node, node_id, state);
+        true -> merge_nonempty_map(node, node_id, values, state)
+    }.
+
+merge_children(
+    values: List[ProjectedExpressionNode],
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    diagnostics: List[TypeConstraintDiagnostic],
+): MapMergeState ->
+    case values {
+        [] -> MapMergeState(node_id, facts, diagnostics);
+        [value | rest] ->
+            let child = merge_node(value, node_id, facts, diagnostics);
+            merge_children(rest, child.next_id, child.facts, child.diagnostics)
+    }.
+
+merge_node(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    diagnostics: List[TypeConstraintDiagnostic],
+): MapMergeState ->
+    let children = merge_children(node.children, node_id + 1, facts, diagnostics);
+    if {
+        node.kind == "keyed-container" -> merge_map(node, node_id, children);
+        true -> children
+    }.
+
+/** Merges map facts for one expression tree. */
+pub merge_expression(
+    node: ProjectedExpressionNode,
+    resolution: TypeConstraintResolution,
+): TypeConstraintResolution ->
+    let state = merge_node(node, 0, resolution.facts, resolution.diagnostics);
+    TypeConstraintResolution(state.facts, state.diagnostics).
+
+merge_body(value: ProjectedBody, resolution: TypeConstraintResolution): TypeConstraintResolution ->
+    case value.expression.node {
+        Some(node) -> merge_expression(node, resolution);
+        None -> resolution
+    }.
+
+merge_bodies(
+    values: List[ProjectedBody],
+    resolution: TypeConstraintResolution,
+): TypeConstraintResolution ->
+    case values {
+        [] -> resolution;
+        [value | rest] -> merge_bodies(rest, merge_body(value, resolution))
+    }.
+
+/** Merges map facts across every projected callable body. */
+pub merge(
+    bodies: List[ProjectedBody],
+    resolution: TypeConstraintResolution,
+): TypeConstraintResolution ->
+    merge_bodies(bodies, resolution).

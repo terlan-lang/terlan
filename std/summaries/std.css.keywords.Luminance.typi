@@ -1,0 +1,6 @@
+//! Shared CSS keyword luminance. Generated; do not edit.
+
+module std.css.keywords.Luminance.
+
+pub type Luminance =
+    Atom["luminance"].

@@ -1,0 +1,50 @@
+/** Parses callable capability/effect constraints into ordinary typed syntax. */
+module self_host.CallableConstraintParser.
+
+import self_host.CallableConstraintSyntax.{CallableConstraints}.
+import self_host.TypeSyntax.{TypeParse}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.Delimited.
+import self_host.TypeParser.
+
+
+@pure
+parse_values(values: List[String]): List[TypeParse] ->
+    case values {
+        [] -> List.new[TypeParse]();
+        [value | rest] -> [TypeParser.parse(String.trim(value)) | parse_values(rest)]
+    }.
+
+@pure
+all_valid(values: List[TypeParse]): Bool ->
+    case values { [] -> true; [value | rest] -> value.valid and all_valid(rest) }.
+
+@pure
+first_error(values: List[TypeParse]): String ->
+    case values {
+        [] -> "callable constraint list is empty";
+        [value | rest] -> if { not value.valid -> value.message; true -> first_error(rest) }
+    }.
+
+/** Parses either no constraint text or one bracketed comma-separated list. */
+@pure
+pub parse(source: String): CallableConstraints ->
+    let value = String.trim(source);
+    if {
+        value == "" -> CallableConstraints(true, List.new[TypeParse](), "");
+        not String.starts_with(value, "[") or not String.ends_with(value, "]") ->
+            CallableConstraints(false, List.new[TypeParse](), "callable constraints must use `[Type, ...]`");
+        true ->
+            let body = String.trim(value.utf8_slice(1, value.byte_size() - 2));
+            let constraints = if {
+                body == "" -> List.new[TypeParse]();
+                true -> parse_values(Delimited.split_top_level(body, 44))
+            };
+            if {
+                body == "" -> CallableConstraints(false, constraints, "callable constraint list is empty");
+                all_valid(constraints) -> CallableConstraints(true, constraints, "");
+                true -> CallableConstraints(false, constraints, first_error(constraints))
+            }
+    }.

@@ -1,0 +1,6 @@
+//! Shared CSS keyword plaintext. Generated; do not edit.
+
+module std.css.keywords.Plaintext.
+
+pub type Plaintext =
+    Atom["plaintext"].

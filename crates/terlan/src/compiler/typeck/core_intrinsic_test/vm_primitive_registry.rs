@@ -1,10 +1,22 @@
 use super::*;
 
+#[test]
+fn timeout_operations_are_source_calls_not_compiler_primitives() {
+    for function in ["milliseconds", "forever", "wakes_after"] {
+        for arity in 0..=3 {
+            assert_eq!(
+                core_primitive_intrinsic("std.vm.Timeout", function, arity),
+                None
+            );
+        }
+    }
+}
+
 /// Verifies VM primitive stdlib calls resolve to CoreIR intrinsic ids.
 ///
 /// Inputs:
 /// - Source-level module/function/arity triples for `std.vm.Bytes`,
-///   `std.vm.Timeout`, `std.vm.Tcp`, and `std.vm.Port`.
+///   `std.vm.Tcp`, and `std.vm.Port`.
 ///
 /// Output:
 /// - Test passes when every selected operation maps to the expected closed
@@ -70,18 +82,6 @@ pub(super) fn core_primitive_intrinsic_resolves_vm_library_primitives() {
             "read_int_le",
             3,
             CorePrimitiveIntrinsic::VmBytesReadIntLe,
-        ),
-        (
-            "std.vm.Timeout",
-            "milliseconds",
-            1,
-            CorePrimitiveIntrinsic::VmTimeoutMilliseconds,
-        ),
-        (
-            "std.vm.Timeout",
-            "forever",
-            0,
-            CorePrimitiveIntrinsic::VmTimeoutForever,
         ),
         (
             "std.vm.Tcp",
@@ -240,14 +240,6 @@ pub(super) fn vm_library_primitive_registry_keys_are_stable() {
             CorePrimitiveIntrinsic::VmBytesReadIntLe,
             "vm.bytes.read_int_le",
         ),
-        (
-            CorePrimitiveIntrinsic::VmTimeoutMilliseconds,
-            "vm.timeout.milliseconds",
-        ),
-        (
-            CorePrimitiveIntrinsic::VmTimeoutForever,
-            "vm.timeout.forever",
-        ),
         (CorePrimitiveIntrinsic::VmTcpListen, "vm.tcp.listen"),
         (
             CorePrimitiveIntrinsic::VmTcpListenWithBacklog,
@@ -278,7 +270,7 @@ pub(super) fn vm_library_primitive_registry_keys_are_stable() {
 /// Verifies VM primitive return-type metadata is available to CoreIR.
 ///
 /// Inputs:
-/// - Representative byte, timeout, TCP, and port intrinsic variants.
+/// - Representative byte, TCP, and port intrinsic variants.
 ///
 /// Output:
 /// - Test passes when the return-type table exposes the source-level result
@@ -312,10 +304,6 @@ pub(super) fn vm_library_primitive_return_types_are_registered() {
     assert_eq!(
         core_primitive_intrinsic_return_type(&CorePrimitiveIntrinsic::VmBytesReadIntLe),
         CoreType::Int
-    );
-    assert_eq!(
-        core_primitive_intrinsic_return_type(&CorePrimitiveIntrinsic::VmTimeoutForever),
-        CoreType::Named("Timeout".to_string())
     );
     assert_eq!(
         core_primitive_intrinsic_return_type(&CorePrimitiveIntrinsic::VmTcpListen),
@@ -391,10 +379,6 @@ pub(super) fn core_primitive_intrinsic_rejects_wrong_vm_primitive_arities() {
     );
     assert_eq!(
         core_primitive_intrinsic("std.vm.Bytes", "read_int_le", 2),
-        None
-    );
-    assert_eq!(
-        core_primitive_intrinsic("std.vm.Timeout", "forever", 1),
         None
     );
     assert_eq!(core_primitive_intrinsic("std.vm.Tcp", "connect", 2), None);

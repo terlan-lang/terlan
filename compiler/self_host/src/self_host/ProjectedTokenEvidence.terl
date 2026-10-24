@@ -1,6 +1,8 @@
 /** Implementation-neutral authority evidence for projected contextual tokens. */
 module self_host.ProjectedTokenEvidence.
 
+import std.core.String.
+
 import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
 
 import std.collections.List.

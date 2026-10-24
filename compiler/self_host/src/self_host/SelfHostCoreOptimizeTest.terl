@@ -1,0 +1,154 @@
+/** Reachability, phi repair, and structured-region optimizer contracts. */
+module self_host.SelfHostCoreOptimizeTest.
+
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, String}.
+
+import self_host.SelfHostCoreOptimize.
+import self_host.SelfHostIrSyntax.{IrBlock, IrFunction, IrInstruction, IrModule, IrParameter, IrTerminator}.
+
+
+literal(result: String, value: String, type_name: String): IrInstruction ->
+    IrInstruction(
+        "load-literal",
+        Some(result),
+        [value],
+        [None],
+        type_name,
+        None,
+        None,
+    ).
+
+branching_blocks(): List[IrBlock] -> [
+    IrBlock(
+        "entry",
+        [literal("%condition", "true", "Bool")],
+        IrTerminator("branch", ["%condition"], ["live", "dead"]),
+    ),
+    IrBlock(
+        "live",
+        [literal("%live", "1", "Int")],
+        IrTerminator("jump", [], ["join"]),
+    ),
+    IrBlock(
+        "dead",
+        [literal("%dead", "2", "Int")],
+        IrTerminator("jump", [], ["join"]),
+    ),
+    IrBlock(
+        "join",
+        [IrInstruction(
+            "phi",
+            Some("%result"),
+            ["live", "%live", "dead", "%dead"],
+            [None, Some("Int"), None, Some("Int")],
+            "Int",
+            None,
+            None,
+        )],
+        IrTerminator("return", ["%result"], []),
+    ),
+].
+
+module_with_blocks(values: List[IrBlock]): IrModule ->
+    module_with_parameters(values, []).
+
+module_with_parameters(
+    values: List[IrBlock],
+    parameters: List[IrParameter],
+): IrModule ->
+    IrModule(
+        "sample.Optimize",
+        [],
+        [IrFunction(
+            "sample.Optimize",
+            "run",
+            List.length(parameters),
+            0,
+            false,
+            false,
+            parameters,
+            "Int",
+            values,
+            None,
+        )],
+    ).
+
+block_named(values: List[IrBlock], label: String): Option[IrBlock] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.label == label -> Some(value);
+            true -> block_named(rest, label)
+        }
+    }.
+
+/** Constant branches remove dead blocks and collapse one-input phis to moves. */
+@test
+pub dead_edge_repairs_and_simplifies_phi(): Bool ->
+    let optimized = SelfHostCoreOptimize.optimize(module_with_blocks(branching_blocks()));
+    case optimized.functions {
+        [function] -> List.length(function.blocks) == 3
+            and block_named(function.blocks, "dead") == None
+            and case block_named(function.blocks, "entry") {
+                Some(entry) -> entry.terminator.opcode == "jump"
+                    and entry.terminator.targets == ["live"];
+                None -> false
+            }
+            and case block_named(function.blocks, "join") {
+                Some(join) -> case join.instructions {
+                    [instruction] -> instruction.opcode == "move"
+                        and instruction.operands == ["%live"]
+                        and instruction.operand_types == [Some("Int")];
+                    _ -> false
+                };
+                None -> false
+            };
+        _ -> false
+    }.
+
+/** Unknown branch conditions remain intact and retain both phi predecessors. */
+@test
+pub dynamic_branch_is_not_simplified(): Bool ->
+    let dynamic = [IrBlock(
+        "entry",
+        List.new[IrInstruction](),
+        IrTerminator("branch", ["condition"], ["left", "right"]),
+    ), IrBlock(
+        "left",
+        [literal("%left", "1", "Int")],
+        IrTerminator("jump", [], ["join"]),
+    ), IrBlock(
+        "right",
+        [literal("%right", "2", "Int")],
+        IrTerminator("jump", [], ["join"]),
+    ), IrBlock(
+        "join",
+        [IrInstruction(
+            "phi",
+            Some("%result"),
+            ["left", "%left", "right", "%right"],
+            [None, Some("Int"), None, Some("Int")],
+            "Int",
+            None,
+            None,
+        )],
+        IrTerminator("return", ["%result"], []),
+    )];
+    let optimized = SelfHostCoreOptimize.optimize(module_with_parameters(
+        dynamic,
+        [IrParameter("condition", "Bool")],
+    ));
+    dead_edge_repairs_and_simplifies_phi()
+        and case optimized.functions {
+            [function] -> case block_named(function.blocks, "join") {
+                Some(join) -> case join.instructions {
+                    [instruction] -> instruction.opcode == "phi"
+                        and List.length(instruction.operands) == 4;
+                    _ -> false
+                };
+                None -> false
+            };
+            _ -> false
+        }.

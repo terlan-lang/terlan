@@ -41,6 +41,7 @@ pub(crate) fn public_usage_lines() -> &'static [&'static str] {
         "terlc rollback [--project <slug>] [--deployment <id>]",
         "terlc db <init|new|validate|status|migrate|rebuild|reset>",
         "terlc debug <image.tvm> [--break <module.function|file:line>] [--script <file.terldbg>] [--json-events]",
+        "terlc emit-self-hosted-actor-object <core-ir.json> <variant-ir.json> <actor-ir.json> <output.o>",
         "terlc repl [--help] [--debug] [<file.terl|project-dir>]",
         FMT_USAGE,
         "terlc lint [--fix] [--only <rule-id>]... <file.terl|file.terli|file.terls|dir>...",
@@ -81,7 +82,7 @@ pub(super) fn print_command_usage(command: &str) -> bool {
         "help" => println!("terlc help [command]"),
         "init" => println!("terlc init [project-name] [--profile default|web|static]"),
         "bind" => println!(
-            "terlc bind native --crate <crate-name> --out <dir>\nterlc bind js-dom --manifest <path> --out <dir>\nterlc bind cpp --manifest <path> --out <dir>\nterlc bind c --manifest <path> --out <dir>"
+            "terlc bind native --crate <crate-name> --out <dir>\nterlc bind js-dom --manifest <path> --out <dir>\nterlc bind angular-ts --out <dir>\nterlc bind typescript --input <file.d.ts> --namespace <module.prefix> --out <dir>\nterlc bind cpp --manifest <path> --out <dir>\nterlc bind c --manifest <path> --out <dir>"
         ),
         "check" => println!("terlc check <file.terl|file.terli|dir> [--interfaces-only] [--emit-phase-manifest <path>]"),
         "build" => println!(
@@ -170,6 +171,9 @@ pub(super) fn print_command_usage(command: &str) -> bool {
         "emit-native-metadata" => {
             println!("terlc emit-native-metadata <file.terl> [--out-dir <dir>]")
         }
+        "emit-self-hosted-actor-object" => println!(
+            "terlc emit-self-hosted-actor-object <core-ir.json> <variant-ir.json> <actor-ir.json> <output.o>"
+        ),
         "repl" => {
             println!("terlc repl [--help|-h] [--debug] [<file.terl|project-dir>]");
             println!("Interactive mode accepts normal Terlan entries terminated with '.'.");

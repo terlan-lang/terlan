@@ -25,7 +25,7 @@ WEB_PROFILE_PREFLIGHT_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/web-profile-preflight
 CLI_BUILD_EXECUTABLE_CHECK_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/terlc-build-executable
 CLI_BUILD_EXECUTABLE_HANDOFF_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/terlc-build-executable-handoff
 
-.PHONY: abi1-pre-freeze-check abi1-continuous-fuzz-check abi1-cross-target-conformance-check abi1-tail-latency-check abi1-zero-copy-conformance-check abi1-specialization-equivalence-check abi1-trusted-adapter-audit-check abi1-release-candidate-check abi1-compatibility-freeze-check self-host-source-slice-check
+.PHONY: abi1-pre-freeze-check abi1-continuous-fuzz-check abi1-cross-target-conformance-check abi1-tail-latency-check abi1-zero-copy-conformance-check abi1-specialization-equivalence-check abi1-trusted-adapter-audit-check abi1-release-candidate-check abi1-compatibility-freeze-check self-host-source-slice-check self-host-token-parity-check self-host-token-corpus-parity-check
 
 abi1-pre-freeze-check:
 	$(TERLAN_QUALITY) abi1-pre-freeze
@@ -68,40 +68,34 @@ self-host-source-slice-check:
 	test -s target/quality/self-host-source-evidence.json
 
 self-host-token-parity-check: target/debug/terlc
-	mkdir -p target/quality
-	target/debug/terlc syntax-contract --tokens compiler/self_host/corpus/accepted/Minimal.terl --out target/quality/self-host-rust-tokens.tsv
-	target/debug/terlc run compiler/self_host_token_evidence -- compiler/self_host/corpus/accepted/Minimal.terl target/quality/self-host-terlan-tokens.tsv
-	cmp target/quality/self-host-rust-tokens.tsv target/quality/self-host-terlan-tokens.tsv
+	compiler/self_host/scripts/token_parity.sh \
+		target/debug/terlc \
+		$(TERLAN_SELF_HOST_IMAGE) \
+		compiler/self_host/corpus/accepted/Minimal.terl \
+		$(TERLAN_SELF_HOST_PHASE2_EVIDENCE)/token-single
 
 self-host-token-corpus-parity-check: target/debug/terlc
-	rm -rf target/quality/self-host-token-corpus
-	mkdir -p target/quality/self-host-token-corpus
-	@set -e; for source in compiler/self_host/corpus/accepted/*.terl; do \
-		name=$$(basename "$$source" .terl); \
-		target/debug/terlc syntax-contract --tokens "$$source" --out "target/quality/self-host-token-corpus/$$name.rust.tsv"; \
-		target/debug/terlc run compiler/self_host_token_evidence -- "$$source" "target/quality/self-host-token-corpus/$$name.terlan.tsv"; \
-		cmp "target/quality/self-host-token-corpus/$$name.rust.tsv" "target/quality/self-host-token-corpus/$$name.terlan.tsv"; \
-	done
+	compiler/self_host/scripts/token_parity.sh \
+		target/debug/terlc \
+		$(TERLAN_SELF_HOST_IMAGE) \
+		compiler/self_host/corpus/accepted \
+		$(TERLAN_SELF_HOST_PHASE2_EVIDENCE)/token-corpus
 
 .PHONY: self-host-surface-parity-check
 self-host-surface-parity-check: target/debug/terlc
 	cargo build -p terlan --bin terlan-surface-oracle
 	mkdir -p target/quality/self-host-surface-corpus
-	TERLC=target/debug/terlc compiler/self_host/scripts/surface_parity.sh \
+	compiler/self_host/scripts/image_mode_parity.sh \
 		target/debug/terlan-surface-oracle \
-		compiler/self_host/scripts/projected_oracle.sh \
+		$(TERLAN_SELF_HOST_IMAGE) \
+		parity \
 		compiler/self_host/corpus/accepted \
-		target/quality/self-host-surface-corpus
+		$(TERLAN_SELF_HOST_PHASE2_EVIDENCE)/surface \
+		surface
 
 .PHONY: self-host-rejection-parity-check
-self-host-rejection-parity-check: target/debug/terlc
-	cargo build -p terlan --bin terlan-surface-oracle
-	mkdir -p target/quality/self-host-rejection-corpus
-	TERLC=target/debug/terlc compiler/self_host/scripts/rejection_parity.sh \
-		target/debug/terlan-surface-oracle \
-		compiler/self_host/scripts/projected_oracle.sh \
-		compiler/self_host/corpus/rejected \
-		target/quality/self-host-rejection-corpus
+self-host-rejection-parity-check: self-host-error-parity-check
+	@printf '%s\n' 'rejection parity is covered by exact parser-error parity'
 
 .PHONY: self-host-concrete-parity-check
 self-host-concrete-parity-check: target/debug/terlc
@@ -109,19 +103,21 @@ self-host-concrete-parity-check: target/debug/terlc
 	mkdir -p target/quality/self-host-concrete-corpus
 	TERLC=target/debug/terlc compiler/self_host/scripts/concrete_parity.sh \
 		target/debug/terlan-concrete-oracle \
-		compiler/self_host/scripts/projected_oracle.sh \
+		$(TERLAN_SELF_HOST_IMAGE) \
 		compiler/self_host/corpus/accepted \
-		target/quality/self-host-concrete-corpus
+		$(TERLAN_SELF_HOST_PHASE2_EVIDENCE)/concrete
 
 .PHONY: self-host-error-parity-check
 self-host-error-parity-check: target/debug/terlc
 	cargo build -p terlan --bin terlan-parser-error-oracle
 	mkdir -p target/quality/self-host-error-corpus
-	TERLC=target/debug/terlc compiler/self_host/scripts/error_parity.sh \
+	compiler/self_host/scripts/image_mode_parity.sh \
 		target/debug/terlan-parser-error-oracle \
-		compiler/self_host/scripts/projected_oracle.sh \
+		$(TERLAN_SELF_HOST_IMAGE) \
+		errors \
 		compiler/self_host/corpus/rejected \
-		target/quality/self-host-error-corpus
+		target/quality/self-host-error-corpus \
+		error
 
 .PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-current cli-release-artifact-linux cli-clean vm-artifact-check cli-terlc-build-executable-check cli-terlan-vm-compiler-bridge-check browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check http-acme-live-check web-compose-check template-contract-check artifact-template-check typed-template-interpolation-check typed-template-interpolation-vm-check typed-template-interpolation-js-check typed-template-interpolation-tooling-check typed-template-interpolation-backend-check function-language-surface-check repeated-let-syntax-check comprehension-guards-check flexible-shape-guards-check private-field-check db-command-check terlc-debugger-check terlc-debugger-selector-inventory native-boundary-postgres-check native-boundary-http-cookie-check native-boundary-postgres-docker-check repl-check sql-form-check sql-runtime-check api-schema-check runtime-release-dependency-check terlan-format-check formatter-pipe-canonicalization-check terlan-lint-style-check terlan-readability-canonicalization-check terlan-grouped-binding-check terlan-function-reference-check formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
 
@@ -955,8 +951,8 @@ sql-runtime-check:
 	$(TERLC_EXACT_TEST) commands::sql_runtime::sql_runtime_test::malformed_invocation_returns_error_protocol -- --exact
 
 api-schema-check:
-	$(TERLC_EXACT_TEST) commands::api::source_contract::tests::router_source_contract_extracts_routes -- --exact
-	$(TERLC_EXACT_TEST) commands::api::source_contract::tests::router_source_contract_projects_to_openapi_paths -- --exact
+	$(TERLC_EXACT_TEST) commands::api::evaluated_contract::tests::api_discovery_evaluates_computed_groups_closures_and_source_changes -- --exact
+	$(TERLC_EXACT_TEST) commands::deploy::semantic::tests::deployment_evaluates_returned_routes_and_imported_handlers -- --exact
 	$(TERLC_EXACT_TEST) commands::api::mod_test::api_emit_from_source_writes_route_openapi_paths -- --exact
 	$(TERLC_EXACT_TEST) commands::api::mod_test::api_import_generates_client_module_and_skip_manifest -- --exact
 	$(TERLC_EXACT_TEST) commands::api::mod_test::api_import_records_unsupported_operation_skips -- --exact
@@ -1023,7 +1019,7 @@ formal-cli-a0-56-primary-expression-contract-gate:
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::syntax::syntax_output::syntax_output_expr_test::literals_and_control_flow::syntax_output_includes_quoted_atom_literals -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::syntax::syntax_output::syntax_output_expr_test::literals_and_control_flow::syntax_output_includes_sequence_primary_expr_trees -- --exact
 	$(TERLC_EXACT_TEST) tests::check_language_feature_rejection_test::run_check_single_file_rejects_raw_macro_primary_before_phase_manifest -- --exact
-	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_fixed_array_for_core_v0_target_profile -- --exact
+	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_array_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_map_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::core_shape_rejections::run_check_single_file_rejects_record_construct_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::core_shape_rejections::run_check_single_file_rejects_record_access_for_core_v0_target_profile -- --exact
@@ -1081,7 +1077,7 @@ formal-cli-a0-59-data-form-contract-gate:
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_binary_literal -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_map_expr -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_list_cons_expr -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_fixed_array_expr -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_array_expr -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_list_comprehension_expr -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_record_construct_expr -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_record_access_expr -- --exact
@@ -1092,7 +1088,7 @@ formal-cli-a0-59-data-form-contract-gate:
 	$(TERLC_EXACT_TEST) tests::check_target_profile_progression_test::early_profiles::run_check_single_file_keeps_binary_out_of_a0_7_vm_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_progression_test::early_profiles::run_check_single_file_accepts_list_cons_for_a0_9_vm_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_progression_test::early_profiles::run_check_single_file_keeps_list_cons_out_of_a0_8_vm_target_profile -- --exact
-	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_fixed_array_for_core_v0_target_profile -- --exact
+	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_array_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_map_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_list_comprehension_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_language_feature_rejection_test::run_check_single_file_accepts_multi_generator_list_comprehension_phase_manifest -- --exact
@@ -1303,13 +1299,53 @@ formal-directory-phase-gate:
 	rm -rf "$${tmpdir}"
 .PHONY: self-host-fragment-parity
 self-host-fragment-parity:
-	@compiler/self_host/scripts/fragment_parity.sh
+	@TERLAN_SELF_HOST_IMAGE="$(TERLAN_SELF_HOST_IMAGE)" compiler/self_host/scripts/fragment_parity.sh
 .PHONY: self-host-backend-contract-parity
 self-host-backend-contract-parity:
-	@compiler/self_host/scripts/backend_contract_parity.sh
+	@TERLAN_SELF_HOST_BACKEND_IMAGE="$(TERLAN_SELF_HOST_PHASE3_IMAGE)" compiler/self_host/scripts/backend_contract_parity.sh
 .PHONY: self-host-semantic-parity
 self-host-semantic-parity:
-	@compiler/self_host/scripts/semantic_parity.sh
+	@TERLAN_SELF_HOST_SEMANTIC_IMAGE="$(TERLAN_SELF_HOST_PHASE3_IMAGE)" compiler/self_host/scripts/semantic_parity.sh
+
+TERLAN_SELF_HOST_PHASE3_IMAGE ?= target/quality/self-host-phase3-image-21/bin/terlan-self-host-semantic-evidence
+
+.PHONY: self-host-phase3-complete-check
+self-host-phase3-complete-check: self-host-phase2-complete-check self-host-semantic-parity self-host-backend-contract-parity
+	@printf '%s\n' 'Phase 3 semantic analysis and backend handoff: pass'
+
+TERLAN_SELF_HOST_PHASE4_IMAGE ?= target/quality/self-host-phase4-current-image-55/bin/terlan-self-host
+TERLAN_SELF_HOST_PHASE4_ROOT ?= target/quality/self-host-phase4-current-stage1-55
+TERLAN_SELF_HOST_PHASE4_REFERENCE ?= target/quality/self-host-phase4-current-stage0-54
+
+.PHONY: self-host-phase4-correctness-check
+self-host-phase4-correctness-check:
+	@TERLAN_SELF_HOST_PHASE4_IMAGE="$(TERLAN_SELF_HOST_PHASE4_IMAGE)" \
+		TERLAN_SELF_HOST_PHASE4_ROOT="$(TERLAN_SELF_HOST_PHASE4_ROOT)" \
+		TERLAN_SELF_HOST_PHASE4_REFERENCE="$(TERLAN_SELF_HOST_PHASE4_REFERENCE)" \
+		compiler/self_host/scripts/phase4_correctness.sh
+
+.PHONY: self-host-phase4-performance-check
+self-host-phase4-performance-check:
+	@TERLAN_SELF_HOST_IMAGE="$(TERLAN_SELF_HOST_PHASE4_IMAGE)" \
+		compiler/self_host/scripts/phase4_performance.sh
+
+.PHONY: self-host-phase4-incremental-performance-check
+self-host-phase4-incremental-performance-check:
+	@TERLAN_SELF_HOST_IMAGE="$(TERLAN_SELF_HOST_PHASE4_IMAGE)" \
+		compiler/self_host/scripts/phase4_incremental_performance.sh
+
+.PHONY: self-host-phase4-full-performance-check
+self-host-phase4-full-performance-check:
+	@TERLAN_SELF_HOST_IMAGE="$(TERLAN_SELF_HOST_PHASE4_IMAGE)" \
+		compiler/self_host/scripts/phase4_full_performance.sh
+
+.PHONY: self-host-phase4-batch-evidence
+self-host-phase4-batch-evidence:
+	@test -n "$(SOURCES_MANIFEST)" -a -n "$(OUTPUT)" || \
+		(echo "usage: make self-host-phase4-batch-evidence SOURCES_MANIFEST=... OUTPUT=..." >&2; exit 2)
+	@TERLAN_SELF_HOST_IMAGE="$(TERLAN_SELF_HOST_PHASE4_IMAGE)" \
+		TERLAN_SELF_HOST_BATCH_JOBS="$${TERLAN_SELF_HOST_BATCH_JOBS:-4}" \
+		compiler/self_host/scripts/stage_evidence_batch.sh "$(SOURCES_MANIFEST)" "$(OUTPUT)"
 
 .PHONY: self-host-pre-bootstrap-gates
 self-host-pre-bootstrap-gates: \
@@ -1328,6 +1364,145 @@ self-host-bootstrap-compare:
 		(echo "usage: make self-host-bootstrap-compare STAGE1=... STAGE2=..." >&2; exit 2)
 	@compiler/self_host/scripts/bootstrap_fixed_point.sh "$(STAGE1)" "$(STAGE2)"
 
+TERLAN_SELF_HOST_PHASE8_ROOT ?= target/quality/self-host-phase8
+TERLAN_SELF_HOST_PHASE8_IMAGE ?= $(TERLAN_SELF_HOST_PHASE4_IMAGE)
+TERLAN_SELF_HOST_PHASE8_STAGE0 ?= $(TERLAN_SELF_HOST_PHASE8_ROOT)/stage0/bootstrap-artifact.json
+TERLAN_SELF_HOST_PHASE8_STAGE1 ?= $(TERLAN_SELF_HOST_PHASE8_ROOT)/stage1/bootstrap-artifact.json
+TERLAN_SELF_HOST_PHASE8_STAGE2 ?= $(TERLAN_SELF_HOST_PHASE8_ROOT)/stage2/bootstrap-artifact.json
+TERLAN_SELF_HOST_PHASE8_STAGE1_CORE ?= $(TERLAN_SELF_HOST_PHASE8_ROOT)/stage1/core-ir.json
+TERLAN_SELF_HOST_PHASE8_STAGE1_VARIANT ?= $(TERLAN_SELF_HOST_PHASE8_ROOT)/stage1/variant-ir.json
+TERLAN_SELF_HOST_PHASE8_STAGE1_ACTOR ?= $(TERLAN_SELF_HOST_PHASE8_ROOT)/stage1/actor-ir.json
+TERLAN_SELF_HOST_PHASE8_STAGE2_CORE ?= $(TERLAN_SELF_HOST_PHASE8_ROOT)/stage2/core-ir.json
+TERLAN_SELF_HOST_PHASE8_STAGE2_VARIANT ?= $(TERLAN_SELF_HOST_PHASE8_ROOT)/stage2/variant-ir.json
+TERLAN_SELF_HOST_PHASE8_STAGE2_ACTOR ?= $(TERLAN_SELF_HOST_PHASE8_ROOT)/stage2/actor-ir.json
+
+TERLAN_SELF_HOST_ACTOR_SOURCE ?=
+TERLAN_SELF_HOST_ACTOR_INTERFACES ?=
+TERLAN_SELF_HOST_ACTOR_PROFILES ?=
+TERLAN_SELF_HOST_ACTOR_DYNAMIC_EVIDENCE ?=
+TERLAN_SELF_HOST_ACTOR_OUTPUT_ROOT ?= target/quality/self-host-actor-unit
+
+.PHONY: self-host-actor-backend-unit
+self-host-actor-backend-unit:
+	@test -x "$(TERLAN_SELF_HOST_PHASE8_IMAGE)"
+	@test -n "$(TERLAN_SELF_HOST_ACTOR_SOURCE)" || (echo 'TERLAN_SELF_HOST_ACTOR_SOURCE is required' >&2; exit 2)
+	@test -n "$(TERLAN_SELF_HOST_ACTOR_INTERFACES)" || (echo 'TERLAN_SELF_HOST_ACTOR_INTERFACES is required' >&2; exit 2)
+	@test -n "$(TERLAN_SELF_HOST_ACTOR_PROFILES)" || (echo 'TERLAN_SELF_HOST_ACTOR_PROFILES is required' >&2; exit 2)
+	@test -n "$(TERLAN_SELF_HOST_ACTOR_DYNAMIC_EVIDENCE)" || (echo 'TERLAN_SELF_HOST_ACTOR_DYNAMIC_EVIDENCE is required' >&2; exit 2)
+	@mkdir -p "$(TERLAN_SELF_HOST_ACTOR_OUTPUT_ROOT)"
+	@"$(TERLAN_SELF_HOST_PHASE8_IMAGE)" actor-backend-unit \
+		"$(TERLAN_SELF_HOST_ACTOR_SOURCE)" \
+		"$(TERLAN_SELF_HOST_ACTOR_INTERFACES)" \
+		"$(TERLAN_SELF_HOST_ACTOR_PROFILES)" \
+		"$(TERLAN_SELF_HOST_ACTOR_DYNAMIC_EVIDENCE)" \
+		"$(TERLAN_SELF_HOST_ACTOR_OUTPUT_ROOT)/core-ir.json" \
+		"$(TERLAN_SELF_HOST_ACTOR_OUTPUT_ROOT)/variant-ir.json" \
+		"$(TERLAN_SELF_HOST_ACTOR_OUTPUT_ROOT)/actor-ir.json" \
+		"$(TERLAN_SELF_HOST_ACTOR_OUTPUT_ROOT)/diagnostics.txt" \
+		"$(TERLAN_SELF_HOST_ACTOR_OUTPUT_ROOT)/complete.marker"
+	@test "$$(cat "$(TERLAN_SELF_HOST_ACTOR_OUTPUT_ROOT)/complete.marker")" = "complete"
+
+TERLAN_SELF_HOST_PARALLEL_BACKEND_IMAGE ?= $(TERLAN_SELF_HOST_PHASE8_IMAGE)
+TERLAN_SELF_HOST_PARALLEL_BACKEND_INTERFACES ?=
+TERLAN_SELF_HOST_PARALLEL_BACKEND_WORKERS ?= 4
+TERLAN_SELF_HOST_PARALLEL_BACKEND_JOBS ?=
+
+.PHONY: self-host-parallel-backend-units
+self-host-parallel-backend-units:
+	@test -x "$(TERLAN_SELF_HOST_PARALLEL_BACKEND_IMAGE)"
+	@test -n "$(TERLAN_SELF_HOST_PARALLEL_BACKEND_INTERFACES)" || (echo 'TERLAN_SELF_HOST_PARALLEL_BACKEND_INTERFACES is required' >&2; exit 2)
+	@test -n "$(TERLAN_SELF_HOST_PARALLEL_BACKEND_JOBS)" || (echo 'TERLAN_SELF_HOST_PARALLEL_BACKEND_JOBS is required' >&2; exit 2)
+	@"$(TERLAN_SELF_HOST_PARALLEL_BACKEND_IMAGE)" parallel-backend-units \
+		"$(TERLAN_SELF_HOST_PARALLEL_BACKEND_INTERFACES)" \
+		"$(TERLAN_SELF_HOST_PARALLEL_BACKEND_WORKERS)" \
+		$(TERLAN_SELF_HOST_PARALLEL_BACKEND_JOBS)
+
+self_host_lint_source ?=
+self_host_lint_output_root ?= target/quality/self-host-lint
+
+.PHONY: self-host-lint-unit
+self-host-lint-unit:
+	@test -x "$(TERLAN_SELF_HOST_PHASE8_IMAGE)"
+	@test -n "$(self_host_lint_source)" || (echo 'self_host_lint_source is required' >&2; exit 2)
+	@mkdir -p "$(self_host_lint_output_root)"
+	@"$(TERLAN_SELF_HOST_PHASE8_IMAGE)" lint-unit \
+		"$(self_host_lint_source)" \
+		"$(self_host_lint_output_root)/diagnostics.txt" \
+		"$(self_host_lint_output_root)/status.marker"
+
+self_host_doc_source ?=
+self_host_doc_output_root ?= target/quality/self-host-doc
+
+.PHONY: self-host-doc-unit
+self-host-doc-unit:
+	@test -x "$(TERLAN_SELF_HOST_PHASE8_IMAGE)"
+	@test -n "$(self_host_doc_source)" || (echo 'self_host_doc_source is required' >&2; exit 2)
+	@mkdir -p "$(self_host_doc_output_root)"
+	@"$(TERLAN_SELF_HOST_PHASE8_IMAGE)" doc-unit \
+		"$(self_host_doc_source)" \
+		"$(self_host_doc_output_root)/module.md" \
+		"$(self_host_doc_output_root)/diagnostics.txt" \
+		"$(self_host_doc_output_root)/complete.marker"
+
+.PHONY: self-host-actor-bootstrap-convergence-check
+self-host-actor-bootstrap-convergence-check:
+	@mkdir -p "$(TERLAN_SELF_HOST_PHASE8_ROOT)"
+	@test -x "$(TERLAN_SELF_HOST_PHASE8_IMAGE)"
+	@test -s "$(TERLAN_SELF_HOST_PHASE8_STAGE0)"
+	@test -s "$(TERLAN_SELF_HOST_PHASE8_STAGE1)"
+	@test -s "$(TERLAN_SELF_HOST_PHASE8_STAGE2)"
+	@"$(TERLAN_SELF_HOST_PHASE8_IMAGE)" bootstrap-converge \
+		"$(TERLAN_SELF_HOST_PHASE8_STAGE0)" \
+		"$(TERLAN_SELF_HOST_PHASE8_STAGE1)" \
+		"$(TERLAN_SELF_HOST_PHASE8_STAGE2)" \
+		"$(TERLAN_SELF_HOST_PHASE8_ROOT)/actor-bootstrap.marker"
+	@test "$$(cat "$(TERLAN_SELF_HOST_PHASE8_ROOT)/actor-bootstrap.marker")" = "fixed-point"
+
+.PHONY: self-host-actor-native-object-check
+self-host-actor-native-object-check:
+	@mkdir -p "$(TERLAN_SELF_HOST_PHASE8_ROOT)/objects"
+	@test -s "$(TERLAN_SELF_HOST_PHASE8_STAGE1_CORE)"
+	@test -s "$(TERLAN_SELF_HOST_PHASE8_STAGE1_VARIANT)"
+	@test -s "$(TERLAN_SELF_HOST_PHASE8_STAGE1_ACTOR)"
+	@test -s "$(TERLAN_SELF_HOST_PHASE8_STAGE2_CORE)"
+	@test -s "$(TERLAN_SELF_HOST_PHASE8_STAGE2_VARIANT)"
+	@test -s "$(TERLAN_SELF_HOST_PHASE8_STAGE2_ACTOR)"
+	@$(TERLC) emit-self-hosted-actor-object \
+		"$(TERLAN_SELF_HOST_PHASE8_STAGE1_CORE)" \
+		"$(TERLAN_SELF_HOST_PHASE8_STAGE1_VARIANT)" \
+		"$(TERLAN_SELF_HOST_PHASE8_STAGE1_ACTOR)" \
+		"$(TERLAN_SELF_HOST_PHASE8_ROOT)/objects/stage1.o"
+	@$(TERLC) emit-self-hosted-actor-object \
+		"$(TERLAN_SELF_HOST_PHASE8_STAGE2_CORE)" \
+		"$(TERLAN_SELF_HOST_PHASE8_STAGE2_VARIANT)" \
+		"$(TERLAN_SELF_HOST_PHASE8_STAGE2_ACTOR)" \
+		"$(TERLAN_SELF_HOST_PHASE8_ROOT)/objects/stage2.o"
+	@cmp "$(TERLAN_SELF_HOST_PHASE8_ROOT)/objects/stage1.o" \
+		"$(TERLAN_SELF_HOST_PHASE8_ROOT)/objects/stage2.o"
+
+.PHONY: self-host-actor-profile-catalog-check
+self-host-actor-profile-catalog-check:
+	@mkdir -p "$(TERLAN_SELF_HOST_PHASE8_ROOT)"
+	@test -x "$(TERLAN_SELF_HOST_PHASE8_IMAGE)"
+	@test -s "$(TERLAN_SELF_HOST_PHASE8_STAGE1_ACTOR)"
+	@test -s "$(TERLAN_SELF_HOST_PHASE8_STAGE2_ACTOR)"
+	@"$(TERLAN_SELF_HOST_PHASE8_IMAGE)" actor-profiles-check \
+		"$(TERLAN_SELF_HOST_PHASE8_STAGE1_ACTOR)" \
+		"$(TERLAN_SELF_HOST_PHASE8_ROOT)/stage1-actor-profiles.marker"
+	@"$(TERLAN_SELF_HOST_PHASE8_IMAGE)" actor-profiles-check \
+		"$(TERLAN_SELF_HOST_PHASE8_STAGE2_ACTOR)" \
+		"$(TERLAN_SELF_HOST_PHASE8_ROOT)/stage2-actor-profiles.marker"
+	@test "$$(cat "$(TERLAN_SELF_HOST_PHASE8_ROOT)/stage1-actor-profiles.marker")" = "valid"
+	@test "$$(cat "$(TERLAN_SELF_HOST_PHASE8_ROOT)/stage2-actor-profiles.marker")" = "valid"
+
+.PHONY: self-host-actor-profile-fixed-point-check
+self-host-actor-profile-fixed-point-check: self-host-actor-profile-catalog-check
+	@printf '%s\n' 'Actor profile catalogs exactly cover emitted outward continuations: pass'
+
+.PHONY: self-host-phase8-actor-check
+self-host-phase8-actor-check: self-host-actor-bootstrap-convergence-check self-host-actor-profile-fixed-point-check self-host-actor-native-object-check
+	@printf '%s\n' 'Phase 8 actor bootstrap and native-object convergence: pass'
+
 .PHONY: self-host-package-stage
 self-host-package-stage:
 	@test -n "$(OUTPUT)" || (echo "usage: make self-host-package-stage OUTPUT=..." >&2; exit 2)
@@ -1337,3 +1512,34 @@ self-host-package-stage:
 self-host-seed-stage:
 	@test -n "$(OUTPUT)" || (echo "usage: make self-host-seed-stage OUTPUT=..." >&2; exit 2)
 	@compiler/self_host/scripts/seed_stage.sh "$(OUTPUT)"
+
+.PHONY: self-host-phase2-corpus-integrity-check
+self-host-phase2-corpus-integrity-check:
+	@compiler/self_host/scripts/phase2_corpus_integrity.sh
+
+# Complete lexer coverage is token parity for every accepted and rejected source,
+# plus normalized lexical/parser diagnostics for rejected sources.
+.PHONY: self-host-lexer-complete-check
+self-host-lexer-complete-check: self-host-phase2-corpus-integrity-check self-host-token-corpus-parity-check self-host-error-parity-check
+
+# Differential parser authority combines surface declarations, lossless concrete
+# syntax, refutable fragments, and exact rejection/error behavior.
+.PHONY: self-host-parser-differential-check
+self-host-parser-differential-check: self-host-lexer-complete-check self-host-surface-parity-check self-host-rejection-parity-check self-host-concrete-parity-check self-host-fragment-parity
+
+.PHONY: self-host-parser-recovery-check
+self-host-parser-recovery-check: self-host-parser-differential-check
+	@TERLAN_SELF_HOST_IMAGE="$(TERLAN_SELF_HOST_IMAGE)" compiler/self_host/scripts/parser_recovery.sh
+
+# The Fuzz*.terl fixtures are deterministic minimized mutations. Keeping them in
+# the authoritative corpus makes every differential gate replay the same cases.
+.PHONY: self-host-parser-fuzz-check
+self-host-parser-fuzz-check: self-host-parser-differential-check
+	@printf '%s\n' 'Phase 2 deterministic parser mutation corpus: pass'
+
+.PHONY: self-host-syntax-roundtrip-check
+self-host-syntax-roundtrip-check: self-host-parser-differential-check
+	@TERLAN_SELF_HOST_IMAGE="$(TERLAN_SELF_HOST_IMAGE)" compiler/self_host/scripts/syntax_roundtrip.sh
+
+.PHONY: self-host-phase2-complete-check
+self-host-phase2-complete-check: self-host-parser-recovery-check self-host-parser-fuzz-check self-host-syntax-roundtrip-check

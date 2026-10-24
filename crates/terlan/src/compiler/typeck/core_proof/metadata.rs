@@ -670,7 +670,7 @@ fn count_core_expr_local_constructor_identities(
         | CoreExpr::If { .. }
         | CoreExpr::UnaryOp { .. }
         | CoreExpr::BinaryOp { .. }
-        | CoreExpr::FixedArray(_)
+        | CoreExpr::Array(_)
         | CoreExpr::Index { .. } => {}
     }
 }

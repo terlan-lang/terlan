@@ -1,75 +1,38 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-fill-rule
+ * The `fill-rule` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the rule
+ * used to determine which parts of the SVG shape's canvas are included inside a shape to be filled.
+ * If present, it overrides the element's `fill-rule` attribute.
+ *
+ * Initial: nonzero. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - evenodd: For every point in the fill rule's box, a ray is drawn in a random direction. The
+ * number of path segments from the given shape that the ray crosses are counted. If this number is
+ * odd, the point is inside; if even, the point is outside. Zero is taken to be even.
+ * - nonzero: For every point in the shape, a ray is drawn in a random direction to beyond the
+ * shape's outer edges. Each ray is examined to determine the places where the ray crosses the
+ * shape. Starting with a count of zero, add one each time a path segment crosses the ray from left
+ * to right and subtract one each time a path segment crosses the ray from right to left. After
+ * counting the crossings, if the result is zero then the point is outside the path. Otherwise, it
+ * is inside.
+ *
  * Grammar: nonzero | evenodd
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-fill-rule
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/fill-rule
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FillRule.
 
-import type std.core.Option.
+import std.css.keywords.{Evenodd, Nonzero}.
 
-/**
- * A nominal, specification-constrained fill-rule value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    fill_rule: Value,
+    fill_rule: Nonzero | Evenodd | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    fill_rule: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword evenodd.
- */
-pub evenodd(): Value ->
-    Value(Token {property: "fill-rule", css: "evenodd"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "fill-rule", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "fill-rule", css: "initial"}).
-
-/**
- * Returns the CSS keyword nonzero.
- */
-pub nonzero(): Value ->
-    Value(Token {property: "fill-rule", css: "nonzero"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "fill-rule", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "fill-rule", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "fill-rule", css: "unset"}).

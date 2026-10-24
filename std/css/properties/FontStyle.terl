@@ -1,93 +1,39 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-style
+ * The `font-style` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether a
+ * font should be styled with a normal, italic, or oblique face from its `font-family`.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - italic: Selects a font that is classified as `italic`. If no italic version of the face is
+ * available, one classified as `oblique` is used instead. If neither is available, the style is
+ * artificially simulated.
+ * - normal: Selects a font that is classified as `normal` within a `font-family`.
+ * - oblique: Selects a font classified as `oblique`, and additionally specifies an angle for the
+ * slant of the text. If one or more oblique faces are available in the chosen font family, the one
+ * that most closely matches the specified angle is chosen. If no oblique faces are available, the
+ * browser will synthesize an oblique version of the font by slanting a normal face by the specified
+ * amount. Valid values are degree values of `-90deg` to `90deg` inclusive. If an angle is not
+ * specified, an angle of 14 degrees is used. Positive values are slanted to the end of the line,
+ * while negative values are slanted towards the beginning.
+ *
  * Grammar: normal | italic | left | right | oblique <angle [-90deg,90deg]>?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-style
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-style
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontStyle.
 
-import type std.core.Option.
+import std.css.keywords.{Italic, Normal, Oblique}.
 
-/**
- * A nominal, specification-constrained font-style value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    font_style: Value,
+    font_style: Normal | Italic | Oblique | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    font_style: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-style", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-style", css: "initial"}).
-
-/**
- * Returns the CSS keyword italic.
- */
-pub italic(): Value ->
-    Value(Token {property: "font-style", css: "italic"}).
-
-/**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "font-style", css: "left"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "font-style", css: "normal"}).
-
-/**
- * Returns the CSS keyword oblique.
- */
-pub oblique(): Value ->
-    Value(Token {property: "font-style", css: "oblique"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-style", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-style", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "font-style", css: "right"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-style", css: "unset"}).

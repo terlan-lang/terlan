@@ -1,100 +1,33 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-width
+ * The `rule-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property defines the widths of any lines drawn in the gutters of multi-row grid, flex, and
+ * multi-col layouts, setting the widths of the column and row rules to the same value.
+ *
+ * Keyword effects:
+ * - medium: Same as `3px`. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-width
+ * - thick: Same as `5px`. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-width
+ * - thin: Same as `1px`. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-width
+ *
  * Grammar: <'column-rule-width'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-width
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/rule-width
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.RuleWidth.
 
-import std.core.Option.{None, Some}.
-import std.css.Values.
+import std.css.keywords.{Medium, Thick, Thin}.
 
-import type std.core.Option.
-import type std.css.Values.{Length}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-/**
- * A nominal, specification-constrained rule-width value.
- */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    rule_width: Value,
+    rule_width: Thin | Medium | Thick | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    rule_width: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "rule-width", css: "hairline"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "rule-width", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "rule-width", css: "initial"}).
-
-/**
- * Returns the CSS keyword medium.
- */
-pub medium(): Value ->
-    Value(Token {property: "rule-width", css: "medium"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "rule-width", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "rule-width", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword thick.
- */
-pub thick(): Value ->
-    Value(Token {property: "rule-width", css: "thick"}).
-
-/**
- * Returns the CSS keyword thin.
- */
-pub thin(): Value ->
-    Value(Token {property: "rule-width", css: "thin"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "rule-width", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a rule-width value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "rule-width", css: std.css.Values.length_css(value)}));
-        false -> None
-    }.

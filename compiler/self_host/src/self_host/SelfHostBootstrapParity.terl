@@ -9,6 +9,7 @@ pub struct BootstrapArtifact {
     token_digest: String,
     syntax_digest: String,
     semantic_digest: String,
+    actor_digest: String,
     backend_digest: String,
 }.
 
@@ -19,6 +20,16 @@ pub constructor BootstrapArtifact {
             token_digest: token_digest,
             syntax_digest: syntax_digest,
             semantic_digest: semantic_digest,
+            actor_digest: "none",
+            backend_digest: backend_digest,
+        };
+    (module_name: String, token_digest: String, syntax_digest: String, semantic_digest: String, actor_digest: String, backend_digest: String): BootstrapArtifact ->
+        BootstrapArtifact {
+            module_name: module_name,
+            token_digest: token_digest,
+            syntax_digest: syntax_digest,
+            semantic_digest: semantic_digest,
+            actor_digest: actor_digest,
             backend_digest: backend_digest,
         }
 }.
@@ -29,6 +40,7 @@ pub struct BootstrapParity {
     token_equal: Bool,
     syntax_equal: Bool,
     semantic_equal: Bool,
+    actor_equal: Bool,
     backend_equal: Bool,
     fixed_point: Bool,
     differences: List[String],
@@ -41,6 +53,18 @@ pub constructor BootstrapParity {
             token_equal: token_equal,
             syntax_equal: syntax_equal,
             semantic_equal: semantic_equal,
+            actor_equal: true,
+            backend_equal: backend_equal,
+            fixed_point: fixed_point,
+            differences: differences,
+        };
+    (module_equal: Bool, token_equal: Bool, syntax_equal: Bool, semantic_equal: Bool, actor_equal: Bool, backend_equal: Bool, fixed_point: Bool, differences: List[String]): BootstrapParity ->
+        BootstrapParity {
+            module_equal: module_equal,
+            token_equal: token_equal,
+            syntax_equal: syntax_equal,
+            semantic_equal: semantic_equal,
+            actor_equal: actor_equal,
             backend_equal: backend_equal,
             fixed_point: fixed_point,
             differences: differences,
@@ -65,22 +89,27 @@ pub compare(reference: BootstrapArtifact, candidate: BootstrapArtifact): Bootstr
     let token_equal = reference.token_digest == candidate.token_digest;
     let syntax_equal = reference.syntax_digest == candidate.syntax_digest;
     let semantic_equal = reference.semantic_digest == candidate.semantic_digest;
+    let actor_equal = reference.actor_digest == candidate.actor_digest;
     let backend_equal = reference.backend_digest == candidate.backend_digest;
     let differences = add_difference(
         backend_equal,
         "backend artifact differs",
         add_difference(
-            semantic_equal,
-            "semantic artifact differs",
+            actor_equal,
+            "actor artifact differs",
             add_difference(
-                syntax_equal,
-                "syntax artifact differs",
-                add_difference(token_equal, "token artifact differs", add_difference(
-                    module_equal,
-                    "module identity differs",
-                    List.new[String](),
-                )),
+                semantic_equal,
+                "semantic artifact differs",
+                add_difference(
+                    syntax_equal,
+                    "syntax artifact differs",
+                    add_difference(token_equal, "token artifact differs", add_difference(
+                        module_equal,
+                        "module identity differs",
+                        List.new[String](),
+                    )),
+                ),
             ),
         ),
     );
-    BootstrapParity(module_equal, token_equal, syntax_equal, semantic_equal, backend_equal, module_equal and token_equal and syntax_equal and semantic_equal and backend_equal, reverse(differences, List.new[String]())).
+    BootstrapParity(module_equal, token_equal, syntax_equal, semantic_equal, actor_equal, backend_equal, module_equal and token_equal and syntax_equal and semantic_equal and actor_equal and backend_equal, reverse(differences, List.new[String]())).

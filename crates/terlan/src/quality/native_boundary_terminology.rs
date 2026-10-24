@@ -39,7 +39,7 @@ const SELECTED_DOC_PATHS: &[&str] = &[
     "crates/terlan/src/commands/serve/README.md",
     "crates/terlan/src/commands/serve/handler/types.rs",
     "crates/terlan/src/commands/serve/manifest.rs",
-    "crates/terlan/src/web_route.rs",
+    "std/http/native/src/route_pattern.rs",
     "std/http/README.md",
 ];
 

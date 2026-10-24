@@ -6,19 +6,61 @@ module std.css.Values.
 
 pub struct Angle {
     #amount: Float,
-    #unit: String
+    #unit: Degree
 }.
 
 /// A validated CSS color. Arbitrary strings cannot construct this value.
 
 pub opaque type Color.
 
-/// A length with a finite magnitude and a library-owned CSS unit.
+pub type ColorCss =
+    Transparent
+  | CurrentColor.
+
+/// CSS-wide choices accepted by every generated property's Css enum.
+
+pub type CssWide =
+    Inherit
+  | Initial
+  | Unset
+  | Revert
+  | RevertLayer.
+
+pub type CurrentColor =
+    Atom["currentColor"].
+
+pub type Degree =
+    Atom["deg"].
+
+pub type Em =
+    Atom["em"].
+
+/// Uses the parent element's computed value for this property.
+
+pub type Inherit =
+    Atom["inherit"].
+
+/// Uses the initial value defined by the property's specification.
+
+pub type Initial =
+    Atom["initial"].
+
+/// A length and its CSS unit. Property constructors enforce permitted ranges.
 
 pub struct Length {
     #amount: Float,
-    #unit: String
+    #unit: LengthUnit
 }.
+
+pub type LengthUnit =
+    Px
+  | Rem
+  | Em
+  | Vw
+  | Vh.
+
+pub type Millisecond =
+    Atom["ms"].
 
 /// A percentage; individual properties determine the permitted range.
 
@@ -26,12 +68,58 @@ pub struct Percentage {
     #amount: Float
 }.
 
+pub type Px =
+    Atom["px"].
+
+pub type Rem =
+    Atom["rem"].
+
+/// Rolls back declarations from the current cascade origin.
+
+pub type Revert =
+    Atom["revert"].
+
+/// Rolls back declarations from the current cascade layer.
+
+pub type RevertLayer =
+    Atom["revert-layer"].
+
+pub type Second =
+    Atom["s"].
+
+/// Serialized stylesheet declaration consumed by the compiler's existing CSS
+/// pipeline. Property modules accept enums or typed inputs, validate them, and
+/// produce this representation behind their checked result types.
+
+pub struct SerializedValue {
+    property: String,
+    css: String
+}.
+
 /// A CSS time with a library-owned unit.
 
 pub struct Time {
     #amount: Float,
-    #unit: String
+    #unit: TimeUnit
 }.
+
+pub type TimeUnit =
+    Millisecond
+  | Second.
+
+pub type Transparent =
+    Atom["transparent"].
+
+/// Inherits inherited properties and resets other properties to their initial value.
+
+pub type Unset =
+    Atom["unset"].
+
+pub type Vh =
+    Atom["vh"].
+
+pub type Vw =
+    Atom["vw"].
 
 /// Reads an angle's magnitude for generated range checks.
 
@@ -46,10 +134,6 @@ pub angle_css(value: Angle): String.
 
 @pure
 pub color_css(value: Color): String.
-
-/// Returns the current foreground color.
-
-pub current_color(): Color.
 
 /// Constructs an angle in degrees.
 
@@ -108,6 +192,11 @@ pub root_em(value: Float): Length.
 @pure
 pub seconds(value: Float): Time.
 
+/// Constructs the wire representation used inside generated property modules.
+
+@pure
+pub serialize(property: String, css: String): SerializedValue.
+
 /// Reads a time's magnitude for generated range checks.
 
 @pure
@@ -116,10 +205,6 @@ pub time_amount(value: Time): Float.
 /// Serializes a time.
 
 pub time_css(value: Time): String.
-
-/// Returns a fully transparent color.
-
-pub transparent(): Color.
 
 /// Constructs a viewport-height-relative length.
 

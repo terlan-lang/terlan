@@ -1,0 +1,115 @@
+/** Contracts for projected pattern coverage and binding semantics. */
+module self_host.ProjectedPatternSemanticsTest.
+
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedPatternSemantics.{ProjectedPatternClause}.
+
+import std.collections.List.
+import self_host.ProjectedPatternSemantics.
+
+
+@pure
+node(kind: String, text: String, children: List[ProjectedExpressionNode]): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, 0, 0, children).
+
+@pure
+binding(name: String): ProjectedExpressionNode ->
+    node("binding-pattern", name, List.new[ProjectedExpressionNode]()).
+
+@pure
+constructor_node(name: String, children: List[ProjectedExpressionNode]): ProjectedExpressionNode ->
+    node("constructor-pattern", name, children).
+
+@pure
+finite_sum_is_exhaustive(): Bool ->
+    let coverage = ProjectedPatternSemantics.analyze(
+        [
+            ProjectedPatternClause(constructor_node("Some", [binding("value")]), false),
+            ProjectedPatternClause(constructor_node("None", List.new[ProjectedExpressionNode]()), false),
+        ],
+        ["Some", "None"],
+    );
+    coverage.exhaustive
+        and coverage.missing_constructors == []
+        and coverage.unreachable_clause == -1.
+
+@pure
+guarded_constructor_is_not_total(): Bool ->
+    let coverage = ProjectedPatternSemantics.analyze(
+        [
+            ProjectedPatternClause(constructor_node("Some", [binding("value")]), true),
+            ProjectedPatternClause(constructor_node("None", List.new[ProjectedExpressionNode]()), false),
+        ],
+        ["Some", "None"],
+    );
+    not coverage.exhaustive and coverage.missing_constructors == ["Some"].
+
+@pure
+catch_all_makes_later_clause_unreachable(): Bool ->
+    let coverage = ProjectedPatternSemantics.analyze(
+        [
+            ProjectedPatternClause(binding("value"), false),
+            ProjectedPatternClause(constructor_node("None", List.new[ProjectedExpressionNode]()), false),
+        ],
+        ["Some", "None"],
+    );
+    coverage.exhaustive and coverage.unreachable_clause == 1.
+
+@pure
+duplicate_binding_is_rejected(): Bool ->
+    let coverage = ProjectedPatternSemantics.analyze(
+        [ProjectedPatternClause(
+            node("tuple-pattern", "", [binding("value"), binding("value")]),
+            false,
+        )],
+        List.new[String](),
+    );
+    coverage.duplicate_binding == "value".
+
+@pure
+projected_case_uses_real_clause_shape(): Bool ->
+    let subject = node("name", "option", List.new[ProjectedExpressionNode]());
+    let body = node("literal", "0", List.new[ProjectedExpressionNode]());
+    let some_clause = node(
+        "clause",
+        "where",
+        [constructor_node("Some", [binding("value")]), node("binary", ">", List.new[ProjectedExpressionNode]()), body],
+    );
+    let none_clause = node(
+        "clause",
+        "",
+        [constructor_node("None", List.new[ProjectedExpressionNode]()), body],
+    );
+    let result = ProjectedPatternSemantics.analyze_case(
+        node("case", "case", [subject, some_clause, none_clause]),
+        ["Some", "None"],
+    );
+    result.valid
+        and not result.coverage.exhaustive
+        and result.coverage.missing_constructors == ["Some"].
+
+@pure
+malformed_case_is_rejected(): Bool ->
+    let result = ProjectedPatternSemantics.analyze_case(
+        node("case", "case", [node("name", "value", List.new[ProjectedExpressionNode]())]),
+        List.new[String](),
+    );
+    not result.valid and result.message == "case expression has no clauses".
+
+@pure
+projected_wrapper_is_semantically_transparent(): Bool ->
+    let wrapped = node("pattern", "", [binding("value")]);
+    let coverage = ProjectedPatternSemantics.analyze(
+        [ProjectedPatternClause(wrapped, false)],
+        ["Some", "None"],
+    );
+    coverage.exhaustive.
+
+pub self_test(): Bool ->
+    finite_sum_is_exhaustive()
+        and guarded_constructor_is_not_total()
+        and catch_all_makes_later_clause_unreachable()
+        and duplicate_binding_is_rejected()
+        and projected_case_uses_real_clause_shape()
+        and malformed_case_is_rejected()
+        and projected_wrapper_is_semantically_transparent().

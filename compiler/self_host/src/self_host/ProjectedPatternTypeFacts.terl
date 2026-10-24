@@ -1,0 +1,374 @@
+/** Identifier-scrutinee pattern compatibility from inferred expression facts. */
+module self_host.ProjectedPatternTypeFacts.
+
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedPatternAuthority.{FiniteSumContract, PatternAuthorityCatalog, PatternConstructorContract}.
+import self_host.ProjectedPatternPayloadTypes.
+import self_host.ProjectedPatternSemanticSyntax.{ProjectedPatternSemanticDiagnostic}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+import std.core.{Float, Int}.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+contains(values: List[String], expected: String): Bool ->
+    case values { [] -> false; [value | rest] -> value == expected or contains(rest, expected) }.
+
+@pure
+last(values: List[String], fallback: String): String ->
+    case values { [] -> fallback; [value | rest] -> last(rest, value) }.
+
+@pure
+without_arguments_at(value: String, index: Int): String ->
+    if {
+        index == value.byte_size() -> value;
+        value.utf8_byte_at(index) == 91 -> value.utf8_slice(0, index);
+        true -> without_arguments_at(value, index + 1)
+    }.
+
+@pure
+type_base(value: String): String ->
+    last(String.split(without_arguments_at(String.trim(value), 0), "."), "").
+
+@pure
+fact_type_at(
+    values: List[InferredTypeFact],
+    byte_offset: Int,
+    current: Option[String],
+): Option[String] ->
+    case values {
+        [] -> current;
+        [value | rest] -> if {
+            value.byte_offset == byte_offset and value.type_name != None ->
+                fact_type_at(rest, byte_offset, value.type_name);
+            true -> fact_type_at(rest, byte_offset, current)
+        }
+    }.
+
+@pure
+find_sum(name: String, values: List[FiniteSumContract]): Option[FiniteSumContract] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            type_base(value.name) == type_base(name) -> Some(value);
+            true -> find_sum(name, rest)
+        }
+    }.
+
+@pure
+find_constructor(
+    name: String,
+    values: List[PatternConstructorContract],
+): Option[PatternConstructorContract] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            type_base(value.name) == type_base(name) -> Some(value);
+            true -> find_constructor(name, rest)
+        }
+    }.
+
+@pure
+primitive_subject(name: String): Bool ->
+    let base = type_base(name);
+    base == "Int"
+        or base == "Float"
+        or base == "Bool"
+        or base == "String"
+        or base == "Binary"
+        or base == "Atom"
+        or base == "Unit".
+
+@pure
+unwrapped_pattern(value: ProjectedExpressionNode): ProjectedExpressionNode ->
+    if {
+        value.kind == "pattern" -> case value.children {
+            [child] -> unwrapped_pattern(child);
+            _ -> value
+        };
+        true -> value
+    }.
+
+@pure
+clause_pattern(value: ProjectedExpressionNode): Option[ProjectedExpressionNode] ->
+    case value.children {
+        [pattern | _rest] -> Some(unwrapped_pattern(pattern));
+        [] -> None
+    }.
+
+@pure
+diagnostic(
+    head: String,
+    pattern: ProjectedExpressionNode,
+    subject_type: String,
+): ProjectedPatternSemanticDiagnostic ->
+    ProjectedPatternSemanticDiagnostic(
+        head,
+        pattern.start_byte,
+        pattern.end_byte,
+        String.concat([
+            "constructor pattern `",
+            pattern.text,
+            "` is incompatible with inferred subject type `",
+            subject_type,
+            "`",
+        ]),
+    ).
+
+@pure
+payload_diagnostic(
+    head: String,
+    pattern: ProjectedExpressionNode,
+    expected: String,
+    actual: String,
+): ProjectedPatternSemanticDiagnostic ->
+    ProjectedPatternSemanticDiagnostic(
+        head,
+        pattern.start_byte,
+        pattern.end_byte,
+        String.concat([
+            "pattern payload type mismatch: expected `",
+            expected,
+            "`, found `",
+            actual,
+            "`",
+        ]),
+    ).
+
+@pure
+literal_type(value: String): String ->
+    if {
+        value == "true" or value == "false" -> "Bool";
+        String.starts_with(value, "\"") -> "String";
+        Int.from_string(value) != None -> "Int";
+        Float.from_string(value) != None -> "Float";
+        true -> "Atom"
+    }.
+
+@pure
+payload_children_diagnostics(
+    patterns: List[ProjectedExpressionNode],
+    expected: List[Option[String]],
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case patterns {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [pattern | pattern_rest] -> case expected {
+            [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+            [expected_type | expected_rest] -> append(
+                case expected_type {
+                    None -> List.new[ProjectedPatternSemanticDiagnostic]();
+                    Some(type_name) -> pattern_type_diagnostics(
+                        unwrapped_pattern(pattern),
+                        type_name,
+                        catalog,
+                        head,
+                    )
+                },
+                payload_children_diagnostics(
+                    pattern_rest,
+                    expected_rest,
+                    catalog,
+                    head,
+                ),
+            )
+        }
+    }.
+
+@pure
+constructor_payload_diagnostics(
+    pattern: ProjectedExpressionNode,
+    expected_type: String,
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case find_sum(expected_type, catalog.sums) {
+        Some(sum) where not contains(sum.members, type_base(pattern.text)) -> [
+            diagnostic(head, pattern, expected_type)
+        ];
+        _ -> case find_constructor(pattern.text, catalog.constructors) {
+            None -> List.new[ProjectedPatternSemanticDiagnostic]();
+            Some(contract) -> payload_children_diagnostics(
+                pattern.children,
+                ProjectedPatternPayloadTypes.instantiate(contract, expected_type),
+                catalog,
+                head,
+            )
+        }
+    }.
+
+@pure
+pattern_type_diagnostics(
+    pattern: ProjectedExpressionNode,
+    expected_type: String,
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    if {
+        pattern.kind == "constructor-pattern" -> constructor_payload_diagnostics(
+            pattern,
+            expected_type,
+            catalog,
+            head,
+        );
+        pattern.kind == "literal-pattern" ->
+            let actual = literal_type(pattern.text);
+            if {
+                type_base(expected_type) == actual -> List.new[ProjectedPatternSemanticDiagnostic]();
+                true -> [payload_diagnostic(head, pattern, expected_type, actual)]
+            };
+        true -> List.new[ProjectedPatternSemanticDiagnostic]()
+    }.
+
+@pure
+sum_clause_diagnostics(
+    values: List[ProjectedExpressionNode],
+    contract: FiniteSumContract,
+    subject_type: String,
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [value | rest] -> case clause_pattern(value) {
+            Some(pattern) where pattern.kind == "constructor-pattern" -> if {
+                contains(contract.members, type_base(pattern.text)) ->
+                    append(
+                        case find_constructor(pattern.text, catalog.constructors) {
+                            None -> List.new[ProjectedPatternSemanticDiagnostic]();
+                            Some(constructor_contract) -> payload_children_diagnostics(
+                                pattern.children,
+                                ProjectedPatternPayloadTypes.instantiate(
+                                    constructor_contract,
+                                    subject_type,
+                                ),
+                                catalog,
+                                head,
+                            )
+                        },
+                        sum_clause_diagnostics(rest, contract, subject_type, catalog, head),
+                    );
+                true -> [diagnostic(head, pattern, subject_type)
+                    | sum_clause_diagnostics(rest, contract, subject_type, catalog, head)]
+            };
+            _ -> sum_clause_diagnostics(rest, contract, subject_type, catalog, head)
+        }
+    }.
+
+@pure
+primitive_clause_diagnostics(
+    values: List[ProjectedExpressionNode],
+    subject_type: String,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [value | rest] -> case clause_pattern(value) {
+            Some(pattern) where pattern.kind == "constructor-pattern" -> [
+                diagnostic(head, pattern, subject_type)
+                | primitive_clause_diagnostics(rest, subject_type, head)
+            ];
+            _ -> primitive_clause_diagnostics(rest, subject_type, head)
+        }
+    }.
+
+@pure
+case_diagnostics(
+    value: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case value.children {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [subject | clauses] -> case fact_type_at(facts, subject.start_byte, None) {
+            None -> List.new[ProjectedPatternSemanticDiagnostic]();
+            Some(subject_type) -> case find_sum(subject_type, catalog.sums) {
+                None -> if {
+                    primitive_subject(subject_type) -> primitive_clause_diagnostics(
+                        clauses,
+                        subject_type,
+                        head,
+                    );
+                    true -> List.new[ProjectedPatternSemanticDiagnostic]()
+                };
+                Some(contract) -> sum_clause_diagnostics(
+                    clauses,
+                    contract,
+                    subject_type,
+                    catalog,
+                    head,
+                )
+            }
+        }
+    }.
+
+@pure
+children_diagnostics(
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [value | rest] -> append(
+            expression_diagnostics(value, facts, catalog, head),
+            children_diagnostics(rest, facts, catalog, head),
+        )
+    }.
+
+@pure
+expression_diagnostics(
+    value: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    catalog: PatternAuthorityCatalog,
+    head: String,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    append(
+        if {
+            value.kind == "case" -> case_diagnostics(value, facts, catalog, head);
+            true -> List.new[ProjectedPatternSemanticDiagnostic]()
+        },
+        children_diagnostics(value.children, facts, catalog, head),
+    ).
+
+/** Checks one expression tree against inferred identifier subject types. */
+@pure
+pub check_expression(
+    head: String,
+    value: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    catalog: PatternAuthorityCatalog,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    expression_diagnostics(value, facts, catalog, head).
+
+/** Checks every projected body against inferred identifier subject types. */
+@pure
+pub check_bodies(
+    values: List[ProjectedBody],
+    facts: List[InferredTypeFact],
+    catalog: PatternAuthorityCatalog,
+): List[ProjectedPatternSemanticDiagnostic] ->
+    case values {
+        [] -> List.new[ProjectedPatternSemanticDiagnostic]();
+        [value | rest] -> append(
+            case value.expression.node {
+                None -> List.new[ProjectedPatternSemanticDiagnostic]();
+                Some(expression) -> check_expression(
+                    value.declaration_head,
+                    expression,
+                    facts,
+                    catalog,
+                )
+            },
+            check_bodies(rest, facts, catalog),
+        )
+    }.

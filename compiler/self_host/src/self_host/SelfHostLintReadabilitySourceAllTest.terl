@@ -1,0 +1,36 @@
+/** Integration contracts for source-owned readability diagnostics. */
+module self_host.SelfHostLintReadabilitySourceAllTest.
+
+import self_host.SelfHostLintReadabilitySourceAll.
+
+@test
+pub emits_source_rules_in_global_registry_order(): Bool ->
+    let values = SelfHostLintReadabilitySourceAll.diagnostics(
+        "Api.terl",
+        "// value.\nvalue;\npub undocumented(): Int -> 1.\n/**\n*bad spacing\n */\nif { ready and valid or forced -> value\n",
+    );
+    case values {
+        [comment, docs, spacing, branch] ->
+            comment.rule_id == "TL0005"
+                and docs.rule_id == "TL0006"
+                and spacing.rule_id == "TL0007"
+                and branch.rule_id == "TL0008";
+        _ -> false
+    }.
+
+@test
+pub public_docs_path_exemption_does_not_suppress_other_source_rules(): Bool ->
+    case SelfHostLintReadabilitySourceAll.diagnostics(
+        "ApiTest.terl",
+        "pub undocumented(): Int -> 1.\nif { ready and valid or forced -> value\n",
+    ) {
+        [branch] -> branch.rule_id == "TL0008" and branch.line == 2;
+        _ -> false
+    }.
+
+@test
+pub clean_source_has_no_readability_diagnostics(): Bool ->
+    SelfHostLintReadabilitySourceAll.diagnostics(
+        "Api.terl",
+        "/** Returns one. */\npub one(): Int ->\n    if { true -> 1; false -> 0 }.\n",
+    ) == [].

@@ -1,8 +1,8 @@
 module=std.js.Dom.Clipboard
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=11474037237700597223
-interface_hash=10418397056193331811
-interface_doc_hash=10418397056193331811
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=14612220256120457457
+interface_hash=12283145559695035052
+interface_doc_hash=12283145559695035052
 deps=0

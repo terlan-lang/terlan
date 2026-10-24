@@ -1,0 +1,8 @@
+module=std.css.keywords.HistoricalForms
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=8479055167295269516
+interface_hash=9356282014075058816
+interface_doc_hash=286791219357281523
+deps=0

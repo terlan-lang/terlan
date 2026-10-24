@@ -56,7 +56,7 @@ fn expression_precedence(expr: &Expr) -> u8 {
         | Expr::Tuple(_)
         | Expr::List(_)
         | Expr::ListCons(_, _)
-        | Expr::FixedArray(_)
+        | Expr::Array(_)
         | Expr::Map(_)
         | Expr::ListComprehension { .. }
         | Expr::Case { .. }

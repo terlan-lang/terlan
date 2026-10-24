@@ -1,0 +1,108 @@
+/** Deterministic stage trace produced from one shared self-hosted frontend pass. */
+module self_host.SelfHostCompilerTrace.
+
+import std.core.String.
+
+import std.collections.List.
+import std.core.{Bool, Int, String}.
+
+import self_host.SelfHostToolingDocument.{ToolingDocument}.
+import self_host.SelfHostToolingDocument.
+
+
+pub struct CompilerTraceEvent {
+    stage: String,
+    valid: Bool,
+    units: Int,
+    message: String,
+}.
+
+pub constructor CompilerTraceEvent {
+    (stage: String, valid: Bool, units: Int, message: String): CompilerTraceEvent ->
+        CompilerTraceEvent {
+            stage: stage,
+            valid: valid,
+            units: units,
+            message: message,
+        }
+}.
+
+
+pub struct CompilerTrace {
+    valid: Bool,
+    events: List[CompilerTraceEvent],
+}.
+
+pub constructor CompilerTrace {
+    (valid: Bool, events: List[CompilerTraceEvent]): CompilerTrace ->
+        CompilerTrace { valid: valid, events: events }
+}.
+
+@pure
+stage_message(valid: Bool, document: ToolingDocument): String ->
+    if { valid -> "ok"; true -> document.message }.
+
+@pure
+event(
+    stage: String,
+    valid: Bool,
+    units: Int,
+    document: ToolingDocument,
+): CompilerTraceEvent ->
+    CompilerTraceEvent(stage, valid, units, stage_message(valid, document)).
+
+/** Builds an ordered trace without wall-clock or host-dependent values. */
+@pure
+pub build(source: String): CompilerTrace ->
+    let document = SelfHostToolingDocument.build(source);
+    let frontend = document.frontend;
+    CompilerTrace(document.valid, [
+        event(
+            "lexical",
+            document.lexical_valid,
+            List.length(document.canonical_tokens),
+            document,
+        ),
+        event("concrete-syntax", frontend.concrete.valid, 1, document),
+        event("projected-syntax", frontend.surface.valid, 1, document),
+        event("signatures", frontend.signatures.valid, 1, document),
+        event("bodies", frontend.bodies.valid, 1, document),
+        event("frontend", document.frontend_valid, 1, document),
+        event("tooling-document", document.valid, 1, document),
+    ]).
+
+@pure
+single_line(value: String): String ->
+    String.replace(
+        String.replace(String.replace(value, "\t", " "), "\r", " "),
+        "\n",
+        " ",
+    ).
+
+@pure
+render_event(value: CompilerTraceEvent): String ->
+    value.stage
+        + "\t"
+        + if { value.valid -> "accepted"; true -> "rejected" }
+        + "\t"
+        + value.units.to_string()
+        + "\t"
+        + single_line(value.message)
+        + "\n".
+
+@pure
+render_events(values: List[CompilerTraceEvent]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> render_event(value) + render_events(rest)
+    }.
+
+/** Renders a stable trace suitable for bootstrap and parity comparison. */
+@pure
+pub render(value: CompilerTrace): String ->
+    "terlan.self-host.compiler-trace/v1\n"
+        + "status\t"
+        + if { value.valid -> "accepted"; true -> "rejected" }
+        + "\n"
+        + "stage\tstatus\tunits\tmessage\n"
+        + render_events(value.events).

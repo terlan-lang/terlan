@@ -143,6 +143,35 @@ pub(super) fn lower_selected_application(
         ),
     );
     let profile_order = profile_dependency_order(candidates, selected, candidate_resolvers);
+    let profile_dependencies = candidates
+        .iter()
+        .enumerate()
+        .map(|(candidate_index, candidate)| {
+            if !selected[candidate_index] {
+                return Vec::new();
+            }
+            let mut dependencies = Vec::new();
+            if let Some(body) = candidate
+                .function
+                .clauses
+                .first()
+                .and_then(|clause| clause.body.core_expr.as_ref())
+            {
+                let resolver = &candidate_resolvers[&candidate.core.module];
+                dynamic_targets::walk_calls(body, &mut |function, args| {
+                    let identity = (function.to_string(), args.len());
+                    if let Some(target) = resolver.get(&identity) {
+                        if let Some(native) = candidate_to_native.get(target) {
+                            dependencies.push(*native);
+                        }
+                    }
+                });
+            }
+            dependencies.sort_unstable();
+            dependencies.dedup();
+            dependencies
+        })
+        .collect::<Vec<_>>();
     trace_native_aot(
         started,
         "profile-order",
@@ -215,9 +244,19 @@ pub(super) fn lower_selected_application(
     );
     let recursive_seed_profiles = call_profiles.keys().copied().collect::<HashSet<_>>();
     let recursive_seed_call_profiles = call_profiles.clone();
+    let mut profile_generation = 0_u64;
+    let mut call_profile_generations = call_profiles
+        .keys()
+        .map(|native| (*native, profile_generation))
+        .collect::<HashMap<_, _>>();
     let mut call_profile_gaps = HashMap::new();
     let mut dynamic_call_profiles =
         dynamic_targets::seed_profiles(candidates, selected, constructor_layouts)?;
+    let mut dynamic_profile_generation = profile_generation;
+    let mut dynamic_signature_generations = dynamic_call_profiles
+        .keys()
+        .map(|signature| (signature.clone(), profile_generation))
+        .collect::<HashMap<_, _>>();
     trace_native_aot(
         started,
         "dynamic-profile-seeds",
@@ -226,6 +265,9 @@ pub(super) fn lower_selected_application(
     let mut dynamic_profile_gaps = HashMap::new();
     let mut refined_recursive_profiles = HashSet::new();
     let mut profile_lowerings = HashMap::new();
+    let mut profile_input_snapshots = HashMap::new();
+    let mut profile_dynamic_signatures =
+        HashMap::<usize, Vec<super::super::call_composition::DynamicCallSignature>>::new();
     // Recursive components start from their synthetic reduction profiles, then
     // every ordinary caller is refreshed until the complete profile graph is
     // unchanged. A fixed number of caller passes is incorrect: candidate
@@ -237,12 +279,13 @@ pub(super) fn lower_selected_application(
         .saturating_add(4);
     let mut profiles_converged = false;
     for phase in 0..maximum_profile_phases {
-        let stable_snapshot =
-            (phase >= 3).then(|| (call_profiles.clone(), dynamic_call_profiles.clone()));
+        let stable_generation = (phase >= 3).then_some(profile_generation);
         if phase == 2 {
             refined_recursive_profiles.clear();
         }
         let mut phase_refreshed = HashSet::new();
+        let mut phase_lowered = 0_usize;
+        let mut phase_cache_hits = 0_usize;
         loop {
             let mut progress = false;
             for (position, candidate_index) in profile_order.iter().copied().enumerate() {
@@ -316,6 +359,53 @@ pub(super) fn lower_selected_application(
                     &dynamic_call_profiles,
                     dynamic_parameter_targets.get(&candidate_index),
                 );
+                let mut relevant_profiles = profile_dependencies[candidate_index].clone();
+                relevant_profiles.extend(recursive_component_natives.iter().copied());
+                relevant_profiles.sort_unstable();
+                relevant_profiles.dedup();
+                let dynamic_snapshot = match profile_dynamic_signatures.get(&native_index) {
+                    Some(signatures) => {
+                        let generations = signatures
+                            .iter()
+                            .map(|signature| {
+                                (
+                                    signature.clone(),
+                                    dynamic_signature_generations
+                                        .get(signature)
+                                        .copied()
+                                        .unwrap_or(0),
+                                )
+                            })
+                            .collect::<Vec<_>>();
+                        (None, generations)
+                    }
+                    None => (Some(dynamic_profile_generation), Vec::new()),
+                };
+                let input_snapshot = (
+                    relevant_profiles
+                        .into_iter()
+                        .map(|dependency| {
+                            (
+                                dependency,
+                                call_profiles.contains_key(&dependency),
+                                call_profile_generations
+                                    .get(&dependency)
+                                    .copied()
+                                    .unwrap_or(0),
+                            )
+                        })
+                        .collect::<Vec<_>>(),
+                    dynamic_snapshot,
+                );
+                if profile_input_snapshots.get(&native_index) == Some(&input_snapshot)
+                    && profile_lowerings.contains_key(&native_index)
+                {
+                    phase_cache_hits = phase_cache_hits.saturating_add(1);
+                    phase_refreshed.insert(native_index);
+                    continue;
+                }
+                profile_input_snapshots.insert(native_index, input_snapshot);
+                phase_lowered = phase_lowered.saturating_add(1);
                 let lowered = super::super::lower_native_function_with_callables(
                     &candidate.core.module,
                     candidate.function,
@@ -343,7 +433,12 @@ pub(super) fn lower_selected_application(
                         call_profile_gaps
                             .insert(native_index, format!("native lowering failed: {error}"));
                         if !recursive_seed {
-                            progress |= call_profiles.remove(&native_index).is_some();
+                            if call_profiles.remove(&native_index).is_some() {
+                                profile_generation = profile_generation.saturating_add(1);
+                                call_profile_generations
+                                    .insert(native_index, profile_generation);
+                                progress = true;
+                            }
                             profile_lowerings.remove(&native_index);
                         }
                         phase_refreshed.insert(native_index);
@@ -355,6 +450,38 @@ pub(super) fn lower_selected_application(
                     &mut profile_lifted,
                     &mut continuations,
                 );
+                let mut candidate_dynamic_signatures = Vec::new();
+                let mut collect_dynamic_signature = |expr: &NativeExpr| {
+                    let (parameters, result) = match expr {
+                        NativeExpr::InvokeClosure {
+                            parameter_types,
+                            result_type,
+                            ..
+                        }
+                        | NativeExpr::InvokeClosureThen {
+                            parameter_types,
+                            result_type,
+                            ..
+                        } => (parameter_types, *result_type),
+                        _ => return,
+                    };
+                    let signature =
+                        super::super::call_composition::DynamicCallSignature {
+                            parameters: parameters.clone(),
+                            result,
+                        };
+                    if !candidate_dynamic_signatures.contains(&signature) {
+                        candidate_dynamic_signatures.push(signature);
+                    }
+                };
+                walk_native_expr(&native.body, &mut collect_dynamic_signature);
+                for continuation in &continuations {
+                    walk_native_expr(&continuation.body, &mut collect_dynamic_signature);
+                }
+                for lifted in &profile_lifted {
+                    walk_native_expr(&lifted.body, &mut collect_dynamic_signature);
+                }
+                profile_dynamic_signatures.insert(native_index, candidate_dynamic_signatures);
                 let lifted_profiles = profile_lifted
                     .iter()
                     .map(|lifted| {
@@ -397,9 +524,9 @@ pub(super) fn lower_selected_application(
                         parameters: lifted.params[lifted.callable_captures.len()..].to_vec(),
                         result: lifted.return_type,
                     };
-                    dynamic_progress |= merge_dynamic_call_profile(
+                    let merged = merge_dynamic_call_profile(
                         &mut dynamic_call_profiles,
-                        signature,
+                        signature.clone(),
                         lifted.export_id,
                         format!(
                             "{}.{}/{}",
@@ -407,6 +534,12 @@ pub(super) fn lower_selected_application(
                         ),
                         profile,
                     )?;
+                    if merged {
+                        profile_generation = profile_generation.saturating_add(1);
+                        dynamic_profile_generation = profile_generation;
+                        dynamic_signature_generations.insert(signature, profile_generation);
+                        dynamic_progress = true;
+                    }
                     dynamic_profile_gaps.remove(&lifted.export_id);
                 }
                 if pure_factory {
@@ -485,7 +618,11 @@ pub(super) fn lower_selected_application(
                     };
                     call_profile_gaps.insert(native_index, reason);
                     if !recursive_seed {
-                        progress |= call_profiles.remove(&native_index).is_some();
+                        if call_profiles.remove(&native_index).is_some() {
+                            profile_generation = profile_generation.saturating_add(1);
+                            call_profile_generations.insert(native_index, profile_generation);
+                            progress = true;
+                        }
                         profile_lowerings.remove(&native_index);
                     }
                     phase_refreshed.insert(native_index);
@@ -550,7 +687,11 @@ pub(super) fn lower_selected_application(
                         "lowered body retains an uncomposed suspending call".to_string(),
                     );
                     if !recursive_seed {
-                        progress |= call_profiles.remove(&native_index).is_some();
+                        if call_profiles.remove(&native_index).is_some() {
+                            profile_generation = profile_generation.saturating_add(1);
+                            call_profile_generations.insert(native_index, profile_generation);
+                            progress = true;
+                        }
                         profile_lowerings.remove(&native_index);
                     }
                     phase_refreshed.insert(native_index);
@@ -584,12 +725,14 @@ pub(super) fn lower_selected_application(
                             }
                         }
                     }
-                    merge_dynamic_call_profile(
-                        &mut dynamic_call_profiles,
+                    let dynamic_signature =
                         super::super::call_composition::DynamicCallSignature {
                             parameters: native.params.clone(),
                             result: native.return_type,
-                        },
+                        };
+                    let merged_dynamic = merge_dynamic_call_profile(
+                        &mut dynamic_call_profiles,
+                        dynamic_signature.clone(),
                         native.export_id,
                         format!(
                             "{}.{}/{}",
@@ -599,7 +742,19 @@ pub(super) fn lower_selected_application(
                         ),
                         profile.clone(),
                     )?;
-                    call_profiles.insert(native_index, profile);
+                    if merged_dynamic {
+                        profile_generation = profile_generation.saturating_add(1);
+                        dynamic_profile_generation = profile_generation;
+                        dynamic_signature_generations
+                            .insert(dynamic_signature, profile_generation);
+                        dynamic_progress = true;
+                    }
+                    let profile_changed = call_profiles.get(&native_index) != Some(&profile);
+                    if profile_changed {
+                        profile_generation = profile_generation.saturating_add(1);
+                        call_profile_generations.insert(native_index, profile_generation);
+                        call_profiles.insert(native_index, profile);
+                    }
                     profile_lowerings.insert(
                         native_index,
                         (native, continuations, profile_lifted, profile_ids),
@@ -608,7 +763,7 @@ pub(super) fn lower_selected_application(
                     if recursive_seed_profiles.contains(&native_index) {
                         refined_recursive_profiles.insert(native_index);
                     }
-                    progress = true;
+                    progress |= profile_changed || dynamic_progress;
                 } else {
                     let reason = super::super::call_composition::profile_gap_reason(
                         &native.body,
@@ -619,7 +774,11 @@ pub(super) fn lower_selected_application(
                     );
                     call_profile_gaps.insert(native_index, reason);
                     if !recursive_seed {
-                        progress |= call_profiles.remove(&native_index).is_some();
+                        if call_profiles.remove(&native_index).is_some() {
+                            profile_generation = profile_generation.saturating_add(1);
+                            call_profile_generations.insert(native_index, profile_generation);
+                            progress = true;
+                        }
                         profile_lowerings.remove(&native_index);
                     }
                     phase_refreshed.insert(native_index);
@@ -632,16 +791,14 @@ pub(super) fn lower_selected_application(
                 break;
             }
         }
-        if stable_snapshot.is_some_and(|snapshot| {
-            snapshot == (call_profiles.clone(), dynamic_call_profiles.clone())
-        }) {
+        if stable_generation == Some(profile_generation) {
             profiles_converged = true;
             let (total, maximum) = profile_widths(&call_profiles);
             trace_native_aot(
                 started,
                 "profiles-converged",
                 format_args!(
-                    "phase={phase} profiles={} total-continuations={total} maximum-width={maximum} widest=[{}]",
+                    "phase={phase} profiles={} total-continuations={total} maximum-width={maximum} lowered={phase_lowered} cache-hits={phase_cache_hits} widest=[{}]",
                     call_profiles.len(),
                     widest_profile_labels(&call_profiles, &native_function_labels)
                 ),
@@ -653,7 +810,7 @@ pub(super) fn lower_selected_application(
             started,
             "profile-phase",
             format_args!(
-                "phase={phase} profiles={} total-continuations={total} maximum-width={maximum}",
+                "phase={phase} profiles={} total-continuations={total} maximum-width={maximum} lowered={phase_lowered} cache-hits={phase_cache_hits}",
                 call_profiles.len()
             ),
         );
@@ -691,7 +848,7 @@ pub(super) fn lower_selected_application(
     }
     let final_profiles = call_profiles.clone();
     for profile in call_profiles.values_mut() {
-        for continuation in &mut profile.continuations {
+        for continuation in std::sync::Arc::make_mut(&mut profile.continuations) {
             super::super::call_composition::close_call_contracts(
                 &mut continuation.body,
                 &final_profiles,

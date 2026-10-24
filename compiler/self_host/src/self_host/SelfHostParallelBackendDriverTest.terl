@@ -1,0 +1,41 @@
+/** Pure admission contracts for the parallel backend worker driver. */
+module self_host.SelfHostParallelBackendDriverTest.
+
+import std.core.Result.{Err, Ok}.
+import self_host.SelfHostParallelBackendDriver.{BackendWorkerJob}.
+import self_host.SelfHostParallelBackendDriver.
+
+
+@test
+pub worker_plan_is_bounded_and_ordered(): Bool ->
+    case SelfHostParallelBackendDriver.plan([
+        BackendWorkerJob("a", "a.terl", "a.json", "a.err"),
+        BackendWorkerJob("b", "b.terl", "b.json", "b.err"),
+        BackendWorkerJob("c", "c.terl", "c.json", "c.err"),
+    ], 2) {
+        Ok([first, second]) -> first.index == 0
+            and first.modules == ["a", "b"]
+            and second.index == 1
+            and second.modules == ["c"];
+        _ -> false
+    }.
+
+@test
+pub aliased_worker_outputs_are_rejected(): Bool ->
+    case SelfHostParallelBackendDriver.plan([
+        BackendWorkerJob("a", "a.terl", "same.json", "a.err"),
+        BackendWorkerJob("b", "b.terl", "same.json", "b.err"),
+    ], 2) {
+        Err(_) -> true;
+        Ok(_) -> false
+    }.
+
+@test
+pub cross_channel_output_aliases_are_rejected(): Bool ->
+    case SelfHostParallelBackendDriver.plan([
+        BackendWorkerJob("a", "a.terl", "a.json", "shared.path"),
+        BackendWorkerJob("b", "b.terl", "shared.path", "b.err"),
+    ], 2) {
+        Err(_) -> true;
+        Ok(_) -> false
+    }.

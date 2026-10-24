@@ -112,6 +112,24 @@ impl<T: Clone> SessionRegistry<T> {
         })
     }
 
+    /// Atomically reserves a trusted source-generated identity. Collisions do not
+    /// allocate resources or alter deadlines, including entries awaiting cleanup.
+    pub fn try_create(
+        &mut self,
+        identity: &str,
+        ttl_ticks: u64,
+        resources: &mut impl SessionResources<T>,
+    ) -> Result<bool, SessionError> {
+        if ttl_ticks == 0 {
+            return Err(SessionError::ZeroTtl);
+        }
+        if identity.is_empty() || self.entries.contains_key(identity) {
+            return Ok(false);
+        }
+        self.insert_new(identity.into(), ttl_ticks, resources)?;
+        Ok(true)
+    }
+
     fn create_with(
         &mut self,
         ttl_ticks: u64,
@@ -122,6 +140,15 @@ impl<T: Clone> SessionRegistry<T> {
             return Err(SessionError::ZeroTtl);
         }
         let id = issue(self)?;
+        self.insert_new(id, ttl_ticks, resources)
+    }
+
+    fn insert_new(
+        &mut self,
+        id: String,
+        ttl_ticks: u64,
+        resources: &mut impl SessionResources<T>,
+    ) -> Result<SessionEntry<T>, SessionError> {
         let value = resources.create(&id)?;
         let entry = SessionEntry {
             id,
@@ -186,6 +213,26 @@ impl<T: Clone> SessionRegistry<T> {
         })
     }
 
+    /// Atomically replaces a live identity with a trusted source candidate.
+    /// A collision preserves both sessions and never extends the old deadline.
+    pub fn try_rotate(
+        &mut self,
+        identity: &str,
+        replacement: &str,
+        ttl_ticks: u64,
+        resources: &mut impl SessionResources<T>,
+    ) -> Result<bool, SessionError> {
+        if ttl_ticks == 0 {
+            return Err(SessionError::ZeroTtl);
+        }
+        self.live(identity, resources)?;
+        if replacement.is_empty() || self.entries.contains_key(replacement) {
+            return Ok(false);
+        }
+        self.replace_identity(identity, replacement.into(), ttl_ticks);
+        Ok(true)
+    }
+
     fn rotate_with(
         &mut self,
         identity: &str,
@@ -198,6 +245,10 @@ impl<T: Clone> SessionRegistry<T> {
         }
         self.live(identity, resources)?;
         let id = issue(self)?;
+        Ok(self.replace_identity(identity, id, ttl_ticks))
+    }
+
+    fn replace_identity(&mut self, identity: &str, id: String, ttl_ticks: u64) -> SessionEntry<T> {
         let mut entry = self
             .entries
             .remove(identity)
@@ -207,7 +258,7 @@ impl<T: Clone> SessionRegistry<T> {
         entry.id = id;
         entry.expires_at_tick = self.now_tick().saturating_add(ttl_ticks);
         self.insert(entry.clone());
-        Ok(entry)
+        entry
     }
 
     pub fn expire(

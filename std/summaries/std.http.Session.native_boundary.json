@@ -7,8 +7,8 @@
     },
     {
       "arity": 2,
-      "name": "create",
-      "operation": "std.http.session.create"
+      "name": "try_create",
+      "operation": "std.http.session.try_create"
     },
     {
       "arity": 2,
@@ -26,9 +26,9 @@
       "operation": "std.http.session.delete"
     },
     {
-      "arity": 2,
-      "name": "renew",
-      "operation": "std.http.session.rotate"
+      "arity": 3,
+      "name": "try_rotate",
+      "operation": "std.http.session.try_rotate"
     },
     {
       "arity": 1,

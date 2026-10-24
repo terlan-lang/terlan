@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGTextPathElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=717778535167651246
-interface_hash=14941992120532934680
-interface_doc_hash=14941992120532934680
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=16430729902363283405
+interface_hash=14585412786166114963
+interface_doc_hash=14585412786166114963
 deps=0

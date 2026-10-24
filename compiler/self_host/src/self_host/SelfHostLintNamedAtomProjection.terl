@@ -1,0 +1,121 @@
+/** Tooling-document projection for TL0506 named atom consistency. */
+module self_host.SelfHostLintNamedAtomProjection.
+
+import std.core.Option.{None, Some}.
+import std.core.String.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedSignatureSyntax.ProjectedTypeDeclarationTree.
+import self_host.SelfHostLintConsistency.
+import self_host.SelfHostLintNamedAtom.{AtomLiteralUse, NamedAtomType}.
+import self_host.SelfHostLintNamedAtom.
+import self_host.SelfHostToolingDocument.ToolingDocument.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+source_slice(source: String, start_byte: Int, end_byte: Int): String ->
+    String.utf8_slice(source, start_byte, end_byte - start_byte).
+
+named_type(
+    value: ProjectedTypeDeclarationTree,
+    source: String,
+): Option[NamedAtomType] ->
+    case value.representation {
+        Some(node) where node.kind == "generic-type" and node.text == "Atom" ->
+            case node.children {
+                [atom] where atom.kind == "atom-type" ->
+                    case SelfHostLintNamedAtom.atom_literal_name(
+                        source_slice(source, node.start_byte, node.end_byte),
+                    ) {
+                        Some(name) -> Some(NamedAtomType(value.name, name));
+                        None -> None
+                    };
+                _ -> None
+            };
+        _ -> None
+    }.
+
+named_types(
+    values: List[ProjectedTypeDeclarationTree],
+    source: String,
+): List[NamedAtomType] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case named_type(value, source) {
+            None -> named_types(rest, source);
+            Some(found) -> [found | named_types(rest, source)]
+        }
+    }.
+
+node_uses(
+    value: ProjectedExpressionNode,
+    source: String,
+): List[AtomLiteralUse] ->
+    let nested = nodes_uses(value.children, source);
+    if {
+        value.kind != "atom-literal" -> nested;
+        true -> case SelfHostLintNamedAtom.atom_literal_name(
+            source_slice(source, value.start_byte, value.end_byte),
+        ) {
+            Some(name) -> [AtomLiteralUse(name, value.start_byte, true) | nested];
+            None -> nested
+        }
+    }.
+
+nodes_uses(
+    values: List[ProjectedExpressionNode],
+    source: String,
+): List[AtomLiteralUse] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            node_uses(value, source),
+            nodes_uses(rest, source),
+        )
+    }.
+
+body_uses(
+    values: List[self_host.ProjectedBodySyntax.ProjectedBody],
+    source: String,
+): List[AtomLiteralUse] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case value.expression.node {
+            None -> body_uses(rest, source);
+            Some(expression) -> append(
+                node_uses(expression, source),
+                body_uses(rest, source),
+            )
+        }
+    }.
+
+/** Projects exact singleton atom aliases from local type declarations. */
+pub types(value: ToolingDocument): List[NamedAtomType] ->
+    if {
+        value.valid and value.frontend.signatures.valid -> named_types(
+            value.frontend.signatures.types,
+            value.source,
+        );
+        true -> []
+    }.
+
+/** Projects raw atom literals only from callable expression bodies. */
+pub uses(value: ToolingDocument): List[AtomLiteralUse] ->
+    if {
+        value.valid and value.frontend.bodies.valid ->
+            body_uses(value.frontend.bodies.values, value.source);
+        true -> []
+    }.
+
+/** Runs TL0506 without native AST projection. */
+@pure
+pub diagnostics(
+    path: String,
+    value: ToolingDocument,
+): List[self_host.SelfHostLintConsistency.ConsistencyDiagnostic] ->
+    SelfHostLintNamedAtom.diagnostics(
+        value.source,
+        path,
+        types(value),
+        uses(value),
+    ).

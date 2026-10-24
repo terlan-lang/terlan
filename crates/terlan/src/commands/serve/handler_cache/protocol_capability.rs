@@ -319,7 +319,10 @@ pub(super) fn dispatch_trusted_capability(
     owner: VmProcessId,
     wait: &PureNativeCapabilityWait,
 ) -> Result<Option<NativeBoundaryReplyTerm>, String> {
-    if wait.request().operation.starts_with("std.db.postgres.") || !trusted_host_capability(wait) {
+    if wait.request().operation.starts_with("std.db.postgres.")
+        || crate::std_native_packages::value_operation_requires_worker(&wait.request().operation)
+        || !trusted_host_capability(wait)
+    {
         return Ok(None);
     }
     with_current_protocol_resource(
@@ -403,3 +406,7 @@ mod postgres_server_test;
 #[cfg(test)]
 #[path = "resource_server_test.rs"]
 mod resource_server_test;
+
+#[cfg(test)]
+#[path = "entropy_worker_test.rs"]
+mod entropy_worker_test;

@@ -3,323 +3,26 @@ use super::server_lifecycle::*;
 use super::*;
 use std::io::Write as _;
 
-/// Handles one Hyper request for the browser package server.
-///
-/// Inputs:
-/// - `request`: Hyper request accepted by the local HTTP service.
-/// - `web_root`: validated package root owned by the connection task.
-/// - `reload_hub`: shared reload subscriber registry.
-/// - `websocket_hub`: shared WebSocket room state.
-///
-/// Output:
-/// - Hyper response carrying the selected route body.
-///
-/// Transformation:
-/// - Reads method, URI, headers, and body through Hyper/http types, then
-///   preserves the existing Terlan route-manifest and VM handler routing
-///   behavior above the protocol layer.
+/// Exercises the production package pipeline with an in-memory Hyper body.
+/// Reload subscriber tests retain their development-only hub.
 #[cfg(test)]
 pub(super) async fn handle_hyper_request<B>(
     request: Request<B>,
     web_root: PathBuf,
     reload_hub: ReloadHub,
-    websocket_hub: WebSocketHub,
 ) -> Response<ServeBody>
 where
-    B: hyper::body::Body<Data = Bytes> + Send + 'static,
+    B: hyper::body::Body<Data = Bytes> + Send + Unpin + 'static,
     B::Error: std::fmt::Display,
 {
-    let request_id = next_request_id();
-    let build_id = manifest_build_id(&web_root);
-    // Keep HTTP-owned method and URI storage borrowed across route selection.
-    // Projected dynamic handlers allocate only the fields observable by their
-    // generated image instead of cloning method, path, and query eagerly.
-    let request_method = request.method().clone();
-    let request_uri = request.uri().clone();
-    let method = request_method.as_str();
-    let request_path = request_uri.path();
-    let request_query = request_uri.query().unwrap_or("");
-    let header_pairs = request_header_pairs(request.headers());
-    let cookie_pairs = request_cookie_pairs(request.headers());
-    if manifest_websocket_for_path(&web_root, &request_path).is_some() {
-        let _ = websocket_hub;
-        return websocket_upgrade_response(&request);
-    }
-
-    if request_path == RELOAD_ENDPOINT {
-        if method != "GET" && method != "HEAD" {
-            return serve_response(
-                405,
-                "Method Not Allowed",
-                "text/plain; charset=utf-8",
-                &[("Allow".to_string(), "GET, HEAD".to_string())],
-                b"method not allowed",
-                false,
-            );
-        }
-        return reload_sse_response(reload_hub, method == "HEAD");
-    }
-
-    if method == "GET" || method == "HEAD" {
-        match acme_http01_challenge(&web_root, &request_path) {
-            Ok(AcmeHttp01Challenge::Found(body)) => {
-                return serve_response(
-                    200,
-                    "OK",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    body.as_bytes(),
-                    method == "HEAD",
-                );
-            }
-            Ok(AcmeHttp01Challenge::Missing) => {
-                return serve_response(
-                    404,
-                    "Not Found",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    b"not found",
-                    method == "HEAD",
-                );
-            }
-            Ok(AcmeHttp01Challenge::Invalid(message)) => {
-                return serve_response(
-                    400,
-                    "Bad Request",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    message.as_bytes(),
-                    method == "HEAD",
-                );
-            }
-            Ok(AcmeHttp01Challenge::NotMatched) => {}
-            Err(message) => {
-                return serve_response(
-                    500,
-                    "Internal Server Error",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    message.as_bytes(),
-                    method == "HEAD",
-                );
-            }
-        }
-    }
-
-    if method == "GET" || method == "HEAD" {
-        if let Some(response_path) = manifest_static_file_for_request(&web_root, &request_path) {
-            let started = Instant::now();
-            let (status, output) = static_file_response(&method, &response_path);
-            log_static_result(
-                request_id,
-                &build_id,
-                &method,
-                &request_path,
-                &response_path,
-                status,
-                started.elapsed().as_millis(),
-            );
-            return output;
-        }
-    }
-
-    if let Some(handler) = manifest_handler_for_request(&web_root, &method, &request_path) {
-        let identity = handler_log_identity(&handler);
-        let started = Instant::now();
-        let body_text = match request_body_text(request).await {
-            Ok(body) => body,
-            Err(message) => {
-                let body = render_dev_error_page(
-                    request_id,
-                    &build_id,
-                    &method,
-                    &request_path,
-                    &identity,
-                    &message,
-                )
-                .into_bytes();
-                let output = serve_response(
-                    400,
-                    "Bad Request",
-                    "text/html; charset=utf-8",
-                    &[],
-                    &body,
-                    method == "HEAD",
-                );
-                log_handler_result(
-                    request_id,
-                    &build_id,
-                    &method,
-                    &request_path,
-                    &identity,
-                    400,
-                    started.elapsed().as_millis(),
-                );
-                return output;
-            }
-        };
-        let native_request = terlan_http_native::Request::from_parts_with_raw_query_metadata(
-            method,
-            request_path,
-            body_text,
-            terlan_http_native::RequestMetadata {
-                params: handler.params.clone(),
-                query_string: request_query.to_owned(),
-                query: query_pairs(&request_query),
-                headers: header_pairs,
-                cookies: cookie_pairs,
-            },
-        );
-        let result = execute_dynamic_vm_handler(&web_root, &handler, native_request);
-        match result {
-            Ok(response) => {
-                let status = response.status;
-                let output = response
-                    .into_http(method == "HEAD")
-                    .map(terlan_http_native::response_body::ResponseBody::from_response)
-                    .map(|response| response.map(BodyExt::boxed))
-                    .unwrap_or_else(|error| internal_error_response(error.message().to_owned()));
-                log_handler_result(
-                    request_id,
-                    &build_id,
-                    &method,
-                    &request_path,
-                    &identity,
-                    status,
-                    started.elapsed().as_millis(),
-                );
-                return output;
-            }
-            Err(message) => {
-                let body = render_dev_error_page(
-                    request_id,
-                    &build_id,
-                    &method,
-                    &request_path,
-                    &identity,
-                    &message,
-                )
-                .into_bytes();
-                let output = serve_response(
-                    502,
-                    "Bad Gateway",
-                    "text/html; charset=utf-8",
-                    &[],
-                    &body,
-                    method == "HEAD",
-                );
-                log_handler_result(
-                    request_id,
-                    &build_id,
-                    &method,
-                    &request_path,
-                    &identity,
-                    502,
-                    started.elapsed().as_millis(),
-                );
-                return output;
-            }
-        }
-    }
-
-    if let Some(response) = manifest_static_response_for_request(&web_root, &method, &request_path)
+    if request.uri().path() == RELOAD_ENDPOINT
+        && matches!(*request.method(), http::Method::GET | http::Method::HEAD)
     {
-        let started = Instant::now();
-        record_manifest_callable_coverage(&response.module, &response.function, response.arity);
-        let status = response.status;
-        let headers = static_response_header_tuples(&response.headers).unwrap_or_else(|message| {
-            eprintln!("{message}");
-            Vec::new()
-        });
-        let output = serve_response(
-            response.status,
-            http_reason_phrase(response.status),
-            &response.content_type,
-            &headers,
-            response.body.as_bytes(),
-            method == "HEAD",
-        );
-        log_static_route_result(RouteLogEvent {
-            request_id,
-            build_id: &build_id,
-            request_method: &method,
-            request_path: &request_path,
-            route_method: &response.method,
-            route: &response.route,
-            response_path: None,
-            source: response.source.as_ref(),
-            status,
-            duration_ms: started.elapsed().as_millis(),
-        });
-        return output;
+        return reload_sse_response(reload_hub, request.method() == http::Method::HEAD);
     }
-
-    if let Some((response, response_path)) =
-        manifest_file_response_for_request(&web_root, &method, &request_path)
-    {
-        let started = Instant::now();
-        record_manifest_callable_coverage(&response.module, &response.function, response.arity);
-        let (status, output) = manifest_file_response(&method, &response_path, &response);
-        log_file_route_result(RouteLogEvent {
-            request_id,
-            build_id: &build_id,
-            request_method: &method,
-            request_path: &request_path,
-            route_method: &response.method,
-            route: &response.route,
-            response_path: Some(&response_path),
-            source: response.source.as_ref(),
-            status,
-            duration_ms: started.elapsed().as_millis(),
-        });
-        return output;
-    }
-
-    if method != "GET" && method != "HEAD" {
-        return serve_response(
-            405,
-            "Method Not Allowed",
-            "text/plain; charset=utf-8",
-            &[("Allow".to_string(), "GET, HEAD".to_string())],
-            b"method not allowed",
-            method == "HEAD",
-        );
-    }
-
-    if std::env::var("TERLAN_SERVE_MANIFEST_ONLY").as_deref() == Ok("1") {
-        return serve_response(
-            404,
-            "Not Found",
-            "text/plain; charset=utf-8",
-            &[],
-            b"not found",
-            method == "HEAD",
-        );
-    }
-
-    let Some(response_path) = request_file_path(&web_root, &request_path) else {
-        return serve_response(
-            400,
-            "Bad Request",
-            "text/plain; charset=utf-8",
-            &[],
-            b"bad request",
-            method == "HEAD",
-        );
-    };
-
-    let started = Instant::now();
-    let (status, output) = static_file_response(&method, &response_path);
-    log_static_result(
-        request_id,
-        &build_id,
-        &method,
-        &request_path,
-        &response_path,
-        status,
-        started.elapsed().as_millis(),
-    );
-    output
+    super::hyper_server::handle_request(request, &web_root, 1024 * 1024, None)
+        .await
+        .map(BodyExt::boxed_unsync)
 }
 
 /// Records a statically lowered handler when its manifest route serves a request.
@@ -367,14 +70,8 @@ pub(super) fn handle_vm_stream_request(
     live_sse_transport_available: bool,
 ) -> Result<::http::Response<Bytes>, String> {
     let (request, body) = request.into_parts();
-    let body_file_path = request
-        .extensions
-        .get::<terlan_http_native::request_ingress::RequestBodyFile>()
-        .map(|file| file.path().to_owned())
-        .unwrap_or_default();
     let method = request.method.as_str();
     let request_path = request.uri.path();
-    let request_query = request.uri.query().unwrap_or("");
 
     let route = match manifest_route_for_request(web_root, method, request_path) {
         Some(MatchedWebPackageRoute::WebSocket(websocket)) => {
@@ -384,16 +81,11 @@ pub(super) fn handle_vm_stream_request(
                     OpeningHandshake::Reject(response) => return Ok(response),
                     OpeningHandshake::Upgrade(response) => response,
                 };
-            let native_request = terlan_http_native::Request::from_parts_with_raw_query_metadata(
-                method.to_owned(),
-                request_path.to_owned(),
-                body.clone(),
-                terlan_http_native::RequestMetadata::from_http(
-                    terlan_http_native::RequestFieldProjection::Complete,
-                    &[],
-                    request_query,
-                    &request.headers,
-                ),
+            let native_request = terlan_http_native::Request::from_http_parts(
+                &request,
+                body,
+                &[],
+                terlan_http_native::RequestFieldProjection::Complete,
             );
             match execute_websocket_vm_router(web_root, &websocket, &native_request) {
                 Ok(Some(VmWebSocketRouterAdmission::Respond(response))) => {
@@ -422,64 +114,8 @@ pub(super) fn handle_vm_stream_request(
         route => route,
     };
 
-    if request_path == RELOAD_ENDPOINT {
-        if method != "GET" && method != "HEAD" {
-            return serve_vm_stream_response(
-                405,
-                "Method Not Allowed",
-                "text/plain; charset=utf-8",
-                &[("Allow".to_string(), "GET, HEAD".to_string())],
-                b"method not allowed",
-                false,
-            );
-        }
-        return reload_vm_stream_response(method == "HEAD");
-    }
-
-    if method == "GET" || method == "HEAD" {
-        match acme_http01_challenge(web_root, request_path) {
-            Ok(AcmeHttp01Challenge::Found(body)) => {
-                return serve_vm_stream_response(
-                    200,
-                    "OK",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    body.as_bytes(),
-                    method == "HEAD",
-                );
-            }
-            Ok(AcmeHttp01Challenge::Missing) => {
-                return serve_vm_stream_response(
-                    404,
-                    "Not Found",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    b"not found",
-                    method == "HEAD",
-                );
-            }
-            Ok(AcmeHttp01Challenge::Invalid(message)) => {
-                return serve_vm_stream_response(
-                    400,
-                    "Bad Request",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    message.as_bytes(),
-                    method == "HEAD",
-                );
-            }
-            Ok(AcmeHttp01Challenge::NotMatched) => {}
-            Err(message) => {
-                return serve_vm_stream_response(
-                    500,
-                    "Internal Server Error",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    message.as_bytes(),
-                    method == "HEAD",
-                );
-            }
-        }
+    if let Some(response) = reserved_stream_response(web_root, method, request_path)? {
+        return Ok(response);
     }
 
     if let Some(route) = route {
@@ -516,39 +152,12 @@ pub(super) fn handle_vm_stream_request(
                             &handler.handler.function,
                             handler.handler.arity,
                         );
-                        let native_request =
-                            terlan_http_native::Request::from_parts_with_raw_query_metadata(
-                                if projection
-                                    .requires(terlan_http_native::RequestFieldProjection::METHOD)
-                                {
-                                    method.to_owned()
-                                } else {
-                                    Default::default()
-                                },
-                                if projection
-                                    .requires(terlan_http_native::RequestFieldProjection::PATH)
-                                {
-                                    request_path.to_owned()
-                                } else {
-                                    Default::default()
-                                },
-                                body,
-                                terlan_http_native::RequestMetadata::from_http(
-                                    projection,
-                                    &handler.params,
-                                    request_query,
-                                    &request.headers,
-                                ),
-                            )
-                            .with_body_file_path(
-                                if projection.requires(
-                                    terlan_http_native::RequestFieldProjection::BODY_FILE_PATH,
-                                ) {
-                                    body_file_path.clone()
-                                } else {
-                                    String::new()
-                                },
-                            );
+                        let native_request = terlan_http_native::Request::from_http_parts(
+                            &request,
+                            body,
+                            &handler.params,
+                            projection,
+                        );
                         execute_dynamic_vm_handler_with_runtime(
                             runtime,
                             web_root,
@@ -591,18 +200,12 @@ pub(super) fn handle_vm_stream_request(
                     &response.function,
                     response.arity,
                 );
-                let native_request =
-                    terlan_http_native::Request::from_parts_with_raw_query_metadata(
-                        method.to_owned(),
-                        request_path.to_owned(),
-                        body,
-                        terlan_http_native::RequestMetadata::from_http(
-                            terlan_http_native::RequestFieldProjection::Complete,
-                            &[],
-                            request_query,
-                            &request.headers,
-                        ),
-                    );
+                let native_request = terlan_http_native::Request::from_http_parts(
+                    &request,
+                    body,
+                    &[],
+                    terlan_http_native::RequestFieldProjection::Complete,
+                );
                 if let Some(rendered) =
                     execute_static_vm_router(web_root, &response, &native_request)?
                 {
@@ -627,18 +230,12 @@ pub(super) fn handle_vm_stream_request(
                 return manifest_vm_stream_file_response(method, &response_path, &response);
             }
             MatchedWebPackageRoute::Sse(endpoint) => {
-                let native_request =
-                    terlan_http_native::Request::from_parts_with_raw_query_metadata(
-                        method.to_owned(),
-                        request_path.to_owned(),
-                        body,
-                        terlan_http_native::RequestMetadata::from_http(
-                            terlan_http_native::RequestFieldProjection::Complete,
-                            &[],
-                            request_query,
-                            &request.headers,
-                        ),
-                    );
+                let native_request = terlan_http_native::Request::from_http_parts(
+                    &request,
+                    body,
+                    &[],
+                    terlan_http_native::RequestFieldProjection::Complete,
+                );
                 return match execute_sse_vm_router(
                     web_root,
                     &endpoint,
@@ -654,19 +251,11 @@ pub(super) fn handle_vm_stream_request(
                             session.inspect().max_pending_events,
                             session.plan().max_pending_events()
                         );
+                        let response = terlan_http_native::channel_admission::sse_stream_response(
+                            session.plan(),
+                        );
                         *channel = Some(VmHttpChannelTransport::Sse(*session));
-                        serve_vm_stream_response(
-                            200,
-                            "OK",
-                            "text/event-stream",
-                            &[
-                                ("cache-control".to_string(), "no-cache".to_string()),
-                                ("x-content-type-options".to_string(), "nosniff".to_string()),
-                                ("connection".to_string(), "keep-alive".to_string()),
-                            ],
-                            b": connected\n\n",
-                            method == "HEAD",
-                        )
+                        serve_vm_stream_handler_response(response, method == "HEAD")
                     }
                     Err(message) => serve_vm_stream_response(
                         502,
@@ -716,6 +305,29 @@ pub(super) fn handle_vm_stream_request(
     static_vm_stream_file_response(method, &response_path)
 }
 
+/// Preserves development and challenge endpoint precedence across dispatch paths.
+pub(super) fn reserved_stream_response(
+    web_root: &Path,
+    method: &str,
+    path: &str,
+) -> Result<Option<::http::Response<Bytes>>, String> {
+    if path == RELOAD_ENDPOINT {
+        if method == "GET" || method == "HEAD" {
+            return reload_vm_stream_response(method == "HEAD").map(Some);
+        }
+        return serve_vm_stream_response(
+            405,
+            "Method Not Allowed",
+            "text/plain; charset=utf-8",
+            &[("Allow".into(), "GET, HEAD".into())],
+            b"method not allowed",
+            false,
+        )
+        .map(Some);
+    }
+    acme_http01_response(web_root, method, path)
+}
+
 /// Builds the finite VM-stream live-reload handshake response.
 ///
 /// Inputs:
@@ -754,6 +366,5 @@ mod request_values;
 pub(crate) use request_values::handle_vm_stream_http1_request;
 #[cfg(test)]
 pub(super) use request_values::{
-    handle_vm_stream_http1_exchange, query_pairs, request_body_text, request_cookie_pairs,
-    request_header_pairs, VmStreamHttp1Exchange,
+    handle_vm_stream_http1_exchange, request_header_pairs, VmStreamHttp1Exchange,
 };

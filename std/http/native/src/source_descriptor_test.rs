@@ -153,8 +153,49 @@ fn sse() -> V {
                     ],
                 )]),
             ),
+            ("producers", V::List(vec![])),
+            ("response_headers", V::List(vec![])),
         ],
     )
+}
+
+#[test]
+fn sse_source_headers_are_required_and_validated_before_callback_admission() {
+    let pairs = vec![
+        ("X-Source".to_string(), "first".to_string()),
+        ("x-source".to_string(), "second".to_string()),
+    ];
+    let plan = sse_endpoint(
+        &replace(&sse(), "response_headers", pairs.clone().into()),
+        admit,
+    )
+    .unwrap();
+    assert_eq!(plan.response_headers(), pairs);
+    let mut missing = sse();
+    if let V::Record { fields, .. } = &mut missing {
+        fields.retain(|(name, _)| name != "response_headers");
+    }
+    assert!(sse_endpoint(&missing, admit).is_err());
+    for invalid in [
+        V::Unit,
+        V::List(vec![V::Unit]),
+        V::List(vec![V::Tuple(vec!["X-Source".into()])]),
+        V::List(vec![V::Tuple(vec![V::Int(1), "value".into()])]),
+        V::List(vec![V::Tuple(vec!["X-Source".into(), V::Unit])]),
+        vec![("X-Source", "bad\r\nheader")].into(),
+        vec![("bad name", "value")].into(),
+        vec![("Connection", "keep-alive")].into(),
+        vec![("Content-Length", "1")].into(),
+        vec![("Content-Type", "text/plain")].into(),
+        vec![("Transfer-Encoding", "chunked")].into(),
+        vec![("Trailer", "X-Source")].into(),
+    ] {
+        let value = replace(&sse(), "response_headers", invalid);
+        assert!(sse_endpoint(&value, |_, _| -> Result<i64> {
+            panic!("headers must be rejected before callback admission")
+        })
+        .is_err());
+    }
 }
 fn websocket(policy: V) -> V {
     rec(
@@ -227,6 +268,52 @@ fn executed_sse_records_preserve_limits_callback_order_and_optional_keep_alive()
         let plan = sse_endpoint(&empty, admit).unwrap();
         assert_eq!(plan.keep_alive_ms(), None);
         assert!(plan.callbacks().is_none());
+    }
+}
+
+#[test]
+fn sse_producer_admission_validates_shape_arity_uniqueness_and_roundtrips() {
+    let value = replace(&sse(), "keep_alive_ms", V::Atom("none".into()));
+    let V::Record { fields, .. } = &value else {
+        panic!("endpoint")
+    };
+    let V::List(callbacks) = &fields[3].1 else {
+        panic!("callbacks")
+    };
+    let producer = rec("Producer", &[("next", cb(6, 0))]);
+    for configured in [vec![], callbacks.clone()] {
+        let endpoint = replace(
+            &replace(&value, "callbacks", V::List(configured.clone())),
+            "producers",
+            V::List(vec![producer.clone()]),
+        );
+        let plan = sse_endpoint(&endpoint, admit).unwrap();
+        assert_eq!(plan.producer(), Some(&6));
+        assert!(plan.supports_pull_transport());
+        assert_eq!(plan.callbacks().is_some(), !configured.is_empty());
+        assert_eq!(
+            plan.callback(crate::channel_plan::SseEvent::Produce),
+            Some(&6)
+        );
+        let decoded: crate::channel_plan::SseEndpointPlan<i64> =
+            serde_json::from_value(serde_json::to_value(&plan).unwrap()).unwrap();
+        assert_eq!(plan, decoded);
+        assert!(!plan
+            .with_keep_alive_ms(10)
+            .unwrap()
+            .supports_pull_transport());
+    }
+    for policies in [
+        vec![producer.clone(), producer],
+        vec![callbacks[0].clone(), callbacks[0].clone()],
+        vec![rec("Producer", &[])],
+        vec![rec("Producer", &[("next", cb(6, 1))])],
+        vec![rec("Producer", &[("next", V::Unit)])],
+        vec![rec("Producer", &[("next", cb(6, 0)), ("extra", V::Unit)])],
+        vec![rec("Producer", &[("wrong", cb(6, 0))])],
+    ] {
+        let endpoint = replace(&value, "producers", V::List(policies));
+        assert!(sse_endpoint(&endpoint, admit).is_err());
     }
 }
 

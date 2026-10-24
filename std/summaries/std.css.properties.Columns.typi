@@ -1,80 +1,38 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-multicol-2/#propdef-columns
+//! The `columns` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets the maximum number of columns to use when drawing an element's contents, along with
+//! the minimum width and maximum height of the element's columns.
+//!
+//! Initial: column-width: auto; column-count: auto; column-height: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Keyword effects:
+//! - auto: The width depends on the values of other properties.
+//!
 //! Grammar: [ <'column-width'> || <'column-count'> ] [ / <'column-height'> ]?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-multicol-2/#propdef-columns
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/columns
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Columns.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    columns: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
+pub opaque type Checked.
 
 pub struct Property {
-    columns: Value
+    columns: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-/// A nominal, specification-constrained columns value.
+/// Checks the columns integer range. Returns Some when amount >= 1; otherwise returns None.
 
-pub opaque type Value.
+pub integer(value: Int): Option[Checked].
 
-/// Returns the CSS keyword auto.
+/// Checks the columns length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword contain.
-
-pub contain(): Value.
-
-/// Returns the CSS keyword fit-content.
-
-pub fit_content(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a columns value.
-
-pub integer(value: Int): Option[Value].
-
-/// Checks the specification range and constructs a columns value.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Returns the CSS keyword max-content.
-
-pub max_content(): Value.
-
-/// Returns the CSS keyword min-content.
-
-pub min_content(): Value.
-
-/// Checks the specification range and constructs a columns value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub length(value: std.css.Values.Length): Option[Checked].

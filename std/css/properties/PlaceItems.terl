@@ -1,135 +1,69 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-align-3/#propdef-place-items
+ * The `place-items` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property aligns items along both block and inline directions at the same time.
+ *
+ * Initial: align-items: normal; justify-items: legacy. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Keyword effects:
+ * - baseline: All flex items are aligned such that their [flex container
+ * baselines](https://drafts.csswg.org/css-flexbox-1/#flex-baselines) align. The item with the
+ * largest distance between its cross-start margin edge and its baseline is flushed with the
+ * cross-start edge of the line. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ * - center: The flex items' margin boxes are centered within the line on the cross-axis. If the
+ * cross-size of an item is larger than the flex container, it will overflow equally in both
+ * directions. See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ * - end: The items are packed flush to each other toward the end edge of the alignment container in
+ * the appropriate axis. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ * - flex-end: Used in flex layout only, aligns the flex items flush against the flex container's
+ * main-end or cross-end side. When used outside of a flex formatting context, this value behaves as
+ * `end`. See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ * - flex-start: Used in flex layout only, aligns the flex items flush against the flex container's
+ * main-start or cross-start side. When used outside of a flex formatting context, this value
+ * behaves as `start`. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ * - normal: The effect of this keyword is dependent of the layout mode we are in: - In
+ * absolutely-positioned layouts, the keyword behaves like `start` on _replaced_
+ * absolutely-positioned boxes, and as `stretch` on _all other_ absolutely-positioned boxes. - In
+ * static position of absolutely-positioned layouts, the keyword behaves as `stretch`. - For flex
+ * items, the keyword behaves as `stretch`. - For grid items, this keyword leads to a behavior
+ * similar to the one of `stretch`, except for boxes with an `aspect ratio` or an intrinsic size
+ * where it behaves like `start`. - The property doesn't apply to block-level boxes, and to table
+ * cells. See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ * - self-end: The items are packed flush to the edge of the alignment container's end side of the
+ * item, in the appropriate axis. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ * - self-start: The items are packed flush to the edge of the alignment container's start side of
+ * the item, in the appropriate axis. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ * - start: The items are packed flush to each other toward the start edge of the alignment
+ * container in the appropriate axis. See
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ * - stretch: If the item's cross-size is `auto`, the used size is set to the length necessary to be
+ * as close to filling the container as possible, respecting the item's width and height limits. If
+ * the item is not auto-sized, this value falls back to `flex-start`, and to `self-start` or
+ * `self-end` if the container's `align-content` is `first baseline` (or `baseline`) or `last
+ * baseline`. See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ *
  * Grammar: <'align-items'> <'justify-items'>?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-align-3/#propdef-place-items
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/place-items
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PlaceItems.
 
-import type std.core.Option.
+import std.css.keywords.{Baseline, Center, End, FlexEnd, FlexStart, Normal, SelfEnd, SelfStart, Start, Stretch}.
 
-/**
- * A nominal, specification-constrained place-items value.
- */
-pub opaque type Value = Token.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
-struct Token {
-    property: String,
-    css: String,
-}.
-
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
-    place_items: Value,
+    place_items: Normal | Stretch | Baseline | Center | Start | End | SelfStart | SelfEnd | FlexStart | FlexEnd | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Include an optional declaration in a shared style block.
- */
-pub struct OptionalProperty {
-    place_items: std.core.Option[Value],
-}.
-
-/**
- * Returns the CSS keyword baseline.
- */
-pub baseline(): Value ->
-    Value(Token {property: "place-items", css: "baseline"}).
-
-/**
- * Returns the CSS keyword center.
- */
-pub center(): Value ->
-    Value(Token {property: "place-items", css: "center"}).
-
-/**
- * Returns the CSS keyword end.
- */
-pub end_value(): Value ->
-    Value(Token {property: "place-items", css: "end"}).
-
-/**
- * Returns the CSS keyword flex-end.
- */
-pub flex_end(): Value ->
-    Value(Token {property: "place-items", css: "flex-end"}).
-
-/**
- * Returns the CSS keyword flex-start.
- */
-pub flex_start(): Value ->
-    Value(Token {property: "place-items", css: "flex-start"}).
-
-/**
- * Returns the CSS keyword flow-end.
- */
-pub flow_end(): Value ->
-    Value(Token {property: "place-items", css: "flow-end"}).
-
-/**
- * Returns the CSS keyword flow-start.
- */
-pub flow_start(): Value ->
-    Value(Token {property: "place-items", css: "flow-start"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "place-items", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "place-items", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "place-items", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "place-items", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "place-items", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword self-end.
- */
-pub self_end(): Value ->
-    Value(Token {property: "place-items", css: "self-end"}).
-
-/**
- * Returns the CSS keyword self-start.
- */
-pub self_start(): Value ->
-    Value(Token {property: "place-items", css: "self-start"}).
-
-/**
- * Returns the CSS keyword start.
- */
-pub start(): Value ->
-    Value(Token {property: "place-items", css: "start"}).
-
-/**
- * Returns the CSS keyword stretch.
- */
-pub stretch(): Value ->
-    Value(Token {property: "place-items", css: "stretch"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "place-items", css: "unset"}).

@@ -1,6 +1,8 @@
 /** Parses canonical named, structural, function, and existential types. */
 module self_host.ProjectedTypeParser.
 
+import std.core.String.
+
 
 import std.core.Option.{None, Option, Some}.
 import self_host.ProjectedTypeSyntax.{ProjectedTypeNode, ProjectedTypeResult}.
@@ -354,7 +356,7 @@ nonempty_named(values: List[ProjectedCanonicalToken], is_atom_alias: Bool, quali
 @pure
 generic_close(generic: TokenSplit, slice: GroupSlice, arguments: ProjectedTypeResult, close: ProjectedCanonicalToken): ProjectedTypeResult ->
     let generic_node = node("generic-type", token_text(generic.left), start(generic.left), close.end_byte, node_children(arguments.node));
-    ProjectedTypeResult(generic.left != [] and slice.valid and arguments.valid, Some(generic_node), slice.rest, arguments.message).
+    ProjectedTypeResult(generic.left != [] and slice.inner != [] and slice.valid and arguments.valid, Some(generic_node), slice.rest, arguments.message).
 
 @pure
 generic_slice(generic: TokenSplit, opening: ProjectedCanonicalToken): ProjectedTypeResult ->

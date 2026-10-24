@@ -110,6 +110,18 @@ pub (list: List[T]) concat(other: List[T]): List[T] ->
     list.
 
 /**
+ * Maps each value to a list and concatenates those lists in source order.
+ *
+ * This ordinary Terlan implementation is also the semantic target for list
+ * comprehension desugaring; no backend-specific comprehension runtime exists.
+ */
+pub flat_map[A, B](values: List[A], callback: (A) -> List[B]): List[B] ->
+    case values {
+        [] -> [];
+        [value | rest] -> callback(value).concat(flat_map(rest, callback))
+    }.
+
+/**
  * Removes the first matching occurrence for each supplied value.
  *
  * Input: a `List[T]` receiver and a list of values to remove.

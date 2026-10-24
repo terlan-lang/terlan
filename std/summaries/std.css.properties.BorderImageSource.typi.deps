@@ -1,9 +1,10 @@
 module=std.css.properties.BorderImageSource
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=2326923701251060072
-interface_hash=1487626812430987177
-interface_doc_hash=694522705657047885
-deps=1
-std.core.Option=11539230284316612175
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9814708324844163193
+interface_hash=14392347261100281064
+interface_doc_hash=1832578601473326580
+deps=2
+std.css.Values=330909209718432688
+std.css.keywords.None=3400229744369726074

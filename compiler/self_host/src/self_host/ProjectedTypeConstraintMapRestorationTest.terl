@@ -1,0 +1,21 @@
+/** Regression contracts for the restored map-backed constraint index. */
+module self_host.ProjectedTypeConstraintMapRestorationTest.
+
+import std.core.Option.{Some}.
+import self_host.ProjectedTypeConstraintResolution.
+import self_host.ProjectedTypeConstraintSyntax.TypeConstraintEvent.
+
+@test
+pub latest_node_fact_replaces_the_map_index_value(): Bool ->
+    let resolved = ProjectedTypeConstraintResolution.resolve([
+        TypeConstraintEvent("known", 1, 0, 0, "Widget", 10),
+        TypeConstraintEvent("known", 1, 0, 0, "String", 20),
+        TypeConstraintEvent("propagate", 2, 1, 0, "", 30),
+    ]);
+    case resolved.facts {
+        [_, _, propagated] ->
+            propagated.node_id == 2
+                and propagated.type_name == Some("String")
+                and resolved.diagnostics == [];
+        _ -> false
+    }.

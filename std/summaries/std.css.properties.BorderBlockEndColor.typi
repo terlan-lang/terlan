@@ -1,48 +1,26 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-block-end-color
+//! The `border-block-end-color` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! defines the color of the logical block-end border of an element, which maps to a physical border
+//! color depending on the element's writing mode, directionality, and text orientation. It
+//! corresponds to the `border-top-color`, `border-right-color`, `border-bottom-color`, or
+//! `border-left-color` property depending on the values defined for `writing-mode`, `direction`, and
+//! `text-orientation`.
+//!
+//! Initial: currentcolor. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <color> | <image-1D>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-block-end-color
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-block-end-color
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderBlockEndColor.
 
-/// Include an optional declaration in a shared style block.
-
-pub struct OptionalProperty {
-    border_block_end_color: std.core.Option[Value]
-}.
-
-/// Include this property in an application style struct.
-
 pub struct Property {
-    border_block_end_color: Value
+    border_block_end_color: std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-/// A nominal, specification-constrained border-block-end-color value.
-
-pub opaque type Value.
-
-/// Constructs a border-block-end-color value from a typed color.
-
-pub color(value: std.css.Values.Color): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
