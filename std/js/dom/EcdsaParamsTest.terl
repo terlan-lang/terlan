@@ -14,7 +14,5 @@ module std.js.Dom.EcdsaParamsTest.
 
 import type std.js.Dom.EcdsaParams.
 
-pub hash_typechecks(
-    receiver: EcdsaParams,
-): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier ->
+pub hash_typechecks(receiver: EcdsaParams): std.js.Dom.HashAlgorithmIdentifier ->
     receiver.hash().

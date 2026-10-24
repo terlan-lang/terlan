@@ -14,5 +14,5 @@ module std.js.SyntaxErrorConstructor.
 
 pub opaque type SyntaxErrorConstructor.
 
-pub (receiver: SyntaxErrorConstructor) prototype(): std.js.SyntaxError.SyntaxError ->
+pub (receiver: SyntaxErrorConstructor) prototype(): std.js.SyntaxError ->
     native.

@@ -16,5 +16,5 @@ import type std.js.Dom.FontFaceSetLoadEventInit.
 
 pub fontfaces_typechecks(
     receiver: FontFaceSetLoadEventInit,
-): std.core.Option.Option[std.js.Array.Array[std.js.Dom.FontFace.FontFace]] ->
+): std.core.Option[std.js.Array[std.js.Dom.FontFace]] ->
     receiver.fontfaces().

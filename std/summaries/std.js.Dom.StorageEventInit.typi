@@ -15,12 +15,12 @@ module std.js.Dom.StorageEventInit.
 
 pub opaque type StorageEventInit.
 
-pub (receiver: StorageEventInit) key(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: StorageEventInit) key(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: StorageEventInit) new_value(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: StorageEventInit) new_value(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: StorageEventInit) old_value(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: StorageEventInit) old_value(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: StorageEventInit) storage_area(): std.core.Option.Option[std.js.Dom.Storage.Storage].
+pub (receiver: StorageEventInit) storage_area(): std.core.Option[std.js.Dom.Storage].
 
-pub (receiver: StorageEventInit) url(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: StorageEventInit) url(): std.core.Option[std.js.String.JsString].

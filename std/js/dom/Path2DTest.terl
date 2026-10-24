@@ -17,6 +17,6 @@ import type std.js.Dom.Path2D.
 pub add_path_typechecks(
     receiver: Path2D,
     path: Path2D,
-    transform: std.core.Option.Option[std.js.Dom.DOMMatrix2DInit.DOMMatrix2DInit],
-): std.core.Unit.Unit ->
+    transform: std.core.Option[std.js.Dom.DOMMatrix2DInit],
+): std.core.Unit ->
     receiver.add_path(path, transform).

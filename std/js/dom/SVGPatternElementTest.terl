@@ -12,12 +12,8 @@
  */
 module std.js.Dom.SVGPatternElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGAnimatedEnumeration.{SVGAnimatedEnumeration}.
-import type std.js.Dom.SVGAnimatedLength.{SVGAnimatedLength}.
-import type std.js.Dom.SVGPatternElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, SVGAnimatedEnumeration, SVGAnimatedLength, SVGPatternElement}.
 import type std.js.String.{JsString}.
 
 pub height_typechecks(receiver: SVGPatternElement): SVGAnimatedLength ->
@@ -26,9 +22,7 @@ pub height_typechecks(receiver: SVGPatternElement): SVGAnimatedLength ->
 pub pattern_content_units_typechecks(receiver: SVGPatternElement): SVGAnimatedEnumeration ->
     receiver.pattern_content_units().
 
-pub pattern_transform_typechecks(
-    receiver: SVGPatternElement,
-): std.js.Dom.SVGAnimatedTransformList.SVGAnimatedTransformList ->
+pub pattern_transform_typechecks(receiver: SVGPatternElement): std.js.Dom.SVGAnimatedTransformList ->
     receiver.pattern_transform().
 
 pub pattern_units_typechecks(receiver: SVGPatternElement): SVGAnimatedEnumeration ->
@@ -47,7 +41,7 @@ pub add_event_listener_typechecks(
     receiver: SVGPatternElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -55,6 +49,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGPatternElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

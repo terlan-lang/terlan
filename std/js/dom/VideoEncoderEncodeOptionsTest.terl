@@ -12,12 +12,12 @@
  */
 module std.js.Dom.VideoEncoderEncodeOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.VideoEncoderEncodeOptions.
 
 pub avc_typechecks(
     receiver: VideoEncoderEncodeOptions,
-): Option[std.js.Dom.VideoEncoderEncodeOptionsForAvc.VideoEncoderEncodeOptionsForAvc] ->
+): Option[std.js.Dom.VideoEncoderEncodeOptionsForAvc] ->
     receiver.avc().
 
 pub key_frame_typechecks(receiver: VideoEncoderEncodeOptions): Option[Bool] ->

@@ -14,5 +14,5 @@ module std.js.Dom.NavigationHistoryEntryEventMapTest.
 
 import type std.js.Dom.NavigationHistoryEntryEventMap.
 
-pub dispose_typechecks(receiver: NavigationHistoryEntryEventMap): std.js.Dom.Event.Event ->
+pub dispose_typechecks(receiver: NavigationHistoryEntryEventMap): std.js.Dom.Event ->
     receiver.dispose().

@@ -12,8 +12,8 @@
  */
 module std.js.Dom.FontFace.
 
-import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 /**
  * The **`FontFace`** interface of the CSS Font Loading API represents a single usable font face.

@@ -39,7 +39,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    text_wrap: std.core.Option.Option[Value],
+    text_wrap: std.core.Option[Value],
 }.
 
 /**

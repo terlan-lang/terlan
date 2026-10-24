@@ -8,7 +8,7 @@ module std.css.properties.Zoom.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    zoom: std.core.Option.Option[Value]
+    zoom: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

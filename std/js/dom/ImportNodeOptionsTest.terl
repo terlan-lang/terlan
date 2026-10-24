@@ -12,12 +12,12 @@
  */
 module std.js.Dom.ImportNodeOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.ImportNodeOptions.
 
 pub custom_element_registry_typechecks(
     receiver: ImportNodeOptions,
-): Option[std.js.Dom.CustomElementRegistry.CustomElementRegistry] ->
+): Option[std.js.Dom.CustomElementRegistry] ->
     receiver.custom_element_registry().
 
 pub self_only_typechecks(receiver: ImportNodeOptions): Option[Bool] ->

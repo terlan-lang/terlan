@@ -12,17 +12,13 @@
  */
 module std.js.Dom.FileSystemDirectoryEntryTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.ErrorCallback.{ErrorCallback}.
-import type std.js.Dom.FileSystemDirectoryEntry.
-import type std.js.Dom.FileSystemEntryCallback.{FileSystemEntryCallback}.
-import type std.js.Dom.FileSystemFlags.{FileSystemFlags}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{ErrorCallback, FileSystemDirectoryEntry, FileSystemEntryCallback, FileSystemFlags}.
 import type std.js.String.{JsString}.
 
 pub create_reader_typechecks(
     receiver: FileSystemDirectoryEntry,
-): std.js.Dom.FileSystemDirectoryReader.FileSystemDirectoryReader ->
+): std.js.Dom.FileSystemDirectoryReader ->
     receiver.create_reader().
 
 pub get_directory_typechecks(

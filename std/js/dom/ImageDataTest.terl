@@ -15,7 +15,7 @@ module std.js.Dom.ImageDataTest.
 import type std.js.Dom.ImageData.
 import type std.js.Number.{JsNumber}.
 
-pub data_typechecks(receiver: ImageData): std.js.Dom.ImageDataArray.ImageDataArray ->
+pub data_typechecks(receiver: ImageData): std.js.Dom.ImageDataArray ->
     receiver.data().
 
 pub height_typechecks(receiver: ImageData): JsNumber ->

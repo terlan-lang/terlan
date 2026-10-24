@@ -49,9 +49,9 @@ pub (receiver: Plugin) name(): std.js.String.JsString.
  * Returns the specified MimeType object.
  * @deprecated
  */
-pub (receiver: Plugin) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.MimeType.MimeType].
+pub (receiver: Plugin) item(index: std.js.Number.JsNumber): std.core.Option[std.js.Dom.MimeType].
 
 /**
  * @deprecated
  */
-pub (receiver: Plugin) named_item(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.MimeType.MimeType].
+pub (receiver: Plugin) named_item(name: std.js.String.JsString): std.core.Option[std.js.Dom.MimeType].

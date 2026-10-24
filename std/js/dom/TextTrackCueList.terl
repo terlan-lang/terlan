@@ -32,7 +32,5 @@ pub (receiver: TextTrackCueList) length(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackCueList/getCueById)
  */
-pub (receiver: TextTrackCueList) get_cue_by_id(
-    id: std.js.String.JsString,
-): std.core.Option.Option[std.js.Dom.TextTrackCue.TextTrackCue] ->
+pub (receiver: TextTrackCueList) get_cue_by_id(id: std.js.String.JsString): std.core.Option[std.js.Dom.TextTrackCue] ->
     native.

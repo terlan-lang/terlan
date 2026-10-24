@@ -25,21 +25,21 @@ pub opaque type SVGTextContentElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/lengthAdjust)
  */
-pub (receiver: SVGTextContentElement) length_adjust(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration.
+pub (receiver: SVGTextContentElement) length_adjust(): std.js.Dom.SVGAnimatedEnumeration.
 
 /**
  * The **`textLength`** read-only property of the SVGTextContentElement interface reflects the textLength attribute of the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/textLength)
  */
-pub (receiver: SVGTextContentElement) text_length(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGTextContentElement) text_length(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The `getCharNumAtPosition()` method of the SVGTextContentElement interface represents the character which caused a text glyph to be rendered at a given position in the coordinate system.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getCharNumAtPosition)
  */
-pub (receiver: SVGTextContentElement) get_char_num_at_position(point: std.core.Option.Option[std.js.Dom.DOMPointInit.DOMPointInit]): std.js.Number.JsNumber.
+pub (receiver: SVGTextContentElement) get_char_num_at_position(point: std.core.Option[std.js.Dom.DOMPointInit]): std.js.Number.JsNumber.
 
 /**
  * The `getComputedTextLength()` method of the SVGTextContentElement interface represents the computed length for the text within the element.
@@ -53,14 +53,14 @@ pub (receiver: SVGTextContentElement) get_computed_text_length(): std.js.Number.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getEndPositionOfChar)
  */
-pub (receiver: SVGTextContentElement) get_end_position_of_char(charnum: std.js.Number.JsNumber): std.js.Dom.DOMPoint.DOMPoint.
+pub (receiver: SVGTextContentElement) get_end_position_of_char(charnum: std.js.Number.JsNumber): std.js.Dom.DOMPoint.
 
 /**
  * The `getExtentOfChar()` method of the SVGTextContentElement interface the represents computed tight bounding box of the glyph cell that corresponds to a given typographic character.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getExtentOfChar)
  */
-pub (receiver: SVGTextContentElement) get_extent_of_char(charnum: std.js.Number.JsNumber): std.js.Dom.DOMRect.DOMRect.
+pub (receiver: SVGTextContentElement) get_extent_of_char(charnum: std.js.Number.JsNumber): std.js.Dom.DOMRect.
 
 /**
  * The `getNumberOfChars()` method of the SVGTextContentElement interface represents the total number of addressable characters available for rendering within the current element, regardless of whether they will be rendered.
@@ -81,7 +81,7 @@ pub (receiver: SVGTextContentElement) get_rotation_of_char(charnum: std.js.Numbe
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getStartPositionOfChar)
  */
-pub (receiver: SVGTextContentElement) get_start_position_of_char(charnum: std.js.Number.JsNumber): std.js.Dom.DOMPoint.DOMPoint.
+pub (receiver: SVGTextContentElement) get_start_position_of_char(charnum: std.js.Number.JsNumber): std.js.Dom.DOMPoint.
 
 /**
  * The `getSubStringLength()` method of the SVGTextContentElement interface represents the computed length of the formatted text advance distance for a substring of text within the element.
@@ -93,8 +93,8 @@ pub (receiver: SVGTextContentElement) get_sub_string_length(charnum: std.js.Numb
 /**
  * @deprecated
  */
-pub (receiver: SVGTextContentElement) select_sub_string(charnum: std.js.Number.JsNumber, nchars: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGTextContentElement) select_sub_string(charnum: std.js.Number.JsNumber, nchars: std.js.Number.JsNumber): std.core.Unit.
 
-pub (receiver: SVGTextContentElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SVGTextContentElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SVGTextContentElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SVGTextContentElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

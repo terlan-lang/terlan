@@ -12,7 +12,7 @@
  */
 module std.js.Intl.NumberFormatOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Intl.NumberFormatOptions.
 import type std.js.Number.{JsNumber}.
 

@@ -14,5 +14,5 @@ module std.js.Dom.RTCRtpCodingParametersTest.
 
 import type std.js.Dom.RTCRtpCodingParameters.
 
-pub rid_typechecks(receiver: RTCRtpCodingParameters): std.core.Option.Option[std.js.String.JsString] ->
+pub rid_typechecks(receiver: RTCRtpCodingParameters): std.core.Option[std.js.String.JsString] ->
     receiver.rid().

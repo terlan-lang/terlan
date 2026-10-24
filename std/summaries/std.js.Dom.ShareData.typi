@@ -15,10 +15,10 @@ module std.js.Dom.ShareData.
 
 pub opaque type ShareData.
 
-pub (receiver: ShareData) files(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.File.File]].
+pub (receiver: ShareData) files(): std.core.Option[std.js.Array[std.js.Dom.File]].
 
-pub (receiver: ShareData) text(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ShareData) text(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: ShareData) title(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ShareData) title(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: ShareData) url(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ShareData) url(): std.core.Option[std.js.String.JsString].

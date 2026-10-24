@@ -19,14 +19,14 @@ pub (receiver: ResolvedNumberFormatOptions) locale(): std.js.String.JsString.
 
 pub (receiver: ResolvedNumberFormatOptions) numbering_system(): std.js.String.JsString.
 
-pub (receiver: ResolvedNumberFormatOptions) currency(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ResolvedNumberFormatOptions) currency(): std.core.Option[std.js.String.JsString].
 
 pub (receiver: ResolvedNumberFormatOptions) minimum_integer_digits(): std.js.Number.JsNumber.
 
-pub (receiver: ResolvedNumberFormatOptions) minimum_fraction_digits(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ResolvedNumberFormatOptions) minimum_fraction_digits(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: ResolvedNumberFormatOptions) maximum_fraction_digits(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ResolvedNumberFormatOptions) maximum_fraction_digits(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: ResolvedNumberFormatOptions) minimum_significant_digits(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ResolvedNumberFormatOptions) minimum_significant_digits(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: ResolvedNumberFormatOptions) maximum_significant_digits(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ResolvedNumberFormatOptions) maximum_significant_digits(): std.core.Option[std.js.Number.JsNumber].

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.TreeWalkerTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.Node.{Node}.
-import type std.js.Dom.TreeWalker.
+import type std.core.{Option}.
+import type std.js.Dom.{Node, TreeWalker}.
 
 pub current_node_typechecks(receiver: TreeWalker): Node ->
     receiver.current_node().

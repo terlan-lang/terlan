@@ -12,13 +12,13 @@
  */
 module std.js.Dom.ShadowRootInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type ShadowRootInit.
 
 pub (receiver: ShadowRootInit) clonable(): Option[Bool].
 
-pub (receiver: ShadowRootInit) custom_element_registry(): Option[std.js.Dom.CustomElementRegistry.CustomElementRegistry].
+pub (receiver: ShadowRootInit) custom_element_registry(): Option[std.js.Dom.CustomElementRegistry].
 
 pub (receiver: ShadowRootInit) delegates_focus(): Option[Bool].
 

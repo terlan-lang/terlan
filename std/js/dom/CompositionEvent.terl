@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CompositionEvent.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -40,7 +40,7 @@ pub (receiver: CompositionEvent) init_composition_event(
     type_arg: JsString,
     bubbles_arg: Option[Bool],
     cancelable_arg: Option[Bool],
-    view_arg: Option[Option[std.js.Dom.WindowProxy.WindowProxy]],
+    view_arg: Option[Option[std.js.Dom.WindowProxy]],
     data_arg: Option[JsString],
-): std.core.Unit.Unit ->
+): std.core.Unit ->
     native.

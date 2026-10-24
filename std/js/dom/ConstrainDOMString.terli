@@ -15,6 +15,6 @@ module std.js.Dom.ConstrainDOMString.
 import type std.js.String.{JsString}.
 
 pub type ConstrainDOMString =
-      std.js.Dom.ConstrainDOMStringParameters.ConstrainDOMStringParameters
-    | std.js.Array.Array[JsString]
+      std.js.Dom.ConstrainDOMStringParameters
+    | std.js.Array[JsString]
     | JsString.

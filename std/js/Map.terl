@@ -14,7 +14,7 @@ module std.js.Map.
 
 pub opaque type Map[K, V].
 
-pub (receiver: Map[K, V]) clear(): std.core.Unit.Unit ->
+pub (receiver: Map[K, V]) clear(): std.core.Unit ->
     native.
 
 /**
@@ -27,7 +27,7 @@ pub (receiver: Map[K, V]) delete(key: K): Bool ->
  * Returns a specified element from the Map object. If the value that is associated to the provided key is an object, then you will get a reference to that object and any change made to that object will effectively modify it inside the Map.
  * @returns Returns the element associated with the specified key. If no element is associated with the specified key, undefined is returned.
  */
-pub (receiver: Map[K, V]) get(key: K): std.core.Option.Option[V] ->
+pub (receiver: Map[K, V]) get(key: K): std.core.Option[V] ->
     native.
 
 /**

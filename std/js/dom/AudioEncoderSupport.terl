@@ -12,11 +12,11 @@
  */
 module std.js.Dom.AudioEncoderSupport.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type AudioEncoderSupport.
 
-pub (receiver: AudioEncoderSupport) config(): Option[std.js.Dom.AudioEncoderConfig.AudioEncoderConfig] ->
+pub (receiver: AudioEncoderSupport) config(): Option[std.js.Dom.AudioEncoderConfig] ->
     native.
 
 pub (receiver: AudioEncoderSupport) supported(): Option[Bool] ->

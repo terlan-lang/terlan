@@ -15,6 +15,6 @@ module std.js.Dom.VideoEncoderSupport.
 
 pub opaque type VideoEncoderSupport.
 
-pub (receiver: VideoEncoderSupport) config(): std.core.Option.Option[std.js.Dom.VideoEncoderConfig.VideoEncoderConfig].
+pub (receiver: VideoEncoderSupport) config(): std.core.Option[std.js.Dom.VideoEncoderConfig].
 
-pub (receiver: VideoEncoderSupport) supported(): std.core.Option.Option[Bool].
+pub (receiver: VideoEncoderSupport) supported(): std.core.Option[Bool].

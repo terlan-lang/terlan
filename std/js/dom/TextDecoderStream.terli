@@ -19,6 +19,6 @@ module std.js.Dom.TextDecoderStream.
  */
 pub opaque type TextDecoderStream.
 
-pub (receiver: TextDecoderStream) readable(): std.js.Dom.ReadableStream.ReadableStream[std.js.String.JsString].
+pub (receiver: TextDecoderStream) readable(): std.js.Dom.ReadableStream[std.js.String.JsString].
 
-pub (receiver: TextDecoderStream) writable(): std.js.Dom.WritableStream.WritableStream[std.js.Dom.BufferSource.BufferSource].
+pub (receiver: TextDecoderStream) writable(): std.js.Dom.WritableStream[std.js.Dom.BufferSource].

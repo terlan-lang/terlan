@@ -25,7 +25,7 @@ pub opaque type PerformanceEntry.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry/duration)
  */
-pub (receiver: PerformanceEntry) duration(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceEntry) duration(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The read-only **`entryType`** property returns a string representing the type of performance metric that this entry represents.
@@ -46,4 +46,4 @@ pub (receiver: PerformanceEntry) name(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry/startTime)
  */
-pub (receiver: PerformanceEntry) start_time(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceEntry) start_time(): std.js.Dom.DOMHighResTimeStamp.

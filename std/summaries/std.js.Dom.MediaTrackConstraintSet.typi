@@ -15,32 +15,32 @@ module std.js.Dom.MediaTrackConstraintSet.
 
 pub opaque type MediaTrackConstraintSet.
 
-pub (receiver: MediaTrackConstraintSet) aspect_ratio(): std.core.Option.Option[std.js.Dom.ConstrainDouble.ConstrainDouble].
+pub (receiver: MediaTrackConstraintSet) aspect_ratio(): std.core.Option[std.js.Dom.ConstrainDouble].
 
-pub (receiver: MediaTrackConstraintSet) auto_gain_control(): std.core.Option.Option[std.js.Dom.ConstrainBoolean.ConstrainBoolean].
+pub (receiver: MediaTrackConstraintSet) auto_gain_control(): std.core.Option[std.js.Dom.ConstrainBoolean].
 
-pub (receiver: MediaTrackConstraintSet) background_blur(): std.core.Option.Option[std.js.Dom.ConstrainBoolean.ConstrainBoolean].
+pub (receiver: MediaTrackConstraintSet) background_blur(): std.core.Option[std.js.Dom.ConstrainBoolean].
 
-pub (receiver: MediaTrackConstraintSet) channel_count(): std.core.Option.Option[std.js.Dom.ConstrainULong.ConstrainULong].
+pub (receiver: MediaTrackConstraintSet) channel_count(): std.core.Option[std.js.Dom.ConstrainULong].
 
-pub (receiver: MediaTrackConstraintSet) device_id(): std.core.Option.Option[std.js.Dom.ConstrainDOMString.ConstrainDOMString].
+pub (receiver: MediaTrackConstraintSet) device_id(): std.core.Option[std.js.Dom.ConstrainDOMString].
 
-pub (receiver: MediaTrackConstraintSet) display_surface(): std.core.Option.Option[std.js.Dom.ConstrainDOMString.ConstrainDOMString].
+pub (receiver: MediaTrackConstraintSet) display_surface(): std.core.Option[std.js.Dom.ConstrainDOMString].
 
-pub (receiver: MediaTrackConstraintSet) echo_cancellation(): std.core.Option.Option[std.js.Dom.ConstrainBoolean.ConstrainBoolean].
+pub (receiver: MediaTrackConstraintSet) echo_cancellation(): std.core.Option[std.js.Dom.ConstrainBoolean].
 
-pub (receiver: MediaTrackConstraintSet) facing_mode(): std.core.Option.Option[std.js.Dom.ConstrainDOMString.ConstrainDOMString].
+pub (receiver: MediaTrackConstraintSet) facing_mode(): std.core.Option[std.js.Dom.ConstrainDOMString].
 
-pub (receiver: MediaTrackConstraintSet) frame_rate(): std.core.Option.Option[std.js.Dom.ConstrainDouble.ConstrainDouble].
+pub (receiver: MediaTrackConstraintSet) frame_rate(): std.core.Option[std.js.Dom.ConstrainDouble].
 
-pub (receiver: MediaTrackConstraintSet) group_id(): std.core.Option.Option[std.js.Dom.ConstrainDOMString.ConstrainDOMString].
+pub (receiver: MediaTrackConstraintSet) group_id(): std.core.Option[std.js.Dom.ConstrainDOMString].
 
-pub (receiver: MediaTrackConstraintSet) height(): std.core.Option.Option[std.js.Dom.ConstrainULong.ConstrainULong].
+pub (receiver: MediaTrackConstraintSet) height(): std.core.Option[std.js.Dom.ConstrainULong].
 
-pub (receiver: MediaTrackConstraintSet) noise_suppression(): std.core.Option.Option[std.js.Dom.ConstrainBoolean.ConstrainBoolean].
+pub (receiver: MediaTrackConstraintSet) noise_suppression(): std.core.Option[std.js.Dom.ConstrainBoolean].
 
-pub (receiver: MediaTrackConstraintSet) sample_rate(): std.core.Option.Option[std.js.Dom.ConstrainULong.ConstrainULong].
+pub (receiver: MediaTrackConstraintSet) sample_rate(): std.core.Option[std.js.Dom.ConstrainULong].
 
-pub (receiver: MediaTrackConstraintSet) sample_size(): std.core.Option.Option[std.js.Dom.ConstrainULong.ConstrainULong].
+pub (receiver: MediaTrackConstraintSet) sample_size(): std.core.Option[std.js.Dom.ConstrainULong].
 
-pub (receiver: MediaTrackConstraintSet) width(): std.core.Option.Option[std.js.Dom.ConstrainULong.ConstrainULong].
+pub (receiver: MediaTrackConstraintSet) width(): std.core.Option[std.js.Dom.ConstrainULong].

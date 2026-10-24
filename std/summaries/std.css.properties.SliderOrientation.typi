@@ -8,7 +8,7 @@ module std.css.properties.SliderOrientation.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    slider_orientation: std.core.Option.Option[Value]
+    slider_orientation: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -17,5 +17,5 @@ import type std.js.Dom.HTMLFormControlsCollection.
 pub named_item_typechecks(
     receiver: HTMLFormControlsCollection,
     name: std.js.String.JsString,
-): std.core.Option.Option[std.js.Dom.Element.Element | std.js.Dom.RadioNodeList.RadioNodeList] ->
+): std.core.Option[std.js.Dom.Element | std.js.Dom.RadioNodeList] ->
     receiver.named_item(name).

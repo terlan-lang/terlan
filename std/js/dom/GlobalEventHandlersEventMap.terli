@@ -12,19 +12,7 @@
  */
 module std.js.Dom.GlobalEventHandlersEventMap.
 
-import type std.js.Dom.AnimationEvent.{AnimationEvent}.
-import type std.js.Dom.ClipboardEvent.{ClipboardEvent}.
-import type std.js.Dom.CompositionEvent.{CompositionEvent}.
-import type std.js.Dom.DragEvent.{DragEvent}.
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.FocusEvent.{FocusEvent}.
-import type std.js.Dom.KeyboardEvent.{KeyboardEvent}.
-import type std.js.Dom.MouseEvent.{MouseEvent}.
-import type std.js.Dom.PointerEvent.{PointerEvent}.
-import type std.js.Dom.ToggleEvent.{ToggleEvent}.
-import type std.js.Dom.TouchEvent.{TouchEvent}.
-import type std.js.Dom.TransitionEvent.{TransitionEvent}.
-import type std.js.Dom.UIEvent.{UIEvent}.
+import type std.js.Dom.{AnimationEvent, ClipboardEvent, CompositionEvent, DragEvent, Event, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, ToggleEvent, TouchEvent, TransitionEvent, UIEvent}.
 
 pub opaque type GlobalEventHandlersEventMap.
 
@@ -40,7 +28,7 @@ pub (receiver: GlobalEventHandlersEventMap) animationstart(): AnimationEvent.
 
 pub (receiver: GlobalEventHandlersEventMap) auxclick(): PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) beforeinput(): std.js.Dom.InputEvent.InputEvent.
+pub (receiver: GlobalEventHandlersEventMap) beforeinput(): std.js.Dom.InputEvent.
 
 pub (receiver: GlobalEventHandlersEventMap) beforematch(): Event.
 
@@ -100,7 +88,7 @@ pub (receiver: GlobalEventHandlersEventMap) emptied(): Event.
 
 pub (receiver: GlobalEventHandlersEventMap) ended(): Event.
 
-pub (receiver: GlobalEventHandlersEventMap) error(): std.js.Dom.ErrorEvent.ErrorEvent.
+pub (receiver: GlobalEventHandlersEventMap) error(): std.js.Dom.ErrorEvent.
 
 pub (receiver: GlobalEventHandlersEventMap) focus(): FocusEvent.
 
@@ -108,7 +96,7 @@ pub (receiver: GlobalEventHandlersEventMap) focusin(): FocusEvent.
 
 pub (receiver: GlobalEventHandlersEventMap) focusout(): FocusEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) formdata(): std.js.Dom.FormDataEvent.FormDataEvent.
+pub (receiver: GlobalEventHandlersEventMap) formdata(): std.js.Dom.FormDataEvent.
 
 pub (receiver: GlobalEventHandlersEventMap) gotpointercapture(): PointerEvent.
 
@@ -172,7 +160,7 @@ pub (receiver: GlobalEventHandlersEventMap) pointerrawupdate(): Event.
 
 pub (receiver: GlobalEventHandlersEventMap) pointerup(): PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) progress(): std.js.Dom.ProgressEvent.ProgressEvent.
+pub (receiver: GlobalEventHandlersEventMap) progress(): std.js.Dom.ProgressEvent.
 
 pub (receiver: GlobalEventHandlersEventMap) ratechange(): Event.
 
@@ -184,7 +172,7 @@ pub (receiver: GlobalEventHandlersEventMap) scroll(): Event.
 
 pub (receiver: GlobalEventHandlersEventMap) scrollend(): Event.
 
-pub (receiver: GlobalEventHandlersEventMap) securitypolicyviolation(): std.js.Dom.SecurityPolicyViolationEvent.SecurityPolicyViolationEvent.
+pub (receiver: GlobalEventHandlersEventMap) securitypolicyviolation(): std.js.Dom.SecurityPolicyViolationEvent.
 
 pub (receiver: GlobalEventHandlersEventMap) seeked(): Event.
 
@@ -200,7 +188,7 @@ pub (receiver: GlobalEventHandlersEventMap) slotchange(): Event.
 
 pub (receiver: GlobalEventHandlersEventMap) stalled(): Event.
 
-pub (receiver: GlobalEventHandlersEventMap) submit(): std.js.Dom.SubmitEvent.SubmitEvent.
+pub (receiver: GlobalEventHandlersEventMap) submit(): std.js.Dom.SubmitEvent.
 
 pub (receiver: GlobalEventHandlersEventMap) suspend(): Event.
 
@@ -236,4 +224,4 @@ pub (receiver: GlobalEventHandlersEventMap) webkitanimationstart(): Event.
 
 pub (receiver: GlobalEventHandlersEventMap) webkittransitionend(): Event.
 
-pub (receiver: GlobalEventHandlersEventMap) wheel(): std.js.Dom.WheelEvent.WheelEvent.
+pub (receiver: GlobalEventHandlersEventMap) wheel(): std.js.Dom.WheelEvent.

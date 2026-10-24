@@ -15,18 +15,18 @@ module std.js.Dom.AuthenticationExtensionsClientInputs.
 
 pub opaque type AuthenticationExtensionsClientInputs.
 
-pub (receiver: AuthenticationExtensionsClientInputs) appid(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: AuthenticationExtensionsClientInputs) appid(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: AuthenticationExtensionsClientInputs) cred_props(): std.core.Option.Option[Bool].
+pub (receiver: AuthenticationExtensionsClientInputs) cred_props(): std.core.Option[Bool].
 
-pub (receiver: AuthenticationExtensionsClientInputs) credential_protection_policy(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: AuthenticationExtensionsClientInputs) credential_protection_policy(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: AuthenticationExtensionsClientInputs) enforce_credential_protection_policy(): std.core.Option.Option[Bool].
+pub (receiver: AuthenticationExtensionsClientInputs) enforce_credential_protection_policy(): std.core.Option[Bool].
 
-pub (receiver: AuthenticationExtensionsClientInputs) hmac_create_secret(): std.core.Option.Option[Bool].
+pub (receiver: AuthenticationExtensionsClientInputs) hmac_create_secret(): std.core.Option[Bool].
 
-pub (receiver: AuthenticationExtensionsClientInputs) large_blob(): std.core.Option.Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputs.AuthenticationExtensionsLargeBlobInputs].
+pub (receiver: AuthenticationExtensionsClientInputs) large_blob(): std.core.Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputs].
 
-pub (receiver: AuthenticationExtensionsClientInputs) min_pin_length(): std.core.Option.Option[Bool].
+pub (receiver: AuthenticationExtensionsClientInputs) min_pin_length(): std.core.Option[Bool].
 
-pub (receiver: AuthenticationExtensionsClientInputs) prf(): std.core.Option.Option[std.js.Dom.AuthenticationExtensionsPRFInputs.AuthenticationExtensionsPRFInputs].
+pub (receiver: AuthenticationExtensionsClientInputs) prf(): std.core.Option[std.js.Dom.AuthenticationExtensionsPRFInputs].

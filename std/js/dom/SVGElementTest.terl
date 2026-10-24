@@ -12,15 +12,11 @@
  */
 module std.js.Dom.SVGElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, SVGElement}.
 import type std.js.String.{JsString}.
 
-pub owner_svg_element_typechecks(
-    receiver: SVGElement,
-): Option[std.js.Dom.SVGSVGElement.SVGSVGElement] ->
+pub owner_svg_element_typechecks(receiver: SVGElement): Option[std.js.Dom.SVGSVGElement] ->
     receiver.owner_svg_element().
 
 pub viewport_element_typechecks(receiver: SVGElement): Option[SVGElement] ->
@@ -30,7 +26,7 @@ pub add_event_listener_typechecks(
     receiver: SVGElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -38,6 +34,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

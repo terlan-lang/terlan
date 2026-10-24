@@ -15,6 +15,6 @@ module std.js.Dom.DisplayMediaStreamOptions.
 
 pub opaque type DisplayMediaStreamOptions.
 
-pub (receiver: DisplayMediaStreamOptions) audio(): std.core.Option.Option[Bool | std.js.Dom.MediaTrackConstraints.MediaTrackConstraints].
+pub (receiver: DisplayMediaStreamOptions) audio(): std.core.Option[Bool | std.js.Dom.MediaTrackConstraints].
 
-pub (receiver: DisplayMediaStreamOptions) video(): std.core.Option.Option[Bool | std.js.Dom.MediaTrackConstraints.MediaTrackConstraints].
+pub (receiver: DisplayMediaStreamOptions) video(): std.core.Option[Bool | std.js.Dom.MediaTrackConstraints].

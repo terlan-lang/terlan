@@ -12,9 +12,8 @@
  */
 module std.js.Dom.HTMLOptionElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -43,7 +42,7 @@ pub (receiver: HTMLOptionElement) disabled(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionElement/form)
  */
-pub (receiver: HTMLOptionElement) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: HTMLOptionElement) form(): Option[std.js.Dom.HTMLFormElement].
 
 /**
  * The read-only **`index`** property of the HTMLOptionElement interface specifies the 0-based index of the element; that is, the position of the option within the list of options it belongs to, in tree-order, as an integer.
@@ -83,11 +82,11 @@ pub (receiver: HTMLOptionElement) value(): JsString.
 pub (receiver: HTMLOptionElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: HTMLOptionElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

@@ -14,5 +14,5 @@ module std.js.Dom.EcKeyImportParams.
 
 pub opaque type EcKeyImportParams.
 
-pub (receiver: EcKeyImportParams) named_curve(): std.js.Dom.NamedCurve.NamedCurve ->
+pub (receiver: EcKeyImportParams) named_curve(): std.js.Dom.NamedCurve ->
     native.

@@ -16,7 +16,7 @@ import type std.js.Dom.Worklet.
 
 pub add_module_typechecks(
     receiver: Worklet,
-    module_url: std.js.Dom.URL.URL | std.js.String.JsString,
-    options: std.core.Option.Option[std.js.Dom.WorkletOptions.WorkletOptions],
-): std.js.Promise.Promise[std.core.Unit.Unit] ->
+    module_url: std.js.Dom.URL | std.js.String.JsString,
+    options: std.core.Option[std.js.Dom.WorkletOptions],
+): std.js.Promise[std.core.Unit] ->
     receiver.add_module(module_url, options).

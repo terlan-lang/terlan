@@ -393,9 +393,34 @@ upper-case public module namespace segments. This supports source paths such as
 `std.core.Bool` while keeping package roots lower-case.
 
 A module may expose a primary type whose name matches the final module segment,
-similar to a typed default export. This is semantic resolution, not parser
-behavior: the grammar preserves the path, and the resolver decides whether a
-primary type exists and is visible.
+similar to a typed default export. The canonical public name of that type is
+its module path: `std.core.Option[T]`, `std.data.Json`, and
+`std.collections.Map[K, V]`, rather than `std.core.Option.Option[T]`,
+`std.data.Json.Json`, and `std.collections.Map.Map[K, V]`. This applies to
+qualified type annotations as well as imports. For example:
+
+```terlan
+import std.data.Json.
+import type std.collections.Map.
+
+pub encode(value: Json): std.data.Json -> value.
+pub counts(value: Map[String, Int]): std.collections.Map[String, Int] -> value.
+```
+
+The convention applies to every package, not only `std`: `polars.DataFrame`
+names the `DataFrame` type exported by that module, and `pytorch.Tensor` names
+its exported `Tensor` type. Secondary types retain their declared suffix, such
+as `std.data.Json.JsonError`, `polars.DataFrame.Series`, and
+`pytorch.Tensor.Scalar`.
+Aliases such as `import std.data.Json as Document.` bind the primary type as
+`Document`. The old repeated spelling remains accepted for compatibility;
+diagnostics and generated public signatures use the canonical shorter name.
+Types keep their owning module identity, so equally named types from different
+modules remain distinct. A module without a visible same-named type does not
+acquire a primary type merely from its path.
+
+This is semantic resolution, not parser behavior: the grammar preserves the
+path, and the resolver decides whether a primary type exists and is visible.
 
 Selective imports preserve identifier class. A lower-case imported symbol must
 use a lower-case alias. An upper-case imported symbol must use an upper-case

@@ -17,16 +17,16 @@ pub opaque type VideoDecoderConfig.
 
 pub (receiver: VideoDecoderConfig) codec(): std.js.String.JsString.
 
-pub (receiver: VideoDecoderConfig) coded_height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoDecoderConfig) coded_height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoDecoderConfig) coded_width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoDecoderConfig) coded_width(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoDecoderConfig) color_space(): std.core.Option.Option[std.js.Dom.VideoColorSpaceInit.VideoColorSpaceInit].
+pub (receiver: VideoDecoderConfig) color_space(): std.core.Option[std.js.Dom.VideoColorSpaceInit].
 
-pub (receiver: VideoDecoderConfig) description(): std.core.Option.Option[std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource].
+pub (receiver: VideoDecoderConfig) description(): std.core.Option[std.js.Dom.AllowSharedBufferSource].
 
-pub (receiver: VideoDecoderConfig) display_aspect_height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoDecoderConfig) display_aspect_height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoDecoderConfig) display_aspect_width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoDecoderConfig) display_aspect_width(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoDecoderConfig) optimize_for_latency(): std.core.Option.Option[Bool].
+pub (receiver: VideoDecoderConfig) optimize_for_latency(): std.core.Option[Bool].

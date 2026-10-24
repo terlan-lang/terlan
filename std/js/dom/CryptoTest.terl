@@ -14,5 +14,5 @@ module std.js.Dom.CryptoTest.
 
 import type std.js.Dom.Crypto.
 
-pub subtle_typechecks(receiver: Crypto): std.js.Dom.SubtleCrypto.SubtleCrypto ->
+pub subtle_typechecks(receiver: Crypto): std.js.Dom.SubtleCrypto ->
     receiver.subtle().

@@ -97,5 +97,5 @@ pub trait GuardResult[R, F[_]] {
     into_guard(result: R): F[Bool].
 }.
 
-pub impl GuardResult[std.core.Effect.Effect[Bool], std.core.Effect.Effect] for std.core.Effect.Effect[Bool] {
+pub impl GuardResult[std.core.Effect[Bool], std.core.Effect] for std.core.Effect[Bool] {
 }.

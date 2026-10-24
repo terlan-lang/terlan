@@ -15,7 +15,7 @@ module std.js.Dom.AudioDataInit.
 
 pub opaque type AudioDataInit.
 
-pub (receiver: AudioDataInit) data(): std.js.Dom.BufferSource.BufferSource.
+pub (receiver: AudioDataInit) data(): std.js.Dom.BufferSource.
 
 pub (receiver: AudioDataInit) number_of_channels(): std.js.Number.JsNumber.
 
@@ -25,4 +25,4 @@ pub (receiver: AudioDataInit) sample_rate(): std.js.Number.JsNumber.
 
 pub (receiver: AudioDataInit) timestamp(): std.js.Number.JsNumber.
 
-pub (receiver: AudioDataInit) transfer(): std.core.Option.Option[std.js.Array.Array[std.js.ArrayBuffer.ArrayBuffer]].
+pub (receiver: AudioDataInit) transfer(): std.core.Option[std.js.Array[std.js.ArrayBuffer]].

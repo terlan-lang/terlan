@@ -251,7 +251,7 @@ policy. The policy defines a stable lowercase error code and public one-line
 message. A generated `noexcept` C++ adapter catches every exception before it
 can cross `cxx`, suppresses upstream exception payloads, and returns an opaque
 success/error envelope. The helper decodes that envelope into
-`Result[T, std.core.Error.Error]`; failure to allocate an envelope remains a
+`Result[T, std.core.Error]`; failure to allocate an envelope remains a
 separate native transport error. Throwing symbols without this complete policy
 are rejected before generation.
 

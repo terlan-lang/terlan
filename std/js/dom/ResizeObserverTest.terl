@@ -12,9 +12,8 @@
  */
 module std.js.Dom.ResizeObserverTest.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Element.{Element}.
-import type std.js.Dom.ResizeObserver.
+import type std.core.{Unit}.
+import type std.js.Dom.{Element, ResizeObserver}.
 
 pub disconnect_typechecks(receiver: ResizeObserver): Unit ->
     receiver.disconnect().
@@ -22,7 +21,7 @@ pub disconnect_typechecks(receiver: ResizeObserver): Unit ->
 pub observe_typechecks(
     receiver: ResizeObserver,
     target_: Element,
-    options: std.core.Option.Option[std.js.Dom.ResizeObserverOptions.ResizeObserverOptions],
+    options: std.core.Option[std.js.Dom.ResizeObserverOptions],
 ): Unit ->
     receiver.observe(target_, options).
 

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.ImageEncodeOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.ImageEncodeOptions.
 
 pub quality_typechecks(receiver: ImageEncodeOptions): Option[std.js.Number.JsNumber] ->

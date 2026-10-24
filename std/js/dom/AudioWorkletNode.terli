@@ -12,9 +12,8 @@
  */
 module std.js.Dom.AudioWorkletNode.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -30,23 +29,23 @@ pub opaque type AudioWorkletNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioWorkletNode/parameters)
  */
-pub (receiver: AudioWorkletNode) parameters(): std.js.Dom.AudioParamMap.AudioParamMap.
+pub (receiver: AudioWorkletNode) parameters(): std.js.Dom.AudioParamMap.
 
 /**
  * The read-only **`port`** property of the associated AudioWorkletProcessor.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioWorkletNode/port)
  */
-pub (receiver: AudioWorkletNode) port(): std.js.Dom.MessagePort.MessagePort.
+pub (receiver: AudioWorkletNode) port(): std.js.Dom.MessagePort.
 
 pub (receiver: AudioWorkletNode) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: AudioWorkletNode) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

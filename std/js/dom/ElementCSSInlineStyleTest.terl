@@ -14,12 +14,8 @@ module std.js.Dom.ElementCSSInlineStyleTest.
 
 import type std.js.Dom.ElementCSSInlineStyle.
 
-pub attribute_style_map_typechecks(
-    receiver: ElementCSSInlineStyle,
-): std.js.Dom.StylePropertyMap.StylePropertyMap ->
+pub attribute_style_map_typechecks(receiver: ElementCSSInlineStyle): std.js.Dom.StylePropertyMap ->
     receiver.attribute_style_map().
 
-pub style_typechecks(
-    receiver: ElementCSSInlineStyle,
-): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration ->
+pub style_typechecks(receiver: ElementCSSInlineStyle): std.js.Dom.CSSStyleDeclaration ->
     receiver.style().

@@ -25,7 +25,7 @@ pub opaque type Response.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/headers)
  */
-pub (receiver: Response) headers(): std.js.Dom.Headers.Headers.
+pub (receiver: Response) headers(): std.js.Dom.Headers.
 
 /**
  * The **`ok`** read-only property of the Response interface contains a Boolean stating whether the response was successful (status in the range 200-299) or not.

@@ -15,26 +15,26 @@ module std.js.Dom.RTCTransportStats.
 
 pub opaque type RTCTransportStats.
 
-pub (receiver: RTCTransportStats) bytes_received(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCTransportStats) bytes_received(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCTransportStats) bytes_sent(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCTransportStats) bytes_sent(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCTransportStats) dtls_cipher(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCTransportStats) dtls_cipher(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCTransportStats) ice_local_username_fragment(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCTransportStats) ice_local_username_fragment(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCTransportStats) local_certificate_id(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCTransportStats) local_certificate_id(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCTransportStats) packets_received(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCTransportStats) packets_received(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCTransportStats) packets_sent(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCTransportStats) packets_sent(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCTransportStats) remote_certificate_id(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCTransportStats) remote_certificate_id(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCTransportStats) selected_candidate_pair_changes(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCTransportStats) selected_candidate_pair_changes(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCTransportStats) selected_candidate_pair_id(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCTransportStats) selected_candidate_pair_id(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCTransportStats) srtp_cipher(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCTransportStats) srtp_cipher(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCTransportStats) tls_version(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCTransportStats) tls_version(): std.core.Option[std.js.String.JsString].

@@ -24,4 +24,4 @@ pub opaque type CSSMathInvert.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathInvert/value)
  */
-pub (receiver: CSSMathInvert) value(): std.js.Dom.CSSNumericValue.CSSNumericValue.
+pub (receiver: CSSMathInvert) value(): std.js.Dom.CSSNumericValue.

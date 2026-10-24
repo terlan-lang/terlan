@@ -12,8 +12,7 @@
  */
 module std.js.Dom.CryptoKeyPairTest.
 
-import type std.js.Dom.CryptoKey.{CryptoKey}.
-import type std.js.Dom.CryptoKeyPair.
+import type std.js.Dom.{CryptoKey, CryptoKeyPair}.
 
 pub private_key_typechecks(receiver: CryptoKeyPair): CryptoKey ->
     receiver.private_key().

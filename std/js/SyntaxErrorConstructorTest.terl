@@ -14,5 +14,5 @@ module std.js.SyntaxErrorConstructorTest.
 
 import type std.js.SyntaxErrorConstructor.
 
-pub prototype_typechecks(receiver: SyntaxErrorConstructor): std.js.SyntaxError.SyntaxError ->
+pub prototype_typechecks(receiver: SyntaxErrorConstructor): std.js.SyntaxError ->
     receiver.prototype().

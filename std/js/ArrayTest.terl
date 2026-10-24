@@ -11,7 +11,7 @@ pub accepts_array(value: Array[Int]): Array[Int] ->
 pub converts_from_list(values: List[Int]): Array[Int] ->
     from_list(values).
 
-pub converts_to_list(values: Array[Int]): std.collections.List.List[Int] ->
+pub converts_to_list(values: Array[Int]): std.collections.List[Int] ->
     values.to_list().
 
 pub reads_array_length(values: Array[Int]): Int ->

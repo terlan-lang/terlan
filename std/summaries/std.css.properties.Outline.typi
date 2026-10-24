@@ -8,7 +8,7 @@ module std.css.properties.Outline.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    outline: std.core.Option.Option[Value]
+    outline: std.core.Option[Value]
 }.
 
 /// A non-global outline-color component of outline.

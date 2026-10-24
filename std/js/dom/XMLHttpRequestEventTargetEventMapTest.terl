@@ -12,9 +12,7 @@
  */
 module std.js.Dom.XMLHttpRequestEventTargetEventMapTest.
 
-import type std.js.Dom.ProgressEvent.{ProgressEvent}.
-import type std.js.Dom.XMLHttpRequestEventTarget.{XMLHttpRequestEventTarget}.
-import type std.js.Dom.XMLHttpRequestEventTargetEventMap.
+import type std.js.Dom.{ProgressEvent, XMLHttpRequestEventTarget, XMLHttpRequestEventTargetEventMap}.
 
 pub abort_typechecks(
     receiver: XMLHttpRequestEventTargetEventMap,

@@ -8,7 +8,7 @@ module std.css.properties.RegionFragment.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    region_fragment: std.core.Option.Option[Value]
+    region_fragment: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.FileSystemFileHandle.
 
-import type std.js.Promise.{Promise}.
+import type std.js.{Promise}.
 
 /**
  * The **`FileSystemFileHandle`** interface of the File System API represents a handle to a file system entry.
@@ -28,8 +28,8 @@ pub opaque type FileSystemFileHandle.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle/createWritable)
  */
 pub (receiver: FileSystemFileHandle) create_writable(
-    options: std.core.Option.Option[std.js.Dom.FileSystemCreateWritableOptions.FileSystemCreateWritableOptions],
-): Promise[std.js.Dom.FileSystemWritableFileStream.FileSystemWritableFileStream] ->
+    options: std.core.Option[std.js.Dom.FileSystemCreateWritableOptions],
+): Promise[std.js.Dom.FileSystemWritableFileStream] ->
     native.
 
 /**
@@ -37,5 +37,5 @@ pub (receiver: FileSystemFileHandle) create_writable(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle/getFile)
  */
-pub (receiver: FileSystemFileHandle) get_file(): Promise[std.js.Dom.File.File] ->
+pub (receiver: FileSystemFileHandle) get_file(): Promise[std.js.Dom.File] ->
     native.

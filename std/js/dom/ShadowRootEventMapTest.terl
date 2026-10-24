@@ -14,5 +14,5 @@ module std.js.Dom.ShadowRootEventMapTest.
 
 import type std.js.Dom.ShadowRootEventMap.
 
-pub slotchange_typechecks(receiver: ShadowRootEventMap): std.js.Dom.Event.Event ->
+pub slotchange_typechecks(receiver: ShadowRootEventMap): std.js.Dom.Event ->
     receiver.slotchange().

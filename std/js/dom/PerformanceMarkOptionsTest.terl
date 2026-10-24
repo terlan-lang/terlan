@@ -16,5 +16,5 @@ import type std.js.Dom.PerformanceMarkOptions.
 
 pub start_time_typechecks(
     receiver: PerformanceMarkOptions,
-): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp] ->
+): std.core.Option[std.js.Dom.DOMHighResTimeStamp] ->
     receiver.start_time().

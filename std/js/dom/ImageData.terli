@@ -26,7 +26,7 @@ pub opaque type ImageData.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageData/data)
  */
-pub (receiver: ImageData) data(): std.js.Dom.ImageDataArray.ImageDataArray.
+pub (receiver: ImageData) data(): std.js.Dom.ImageDataArray.
 
 /**
  * The readonly **`ImageData.height`** property returns the number of rows in the ImageData object.

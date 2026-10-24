@@ -8,7 +8,7 @@ module std.css.properties.HyphenateCharacter.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    hyphenate_character: std.core.Option.Option[Value]
+    hyphenate_character: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

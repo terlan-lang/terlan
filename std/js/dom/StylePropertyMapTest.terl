@@ -12,11 +12,10 @@
  */
 module std.js.Dom.StylePropertyMapTest.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.CSSStyleValue.{CSSStyleValue}.
-import type std.js.Dom.StylePropertyMap.
+import type std.core.{Unit}.
+import type std.js.Dom.{CSSStyleValue, StylePropertyMap}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 pub append_typechecks(
     receiver: StylePropertyMap,

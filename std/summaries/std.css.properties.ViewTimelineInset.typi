@@ -8,7 +8,7 @@ module std.css.properties.ViewTimelineInset.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    view_timeline_inset: std.core.Option.Option[Value]
+    view_timeline_inset: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

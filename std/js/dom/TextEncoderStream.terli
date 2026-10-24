@@ -19,6 +19,6 @@ module std.js.Dom.TextEncoderStream.
  */
 pub opaque type TextEncoderStream.
 
-pub (receiver: TextEncoderStream) readable(): std.js.Dom.ReadableStream.ReadableStream[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]].
+pub (receiver: TextEncoderStream) readable(): std.js.Dom.ReadableStream[std.js.Uint8Array[std.js.ArrayBuffer]].
 
-pub (receiver: TextEncoderStream) writable(): std.js.Dom.WritableStream.WritableStream[std.js.String.JsString].
+pub (receiver: TextEncoderStream) writable(): std.js.Dom.WritableStream[std.js.String.JsString].

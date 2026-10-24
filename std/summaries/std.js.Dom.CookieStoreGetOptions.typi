@@ -15,6 +15,6 @@ module std.js.Dom.CookieStoreGetOptions.
 
 pub opaque type CookieStoreGetOptions.
 
-pub (receiver: CookieStoreGetOptions) name(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: CookieStoreGetOptions) name(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: CookieStoreGetOptions) url(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: CookieStoreGetOptions) url(): std.core.Option[std.js.String.JsString].

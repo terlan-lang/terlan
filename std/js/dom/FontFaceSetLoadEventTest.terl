@@ -14,7 +14,5 @@ module std.js.Dom.FontFaceSetLoadEventTest.
 
 import type std.js.Dom.FontFaceSetLoadEvent.
 
-pub fontfaces_typechecks(
-    receiver: FontFaceSetLoadEvent,
-): std.js.Array.Array[std.js.Dom.FontFace.FontFace] ->
+pub fontfaces_typechecks(receiver: FontFaceSetLoadEvent): std.js.Array[std.js.Dom.FontFace] ->
     receiver.fontfaces().

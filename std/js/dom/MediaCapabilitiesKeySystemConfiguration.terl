@@ -12,8 +12,8 @@
  */
 module std.js.Dom.MediaCapabilitiesKeySystemConfiguration.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.KeySystemTrackConfiguration.{KeySystemTrackConfiguration}.
+import type std.core.{Option}.
+import type std.js.Dom.{KeySystemTrackConfiguration}.
 import type std.js.String.{JsString}.
 
 pub opaque type MediaCapabilitiesKeySystemConfiguration.
@@ -27,7 +27,7 @@ pub (receiver: MediaCapabilitiesKeySystemConfiguration) init_data_type(): Option
 pub (receiver: MediaCapabilitiesKeySystemConfiguration) key_system(): JsString ->
     native.
 
-pub (receiver: MediaCapabilitiesKeySystemConfiguration) session_types(): Option[std.js.Array.Array[JsString]] ->
+pub (receiver: MediaCapabilitiesKeySystemConfiguration) session_types(): Option[std.js.Array[JsString]] ->
     native.
 
 pub (receiver: MediaCapabilitiesKeySystemConfiguration) video(): Option[KeySystemTrackConfiguration] ->

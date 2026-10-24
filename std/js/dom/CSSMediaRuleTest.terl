@@ -14,5 +14,5 @@ module std.js.Dom.CSSMediaRuleTest.
 
 import type std.js.Dom.CSSMediaRule.
 
-pub media_typechecks(receiver: CSSMediaRule): std.js.Dom.MediaList.MediaList ->
+pub media_typechecks(receiver: CSSMediaRule): std.js.Dom.MediaList ->
     receiver.media().

@@ -12,22 +12,17 @@
  */
 module std.js.Dom.SVGGraphicsElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.DOMMatrix.{DOMMatrix}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGGraphicsElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{DOMMatrix, EventListenerOrEventListenerObject, SVGGraphicsElement}.
 import type std.js.String.{JsString}.
 
-pub transform_typechecks(
-    receiver: SVGGraphicsElement,
-): std.js.Dom.SVGAnimatedTransformList.SVGAnimatedTransformList ->
+pub transform_typechecks(receiver: SVGGraphicsElement): std.js.Dom.SVGAnimatedTransformList ->
     receiver.transform().
 
 pub get_b_box_typechecks(
     receiver: SVGGraphicsElement,
-    options: Option[std.js.Dom.SVGBoundingBoxOptions.SVGBoundingBoxOptions],
-): std.js.Dom.DOMRect.DOMRect ->
+    options: Option[std.js.Dom.SVGBoundingBoxOptions],
+): std.js.Dom.DOMRect ->
     receiver.get_b_box(options).
 
 pub get_ctm_typechecks(receiver: SVGGraphicsElement): Option[DOMMatrix] ->
@@ -40,7 +35,7 @@ pub add_event_listener_typechecks(
     receiver: SVGGraphicsElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -48,6 +43,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGGraphicsElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

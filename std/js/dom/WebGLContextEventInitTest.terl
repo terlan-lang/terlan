@@ -16,5 +16,5 @@ import type std.js.Dom.WebGLContextEventInit.
 
 pub status_message_typechecks(
     receiver: WebGLContextEventInit,
-): std.core.Option.Option[std.js.String.JsString] ->
+): std.core.Option[std.js.String.JsString] ->
     receiver.status_message().

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.WebGLContextAttributesTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.WebGLContextAttributes.
 
 pub alpha_typechecks(receiver: WebGLContextAttributes): Option[Bool] ->

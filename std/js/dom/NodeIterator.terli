@@ -12,8 +12,8 @@
  */
 module std.js.Dom.NodeIterator.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.Node.{Node}.
+import type std.core.{Option}.
+import type std.js.Dom.{Node}.
 
 /**
  * The **`NodeIterator`** interface represents an iterator to traverse nodes of a DOM subtree in document order.
@@ -56,7 +56,7 @@ pub (receiver: NodeIterator) what_to_show(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/detach)
  */
-pub (receiver: NodeIterator) detach(): std.core.Unit.Unit.
+pub (receiver: NodeIterator) detach(): std.core.Unit.
 
 /**
  * The **`NodeIterator.nextNode()`** method returns the next node in the set represented by the NodeIterator and advances the position of the iterator within the set.

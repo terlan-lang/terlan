@@ -12,9 +12,8 @@
  */
 module std.js.Dom.WakeLockSentinel.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -37,16 +36,16 @@ pub (receiver: WakeLockSentinel) released(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WakeLockSentinel/release)
  */
-pub (receiver: WakeLockSentinel) release(): std.js.Promise.Promise[Unit].
+pub (receiver: WakeLockSentinel) release(): std.js.Promise[Unit].
 
 pub (receiver: WakeLockSentinel) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: WakeLockSentinel) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

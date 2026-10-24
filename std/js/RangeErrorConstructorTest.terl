@@ -14,5 +14,5 @@ module std.js.RangeErrorConstructorTest.
 
 import type std.js.RangeErrorConstructor.
 
-pub prototype_typechecks(receiver: RangeErrorConstructor): std.js.RangeError.RangeError ->
+pub prototype_typechecks(receiver: RangeErrorConstructor): std.js.RangeError ->
     receiver.prototype().

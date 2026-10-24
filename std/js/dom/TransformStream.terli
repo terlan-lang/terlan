@@ -24,11 +24,11 @@ pub opaque type TransformStream[I, O].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransformStream/readable)
  */
-pub (receiver: TransformStream[I, O]) readable(): std.js.Dom.ReadableStream.ReadableStream[O].
+pub (receiver: TransformStream[I, O]) readable(): std.js.Dom.ReadableStream[O].
 
 /**
  * The **`writable`** read-only property of the TransformStream interface returns the WritableStream instance controlled by this `TransformStream`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransformStream/writable)
  */
-pub (receiver: TransformStream[I, O]) writable(): std.js.Dom.WritableStream.WritableStream[I].
+pub (receiver: TransformStream[I, O]) writable(): std.js.Dom.WritableStream[I].

@@ -15,16 +15,16 @@ module std.js.Dom.XMLHttpRequestEventTargetEventMap.
 
 pub opaque type XMLHttpRequestEventTargetEventMap.
 
-pub (receiver: XMLHttpRequestEventTargetEventMap) abort(): std.js.Dom.ProgressEvent.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget.XMLHttpRequestEventTarget].
+pub (receiver: XMLHttpRequestEventTargetEventMap) abort(): std.js.Dom.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget].
 
-pub (receiver: XMLHttpRequestEventTargetEventMap) error(): std.js.Dom.ProgressEvent.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget.XMLHttpRequestEventTarget].
+pub (receiver: XMLHttpRequestEventTargetEventMap) error(): std.js.Dom.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget].
 
-pub (receiver: XMLHttpRequestEventTargetEventMap) load(): std.js.Dom.ProgressEvent.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget.XMLHttpRequestEventTarget].
+pub (receiver: XMLHttpRequestEventTargetEventMap) load(): std.js.Dom.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget].
 
-pub (receiver: XMLHttpRequestEventTargetEventMap) loadend(): std.js.Dom.ProgressEvent.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget.XMLHttpRequestEventTarget].
+pub (receiver: XMLHttpRequestEventTargetEventMap) loadend(): std.js.Dom.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget].
 
-pub (receiver: XMLHttpRequestEventTargetEventMap) loadstart(): std.js.Dom.ProgressEvent.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget.XMLHttpRequestEventTarget].
+pub (receiver: XMLHttpRequestEventTargetEventMap) loadstart(): std.js.Dom.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget].
 
-pub (receiver: XMLHttpRequestEventTargetEventMap) progress(): std.js.Dom.ProgressEvent.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget.XMLHttpRequestEventTarget].
+pub (receiver: XMLHttpRequestEventTargetEventMap) progress(): std.js.Dom.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget].
 
-pub (receiver: XMLHttpRequestEventTargetEventMap) timeout(): std.js.Dom.ProgressEvent.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget.XMLHttpRequestEventTarget].
+pub (receiver: XMLHttpRequestEventTargetEventMap) timeout(): std.js.Dom.ProgressEvent[std.js.Dom.XMLHttpRequestEventTarget].

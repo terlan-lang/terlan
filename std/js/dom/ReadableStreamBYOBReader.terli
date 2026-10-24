@@ -24,4 +24,4 @@ pub opaque type ReadableStreamBYOBReader.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/releaseLock)
  */
-pub (receiver: ReadableStreamBYOBReader) release_lock(): std.core.Unit.Unit.
+pub (receiver: ReadableStreamBYOBReader) release_lock(): std.core.Unit.

@@ -14,4 +14,4 @@
 module std.js.Dom.ReportList.
 
 pub type ReportList =
-    std.js.Array.Array[std.js.Dom.Report.Report].
+    std.js.Array[std.js.Dom.Report].

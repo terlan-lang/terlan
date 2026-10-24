@@ -12,12 +12,10 @@
  */
 module std.js.Dom.PaymentRequest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.PaymentDetailsUpdate.{PaymentDetailsUpdate}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, PaymentDetailsUpdate}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 /**
  * The Payment Request API's **`PaymentRequest`** interface is the primary access point into the API, and lets web content and apps accept payments from the end user on behalf of the operator of the site or the publisher of the app.
@@ -41,7 +39,7 @@ pub (receiver: PaymentRequest) id(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/shippingAddress)
  */
-pub (receiver: PaymentRequest) shipping_address(): Option[std.js.Dom.PaymentAddress.PaymentAddress] ->
+pub (receiver: PaymentRequest) shipping_address(): Option[std.js.Dom.PaymentAddress] ->
     native.
 
 /**
@@ -75,20 +73,20 @@ pub (receiver: PaymentRequest) can_make_payment(): Promise[Bool] ->
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/show)
  */
 pub (receiver: PaymentRequest) show(
-    details_promise: Option[PaymentDetailsUpdate | std.js.PromiseLike.PromiseLike[PaymentDetailsUpdate]],
-): Promise[std.js.Dom.PaymentResponse.PaymentResponse] ->
+    details_promise: Option[PaymentDetailsUpdate | std.js.PromiseLike[PaymentDetailsUpdate]],
+): Promise[std.js.Dom.PaymentResponse] ->
     native.
 
 pub (receiver: PaymentRequest) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: PaymentRequest) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

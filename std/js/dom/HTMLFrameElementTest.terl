@@ -12,18 +12,14 @@
  */
 module std.js.Dom.HTMLFrameElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLFrameElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLFrameElement}.
 import type std.js.String.{JsString}.
 
-pub content_document_typechecks(receiver: HTMLFrameElement): Option[std.js.Dom.Document.Document] ->
+pub content_document_typechecks(receiver: HTMLFrameElement): Option[std.js.Dom.Document] ->
     receiver.content_document().
 
-pub content_window_typechecks(
-    receiver: HTMLFrameElement,
-): Option[std.js.Dom.WindowProxy.WindowProxy] ->
+pub content_window_typechecks(receiver: HTMLFrameElement): Option[std.js.Dom.WindowProxy] ->
     receiver.content_window().
 
 pub frame_border_typechecks(receiver: HTMLFrameElement): JsString ->
@@ -54,7 +50,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLFrameElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -62,6 +58,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLFrameElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

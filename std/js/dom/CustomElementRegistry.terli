@@ -12,9 +12,8 @@
  */
 module std.js.Dom.CustomElementRegistry.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.CustomElementConstructor.{CustomElementConstructor}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{CustomElementConstructor}.
 import type std.js.String.{JsString}.
 
 /**
@@ -32,7 +31,7 @@ pub opaque type CustomElementRegistry.
 pub (receiver: CustomElementRegistry) define(
     name: JsString,
     constructor_: CustomElementConstructor,
-    options: Option[std.js.Dom.ElementDefinitionOptions.ElementDefinitionOptions],
+    options: Option[std.js.Dom.ElementDefinitionOptions],
 ): Unit.
 
 /**
@@ -54,11 +53,11 @@ pub (receiver: CustomElementRegistry) get_name(constructor_: CustomElementConstr
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomElementRegistry/upgrade)
  */
-pub (receiver: CustomElementRegistry) upgrade(root: std.js.Dom.Node.Node): Unit.
+pub (receiver: CustomElementRegistry) upgrade(root: std.js.Dom.Node): Unit.
 
 /**
  * The **`whenDefined()`** method of the resolves when the named element is defined.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomElementRegistry/whenDefined)
  */
-pub (receiver: CustomElementRegistry) when_defined(name: JsString): std.js.Promise.Promise[CustomElementConstructor].
+pub (receiver: CustomElementRegistry) when_defined(name: JsString): std.js.Promise[CustomElementConstructor].

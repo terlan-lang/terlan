@@ -12,12 +12,12 @@
  */
 module std.js.Dom.AudioTimestamp.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type AudioTimestamp.
 
 pub (receiver: AudioTimestamp) context_time(): Option[std.js.Number.JsNumber] ->
     native.
 
-pub (receiver: AudioTimestamp) performance_time(): Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp] ->
+pub (receiver: AudioTimestamp) performance_time(): Option[std.js.Dom.DOMHighResTimeStamp] ->
     native.

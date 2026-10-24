@@ -12,7 +12,7 @@
  */
 module std.js.Dom.WEBGL_lose_contextTest.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Dom.WEBGL_lose_context.
 
 pub lose_context_typechecks(receiver: WEBGL_lose_context): Unit ->

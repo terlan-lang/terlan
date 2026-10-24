@@ -14,5 +14,5 @@ module std.js.Dom.FileSystemRemoveOptionsTest.
 
 import type std.js.Dom.FileSystemRemoveOptions.
 
-pub recursive_typechecks(receiver: FileSystemRemoveOptions): std.core.Option.Option[Bool] ->
+pub recursive_typechecks(receiver: FileSystemRemoveOptions): std.core.Option[Bool] ->
     receiver.recursive().

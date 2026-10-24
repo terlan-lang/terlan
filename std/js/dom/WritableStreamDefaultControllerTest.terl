@@ -14,5 +14,5 @@ module std.js.Dom.WritableStreamDefaultControllerTest.
 
 import type std.js.Dom.WritableStreamDefaultController.
 
-pub signal_typechecks(receiver: WritableStreamDefaultController): std.js.Dom.AbortSignal.AbortSignal ->
+pub signal_typechecks(receiver: WritableStreamDefaultController): std.js.Dom.AbortSignal ->
     receiver.signal().

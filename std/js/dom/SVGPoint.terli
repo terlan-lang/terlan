@@ -12,4 +12,4 @@
  */
 module std.js.Dom.SVGPoint.
 
-pub type SVGPoint = std.js.Dom.DOMPoint.DOMPoint.
+pub type SVGPoint = std.js.Dom.DOMPoint.

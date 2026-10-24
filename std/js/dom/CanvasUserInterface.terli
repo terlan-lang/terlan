@@ -12,8 +12,8 @@
  */
 module std.js.Dom.CanvasUserInterface.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Element.{Element}.
+import type std.core.{Unit}.
+import type std.js.Dom.{Element}.
 
 pub opaque type CanvasUserInterface.
 
@@ -22,4 +22,4 @@ pub opaque type CanvasUserInterface.
  */
 pub (receiver: CanvasUserInterface) draw_focus_if_needed(element: Element): Unit.
 
-pub (receiver: CanvasUserInterface) draw_focus_if_needed_overload_2(path: std.js.Dom.Path2D.Path2D, element: Element): Unit.
+pub (receiver: CanvasUserInterface) draw_focus_if_needed_overload_2(path: std.js.Dom.Path2D, element: Element): Unit.

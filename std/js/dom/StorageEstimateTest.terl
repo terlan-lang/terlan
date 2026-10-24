@@ -12,7 +12,7 @@
  */
 module std.js.Dom.StorageEstimateTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.StorageEstimate.
 import type std.js.Number.{JsNumber}.
 

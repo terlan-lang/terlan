@@ -18,29 +18,29 @@ pub opaque type RequestInit.
 /**
  * A BodyInit object or null to set request's body.
  */
-pub (receiver: RequestInit) body(): std.core.Option.Option[std.js.Dom.BodyInit.BodyInit].
+pub (receiver: RequestInit) body(): std.core.Option[std.js.Dom.BodyInit].
 
 /**
  * A cryptographic hash of the resource to be fetched by request. Sets request's integrity.
  */
-pub (receiver: RequestInit) integrity(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RequestInit) integrity(): std.core.Option[std.js.String.JsString].
 
 /**
  * A boolean to set request's keepalive.
  */
-pub (receiver: RequestInit) keepalive(): std.core.Option.Option[Bool].
+pub (receiver: RequestInit) keepalive(): std.core.Option[Bool].
 
 /**
  * A string to set request's method.
  */
-pub (receiver: RequestInit) method(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RequestInit) method(): std.core.Option[std.js.String.JsString].
 
 /**
  * A string whose value is a same-origin URL, "about:client", or the empty string, to set request's referrer.
  */
-pub (receiver: RequestInit) referrer(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RequestInit) referrer(): std.core.Option[std.js.String.JsString].
 
 /**
  * An AbortSignal to set request's signal.
  */
-pub (receiver: RequestInit) signal(): std.core.Option.Option[std.js.Dom.AbortSignal.AbortSignal].
+pub (receiver: RequestInit) signal(): std.core.Option[std.js.Dom.AbortSignal].

@@ -12,9 +12,9 @@
  */
 module std.js.Dom.CacheStorage.
 
-import type std.core.Option.{Option}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 /**
  * The **`CacheStorage`** interface represents the storage for Cache objects.
@@ -45,7 +45,7 @@ pub (receiver: CacheStorage) has(cache_name: JsString): Promise[Bool] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/keys)
  */
-pub (receiver: CacheStorage) keys(): Promise[std.js.Array.Array[JsString]] ->
+pub (receiver: CacheStorage) keys(): Promise[std.js.Array[JsString]] ->
     native.
 
 /**
@@ -54,9 +54,9 @@ pub (receiver: CacheStorage) keys(): Promise[std.js.Array.Array[JsString]] ->
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/match)
  */
 pub (receiver: CacheStorage) match(
-    request: std.js.Dom.RequestInfo.RequestInfo | std.js.Dom.URL.URL,
-    options: Option[std.js.Dom.MultiCacheQueryOptions.MultiCacheQueryOptions],
-): Promise[Option[std.js.Dom.Response.Response]] ->
+    request: std.js.Dom.RequestInfo | std.js.Dom.URL,
+    options: Option[std.js.Dom.MultiCacheQueryOptions],
+): Promise[Option[std.js.Dom.Response]] ->
     native.
 
 /**
@@ -64,5 +64,5 @@ pub (receiver: CacheStorage) match(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/open)
  */
-pub (receiver: CacheStorage) open(cache_name: JsString): Promise[std.js.Dom.Cache.Cache] ->
+pub (receiver: CacheStorage) open(cache_name: JsString): Promise[std.js.Dom.Cache] ->
     native.

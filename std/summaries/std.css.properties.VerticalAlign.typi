@@ -8,7 +8,7 @@ module std.css.properties.VerticalAlign.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    vertical_align: std.core.Option.Option[Value]
+    vertical_align: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

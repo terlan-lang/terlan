@@ -17,5 +17,5 @@ pub opaque type WindowLocalStorage.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/localStorage)
  */
-pub (receiver: WindowLocalStorage) local_storage(): std.js.Dom.Storage.Storage ->
+pub (receiver: WindowLocalStorage) local_storage(): std.js.Dom.Storage ->
     native.

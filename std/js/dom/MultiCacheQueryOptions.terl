@@ -14,5 +14,5 @@ module std.js.Dom.MultiCacheQueryOptions.
 
 pub opaque type MultiCacheQueryOptions.
 
-pub (receiver: MultiCacheQueryOptions) cache_name(): std.core.Option.Option[std.js.String.JsString] ->
+pub (receiver: MultiCacheQueryOptions) cache_name(): std.core.Option[std.js.String.JsString] ->
     native.

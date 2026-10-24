@@ -8,7 +8,7 @@ module std.css.properties.LineSnap.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    line_snap: std.core.Option.Option[Value]
+    line_snap: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

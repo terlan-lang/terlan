@@ -12,8 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedTransformListTest.
 
-import type std.js.Dom.SVGAnimatedTransformList.
-import type std.js.Dom.SVGTransformList.{SVGTransformList}.
+import type std.js.Dom.{SVGAnimatedTransformList, SVGTransformList}.
 
 pub anim_val_typechecks(receiver: SVGAnimatedTransformList): SVGTransformList ->
     receiver.anim_val().

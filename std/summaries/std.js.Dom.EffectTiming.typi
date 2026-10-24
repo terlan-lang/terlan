@@ -15,16 +15,16 @@ module std.js.Dom.EffectTiming.
 
 pub opaque type EffectTiming.
 
-pub (receiver: EffectTiming) delay(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: EffectTiming) delay(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: EffectTiming) duration(): std.core.Option.Option[std.js.Dom.CSSNumericValue.CSSNumericValue | std.js.Number.JsNumber | std.js.String.JsString].
+pub (receiver: EffectTiming) duration(): std.core.Option[std.js.Dom.CSSNumericValue | std.js.Number.JsNumber | std.js.String.JsString].
 
-pub (receiver: EffectTiming) easing(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: EffectTiming) easing(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: EffectTiming) end_delay(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: EffectTiming) end_delay(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: EffectTiming) iteration_start(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: EffectTiming) iteration_start(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: EffectTiming) iterations(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: EffectTiming) iterations(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: EffectTiming) playback_rate(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: EffectTiming) playback_rate(): std.core.Option[std.js.Number.JsNumber].

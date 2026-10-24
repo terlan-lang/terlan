@@ -8,7 +8,7 @@ module std.css.properties.OverflowWrap.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    overflow_wrap: std.core.Option.Option[Value]
+    overflow_wrap: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -16,4 +16,4 @@ import type std.js.String.{JsString}.
 
 pub opaque type PropertyIndexedKeyframes.
 
-pub (receiver: PropertyIndexedKeyframes) easing(): std.core.Option.Option[std.js.Array.Array[JsString] | JsString].
+pub (receiver: PropertyIndexedKeyframes) easing(): std.core.Option[std.js.Array[JsString] | JsString].

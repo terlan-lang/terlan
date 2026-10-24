@@ -14,5 +14,5 @@ module std.js.Dom.IdleRequestOptionsTest.
 
 import type std.js.Dom.IdleRequestOptions.
 
-pub timeout_typechecks(receiver: IdleRequestOptions): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub timeout_typechecks(receiver: IdleRequestOptions): std.core.Option[std.js.Number.JsNumber] ->
     receiver.timeout().

@@ -12,18 +12,16 @@
  */
 module std.js.Dom.RTCRtpParametersTest.
 
-import type std.js.Array.{Array}.
 import type std.js.Dom.RTCRtpParameters.
+import type std.js.{Array}.
 
-pub codecs_typechecks(
-    receiver: RTCRtpParameters,
-): Array[std.js.Dom.RTCRtpCodecParameters.RTCRtpCodecParameters] ->
+pub codecs_typechecks(receiver: RTCRtpParameters): Array[std.js.Dom.RTCRtpCodecParameters] ->
     receiver.codecs().
 
 pub header_extensions_typechecks(
     receiver: RTCRtpParameters,
-): Array[std.js.Dom.RTCRtpHeaderExtensionParameters.RTCRtpHeaderExtensionParameters] ->
+): Array[std.js.Dom.RTCRtpHeaderExtensionParameters] ->
     receiver.header_extensions().
 
-pub rtcp_typechecks(receiver: RTCRtpParameters): std.js.Dom.RTCRtcpParameters.RTCRtcpParameters ->
+pub rtcp_typechecks(receiver: RTCRtpParameters): std.js.Dom.RTCRtcpParameters ->
     receiver.rtcp().

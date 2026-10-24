@@ -12,8 +12,8 @@
  */
 module std.js.Dom.SVGTransformList.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.SVGTransform.{SVGTransform}.
+import type std.core.{Option}.
+import type std.js.Dom.{SVGTransform}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -49,7 +49,7 @@ pub (receiver: SVGTransformList) append_item(new_item: SVGTransform): SVGTransfo
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/clear)
  */
-pub (receiver: SVGTransformList) clear(): std.core.Unit.Unit.
+pub (receiver: SVGTransformList) clear(): std.core.Unit.
 
 /**
  * The `consolidate()` method of the SVGTransformList interface consolidates the list of separate SVGTransform objects by multiplying the equivalent transformation matrices together to result in a list consisting of a single `SVGTransform` object of type `SVG_TRANSFORM_MATRIX`.
@@ -63,9 +63,7 @@ pub (receiver: SVGTransformList) consolidate(): Option[SVGTransform].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/createSVGTransformFromMatrix)
  */
-pub (receiver: SVGTransformList) create_svg_transform_from_matrix(
-    matrix: Option[std.js.Dom.DOMMatrix2DInit.DOMMatrix2DInit],
-): SVGTransform.
+pub (receiver: SVGTransformList) create_svg_transform_from_matrix(matrix: Option[std.js.Dom.DOMMatrix2DInit]): SVGTransform.
 
 /**
  * The `getItem()` method of the SVGTransformList interface returns the specified item from the list.

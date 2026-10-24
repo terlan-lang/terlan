@@ -8,7 +8,7 @@ module std.css.properties.ViewTransitionClass.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    view_transition_class: std.core.Option.Option[Value]
+    view_transition_class: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

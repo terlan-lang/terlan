@@ -14,4 +14,4 @@ module std.js.Dom.FocusOptions.
 
 pub opaque type FocusOptions.
 
-pub (receiver: FocusOptions) prevent_scroll(): std.core.Option.Option[Bool].
+pub (receiver: FocusOptions) prevent_scroll(): std.core.Option[Bool].

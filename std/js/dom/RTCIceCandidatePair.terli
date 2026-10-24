@@ -12,7 +12,7 @@
  */
 module std.js.Dom.RTCIceCandidatePair.
 
-import type std.js.Dom.RTCIceCandidate.{RTCIceCandidate}.
+import type std.js.Dom.{RTCIceCandidate}.
 
 /**
  * The **`RTCIceCandidatePair`** dictionary describes a pair of ICE candidates which together comprise a description of a viable connection between two WebRTC endpoints.

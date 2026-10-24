@@ -12,10 +12,8 @@
  */
 module std.js.Dom.OES_vertex_array_objectTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.OES_vertex_array_object.
-import type std.js.Dom.WebGLVertexArrayObjectOES.{WebGLVertexArrayObjectOES}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{OES_vertex_array_object, WebGLVertexArrayObjectOES}.
 
 pub bind_vertex_array_oes_typechecks(
     receiver: OES_vertex_array_object,
@@ -35,5 +33,5 @@ pub delete_vertex_array_oes_typechecks(
 pub is_vertex_array_oes_typechecks(
     receiver: OES_vertex_array_object,
     array_object: Option[WebGLVertexArrayObjectOES],
-): std.js.Dom.GLboolean.GLboolean ->
+): std.js.Dom.GLboolean ->
     receiver.is_vertex_array_oes(array_object).

@@ -12,31 +12,26 @@
  */
 module std.js.Dom.RTCRtpSenderTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.MediaStreamTrack.{MediaStreamTrack}.
-import type std.js.Dom.RTCRtpSendParameters.{RTCRtpSendParameters}.
-import type std.js.Dom.RTCRtpSender.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{MediaStreamTrack, RTCRtpSendParameters, RTCRtpSender}.
+import type std.js.{Promise}.
 
-pub dtmf_typechecks(receiver: RTCRtpSender): Option[std.js.Dom.RTCDTMFSender.RTCDTMFSender] ->
+pub dtmf_typechecks(receiver: RTCRtpSender): Option[std.js.Dom.RTCDTMFSender] ->
     receiver.dtmf().
 
 pub track_typechecks(receiver: RTCRtpSender): Option[MediaStreamTrack] ->
     receiver.track().
 
-pub transform_typechecks(receiver: RTCRtpSender): Option[std.js.Dom.RTCRtpTransform.RTCRtpTransform] ->
+pub transform_typechecks(receiver: RTCRtpSender): Option[std.js.Dom.RTCRtpTransform] ->
     receiver.transform().
 
-pub transport_typechecks(
-    receiver: RTCRtpSender,
-): Option[std.js.Dom.RTCDtlsTransport.RTCDtlsTransport] ->
+pub transport_typechecks(receiver: RTCRtpSender): Option[std.js.Dom.RTCDtlsTransport] ->
     receiver.transport().
 
 pub get_parameters_typechecks(receiver: RTCRtpSender): RTCRtpSendParameters ->
     receiver.get_parameters().
 
-pub get_stats_typechecks(receiver: RTCRtpSender): Promise[std.js.Dom.RTCStatsReport.RTCStatsReport] ->
+pub get_stats_typechecks(receiver: RTCRtpSender): Promise[std.js.Dom.RTCStatsReport] ->
     receiver.get_stats().
 
 pub replace_track_typechecks(
@@ -48,12 +43,12 @@ pub replace_track_typechecks(
 pub set_parameters_typechecks(
     receiver: RTCRtpSender,
     parameters: RTCRtpSendParameters,
-    set_parameter_options: Option[std.js.Dom.RTCSetParameterOptions.RTCSetParameterOptions],
+    set_parameter_options: Option[std.js.Dom.RTCSetParameterOptions],
 ): Promise[Unit] ->
     receiver.set_parameters(parameters, set_parameter_options).
 
 pub set_streams_typechecks(
     receiver: RTCRtpSender,
-    streams: std.js.Array.Array[std.js.Dom.MediaStream.MediaStream],
+    streams: std.js.Array[std.js.Dom.MediaStream],
 ): Unit ->
     receiver.set_streams(streams).

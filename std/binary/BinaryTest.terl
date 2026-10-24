@@ -10,13 +10,13 @@ import std.vm.{BitString, Bytes}.
 pub test_decoded_int_field(name: String, value: Int): DecodedField ->
     decoded_int_field(name, value).
 
-pub test_decoded_bits_field(name: String, value: std.vm.BitString.BitString): DecodedField ->
+pub test_decoded_bits_field(name: String, value: std.vm.BitString): DecodedField ->
     decoded_bits_field(name, value).
 
-pub test_decoded_bytes_field(name: String, value: std.vm.Bytes.Bytes): DecodedField ->
+pub test_decoded_bytes_field(name: String, value: std.vm.Bytes): DecodedField ->
     decoded_bytes_field(name, value).
 
-pub test_decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes.Bytes): DecodedProtocol ->
+pub test_decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes): DecodedProtocol ->
     {fields, body}.
 
 @test

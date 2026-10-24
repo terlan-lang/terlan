@@ -32,18 +32,18 @@ pub (receiver: PerformanceEventTiming) cancelable(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEventTiming/processingEnd)
  */
-pub (receiver: PerformanceEventTiming) processing_end(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceEventTiming) processing_end(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The read-only **`processingStart`** property returns the time at which event dispatch started.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEventTiming/processingStart)
  */
-pub (receiver: PerformanceEventTiming) processing_start(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceEventTiming) processing_start(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The read-only **`target`** property returns the associated event's last `target` which is the node onto which the event was last dispatched.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEventTiming/target)
  */
-pub (receiver: PerformanceEventTiming) target_(): std.core.Option.Option[std.js.Dom.Node.Node].
+pub (receiver: PerformanceEventTiming) target_(): std.core.Option[std.js.Dom.Node].

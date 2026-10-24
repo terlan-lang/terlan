@@ -12,7 +12,7 @@
  */
 module std.js.Dom.StreamPipeOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type StreamPipeOptions.
 
@@ -42,5 +42,5 @@ pub (receiver: StreamPipeOptions) prevent_cancel(): Option[Bool] ->
 pub (receiver: StreamPipeOptions) prevent_close(): Option[Bool] ->
     native.
 
-pub (receiver: StreamPipeOptions) signal(): Option[std.js.Dom.AbortSignal.AbortSignal] ->
+pub (receiver: StreamPipeOptions) signal(): Option[std.js.Dom.AbortSignal] ->
     native.

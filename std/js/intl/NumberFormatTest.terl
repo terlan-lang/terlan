@@ -17,7 +17,5 @@ import type std.js.Intl.NumberFormat.
 pub format_typechecks(receiver: NumberFormat, value: std.js.Number.JsNumber): std.js.String.JsString ->
     receiver.format(value).
 
-pub resolved_options_typechecks(
-    receiver: NumberFormat,
-): std.js.Intl.ResolvedNumberFormatOptions.ResolvedNumberFormatOptions ->
+pub resolved_options_typechecks(receiver: NumberFormat): std.js.Intl.ResolvedNumberFormatOptions ->
     receiver.resolved_options().

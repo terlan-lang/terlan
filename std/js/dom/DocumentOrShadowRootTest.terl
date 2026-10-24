@@ -12,18 +12,15 @@
  */
 module std.js.Dom.DocumentOrShadowRootTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.DocumentOrShadowRoot.
-import type std.js.Dom.Element.{Element}.
+import type std.core.{Option}.
+import type std.js.Dom.{DocumentOrShadowRoot, Element}.
 import type std.js.Number.{JsNumber}.
+import type std.js.{Array}.
 
 pub active_element_typechecks(receiver: DocumentOrShadowRoot): Option[Element] ->
     receiver.active_element().
 
-pub adopted_style_sheets_typechecks(
-    receiver: DocumentOrShadowRoot,
-): Array[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
+pub adopted_style_sheets_typechecks(receiver: DocumentOrShadowRoot): Array[std.js.Dom.CSSStyleSheet] ->
     receiver.adopted_style_sheets().
 
 pub fullscreen_element_typechecks(receiver: DocumentOrShadowRoot): Option[Element] ->
@@ -35,9 +32,7 @@ pub picture_in_picture_element_typechecks(receiver: DocumentOrShadowRoot): Optio
 pub pointer_lock_element_typechecks(receiver: DocumentOrShadowRoot): Option[Element] ->
     receiver.pointer_lock_element().
 
-pub style_sheets_typechecks(
-    receiver: DocumentOrShadowRoot,
-): std.js.Dom.StyleSheetList.StyleSheetList ->
+pub style_sheets_typechecks(receiver: DocumentOrShadowRoot): std.js.Dom.StyleSheetList ->
     receiver.style_sheets().
 
 pub element_from_point_typechecks(
@@ -54,5 +49,5 @@ pub elements_from_point_typechecks(
 ): Array[Element] ->
     receiver.elements_from_point(x, y).
 
-pub get_animations_typechecks(receiver: DocumentOrShadowRoot): Array[std.js.Dom.Animation.Animation] ->
+pub get_animations_typechecks(receiver: DocumentOrShadowRoot): Array[std.js.Dom.Animation] ->
     receiver.get_animations().

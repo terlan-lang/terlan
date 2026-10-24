@@ -60,7 +60,7 @@ pub rest_returns_ordered_tail(): Bool ->
         None -> false
     }.
 
-ordered_tail_starts_with_two(tail: std.collections.List.List[Int]): Bool ->
+ordered_tail_starts_with_two(tail: std.collections.List[Int]): Bool ->
     case tail.first() {
         Some(first) -> tail.length() == 2 and first == 2;
         None -> false

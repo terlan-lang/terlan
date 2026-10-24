@@ -25,7 +25,7 @@ pub opaque type PushSubscriptionOptions.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PushSubscriptionOptions/applicationServerKey)
  */
-pub (receiver: PushSubscriptionOptions) application_server_key(): std.core.Option.Option[std.js.ArrayBuffer.ArrayBuffer] ->
+pub (receiver: PushSubscriptionOptions) application_server_key(): std.core.Option[std.js.ArrayBuffer] ->
     native.
 
 /**

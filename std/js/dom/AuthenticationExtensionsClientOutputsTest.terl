@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AuthenticationExtensionsClientOutputsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.AuthenticationExtensionsClientOutputs.
 
 pub appid_typechecks(receiver: AuthenticationExtensionsClientOutputs): Option[Bool] ->
@@ -20,7 +20,7 @@ pub appid_typechecks(receiver: AuthenticationExtensionsClientOutputs): Option[Bo
 
 pub cred_props_typechecks(
     receiver: AuthenticationExtensionsClientOutputs,
-): Option[std.js.Dom.CredentialPropertiesOutput.CredentialPropertiesOutput] ->
+): Option[std.js.Dom.CredentialPropertiesOutput] ->
     receiver.cred_props().
 
 pub hmac_create_secret_typechecks(receiver: AuthenticationExtensionsClientOutputs): Option[Bool] ->
@@ -28,10 +28,10 @@ pub hmac_create_secret_typechecks(receiver: AuthenticationExtensionsClientOutput
 
 pub large_blob_typechecks(
     receiver: AuthenticationExtensionsClientOutputs,
-): Option[std.js.Dom.AuthenticationExtensionsLargeBlobOutputs.AuthenticationExtensionsLargeBlobOutputs] ->
+): Option[std.js.Dom.AuthenticationExtensionsLargeBlobOutputs] ->
     receiver.large_blob().
 
 pub prf_typechecks(
     receiver: AuthenticationExtensionsClientOutputs,
-): Option[std.js.Dom.AuthenticationExtensionsPRFOutputs.AuthenticationExtensionsPRFOutputs] ->
+): Option[std.js.Dom.AuthenticationExtensionsPRFOutputs] ->
     receiver.prf().

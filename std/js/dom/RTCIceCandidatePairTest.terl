@@ -12,8 +12,7 @@
  */
 module std.js.Dom.RTCIceCandidatePairTest.
 
-import type std.js.Dom.RTCIceCandidate.{RTCIceCandidate}.
-import type std.js.Dom.RTCIceCandidatePair.
+import type std.js.Dom.{RTCIceCandidate, RTCIceCandidatePair}.
 
 pub local_typechecks(receiver: RTCIceCandidatePair): RTCIceCandidate ->
     receiver.local().

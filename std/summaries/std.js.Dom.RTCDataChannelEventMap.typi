@@ -15,14 +15,14 @@ module std.js.Dom.RTCDataChannelEventMap.
 
 pub opaque type RTCDataChannelEventMap.
 
-pub (receiver: RTCDataChannelEventMap) bufferedamountlow(): std.js.Dom.Event.Event.
+pub (receiver: RTCDataChannelEventMap) bufferedamountlow(): std.js.Dom.Event.
 
-pub (receiver: RTCDataChannelEventMap) close(): std.js.Dom.Event.Event.
+pub (receiver: RTCDataChannelEventMap) close(): std.js.Dom.Event.
 
-pub (receiver: RTCDataChannelEventMap) closing(): std.js.Dom.Event.Event.
+pub (receiver: RTCDataChannelEventMap) closing(): std.js.Dom.Event.
 
-pub (receiver: RTCDataChannelEventMap) error(): std.js.Dom.RTCErrorEvent.RTCErrorEvent.
+pub (receiver: RTCDataChannelEventMap) error(): std.js.Dom.RTCErrorEvent.
 
-pub (receiver: RTCDataChannelEventMap) message(): std.js.Dom.MessageEvent.MessageEvent.
+pub (receiver: RTCDataChannelEventMap) message(): std.js.Dom.MessageEvent.
 
-pub (receiver: RTCDataChannelEventMap) open(): std.js.Dom.Event.Event.
+pub (receiver: RTCDataChannelEventMap) open(): std.js.Dom.Event.

@@ -32,7 +32,7 @@ pub (receiver: HTMLMeterElement) high(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMeterElement/labels)
  */
-pub (receiver: HTMLMeterElement) labels(): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement].
+pub (receiver: HTMLMeterElement) labels(): std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement].
 
 /**
  * The **`low`** property of the HTMLMeterElement interface represents the low boundary of the meter element as a floating-point number.
@@ -69,6 +69,6 @@ pub (receiver: HTMLMeterElement) optimum(): std.js.Number.JsNumber.
  */
 pub (receiver: HTMLMeterElement) value(): std.js.Number.JsNumber.
 
-pub (receiver: HTMLMeterElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLMeterElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLMeterElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLMeterElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

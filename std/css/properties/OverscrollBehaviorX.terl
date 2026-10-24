@@ -29,7 +29,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    overscroll_behavior_x: std.core.Option.Option[Value],
+    overscroll_behavior_x: std.core.Option[Value],
 }.
 
 /**

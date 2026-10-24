@@ -12,14 +12,14 @@
  */
 module std.js.Dom.EventSourceEventMap.
 
-import type std.js.Dom.Event.{Event}.
+import type std.js.Dom.{Event}.
 
 pub opaque type EventSourceEventMap.
 
 pub (receiver: EventSourceEventMap) error(): Event ->
     native.
 
-pub (receiver: EventSourceEventMap) message(): std.js.Dom.MessageEvent.MessageEvent ->
+pub (receiver: EventSourceEventMap) message(): std.js.Dom.MessageEvent ->
     native.
 
 pub (receiver: EventSourceEventMap) open(): Event ->

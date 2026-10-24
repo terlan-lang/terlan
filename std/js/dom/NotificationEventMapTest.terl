@@ -12,8 +12,7 @@
  */
 module std.js.Dom.NotificationEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.NotificationEventMap.
+import type std.js.Dom.{Event, NotificationEventMap}.
 
 pub click_typechecks(receiver: NotificationEventMap): Event ->
     receiver.click().

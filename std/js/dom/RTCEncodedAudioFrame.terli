@@ -24,7 +24,7 @@ pub opaque type RTCEncodedAudioFrame.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCEncodedAudioFrame/data)
  */
-pub (receiver: RTCEncodedAudioFrame) data(): std.js.ArrayBuffer.ArrayBuffer.
+pub (receiver: RTCEncodedAudioFrame) data(): std.js.ArrayBuffer.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCEncodedAudioFrame/timestamp)
@@ -36,4 +36,4 @@ pub (receiver: RTCEncodedAudioFrame) timestamp(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCEncodedAudioFrame/getMetadata)
  */
-pub (receiver: RTCEncodedAudioFrame) get_metadata(): std.js.Dom.RTCEncodedAudioFrameMetadata.RTCEncodedAudioFrameMetadata.
+pub (receiver: RTCEncodedAudioFrame) get_metadata(): std.js.Dom.RTCEncodedAudioFrameMetadata.

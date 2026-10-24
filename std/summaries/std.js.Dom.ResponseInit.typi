@@ -15,6 +15,6 @@ module std.js.Dom.ResponseInit.
 
 pub opaque type ResponseInit.
 
-pub (receiver: ResponseInit) status(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ResponseInit) status(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: ResponseInit) status_text(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ResponseInit) status_text(): std.core.Option[std.js.String.JsString].

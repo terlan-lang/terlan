@@ -12,7 +12,7 @@
  */
 module std.js.Dom.External.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 
 /**
  * @deprecated

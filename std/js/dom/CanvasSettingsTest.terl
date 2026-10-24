@@ -16,5 +16,5 @@ import type std.js.Dom.CanvasSettings.
 
 pub get_context_attributes_typechecks(
     receiver: CanvasSettings,
-): std.js.Dom.CanvasRenderingContext2DSettings.CanvasRenderingContext2DSettings ->
+): std.js.Dom.CanvasRenderingContext2DSettings ->
     receiver.get_context_attributes().

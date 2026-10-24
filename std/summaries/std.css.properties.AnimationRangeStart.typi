@@ -8,7 +8,7 @@ module std.css.properties.AnimationRangeStart.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    animation_range_start: std.core.Option.Option[Value]
+    animation_range_start: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -25,42 +25,42 @@ pub opaque type PerformanceNavigationTiming.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/domComplete)
  */
-pub (receiver: PerformanceNavigationTiming) dom_complete(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceNavigationTiming) dom_complete(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The **`domContentLoadedEventEnd`** read-only property returns a DOMHighResTimeStamp representing the time immediately after the current document's `DOMContentLoaded` event handler completes.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/domContentLoadedEventEnd)
  */
-pub (receiver: PerformanceNavigationTiming) dom_content_loaded_event_end(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceNavigationTiming) dom_content_loaded_event_end(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The **`domContentLoadedEventStart`** read-only property returns a DOMHighResTimeStamp representing the time immediately before the current document's `DOMContentLoaded` event handler starts.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/domContentLoadedEventStart)
  */
-pub (receiver: PerformanceNavigationTiming) dom_content_loaded_event_start(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceNavigationTiming) dom_content_loaded_event_start(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The **`domInteractive`** read-only property returns a DOMHighResTimeStamp representing the time immediately before the user agent sets the document's `readyState` to `'interactive'`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/domInteractive)
  */
-pub (receiver: PerformanceNavigationTiming) dom_interactive(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceNavigationTiming) dom_interactive(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The **`loadEventEnd`** read-only property returns a DOMHighResTimeStamp representing the time immediately after the current document's `load` event handler completes.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/loadEventEnd)
  */
-pub (receiver: PerformanceNavigationTiming) load_event_end(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceNavigationTiming) load_event_end(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The **`loadEventStart`** read-only property returns a DOMHighResTimeStamp representing the time immediately before the current document's `load` event handler starts.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/loadEventStart)
  */
-pub (receiver: PerformanceNavigationTiming) load_event_start(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceNavigationTiming) load_event_start(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The **`redirectCount`** read-only property returns a number representing the number of redirects since the last non-redirect navigation in the current browsing context.
@@ -74,11 +74,11 @@ pub (receiver: PerformanceNavigationTiming) redirect_count(): std.js.Number.JsNu
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/unloadEventEnd)
  */
-pub (receiver: PerformanceNavigationTiming) unload_event_end(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceNavigationTiming) unload_event_end(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The **`unloadEventStart`** read-only property returns a DOMHighResTimeStamp representing the time immediately before the current document's `unload` event handler starts.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/unloadEventStart)
  */
-pub (receiver: PerformanceNavigationTiming) unload_event_start(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: PerformanceNavigationTiming) unload_event_start(): std.js.Dom.DOMHighResTimeStamp.

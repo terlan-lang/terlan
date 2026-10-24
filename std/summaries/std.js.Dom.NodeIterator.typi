@@ -32,14 +32,14 @@ pub (receiver: NodeIterator) pointer_before_reference_node(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/referenceNode)
  */
-pub (receiver: NodeIterator) reference_node(): std.js.Dom.Node.Node.
+pub (receiver: NodeIterator) reference_node(): std.js.Dom.Node.
 
 /**
  * The **`NodeIterator.root`** read-only property represents the traverses.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/root)
  */
-pub (receiver: NodeIterator) root(): std.js.Dom.Node.Node.
+pub (receiver: NodeIterator) root(): std.js.Dom.Node.
 
 /**
  * The **`NodeIterator.whatToShow`** read-only property represents an `unsigned integer` representing a bitmask signifying what types of nodes should be returned by the NodeIterator.
@@ -54,18 +54,18 @@ pub (receiver: NodeIterator) what_to_show(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/detach)
  */
-pub (receiver: NodeIterator) detach(): std.core.Unit.Unit.
+pub (receiver: NodeIterator) detach(): std.core.Unit.
 
 /**
  * The **`NodeIterator.nextNode()`** method returns the next node in the set represented by the NodeIterator and advances the position of the iterator within the set.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/nextNode)
  */
-pub (receiver: NodeIterator) next_node(): std.core.Option.Option[std.js.Dom.Node.Node].
+pub (receiver: NodeIterator) next_node(): std.core.Option[std.js.Dom.Node].
 
 /**
  * The **`NodeIterator.previousNode()`** method returns the previous node in the set represented by the NodeIterator and moves the position of the iterator backwards within the set.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NodeIterator/previousNode)
  */
-pub (receiver: NodeIterator) previous_node(): std.core.Option.Option[std.js.Dom.Node.Node].
+pub (receiver: NodeIterator) previous_node(): std.core.Option[std.js.Dom.Node].

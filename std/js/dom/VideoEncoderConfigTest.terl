@@ -12,14 +12,12 @@
  */
 module std.js.Dom.VideoEncoderConfigTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.VideoEncoderConfig.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
-pub avc_typechecks(
-    receiver: VideoEncoderConfig,
-): Option[std.js.Dom.AvcEncoderConfig.AvcEncoderConfig] ->
+pub avc_typechecks(receiver: VideoEncoderConfig): Option[std.js.Dom.AvcEncoderConfig] ->
     receiver.avc().
 
 pub bitrate_typechecks(receiver: VideoEncoderConfig): Option[JsNumber] ->

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SpeechSynthesisUtteranceEventMap.
 
-import type std.js.Dom.SpeechSynthesisEvent.{SpeechSynthesisEvent}.
+import type std.js.Dom.{SpeechSynthesisEvent}.
 
 pub opaque type SpeechSynthesisUtteranceEventMap.
 
@@ -22,7 +22,7 @@ pub (receiver: SpeechSynthesisUtteranceEventMap) boundary(): SpeechSynthesisEven
 pub (receiver: SpeechSynthesisUtteranceEventMap) end(): SpeechSynthesisEvent ->
     native.
 
-pub (receiver: SpeechSynthesisUtteranceEventMap) error(): std.js.Dom.SpeechSynthesisErrorEvent.SpeechSynthesisErrorEvent ->
+pub (receiver: SpeechSynthesisUtteranceEventMap) error(): std.js.Dom.SpeechSynthesisErrorEvent ->
     native.
 
 pub (receiver: SpeechSynthesisUtteranceEventMap) mark(): SpeechSynthesisEvent ->

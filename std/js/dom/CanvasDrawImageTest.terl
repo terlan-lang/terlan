@@ -12,9 +12,8 @@
  */
 module std.js.Dom.CanvasDrawImageTest.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.CanvasDrawImage.
-import type std.js.Dom.CanvasImageSource.{CanvasImageSource}.
+import type std.core.{Unit}.
+import type std.js.Dom.{CanvasDrawImage, CanvasImageSource}.
 import type std.js.Number.{JsNumber}.
 
 pub draw_image_typechecks(

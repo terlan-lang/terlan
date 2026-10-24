@@ -53,4 +53,4 @@ pub (receiver: DOMPointReadOnly) z(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/matrixTransform)
  */
-pub (receiver: DOMPointReadOnly) matrix_transform(matrix: std.core.Option.Option[std.js.Dom.DOMMatrixInit.DOMMatrixInit]): std.js.Dom.DOMPoint.DOMPoint.
+pub (receiver: DOMPointReadOnly) matrix_transform(matrix: std.core.Option[std.js.Dom.DOMMatrixInit]): std.js.Dom.DOMPoint.

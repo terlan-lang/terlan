@@ -18,7 +18,5 @@ import type std.js.String.{JsString}.
 pub compare_typechecks(receiver: Collator, x: JsString, y: JsString): std.js.Number.JsNumber ->
     receiver.compare(x, y).
 
-pub resolved_options_typechecks(
-    receiver: Collator,
-): std.js.Intl.ResolvedCollatorOptions.ResolvedCollatorOptions ->
+pub resolved_options_typechecks(receiver: Collator): std.js.Intl.ResolvedCollatorOptions ->
     receiver.resolved_options().

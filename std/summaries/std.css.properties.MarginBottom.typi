@@ -8,7 +8,7 @@ module std.css.properties.MarginBottom.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    margin_bottom: std.core.Option.Option[Value]
+    margin_bottom: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -25,7 +25,7 @@ pub opaque type IntersectionObserverEntry.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/boundingClientRect)
  */
-pub (receiver: IntersectionObserverEntry) bounding_client_rect(): std.js.Dom.DOMRectReadOnly.DOMRectReadOnly.
+pub (receiver: IntersectionObserverEntry) bounding_client_rect(): std.js.Dom.DOMRectReadOnly.
 
 /**
  * The IntersectionObserverEntry interface's read-only **`intersectionRatio`** property tells you how much of the target element is currently visible within the root's intersection ratio, as a value between 0.0 and 1.0.
@@ -39,7 +39,7 @@ pub (receiver: IntersectionObserverEntry) intersection_ratio(): std.js.Number.Js
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/intersectionRect)
  */
-pub (receiver: IntersectionObserverEntry) intersection_rect(): std.js.Dom.DOMRectReadOnly.DOMRectReadOnly.
+pub (receiver: IntersectionObserverEntry) intersection_rect(): std.js.Dom.DOMRectReadOnly.
 
 /**
  * The IntersectionObserverEntry interface's read-only **`isIntersecting`** property is a Boolean value which is `true` if the target element intersects with the intersection observer's root.
@@ -53,18 +53,18 @@ pub (receiver: IntersectionObserverEntry) is_intersecting(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/rootBounds)
  */
-pub (receiver: IntersectionObserverEntry) root_bounds(): std.core.Option.Option[std.js.Dom.DOMRectReadOnly.DOMRectReadOnly].
+pub (receiver: IntersectionObserverEntry) root_bounds(): std.core.Option[std.js.Dom.DOMRectReadOnly].
 
 /**
  * The IntersectionObserverEntry interface's read-only **`target`** property indicates which targeted root.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/target)
  */
-pub (receiver: IntersectionObserverEntry) target_(): std.js.Dom.Element.Element.
+pub (receiver: IntersectionObserverEntry) target_(): std.js.Dom.Element.
 
 /**
  * The IntersectionObserverEntry interface's read-only **`time`** property is a change occurred relative to the time at which the document was created.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/time)
  */
-pub (receiver: IntersectionObserverEntry) time(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: IntersectionObserverEntry) time(): std.js.Dom.DOMHighResTimeStamp.

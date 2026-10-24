@@ -12,11 +12,10 @@
  */
 module std.js.Dom.NavigationActivationTest.
 
-import type std.js.Dom.NavigationActivation.
-import type std.js.Dom.NavigationHistoryEntry.{NavigationHistoryEntry}.
+import type std.js.Dom.{NavigationActivation, NavigationHistoryEntry}.
 
 pub entry_typechecks(receiver: NavigationActivation): NavigationHistoryEntry ->
     receiver.entry().
 
-pub from__typechecks(receiver: NavigationActivation): std.core.Option.Option[NavigationHistoryEntry] ->
+pub from__typechecks(receiver: NavigationActivation): std.core.Option[NavigationHistoryEntry] ->
     receiver.from_().

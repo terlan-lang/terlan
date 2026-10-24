@@ -20,11 +20,11 @@ pub opaque type NonDocumentTypeChildNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/nextElementSibling)
  */
-pub (receiver: NonDocumentTypeChildNode) next_element_sibling(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: NonDocumentTypeChildNode) next_element_sibling(): std.core.Option[std.js.Dom.Element].
 
 /**
  * Returns the first preceding sibling that is an element, and null otherwise.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CharacterData/previousElementSibling)
  */
-pub (receiver: NonDocumentTypeChildNode) previous_element_sibling(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: NonDocumentTypeChildNode) previous_element_sibling(): std.core.Option[std.js.Dom.Element].

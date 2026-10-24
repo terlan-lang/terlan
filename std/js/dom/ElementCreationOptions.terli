@@ -12,10 +12,10 @@
  */
 module std.js.Dom.ElementCreationOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type ElementCreationOptions.
 
-pub (receiver: ElementCreationOptions) custom_element_registry(): Option[std.js.Dom.CustomElementRegistry.CustomElementRegistry].
+pub (receiver: ElementCreationOptions) custom_element_registry(): Option[std.js.Dom.CustomElementRegistry].
 
 pub (receiver: ElementCreationOptions) is(): Option[std.js.String.JsString].

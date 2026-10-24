@@ -26,18 +26,18 @@ pub opaque type DeviceMotionEventAcceleration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventAcceleration/x)
  */
-pub (receiver: DeviceMotionEventAcceleration) x(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventAcceleration) x(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`y`** read-only property of the DeviceMotionEventAcceleration interface indicates the amount of acceleration that occurred along the Y axis in a `DeviceMotionEventAcceleration` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventAcceleration/y)
  */
-pub (receiver: DeviceMotionEventAcceleration) y(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventAcceleration) y(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`z`** read-only property of the DeviceMotionEventAcceleration interface indicates the amount of acceleration that occurred along the Z axis in a `DeviceMotionEventAcceleration` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEventAcceleration/z)
  */
-pub (receiver: DeviceMotionEventAcceleration) z(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventAcceleration) z(): std.core.Option[std.js.Number.JsNumber].

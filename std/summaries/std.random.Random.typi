@@ -20,7 +20,7 @@ pub opaque type Generator.
 /// RandomError is the portable error returned by random operations.
 ///
 /// Input: includes the neutral `code` and `message` fields from
-/// `std.core.Error.Error` and adds an offset field for diagnostic consistency
+/// `std.core.Error` and adds an offset field for diagnostic consistency
 /// with other Rust-backed std modules.
 /// Output: a typed error value usable anywhere `Error`-including values are
 /// accepted.

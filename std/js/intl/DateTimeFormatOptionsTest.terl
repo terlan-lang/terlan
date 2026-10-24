@@ -12,7 +12,7 @@
  */
 module std.js.Intl.DateTimeFormatOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Intl.DateTimeFormatOptions.
 
 pub hour12_typechecks(receiver: DateTimeFormatOptions): Option[Bool] ->

@@ -25,7 +25,7 @@ pub opaque type Window.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/navigator)
  */
-pub (receiver: Window) client_information(): std.js.Dom.Navigator.Navigator.
+pub (receiver: Window) client_information(): std.js.Dom.Navigator.
 
 /**
  * The **`Window.closed`** read-only property indicates whether the referenced window is closed or not.
@@ -39,14 +39,14 @@ pub (receiver: Window) closed(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/cookieStore)
  */
-pub (receiver: Window) cookie_store(): std.js.Dom.CookieStore.CookieStore.
+pub (receiver: Window) cookie_store(): std.js.Dom.CookieStore.
 
 /**
  * The **`customElements`** read-only property of the Window interface returns a reference to the CustomElementRegistry object, which can be used to register new custom elements and get information about previously registered custom elements.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/customElements)
  */
-pub (receiver: Window) custom_elements(): std.js.Dom.CustomElementRegistry.CustomElementRegistry.
+pub (receiver: Window) custom_elements(): std.js.Dom.CustomElementRegistry.
 
 /**
  * The **`devicePixelRatio`** of Window interface returns the ratio of the resolution in _physical pixels_ to the resolution in _CSS pixels_ for the current display device.
@@ -60,7 +60,7 @@ pub (receiver: Window) device_pixel_ratio(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/document)
  */
-pub (receiver: Window) document(): std.js.Dom.Document.Document.
+pub (receiver: Window) document(): std.js.Dom.Document.
 
 /**
  * The read-only Window property **`event`** returns the Event which is currently being handled by the site's code.
@@ -68,7 +68,7 @@ pub (receiver: Window) document(): std.js.Dom.Document.Document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/event)
  */
-pub (receiver: Window) event(): std.core.Option.Option[std.js.Dom.Event.Event].
+pub (receiver: Window) event(): std.core.Option[std.js.Dom.Event].
 
 /**
  * The `external` property of the Window API returns an instance of the `External` interface, which was intended to contain functions related to adding external search providers to the browser.
@@ -76,28 +76,28 @@ pub (receiver: Window) event(): std.core.Option.Option[std.js.Dom.Event.Event].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/external)
  */
-pub (receiver: Window) external(): std.js.Dom.External.External.
+pub (receiver: Window) external(): std.js.Dom.External.
 
 /**
  * The **`Window.frameElement`** property returns the element (such as iframe or object) in which the window is embedded.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/frameElement)
  */
-pub (receiver: Window) frame_element(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: Window) frame_element(): std.core.Option[std.js.Dom.Element].
 
 /**
  * Returns the window itself, which is an array-like object, listing the direct sub-frames of the current window.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/frames)
  */
-pub (receiver: Window) frames(): std.js.Dom.WindowProxy.WindowProxy.
+pub (receiver: Window) frames(): std.js.Dom.WindowProxy.
 
 /**
  * The `Window.history` read-only property returns a reference to the History object, which provides an interface for manipulating the browser _session history_ (pages visited in the tab or frame that the current page is loaded in).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/history)
  */
-pub (receiver: Window) history(): std.js.Dom.History.History.
+pub (receiver: Window) history(): std.js.Dom.History.
 
 /**
  * The read-only **`innerHeight`** property of the including the height of the horizontal scroll bar, if present.
@@ -125,21 +125,21 @@ pub (receiver: Window) length(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/location)
  */
-pub (receiver: Window) location(): std.js.Dom.Location.Location.
+pub (receiver: Window) location(): std.js.Dom.Location.
 
 /**
  * Returns the `locationbar` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/locationbar)
  */
-pub (receiver: Window) locationbar(): std.js.Dom.BarProp.BarProp.
+pub (receiver: Window) locationbar(): std.js.Dom.BarProp.
 
 /**
  * Returns the `menubar` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/menubar)
  */
-pub (receiver: Window) menubar(): std.js.Dom.BarProp.BarProp.
+pub (receiver: Window) menubar(): std.js.Dom.BarProp.
 
 /**
  * The `Window.name` property gets/sets the name of the window's browsing context.
@@ -153,7 +153,7 @@ pub (receiver: Window) name(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/navigator)
  */
-pub (receiver: Window) navigator(): std.js.Dom.Navigator.Navigator.
+pub (receiver: Window) navigator(): std.js.Dom.Navigator.
 
 /**
  * Returns the orientation in degrees (in 90-degree increments) of the viewport relative to the device's natural orientation.
@@ -199,21 +199,21 @@ pub (receiver: Window) page_y_offset(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/parent)
  */
-pub (receiver: Window) parent(): std.js.Dom.WindowProxy.WindowProxy.
+pub (receiver: Window) parent(): std.js.Dom.WindowProxy.
 
 /**
  * Returns the `personalbar` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/personalbar)
  */
-pub (receiver: Window) personalbar(): std.js.Dom.BarProp.BarProp.
+pub (receiver: Window) personalbar(): std.js.Dom.BarProp.
 
 /**
  * The Window property **`screen`** returns a reference to the screen object associated with the window.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screen)
  */
-pub (receiver: Window) screen(): std.js.Dom.Screen.Screen.
+pub (receiver: Window) screen(): std.js.Dom.Screen.
 
 /**
  * The **`Window.screenLeft`** read-only property returns the horizontal distance, in CSS pixels, from the left border of the user's browser viewport to the left side of the screen.
@@ -262,14 +262,14 @@ pub (receiver: Window) scroll_y(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollbars)
  */
-pub (receiver: Window) scrollbars(): std.js.Dom.BarProp.BarProp.
+pub (receiver: Window) scrollbars(): std.js.Dom.BarProp.
 
 /**
  * The `speechSynthesis` read-only property of the Window object returns a SpeechSynthesis object, which is the entry point into using Web Speech API speech synthesis functionality.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/speechSynthesis)
  */
-pub (receiver: Window) speech_synthesis(): std.js.Dom.SpeechSynthesis.SpeechSynthesis.
+pub (receiver: Window) speech_synthesis(): std.js.Dom.SpeechSynthesis.
 
 /**
  * The **`status`** property of the bar at the bottom of the browser window.
@@ -284,28 +284,28 @@ pub (receiver: Window) status(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/statusbar)
  */
-pub (receiver: Window) statusbar(): std.js.Dom.BarProp.BarProp.
+pub (receiver: Window) statusbar(): std.js.Dom.BarProp.
 
 /**
  * Returns the `toolbar` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/toolbar)
  */
-pub (receiver: Window) toolbar(): std.js.Dom.BarProp.BarProp.
+pub (receiver: Window) toolbar(): std.js.Dom.BarProp.
 
 /**
  * Returns a reference to the topmost window in the window hierarchy.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/top)
  */
-pub (receiver: Window) top(): std.core.Option.Option[std.js.Dom.WindowProxy.WindowProxy].
+pub (receiver: Window) top(): std.core.Option[std.js.Dom.WindowProxy].
 
 /**
  * The **`visualViewport`** read-only property of the Window interface returns a VisualViewport object representing the visual viewport for a given window, or `null` if current document is not fully active.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/visualViewport)
  */
-pub (receiver: Window) visual_viewport(): std.core.Option.Option[std.js.Dom.VisualViewport.VisualViewport].
+pub (receiver: Window) visual_viewport(): std.core.Option[std.js.Dom.VisualViewport].
 
 /**
  * The **`Window.blur()`** method does nothing.
@@ -313,14 +313,14 @@ pub (receiver: Window) visual_viewport(): std.core.Option.Option[std.js.Dom.Visu
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/blur)
  */
-pub (receiver: Window) blur(): std.core.Unit.Unit.
+pub (receiver: Window) blur(): std.core.Unit.
 
 /**
  * The **`window.cancelIdleCallback()`** method cancels a callback previously scheduled with window.requestIdleCallback().
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/cancelIdleCallback)
  */
-pub (receiver: Window) cancel_idle_callback(handle: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Window) cancel_idle_callback(handle: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`Window.captureEvents()`** method does nothing.
@@ -328,84 +328,84 @@ pub (receiver: Window) cancel_idle_callback(handle: std.js.Number.JsNumber): std
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/captureEvents)
  */
-pub (receiver: Window) capture_events(): std.core.Unit.Unit.
+pub (receiver: Window) capture_events(): std.core.Unit.
 
 /**
  * The **`Window.close()`** method closes the current window, or the window on which it was called.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/close)
  */
-pub (receiver: Window) close(): std.core.Unit.Unit.
+pub (receiver: Window) close(): std.core.Unit.
 
 /**
  * `window.confirm()` instructs the browser to display a dialog with an optional message, and to wait until the user either confirms or cancels the dialog.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/confirm)
  */
-pub (receiver: Window) confirm(message: std.core.Option.Option[std.js.String.JsString]): Bool.
+pub (receiver: Window) confirm(message: std.core.Option[std.js.String.JsString]): Bool.
 
 /**
  * Makes a request to bring the window to the front.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/focus)
  */
-pub (receiver: Window) focus(): std.core.Unit.Unit.
+pub (receiver: Window) focus(): std.core.Unit.
 
 /**
  * The **`Window.getComputedStyle()`** method returns an object containing the values of all CSS properties of an element, after applying active stylesheets and resolving any basic computation those values may contain.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/getComputedStyle)
  */
-pub (receiver: Window) get_computed_style(elt: std.js.Dom.Element.Element, pseudo_elt: std.core.Option.Option[std.core.Option.Option[std.js.String.JsString]]): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration.
+pub (receiver: Window) get_computed_style(elt: std.js.Dom.Element, pseudo_elt: std.core.Option[std.core.Option[std.js.String.JsString]]): std.js.Dom.CSSStyleDeclaration.
 
 /**
  * The **`getSelection()`** method of the Window interface returns the Selection object associated with the window's document, representing the range of text selected by the user or the current position of the caret.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/getSelection)
  */
-pub (receiver: Window) get_selection(): std.core.Option.Option[std.js.Dom.Selection.Selection].
+pub (receiver: Window) get_selection(): std.core.Option[std.js.Dom.Selection].
 
 /**
  * The Window interface's **`matchMedia()`** method returns a new MediaQueryList object that can then be used to determine if the document matches the media query string, as well as to monitor the document to detect when it matches (or stops matching) that media query.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/matchMedia)
  */
-pub (receiver: Window) match_media(query: std.js.String.JsString): std.js.Dom.MediaQueryList.MediaQueryList.
+pub (receiver: Window) match_media(query: std.js.String.JsString): std.js.Dom.MediaQueryList.
 
 /**
  * The **`moveBy()`** method of the Window interface moves the current window by a specified amount.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/moveBy)
  */
-pub (receiver: Window) move_by(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Window) move_by(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`moveTo()`** method of the Window interface moves the current window to the specified coordinates.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/moveTo)
  */
-pub (receiver: Window) move_to(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Window) move_to(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`open()`** method of the `Window` interface loads a specified resource into a new or existing browsing context (that is, a tab, a window, or an iframe) under a specified name.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/open)
  */
-pub (receiver: Window) open(url: std.core.Option.Option[std.js.Dom.URL.URL | std.js.String.JsString], target_: std.core.Option.Option[std.js.String.JsString], features: std.core.Option.Option[std.js.String.JsString]): std.core.Option.Option[std.js.Dom.WindowProxy.WindowProxy].
+pub (receiver: Window) open(url: std.core.Option[std.js.Dom.URL | std.js.String.JsString], target_: std.core.Option[std.js.String.JsString], features: std.core.Option[std.js.String.JsString]): std.core.Option[std.js.Dom.WindowProxy].
 
 /**
  * Opens the print dialog to print the current document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/print)
  */
-pub (receiver: Window) print(): std.core.Unit.Unit.
+pub (receiver: Window) print(): std.core.Unit.
 
 /**
  * `window.prompt()` instructs the browser to display a dialog with an optional message prompting the user to input some text, and to wait until the user either submits the text or cancels the dialog.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/prompt)
  */
-pub (receiver: Window) prompt(message: std.core.Option.Option[std.js.String.JsString], default: std.core.Option.Option[std.js.String.JsString]): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: Window) prompt(message: std.core.Option[std.js.String.JsString], default: std.core.Option[std.js.String.JsString]): std.core.Option[std.js.String.JsString].
 
 /**
  * Releases the window from trapping events of a specific type.
@@ -413,63 +413,63 @@ pub (receiver: Window) prompt(message: std.core.Option.Option[std.js.String.JsSt
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/releaseEvents)
  */
-pub (receiver: Window) release_events(): std.core.Unit.Unit.
+pub (receiver: Window) release_events(): std.core.Unit.
 
 /**
  * The **`window.requestIdleCallback()`** method queues a function to be called during a browser's idle periods.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/requestIdleCallback)
  */
-pub (receiver: Window) request_idle_callback(callback: std.js.Dom.IdleRequestCallback.IdleRequestCallback, options: std.core.Option.Option[std.js.Dom.IdleRequestOptions.IdleRequestOptions]): std.js.Number.JsNumber.
+pub (receiver: Window) request_idle_callback(callback: std.js.Dom.IdleRequestCallback, options: std.core.Option[std.js.Dom.IdleRequestOptions]): std.js.Number.JsNumber.
 
 /**
  * The **`Window.resizeBy()`** method resizes the current window by a specified amount.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/resizeBy)
  */
-pub (receiver: Window) resize_by(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Window) resize_by(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`Window.resizeTo()`** method dynamically resizes the window.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/resizeTo)
  */
-pub (receiver: Window) resize_to(width: std.js.Number.JsNumber, height: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Window) resize_to(width: std.js.Number.JsNumber, height: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`Window.scroll()`** method scrolls the window to a particular place in the document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scroll)
  */
-pub (receiver: Window) scroll(options: std.core.Option.Option[std.js.Dom.ScrollToOptions.ScrollToOptions]): std.core.Unit.Unit.
+pub (receiver: Window) scroll(options: std.core.Option[std.js.Dom.ScrollToOptions]): std.core.Unit.
 
-pub (receiver: Window) scroll_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Window) scroll_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`Window.scrollBy()`** method scrolls the document in the window by the given amount.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollBy)
  */
-pub (receiver: Window) scroll_by(options: std.core.Option.Option[std.js.Dom.ScrollToOptions.ScrollToOptions]): std.core.Unit.Unit.
+pub (receiver: Window) scroll_by(options: std.core.Option[std.js.Dom.ScrollToOptions]): std.core.Unit.
 
-pub (receiver: Window) scroll_by_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Window) scroll_by_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * **`Window.scrollTo()`** scrolls to a particular set of coordinates in the document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollTo)
  */
-pub (receiver: Window) scroll_to(options: std.core.Option.Option[std.js.Dom.ScrollToOptions.ScrollToOptions]): std.core.Unit.Unit.
+pub (receiver: Window) scroll_to(options: std.core.Option[std.js.Dom.ScrollToOptions]): std.core.Unit.
 
-pub (receiver: Window) scroll_to_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Window) scroll_to_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`window.stop()`** stops further resource loading in the current browsing context, equivalent to the stop button in the browser.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/stop)
  */
-pub (receiver: Window) stop(): std.core.Unit.Unit.
+pub (receiver: Window) stop(): std.core.Unit.
 
-pub (receiver: Window) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: Window) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: Window) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: Window) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

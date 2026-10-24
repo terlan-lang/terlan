@@ -12,12 +12,10 @@
  */
 module std.js.Dom.AuthenticationExtensionsLargeBlobOutputsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.AuthenticationExtensionsLargeBlobOutputs.
 
-pub blob_typechecks(
-    receiver: AuthenticationExtensionsLargeBlobOutputs,
-): Option[std.js.ArrayBuffer.ArrayBuffer] ->
+pub blob_typechecks(receiver: AuthenticationExtensionsLargeBlobOutputs): Option[std.js.ArrayBuffer] ->
     receiver.blob().
 
 pub supported_typechecks(receiver: AuthenticationExtensionsLargeBlobOutputs): Option[Bool] ->

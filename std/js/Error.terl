@@ -22,5 +22,5 @@ pub (receiver: Error) name(): JsString ->
 pub (receiver: Error) message(): JsString ->
     native.
 
-pub (receiver: Error) stack(): std.core.Option.Option[JsString] ->
+pub (receiver: Error) stack(): std.core.Option[JsString] ->
     native.

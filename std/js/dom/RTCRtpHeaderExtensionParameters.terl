@@ -14,7 +14,7 @@ module std.js.Dom.RTCRtpHeaderExtensionParameters.
 
 pub opaque type RTCRtpHeaderExtensionParameters.
 
-pub (receiver: RTCRtpHeaderExtensionParameters) encrypted(): std.core.Option.Option[Bool] ->
+pub (receiver: RTCRtpHeaderExtensionParameters) encrypted(): std.core.Option[Bool] ->
     native.
 
 pub (receiver: RTCRtpHeaderExtensionParameters) id(): std.js.Number.JsNumber ->

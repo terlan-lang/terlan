@@ -14,4 +14,4 @@ module std.js.Dom.WakeLockSentinelEventMap.
 
 pub opaque type WakeLockSentinelEventMap.
 
-pub (receiver: WakeLockSentinelEventMap) release(): std.js.Dom.Event.Event.
+pub (receiver: WakeLockSentinelEventMap) release(): std.js.Dom.Event.

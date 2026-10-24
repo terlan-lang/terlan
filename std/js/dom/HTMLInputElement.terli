@@ -12,9 +12,8 @@
  */
 module std.js.Dom.HTMLInputElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -91,14 +90,14 @@ pub (receiver: HTMLInputElement) disabled(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/files)
  */
-pub (receiver: HTMLInputElement) files(): Option[std.js.Dom.FileList.FileList].
+pub (receiver: HTMLInputElement) files(): Option[std.js.Dom.FileList].
 
 /**
  * The **`form`** read-only property of the HTMLInputElement interface returns an HTMLFormElement object that owns this input, or `null` if this input is not owned by any form.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/form)
  */
-pub (receiver: HTMLInputElement) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: HTMLInputElement) form(): Option[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`formAction`** property of the HTMLInputElement interface is the URL of the program that is executed on the server when the form that owns this control is submitted.
@@ -154,14 +153,14 @@ pub (receiver: HTMLInputElement) indeterminate(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/labels)
  */
-pub (receiver: HTMLInputElement) labels(): Option[std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement]].
+pub (receiver: HTMLInputElement) labels(): Option[std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement]].
 
 /**
  * The **`list`** read-only property of the HTMLInputElement interface returns the HTMLDataListElement pointed to by the `list` attribute of the element, or `null` if the `list` attribute is not defined or the `list` attribute's value is not associated with any `<datalist>` in the same tree.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/list)
  */
-pub (receiver: HTMLInputElement) list(): Option[std.js.Dom.HTMLDataListElement.HTMLDataListElement].
+pub (receiver: HTMLInputElement) list(): Option[std.js.Dom.HTMLDataListElement].
 
 /**
  * The **`max`** property of the HTMLInputElement interface reflects the input element's `max` attribute, which generally defines the maximum valid value for a numeric or date-time input.
@@ -292,7 +291,7 @@ pub (receiver: HTMLInputElement) validation_message(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/validity)
  */
-pub (receiver: HTMLInputElement) validity(): std.js.Dom.ValidityState.ValidityState.
+pub (receiver: HTMLInputElement) validity(): std.js.Dom.ValidityState.
 
 /**
  * The **`value`** property of the HTMLInputElement interface represents the current value of the input element as a string.
@@ -306,7 +305,7 @@ pub (receiver: HTMLInputElement) value(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/valueAsDate)
  */
-pub (receiver: HTMLInputElement) value_as_date(): Option[std.js.Date.Date].
+pub (receiver: HTMLInputElement) value_as_date(): Option[std.js.Date].
 
 /**
  * The **`valueAsNumber`** property of the HTMLInputElement interface represents the current value of the input element as a number or `NaN` if converting to a numeric value is not possible.
@@ -320,7 +319,7 @@ pub (receiver: HTMLInputElement) value_as_number(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/webkitEntries)
  */
-pub (receiver: HTMLInputElement) webkit_entries(): std.js.Array.Array[std.js.Dom.FileSystemEntry.FileSystemEntry].
+pub (receiver: HTMLInputElement) webkit_entries(): std.js.Array[std.js.Dom.FileSystemEntry].
 
 /**
  * The **`HTMLInputElement.webkitdirectory`** is a property that reflects the `webkitdirectory` HTML attribute and indicates that the input element should let the user select directories instead of files.
@@ -402,11 +401,11 @@ pub (receiver: HTMLInputElement) step_up(n: Option[JsNumber]): Unit.
 pub (receiver: HTMLInputElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: HTMLInputElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

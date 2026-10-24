@@ -12,6 +12,4 @@
  */
 module std.js.Dom.Int32List.
 
-pub type Int32List =
-      std.js.Int32Array.Int32Array[ArrayBufferLike]
-    | std.js.Array.Array[std.js.Dom.GLint.GLint].
+pub type Int32List = std.js.Int32Array[ArrayBufferLike] | std.js.Array[std.js.Dom.GLint].

@@ -14,5 +14,5 @@ module std.js.Dom.ServiceWorkerEventMapTest.
 
 import type std.js.Dom.ServiceWorkerEventMap.
 
-pub statechange_typechecks(receiver: ServiceWorkerEventMap): std.js.Dom.Event.Event ->
+pub statechange_typechecks(receiver: ServiceWorkerEventMap): std.js.Dom.Event ->
     receiver.statechange().

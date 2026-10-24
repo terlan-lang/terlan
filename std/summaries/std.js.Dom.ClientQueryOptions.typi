@@ -15,4 +15,4 @@ module std.js.Dom.ClientQueryOptions.
 
 pub opaque type ClientQueryOptions.
 
-pub (receiver: ClientQueryOptions) include_uncontrolled(): std.core.Option.Option[Bool].
+pub (receiver: ClientQueryOptions) include_uncontrolled(): std.core.Option[Bool].

@@ -15,6 +15,6 @@ module std.js.Dom.AuthenticationExtensionsPRFValues.
 
 pub opaque type AuthenticationExtensionsPRFValues.
 
-pub (receiver: AuthenticationExtensionsPRFValues) first(): std.js.Dom.BufferSource.BufferSource.
+pub (receiver: AuthenticationExtensionsPRFValues) first(): std.js.Dom.BufferSource.
 
-pub (receiver: AuthenticationExtensionsPRFValues) second(): std.core.Option.Option[std.js.Dom.BufferSource.BufferSource].
+pub (receiver: AuthenticationExtensionsPRFValues) second(): std.core.Option[std.js.Dom.BufferSource].

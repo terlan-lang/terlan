@@ -17,5 +17,5 @@ import type std.js.Dom.NonElementParentNode.
 pub get_element_by_id_typechecks(
     receiver: NonElementParentNode,
     element_id: std.js.String.JsString,
-): std.core.Option.Option[std.js.Dom.Element.Element] ->
+): std.core.Option[std.js.Dom.Element] ->
     receiver.get_element_by_id(element_id).

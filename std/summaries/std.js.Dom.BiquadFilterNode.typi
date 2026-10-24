@@ -25,32 +25,32 @@ pub opaque type BiquadFilterNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/Q)
  */
-pub (receiver: BiquadFilterNode) q(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: BiquadFilterNode) q(): std.js.Dom.AudioParam.
 
 /**
  * The `detune` property of the BiquadFilterNode interface is an a-rate AudioParam representing detuning of the frequency in cents.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/detune)
  */
-pub (receiver: BiquadFilterNode) detune(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: BiquadFilterNode) detune(): std.js.Dom.AudioParam.
 
 /**
  * The `frequency` property of the BiquadFilterNode interface is an a-rate AudioParam — a double representing a frequency in the current filtering algorithm measured in hertz (Hz).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/frequency)
  */
-pub (receiver: BiquadFilterNode) frequency(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: BiquadFilterNode) frequency(): std.js.Dom.AudioParam.
 
 /**
  * The `gain` property of the BiquadFilterNode interface is an a-rate AudioParam — a double representing the gain used in the current filtering algorithm.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/gain)
  */
-pub (receiver: BiquadFilterNode) gain(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: BiquadFilterNode) gain(): std.js.Dom.AudioParam.
 
 /**
  * The `getFrequencyResponse()` method of the BiquadFilterNode interface takes the current filtering algorithm's settings and calculates the frequency response for frequencies specified in a specified array of frequencies.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BiquadFilterNode/getFrequencyResponse)
  */
-pub (receiver: BiquadFilterNode) get_frequency_response(frequency_hz: std.js.Float32Array.Float32Array[std.js.ArrayBuffer.ArrayBuffer], mag_response: std.js.Float32Array.Float32Array[std.js.ArrayBuffer.ArrayBuffer], phase_response: std.js.Float32Array.Float32Array[std.js.ArrayBuffer.ArrayBuffer]): std.core.Unit.Unit.
+pub (receiver: BiquadFilterNode) get_frequency_response(frequency_hz: std.js.Float32Array[std.js.ArrayBuffer], mag_response: std.js.Float32Array[std.js.ArrayBuffer], phase_response: std.js.Float32Array[std.js.ArrayBuffer]): std.core.Unit.

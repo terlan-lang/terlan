@@ -14,5 +14,5 @@ module std.js.Dom.CSSFontFaceRuleTest.
 
 import type std.js.Dom.CSSFontFaceRule.
 
-pub style_typechecks(receiver: CSSFontFaceRule): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration ->
+pub style_typechecks(receiver: CSSFontFaceRule): std.js.Dom.CSSStyleDeclaration ->
     receiver.style().

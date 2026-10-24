@@ -25,14 +25,14 @@ pub opaque type Element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/attributes)
  */
-pub (receiver: Element) attributes(): std.js.Dom.NamedNodeMap.NamedNodeMap.
+pub (receiver: Element) attributes(): std.js.Dom.NamedNodeMap.
 
 /**
  * The **`Element.classList`** is a read-only property that returns a live DOMTokenList collection of the `class` attributes of the element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/classList)
  */
-pub (receiver: Element) class_list(): std.js.Dom.DOMTokenList.DOMTokenList.
+pub (receiver: Element) class_list(): std.js.Dom.DOMTokenList.
 
 /**
  * The **`className`** property of the of the specified element.
@@ -102,7 +102,7 @@ pub (receiver: Element) local_name(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/namespaceURI)
  */
-pub (receiver: Element) namespace_uri(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: Element) namespace_uri(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`outerHTML`** attribute of the Element DOM interface gets the serialized HTML fragment describing the element including its descendants.
@@ -111,21 +111,21 @@ pub (receiver: Element) namespace_uri(): std.core.Option.Option[std.js.String.Js
  */
 pub (receiver: Element) outer_html(): std.js.String.JsString.
 
-pub (receiver: Element) owner_document(): std.js.Dom.Document.Document.
+pub (receiver: Element) owner_document(): std.js.Dom.Document.
 
 /**
  * The **`part`** property of the Element interface represents the part identifier(s) of the element (i.e., set using the `part` attribute), returned as a DOMTokenList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/part)
  */
-pub (receiver: Element) part(): std.js.Dom.DOMTokenList.DOMTokenList.
+pub (receiver: Element) part(): std.js.Dom.DOMTokenList.
 
 /**
  * The **`Element.prefix`** read-only property returns the namespace prefix of the specified element, or `null` if no prefix is specified.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/prefix)
  */
-pub (receiver: Element) prefix(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: Element) prefix(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`scrollHeight`** read-only property of the Element interface is a measurement of the height of an element's content, including content not visible on the screen due to overflow.
@@ -160,7 +160,7 @@ pub (receiver: Element) scroll_width(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/shadowRoot)
  */
-pub (receiver: Element) shadow_root(): std.core.Option.Option[std.js.Dom.ShadowRoot.ShadowRoot].
+pub (receiver: Element) shadow_root(): std.core.Option[std.js.Dom.ShadowRoot].
 
 /**
  * The **`slot`** property of the Element interface returns the name of the shadow DOM slot the element is inserted in.
@@ -181,88 +181,88 @@ pub (receiver: Element) tag_name(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/attachShadow)
  */
-pub (receiver: Element) attach_shadow(init: std.js.Dom.ShadowRootInit.ShadowRootInit): std.js.Dom.ShadowRoot.ShadowRoot.
+pub (receiver: Element) attach_shadow(init: std.js.Dom.ShadowRootInit): std.js.Dom.ShadowRoot.
 
 /**
  * The **`checkVisibility()`** method of the Element interface checks whether the element is visible.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/checkVisibility)
  */
-pub (receiver: Element) check_visibility(options: std.core.Option.Option[std.js.Dom.CheckVisibilityOptions.CheckVisibilityOptions]): Bool.
+pub (receiver: Element) check_visibility(options: std.core.Option[std.js.Dom.CheckVisibilityOptions]): Bool.
 
 /**
  * The **`computedStyleMap()`** method of the Element interface returns a StylePropertyMapReadOnly interface which provides a read-only representation of a CSS declaration block that is an alternative to CSSStyleDeclaration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/computedStyleMap)
  */
-pub (receiver: Element) computed_style_map(): std.js.Dom.StylePropertyMapReadOnly.StylePropertyMapReadOnly.
+pub (receiver: Element) computed_style_map(): std.js.Dom.StylePropertyMapReadOnly.
 
 /**
  * The **`getAttribute()`** method of the element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getAttribute)
  */
-pub (receiver: Element) get_attribute(qualified_name: std.js.String.JsString): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: Element) get_attribute(qualified_name: std.js.String.JsString): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`getAttributeNS()`** method of the Element interface returns the string value of the attribute with the specified namespace and name.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getAttributeNS)
  */
-pub (receiver: Element) get_attribute_ns(namespace: std.core.Option.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: Element) get_attribute_ns(namespace: std.core.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`getAttributeNames()`** method of the array.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getAttributeNames)
  */
-pub (receiver: Element) get_attribute_names(): std.js.Array.Array[std.js.String.JsString].
+pub (receiver: Element) get_attribute_names(): std.js.Array[std.js.String.JsString].
 
 /**
  * Returns the specified attribute of the specified element, as an Attr node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getAttributeNode)
  */
-pub (receiver: Element) get_attribute_node(qualified_name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.Attr.Attr].
+pub (receiver: Element) get_attribute_node(qualified_name: std.js.String.JsString): std.core.Option[std.js.Dom.Attr].
 
 /**
  * The **`getAttributeNodeNS()`** method of the Element interface returns the namespaced Attr node of an element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getAttributeNodeNS)
  */
-pub (receiver: Element) get_attribute_node_ns(namespace: std.core.Option.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.Attr.Attr].
+pub (receiver: Element) get_attribute_node_ns(namespace: std.core.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Option[std.js.Dom.Attr].
 
 /**
  * The **`Element.getBoundingClientRect()`** method returns a position relative to the viewport.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getBoundingClientRect)
  */
-pub (receiver: Element) get_bounding_client_rect(): std.js.Dom.DOMRect.DOMRect.
+pub (receiver: Element) get_bounding_client_rect(): std.js.Dom.DOMRect.
 
 /**
  * The **`getClientRects()`** method of the Element interface returns a collection of DOMRect objects that indicate the bounding rectangles for each CSS border box in a client.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getClientRects)
  */
-pub (receiver: Element) get_client_rects(): std.js.Dom.DOMRectList.DOMRectList.
+pub (receiver: Element) get_client_rects(): std.js.Dom.DOMRectList.
 
 /**
  * The Element method **`getElementsByClassName()`** returns a live specified class name or names.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getElementsByClassName)
  */
-pub (receiver: Element) get_elements_by_class_name(class_names: std.js.String.JsString): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[Element].
+pub (receiver: Element) get_elements_by_class_name(class_names: std.js.String.JsString): std.js.Dom.HTMLCollectionOf[Element].
 
-pub (receiver: Element) get_elements_by_tag_name(qualified_name: std.js.String.JsString): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[Element].
+pub (receiver: Element) get_elements_by_tag_name(qualified_name: std.js.String.JsString): std.js.Dom.HTMLCollectionOf[Element].
 
-pub (receiver: Element) get_elements_by_tag_name_ns(namespace: std.core.Option.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[Element].
+pub (receiver: Element) get_elements_by_tag_name_ns(namespace: std.core.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.js.Dom.HTMLCollectionOf[Element].
 
 /**
  * The **`getHTML()`** method of the Element interface is used to serialize an element's DOM to an HTML string.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getHTML)
  */
-pub (receiver: Element) get_html(options: std.core.Option.Option[std.js.Dom.GetHTMLOptions.GetHTMLOptions]): std.js.String.JsString.
+pub (receiver: Element) get_html(options: std.core.Option[std.js.Dom.GetHTMLOptions]): std.js.String.JsString.
 
 /**
  * The **`Element.hasAttribute()`** method returns a **Boolean** value indicating whether the specified element has the specified attribute or not.
@@ -276,7 +276,7 @@ pub (receiver: Element) has_attribute(qualified_name: std.js.String.JsString): B
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/hasAttributeNS)
  */
-pub (receiver: Element) has_attribute_ns(namespace: std.core.Option.Option[std.js.String.JsString], local_name: std.js.String.JsString): Bool.
+pub (receiver: Element) has_attribute_ns(namespace: std.core.Option[std.js.String.JsString], local_name: std.js.String.JsString): Bool.
 
 /**
  * The **`hasAttributes()`** method of the Element interface returns a boolean value indicating whether the current element has any attributes or not.
@@ -304,125 +304,125 @@ pub (receiver: Element) matches(selectors: std.js.String.JsString): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/releasePointerCapture)
  */
-pub (receiver: Element) release_pointer_capture(pointer_id: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Element) release_pointer_capture(pointer_id: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The Element method **`removeAttribute()`** removes the attribute with the specified name from the element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/removeAttribute)
  */
-pub (receiver: Element) remove_attribute(qualified_name: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: Element) remove_attribute(qualified_name: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`removeAttributeNS()`** method of the If you are working with HTML and you don't need to specify the requested attribute as being part of a specific namespace, use the Element.removeAttribute() method instead.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/removeAttributeNS)
  */
-pub (receiver: Element) remove_attribute_ns(namespace: std.core.Option.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: Element) remove_attribute_ns(namespace: std.core.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`removeAttributeNode()`** method of the Element interface removes the specified Attr node from the element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/removeAttributeNode)
  */
-pub (receiver: Element) remove_attribute_node(attr: std.js.Dom.Attr.Attr): std.js.Dom.Attr.Attr.
+pub (receiver: Element) remove_attribute_node(attr: std.js.Dom.Attr): std.js.Dom.Attr.
 
 /**
  * The **`Element.requestFullscreen()`** method issues an asynchronous request to make the element be displayed in fullscreen mode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/requestFullscreen)
  */
-pub (receiver: Element) request_fullscreen(options: std.core.Option.Option[std.js.Dom.FullscreenOptions.FullscreenOptions]): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: Element) request_fullscreen(options: std.core.Option[std.js.Dom.FullscreenOptions]): std.js.Promise[std.core.Unit].
 
 /**
  * The **`requestPointerLock()`** method of the Element interface lets you asynchronously ask for the pointer to be locked on the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/requestPointerLock)
  */
-pub (receiver: Element) request_pointer_lock(options: std.core.Option.Option[std.js.Dom.PointerLockOptions.PointerLockOptions]): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: Element) request_pointer_lock(options: std.core.Option[std.js.Dom.PointerLockOptions]): std.js.Promise[std.core.Unit].
 
 /**
  * The **`scroll()`** method of the Element interface scrolls the element to a particular set of coordinates inside a given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scroll)
  */
-pub (receiver: Element) scroll(options: std.core.Option.Option[std.js.Dom.ScrollToOptions.ScrollToOptions]): std.core.Unit.Unit.
+pub (receiver: Element) scroll(options: std.core.Option[std.js.Dom.ScrollToOptions]): std.core.Unit.
 
-pub (receiver: Element) scroll_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Element) scroll_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`scrollBy()`** method of the Element interface scrolls an element by the given amount.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollBy)
  */
-pub (receiver: Element) scroll_by(options: std.core.Option.Option[std.js.Dom.ScrollToOptions.ScrollToOptions]): std.core.Unit.Unit.
+pub (receiver: Element) scroll_by(options: std.core.Option[std.js.Dom.ScrollToOptions]): std.core.Unit.
 
-pub (receiver: Element) scroll_by_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Element) scroll_by_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The Element interface's **`scrollIntoView()`** method scrolls the element's ancestor containers such that the element on which `scrollIntoView()` is called is visible to the user.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollIntoView)
  */
-pub (receiver: Element) scroll_into_view(arg: std.core.Option.Option[Bool | std.js.Dom.ScrollIntoViewOptions.ScrollIntoViewOptions]): std.core.Unit.Unit.
+pub (receiver: Element) scroll_into_view(arg: std.core.Option[Bool | std.js.Dom.ScrollIntoViewOptions]): std.core.Unit.
 
 /**
  * The **`scrollTo()`** method of the Element interface scrolls to a particular set of coordinates inside a given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollTo)
  */
-pub (receiver: Element) scroll_to(options: std.core.Option.Option[std.js.Dom.ScrollToOptions.ScrollToOptions]): std.core.Unit.Unit.
+pub (receiver: Element) scroll_to(options: std.core.Option[std.js.Dom.ScrollToOptions]): std.core.Unit.
 
-pub (receiver: Element) scroll_to_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Element) scroll_to_overload_2(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`setAttribute()`** method of the Element interface sets the value of an attribute on the specified element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/setAttribute)
  */
-pub (receiver: Element) set_attribute(qualified_name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: Element) set_attribute(qualified_name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
 
 /**
  * `setAttributeNS` adds a new attribute or changes the value of an attribute with the given namespace and name.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/setAttributeNS)
  */
-pub (receiver: Element) set_attribute_ns(namespace: std.core.Option.Option[std.js.String.JsString], qualified_name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: Element) set_attribute_ns(namespace: std.core.Option[std.js.String.JsString], qualified_name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`setAttributeNode()`** method of the Element interface adds a new Attr node to the specified element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/setAttributeNode)
  */
-pub (receiver: Element) set_attribute_node(attr: std.js.Dom.Attr.Attr): std.core.Option.Option[std.js.Dom.Attr.Attr].
+pub (receiver: Element) set_attribute_node(attr: std.js.Dom.Attr): std.core.Option[std.js.Dom.Attr].
 
 /**
  * The **`setAttributeNodeNS()`** method of the Element interface adds a new namespaced Attr node to an element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/setAttributeNodeNS)
  */
-pub (receiver: Element) set_attribute_node_ns(attr: std.js.Dom.Attr.Attr): std.core.Option.Option[std.js.Dom.Attr.Attr].
+pub (receiver: Element) set_attribute_node_ns(attr: std.js.Dom.Attr): std.core.Option[std.js.Dom.Attr].
 
 /**
  * The **`setHTMLUnsafe()`** method of the Element interface is used to parse a string of HTML into a DocumentFragment, optionally filtering out unwanted elements and attributes, and those that don't belong in the context, and then using it to replace the element's subtree in the DOM.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/setHTMLUnsafe)
  */
-pub (receiver: Element) set_html_unsafe(html_: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: Element) set_html_unsafe(html_: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`setPointerCapture()`** method of the _capture target_ of future pointer events.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/setPointerCapture)
  */
-pub (receiver: Element) set_pointer_capture(pointer_id: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Element) set_pointer_capture(pointer_id: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`toggleAttribute()`** method of the present and adding it if it is not present) on the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/toggleAttribute)
  */
-pub (receiver: Element) toggle_attribute(qualified_name: std.js.String.JsString, force: std.core.Option.Option[Bool]): Bool.
+pub (receiver: Element) toggle_attribute(qualified_name: std.js.String.JsString, force: std.core.Option[Bool]): Bool.
 
 /**
  * @deprecated This is a legacy alias of `matches`.
@@ -436,6 +436,6 @@ pub (receiver: Element) webkit_matches_selector(selectors: std.js.String.JsStrin
  */
 pub (receiver: Element) text_content(): std.js.String.JsString.
 
-pub (receiver: Element) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: Element) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: Element) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: Element) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

@@ -1,19 +1,17 @@
-/** Filesystem and JSON adapter for self-hosted bootstrap fixed-point comparison. */
+/**
+ * Filesystem and JSON adapter for self-hosted bootstrap fixed-point comparison.
+ */
 module self_host.SelfHostBootstrapTool.
-
-
-
-import std.core.Result.{Err, Ok, Result}.
-import std.core.Option.{None, Option, Some}.
-import self_host.SelfHostBootstrapParity.{BootstrapArtifact}.
 
 import self_host.SelfHostBootstrapParity.
 import self_host.SelfHostBootstrapParity.{BootstrapArtifact}.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok, Result}.
 import std.core.{String}.
 import std.data.Json.
 import std.io.File.
 
-import type std.data.Json.Json.
+import type std.data.Json.
 
 string_value(value: Json): Option[String] ->
     case value.as_string() {
@@ -27,19 +25,44 @@ string_field(document: Json, name: String): Option[String] ->
         Ok(value) -> string_value(value)
     }.
 
-decode_backend(document: Json, module_name: String, token_digest: String, syntax_digest: String, semantic_digest: String): Option[BootstrapArtifact] ->
+decode_backend(
+    document: Json,
+    module_name: String,
+    token_digest: String,
+    syntax_digest: String,
+    semantic_digest: String,
+): Option[BootstrapArtifact] ->
     case string_field(document, "backend_digest") {
-        Some(backend_digest) -> Some(BootstrapArtifact(module_name, token_digest, syntax_digest, semantic_digest, backend_digest));
+        Some(backend_digest) ->
+            Some(
+                BootstrapArtifact(
+                    module_name,
+                    token_digest,
+                    syntax_digest,
+                    semantic_digest,
+                    backend_digest,
+                ),
+            );
         None -> None
     }.
 
-decode_semantic(document: Json, module_name: String, token_digest: String, syntax_digest: String): Option[BootstrapArtifact] ->
+decode_semantic(
+    document: Json,
+    module_name: String,
+    token_digest: String,
+    syntax_digest: String,
+): Option[BootstrapArtifact] ->
     case string_field(document, "semantic_digest") {
-        Some(semantic_digest) -> decode_backend(document, module_name, token_digest, syntax_digest, semantic_digest);
+        Some(semantic_digest) ->
+            decode_backend(document, module_name, token_digest, syntax_digest, semantic_digest);
         None -> None
     }.
 
-decode_syntax(document: Json, module_name: String, token_digest: String): Option[BootstrapArtifact] ->
+decode_syntax(
+    document: Json,
+    module_name: String,
+    token_digest: String,
+): Option[BootstrapArtifact] ->
     case string_field(document, "syntax_digest") {
         Some(syntax_digest) -> decode_semantic(document, module_name, token_digest, syntax_digest);
         None -> None
@@ -70,7 +93,10 @@ read(path: String): Option[BootstrapArtifact] ->
     }.
 
 marker_text(fixed_point: Bool): String ->
-    if { fixed_point -> "fixed-point\n"; true -> "not-fixed-point\n" }.
+    if {
+        fixed_point -> "fixed-point\n";
+        true -> "not-fixed-point\n"
+    }.
 
 write_marker(marker: String, fixed_point: Bool): Bool ->
     case File.write_text(marker, marker_text(fixed_point)) {
@@ -78,9 +104,14 @@ write_marker(marker: String, fixed_point: Bool): Bool ->
         Err(_reason) -> false
     }.
 
-compare_candidate(left: BootstrapArtifact, candidate: Option[BootstrapArtifact], marker: String): Bool ->
+compare_candidate(
+    left: BootstrapArtifact,
+    candidate: Option[BootstrapArtifact],
+    marker: String,
+): Bool ->
     case candidate {
-        Some(right) -> let parity = SelfHostBootstrapParity.compare(left, right);
+        Some(right) ->
+            let parity = SelfHostBootstrapParity.compare(left, right);
             write_marker(marker, parity.fixed_point);
         None -> false
     }.
@@ -91,6 +122,8 @@ compare_reference(left: Option[BootstrapArtifact], candidate: String, marker: St
         None -> false
     }.
 
-/** Writes an exact marker only when every bootstrap stage digest is equal. */
+/**
+ * Writes an exact marker only when every bootstrap stage digest is equal.
+ */
 pub compare_files(reference: String, candidate: String, marker: String): Bool ->
     compare_reference(read(reference), candidate, marker).

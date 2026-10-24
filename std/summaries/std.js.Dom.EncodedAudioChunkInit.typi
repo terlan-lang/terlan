@@ -15,10 +15,10 @@ module std.js.Dom.EncodedAudioChunkInit.
 
 pub opaque type EncodedAudioChunkInit.
 
-pub (receiver: EncodedAudioChunkInit) data(): std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource.
+pub (receiver: EncodedAudioChunkInit) data(): std.js.Dom.AllowSharedBufferSource.
 
-pub (receiver: EncodedAudioChunkInit) duration(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: EncodedAudioChunkInit) duration(): std.core.Option[std.js.Number.JsNumber].
 
 pub (receiver: EncodedAudioChunkInit) timestamp(): std.js.Number.JsNumber.
 
-pub (receiver: EncodedAudioChunkInit) transfer(): std.core.Option.Option[std.js.Array.Array[std.js.ArrayBuffer.ArrayBuffer]].
+pub (receiver: EncodedAudioChunkInit) transfer(): std.core.Option[std.js.Array[std.js.ArrayBuffer]].

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.ShadowRootInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.ShadowRootInit.
 
 pub clonable_typechecks(receiver: ShadowRootInit): Option[Bool] ->
@@ -20,7 +20,7 @@ pub clonable_typechecks(receiver: ShadowRootInit): Option[Bool] ->
 
 pub custom_element_registry_typechecks(
     receiver: ShadowRootInit,
-): Option[std.js.Dom.CustomElementRegistry.CustomElementRegistry] ->
+): Option[std.js.Dom.CustomElementRegistry] ->
     receiver.custom_element_registry().
 
 pub delegates_focus_typechecks(receiver: ShadowRootInit): Option[Bool] ->

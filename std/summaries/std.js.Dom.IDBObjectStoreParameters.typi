@@ -15,6 +15,6 @@ module std.js.Dom.IDBObjectStoreParameters.
 
 pub opaque type IDBObjectStoreParameters.
 
-pub (receiver: IDBObjectStoreParameters) auto_increment(): std.core.Option.Option[Bool].
+pub (receiver: IDBObjectStoreParameters) auto_increment(): std.core.Option[Bool].
 
-pub (receiver: IDBObjectStoreParameters) key_path(): std.core.Option.Option[std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString].
+pub (receiver: IDBObjectStoreParameters) key_path(): std.core.Option[std.js.Array[std.js.String.JsString] | std.js.String.JsString].

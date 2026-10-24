@@ -8,7 +8,7 @@ module std.css.properties.OutlineWidth.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    outline_width: std.core.Option.Option[Value]
+    outline_width: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

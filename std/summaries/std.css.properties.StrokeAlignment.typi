@@ -8,7 +8,7 @@ module std.css.properties.StrokeAlignment.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    stroke_alignment: std.core.Option.Option[Value]
+    stroke_alignment: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

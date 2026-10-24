@@ -14,5 +14,5 @@ module std.js.Dom.GetNotificationOptionsTest.
 
 import type std.js.Dom.GetNotificationOptions.
 
-pub tag_typechecks(receiver: GetNotificationOptions): std.core.Option.Option[std.js.String.JsString] ->
+pub tag_typechecks(receiver: GetNotificationOptions): std.core.Option[std.js.String.JsString] ->
     receiver.tag().

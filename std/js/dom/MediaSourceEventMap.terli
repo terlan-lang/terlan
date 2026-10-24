@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MediaSourceEventMap.
 
-import type std.js.Dom.Event.{Event}.
+import type std.js.Dom.{Event}.
 
 pub opaque type MediaSourceEventMap.
 

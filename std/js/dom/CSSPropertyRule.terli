@@ -33,7 +33,7 @@ pub (receiver: CSSPropertyRule) inherits(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSPropertyRule/initialValue)
  */
-pub (receiver: CSSPropertyRule) initial_value(): std.core.Option.Option[JsString].
+pub (receiver: CSSPropertyRule) initial_value(): std.core.Option[JsString].
 
 /**
  * The read-only **`name`** property of the CSSPropertyRule interface represents the property name, this being the serialization of the name given to the custom property in the @property rule's prelude.

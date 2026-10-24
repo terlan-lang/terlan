@@ -14,5 +14,5 @@ module std.js.Dom.AesCbcParamsTest.
 
 import type std.js.Dom.AesCbcParams.
 
-pub iv_typechecks(receiver: AesCbcParams): std.js.Dom.BufferSource.BufferSource ->
+pub iv_typechecks(receiver: AesCbcParams): std.js.Dom.BufferSource ->
     receiver.iv().

@@ -29,4 +29,4 @@ pub (receiver: ByteLengthQueuingStrategy) high_water_mark(): std.js.Number.JsNum
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ByteLengthQueuingStrategy/size)
  */
-pub (receiver: ByteLengthQueuingStrategy) size(): std.js.Dom.QueuingStrategySize.QueuingStrategySize[std.js.ArrayBufferView.ArrayBufferView].
+pub (receiver: ByteLengthQueuingStrategy) size(): std.js.Dom.QueuingStrategySize[std.js.ArrayBufferView].

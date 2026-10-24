@@ -24,4 +24,4 @@ pub opaque type MediaElementAudioSourceNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaElementAudioSourceNode/mediaElement)
  */
-pub (receiver: MediaElementAudioSourceNode) media_element(): std.js.Dom.HTMLMediaElement.HTMLMediaElement.
+pub (receiver: MediaElementAudioSourceNode) media_element(): std.js.Dom.HTMLMediaElement.

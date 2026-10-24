@@ -16,7 +16,7 @@ module std.core.Object.
 /// object model.
 
 pub type Object[V] =
-    std.collections.Map.Map[String, V].
+    std.collections.Map[String, V].
 
 /// Removes every object member.
 ///

@@ -16,5 +16,5 @@ import type std.js.Dom.MediaCapabilitiesDecodingInfo.
 
 pub key_system_access_typechecks(
     receiver: MediaCapabilitiesDecodingInfo,
-): std.core.Option.Option[std.js.Dom.MediaKeySystemAccess.MediaKeySystemAccess] ->
+): std.core.Option[std.js.Dom.MediaKeySystemAccess] ->
     receiver.key_system_access().

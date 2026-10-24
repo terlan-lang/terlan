@@ -12,9 +12,9 @@
  */
 module std.js.Dom.TouchEventInit.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.Touch.{Touch}.
+import type std.core.{Option}.
+import type std.js.Dom.{Touch}.
+import type std.js.{Array}.
 
 pub opaque type TouchEventInit.
 

@@ -24,6 +24,6 @@ pub opaque type ImportCallOptions.
 /**
  * @deprecated
  */
-pub (receiver: ImportCallOptions) assert(): std.core.Option.Option[std.js.ImportAssertions.ImportAssertions].
+pub (receiver: ImportCallOptions) assert(): std.core.Option[std.js.ImportAssertions].
 
-pub (receiver: ImportCallOptions) with_(): std.core.Option.Option[std.js.ImportAttributes.ImportAttributes].
+pub (receiver: ImportCallOptions) with_(): std.core.Option[std.js.ImportAttributes].

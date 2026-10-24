@@ -14,4 +14,4 @@
 module std.js.Dom.BufferSource.
 
 pub type BufferSource =
-    std.js.ArrayBuffer.ArrayBuffer | std.js.ArrayBufferView.ArrayBufferView[std.js.ArrayBuffer.ArrayBuffer].
+    std.js.ArrayBuffer | std.js.ArrayBufferView[std.js.ArrayBuffer].

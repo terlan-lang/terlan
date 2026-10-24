@@ -12,12 +12,12 @@
  */
 module std.js.Dom.LockOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type LockOptions.
 
 pub (receiver: LockOptions) if_available(): Option[Bool].
 
-pub (receiver: LockOptions) signal(): Option[std.js.Dom.AbortSignal.AbortSignal].
+pub (receiver: LockOptions) signal(): Option[std.js.Dom.AbortSignal].
 
 pub (receiver: LockOptions) steal(): Option[Bool].

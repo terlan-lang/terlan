@@ -14,7 +14,5 @@ module std.js.Dom.MIDIAccessEventMapTest.
 
 import type std.js.Dom.MIDIAccessEventMap.
 
-pub statechange_typechecks(
-    receiver: MIDIAccessEventMap,
-): std.js.Dom.MIDIConnectionEvent.MIDIConnectionEvent ->
+pub statechange_typechecks(receiver: MIDIAccessEventMap): std.js.Dom.MIDIConnectionEvent ->
     receiver.statechange().

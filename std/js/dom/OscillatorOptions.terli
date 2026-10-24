@@ -12,7 +12,7 @@
  */
 module std.js.Dom.OscillatorOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type OscillatorOptions.
@@ -21,4 +21,4 @@ pub (receiver: OscillatorOptions) detune(): Option[JsNumber].
 
 pub (receiver: OscillatorOptions) frequency(): Option[JsNumber].
 
-pub (receiver: OscillatorOptions) periodic_wave(): Option[std.js.Dom.PeriodicWave.PeriodicWave].
+pub (receiver: OscillatorOptions) periodic_wave(): Option[std.js.Dom.PeriodicWave].

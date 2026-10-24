@@ -15,4 +15,4 @@ module std.js.Dom.RegistrationOptions.
 
 pub opaque type RegistrationOptions.
 
-pub (receiver: RegistrationOptions) scope(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RegistrationOptions) scope(): std.core.Option[std.js.String.JsString].

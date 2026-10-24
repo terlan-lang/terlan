@@ -12,7 +12,7 @@
  */
 module std.js.Dom.IDBObjectStoreParametersTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.IDBObjectStoreParameters.
 import type std.js.String.{JsString}.
 
@@ -21,5 +21,5 @@ pub auto_increment_typechecks(receiver: IDBObjectStoreParameters): Option[Bool] 
 
 pub key_path_typechecks(
     receiver: IDBObjectStoreParameters,
-): Option[std.js.Array.Array[JsString] | JsString] ->
+): Option[std.js.Array[JsString] | JsString] ->
     receiver.key_path().

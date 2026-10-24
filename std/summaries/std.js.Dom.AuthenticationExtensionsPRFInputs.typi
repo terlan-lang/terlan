@@ -15,4 +15,4 @@ module std.js.Dom.AuthenticationExtensionsPRFInputs.
 
 pub opaque type AuthenticationExtensionsPRFInputs.
 
-pub (receiver: AuthenticationExtensionsPRFInputs) eval(): std.core.Option.Option[std.js.Dom.AuthenticationExtensionsPRFValues.AuthenticationExtensionsPRFValues].
+pub (receiver: AuthenticationExtensionsPRFInputs) eval(): std.core.Option[std.js.Dom.AuthenticationExtensionsPRFValues].

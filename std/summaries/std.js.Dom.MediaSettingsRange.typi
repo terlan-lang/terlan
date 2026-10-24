@@ -15,8 +15,8 @@ module std.js.Dom.MediaSettingsRange.
 
 pub opaque type MediaSettingsRange.
 
-pub (receiver: MediaSettingsRange) max(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaSettingsRange) max(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaSettingsRange) min(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaSettingsRange) min(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaSettingsRange) step(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaSettingsRange) step(): std.core.Option[std.js.Number.JsNumber].

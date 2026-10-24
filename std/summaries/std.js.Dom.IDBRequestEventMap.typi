@@ -15,6 +15,6 @@ module std.js.Dom.IDBRequestEventMap.
 
 pub opaque type IDBRequestEventMap.
 
-pub (receiver: IDBRequestEventMap) error(): std.js.Dom.Event.Event.
+pub (receiver: IDBRequestEventMap) error(): std.js.Dom.Event.
 
-pub (receiver: IDBRequestEventMap) success(): std.js.Dom.Event.Event.
+pub (receiver: IDBRequestEventMap) success(): std.js.Dom.Event.

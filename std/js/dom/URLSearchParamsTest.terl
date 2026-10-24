@@ -12,8 +12,7 @@
  */
 module std.js.Dom.URLSearchParamsTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
+import type std.core.{Option, Unit}.
 import type std.js.Dom.URLSearchParams.
 import type std.js.String.{JsString}.
 
@@ -29,7 +28,7 @@ pub delete_typechecks(receiver: URLSearchParams, name: JsString, value: Option[J
 pub get_typechecks(receiver: URLSearchParams, name: JsString): Option[JsString] ->
     receiver.get(name).
 
-pub get_all_typechecks(receiver: URLSearchParams, name: JsString): std.js.Array.Array[JsString] ->
+pub get_all_typechecks(receiver: URLSearchParams, name: JsString): std.js.Array[JsString] ->
     receiver.get_all(name).
 
 pub has_typechecks(receiver: URLSearchParams, name: JsString, value: Option[JsString]): Bool ->

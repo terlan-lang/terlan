@@ -15,10 +15,10 @@ module std.js.Dom.WebSocketEventMap.
 
 pub opaque type WebSocketEventMap.
 
-pub (receiver: WebSocketEventMap) close(): std.js.Dom.CloseEvent.CloseEvent.
+pub (receiver: WebSocketEventMap) close(): std.js.Dom.CloseEvent.
 
-pub (receiver: WebSocketEventMap) error(): std.js.Dom.Event.Event.
+pub (receiver: WebSocketEventMap) error(): std.js.Dom.Event.
 
-pub (receiver: WebSocketEventMap) message(): std.js.Dom.MessageEvent.MessageEvent.
+pub (receiver: WebSocketEventMap) message(): std.js.Dom.MessageEvent.
 
-pub (receiver: WebSocketEventMap) open(): std.js.Dom.Event.Event.
+pub (receiver: WebSocketEventMap) open(): std.js.Dom.Event.

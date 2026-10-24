@@ -24,4 +24,4 @@ pub opaque type CSSMathMax.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathMax/values)
  */
-pub (receiver: CSSMathMax) values(): std.js.Dom.CSSNumericArray.CSSNumericArray.
+pub (receiver: CSSMathMax) values(): std.js.Dom.CSSNumericArray.

@@ -8,7 +8,7 @@ module std.css.properties.JustifyContent.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    justify_content: std.core.Option.Option[Value]
+    justify_content: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

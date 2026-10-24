@@ -82,7 +82,10 @@ pub(crate) fn trait_instance_key(target: &ParsedTraitInstance) -> Option<String>
 /// - Performs a syntax-light normalization suitable for diagnostics and
 ///   signature comparison before full type lowering.
 pub(crate) fn normalize_trait_type_text(text: &str) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ")
+    crate::terlan_hir::public_type_text(text)
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// Substitutes trait type parameters inside a type-expression string.
@@ -293,5 +296,7 @@ fn join_token_texts_from_strings(parts: &[String]) -> String {
 /// Transformation:
 /// - Uses the compact comparison style expected by trait signature diagnostics.
 fn compact_trait_type_text(input: &str) -> String {
-    input.split_whitespace().collect::<String>()
+    crate::terlan_hir::public_type_text(input)
+        .split_whitespace()
+        .collect::<String>()
 }

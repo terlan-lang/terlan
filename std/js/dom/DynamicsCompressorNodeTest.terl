@@ -12,8 +12,7 @@
  */
 module std.js.Dom.DynamicsCompressorNodeTest.
 
-import type std.js.Dom.AudioParam.{AudioParam}.
-import type std.js.Dom.DynamicsCompressorNode.
+import type std.js.Dom.{AudioParam, DynamicsCompressorNode}.
 
 pub attack_typechecks(receiver: DynamicsCompressorNode): AudioParam ->
     receiver.attack().

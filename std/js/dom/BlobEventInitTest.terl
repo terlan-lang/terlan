@@ -14,10 +14,8 @@ module std.js.Dom.BlobEventInitTest.
 
 import type std.js.Dom.BlobEventInit.
 
-pub data_typechecks(receiver: BlobEventInit): std.js.Dom.Blob.Blob ->
+pub data_typechecks(receiver: BlobEventInit): std.js.Dom.Blob ->
     receiver.data().
 
-pub timecode_typechecks(
-    receiver: BlobEventInit,
-): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp] ->
+pub timecode_typechecks(receiver: BlobEventInit): std.core.Option[std.js.Dom.DOMHighResTimeStamp] ->
     receiver.timecode().

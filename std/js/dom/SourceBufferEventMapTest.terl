@@ -12,8 +12,7 @@
  */
 module std.js.Dom.SourceBufferEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.SourceBufferEventMap.
+import type std.js.Dom.{Event, SourceBufferEventMap}.
 
 pub abort_typechecks(receiver: SourceBufferEventMap): Event ->
     receiver.abort().

@@ -15,12 +15,12 @@ module std.js.Dom.VideoFrameInit.
 
 pub opaque type VideoFrameInit.
 
-pub (receiver: VideoFrameInit) display_height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoFrameInit) display_height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoFrameInit) display_width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoFrameInit) display_width(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoFrameInit) duration(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoFrameInit) duration(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoFrameInit) timestamp(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoFrameInit) timestamp(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoFrameInit) visible_rect(): std.core.Option.Option[std.js.Dom.DOMRectInit.DOMRectInit].
+pub (receiver: VideoFrameInit) visible_rect(): std.core.Option[std.js.Dom.DOMRectInit].

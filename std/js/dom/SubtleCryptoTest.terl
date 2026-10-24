@@ -12,19 +12,9 @@
  */
 module std.js.Dom.SubtleCryptoTest.
 
-import type std.core.Option.{Option}.
-import type std.js.ArrayBuffer.{ArrayBuffer}.
-import type std.js.Dom.AesCbcParams.{AesCbcParams}.
-import type std.js.Dom.AesCtrParams.{AesCtrParams}.
-import type std.js.Dom.AesGcmParams.{AesGcmParams}.
-import type std.js.Dom.AlgorithmIdentifier.{AlgorithmIdentifier}.
-import type std.js.Dom.BufferSource.{BufferSource}.
-import type std.js.Dom.CryptoKey.{CryptoKey}.
-import type std.js.Dom.EcdsaParams.{EcdsaParams}.
-import type std.js.Dom.RsaOaepParams.{RsaOaepParams}.
-import type std.js.Dom.RsaPssParams.{RsaPssParams}.
-import type std.js.Dom.SubtleCrypto.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option}.
+import type std.js.Dom.{AesCbcParams, AesCtrParams, AesGcmParams, AlgorithmIdentifier, BufferSource, CryptoKey, EcdsaParams, RsaOaepParams, RsaPssParams, SubtleCrypto}.
+import type std.js.{ArrayBuffer, Promise}.
 
 pub decrypt_typechecks(
     receiver: SubtleCrypto,
@@ -36,7 +26,7 @@ pub decrypt_typechecks(
 
 pub derive_bits_typechecks(
     receiver: SubtleCrypto,
-    algorithm: AlgorithmIdentifier | std.js.Dom.EcdhKeyDeriveParams.EcdhKeyDeriveParams | std.js.Dom.HkdfParams.HkdfParams | std.js.Dom.Pbkdf2Params.Pbkdf2Params,
+    algorithm: AlgorithmIdentifier | std.js.Dom.EcdhKeyDeriveParams | std.js.Dom.HkdfParams | std.js.Dom.Pbkdf2Params,
     base_key: CryptoKey,
     length: Option[Option[std.js.Number.JsNumber]],
 ): Promise[ArrayBuffer] ->

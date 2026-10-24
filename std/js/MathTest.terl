@@ -12,9 +12,8 @@
  */
 module std.js.MathTest.
 
-import type std.js.Array.{Array}.
-import type std.js.Math.
 import type std.js.Number.{JsNumber}.
+import type std.js.{Array, Math}.
 
 pub e_typechecks(receiver: Math): JsNumber ->
     receiver.e().

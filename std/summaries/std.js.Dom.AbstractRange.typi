@@ -32,7 +32,7 @@ pub (receiver: AbstractRange) collapsed(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/endContainer)
  */
-pub (receiver: AbstractRange) end_container(): std.js.Dom.Node.Node.
+pub (receiver: AbstractRange) end_container(): std.js.Dom.Node.
 
 /**
  * The **`endOffset`** property of the AbstractRange interface returns the offset into the end node of the range's end position.
@@ -46,7 +46,7 @@ pub (receiver: AbstractRange) end_offset(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbstractRange/startContainer)
  */
-pub (receiver: AbstractRange) start_container(): std.js.Dom.Node.Node.
+pub (receiver: AbstractRange) start_container(): std.js.Dom.Node.
 
 /**
  * The read-only **`startOffset`** property of the AbstractRange interface returns the offset into the start node of the range's start position.

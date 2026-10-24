@@ -12,33 +12,11 @@
  */
 module std.js.Dom.WebGL2RenderingContextBaseTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.Float32List.{Float32List}.
-import type std.js.Dom.GLbitfield.{GLbitfield}.
-import type std.js.Dom.GLboolean.{GLboolean}.
-import type std.js.Dom.GLenum.{GLenum}.
-import type std.js.Dom.GLfloat.{GLfloat}.
-import type std.js.Dom.GLint.{GLint}.
-import type std.js.Dom.GLintptr.{GLintptr}.
-import type std.js.Dom.GLsizei.{GLsizei}.
-import type std.js.Dom.GLsizeiptr.{GLsizeiptr}.
-import type std.js.Dom.GLuint.{GLuint}.
-import type std.js.Dom.Int32List.{Int32List}.
-import type std.js.Dom.TexImageSource.{TexImageSource}.
-import type std.js.Dom.Uint32List.{Uint32List}.
-import type std.js.Dom.WebGL2RenderingContextBase.
-import type std.js.Dom.WebGLBuffer.{WebGLBuffer}.
-import type std.js.Dom.WebGLProgram.{WebGLProgram}.
-import type std.js.Dom.WebGLQuery.{WebGLQuery}.
-import type std.js.Dom.WebGLSampler.{WebGLSampler}.
-import type std.js.Dom.WebGLSync.{WebGLSync}.
-import type std.js.Dom.WebGLTransformFeedback.{WebGLTransformFeedback}.
-import type std.js.Dom.WebGLUniformLocation.{WebGLUniformLocation}.
-import type std.js.Dom.WebGLVertexArrayObject.{WebGLVertexArrayObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Float32List, GLbitfield, GLboolean, GLenum, GLfloat, GLint, GLintptr, GLsizei, GLsizeiptr, GLuint, Int32List, TexImageSource, Uint32List, WebGL2RenderingContextBase, WebGLBuffer, WebGLProgram, WebGLQuery, WebGLSampler, WebGLSync, WebGLTransformFeedback, WebGLUniformLocation, WebGLVertexArrayObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 pub begin_query_typechecks(
     receiver: WebGL2RenderingContextBase,
@@ -158,7 +136,7 @@ pub client_wait_sync_typechecks(
     receiver: WebGL2RenderingContextBase,
     sync: WebGLSync,
     flags: GLbitfield,
-    timeout: std.js.Dom.GLuint64.GLuint64,
+    timeout: std.js.Dom.GLuint64,
 ): GLenum ->
     receiver.client_wait_sync(sync, flags, timeout).
 
@@ -328,7 +306,7 @@ pub framebuffer_texture_layer_typechecks(
     receiver: WebGL2RenderingContextBase,
     target_: GLenum,
     attachment: GLenum,
-    texture: Option[std.js.Dom.WebGLTexture.WebGLTexture],
+    texture: Option[std.js.Dom.WebGLTexture],
     level: GLint,
     layer: GLint,
 ): Unit ->
@@ -359,7 +337,7 @@ pub get_transform_feedback_varying_typechecks(
     receiver: WebGL2RenderingContextBase,
     program: WebGLProgram,
     index: GLuint,
-): Option[std.js.Dom.WebGLActiveInfo.WebGLActiveInfo] ->
+): Option[std.js.Dom.WebGLActiveInfo] ->
     receiver.get_transform_feedback_varying(program, index).
 
 pub get_uniform_block_index_typechecks(
@@ -787,6 +765,6 @@ pub wait_sync_typechecks(
     receiver: WebGL2RenderingContextBase,
     sync: WebGLSync,
     flags: GLbitfield,
-    timeout: std.js.Dom.GLint64.GLint64,
+    timeout: std.js.Dom.GLint64,
 ): Unit ->
     receiver.wait_sync(sync, flags, timeout).

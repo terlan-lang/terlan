@@ -12,10 +12,10 @@
  */
 module std.js.Dom.DOMMatrixReadOnly.
 
-import type std.core.Option.{Option}.
-import type std.js.ArrayBuffer.{ArrayBuffer}.
-import type std.js.Dom.DOMMatrix.{DOMMatrix}.
+import type std.core.{Option}.
+import type std.js.Dom.{DOMMatrix}.
 import type std.js.Number.{JsNumber}.
+import type std.js.{ArrayBuffer}.
 
 /**
  * The **`DOMMatrixReadOnly`** interface represents a read-only 4×4 matrix, suitable for 2D and 3D operations.
@@ -174,7 +174,7 @@ pub (receiver: DOMMatrixReadOnly) inverse(): DOMMatrix.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/multiply)
  */
-pub (receiver: DOMMatrixReadOnly) multiply(other: Option[std.js.Dom.DOMMatrixInit.DOMMatrixInit]): DOMMatrix.
+pub (receiver: DOMMatrixReadOnly) multiply(other: Option[std.js.Dom.DOMMatrixInit]): DOMMatrix.
 
 /**
  * The `rotate()` method of the DOMMatrixReadOnly interface returns a new DOMMatrix created by rotating the source matrix around each of its axes by the specified number of degrees.
@@ -252,23 +252,21 @@ pub (receiver: DOMMatrixReadOnly) skew_y(sy: Option[JsNumber]): DOMMatrix.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/toFloat32Array)
  */
-pub (receiver: DOMMatrixReadOnly) to_float32_array(): std.js.Float32Array.Float32Array[ArrayBuffer].
+pub (receiver: DOMMatrixReadOnly) to_float32_array(): std.js.Float32Array[ArrayBuffer].
 
 /**
  * The **`toFloat64Array()`** method of the DOMMatrixReadOnly interface returns a new Float64Array containing all 16 elements (`m11`, `m12`, `m13`, `m14`, `m21`, `m22`, `m23`, `m24`, `m31`, `m32`, `m33`, `m34`, `m41`, `m42`, `m43`, `m44`) which comprise the matrix.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/toFloat64Array)
  */
-pub (receiver: DOMMatrixReadOnly) to_float64_array(): std.js.Float64Array.Float64Array[ArrayBuffer].
+pub (receiver: DOMMatrixReadOnly) to_float64_array(): std.js.Float64Array[ArrayBuffer].
 
 /**
  * The **`transformPoint`** method of the You can also create a new `DOMPoint` by applying a matrix to a point with the DOMPointReadOnly.matrixTransform() method.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMMatrixReadOnly/transformPoint)
  */
-pub (receiver: DOMMatrixReadOnly) transform_point(
-    point: Option[std.js.Dom.DOMPointInit.DOMPointInit],
-): std.js.Dom.DOMPoint.DOMPoint.
+pub (receiver: DOMMatrixReadOnly) transform_point(point: Option[std.js.Dom.DOMPointInit]): std.js.Dom.DOMPoint.
 
 /**
  * The `translate()` method of the DOMMatrixReadOnly interface creates a new matrix being the result of the original matrix with a translation applied.

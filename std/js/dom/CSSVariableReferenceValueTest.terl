@@ -16,7 +16,7 @@ import type std.js.Dom.CSSVariableReferenceValue.
 
 pub fallback_typechecks(
     receiver: CSSVariableReferenceValue,
-): std.core.Option.Option[std.js.Dom.CSSUnparsedValue.CSSUnparsedValue] ->
+): std.core.Option[std.js.Dom.CSSUnparsedValue] ->
     receiver.fallback().
 
 pub variable_typechecks(receiver: CSSVariableReferenceValue): std.js.String.JsString ->

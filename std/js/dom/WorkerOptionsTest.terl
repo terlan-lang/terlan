@@ -14,5 +14,5 @@ module std.js.Dom.WorkerOptionsTest.
 
 import type std.js.Dom.WorkerOptions.
 
-pub name_typechecks(receiver: WorkerOptions): std.core.Option.Option[std.js.String.JsString] ->
+pub name_typechecks(receiver: WorkerOptions): std.core.Option[std.js.String.JsString] ->
     receiver.name().

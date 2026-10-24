@@ -47,11 +47,11 @@ pub (receiver: MessageEvent[T]) origin(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/ports)
  */
-pub (receiver: MessageEvent[T]) ports(): std.js.Array.Array[std.js.Dom.MessagePort.MessagePort].
+pub (receiver: MessageEvent[T]) ports(): std.js.Array[std.js.Dom.MessagePort].
 
 /**
  * The **`source`** read-only property of the a WindowProxy, MessagePort, or a `MessageEventSource` (which can be a WindowProxy, message emitter.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/source)
  */
-pub (receiver: MessageEvent[T]) source(): std.core.Option.Option[std.js.Dom.MessageEventSource.MessageEventSource].
+pub (receiver: MessageEvent[T]) source(): std.core.Option[std.js.Dom.MessageEventSource].

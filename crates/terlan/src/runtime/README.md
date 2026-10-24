@@ -30,5 +30,5 @@ This directory owns Rust runtime services used by Terlan artifacts.
 - Test native adapters directly and through NativeBoundary dispatch.
 - Add adversarial tests for stale handles, wrong arity, and wrong resource kind.
 - Decode generated native application failures into ordinary
-  `std.core.Error.Error` records inside `Result`; reserve protocol failures for
+  `std.core.Error` records inside `Result`; reserve protocol failures for
   malformed replies and failed boundary transport.

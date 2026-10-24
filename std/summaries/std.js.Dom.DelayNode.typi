@@ -25,4 +25,4 @@ pub opaque type DelayNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DelayNode/delayTime)
  */
-pub (receiver: DelayNode) delay_time(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: DelayNode) delay_time(): std.js.Dom.AudioParam.

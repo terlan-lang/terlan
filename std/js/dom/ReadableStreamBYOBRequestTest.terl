@@ -12,14 +12,13 @@
  */
 module std.js.Dom.ReadableStreamBYOBRequestTest.
 
-import type std.core.Unit.{Unit}.
-import type std.js.ArrayBuffer.{ArrayBuffer}.
-import type std.js.ArrayBufferView.{ArrayBufferView}.
+import type std.core.{Unit}.
 import type std.js.Dom.ReadableStreamBYOBRequest.
+import type std.js.{ArrayBuffer, ArrayBufferView}.
 
 pub view_typechecks(
     receiver: ReadableStreamBYOBRequest,
-): std.core.Option.Option[ArrayBufferView[ArrayBuffer]] ->
+): std.core.Option[ArrayBufferView[ArrayBuffer]] ->
     receiver.view().
 
 pub respond_typechecks(

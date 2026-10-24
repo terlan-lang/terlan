@@ -32,48 +32,48 @@ pub (receiver: URLSearchParams) size(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/append)
  */
-pub (receiver: URLSearchParams) append(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: URLSearchParams) append(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`delete()`** method of the URLSearchParams interface deletes specified parameters and their associated value(s) from the list of all search parameters.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/delete)
  */
-pub (receiver: URLSearchParams) delete(name: std.js.String.JsString, value: std.core.Option.Option[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: URLSearchParams) delete(name: std.js.String.JsString, value: std.core.Option[std.js.String.JsString]): std.core.Unit.
 
 /**
  * The **`get()`** method of the URLSearchParams interface returns the first value associated to the given search parameter.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/get)
  */
-pub (receiver: URLSearchParams) get(name: std.js.String.JsString): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: URLSearchParams) get(name: std.js.String.JsString): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`getAll()`** method of the URLSearchParams interface returns all the values associated with a given search parameter as an array.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/getAll)
  */
-pub (receiver: URLSearchParams) get_all(name: std.js.String.JsString): std.js.Array.Array[std.js.String.JsString].
+pub (receiver: URLSearchParams) get_all(name: std.js.String.JsString): std.js.Array[std.js.String.JsString].
 
 /**
  * The **`has()`** method of the URLSearchParams interface returns a boolean value that indicates whether the specified parameter is in the search parameters.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/has)
  */
-pub (receiver: URLSearchParams) has(name: std.js.String.JsString, value: std.core.Option.Option[std.js.String.JsString]): Bool.
+pub (receiver: URLSearchParams) has(name: std.js.String.JsString, value: std.core.Option[std.js.String.JsString]): Bool.
 
 /**
  * The **`set()`** method of the URLSearchParams interface sets the value associated with a given search parameter to the given value.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/set)
  */
-pub (receiver: URLSearchParams) set(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: URLSearchParams) set(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`URLSearchParams.sort()`** method sorts all key/value pairs contained in this object in place and returns `undefined`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/sort)
  */
-pub (receiver: URLSearchParams) sort(): std.core.Unit.Unit.
+pub (receiver: URLSearchParams) sort(): std.core.Unit.
 
 pub (receiver: URLSearchParams) to_string(): std.js.String.JsString.

@@ -29,4 +29,4 @@ pub (receiver: ArrayBuffer) byte_length(): std.js.Number.JsNumber.
 /**
  * Returns a section of an ArrayBuffer.
  */
-pub (receiver: ArrayBuffer) slice(begin: std.core.Option.Option[std.js.Number.JsNumber], end: std.core.Option.Option[std.js.Number.JsNumber]): ArrayBuffer.
+pub (receiver: ArrayBuffer) slice(begin: std.core.Option[std.js.Number.JsNumber], end: std.core.Option[std.js.Number.JsNumber]): ArrayBuffer.

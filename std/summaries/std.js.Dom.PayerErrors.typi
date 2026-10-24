@@ -15,8 +15,8 @@ module std.js.Dom.PayerErrors.
 
 pub opaque type PayerErrors.
 
-pub (receiver: PayerErrors) email(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: PayerErrors) email(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: PayerErrors) name(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: PayerErrors) name(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: PayerErrors) phone(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: PayerErrors) phone(): std.core.Option[std.js.String.JsString].

@@ -12,8 +12,7 @@
  */
 module std.js.Dom.MediaSourceEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.MediaSourceEventMap.
+import type std.js.Dom.{Event, MediaSourceEventMap}.
 
 pub sourceclose_typechecks(receiver: MediaSourceEventMap): Event ->
     receiver.sourceclose().

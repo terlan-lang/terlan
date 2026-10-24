@@ -8,7 +8,7 @@ module std.css.properties.TextGroupAlign.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    text_group_align: std.core.Option.Option[Value]
+    text_group_align: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

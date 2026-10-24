@@ -12,7 +12,7 @@
  */
 module std.js.Dom.StreamPipeOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.StreamPipeOptions.
 
 pub prevent_abort_typechecks(receiver: StreamPipeOptions): Option[Bool] ->
@@ -24,5 +24,5 @@ pub prevent_cancel_typechecks(receiver: StreamPipeOptions): Option[Bool] ->
 pub prevent_close_typechecks(receiver: StreamPipeOptions): Option[Bool] ->
     receiver.prevent_close().
 
-pub signal_typechecks(receiver: StreamPipeOptions): Option[std.js.Dom.AbortSignal.AbortSignal] ->
+pub signal_typechecks(receiver: StreamPipeOptions): Option[std.js.Dom.AbortSignal] ->
     receiver.signal().

@@ -18,4 +18,4 @@ pub opaque type ObjectConstructor.
 /**
  * A reference to the prototype for a class of objects.
  */
-pub (receiver: ObjectConstructor) prototype(): std.js.Object.Object.
+pub (receiver: ObjectConstructor) prototype(): std.js.Object.

@@ -14,5 +14,5 @@ module std.js.Dom.ClientQueryOptionsTest.
 
 import type std.js.Dom.ClientQueryOptions.
 
-pub include_uncontrolled_typechecks(receiver: ClientQueryOptions): std.core.Option.Option[Bool] ->
+pub include_uncontrolled_typechecks(receiver: ClientQueryOptions): std.core.Option[Bool] ->
     receiver.include_uncontrolled().

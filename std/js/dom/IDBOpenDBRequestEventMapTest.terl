@@ -12,8 +12,7 @@
  */
 module std.js.Dom.IDBOpenDBRequestEventMapTest.
 
-import type std.js.Dom.IDBOpenDBRequestEventMap.
-import type std.js.Dom.IDBVersionChangeEvent.{IDBVersionChangeEvent}.
+import type std.js.Dom.{IDBOpenDBRequestEventMap, IDBVersionChangeEvent}.
 
 pub blocked_typechecks(receiver: IDBOpenDBRequestEventMap): IDBVersionChangeEvent ->
     receiver.blocked().

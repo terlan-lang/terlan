@@ -14,7 +14,7 @@ module std.js.Dom.HmacKeyAlgorithm.
 
 pub opaque type HmacKeyAlgorithm.
 
-pub (receiver: HmacKeyAlgorithm) hash(): std.js.Dom.KeyAlgorithm.KeyAlgorithm ->
+pub (receiver: HmacKeyAlgorithm) hash(): std.js.Dom.KeyAlgorithm ->
     native.
 
 pub (receiver: HmacKeyAlgorithm) length(): std.js.Number.JsNumber ->

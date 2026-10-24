@@ -12,15 +12,11 @@
  */
 module std.js.Dom.MediaConfigurationTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.MediaConfiguration.
 
-pub audio_typechecks(
-    receiver: MediaConfiguration,
-): Option[std.js.Dom.AudioConfiguration.AudioConfiguration] ->
+pub audio_typechecks(receiver: MediaConfiguration): Option[std.js.Dom.AudioConfiguration] ->
     receiver.audio().
 
-pub video_typechecks(
-    receiver: MediaConfiguration,
-): Option[std.js.Dom.VideoConfiguration.VideoConfiguration] ->
+pub video_typechecks(receiver: MediaConfiguration): Option[std.js.Dom.VideoConfiguration] ->
     receiver.video().

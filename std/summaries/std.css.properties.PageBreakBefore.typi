@@ -8,7 +8,7 @@ module std.css.properties.PageBreakBefore.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    page_break_before: std.core.Option.Option[Value]
+    page_break_before: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -14,5 +14,5 @@ module std.js.Dom.NavigatorStorageTest.
 
 import type std.js.Dom.NavigatorStorage.
 
-pub storage_typechecks(receiver: NavigatorStorage): std.js.Dom.StorageManager.StorageManager ->
+pub storage_typechecks(receiver: NavigatorStorage): std.js.Dom.StorageManager ->
     receiver.storage().

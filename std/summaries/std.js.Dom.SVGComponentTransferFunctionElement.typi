@@ -25,50 +25,50 @@ pub opaque type SVGComponentTransferFunctionElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/amplitude)
  */
-pub (receiver: SVGComponentTransferFunctionElement) amplitude(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
+pub (receiver: SVGComponentTransferFunctionElement) amplitude(): std.js.Dom.SVGAnimatedNumber.
 
 /**
  * The **`exponent`** read-only property of the SVGComponentTransferFunctionElement interface reflects the exponent attribute of the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/exponent)
  */
-pub (receiver: SVGComponentTransferFunctionElement) exponent(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
+pub (receiver: SVGComponentTransferFunctionElement) exponent(): std.js.Dom.SVGAnimatedNumber.
 
 /**
  * The **`intercept`** read-only property of the SVGComponentTransferFunctionElement interface reflects the intercept attribute of the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/intercept)
  */
-pub (receiver: SVGComponentTransferFunctionElement) intercept(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
+pub (receiver: SVGComponentTransferFunctionElement) intercept(): std.js.Dom.SVGAnimatedNumber.
 
 /**
  * The **`offset`** read-only property of the SVGComponentTransferFunctionElement interface reflects the offset attribute of the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/offset)
  */
-pub (receiver: SVGComponentTransferFunctionElement) offset(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
+pub (receiver: SVGComponentTransferFunctionElement) offset(): std.js.Dom.SVGAnimatedNumber.
 
 /**
  * The **`slope`** read-only property of the SVGComponentTransferFunctionElement interface reflects the slope attribute of the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/slope)
  */
-pub (receiver: SVGComponentTransferFunctionElement) slope(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
+pub (receiver: SVGComponentTransferFunctionElement) slope(): std.js.Dom.SVGAnimatedNumber.
 
 /**
  * The **`tableValues`** read-only property of the SVGComponentTransferFunctionElement interface reflects the tableValues attribute of the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/tableValues)
  */
-pub (receiver: SVGComponentTransferFunctionElement) table_values(): std.js.Dom.SVGAnimatedNumberList.SVGAnimatedNumberList.
+pub (receiver: SVGComponentTransferFunctionElement) table_values(): std.js.Dom.SVGAnimatedNumberList.
 
 /**
  * The **`type`** read-only property of the SVGComponentTransferFunctionElement interface reflects the type attribute of the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGComponentTransferFunctionElement/type)
  */
-pub (receiver: SVGComponentTransferFunctionElement) type_(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration.
+pub (receiver: SVGComponentTransferFunctionElement) type_(): std.js.Dom.SVGAnimatedEnumeration.
 
-pub (receiver: SVGComponentTransferFunctionElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SVGComponentTransferFunctionElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SVGComponentTransferFunctionElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SVGComponentTransferFunctionElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

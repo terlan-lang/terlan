@@ -14,5 +14,5 @@ module std.js.Dom.ServiceWorkerEventMap.
 
 pub opaque type ServiceWorkerEventMap.
 
-pub (receiver: ServiceWorkerEventMap) statechange(): std.js.Dom.Event.Event ->
+pub (receiver: ServiceWorkerEventMap) statechange(): std.js.Dom.Event ->
     native.

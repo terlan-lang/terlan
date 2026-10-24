@@ -12,9 +12,8 @@
  */
 module std.js.Dom.ReadableStreamBYOBRequest.
 
-import type std.core.Unit.{Unit}.
-import type std.js.ArrayBuffer.{ArrayBuffer}.
-import type std.js.ArrayBufferView.{ArrayBufferView}.
+import type std.core.{Unit}.
+import type std.js.{ArrayBuffer, ArrayBufferView}.
 
 /**
  * The **`ReadableStreamBYOBRequest`** interface of the Streams API represents a 'pull request' for data from an underlying source that will made as a zero-copy transfer to a consumer (bypassing the stream's internal queues).
@@ -28,7 +27,7 @@ pub opaque type ReadableStreamBYOBRequest.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/view)
  */
-pub (receiver: ReadableStreamBYOBRequest) view(): std.core.Option.Option[ArrayBufferView[ArrayBuffer]] ->
+pub (receiver: ReadableStreamBYOBRequest) view(): std.core.Option[ArrayBufferView[ArrayBuffer]] ->
     native.
 
 /**

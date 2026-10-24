@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CSSRule.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 /**
  * The **`CSSRule`** interface represents a single CSS rule.
@@ -42,7 +42,7 @@ pub (receiver: CSSRule) parent_rule(): Option[CSSRule] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRule/parentStyleSheet)
  */
-pub (receiver: CSSRule) parent_style_sheet(): Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
+pub (receiver: CSSRule) parent_style_sheet(): Option[std.js.Dom.CSSStyleSheet] ->
     native.
 
 /**

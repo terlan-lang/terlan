@@ -12,10 +12,8 @@
  */
 module std.js.Dom.HTMLVideoElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLVideoElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLVideoElement}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -45,17 +43,17 @@ pub cancel_video_frame_callback_typechecks(receiver: HTMLVideoElement, handle: J
 
 pub get_video_playback_quality_typechecks(
     receiver: HTMLVideoElement,
-): std.js.Dom.VideoPlaybackQuality.VideoPlaybackQuality ->
+): std.js.Dom.VideoPlaybackQuality ->
     receiver.get_video_playback_quality().
 
 pub request_picture_in_picture_typechecks(
     receiver: HTMLVideoElement,
-): std.js.Promise.Promise[std.js.Dom.PictureInPictureWindow.PictureInPictureWindow] ->
+): std.js.Promise[std.js.Dom.PictureInPictureWindow] ->
     receiver.request_picture_in_picture().
 
 pub request_video_frame_callback_typechecks(
     receiver: HTMLVideoElement,
-    callback: std.js.Dom.VideoFrameRequestCallback.VideoFrameRequestCallback,
+    callback: std.js.Dom.VideoFrameRequestCallback,
 ): JsNumber ->
     receiver.request_video_frame_callback(callback).
 
@@ -63,7 +61,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLVideoElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -71,6 +69,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLVideoElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

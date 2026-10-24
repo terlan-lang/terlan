@@ -14,4 +14,4 @@ module std.js.Dom.OfflineAudioContextEventMap.
 
 pub opaque type OfflineAudioContextEventMap.
 
-pub (receiver: OfflineAudioContextEventMap) complete(): std.js.Dom.OfflineAudioCompletionEvent.OfflineAudioCompletionEvent.
+pub (receiver: OfflineAudioContextEventMap) complete(): std.js.Dom.OfflineAudioCompletionEvent.

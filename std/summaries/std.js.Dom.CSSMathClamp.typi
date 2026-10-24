@@ -15,8 +15,8 @@ module std.js.Dom.CSSMathClamp.
 
 pub opaque type CSSMathClamp.
 
-pub (receiver: CSSMathClamp) lower(): std.js.Dom.CSSNumericValue.CSSNumericValue.
+pub (receiver: CSSMathClamp) lower(): std.js.Dom.CSSNumericValue.
 
-pub (receiver: CSSMathClamp) upper(): std.js.Dom.CSSNumericValue.CSSNumericValue.
+pub (receiver: CSSMathClamp) upper(): std.js.Dom.CSSNumericValue.
 
-pub (receiver: CSSMathClamp) value(): std.js.Dom.CSSNumericValue.CSSNumericValue.
+pub (receiver: CSSMathClamp) value(): std.js.Dom.CSSNumericValue.

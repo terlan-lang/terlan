@@ -8,7 +8,7 @@ module std.css.properties.PrintColorAdjust.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    print_color_adjust: std.core.Option.Option[Value]
+    print_color_adjust: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

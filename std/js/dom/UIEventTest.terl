@@ -12,9 +12,8 @@
  */
 module std.js.Dom.UIEventTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.UIEvent.
-import type std.js.Dom.Window.{Window}.
+import type std.core.{Option}.
+import type std.js.Dom.{UIEvent, Window}.
 import type std.js.Number.{JsNumber}.
 
 pub detail_typechecks(receiver: UIEvent): JsNumber ->
@@ -33,5 +32,5 @@ pub init_ui_event_typechecks(
     cancelable_arg: Option[Bool],
     view_arg: Option[Option[Window]],
     detail_arg: Option[JsNumber],
-): std.core.Unit.Unit ->
+): std.core.Unit ->
     receiver.init_ui_event(type_arg, bubbles_arg, cancelable_arg, view_arg, detail_arg).

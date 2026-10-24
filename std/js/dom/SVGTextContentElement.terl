@@ -12,10 +12,8 @@
  */
 module std.js.Dom.SVGTextContentElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.DOMPoint.{DOMPoint}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{DOMPoint, EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -31,7 +29,7 @@ pub opaque type SVGTextContentElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/lengthAdjust)
  */
-pub (receiver: SVGTextContentElement) length_adjust(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration ->
+pub (receiver: SVGTextContentElement) length_adjust(): std.js.Dom.SVGAnimatedEnumeration ->
     native.
 
 /**
@@ -39,7 +37,7 @@ pub (receiver: SVGTextContentElement) length_adjust(): std.js.Dom.SVGAnimatedEnu
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/textLength)
  */
-pub (receiver: SVGTextContentElement) text_length(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength ->
+pub (receiver: SVGTextContentElement) text_length(): std.js.Dom.SVGAnimatedLength ->
     native.
 
 /**
@@ -47,7 +45,7 @@ pub (receiver: SVGTextContentElement) text_length(): std.js.Dom.SVGAnimatedLengt
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getCharNumAtPosition)
  */
-pub (receiver: SVGTextContentElement) get_char_num_at_position(point: Option[std.js.Dom.DOMPointInit.DOMPointInit]): JsNumber ->
+pub (receiver: SVGTextContentElement) get_char_num_at_position(point: Option[std.js.Dom.DOMPointInit]): JsNumber ->
     native.
 
 /**
@@ -71,7 +69,7 @@ pub (receiver: SVGTextContentElement) get_end_position_of_char(charnum: JsNumber
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextContentElement/getExtentOfChar)
  */
-pub (receiver: SVGTextContentElement) get_extent_of_char(charnum: JsNumber): std.js.Dom.DOMRect.DOMRect ->
+pub (receiver: SVGTextContentElement) get_extent_of_char(charnum: JsNumber): std.js.Dom.DOMRect ->
     native.
 
 /**
@@ -115,13 +113,13 @@ pub (receiver: SVGTextContentElement) select_sub_string(charnum: JsNumber, nchar
 pub (receiver: SVGTextContentElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: SVGTextContentElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

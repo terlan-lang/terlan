@@ -8,7 +8,7 @@ module std.css.properties.FontVariant.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    font_variant: std.core.Option.Option[Value]
+    font_variant: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

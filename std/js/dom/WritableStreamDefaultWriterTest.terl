@@ -12,10 +12,9 @@
  */
 module std.js.Dom.WritableStreamDefaultWriterTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
+import type std.core.{Option, Unit}.
 import type std.js.Dom.WritableStreamDefaultWriter.
-import type std.js.Promise.{Promise}.
+import type std.js.{Promise}.
 
 pub closed_typechecks(receiver: WritableStreamDefaultWriter[W]): Promise[Unit] ->
     receiver.closed().

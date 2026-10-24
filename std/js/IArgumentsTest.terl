@@ -17,5 +17,5 @@ import type std.js.IArguments.
 pub length_typechecks(receiver: IArguments): std.js.Number.JsNumber ->
     receiver.length().
 
-pub callee_typechecks(receiver: IArguments): std.js.Function.Function ->
+pub callee_typechecks(receiver: IArguments): std.js.Function ->
     receiver.callee().

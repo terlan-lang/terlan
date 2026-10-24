@@ -8,7 +8,7 @@ module std.css.properties.ColumnWidth.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    column_width: std.core.Option.Option[Value]
+    column_width: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

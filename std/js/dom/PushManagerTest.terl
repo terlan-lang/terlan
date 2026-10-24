@@ -12,16 +12,15 @@
  */
 module std.js.Dom.PushManagerTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.PushManager.
-import type std.js.Dom.PushSubscription.{PushSubscription}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option}.
+import type std.js.Dom.{PushManager, PushSubscription}.
+import type std.js.{Promise}.
 
 pub get_subscription_typechecks(receiver: PushManager): Promise[Option[PushSubscription]] ->
     receiver.get_subscription().
 
 pub subscribe_typechecks(
     receiver: PushManager,
-    options: Option[std.js.Dom.PushSubscriptionOptionsInit.PushSubscriptionOptionsInit],
+    options: Option[std.js.Dom.PushSubscriptionOptionsInit],
 ): Promise[PushSubscription] ->
     receiver.subscribe(options).

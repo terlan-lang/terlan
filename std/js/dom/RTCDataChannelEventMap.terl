@@ -12,7 +12,7 @@
  */
 module std.js.Dom.RTCDataChannelEventMap.
 
-import type std.js.Dom.Event.{Event}.
+import type std.js.Dom.{Event}.
 
 pub opaque type RTCDataChannelEventMap.
 
@@ -25,10 +25,10 @@ pub (receiver: RTCDataChannelEventMap) close(): Event ->
 pub (receiver: RTCDataChannelEventMap) closing(): Event ->
     native.
 
-pub (receiver: RTCDataChannelEventMap) error(): std.js.Dom.RTCErrorEvent.RTCErrorEvent ->
+pub (receiver: RTCDataChannelEventMap) error(): std.js.Dom.RTCErrorEvent ->
     native.
 
-pub (receiver: RTCDataChannelEventMap) message(): std.js.Dom.MessageEvent.MessageEvent ->
+pub (receiver: RTCDataChannelEventMap) message(): std.js.Dom.MessageEvent ->
     native.
 
 pub (receiver: RTCDataChannelEventMap) open(): Event ->

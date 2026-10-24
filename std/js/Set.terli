@@ -14,7 +14,7 @@ module std.js.Set.
 
 pub opaque type Set[T].
 
-pub (receiver: Set[T]) clear(): std.core.Unit.Unit.
+pub (receiver: Set[T]) clear(): std.core.Unit.
 
 /**
  * Removes a specified value from the Set.

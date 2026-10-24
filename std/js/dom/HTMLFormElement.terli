@@ -12,9 +12,8 @@
  */
 module std.js.Dom.HTMLFormElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -43,7 +42,7 @@ pub (receiver: HTMLFormElement) action(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/elements)
  */
-pub (receiver: HTMLFormElement) elements(): std.js.Dom.HTMLFormControlsCollection.HTMLFormControlsCollection.
+pub (receiver: HTMLFormElement) elements(): std.js.Dom.HTMLFormControlsCollection.
 
 /**
  * The **`HTMLFormElement.encoding`** property is an alternative name for the HTMLFormElement.enctype element on the DOM HTMLFormElement object.
@@ -99,7 +98,7 @@ pub (receiver: HTMLFormElement) rel(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/relList)
  */
-pub (receiver: HTMLFormElement) rel_list(): std.js.Dom.DOMTokenList.DOMTokenList.
+pub (receiver: HTMLFormElement) rel_list(): std.js.Dom.DOMTokenList.
 
 /**
  * The **`target`** property of the HTMLFormElement interface represents the target of the form's action (i.e., the frame in which to render its output).
@@ -127,7 +126,7 @@ pub (receiver: HTMLFormElement) report_validity(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormElement/requestSubmit)
  */
-pub (receiver: HTMLFormElement) request_submit(submitter: Option[Option[std.js.Dom.HTMLElement.HTMLElement]]): Unit.
+pub (receiver: HTMLFormElement) request_submit(submitter: Option[Option[std.js.Dom.HTMLElement]]): Unit.
 
 /**
  * The **`HTMLFormElement.reset()`** method restores a form element's default values.
@@ -146,11 +145,11 @@ pub (receiver: HTMLFormElement) submit(): Unit.
 pub (receiver: HTMLFormElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: HTMLFormElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.IDBDatabaseInfoTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.IDBDatabaseInfo.
 
 pub name_typechecks(receiver: IDBDatabaseInfo): Option[std.js.String.JsString] ->

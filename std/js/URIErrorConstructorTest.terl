@@ -14,5 +14,5 @@ module std.js.URIErrorConstructorTest.
 
 import type std.js.URIErrorConstructor.
 
-pub prototype_typechecks(receiver: URIErrorConstructor): std.js.URIError.URIError ->
+pub prototype_typechecks(receiver: URIErrorConstructor): std.js.URIError ->
     receiver.prototype().

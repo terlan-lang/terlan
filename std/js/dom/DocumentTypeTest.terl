@@ -18,7 +18,7 @@ import type std.js.String.{JsString}.
 pub name_typechecks(receiver: DocumentType): JsString ->
     receiver.name().
 
-pub owner_document_typechecks(receiver: DocumentType): std.js.Dom.Document.Document ->
+pub owner_document_typechecks(receiver: DocumentType): std.js.Dom.Document ->
     receiver.owner_document().
 
 pub public_id_typechecks(receiver: DocumentType): JsString ->

@@ -42,7 +42,7 @@ pub (receiver: MediaMetadata) artist(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaMetadata/artwork)
  */
-pub (receiver: MediaMetadata) artwork(): std.js.Array.Array[std.js.Dom.MediaImage.MediaImage] ->
+pub (receiver: MediaMetadata) artwork(): std.js.Array[std.js.Dom.MediaImage] ->
     native.
 
 /**

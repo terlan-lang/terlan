@@ -14,7 +14,7 @@ module std.js.ReadonlyMapTest.
 
 import type std.js.ReadonlyMap.
 
-pub get_typechecks(receiver: ReadonlyMap[K, V], key: K): std.core.Option.Option[V] ->
+pub get_typechecks(receiver: ReadonlyMap[K, V], key: K): std.core.Option[V] ->
     receiver.get(key).
 
 pub has_typechecks(receiver: ReadonlyMap[K, V], key: K): Bool ->

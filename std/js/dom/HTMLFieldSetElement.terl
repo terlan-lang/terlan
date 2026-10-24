@@ -12,9 +12,8 @@
  */
 module std.js.Dom.HTMLFieldSetElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -37,7 +36,7 @@ pub (receiver: HTMLFieldSetElement) disabled(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/elements)
  */
-pub (receiver: HTMLFieldSetElement) elements(): std.js.Dom.HTMLCollection.HTMLCollection ->
+pub (receiver: HTMLFieldSetElement) elements(): std.js.Dom.HTMLCollection ->
     native.
 
 /**
@@ -45,7 +44,7 @@ pub (receiver: HTMLFieldSetElement) elements(): std.js.Dom.HTMLCollection.HTMLCo
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/form)
  */
-pub (receiver: HTMLFieldSetElement) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
+pub (receiver: HTMLFieldSetElement) form(): Option[std.js.Dom.HTMLFormElement] ->
     native.
 
 /**
@@ -77,7 +76,7 @@ pub (receiver: HTMLFieldSetElement) validation_message(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFieldSetElement/validity)
  */
-pub (receiver: HTMLFieldSetElement) validity(): std.js.Dom.ValidityState.ValidityState ->
+pub (receiver: HTMLFieldSetElement) validity(): std.js.Dom.ValidityState ->
     native.
 
 /**
@@ -115,13 +114,13 @@ pub (receiver: HTMLFieldSetElement) set_custom_validity(error: JsString): Unit -
 pub (receiver: HTMLFieldSetElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: HTMLFieldSetElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

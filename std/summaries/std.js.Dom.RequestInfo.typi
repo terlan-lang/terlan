@@ -14,4 +14,4 @@
 module std.js.Dom.RequestInfo.
 
 pub type RequestInfo =
-    std.js.Dom.Request.Request | std.js.String.JsString.
+    std.js.Dom.Request | std.js.String.JsString.

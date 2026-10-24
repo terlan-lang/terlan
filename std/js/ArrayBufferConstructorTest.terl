@@ -14,5 +14,5 @@ module std.js.ArrayBufferConstructorTest.
 
 import type std.js.ArrayBufferConstructor.
 
-pub prototype_typechecks(receiver: ArrayBufferConstructor): std.js.ArrayBuffer.ArrayBuffer ->
+pub prototype_typechecks(receiver: ArrayBufferConstructor): std.js.ArrayBuffer ->
     receiver.prototype().

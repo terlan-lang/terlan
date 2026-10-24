@@ -12,12 +12,12 @@
  */
 module std.js.DateConstructor.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type DateConstructor.
 
-pub (receiver: DateConstructor) prototype(): std.js.Date.Date ->
+pub (receiver: DateConstructor) prototype(): std.js.Date ->
     native.
 
 /**

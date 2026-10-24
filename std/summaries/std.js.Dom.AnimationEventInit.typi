@@ -15,8 +15,8 @@ module std.js.Dom.AnimationEventInit.
 
 pub opaque type AnimationEventInit.
 
-pub (receiver: AnimationEventInit) animation_name(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: AnimationEventInit) animation_name(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: AnimationEventInit) elapsed_time(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AnimationEventInit) elapsed_time(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: AnimationEventInit) pseudo_element(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: AnimationEventInit) pseudo_element(): std.core.Option[std.js.String.JsString].

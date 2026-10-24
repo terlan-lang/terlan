@@ -15,10 +15,10 @@ module std.js.Dom.MediaRecorderOptions.
 
 pub opaque type MediaRecorderOptions.
 
-pub (receiver: MediaRecorderOptions) audio_bits_per_second(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaRecorderOptions) audio_bits_per_second(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaRecorderOptions) bits_per_second(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaRecorderOptions) bits_per_second(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaRecorderOptions) mime_type(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MediaRecorderOptions) mime_type(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: MediaRecorderOptions) video_bits_per_second(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaRecorderOptions) video_bits_per_second(): std.core.Option[std.js.Number.JsNumber].

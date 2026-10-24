@@ -14,4 +14,4 @@
 module std.js.Dom.TexImageSource.
 
 pub type TexImageSource =
-    std.js.Dom.HTMLCanvasElement.HTMLCanvasElement | std.js.Dom.HTMLImageElement.HTMLImageElement | std.js.Dom.HTMLVideoElement.HTMLVideoElement | std.js.Dom.ImageBitmap.ImageBitmap | std.js.Dom.ImageData.ImageData | std.js.Dom.OffscreenCanvas.OffscreenCanvas | std.js.Dom.VideoFrame.VideoFrame.
+    std.js.Dom.HTMLCanvasElement | std.js.Dom.HTMLImageElement | std.js.Dom.HTMLVideoElement | std.js.Dom.ImageBitmap | std.js.Dom.ImageData | std.js.Dom.OffscreenCanvas | std.js.Dom.VideoFrame.

@@ -12,12 +12,12 @@
  */
 module std.js.Dom.PushSubscriptionOptionsInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.PushSubscriptionOptionsInit.
 
 pub application_server_key_typechecks(
     receiver: PushSubscriptionOptionsInit,
-): Option[std.js.Dom.BufferSource.BufferSource | std.js.String.JsString] ->
+): Option[std.js.Dom.BufferSource | std.js.String.JsString] ->
     receiver.application_server_key().
 
 pub user_visible_only_typechecks(receiver: PushSubscriptionOptionsInit): Option[Bool] ->

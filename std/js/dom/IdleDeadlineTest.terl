@@ -17,7 +17,5 @@ import type std.js.Dom.IdleDeadline.
 pub did_timeout_typechecks(receiver: IdleDeadline): Bool ->
     receiver.did_timeout().
 
-pub time_remaining_typechecks(
-    receiver: IdleDeadline,
-): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
+pub time_remaining_typechecks(receiver: IdleDeadline): std.js.Dom.DOMHighResTimeStamp ->
     receiver.time_remaining().

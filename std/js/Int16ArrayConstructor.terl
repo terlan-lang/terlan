@@ -12,9 +12,8 @@
  */
 module std.js.Int16ArrayConstructor.
 
-import type std.js.ArrayBuffer.{ArrayBuffer}.
-import type std.js.Int16Array.{Int16Array}.
 import type std.js.Number.{JsNumber}.
+import type std.js.{ArrayBuffer, Int16Array}.
 
 pub opaque type Int16ArrayConstructor.
 
@@ -28,12 +27,12 @@ pub (receiver: Int16ArrayConstructor) bytes_per_element(): JsNumber ->
  * Returns a new array from a set of elements.
  * @param items A set of elements to include in the new array object.
  */
-pub (receiver: Int16ArrayConstructor) of(items: std.js.Array.Array[JsNumber]): Int16Array[ArrayBuffer] ->
+pub (receiver: Int16ArrayConstructor) of(items: std.js.Array[JsNumber]): Int16Array[ArrayBuffer] ->
     native.
 
 /**
  * Creates an array from an array-like or iterable object.
  * @param arrayLike An array-like object to convert to an array.
  */
-pub (receiver: Int16ArrayConstructor) from_(array_like: std.js.ArrayLike.ArrayLike[JsNumber]): Int16Array[ArrayBuffer] ->
+pub (receiver: Int16ArrayConstructor) from_(array_like: std.js.ArrayLike[JsNumber]): Int16Array[ArrayBuffer] ->
     native.

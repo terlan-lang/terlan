@@ -243,7 +243,7 @@ pub fn pretty_type(ty: &Type) -> String {
             .join(" | "),
         Type::Named { module, name, args } => {
             let qualified = if let Some(module_name) = module {
-                format!("{}.{}", module_name, name)
+                crate::terlan_hir::public_type_path(module_name, name)
             } else {
                 name.clone()
             };

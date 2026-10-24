@@ -12,13 +12,12 @@
  */
 module std.js.Dom.EventSourceEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.EventSourceEventMap.
+import type std.js.Dom.{Event, EventSourceEventMap}.
 
 pub error_typechecks(receiver: EventSourceEventMap): Event ->
     receiver.error().
 
-pub message_typechecks(receiver: EventSourceEventMap): std.js.Dom.MessageEvent.MessageEvent ->
+pub message_typechecks(receiver: EventSourceEventMap): std.js.Dom.MessageEvent ->
     receiver.message().
 
 pub open_typechecks(receiver: EventSourceEventMap): Event ->

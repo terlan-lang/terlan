@@ -12,18 +12,18 @@
  */
 module std.js.Dom.UnderlyingSource.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type UnderlyingSource[R].
 
 pub (receiver: UnderlyingSource[R]) auto_allocate_chunk_size(): Option[std.js.Number.JsNumber] ->
     native.
 
-pub (receiver: UnderlyingSource[R]) cancel(): Option[std.js.Dom.UnderlyingSourceCancelCallback.UnderlyingSourceCancelCallback] ->
+pub (receiver: UnderlyingSource[R]) cancel(): Option[std.js.Dom.UnderlyingSourceCancelCallback] ->
     native.
 
-pub (receiver: UnderlyingSource[R]) pull(): Option[std.js.Dom.UnderlyingSourcePullCallback.UnderlyingSourcePullCallback[R]] ->
+pub (receiver: UnderlyingSource[R]) pull(): Option[std.js.Dom.UnderlyingSourcePullCallback[R]] ->
     native.
 
-pub (receiver: UnderlyingSource[R]) start(): Option[std.js.Dom.UnderlyingSourceStartCallback.UnderlyingSourceStartCallback[R]] ->
+pub (receiver: UnderlyingSource[R]) start(): Option[std.js.Dom.UnderlyingSourceStartCallback[R]] ->
     native.

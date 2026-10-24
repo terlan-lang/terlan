@@ -15,8 +15,8 @@ module std.js.Dom.EventInit.
 
 pub opaque type EventInit.
 
-pub (receiver: EventInit) bubbles(): std.core.Option.Option[Bool].
+pub (receiver: EventInit) bubbles(): std.core.Option[Bool].
 
-pub (receiver: EventInit) cancelable(): std.core.Option.Option[Bool].
+pub (receiver: EventInit) cancelable(): std.core.Option[Bool].
 
-pub (receiver: EventInit) composed(): std.core.Option.Option[Bool].
+pub (receiver: EventInit) composed(): std.core.Option[Bool].

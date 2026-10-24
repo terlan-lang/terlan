@@ -12,20 +12,16 @@
  */
 module std.js.Dom.TransformerTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.Transformer.
 
-pub flush_typechecks(
-    receiver: Transformer[I, O],
-): Option[std.js.Dom.TransformerFlushCallback.TransformerFlushCallback[O]] ->
+pub flush_typechecks(receiver: Transformer[I, O]): Option[std.js.Dom.TransformerFlushCallback[O]] ->
     receiver.flush().
 
-pub start_typechecks(
-    receiver: Transformer[I, O],
-): Option[std.js.Dom.TransformerStartCallback.TransformerStartCallback[O]] ->
+pub start_typechecks(receiver: Transformer[I, O]): Option[std.js.Dom.TransformerStartCallback[O]] ->
     receiver.start().
 
 pub transform_typechecks(
     receiver: Transformer[I, O],
-): Option[std.js.Dom.TransformerTransformCallback.TransformerTransformCallback[I, O]] ->
+): Option[std.js.Dom.TransformerTransformCallback[I, O]] ->
     receiver.transform().

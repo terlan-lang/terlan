@@ -12,11 +12,8 @@
  */
 module std.js.Dom.CanvasImageDataTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.CanvasImageData.
-import type std.js.Dom.ImageData.{ImageData}.
-import type std.js.Dom.ImageDataSettings.{ImageDataSettings}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{CanvasImageData, ImageData, ImageDataSettings}.
 import type std.js.Number.{JsNumber}.
 
 pub create_image_data_typechecks(

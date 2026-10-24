@@ -12,8 +12,7 @@
  */
 module std.js.Dom.MediaStreamTrackEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.MediaStreamTrackEventMap.
+import type std.js.Dom.{Event, MediaStreamTrackEventMap}.
 
 pub ended_typechecks(receiver: MediaStreamTrackEventMap): Event ->
     receiver.ended().

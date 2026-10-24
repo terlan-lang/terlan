@@ -55,7 +55,7 @@ pub (list: List[T]) each(cb: (T) -> Unit): Unit.
 /// intrinsic and observes the receiver without changing its contents.
 
 @pure
-pub (list: List[T]) first(): std.core.Option.Option[T].
+pub (list: List[T]) first(): std.core.Option[T].
 
 /// Returns whether a list contains no values.
 ///
@@ -71,7 +71,7 @@ pub (list: List[T]) is_empty(): Bool.
 /// Returns an iterator over the list.
 ///
 /// Input: one `List[T]`.
-/// Output: a `std.collections.Iterator.Iterator[T]` positioned at the beginning
+/// Output: a `std.collections.Iterator[T]` positioned at the beginning
 /// of the list.
 /// Transformation: lowers through the compiler-owned `core.list.iterator`
 /// intrinsic. The source-level iterator state is immutable;
@@ -79,7 +79,7 @@ pub (list: List[T]) is_empty(): Bool.
 /// the efficient representation behind the opaque iterator type.
 
 @pure
-pub (list: List[T]) iterator(): std.collections.Iterator.Iterator[T].
+pub (list: List[T]) iterator(): std.collections.Iterator[T].
 
 /// Returns the number of values in a list.
 ///
@@ -122,7 +122,7 @@ pub (mut list: List[T]) push(value: T): Unit.
 /// intrinsic without changing the receiver.
 
 @pure
-pub (list: List[T]) rest(): std.core.Option.Option[List[T]].
+pub (list: List[T]) rest(): std.core.Option[List[T]].
 
 /// Removes the first matching occurrence for each supplied value.
 ///

@@ -15,8 +15,8 @@ module std.js.Dom.ServiceWorkerContainerEventMap.
 
 pub opaque type ServiceWorkerContainerEventMap.
 
-pub (receiver: ServiceWorkerContainerEventMap) controllerchange(): std.js.Dom.Event.Event.
+pub (receiver: ServiceWorkerContainerEventMap) controllerchange(): std.js.Dom.Event.
 
-pub (receiver: ServiceWorkerContainerEventMap) message(): std.js.Dom.MessageEvent.MessageEvent.
+pub (receiver: ServiceWorkerContainerEventMap) message(): std.js.Dom.MessageEvent.
 
-pub (receiver: ServiceWorkerContainerEventMap) messageerror(): std.js.Dom.MessageEvent.MessageEvent.
+pub (receiver: ServiceWorkerContainerEventMap) messageerror(): std.js.Dom.MessageEvent.

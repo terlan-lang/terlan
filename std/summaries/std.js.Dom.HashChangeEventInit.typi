@@ -15,6 +15,6 @@ module std.js.Dom.HashChangeEventInit.
 
 pub opaque type HashChangeEventInit.
 
-pub (receiver: HashChangeEventInit) new_url(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: HashChangeEventInit) new_url(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: HashChangeEventInit) old_url(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: HashChangeEventInit) old_url(): std.core.Option[std.js.String.JsString].

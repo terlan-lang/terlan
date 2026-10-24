@@ -12,8 +12,7 @@
  */
 module std.js.Dom.IntersectionObserverEntryTest.
 
-import type std.js.Dom.DOMRectReadOnly.{DOMRectReadOnly}.
-import type std.js.Dom.IntersectionObserverEntry.
+import type std.js.Dom.{DOMRectReadOnly, IntersectionObserverEntry}.
 
 pub bounding_client_rect_typechecks(receiver: IntersectionObserverEntry): DOMRectReadOnly ->
     receiver.bounding_client_rect().
@@ -27,15 +26,11 @@ pub intersection_rect_typechecks(receiver: IntersectionObserverEntry): DOMRectRe
 pub is_intersecting_typechecks(receiver: IntersectionObserverEntry): Bool ->
     receiver.is_intersecting().
 
-pub root_bounds_typechecks(
-    receiver: IntersectionObserverEntry,
-): std.core.Option.Option[DOMRectReadOnly] ->
+pub root_bounds_typechecks(receiver: IntersectionObserverEntry): std.core.Option[DOMRectReadOnly] ->
     receiver.root_bounds().
 
-pub target__typechecks(receiver: IntersectionObserverEntry): std.js.Dom.Element.Element ->
+pub target__typechecks(receiver: IntersectionObserverEntry): std.js.Dom.Element ->
     receiver.target_().
 
-pub time_typechecks(
-    receiver: IntersectionObserverEntry,
-): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
+pub time_typechecks(receiver: IntersectionObserverEntry): std.js.Dom.DOMHighResTimeStamp ->
     receiver.time().

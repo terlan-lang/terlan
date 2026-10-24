@@ -14,4 +14,4 @@ module std.js.Dom.EventListenerOptions.
 
 pub opaque type EventListenerOptions.
 
-pub (receiver: EventListenerOptions) capture(): std.core.Option.Option[Bool].
+pub (receiver: EventListenerOptions) capture(): std.core.Option[Bool].

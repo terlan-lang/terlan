@@ -34,37 +34,37 @@ pub (receiver: ReadonlyArray[T]) to_locale_string(): std.js.String.JsString.
  * Combines two or more arrays.
  * @param items Additional items to add to the end of array1.
  */
-pub (receiver: ReadonlyArray[T]) concat(items: std.js.Array.Array[std.js.ConcatArray.ConcatArray[T]]): std.js.Array.Array[T].
+pub (receiver: ReadonlyArray[T]) concat(items: std.js.Array[std.js.ConcatArray[T]]): std.js.Array[T].
 
 /**
  * Combines two or more arrays.
  * @param items Additional items to add to the end of array1.
  */
-pub (receiver: ReadonlyArray[T]) concat_overload_2(items: std.js.Array.Array[std.js.ConcatArray.ConcatArray[T] | T]): std.js.Array.Array[T].
+pub (receiver: ReadonlyArray[T]) concat_overload_2(items: std.js.Array[std.js.ConcatArray[T] | T]): std.js.Array[T].
 
 /**
  * Adds all the elements of an array separated by the specified separator string.
  * @param separator A string used to separate one element of an array from the next in the resulting String. If omitted, the array elements are separated with a comma.
  */
-pub (receiver: ReadonlyArray[T]) join(separator: std.core.Option.Option[std.js.String.JsString]): std.js.String.JsString.
+pub (receiver: ReadonlyArray[T]) join(separator: std.core.Option[std.js.String.JsString]): std.js.String.JsString.
 
 /**
  * Returns a section of an array.
  * @param start The beginning of the specified portion of the array.
  * @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
  */
-pub (receiver: ReadonlyArray[T]) slice(start: std.core.Option.Option[std.js.Number.JsNumber], end: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Array.Array[T].
+pub (receiver: ReadonlyArray[T]) slice(start: std.core.Option[std.js.Number.JsNumber], end: std.core.Option[std.js.Number.JsNumber]): std.js.Array[T].
 
 /**
  * Returns the index of the first occurrence of a value in an array.
  * @param searchElement The value to locate in the array.
  * @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the search starts at index 0.
  */
-pub (receiver: ReadonlyArray[T]) index_of(search_element: T, from_index: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: ReadonlyArray[T]) index_of(search_element: T, from_index: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Returns the index of the last occurrence of a specified value in an array.
  * @param searchElement The value to locate in the array.
  * @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the search starts at the last index in the array.
  */
-pub (receiver: ReadonlyArray[T]) last_index_of(search_element: T, from_index: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: ReadonlyArray[T]) last_index_of(search_element: T, from_index: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.

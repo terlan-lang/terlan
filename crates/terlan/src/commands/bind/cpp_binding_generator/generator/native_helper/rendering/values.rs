@@ -20,7 +20,7 @@ pub(super) fn render_arg_pattern(
             "Float" => format!("Arg::Float({binding})"),
             "Bool" => format!("Arg::Bool({binding})"),
             "String" => format!("Arg::String({binding})"),
-            "std.vm.Bytes.Bytes" | "Bytes" => format!("Arg::Bytes({binding})"),
+            "std.vm.Bytes" | "std.vm.Bytes.Bytes" | "Bytes" => format!("Arg::Bytes({binding})"),
             "List[Int]" => format!("{binding} @ (Arg::Ints(_) | Arg::EmptyList)"),
             "List[Float]" => format!("{binding} @ (Arg::Floats(_) | Arg::EmptyList)"),
             _ if find_resource_list_type(manifest, &arg.ty).is_some() => {
@@ -109,7 +109,9 @@ pub(super) fn render_call_args(
             match arg.ty.as_str() {
                 "Int" | "Float" | "Bool" => Ok(vec![format!("*arg_{index}")]),
                 "String" => Ok(vec![format!("arg_{index}.as_str()")]),
-                "std.vm.Bytes.Bytes" | "Bytes" => Ok(vec![format!("arg_{index}.as_slice()")]),
+                "std.vm.Bytes" | "std.vm.Bytes.Bytes" | "Bytes" => {
+                    Ok(vec![format!("arg_{index}.as_slice()")])
+                }
                 "List[Int]" => Ok(vec![format!("arg_ints(arg_{index})")]),
                 "List[Float]" => Ok(vec![format!("arg_floats(arg_{index})")]),
                 _ => Err((format!(
@@ -295,7 +297,7 @@ pub(super) fn render_result(
             "string",
             "format!(\"ok_string {}\", STANDARD.encode(result.as_bytes()))",
         )),
-        "std.vm.Bytes.Bytes" | "Bytes" => Ok(render_owned_copy(
+        "std.vm.Bytes" | "std.vm.Bytes.Bytes" | "Bytes" => Ok(render_owned_copy(
             manifest,
             "byte buffer",
             "format!(\"ok_bytes {}\", STANDARD.encode(result.as_slice()))",

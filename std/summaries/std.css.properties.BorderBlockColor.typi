@@ -12,7 +12,7 @@ pub opaque type Component.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    border_block_color: std.core.Option.Option[Value]
+    border_block_color: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

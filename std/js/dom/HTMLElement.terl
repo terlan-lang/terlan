@@ -12,9 +12,8 @@
  */
 module std.js.Dom.HTMLElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -126,7 +125,7 @@ pub (receiver: HTMLElement) offset_left(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetParent)
  */
-pub (receiver: HTMLElement) offset_parent(): Option[std.js.Dom.Element.Element] ->
+pub (receiver: HTMLElement) offset_parent(): Option[std.js.Dom.Element] ->
     native.
 
 /**
@@ -198,7 +197,7 @@ pub (receiver: HTMLElement) writing_suggestions(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/attachInternals)
  */
-pub (receiver: HTMLElement) attach_internals(): std.js.Dom.ElementInternals.ElementInternals ->
+pub (receiver: HTMLElement) attach_internals(): std.js.Dom.ElementInternals ->
     native.
 
 /**
@@ -236,13 +235,13 @@ pub (receiver: HTMLElement) toggle_popover(options: Option[Bool]): Bool ->
 pub (receiver: HTMLElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: HTMLElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

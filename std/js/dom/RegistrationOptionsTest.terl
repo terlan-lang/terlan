@@ -14,5 +14,5 @@ module std.js.Dom.RegistrationOptionsTest.
 
 import type std.js.Dom.RegistrationOptions.
 
-pub scope_typechecks(receiver: RegistrationOptions): std.core.Option.Option[std.js.String.JsString] ->
+pub scope_typechecks(receiver: RegistrationOptions): std.core.Option[std.js.String.JsString] ->
     receiver.scope().

@@ -12,13 +12,11 @@
  */
 module std.js.Dom.RTCDataChannelTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.ArrayBuffer.{ArrayBuffer}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.RTCDataChannel.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, RTCDataChannel}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
+import type std.js.{ArrayBuffer}.
 
 pub buffered_amount_typechecks(receiver: RTCDataChannel): JsNumber ->
     receiver.buffered_amount().
@@ -53,7 +51,7 @@ pub close_typechecks(receiver: RTCDataChannel): Unit ->
 pub send_typechecks(receiver: RTCDataChannel, data: JsString): Unit ->
     receiver.send(data).
 
-pub send_overload_2_typechecks(receiver: RTCDataChannel, data: std.js.Dom.Blob.Blob): Unit ->
+pub send_overload_2_typechecks(receiver: RTCDataChannel, data: std.js.Dom.Blob): Unit ->
     receiver.send_overload_2(data).
 
 pub send_overload_3_typechecks(receiver: RTCDataChannel, data: ArrayBuffer): Unit ->
@@ -61,7 +59,7 @@ pub send_overload_3_typechecks(receiver: RTCDataChannel, data: ArrayBuffer): Uni
 
 pub send_overload_4_typechecks(
     receiver: RTCDataChannel,
-    data: std.js.ArrayBufferView.ArrayBufferView[ArrayBuffer],
+    data: std.js.ArrayBufferView[ArrayBuffer],
 ): Unit ->
     receiver.send_overload_4(data).
 
@@ -69,7 +67,7 @@ pub add_event_listener_typechecks(
     receiver: RTCDataChannel,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -77,6 +75,6 @@ pub remove_event_listener_typechecks(
     receiver: RTCDataChannel,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

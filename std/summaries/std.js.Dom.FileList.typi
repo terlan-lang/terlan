@@ -32,4 +32,4 @@ pub (receiver: FileList) length(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileList/item)
  */
-pub (receiver: FileList) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.File.File].
+pub (receiver: FileList) item(index: std.js.Number.JsNumber): std.core.Option[std.js.Dom.File].

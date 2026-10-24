@@ -12,22 +12,20 @@
  */
 module std.js.Float32ArrayConstructorTest.
 
-import type std.js.ArrayBuffer.{ArrayBuffer}.
-import type std.js.Float32Array.{Float32Array}.
-import type std.js.Float32ArrayConstructor.
 import type std.js.Number.{JsNumber}.
+import type std.js.{ArrayBuffer, Float32Array, Float32ArrayConstructor}.
 
 pub bytes_per_element_typechecks(receiver: Float32ArrayConstructor): JsNumber ->
     receiver.bytes_per_element().
 
 pub of_typechecks(
     receiver: Float32ArrayConstructor,
-    items: std.js.Array.Array[JsNumber],
+    items: std.js.Array[JsNumber],
 ): Float32Array[ArrayBuffer] ->
     receiver.of(items).
 
 pub from__typechecks(
     receiver: Float32ArrayConstructor,
-    array_like: std.js.ArrayLike.ArrayLike[JsNumber],
+    array_like: std.js.ArrayLike[JsNumber],
 ): Float32Array[ArrayBuffer] ->
     receiver.from_(array_like).

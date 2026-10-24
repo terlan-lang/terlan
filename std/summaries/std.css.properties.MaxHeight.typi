@@ -8,7 +8,7 @@ module std.css.properties.MaxHeight.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    max_height: std.core.Option.Option[Value]
+    max_height: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

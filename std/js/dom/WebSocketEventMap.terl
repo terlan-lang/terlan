@@ -12,17 +12,17 @@
  */
 module std.js.Dom.WebSocketEventMap.
 
-import type std.js.Dom.Event.{Event}.
+import type std.js.Dom.{Event}.
 
 pub opaque type WebSocketEventMap.
 
-pub (receiver: WebSocketEventMap) close(): std.js.Dom.CloseEvent.CloseEvent ->
+pub (receiver: WebSocketEventMap) close(): std.js.Dom.CloseEvent ->
     native.
 
 pub (receiver: WebSocketEventMap) error(): Event ->
     native.
 
-pub (receiver: WebSocketEventMap) message(): std.js.Dom.MessageEvent.MessageEvent ->
+pub (receiver: WebSocketEventMap) message(): std.js.Dom.MessageEvent ->
     native.
 
 pub (receiver: WebSocketEventMap) open(): Event ->

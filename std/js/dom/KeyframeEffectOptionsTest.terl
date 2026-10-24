@@ -16,5 +16,5 @@ import type std.js.Dom.KeyframeEffectOptions.
 
 pub pseudo_element_typechecks(
     receiver: KeyframeEffectOptions,
-): std.core.Option.Option[std.js.String.JsString] ->
+): std.core.Option[std.js.String.JsString] ->
     receiver.pseudo_element().

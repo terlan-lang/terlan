@@ -8,7 +8,7 @@ module std.css.properties.BorderInlineEndClip.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    border_inline_end_clip: std.core.Option.Option[Value]
+    border_inline_end_clip: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AnimationEventMap.
 
-import type std.js.Dom.AnimationPlaybackEvent.{AnimationPlaybackEvent}.
+import type std.js.Dom.{AnimationPlaybackEvent}.
 
 pub opaque type AnimationEventMap.
 

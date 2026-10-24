@@ -12,19 +12,14 @@
  */
 module std.js.Dom.SVGFEDiffuseLightingElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGAnimatedNumber.{SVGAnimatedNumber}.
-import type std.js.Dom.SVGFEDiffuseLightingElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, SVGAnimatedNumber, SVGFEDiffuseLightingElement}.
 import type std.js.String.{JsString}.
 
 pub diffuse_constant_typechecks(receiver: SVGFEDiffuseLightingElement): SVGAnimatedNumber ->
     receiver.diffuse_constant().
 
-pub in1_typechecks(
-    receiver: SVGFEDiffuseLightingElement,
-): std.js.Dom.SVGAnimatedString.SVGAnimatedString ->
+pub in1_typechecks(receiver: SVGFEDiffuseLightingElement): std.js.Dom.SVGAnimatedString ->
     receiver.in1().
 
 pub kernel_unit_length_x_typechecks(receiver: SVGFEDiffuseLightingElement): SVGAnimatedNumber ->
@@ -40,7 +35,7 @@ pub add_event_listener_typechecks(
     receiver: SVGFEDiffuseLightingElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -48,6 +43,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGFEDiffuseLightingElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

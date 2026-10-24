@@ -16,5 +16,5 @@ import type std.js.Dom.WebTransportSendOptions.
 
 pub send_order_typechecks(
     receiver: WebTransportSendOptions,
-): std.core.Option.Option[std.js.Number.JsNumber] ->
+): std.core.Option[std.js.Number.JsNumber] ->
     receiver.send_order().

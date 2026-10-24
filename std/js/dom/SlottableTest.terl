@@ -14,7 +14,5 @@ module std.js.Dom.SlottableTest.
 
 import type std.js.Dom.Slottable.
 
-pub assigned_slot_typechecks(
-    receiver: Slottable,
-): std.core.Option.Option[std.js.Dom.HTMLSlotElement.HTMLSlotElement] ->
+pub assigned_slot_typechecks(receiver: Slottable): std.core.Option[std.js.Dom.HTMLSlotElement] ->
     receiver.assigned_slot().

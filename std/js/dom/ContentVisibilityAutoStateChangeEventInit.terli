@@ -14,4 +14,4 @@ module std.js.Dom.ContentVisibilityAutoStateChangeEventInit.
 
 pub opaque type ContentVisibilityAutoStateChangeEventInit.
 
-pub (receiver: ContentVisibilityAutoStateChangeEventInit) skipped(): std.core.Option.Option[Bool].
+pub (receiver: ContentVisibilityAutoStateChangeEventInit) skipped(): std.core.Option[Bool].

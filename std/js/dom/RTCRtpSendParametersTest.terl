@@ -16,7 +16,7 @@ import type std.js.Dom.RTCRtpSendParameters.
 
 pub encodings_typechecks(
     receiver: RTCRtpSendParameters,
-): std.js.Array.Array[std.js.Dom.RTCRtpEncodingParameters.RTCRtpEncodingParameters] ->
+): std.js.Array[std.js.Dom.RTCRtpEncodingParameters] ->
     receiver.encodings().
 
 pub transaction_id_typechecks(receiver: RTCRtpSendParameters): std.js.String.JsString ->

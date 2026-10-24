@@ -25,7 +25,7 @@ pub number_of_items_typechecks(receiver: SVGStringList): JsNumber ->
 pub append_item_typechecks(receiver: SVGStringList, new_item: JsString): JsString ->
     receiver.append_item(new_item).
 
-pub clear_typechecks(receiver: SVGStringList): std.core.Unit.Unit ->
+pub clear_typechecks(receiver: SVGStringList): std.core.Unit ->
     receiver.clear().
 
 pub get_item_typechecks(receiver: SVGStringList, index: JsNumber): JsString ->

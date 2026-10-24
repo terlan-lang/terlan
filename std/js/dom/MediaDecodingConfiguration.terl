@@ -14,5 +14,5 @@ module std.js.Dom.MediaDecodingConfiguration.
 
 pub opaque type MediaDecodingConfiguration.
 
-pub (receiver: MediaDecodingConfiguration) key_system_configuration(): std.core.Option.Option[std.js.Dom.MediaCapabilitiesKeySystemConfiguration.MediaCapabilitiesKeySystemConfiguration] ->
+pub (receiver: MediaDecodingConfiguration) key_system_configuration(): std.core.Option[std.js.Dom.MediaCapabilitiesKeySystemConfiguration] ->
     native.

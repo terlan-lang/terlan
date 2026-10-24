@@ -25,7 +25,7 @@ pub opaque type IDBIndex.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/keyPath)
  */
-pub (receiver: IDBIndex) key_path(): std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString.
+pub (receiver: IDBIndex) key_path(): std.js.Array[std.js.String.JsString] | std.js.String.JsString.
 
 /**
  * The **`multiEntry`** read-only property of the behaves when the result of evaluating the index's key path yields an array.
@@ -46,7 +46,7 @@ pub (receiver: IDBIndex) name(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/objectStore)
  */
-pub (receiver: IDBIndex) object_store(): std.js.Dom.IDBObjectStore.IDBObjectStore.
+pub (receiver: IDBIndex) object_store(): std.js.Dom.IDBObjectStore.
 
 /**
  * The **`unique`** read-only property returns a boolean that states whether the index allows duplicate keys.
@@ -60,18 +60,18 @@ pub (receiver: IDBIndex) unique(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/count)
  */
-pub (receiver: IDBIndex) count(query: std.core.Option.Option[std.js.Dom.IDBKeyRange.IDBKeyRange | std.js.Dom.IDBValidKey.IDBValidKey]): std.js.Dom.IDBRequest.IDBRequest[std.js.Number.JsNumber].
+pub (receiver: IDBIndex) count(query: std.core.Option[std.js.Dom.IDBKeyRange | std.js.Dom.IDBValidKey]): std.js.Dom.IDBRequest[std.js.Number.JsNumber].
 
 /**
  * The **`getAllKeys()`** method of the IDBIndex interface asynchronously retrieves the primary keys of all objects inside the index, setting them as the `result` of the request object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/getAllKeys)
  */
-pub (receiver: IDBIndex) get_all_keys(query: std.core.Option.Option[std.core.Option.Option[std.js.Dom.IDBKeyRange.IDBKeyRange | std.js.Dom.IDBValidKey.IDBValidKey]], count: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Dom.IDBRequest.IDBRequest[std.js.Array.Array[std.js.Dom.IDBValidKey.IDBValidKey]].
+pub (receiver: IDBIndex) get_all_keys(query: std.core.Option[std.core.Option[std.js.Dom.IDBKeyRange | std.js.Dom.IDBValidKey]], count: std.core.Option[std.js.Number.JsNumber]): std.js.Dom.IDBRequest[std.js.Array[std.js.Dom.IDBValidKey]].
 
 /**
  * The **`getKey()`** method of the IDBIndex interface returns an IDBRequest object, and, in a separate thread, finds either the primary key that corresponds to the given key in this index or the first corresponding primary key, if `key` is set to an If a primary key is found, it is set as the `result` of the request object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/getKey)
  */
-pub (receiver: IDBIndex) get_key(query: std.js.Dom.IDBKeyRange.IDBKeyRange | std.js.Dom.IDBValidKey.IDBValidKey): std.js.Dom.IDBRequest.IDBRequest[std.core.Option.Option[std.js.Dom.IDBValidKey.IDBValidKey]].
+pub (receiver: IDBIndex) get_key(query: std.js.Dom.IDBKeyRange | std.js.Dom.IDBValidKey): std.js.Dom.IDBRequest[std.core.Option[std.js.Dom.IDBValidKey]].

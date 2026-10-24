@@ -12,7 +12,7 @@
  */
 module std.js.Dom.Attr.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -43,14 +43,14 @@ pub (receiver: Attr) name(): JsString.
  */
 pub (receiver: Attr) namespace_uri(): Option[JsString].
 
-pub (receiver: Attr) owner_document(): std.js.Dom.Document.Document.
+pub (receiver: Attr) owner_document(): std.js.Dom.Document.
 
 /**
  * The read-only **`ownerElement`** property of the Attr interface returns the Element the attribute belongs to.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/ownerElement)
  */
-pub (receiver: Attr) owner_element(): Option[std.js.Dom.Element.Element].
+pub (receiver: Attr) owner_element(): Option[std.js.Dom.Element].
 
 /**
  * The read-only **`prefix`** property of the Attr returns the namespace prefix of the attribute, or `null` if no prefix is specified.

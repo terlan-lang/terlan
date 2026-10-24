@@ -14,5 +14,5 @@ module std.js.Dom.BlobPropertyBagTest.
 
 import type std.js.Dom.BlobPropertyBag.
 
-pub type__typechecks(receiver: BlobPropertyBag): std.core.Option.Option[std.js.String.JsString] ->
+pub type__typechecks(receiver: BlobPropertyBag): std.core.Option[std.js.String.JsString] ->
     receiver.type_().

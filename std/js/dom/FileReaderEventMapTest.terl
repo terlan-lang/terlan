@@ -12,9 +12,7 @@
  */
 module std.js.Dom.FileReaderEventMapTest.
 
-import type std.js.Dom.FileReader.{FileReader}.
-import type std.js.Dom.FileReaderEventMap.
-import type std.js.Dom.ProgressEvent.{ProgressEvent}.
+import type std.js.Dom.{FileReader, FileReaderEventMap, ProgressEvent}.
 
 pub abort_typechecks(receiver: FileReaderEventMap): ProgressEvent[FileReader] ->
     receiver.abort().

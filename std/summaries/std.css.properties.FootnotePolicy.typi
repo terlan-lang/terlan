@@ -8,7 +8,7 @@ module std.css.properties.FootnotePolicy.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    footnote_policy: std.core.Option.Option[Value]
+    footnote_policy: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -22,5 +22,5 @@ pub length_typechecks(receiver: DOMStringList): JsNumber ->
 pub contains_typechecks(receiver: DOMStringList, string: JsString): Bool ->
     receiver.contains(string).
 
-pub item_typechecks(receiver: DOMStringList, index: JsNumber): std.core.Option.Option[JsString] ->
+pub item_typechecks(receiver: DOMStringList, index: JsNumber): std.core.Option[JsString] ->
     receiver.item(index).

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.ResponseInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.ResponseInit.
 
 pub status_typechecks(receiver: ResponseInit): Option[std.js.Number.JsNumber] ->

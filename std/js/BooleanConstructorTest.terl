@@ -14,5 +14,5 @@ module std.js.BooleanConstructorTest.
 
 import type std.js.BooleanConstructor.
 
-pub prototype_typechecks(receiver: BooleanConstructor): std.js.Boolean.Boolean ->
+pub prototype_typechecks(receiver: BooleanConstructor): std.js.Boolean ->
     receiver.prototype().

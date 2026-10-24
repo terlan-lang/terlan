@@ -12,7 +12,7 @@
  */
 module std.js.Dom.TextDecoderOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type TextDecoderOptions.
 

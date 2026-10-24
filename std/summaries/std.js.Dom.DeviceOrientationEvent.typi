@@ -33,18 +33,18 @@ pub (receiver: DeviceOrientationEvent) absolute(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceOrientationEvent/alpha)
  */
-pub (receiver: DeviceOrientationEvent) alpha(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DeviceOrientationEvent) alpha(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`beta`** read-only property of the DeviceOrientationEvent interface returns the rotation of the device around the X axis; that is, the number of degrees, ranged between -180 and 180, by which the device is tipped forward or backward.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceOrientationEvent/beta)
  */
-pub (receiver: DeviceOrientationEvent) beta(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DeviceOrientationEvent) beta(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`gamma`** read-only property of the DeviceOrientationEvent interface returns the rotation of the device around the Y axis; that is, the number of degrees, ranged between `-90` and `90`, by which the device is tilted left or right.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceOrientationEvent/gamma)
  */
-pub (receiver: DeviceOrientationEvent) gamma(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DeviceOrientationEvent) gamma(): std.core.Option[std.js.Number.JsNumber].

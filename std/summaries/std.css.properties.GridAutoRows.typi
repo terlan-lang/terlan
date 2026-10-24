@@ -8,7 +8,7 @@ module std.css.properties.GridAutoRows.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    grid_auto_rows: std.core.Option.Option[Value]
+    grid_auto_rows: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

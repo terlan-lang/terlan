@@ -263,7 +263,7 @@ pub (left: String) equal(right: String): Bool ->
  * `std.core.Ordering.Comparison` without changing either input.
  *
  * This ordinary Terlan implementation supplies
- * `std.core.Ordering.Ordering[String]` conformance. Rich Unicode collation is
+ * `std.core.Ordering[String]` conformance. Rich Unicode collation is
  * not part of this operation; it uses the language's string ordering.
  *
  * ```terlan

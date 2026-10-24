@@ -15,6 +15,6 @@ module std.js.Dom.Keyframe.
 
 pub opaque type Keyframe.
 
-pub (receiver: Keyframe) easing(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: Keyframe) easing(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: Keyframe) offset(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: Keyframe) offset(): std.core.Option[std.js.Number.JsNumber].

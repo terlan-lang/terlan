@@ -25,4 +25,4 @@ pub opaque type XPathExpression.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XPathExpression/evaluate)
  */
-pub (receiver: XPathExpression) evaluate(context_node: std.js.Dom.Node.Node, type_: std.core.Option.Option[std.js.Number.JsNumber], result: std.core.Option.Option[std.core.Option.Option[std.js.Dom.XPathResult.XPathResult]]): std.js.Dom.XPathResult.XPathResult.
+pub (receiver: XPathExpression) evaluate(context_node: std.js.Dom.Node, type_: std.core.Option[std.js.Number.JsNumber], result: std.core.Option[std.core.Option[std.js.Dom.XPathResult]]): std.js.Dom.XPathResult.

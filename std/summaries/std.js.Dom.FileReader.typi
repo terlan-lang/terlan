@@ -25,28 +25,28 @@ pub opaque type FileReader.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/error)
  */
-pub (receiver: FileReader) error(): std.core.Option.Option[std.js.Dom.DOMException.DOMException].
+pub (receiver: FileReader) error(): std.core.Option[std.js.Dom.DOMException].
 
 /**
  * The **`result`** read-only property of the FileReader interface returns the file's contents.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/result)
  */
-pub (receiver: FileReader) result(): std.core.Option.Option[std.js.ArrayBuffer.ArrayBuffer | std.js.String.JsString].
+pub (receiver: FileReader) result(): std.core.Option[std.js.ArrayBuffer | std.js.String.JsString].
 
 /**
  * The **`abort()`** method of the FileReader interface aborts the read operation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/abort)
  */
-pub (receiver: FileReader) abort(): std.core.Unit.Unit.
+pub (receiver: FileReader) abort(): std.core.Unit.
 
 /**
  * The **`readAsArrayBuffer()`** method of the FileReader interface is used to start reading the contents of a specified Blob or File.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsArrayBuffer)
  */
-pub (receiver: FileReader) read_as_array_buffer(blob: std.js.Dom.Blob.Blob): std.core.Unit.Unit.
+pub (receiver: FileReader) read_as_array_buffer(blob: std.js.Dom.Blob): std.core.Unit.
 
 /**
  * The **`readAsBinaryString()`** method of the FileReader interface is used to start reading the contents of the specified Blob or File.
@@ -54,22 +54,22 @@ pub (receiver: FileReader) read_as_array_buffer(blob: std.js.Dom.Blob.Blob): std
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsBinaryString)
  */
-pub (receiver: FileReader) read_as_binary_string(blob: std.js.Dom.Blob.Blob): std.core.Unit.Unit.
+pub (receiver: FileReader) read_as_binary_string(blob: std.js.Dom.Blob): std.core.Unit.
 
 /**
  * The **`readAsDataURL()`** method of the FileReader interface is used to read the contents of the specified file's data as a base64 encoded string.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsDataURL)
  */
-pub (receiver: FileReader) read_as_data_url(blob: std.js.Dom.Blob.Blob): std.core.Unit.Unit.
+pub (receiver: FileReader) read_as_data_url(blob: std.js.Dom.Blob): std.core.Unit.
 
 /**
  * The **`readAsText()`** method of the FileReader interface is used to read the contents of the specified Blob or File.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/readAsText)
  */
-pub (receiver: FileReader) read_as_text(blob: std.js.Dom.Blob.Blob, encoding: std.core.Option.Option[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: FileReader) read_as_text(blob: std.js.Dom.Blob, encoding: std.core.Option[std.js.String.JsString]): std.core.Unit.
 
-pub (receiver: FileReader) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: FileReader) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: FileReader) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: FileReader) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

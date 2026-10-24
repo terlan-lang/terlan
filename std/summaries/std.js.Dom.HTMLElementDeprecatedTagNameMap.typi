@@ -15,60 +15,60 @@ module std.js.Dom.HTMLElementDeprecatedTagNameMap.
 
 pub opaque type HTMLElementDeprecatedTagNameMap.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) acronym(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) acronym(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) applet(): std.js.Dom.HTMLUnknownElement.HTMLUnknownElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) applet(): std.js.Dom.HTMLUnknownElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) basefont(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) basefont(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) bgsound(): std.js.Dom.HTMLUnknownElement.HTMLUnknownElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) bgsound(): std.js.Dom.HTMLUnknownElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) big(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) big(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) blink(): std.js.Dom.HTMLUnknownElement.HTMLUnknownElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) blink(): std.js.Dom.HTMLUnknownElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) center(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) center(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) dir(): std.js.Dom.HTMLDirectoryElement.HTMLDirectoryElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) dir(): std.js.Dom.HTMLDirectoryElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) font(): std.js.Dom.HTMLFontElement.HTMLFontElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) font(): std.js.Dom.HTMLFontElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) frame(): std.js.Dom.HTMLFrameElement.HTMLFrameElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) frame(): std.js.Dom.HTMLFrameElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) frameset(): std.js.Dom.HTMLFrameSetElement.HTMLFrameSetElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) frameset(): std.js.Dom.HTMLFrameSetElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) isindex(): std.js.Dom.HTMLUnknownElement.HTMLUnknownElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) isindex(): std.js.Dom.HTMLUnknownElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) keygen(): std.js.Dom.HTMLUnknownElement.HTMLUnknownElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) keygen(): std.js.Dom.HTMLUnknownElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) listing(): std.js.Dom.HTMLPreElement.HTMLPreElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) listing(): std.js.Dom.HTMLPreElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) marquee(): std.js.Dom.HTMLMarqueeElement.HTMLMarqueeElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) marquee(): std.js.Dom.HTMLMarqueeElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) menuitem(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) menuitem(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) multicol(): std.js.Dom.HTMLUnknownElement.HTMLUnknownElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) multicol(): std.js.Dom.HTMLUnknownElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) nextid(): std.js.Dom.HTMLUnknownElement.HTMLUnknownElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) nextid(): std.js.Dom.HTMLUnknownElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) nobr(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) nobr(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) noembed(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) noembed(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) noframes(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) noframes(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) param(): std.js.Dom.HTMLParamElement.HTMLParamElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) param(): std.js.Dom.HTMLParamElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) plaintext(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) plaintext(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) rb(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) rb(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) rtc(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) rtc(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) spacer(): std.js.Dom.HTMLUnknownElement.HTMLUnknownElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) spacer(): std.js.Dom.HTMLUnknownElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) strike(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) strike(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) tt(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) tt(): std.js.Dom.HTMLElement.
 
-pub (receiver: HTMLElementDeprecatedTagNameMap) xmp(): std.js.Dom.HTMLPreElement.HTMLPreElement.
+pub (receiver: HTMLElementDeprecatedTagNameMap) xmp(): std.js.Dom.HTMLPreElement.

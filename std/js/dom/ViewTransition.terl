@@ -12,8 +12,8 @@
  */
 module std.js.Dom.ViewTransition.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Unit}.
+import type std.js.{Promise}.
 
 /**
  * The **`ViewTransition`** interface of the View Transition API represents an active view transition, and provides functionality to react to the transition reaching different states (e.g., ready to run the animation, or animation finished) or skip the transition altogether.
@@ -38,7 +38,7 @@ pub (receiver: ViewTransition) finished(): Promise[Unit] ->
 pub (receiver: ViewTransition) ready(): Promise[Unit] ->
     native.
 
-pub (receiver: ViewTransition) types(): std.js.Dom.ViewTransitionTypeSet.ViewTransitionTypeSet ->
+pub (receiver: ViewTransition) types(): std.js.Dom.ViewTransitionTypeSet ->
     native.
 
 /**

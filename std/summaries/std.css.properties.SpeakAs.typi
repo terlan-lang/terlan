@@ -8,7 +8,7 @@ module std.css.properties.SpeakAs.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    speak_as: std.core.Option.Option[Value]
+    speak_as: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

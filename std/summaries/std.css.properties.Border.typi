@@ -16,7 +16,7 @@ pub opaque type LineWidthPart.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    border: std.core.Option.Option[Value]
+    border: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

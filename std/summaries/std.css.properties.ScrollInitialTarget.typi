@@ -8,7 +8,7 @@ module std.css.properties.ScrollInitialTarget.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    scroll_initial_target: std.core.Option.Option[Value]
+    scroll_initial_target: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

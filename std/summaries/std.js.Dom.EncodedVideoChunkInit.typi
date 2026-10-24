@@ -15,8 +15,8 @@ module std.js.Dom.EncodedVideoChunkInit.
 
 pub opaque type EncodedVideoChunkInit.
 
-pub (receiver: EncodedVideoChunkInit) data(): std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource.
+pub (receiver: EncodedVideoChunkInit) data(): std.js.Dom.AllowSharedBufferSource.
 
-pub (receiver: EncodedVideoChunkInit) duration(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: EncodedVideoChunkInit) duration(): std.core.Option[std.js.Number.JsNumber].
 
 pub (receiver: EncodedVideoChunkInit) timestamp(): std.js.Number.JsNumber.

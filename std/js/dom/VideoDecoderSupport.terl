@@ -12,11 +12,11 @@
  */
 module std.js.Dom.VideoDecoderSupport.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type VideoDecoderSupport.
 
-pub (receiver: VideoDecoderSupport) config(): Option[std.js.Dom.VideoDecoderConfig.VideoDecoderConfig] ->
+pub (receiver: VideoDecoderSupport) config(): Option[std.js.Dom.VideoDecoderConfig] ->
     native.
 
 pub (receiver: VideoDecoderSupport) supported(): Option[Bool] ->

@@ -49,7 +49,7 @@ pub (receiver: HTMLTableSectionElement) ch_off(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableSectionElement/rows)
  */
-pub (receiver: HTMLTableSectionElement) rows(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLTableRowElement.HTMLTableRowElement].
+pub (receiver: HTMLTableSectionElement) rows(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLTableRowElement].
 
 /**
  * The **`vAlign`** property of the HTMLTableSectionElement interface is a string indicating how to vertically align text in a thead, tbody or tfoot table section.
@@ -64,15 +64,15 @@ pub (receiver: HTMLTableSectionElement) v_align(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableSectionElement/deleteRow)
  */
-pub (receiver: HTMLTableSectionElement) delete_row(index: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: HTMLTableSectionElement) delete_row(index: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`insertRow()`** method of the HTMLTableSectionElement interface inserts a new row (tr) in the given table sectioning element (thead, tfoot, or ```js-nolint insertRow() insertRow(index) ``` - `index` [MISSING: optional_inline] - : The row index of the new row.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableSectionElement/insertRow)
  */
-pub (receiver: HTMLTableSectionElement) insert_row(index: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Dom.HTMLTableRowElement.HTMLTableRowElement.
+pub (receiver: HTMLTableSectionElement) insert_row(index: std.core.Option[std.js.Number.JsNumber]): std.js.Dom.HTMLTableRowElement.
 
-pub (receiver: HTMLTableSectionElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLTableSectionElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLTableSectionElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLTableSectionElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

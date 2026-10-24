@@ -8,7 +8,7 @@ module std.css.properties.BorderImageSlice.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    border_image_slice: std.core.Option.Option[Value]
+    border_image_slice: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

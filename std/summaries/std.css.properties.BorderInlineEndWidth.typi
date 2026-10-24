@@ -8,7 +8,7 @@ module std.css.properties.BorderInlineEndWidth.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    border_inline_end_width: std.core.Option.Option[Value]
+    border_inline_end_width: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

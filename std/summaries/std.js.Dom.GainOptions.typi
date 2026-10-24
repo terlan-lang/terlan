@@ -15,4 +15,4 @@ module std.js.Dom.GainOptions.
 
 pub opaque type GainOptions.
 
-pub (receiver: GainOptions) gain(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: GainOptions) gain(): std.core.Option[std.js.Number.JsNumber].

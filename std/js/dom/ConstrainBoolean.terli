@@ -12,4 +12,4 @@
  */
 module std.js.Dom.ConstrainBoolean.
 
-pub type ConstrainBoolean = Bool | std.js.Dom.ConstrainBooleanParameters.ConstrainBooleanParameters.
+pub type ConstrainBoolean = Bool | std.js.Dom.ConstrainBooleanParameters.

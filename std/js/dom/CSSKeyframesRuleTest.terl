@@ -12,11 +12,11 @@
  */
 module std.js.Dom.CSSKeyframesRuleTest.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Dom.CSSKeyframesRule.
 import type std.js.String.{JsString}.
 
-pub css_rules_typechecks(receiver: CSSKeyframesRule): std.js.Dom.CSSRuleList.CSSRuleList ->
+pub css_rules_typechecks(receiver: CSSKeyframesRule): std.js.Dom.CSSRuleList ->
     receiver.css_rules().
 
 pub length_typechecks(receiver: CSSKeyframesRule): std.js.Number.JsNumber ->
@@ -34,5 +34,5 @@ pub delete_rule_typechecks(receiver: CSSKeyframesRule, select: JsString): Unit -
 pub find_rule_typechecks(
     receiver: CSSKeyframesRule,
     select: JsString,
-): std.core.Option.Option[std.js.Dom.CSSKeyframeRule.CSSKeyframeRule] ->
+): std.core.Option[std.js.Dom.CSSKeyframeRule] ->
     receiver.find_rule(select).

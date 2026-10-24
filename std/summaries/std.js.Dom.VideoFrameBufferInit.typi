@@ -19,16 +19,16 @@ pub (receiver: VideoFrameBufferInit) coded_height(): std.js.Number.JsNumber.
 
 pub (receiver: VideoFrameBufferInit) coded_width(): std.js.Number.JsNumber.
 
-pub (receiver: VideoFrameBufferInit) color_space(): std.core.Option.Option[std.js.Dom.VideoColorSpaceInit.VideoColorSpaceInit].
+pub (receiver: VideoFrameBufferInit) color_space(): std.core.Option[std.js.Dom.VideoColorSpaceInit].
 
-pub (receiver: VideoFrameBufferInit) display_height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoFrameBufferInit) display_height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoFrameBufferInit) display_width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoFrameBufferInit) display_width(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoFrameBufferInit) duration(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoFrameBufferInit) duration(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoFrameBufferInit) layout(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]].
+pub (receiver: VideoFrameBufferInit) layout(): std.core.Option[std.js.Array[std.js.Dom.PlaneLayout]].
 
 pub (receiver: VideoFrameBufferInit) timestamp(): std.js.Number.JsNumber.
 
-pub (receiver: VideoFrameBufferInit) visible_rect(): std.core.Option.Option[std.js.Dom.DOMRectInit.DOMRectInit].
+pub (receiver: VideoFrameBufferInit) visible_rect(): std.core.Option[std.js.Dom.DOMRectInit].

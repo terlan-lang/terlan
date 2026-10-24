@@ -32,35 +32,35 @@ pub (receiver: SVGSVGElement) current_scale(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/currentTranslate)
  */
-pub (receiver: SVGSVGElement) current_translate(): std.js.Dom.DOMPointReadOnly.DOMPointReadOnly.
+pub (receiver: SVGSVGElement) current_translate(): std.js.Dom.DOMPointReadOnly.
 
 /**
  * The **`height`** read-only property of the SVGSVGElement interface describes the vertical size of element as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/height)
  */
-pub (receiver: SVGSVGElement) height(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGSVGElement) height(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`width`** read-only property of the SVGSVGElement interface describes the horizontal size of element as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/width)
  */
-pub (receiver: SVGSVGElement) width(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGSVGElement) width(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`x`** read-only property of the SVGSVGElement interface describes the horizontal coordinate of the position of that SVG as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/x)
  */
-pub (receiver: SVGSVGElement) x(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGSVGElement) x(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`y`** read-only property of the SVGSVGElement interface describes the vertical coordinate of the position of that SVG as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/y)
  */
-pub (receiver: SVGSVGElement) y(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGSVGElement) y(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The `animationsPaused()` method of the SVGSVGElement interface checks whether the animations in the SVG document fragment are currently paused.
@@ -74,82 +74,82 @@ pub (receiver: SVGSVGElement) animations_paused(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/checkEnclosure)
  */
-pub (receiver: SVGSVGElement) check_enclosure(element: std.js.Dom.SVGElement.SVGElement, rect: std.js.Dom.DOMRectReadOnly.DOMRectReadOnly): Bool.
+pub (receiver: SVGSVGElement) check_enclosure(element: std.js.Dom.SVGElement, rect: std.js.Dom.DOMRectReadOnly): Bool.
 
 /**
  * The `checkIntersection()` method of the SVGSVGElement interface checks if the rendered content of the given element intersects the supplied rectangle.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/checkIntersection)
  */
-pub (receiver: SVGSVGElement) check_intersection(element: std.js.Dom.SVGElement.SVGElement, rect: std.js.Dom.DOMRectReadOnly.DOMRectReadOnly): Bool.
+pub (receiver: SVGSVGElement) check_intersection(element: std.js.Dom.SVGElement, rect: std.js.Dom.DOMRectReadOnly): Bool.
 
 /**
  * The `createSVGAngle()` method of the SVGSVGElement interface creates an SVGAngle object outside of any document trees.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/createSVGAngle)
  */
-pub (receiver: SVGSVGElement) create_svg_angle(): std.js.Dom.SVGAngle.SVGAngle.
+pub (receiver: SVGSVGElement) create_svg_angle(): std.js.Dom.SVGAngle.
 
 /**
  * The `createSVGLength()` method of the SVGSVGElement interface creates an SVGLength object outside of any document trees.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/createSVGLength)
  */
-pub (receiver: SVGSVGElement) create_svg_length(): std.js.Dom.SVGLength.SVGLength.
+pub (receiver: SVGSVGElement) create_svg_length(): std.js.Dom.SVGLength.
 
 /**
  * The `createSVGMatrix()` method of the SVGSVGElement interface creates a DOMMatrix object outside of any document trees.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/createSVGMatrix)
  */
-pub (receiver: SVGSVGElement) create_svg_matrix(): std.js.Dom.DOMMatrix.DOMMatrix.
+pub (receiver: SVGSVGElement) create_svg_matrix(): std.js.Dom.DOMMatrix.
 
 /**
  * The `createSVGNumber()` method of the SVGSVGElement interface creates an SVGNumber object outside of any document trees.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/createSVGNumber)
  */
-pub (receiver: SVGSVGElement) create_svg_number(): std.js.Dom.SVGNumber.SVGNumber.
+pub (receiver: SVGSVGElement) create_svg_number(): std.js.Dom.SVGNumber.
 
 /**
  * The `createSVGPoint()` method of the SVGSVGElement interface creates a DOMPoint object outside of any document trees.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/createSVGPoint)
  */
-pub (receiver: SVGSVGElement) create_svg_point(): std.js.Dom.DOMPoint.DOMPoint.
+pub (receiver: SVGSVGElement) create_svg_point(): std.js.Dom.DOMPoint.
 
 /**
  * The `createSVGRect()` method of the SVGSVGElement interface creates an DOMRect object outside of any document trees.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/createSVGRect)
  */
-pub (receiver: SVGSVGElement) create_svg_rect(): std.js.Dom.DOMRect.DOMRect.
+pub (receiver: SVGSVGElement) create_svg_rect(): std.js.Dom.DOMRect.
 
 /**
  * The `createSVGTransform()` method of the SVGSVGElement interface creates an SVGTransform object outside of any document trees.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/createSVGTransform)
  */
-pub (receiver: SVGSVGElement) create_svg_transform(): std.js.Dom.SVGTransform.SVGTransform.
+pub (receiver: SVGSVGElement) create_svg_transform(): std.js.Dom.SVGTransform.
 
 /**
  * The `createSVGTransformFromMatrix()` method of the SVGSVGElement interface creates an SVGTransform object outside of any document trees, based on the given DOMMatrix object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/createSVGTransformFromMatrix)
  */
-pub (receiver: SVGSVGElement) create_svg_transform_from_matrix(matrix: std.core.Option.Option[std.js.Dom.DOMMatrix2DInit.DOMMatrix2DInit]): std.js.Dom.SVGTransform.SVGTransform.
+pub (receiver: SVGSVGElement) create_svg_transform_from_matrix(matrix: std.core.Option[std.js.Dom.DOMMatrix2DInit]): std.js.Dom.SVGTransform.
 
 /**
  * The `deselectAll()` method of the SVGSVGElement interface unselects any selected objects, including any selections of text strings and type-in bars.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/deselectAll)
  */
-pub (receiver: SVGSVGElement) deselect_all(): std.core.Unit.Unit.
+pub (receiver: SVGSVGElement) deselect_all(): std.core.Unit.
 
 /**
  * @deprecated
  */
-pub (receiver: SVGSVGElement) force_redraw(): std.core.Unit.Unit.
+pub (receiver: SVGSVGElement) force_redraw(): std.core.Unit.
 
 /**
  * The `getCurrentTime()` method of the SVGSVGElement interface returns the current time in seconds relative to the start time for the current SVG document fragment.
@@ -163,25 +163,25 @@ pub (receiver: SVGSVGElement) get_current_time(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/getElementById)
  */
-pub (receiver: SVGSVGElement) get_element_by_id(element_id: std.js.String.JsString): std.js.Dom.Element.Element.
+pub (receiver: SVGSVGElement) get_element_by_id(element_id: std.js.String.JsString): std.js.Dom.Element.
 
-pub (receiver: SVGSVGElement) get_enclosure_list(rect: std.js.Dom.DOMRectReadOnly.DOMRectReadOnly, reference_element: std.core.Option.Option[std.js.Dom.SVGElement.SVGElement]): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.SVGCircleElement.SVGCircleElement | std.js.Dom.SVGEllipseElement.SVGEllipseElement | std.js.Dom.SVGImageElement.SVGImageElement | std.js.Dom.SVGLineElement.SVGLineElement | std.js.Dom.SVGPathElement.SVGPathElement | std.js.Dom.SVGPolygonElement.SVGPolygonElement | std.js.Dom.SVGPolylineElement.SVGPolylineElement | std.js.Dom.SVGRectElement.SVGRectElement | std.js.Dom.SVGTextElement.SVGTextElement | std.js.Dom.SVGUseElement.SVGUseElement].
+pub (receiver: SVGSVGElement) get_enclosure_list(rect: std.js.Dom.DOMRectReadOnly, reference_element: std.core.Option[std.js.Dom.SVGElement]): std.js.Dom.NodeListOf[std.js.Dom.SVGCircleElement | std.js.Dom.SVGEllipseElement | std.js.Dom.SVGImageElement | std.js.Dom.SVGLineElement | std.js.Dom.SVGPathElement | std.js.Dom.SVGPolygonElement | std.js.Dom.SVGPolylineElement | std.js.Dom.SVGRectElement | std.js.Dom.SVGTextElement | std.js.Dom.SVGUseElement].
 
-pub (receiver: SVGSVGElement) get_intersection_list(rect: std.js.Dom.DOMRectReadOnly.DOMRectReadOnly, reference_element: std.core.Option.Option[std.js.Dom.SVGElement.SVGElement]): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.SVGCircleElement.SVGCircleElement | std.js.Dom.SVGEllipseElement.SVGEllipseElement | std.js.Dom.SVGImageElement.SVGImageElement | std.js.Dom.SVGLineElement.SVGLineElement | std.js.Dom.SVGPathElement.SVGPathElement | std.js.Dom.SVGPolygonElement.SVGPolygonElement | std.js.Dom.SVGPolylineElement.SVGPolylineElement | std.js.Dom.SVGRectElement.SVGRectElement | std.js.Dom.SVGTextElement.SVGTextElement | std.js.Dom.SVGUseElement.SVGUseElement].
+pub (receiver: SVGSVGElement) get_intersection_list(rect: std.js.Dom.DOMRectReadOnly, reference_element: std.core.Option[std.js.Dom.SVGElement]): std.js.Dom.NodeListOf[std.js.Dom.SVGCircleElement | std.js.Dom.SVGEllipseElement | std.js.Dom.SVGImageElement | std.js.Dom.SVGLineElement | std.js.Dom.SVGPathElement | std.js.Dom.SVGPolygonElement | std.js.Dom.SVGPolylineElement | std.js.Dom.SVGRectElement | std.js.Dom.SVGTextElement | std.js.Dom.SVGUseElement].
 
 /**
  * The `pauseAnimations()` method of the SVGSVGElement interface suspends (i.e., pauses) all currently running animations that are defined within the SVG document fragment corresponding to this svg element, causing the animation clock corresponding to this document fragment to stand still until it is unpaused.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/pauseAnimations)
  */
-pub (receiver: SVGSVGElement) pause_animations(): std.core.Unit.Unit.
+pub (receiver: SVGSVGElement) pause_animations(): std.core.Unit.
 
 /**
  * The `setCurrentTime()` method of the SVGSVGElement interface adjusts the clock for this SVG document fragment, establishing a new current time.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/setCurrentTime)
  */
-pub (receiver: SVGSVGElement) set_current_time(seconds: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGSVGElement) set_current_time(seconds: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * @deprecated
@@ -193,18 +193,18 @@ pub (receiver: SVGSVGElement) suspend_redraw(max_wait_milliseconds: std.js.Numbe
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGSVGElement/unpauseAnimations)
  */
-pub (receiver: SVGSVGElement) unpause_animations(): std.core.Unit.Unit.
+pub (receiver: SVGSVGElement) unpause_animations(): std.core.Unit.
 
 /**
  * @deprecated
  */
-pub (receiver: SVGSVGElement) unsuspend_redraw(suspend_handle_id: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGSVGElement) unsuspend_redraw(suspend_handle_id: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * @deprecated
  */
-pub (receiver: SVGSVGElement) unsuspend_redraw_all(): std.core.Unit.Unit.
+pub (receiver: SVGSVGElement) unsuspend_redraw_all(): std.core.Unit.
 
-pub (receiver: SVGSVGElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SVGSVGElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SVGSVGElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SVGSVGElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

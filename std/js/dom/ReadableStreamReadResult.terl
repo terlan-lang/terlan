@@ -13,5 +13,5 @@
 module std.js.Dom.ReadableStreamReadResult.
 
 pub type ReadableStreamReadResult[T] =
-      std.js.Dom.ReadableStreamReadDoneResult.ReadableStreamReadDoneResult[T]
-    | std.js.Dom.ReadableStreamReadValueResult.ReadableStreamReadValueResult[T].
+      std.js.Dom.ReadableStreamReadDoneResult[T]
+    | std.js.Dom.ReadableStreamReadValueResult[T].

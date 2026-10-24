@@ -12,10 +12,8 @@
  */
 module std.js.Dom.SVGTextPathElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGAnimatedEnumeration.{SVGAnimatedEnumeration}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, SVGAnimatedEnumeration}.
 import type std.js.String.{JsString}.
 
 /**
@@ -44,16 +42,16 @@ pub (receiver: SVGTextPathElement) spacing(): SVGAnimatedEnumeration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTextPathElement/startOffset)
  */
-pub (receiver: SVGTextPathElement) start_offset(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGTextPathElement) start_offset(): std.js.Dom.SVGAnimatedLength.
 
 pub (receiver: SVGTextPathElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: SVGTextPathElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

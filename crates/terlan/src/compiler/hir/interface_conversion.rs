@@ -239,7 +239,7 @@ pub(super) fn syntax_module_output_to_prepared_interface(
                         continue;
                     };
                     let value_text = interface_render::render_constant_expr(&constant.value);
-                    let name = format!("{owner}.{}", constant.name);
+                    let name = format!("{}.{}", normalize_type_text(&owner), constant.name);
                     associated_constants.insert(
                         name.clone(),
                         ConstantSignature {

@@ -12,8 +12,7 @@
  */
 module std.js.Dom.TouchEventTest.
 
-import type std.js.Dom.TouchEvent.
-import type std.js.Dom.TouchList.{TouchList}.
+import type std.js.Dom.{TouchEvent, TouchList}.
 
 pub alt_key_typechecks(receiver: TouchEvent): Bool ->
     receiver.alt_key().

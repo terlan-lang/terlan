@@ -12,9 +12,8 @@
  */
 module std.js.Dom.IDBTransaction.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -29,7 +28,7 @@ pub opaque type IDBTransaction.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/db)
  */
-pub (receiver: IDBTransaction) db(): std.js.Dom.IDBDatabase.IDBDatabase ->
+pub (receiver: IDBTransaction) db(): std.js.Dom.IDBDatabase ->
     native.
 
 /**
@@ -37,7 +36,7 @@ pub (receiver: IDBTransaction) db(): std.js.Dom.IDBDatabase.IDBDatabase ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/error)
  */
-pub (receiver: IDBTransaction) error(): Option[std.js.Dom.DOMException.DOMException] ->
+pub (receiver: IDBTransaction) error(): Option[std.js.Dom.DOMException] ->
     native.
 
 /**
@@ -45,7 +44,7 @@ pub (receiver: IDBTransaction) error(): Option[std.js.Dom.DOMException.DOMExcept
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/objectStoreNames)
  */
-pub (receiver: IDBTransaction) object_store_names(): std.js.Dom.DOMStringList.DOMStringList ->
+pub (receiver: IDBTransaction) object_store_names(): std.js.Dom.DOMStringList ->
     native.
 
 /**
@@ -69,19 +68,19 @@ pub (receiver: IDBTransaction) commit(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBTransaction/objectStore)
  */
-pub (receiver: IDBTransaction) object_store(name: JsString): std.js.Dom.IDBObjectStore.IDBObjectStore ->
+pub (receiver: IDBTransaction) object_store(name: JsString): std.js.Dom.IDBObjectStore ->
     native.
 
 pub (receiver: IDBTransaction) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: IDBTransaction) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

@@ -14,5 +14,5 @@ module std.js.Dom.EcKeyGenParamsTest.
 
 import type std.js.Dom.EcKeyGenParams.
 
-pub named_curve_typechecks(receiver: EcKeyGenParams): std.js.Dom.NamedCurve.NamedCurve ->
+pub named_curve_typechecks(receiver: EcKeyGenParams): std.js.Dom.NamedCurve ->
     receiver.named_curve().

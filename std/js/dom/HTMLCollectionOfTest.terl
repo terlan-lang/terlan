@@ -12,7 +12,7 @@
  */
 module std.js.Dom.HTMLCollectionOfTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.HTMLCollectionOf.
 
 pub item_typechecks(receiver: HTMLCollectionOf[T], index: std.js.Number.JsNumber): Option[T] ->

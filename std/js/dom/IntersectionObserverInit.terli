@@ -12,13 +12,13 @@
  */
 module std.js.Dom.IntersectionObserverInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type IntersectionObserverInit.
 
-pub (receiver: IntersectionObserverInit) root(): Option[std.js.Dom.Document.Document | std.js.Dom.Element.Element].
+pub (receiver: IntersectionObserverInit) root(): Option[std.js.Dom.Document | std.js.Dom.Element].
 
 pub (receiver: IntersectionObserverInit) root_margin(): Option[std.js.String.JsString].
 
-pub (receiver: IntersectionObserverInit) threshold(): Option[std.js.Array.Array[JsNumber] | JsNumber].
+pub (receiver: IntersectionObserverInit) threshold(): Option[std.js.Array[JsNumber] | JsNumber].

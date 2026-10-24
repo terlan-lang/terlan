@@ -15,106 +15,106 @@ module std.js.Dom.RTCInboundRtpStreamStats.
 
 pub opaque type RTCInboundRtpStreamStats.
 
-pub (receiver: RTCInboundRtpStreamStats) audio_level(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) audio_level(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) bytes_received(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) bytes_received(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) concealed_samples(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) concealed_samples(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) concealment_events(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) concealment_events(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) decoder_implementation(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCInboundRtpStreamStats) decoder_implementation(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCInboundRtpStreamStats) estimated_playout_timestamp(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp].
+pub (receiver: RTCInboundRtpStreamStats) estimated_playout_timestamp(): std.core.Option[std.js.Dom.DOMHighResTimeStamp].
 
-pub (receiver: RTCInboundRtpStreamStats) fec_bytes_received(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) fec_bytes_received(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) fec_packets_discarded(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) fec_packets_discarded(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) fec_packets_received(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) fec_packets_received(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) fec_ssrc(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) fec_ssrc(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) fir_count(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) fir_count(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) frame_height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) frame_height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) frame_width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) frame_width(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) frames_assembled_from_multiple_packets(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) frames_assembled_from_multiple_packets(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) frames_decoded(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) frames_decoded(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) frames_dropped(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) frames_dropped(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) frames_per_second(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) frames_per_second(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) frames_received(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) frames_received(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) frames_rendered(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) frames_rendered(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) freeze_count(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) freeze_count(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) header_bytes_received(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) header_bytes_received(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) inserted_samples_for_deceleration(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) inserted_samples_for_deceleration(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_delay(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_delay(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_emitted_count(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_emitted_count(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_minimum_delay(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_minimum_delay(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_target_delay(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) jitter_buffer_target_delay(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) key_frames_decoded(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) key_frames_decoded(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) last_packet_received_timestamp(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp].
+pub (receiver: RTCInboundRtpStreamStats) last_packet_received_timestamp(): std.core.Option[std.js.Dom.DOMHighResTimeStamp].
 
-pub (receiver: RTCInboundRtpStreamStats) mid(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCInboundRtpStreamStats) mid(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCInboundRtpStreamStats) nack_count(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) nack_count(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) packets_discarded(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) packets_discarded(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) pause_count(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) pause_count(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) playout_id(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCInboundRtpStreamStats) playout_id(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCInboundRtpStreamStats) pli_count(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) pli_count(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) qp_sum(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) qp_sum(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) remote_id(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCInboundRtpStreamStats) remote_id(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCInboundRtpStreamStats) removed_samples_for_acceleration(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) removed_samples_for_acceleration(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) retransmitted_bytes_received(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) retransmitted_bytes_received(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) retransmitted_packets_received(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) retransmitted_packets_received(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) rtx_ssrc(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) rtx_ssrc(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) silent_concealed_samples(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) silent_concealed_samples(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) total_assembly_time(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) total_assembly_time(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) total_audio_energy(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) total_audio_energy(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) total_decode_time(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) total_decode_time(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) total_freezes_duration(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) total_freezes_duration(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) total_inter_frame_delay(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) total_inter_frame_delay(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) total_pauses_duration(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) total_pauses_duration(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) total_processing_delay(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) total_processing_delay(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) total_samples_duration(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) total_samples_duration(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) total_samples_received(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) total_samples_received(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCInboundRtpStreamStats) total_squared_inter_frame_delay(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCInboundRtpStreamStats) total_squared_inter_frame_delay(): std.core.Option[std.js.Number.JsNumber].
 
 pub (receiver: RTCInboundRtpStreamStats) track_identifier(): std.js.String.JsString.

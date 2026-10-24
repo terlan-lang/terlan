@@ -29,7 +29,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    float_reference: std.core.Option.Option[Value],
+    float_reference: std.core.Option[Value],
 }.
 
 /**

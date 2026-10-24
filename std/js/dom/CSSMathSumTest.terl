@@ -14,5 +14,5 @@ module std.js.Dom.CSSMathSumTest.
 
 import type std.js.Dom.CSSMathSum.
 
-pub values_typechecks(receiver: CSSMathSum): std.js.Dom.CSSNumericArray.CSSNumericArray ->
+pub values_typechecks(receiver: CSSMathSum): std.js.Dom.CSSNumericArray ->
     receiver.values().

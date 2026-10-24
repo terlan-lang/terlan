@@ -14,4 +14,4 @@
 module std.js.Dom.WebkitURL.
 
 pub type WebkitURL =
-    std.js.Dom.URL.URL.
+    std.js.Dom.URL.

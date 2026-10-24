@@ -18,6 +18,6 @@ pub opaque type OfflineAudioContextOptions.
 
 pub (receiver: OfflineAudioContextOptions) length(): JsNumber.
 
-pub (receiver: OfflineAudioContextOptions) number_of_channels(): std.core.Option.Option[JsNumber].
+pub (receiver: OfflineAudioContextOptions) number_of_channels(): std.core.Option[JsNumber].
 
 pub (receiver: OfflineAudioContextOptions) sample_rate(): JsNumber.

@@ -14,5 +14,5 @@ module std.js.ObjectConstructorTest.
 
 import type std.js.ObjectConstructor.
 
-pub prototype_typechecks(receiver: ObjectConstructor): std.js.Object.Object ->
+pub prototype_typechecks(receiver: ObjectConstructor): std.js.Object ->
     receiver.prototype().

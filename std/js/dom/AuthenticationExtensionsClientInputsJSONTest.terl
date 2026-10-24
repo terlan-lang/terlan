@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AuthenticationExtensionsClientInputsJSONTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.AuthenticationExtensionsClientInputsJSON.
 
 pub appid_typechecks(
@@ -25,10 +25,10 @@ pub cred_props_typechecks(receiver: AuthenticationExtensionsClientInputsJSON): O
 
 pub large_blob_typechecks(
     receiver: AuthenticationExtensionsClientInputsJSON,
-): Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputsJSON.AuthenticationExtensionsLargeBlobInputsJSON] ->
+): Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputsJSON] ->
     receiver.large_blob().
 
 pub prf_typechecks(
     receiver: AuthenticationExtensionsClientInputsJSON,
-): Option[std.js.Dom.AuthenticationExtensionsPRFInputsJSON.AuthenticationExtensionsPRFInputsJSON] ->
+): Option[std.js.Dom.AuthenticationExtensionsPRFInputsJSON] ->
     receiver.prf().

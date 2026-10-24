@@ -12,13 +12,11 @@
  */
 module std.js.Dom.Animation.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.CSSNumberish.{CSSNumberish}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{CSSNumberish, EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
-import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 /**
  * The **`Animation`** interface of the Web Animations API represents a single animation player and provides playback controls and a timeline for an animation node or source.
@@ -40,7 +38,7 @@ pub (receiver: Animation) current_time(): Option[CSSNumberish] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/effect)
  */
-pub (receiver: Animation) effect(): Option[std.js.Dom.AnimationEffect.AnimationEffect] ->
+pub (receiver: Animation) effect(): Option[std.js.Dom.AnimationEffect] ->
     native.
 
 /**
@@ -96,7 +94,7 @@ pub (receiver: Animation) start_time(): Option[CSSNumberish] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/timeline)
  */
-pub (receiver: Animation) timeline(): Option[std.js.Dom.AnimationTimeline.AnimationTimeline] ->
+pub (receiver: Animation) timeline(): Option[std.js.Dom.AnimationTimeline] ->
     native.
 
 /**
@@ -166,13 +164,13 @@ pub (receiver: Animation) update_playback_rate(playback_rate: JsNumber): Unit ->
 pub (receiver: Animation) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: Animation) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

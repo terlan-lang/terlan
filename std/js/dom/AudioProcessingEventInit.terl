@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AudioProcessingEventInit.
 
-import type std.js.Dom.AudioBuffer.{AudioBuffer}.
+import type std.js.Dom.{AudioBuffer}.
 
 pub opaque type AudioProcessingEventInit.
 

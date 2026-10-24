@@ -8,7 +8,7 @@ module std.css.properties.Pause.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    pause: std.core.Option.Option[Value]
+    pause: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

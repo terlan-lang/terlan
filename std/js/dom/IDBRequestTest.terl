@@ -12,13 +12,11 @@
  */
 module std.js.Dom.IDBRequestTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.IDBRequest.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, IDBRequest}.
 import type std.js.String.{JsString}.
 
-pub error_typechecks(receiver: IDBRequest[T]): Option[std.js.Dom.DOMException.DOMException] ->
+pub error_typechecks(receiver: IDBRequest[T]): Option[std.js.Dom.DOMException] ->
     receiver.error().
 
 pub result_typechecks(receiver: IDBRequest[T]): T ->
@@ -26,19 +24,17 @@ pub result_typechecks(receiver: IDBRequest[T]): T ->
 
 pub source_typechecks(
     receiver: IDBRequest[T],
-): std.js.Dom.IDBCursor.IDBCursor | std.js.Dom.IDBIndex.IDBIndex | std.js.Dom.IDBObjectStore.IDBObjectStore ->
+): std.js.Dom.IDBCursor | std.js.Dom.IDBIndex | std.js.Dom.IDBObjectStore ->
     receiver.source().
 
-pub transaction_typechecks(
-    receiver: IDBRequest[T],
-): Option[std.js.Dom.IDBTransaction.IDBTransaction] ->
+pub transaction_typechecks(receiver: IDBRequest[T]): Option[std.js.Dom.IDBTransaction] ->
     receiver.transaction().
 
 pub add_event_listener_typechecks(
     receiver: IDBRequest[T],
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -46,6 +42,6 @@ pub remove_event_listener_typechecks(
     receiver: IDBRequest[T],
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

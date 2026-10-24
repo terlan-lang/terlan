@@ -12,7 +12,7 @@
  */
 module std.js.Dom.PerformanceObserverEntryList.
 
-import type std.js.Dom.PerformanceEntryList.{PerformanceEntryList}.
+import type std.js.Dom.{PerformanceEntryList}.
 import type std.js.String.{JsString}.
 
 /**
@@ -35,10 +35,7 @@ pub (receiver: PerformanceObserverEntryList) get_entries(): PerformanceEntryList
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceObserverEntryList/getEntriesByName)
  */
-pub (receiver: PerformanceObserverEntryList) get_entries_by_name(
-    name: JsString,
-    type_: std.core.Option.Option[JsString],
-): PerformanceEntryList ->
+pub (receiver: PerformanceObserverEntryList) get_entries_by_name(name: JsString, type_: std.core.Option[JsString]): PerformanceEntryList ->
     native.
 
 /**

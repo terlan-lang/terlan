@@ -14,9 +14,7 @@ module std.js.Dom.ConvolverNodeTest.
 
 import type std.js.Dom.ConvolverNode.
 
-pub buffer_typechecks(
-    receiver: ConvolverNode,
-): std.core.Option.Option[std.js.Dom.AudioBuffer.AudioBuffer] ->
+pub buffer_typechecks(receiver: ConvolverNode): std.core.Option[std.js.Dom.AudioBuffer] ->
     receiver.buffer().
 
 pub normalize_typechecks(receiver: ConvolverNode): Bool ->

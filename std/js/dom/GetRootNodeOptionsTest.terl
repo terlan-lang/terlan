@@ -14,5 +14,5 @@ module std.js.Dom.GetRootNodeOptionsTest.
 
 import type std.js.Dom.GetRootNodeOptions.
 
-pub composed_typechecks(receiver: GetRootNodeOptions): std.core.Option.Option[Bool] ->
+pub composed_typechecks(receiver: GetRootNodeOptions): std.core.Option[Bool] ->
     receiver.composed().

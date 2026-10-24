@@ -14,5 +14,5 @@ module std.js.Dom.EventSourceInitTest.
 
 import type std.js.Dom.EventSourceInit.
 
-pub with_credentials_typechecks(receiver: EventSourceInit): std.core.Option.Option[Bool] ->
+pub with_credentials_typechecks(receiver: EventSourceInit): std.core.Option[Bool] ->
     receiver.with_credentials().

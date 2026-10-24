@@ -404,7 +404,7 @@ pub(super) fn structured_cpp_metadata_generates_real_cxx_package() {
     assert!(source.contains("pub sum_integers(values: List[Int]): Int."));
     assert!(source.contains("pub sum_floats(values: List[Float]): Float."));
     assert!(source.contains("pub label(boundary: NativeBoundary): String."));
-    assert!(source.contains("pub bytes(boundary: NativeBoundary): std.vm.Bytes.Bytes."));
+    assert!(source.contains("pub bytes(boundary: NativeBoundary): std.vm.Bytes."));
     assert!(source.contains("pub samples(boundary: NativeBoundary): List[Int]."));
     assert!(source.contains("pub type Raw = Atom[\"raw\"]."));
     assert!(source.contains("pub type Doubled = Atom[\"doubled\"]."));
@@ -415,9 +415,8 @@ pub(super) fn structured_cpp_metadata_generates_real_cxx_package() {
     assert!(!source.contains("41"));
     assert!(!source.contains("Hidden"));
     assert!(!source.contains("123"));
-    assert!(source.contains(
-        "pub tripled_or_error(boundary: NativeBoundary): Result[Int, std.core.Error.Error]."
-    ));
+    assert!(source
+        .contains("pub tripled_or_error(boundary: NativeBoundary): Result[Int, std.core.Error]."));
     assert!(source.contains("@compiler.native"));
     assert!(!source.contains("std.native"));
     assert!(!source.contains("torch"));

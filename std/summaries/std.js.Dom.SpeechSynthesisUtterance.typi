@@ -53,7 +53,7 @@ pub (receiver: SpeechSynthesisUtterance) text(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesisUtterance/voice)
  */
-pub (receiver: SpeechSynthesisUtterance) voice(): std.core.Option.Option[std.js.Dom.SpeechSynthesisVoice.SpeechSynthesisVoice].
+pub (receiver: SpeechSynthesisUtterance) voice(): std.core.Option[std.js.Dom.SpeechSynthesisVoice].
 
 /**
  * The **`volume`** property of the SpeechSynthesisUtterance interface gets and sets the volume that the utterance will be spoken at.
@@ -62,6 +62,6 @@ pub (receiver: SpeechSynthesisUtterance) voice(): std.core.Option.Option[std.js.
  */
 pub (receiver: SpeechSynthesisUtterance) volume(): std.js.Number.JsNumber.
 
-pub (receiver: SpeechSynthesisUtterance) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SpeechSynthesisUtterance) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SpeechSynthesisUtterance) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SpeechSynthesisUtterance) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

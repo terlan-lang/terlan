@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SVGLengthList.
 
-import type std.js.Dom.SVGLength.{SVGLength}.
+import type std.js.Dom.{SVGLength}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -48,7 +48,7 @@ pub (receiver: SVGLengthList) append_item(new_item: SVGLength): SVGLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/clear)
  */
-pub (receiver: SVGLengthList) clear(): std.core.Unit.Unit.
+pub (receiver: SVGLengthList) clear(): std.core.Unit.
 
 /**
  * The **`getItem()`** method of the SVGLengthList interface returns the specified item from the list.

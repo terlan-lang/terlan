@@ -12,10 +12,8 @@
  */
 module std.js.Dom.FormData.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Blob.{Blob}.
-import type std.js.Dom.FormDataEntryValue.{FormDataEntryValue}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Blob, FormDataEntryValue}.
 import type std.js.String.{JsString}.
 
 /**
@@ -55,7 +53,7 @@ pub (receiver: FormData) get(name: JsString): Option[FormDataEntryValue].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/getAll)
  */
-pub (receiver: FormData) get_all(name: JsString): std.js.Array.Array[FormDataEntryValue].
+pub (receiver: FormData) get_all(name: JsString): std.js.Array[FormDataEntryValue].
 
 /**
  * The **`has()`** method of the FormData interface returns whether a `FormData` object contains a certain key.

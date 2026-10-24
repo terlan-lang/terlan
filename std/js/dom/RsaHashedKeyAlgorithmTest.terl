@@ -14,5 +14,5 @@ module std.js.Dom.RsaHashedKeyAlgorithmTest.
 
 import type std.js.Dom.RsaHashedKeyAlgorithm.
 
-pub hash_typechecks(receiver: RsaHashedKeyAlgorithm): std.js.Dom.KeyAlgorithm.KeyAlgorithm ->
+pub hash_typechecks(receiver: RsaHashedKeyAlgorithm): std.js.Dom.KeyAlgorithm ->
     receiver.hash().

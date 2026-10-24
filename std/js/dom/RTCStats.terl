@@ -17,5 +17,5 @@ pub opaque type RTCStats.
 pub (receiver: RTCStats) id(): std.js.String.JsString ->
     native.
 
-pub (receiver: RTCStats) timestamp(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
+pub (receiver: RTCStats) timestamp(): std.js.Dom.DOMHighResTimeStamp ->
     native.

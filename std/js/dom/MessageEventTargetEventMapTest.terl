@@ -12,8 +12,7 @@
  */
 module std.js.Dom.MessageEventTargetEventMapTest.
 
-import type std.js.Dom.MessageEvent.{MessageEvent}.
-import type std.js.Dom.MessageEventTargetEventMap.
+import type std.js.Dom.{MessageEvent, MessageEventTargetEventMap}.
 
 pub message_typechecks(receiver: MessageEventTargetEventMap): MessageEvent ->
     receiver.message().

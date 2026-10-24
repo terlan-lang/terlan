@@ -14,5 +14,5 @@ module std.js.Dom.MediaElementAudioSourceOptions.
 
 pub opaque type MediaElementAudioSourceOptions.
 
-pub (receiver: MediaElementAudioSourceOptions) media_element(): std.js.Dom.HTMLMediaElement.HTMLMediaElement ->
+pub (receiver: MediaElementAudioSourceOptions) media_element(): std.js.Dom.HTMLMediaElement ->
     native.

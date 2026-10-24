@@ -29,7 +29,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    window_drag: std.core.Option.Option[Value],
+    window_drag: std.core.Option[Value],
 }.
 
 /**

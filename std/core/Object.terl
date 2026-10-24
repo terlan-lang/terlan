@@ -22,7 +22,7 @@ import type std.collections.List.
  * deterministic map storage without introducing a separate target-specific
  * object model.
  */
-pub type Object[V] = std.collections.Map.Map[String, V].
+pub type Object[V] = std.collections.Map[String, V].
 
 /**
  * Constructs an object from explicit string-keyed entry tuples.

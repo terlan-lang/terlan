@@ -15,6 +15,6 @@ module std.js.Dom.QueuingStrategy.
 
 pub opaque type QueuingStrategy[T].
 
-pub (receiver: QueuingStrategy[T]) high_water_mark(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: QueuingStrategy[T]) high_water_mark(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: QueuingStrategy[T]) size(): std.core.Option.Option[std.js.Dom.QueuingStrategySize.QueuingStrategySize[T]].
+pub (receiver: QueuingStrategy[T]) size(): std.core.Option[std.js.Dom.QueuingStrategySize[T]].

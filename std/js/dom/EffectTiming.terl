@@ -12,7 +12,7 @@
  */
 module std.js.Dom.EffectTiming.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -21,7 +21,7 @@ pub opaque type EffectTiming.
 pub (receiver: EffectTiming) delay(): Option[JsNumber] ->
     native.
 
-pub (receiver: EffectTiming) duration(): Option[std.js.Dom.CSSNumericValue.CSSNumericValue | JsNumber | JsString] ->
+pub (receiver: EffectTiming) duration(): Option[std.js.Dom.CSSNumericValue | JsNumber | JsString] ->
     native.
 
 pub (receiver: EffectTiming) easing(): Option[JsString] ->

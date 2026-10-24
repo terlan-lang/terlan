@@ -16,5 +16,5 @@ import type std.js.Dom.RTCLocalSessionDescriptionInit.
 
 pub sdp_typechecks(
     receiver: RTCLocalSessionDescriptionInit,
-): std.core.Option.Option[std.js.String.JsString] ->
+): std.core.Option[std.js.String.JsString] ->
     receiver.sdp().

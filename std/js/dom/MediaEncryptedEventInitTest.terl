@@ -12,10 +12,10 @@
  */
 module std.js.Dom.MediaEncryptedEventInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.MediaEncryptedEventInit.
 
-pub init_data_typechecks(receiver: MediaEncryptedEventInit): Option[std.js.ArrayBuffer.ArrayBuffer] ->
+pub init_data_typechecks(receiver: MediaEncryptedEventInit): Option[std.js.ArrayBuffer] ->
     receiver.init_data().
 
 pub init_data_type_typechecks(receiver: MediaEncryptedEventInit): Option[std.js.String.JsString] ->

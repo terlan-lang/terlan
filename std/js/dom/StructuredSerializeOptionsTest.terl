@@ -16,5 +16,5 @@ import type std.js.Dom.StructuredSerializeOptions.
 
 pub transfer_typechecks(
     receiver: StructuredSerializeOptions,
-): std.core.Option.Option[std.js.Array.Array[std.js.Dom.Transferable.Transferable]] ->
+): std.core.Option[std.js.Array[std.js.Dom.Transferable]] ->
     receiver.transfer().

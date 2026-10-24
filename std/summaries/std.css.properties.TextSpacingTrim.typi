@@ -8,7 +8,7 @@ module std.css.properties.TextSpacingTrim.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    text_spacing_trim: std.core.Option.Option[Value]
+    text_spacing_trim: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MediaMetadataInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.MediaMetadataInit.
 import type std.js.String.{JsString}.
 
@@ -22,9 +22,7 @@ pub album_typechecks(receiver: MediaMetadataInit): Option[JsString] ->
 pub artist_typechecks(receiver: MediaMetadataInit): Option[JsString] ->
     receiver.artist().
 
-pub artwork_typechecks(
-    receiver: MediaMetadataInit,
-): Option[std.js.Array.Array[std.js.Dom.MediaImage.MediaImage]] ->
+pub artwork_typechecks(receiver: MediaMetadataInit): Option[std.js.Array[std.js.Dom.MediaImage]] ->
     receiver.artwork().
 
 pub title_typechecks(receiver: MediaMetadataInit): Option[JsString] ->

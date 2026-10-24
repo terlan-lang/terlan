@@ -24,4 +24,4 @@ pub opaque type MediaStreamTrackEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrackEvent/track)
  */
-pub (receiver: MediaStreamTrackEvent) track(): std.js.Dom.MediaStreamTrack.MediaStreamTrack.
+pub (receiver: MediaStreamTrackEvent) track(): std.js.Dom.MediaStreamTrack.

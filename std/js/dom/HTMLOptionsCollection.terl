@@ -12,8 +12,7 @@
  */
 module std.js.Dom.HTMLOptionsCollection.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
+import type std.core.{Option, Unit}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -45,8 +44,8 @@ pub (receiver: HTMLOptionsCollection) selected_index(): JsNumber ->
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/add)
  */
 pub (receiver: HTMLOptionsCollection) add(
-    element: std.js.Dom.HTMLOptGroupElement.HTMLOptGroupElement | std.js.Dom.HTMLOptionElement.HTMLOptionElement,
-    before: Option[Option[std.js.Dom.HTMLElement.HTMLElement | JsNumber]],
+    element: std.js.Dom.HTMLOptGroupElement | std.js.Dom.HTMLOptionElement,
+    before: Option[Option[std.js.Dom.HTMLElement | JsNumber]],
 ): Unit ->
     native.
 

@@ -33,4 +33,4 @@ pub (receiver: StyleSheetList) length(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheetList/item)
  */
-pub (receiver: StyleSheetList) item(index: JsNumber): std.core.Option.Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet].
+pub (receiver: StyleSheetList) item(index: JsNumber): std.core.Option[std.js.Dom.CSSStyleSheet].

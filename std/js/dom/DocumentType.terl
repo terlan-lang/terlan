@@ -29,7 +29,7 @@ pub opaque type DocumentType.
 pub (receiver: DocumentType) name(): JsString ->
     native.
 
-pub (receiver: DocumentType) owner_document(): std.js.Dom.Document.Document ->
+pub (receiver: DocumentType) owner_document(): std.js.Dom.Document ->
     native.
 
 /**

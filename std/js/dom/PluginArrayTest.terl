@@ -12,9 +12,8 @@
  */
 module std.js.Dom.PluginArrayTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.Plugin.{Plugin}.
-import type std.js.Dom.PluginArray.
+import type std.core.{Option}.
+import type std.js.Dom.{Plugin, PluginArray}.
 import type std.js.Number.{JsNumber}.
 
 pub length_typechecks(receiver: PluginArray): JsNumber ->
@@ -26,5 +25,5 @@ pub item_typechecks(receiver: PluginArray, index: JsNumber): Option[Plugin] ->
 pub named_item_typechecks(receiver: PluginArray, name: std.js.String.JsString): Option[Plugin] ->
     receiver.named_item(name).
 
-pub refresh_typechecks(receiver: PluginArray): std.core.Unit.Unit ->
+pub refresh_typechecks(receiver: PluginArray): std.core.Unit ->
     receiver.refresh().

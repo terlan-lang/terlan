@@ -12,7 +12,7 @@
  */
 module std.js.Dom.History.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -51,5 +51,5 @@ pub (receiver: History) forward(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/History/go)
  */
-pub (receiver: History) go(delta: std.core.Option.Option[JsNumber]): Unit ->
+pub (receiver: History) go(delta: std.core.Option[JsNumber]): Unit ->
     native.

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.IntersectionObserverEntry.
 
-import type std.js.Dom.DOMRectReadOnly.{DOMRectReadOnly}.
+import type std.js.Dom.{DOMRectReadOnly}.
 
 /**
  * The **`IntersectionObserverEntry`** interface of the Intersection Observer API describes the intersection between the target element and its root container at a specific moment of transition.
@@ -54,18 +54,18 @@ pub (receiver: IntersectionObserverEntry) is_intersecting(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/rootBounds)
  */
-pub (receiver: IntersectionObserverEntry) root_bounds(): std.core.Option.Option[DOMRectReadOnly].
+pub (receiver: IntersectionObserverEntry) root_bounds(): std.core.Option[DOMRectReadOnly].
 
 /**
  * The IntersectionObserverEntry interface's read-only **`target`** property indicates which targeted root.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/target)
  */
-pub (receiver: IntersectionObserverEntry) target_(): std.js.Dom.Element.Element.
+pub (receiver: IntersectionObserverEntry) target_(): std.js.Dom.Element.
 
 /**
  * The IntersectionObserverEntry interface's read-only **`time`** property is a change occurred relative to the time at which the document was created.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserverEntry/time)
  */
-pub (receiver: IntersectionObserverEntry) time(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: IntersectionObserverEntry) time(): std.js.Dom.DOMHighResTimeStamp.

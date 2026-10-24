@@ -16,6 +16,6 @@ import type std.js.Dom.Permissions.
 
 pub query_typechecks(
     receiver: Permissions,
-    permission_desc: std.js.Dom.PermissionDescriptor.PermissionDescriptor,
-): std.js.Promise.Promise[std.js.Dom.PermissionStatus.PermissionStatus] ->
+    permission_desc: std.js.Dom.PermissionDescriptor,
+): std.js.Promise[std.js.Dom.PermissionStatus] ->
     receiver.query(permission_desc).

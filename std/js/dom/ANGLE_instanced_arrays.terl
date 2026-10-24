@@ -12,10 +12,8 @@
  */
 module std.js.Dom.ANGLE_instanced_arrays.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.GLenum.{GLenum}.
-import type std.js.Dom.GLsizei.{GLsizei}.
-import type std.js.Dom.GLuint.{GLuint}.
+import type std.core.{Unit}.
+import type std.js.Dom.{GLenum, GLsizei, GLuint}.
 
 /**
  * The **`ANGLE_instanced_arrays`** extension is part of the WebGL API and allows to draw the same object, or groups of similar objects multiple times, if they share the same vertex data, primitive count and type.
@@ -31,7 +29,7 @@ pub opaque type ANGLE_instanced_arrays.
  */
 pub (receiver: ANGLE_instanced_arrays) draw_arrays_instanced_angle(
     mode: GLenum,
-    first: std.js.Dom.GLint.GLint,
+    first: std.js.Dom.GLint,
     count: GLsizei,
     primcount: GLsizei,
 ): Unit ->
@@ -46,7 +44,7 @@ pub (receiver: ANGLE_instanced_arrays) draw_elements_instanced_angle(
     mode: GLenum,
     count: GLsizei,
     type_: GLenum,
-    offset: std.js.Dom.GLintptr.GLintptr,
+    offset: std.js.Dom.GLintptr,
     primcount: GLsizei,
 ): Unit ->
     native.

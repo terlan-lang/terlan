@@ -14,4 +14,4 @@ module std.js.RangeErrorConstructor.
 
 pub opaque type RangeErrorConstructor.
 
-pub (receiver: RangeErrorConstructor) prototype(): std.js.RangeError.RangeError.
+pub (receiver: RangeErrorConstructor) prototype(): std.js.RangeError.

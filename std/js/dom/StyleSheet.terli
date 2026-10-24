@@ -12,7 +12,7 @@
  */
 module std.js.Dom.StyleSheet.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -41,21 +41,21 @@ pub (receiver: StyleSheet) href(): Option[JsString].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/media)
  */
-pub (receiver: StyleSheet) media(): std.js.Dom.MediaList.MediaList.
+pub (receiver: StyleSheet) media(): std.js.Dom.MediaList.
 
 /**
  * The **`ownerNode`** property of the with the document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/ownerNode)
  */
-pub (receiver: StyleSheet) owner_node(): Option[std.js.Dom.Element.Element | std.js.Dom.ProcessingInstruction.ProcessingInstruction].
+pub (receiver: StyleSheet) owner_node(): Option[std.js.Dom.Element | std.js.Dom.ProcessingInstruction].
 
 /**
  * The **`parentStyleSheet`** property of the the given style sheet.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StyleSheet/parentStyleSheet)
  */
-pub (receiver: StyleSheet) parent_style_sheet(): Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet].
+pub (receiver: StyleSheet) parent_style_sheet(): Option[std.js.Dom.CSSStyleSheet].
 
 /**
  * The **`title`** property of the StyleSheet interface returns the advisory title of the current style sheet.

@@ -60,3 +60,34 @@ pub (endpoint: Endpoint) read(): Int -> endpoint.value * 5.
 "#,
     ]);
 }
+
+#[test]
+fn primary_type_paths_keep_native_receiver_and_lambda_identity() {
+    check_sources(&[
+        r#"
+module primary_receiver_paths.
+import polars.DataFrame as Frame.
+import pytorch.Tensor.
+import type polars.DataFrame as Table.
+identity(value: Table): polars.DataFrame.DataFrame -> value.
+callback(): (polars.DataFrame) -> Int ->
+    (value: polars.DataFrame) -> value.read().
+pub check(): Bool ->
+    let frame = Frame.new();
+    let consume = callback();
+    consume(identity(frame)) == 21 and Tensor.new().read() == 35.
+"#,
+        r#"
+module polars.DataFrame.
+pub struct DataFrame { value: Int }.
+pub new(): DataFrame -> DataFrame(value = 21).
+pub (frame: DataFrame) read(): Int -> frame.value.
+"#,
+        r#"
+module pytorch.Tensor.
+pub struct Tensor { value: Int }.
+pub new(): Tensor -> Tensor(value = 7).
+pub (tensor: Tensor) read(): Int -> tensor.value * 5.
+"#,
+    ]);
+}

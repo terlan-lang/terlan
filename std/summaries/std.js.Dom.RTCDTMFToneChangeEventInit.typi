@@ -15,4 +15,4 @@ module std.js.Dom.RTCDTMFToneChangeEventInit.
 
 pub opaque type RTCDTMFToneChangeEventInit.
 
-pub (receiver: RTCDTMFToneChangeEventInit) tone(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCDTMFToneChangeEventInit) tone(): std.core.Option[std.js.String.JsString].

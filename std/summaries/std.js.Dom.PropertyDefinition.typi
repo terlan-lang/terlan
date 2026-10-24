@@ -17,8 +17,8 @@ pub opaque type PropertyDefinition.
 
 pub (receiver: PropertyDefinition) inherits(): Bool.
 
-pub (receiver: PropertyDefinition) initial_value(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: PropertyDefinition) initial_value(): std.core.Option[std.js.String.JsString].
 
 pub (receiver: PropertyDefinition) name(): std.js.String.JsString.
 
-pub (receiver: PropertyDefinition) syntax(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: PropertyDefinition) syntax(): std.core.Option[std.js.String.JsString].

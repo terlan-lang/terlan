@@ -12,16 +12,14 @@
  */
 module std.js.Dom.PaymentValidationErrorsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.PaymentValidationErrors.
 
 pub error_typechecks(receiver: PaymentValidationErrors): Option[std.js.String.JsString] ->
     receiver.error().
 
-pub payer_typechecks(receiver: PaymentValidationErrors): Option[std.js.Dom.PayerErrors.PayerErrors] ->
+pub payer_typechecks(receiver: PaymentValidationErrors): Option[std.js.Dom.PayerErrors] ->
     receiver.payer().
 
-pub shipping_address_typechecks(
-    receiver: PaymentValidationErrors,
-): Option[std.js.Dom.AddressErrors.AddressErrors] ->
+pub shipping_address_typechecks(receiver: PaymentValidationErrors): Option[std.js.Dom.AddressErrors] ->
     receiver.shipping_address().

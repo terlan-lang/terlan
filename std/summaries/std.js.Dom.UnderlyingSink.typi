@@ -15,10 +15,10 @@ module std.js.Dom.UnderlyingSink.
 
 pub opaque type UnderlyingSink[W].
 
-pub (receiver: UnderlyingSink[W]) abort(): std.core.Option.Option[std.js.Dom.UnderlyingSinkAbortCallback.UnderlyingSinkAbortCallback].
+pub (receiver: UnderlyingSink[W]) abort(): std.core.Option[std.js.Dom.UnderlyingSinkAbortCallback].
 
-pub (receiver: UnderlyingSink[W]) close(): std.core.Option.Option[std.js.Dom.UnderlyingSinkCloseCallback.UnderlyingSinkCloseCallback].
+pub (receiver: UnderlyingSink[W]) close(): std.core.Option[std.js.Dom.UnderlyingSinkCloseCallback].
 
-pub (receiver: UnderlyingSink[W]) start(): std.core.Option.Option[std.js.Dom.UnderlyingSinkStartCallback.UnderlyingSinkStartCallback].
+pub (receiver: UnderlyingSink[W]) start(): std.core.Option[std.js.Dom.UnderlyingSinkStartCallback].
 
-pub (receiver: UnderlyingSink[W]) write(): std.core.Option.Option[std.js.Dom.UnderlyingSinkWriteCallback.UnderlyingSinkWriteCallback[W]].
+pub (receiver: UnderlyingSink[W]) write(): std.core.Option[std.js.Dom.UnderlyingSinkWriteCallback[W]].

@@ -81,7 +81,7 @@ pub type Comparison = Lt | Eq | Gt.
  * `Lt < Eq < Gt`.
  *
  * This function is the named implementation hook for compiler-known
- * `std.core.Ordering.Ordering[Comparison]` conformance in 0.0.1.
+ * `std.core.Ordering[Comparison]` conformance in 0.0.1.
  *
  * ```terlan
  * module comparison_compare_example.
@@ -275,7 +275,7 @@ pub impl Ordering[Unit] for Unit {
  * Output: `Lt`, `Eq`, or `Gt` using declaration order `Lt < Eq < Gt`.
  * Transformation: compares the closed comparison result domain without
  * changing either input and exposes that order through
- * `std.core.Ordering.Ordering[Comparison]`.
+ * `std.core.Ordering[Comparison]`.
  */
 pub impl Ordering[Comparison] for Comparison {
     compare(left: Comparison, right: Comparison): Comparison ->

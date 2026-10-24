@@ -12,7 +12,7 @@
  */
 module std.js.Dom.TouchInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.TouchInit.
 import type std.js.Number.{JsNumber}.
 
@@ -55,5 +55,5 @@ pub screen_x_typechecks(receiver: TouchInit): Option[JsNumber] ->
 pub screen_y_typechecks(receiver: TouchInit): Option[JsNumber] ->
     receiver.screen_y().
 
-pub target__typechecks(receiver: TouchInit): std.js.Dom.EventTarget.EventTarget ->
+pub target__typechecks(receiver: TouchInit): std.js.Dom.EventTarget ->
     receiver.target_().

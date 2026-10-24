@@ -15,12 +15,12 @@ module std.js.Dom.RTCEncodedFrameMetadata.
 
 pub opaque type RTCEncodedFrameMetadata.
 
-pub (receiver: RTCEncodedFrameMetadata) contributing_sources(): std.core.Option.Option[std.js.Array.Array[std.js.Number.JsNumber]].
+pub (receiver: RTCEncodedFrameMetadata) contributing_sources(): std.core.Option[std.js.Array[std.js.Number.JsNumber]].
 
-pub (receiver: RTCEncodedFrameMetadata) mime_type(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCEncodedFrameMetadata) mime_type(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCEncodedFrameMetadata) payload_type(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCEncodedFrameMetadata) payload_type(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCEncodedFrameMetadata) rtp_timestamp(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCEncodedFrameMetadata) rtp_timestamp(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCEncodedFrameMetadata) synchronization_source(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCEncodedFrameMetadata) synchronization_source(): std.core.Option[std.js.Number.JsNumber].

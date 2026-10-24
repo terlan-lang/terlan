@@ -14,7 +14,5 @@ module std.js.Dom.ScriptProcessorNodeEventMapTest.
 
 import type std.js.Dom.ScriptProcessorNodeEventMap.
 
-pub audioprocess_typechecks(
-    receiver: ScriptProcessorNodeEventMap,
-): std.js.Dom.AudioProcessingEvent.AudioProcessingEvent ->
+pub audioprocess_typechecks(receiver: ScriptProcessorNodeEventMap): std.js.Dom.AudioProcessingEvent ->
     receiver.audioprocess().

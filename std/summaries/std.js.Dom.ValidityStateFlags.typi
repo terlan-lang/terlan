@@ -15,22 +15,22 @@ module std.js.Dom.ValidityStateFlags.
 
 pub opaque type ValidityStateFlags.
 
-pub (receiver: ValidityStateFlags) bad_input(): std.core.Option.Option[Bool].
+pub (receiver: ValidityStateFlags) bad_input(): std.core.Option[Bool].
 
-pub (receiver: ValidityStateFlags) custom_error(): std.core.Option.Option[Bool].
+pub (receiver: ValidityStateFlags) custom_error(): std.core.Option[Bool].
 
-pub (receiver: ValidityStateFlags) pattern_mismatch(): std.core.Option.Option[Bool].
+pub (receiver: ValidityStateFlags) pattern_mismatch(): std.core.Option[Bool].
 
-pub (receiver: ValidityStateFlags) range_overflow(): std.core.Option.Option[Bool].
+pub (receiver: ValidityStateFlags) range_overflow(): std.core.Option[Bool].
 
-pub (receiver: ValidityStateFlags) range_underflow(): std.core.Option.Option[Bool].
+pub (receiver: ValidityStateFlags) range_underflow(): std.core.Option[Bool].
 
-pub (receiver: ValidityStateFlags) step_mismatch(): std.core.Option.Option[Bool].
+pub (receiver: ValidityStateFlags) step_mismatch(): std.core.Option[Bool].
 
-pub (receiver: ValidityStateFlags) too_long(): std.core.Option.Option[Bool].
+pub (receiver: ValidityStateFlags) too_long(): std.core.Option[Bool].
 
-pub (receiver: ValidityStateFlags) too_short(): std.core.Option.Option[Bool].
+pub (receiver: ValidityStateFlags) too_short(): std.core.Option[Bool].
 
-pub (receiver: ValidityStateFlags) type_mismatch(): std.core.Option.Option[Bool].
+pub (receiver: ValidityStateFlags) type_mismatch(): std.core.Option[Bool].
 
-pub (receiver: ValidityStateFlags) value_missing(): std.core.Option.Option[Bool].
+pub (receiver: ValidityStateFlags) value_missing(): std.core.Option[Bool].

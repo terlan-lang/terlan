@@ -15,4 +15,4 @@ module std.js.Dom.GamepadEventInit.
 
 pub opaque type GamepadEventInit.
 
-pub (receiver: GamepadEventInit) gamepad(): std.js.Dom.Gamepad.Gamepad.
+pub (receiver: GamepadEventInit) gamepad(): std.js.Dom.Gamepad.

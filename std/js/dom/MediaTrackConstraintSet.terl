@@ -12,11 +12,8 @@
  */
 module std.js.Dom.MediaTrackConstraintSet.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.ConstrainBoolean.{ConstrainBoolean}.
-import type std.js.Dom.ConstrainDOMString.{ConstrainDOMString}.
-import type std.js.Dom.ConstrainDouble.{ConstrainDouble}.
-import type std.js.Dom.ConstrainULong.{ConstrainULong}.
+import type std.core.{Option}.
+import type std.js.Dom.{ConstrainBoolean, ConstrainDOMString, ConstrainDouble, ConstrainULong}.
 
 pub opaque type MediaTrackConstraintSet.
 

@@ -14,8 +14,5 @@ module std.js.Dom.EventListenerObjectTest.
 
 import type std.js.Dom.EventListenerObject.
 
-pub handle_event_typechecks(
-    receiver: EventListenerObject,
-    object: std.js.Dom.Event.Event,
-): std.core.Unit.Unit ->
+pub handle_event_typechecks(receiver: EventListenerObject, object: std.js.Dom.Event): std.core.Unit ->
     receiver.handle_event(object).

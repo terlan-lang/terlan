@@ -60,8 +60,8 @@ pub (receiver: WebSocket) url(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/close)
  */
-pub (receiver: WebSocket) close(code: std.core.Option.Option[std.js.Number.JsNumber], reason: std.core.Option.Option[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: WebSocket) close(code: std.core.Option[std.js.Number.JsNumber], reason: std.core.Option[std.js.String.JsString]): std.core.Unit.
 
-pub (receiver: WebSocket) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: WebSocket) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: WebSocket) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: WebSocket) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

@@ -8,7 +8,7 @@ module std.css.properties.TextShadow.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    text_shadow: std.core.Option.Option[Value]
+    text_shadow: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

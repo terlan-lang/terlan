@@ -39,7 +39,7 @@ pub (receiver: MediaStream) id(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/addTrack)
  */
-pub (receiver: MediaStream) add_track(track: std.js.Dom.MediaStreamTrack.MediaStreamTrack): std.core.Unit.Unit.
+pub (receiver: MediaStream) add_track(track: std.js.Dom.MediaStreamTrack): std.core.Unit.
 
 /**
  * The **`clone()`** method of the MediaStream interface creates a duplicate of the `MediaStream`.
@@ -53,36 +53,36 @@ pub (receiver: MediaStream) clone(): MediaStream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getAudioTracks)
  */
-pub (receiver: MediaStream) get_audio_tracks(): std.js.Array.Array[std.js.Dom.MediaStreamTrack.MediaStreamTrack].
+pub (receiver: MediaStream) get_audio_tracks(): std.js.Array[std.js.Dom.MediaStreamTrack].
 
 /**
  * The **`getTrackById()`** method of the MediaStream interface returns a MediaStreamTrack object representing the track with the specified ID string.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getTrackById)
  */
-pub (receiver: MediaStream) get_track_by_id(track_id: std.js.String.JsString): std.core.Option.Option[std.js.Dom.MediaStreamTrack.MediaStreamTrack].
+pub (receiver: MediaStream) get_track_by_id(track_id: std.js.String.JsString): std.core.Option[std.js.Dom.MediaStreamTrack].
 
 /**
  * The **`getTracks()`** method of the stream's track set, regardless of MediaStreamTrack.kind.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getTracks)
  */
-pub (receiver: MediaStream) get_tracks(): std.js.Array.Array[std.js.Dom.MediaStreamTrack.MediaStreamTrack].
+pub (receiver: MediaStream) get_tracks(): std.js.Array[std.js.Dom.MediaStreamTrack].
 
 /**
  * The **`getVideoTracks()`** method of the ```js-nolint getVideoTracks() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/getVideoTracks)
  */
-pub (receiver: MediaStream) get_video_tracks(): std.js.Array.Array[std.js.Dom.MediaStreamTrack.MediaStreamTrack].
+pub (receiver: MediaStream) get_video_tracks(): std.js.Array[std.js.Dom.MediaStreamTrack].
 
 /**
  * The **`removeTrack()`** method of the MediaStream interface removes a ```js-nolint removeTrack(track) ``` - `track` - : A MediaStreamTrack that will be removed from the stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStream/removeTrack)
  */
-pub (receiver: MediaStream) remove_track(track: std.js.Dom.MediaStreamTrack.MediaStreamTrack): std.core.Unit.Unit.
+pub (receiver: MediaStream) remove_track(track: std.js.Dom.MediaStreamTrack): std.core.Unit.
 
-pub (receiver: MediaStream) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: MediaStream) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: MediaStream) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: MediaStream) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

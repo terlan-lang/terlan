@@ -14,5 +14,5 @@ module std.js.Dom.AbortControllerTest.
 
 import type std.js.Dom.AbortController.
 
-pub signal_typechecks(receiver: AbortController): std.js.Dom.AbortSignal.AbortSignal ->
+pub signal_typechecks(receiver: AbortController): std.js.Dom.AbortSignal ->
     receiver.signal().

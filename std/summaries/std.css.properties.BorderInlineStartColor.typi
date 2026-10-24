@@ -8,7 +8,7 @@ module std.css.properties.BorderInlineStartColor.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    border_inline_start_color: std.core.Option.Option[Value]
+    border_inline_start_color: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

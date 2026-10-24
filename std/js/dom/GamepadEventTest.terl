@@ -14,5 +14,5 @@ module std.js.Dom.GamepadEventTest.
 
 import type std.js.Dom.GamepadEvent.
 
-pub gamepad_typechecks(receiver: GamepadEvent): std.js.Dom.Gamepad.Gamepad ->
+pub gamepad_typechecks(receiver: GamepadEvent): std.js.Dom.Gamepad ->
     receiver.gamepad().

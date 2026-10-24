@@ -8,7 +8,7 @@ module std.css.properties.FontStretch.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    font_stretch: std.core.Option.Option[Value]
+    font_stretch: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

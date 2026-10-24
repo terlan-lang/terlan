@@ -15,8 +15,8 @@ module std.js.Dom.MediaSessionActionDetails.
 
 pub opaque type MediaSessionActionDetails.
 
-pub (receiver: MediaSessionActionDetails) fast_seek(): std.core.Option.Option[Bool].
+pub (receiver: MediaSessionActionDetails) fast_seek(): std.core.Option[Bool].
 
-pub (receiver: MediaSessionActionDetails) seek_offset(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaSessionActionDetails) seek_offset(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaSessionActionDetails) seek_time(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaSessionActionDetails) seek_time(): std.core.Option[std.js.Number.JsNumber].

@@ -8,7 +8,7 @@ module std.css.properties.FontVariantLigatures.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    font_variant_ligatures: std.core.Option.Option[Value]
+    font_variant_ligatures: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

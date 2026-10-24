@@ -12,9 +12,8 @@
  */
 module std.js.Dom.WritableStreamDefaultWriter.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.{Promise}.
 
 /**
  * The **`WritableStreamDefaultWriter`** interface of the Streams API is the object returned by WritableStream.getWriter() and once created locks the writer to the `WritableStream` ensuring that no other streams can write to the underlying sink.

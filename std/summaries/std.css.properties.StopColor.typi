@@ -8,7 +8,7 @@ module std.css.properties.StopColor.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    stop_color: std.core.Option.Option[Value]
+    stop_color: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

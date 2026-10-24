@@ -19,4 +19,4 @@ pub (receiver: ComputedKeyframe) computed_offset(): std.js.Number.JsNumber.
 
 pub (receiver: ComputedKeyframe) easing(): std.js.String.JsString.
 
-pub (receiver: ComputedKeyframe) offset(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ComputedKeyframe) offset(): std.core.Option[std.js.Number.JsNumber].

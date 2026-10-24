@@ -24,7 +24,7 @@ pub (receiver: WeakMap[K, V]) delete(key: K): Bool ->
 /**
  * @returns a specified element.
  */
-pub (receiver: WeakMap[K, V]) get(key: K): std.core.Option.Option[V] ->
+pub (receiver: WeakMap[K, V]) get(key: K): std.core.Option[V] ->
     native.
 
 /**

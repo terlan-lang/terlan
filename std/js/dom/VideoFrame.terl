@@ -12,9 +12,8 @@
  */
 module std.js.Dom.VideoFrame.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.DOMRectReadOnly.{DOMRectReadOnly}.
-import type std.js.Dom.VideoFrameCopyToOptions.{VideoFrameCopyToOptions}.
+import type std.core.{Option}.
+import type std.js.Dom.{DOMRectReadOnly, VideoFrameCopyToOptions}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -53,7 +52,7 @@ pub (receiver: VideoFrame) coded_width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/colorSpace)
  */
-pub (receiver: VideoFrame) color_space(): std.js.Dom.VideoColorSpace.VideoColorSpace ->
+pub (receiver: VideoFrame) color_space(): std.js.Dom.VideoColorSpace ->
     native.
 
 /**
@@ -117,7 +116,7 @@ pub (receiver: VideoFrame) clone(): VideoFrame ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/close)
  */
-pub (receiver: VideoFrame) close(): std.core.Unit.Unit ->
+pub (receiver: VideoFrame) close(): std.core.Unit ->
     native.
 
 /**
@@ -126,7 +125,7 @@ pub (receiver: VideoFrame) close(): std.core.Unit.Unit ->
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/copyTo)
  */
 pub (receiver: VideoFrame) copy_to(
-    destination: std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource,
+    destination: std.js.Dom.AllowSharedBufferSource,
     options: Option[VideoFrameCopyToOptions],
-): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]] ->
+): std.js.Promise[std.js.Array[std.js.Dom.PlaneLayout]] ->
     native.

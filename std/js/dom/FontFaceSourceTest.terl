@@ -14,5 +14,5 @@ module std.js.Dom.FontFaceSourceTest.
 
 import type std.js.Dom.FontFaceSource.
 
-pub fonts_typechecks(receiver: FontFaceSource): std.js.Dom.FontFaceSet.FontFaceSet ->
+pub fonts_typechecks(receiver: FontFaceSource): std.js.Dom.FontFaceSet ->
     receiver.fonts().

@@ -12,10 +12,8 @@
  */
 module std.js.Dom.VTTCue.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.LineAndPositionSetting.{LineAndPositionSetting}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, LineAndPositionSetting}.
 import type std.js.String.{JsString}.
 
 /**
@@ -46,7 +44,7 @@ pub (receiver: VTTCue) position(): LineAndPositionSetting ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/region)
  */
-pub (receiver: VTTCue) region(): Option[std.js.Dom.VTTRegion.VTTRegion] ->
+pub (receiver: VTTCue) region(): Option[std.js.Dom.VTTRegion] ->
     native.
 
 /**
@@ -78,19 +76,19 @@ pub (receiver: VTTCue) text(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/getCueAsHTML)
  */
-pub (receiver: VTTCue) get_cue_as_html(): std.js.Dom.DocumentFragment.DocumentFragment ->
+pub (receiver: VTTCue) get_cue_as_html(): std.js.Dom.DocumentFragment ->
     native.
 
 pub (receiver: VTTCue) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: VTTCue) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

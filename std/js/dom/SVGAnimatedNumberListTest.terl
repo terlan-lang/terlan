@@ -12,8 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedNumberListTest.
 
-import type std.js.Dom.SVGAnimatedNumberList.
-import type std.js.Dom.SVGNumberList.{SVGNumberList}.
+import type std.js.Dom.{SVGAnimatedNumberList, SVGNumberList}.
 
 pub anim_val_typechecks(receiver: SVGAnimatedNumberList): SVGNumberList ->
     receiver.anim_val().

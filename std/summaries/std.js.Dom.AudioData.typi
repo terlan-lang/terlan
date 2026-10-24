@@ -60,7 +60,7 @@ pub (receiver: AudioData) timestamp(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioData/allocationSize)
  */
-pub (receiver: AudioData) allocation_size(options: std.js.Dom.AudioDataCopyToOptions.AudioDataCopyToOptions): std.js.Number.JsNumber.
+pub (receiver: AudioData) allocation_size(options: std.js.Dom.AudioDataCopyToOptions): std.js.Number.JsNumber.
 
 /**
  * The **`clone()`** method of the AudioData interface creates a new `AudioData` object with reference to the same media resource as the original.
@@ -74,11 +74,11 @@ pub (receiver: AudioData) clone(): AudioData.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioData/close)
  */
-pub (receiver: AudioData) close(): std.core.Unit.Unit.
+pub (receiver: AudioData) close(): std.core.Unit.
 
 /**
  * The **`copyTo()`** method of the AudioData interface copies a plane of an `AudioData` object to a destination buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioData/copyTo)
  */
-pub (receiver: AudioData) copy_to(destination: std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource, options: std.js.Dom.AudioDataCopyToOptions.AudioDataCopyToOptions): std.core.Unit.Unit.
+pub (receiver: AudioData) copy_to(destination: std.js.Dom.AllowSharedBufferSource, options: std.js.Dom.AudioDataCopyToOptions): std.core.Unit.

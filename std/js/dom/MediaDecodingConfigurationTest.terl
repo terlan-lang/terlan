@@ -16,5 +16,5 @@ import type std.js.Dom.MediaDecodingConfiguration.
 
 pub key_system_configuration_typechecks(
     receiver: MediaDecodingConfiguration,
-): std.core.Option.Option[std.js.Dom.MediaCapabilitiesKeySystemConfiguration.MediaCapabilitiesKeySystemConfiguration] ->
+): std.core.Option[std.js.Dom.MediaCapabilitiesKeySystemConfiguration] ->
     receiver.key_system_configuration().

@@ -8,7 +8,7 @@ module std.css.properties.TextDecorationStyle.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    text_decoration_style: std.core.Option.Option[Value]
+    text_decoration_style: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -40,4 +40,4 @@ pub (receiver: SpeechRecognitionResult) length(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResult/item)
  */
-pub (receiver: SpeechRecognitionResult) item(index: std.js.Number.JsNumber): std.js.Dom.SpeechRecognitionAlternative.SpeechRecognitionAlternative.
+pub (receiver: SpeechRecognitionResult) item(index: std.js.Number.JsNumber): std.js.Dom.SpeechRecognitionAlternative.

@@ -12,13 +12,12 @@
  */
 module std.js.Dom.IDBFactoryTest.
 
-import type std.js.Dom.IDBFactory.
-import type std.js.Dom.IDBOpenDBRequest.{IDBOpenDBRequest}.
+import type std.js.Dom.{IDBFactory, IDBOpenDBRequest}.
 import type std.js.String.{JsString}.
 
 pub databases_typechecks(
     receiver: IDBFactory,
-): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.IDBDatabaseInfo.IDBDatabaseInfo]] ->
+): std.js.Promise[std.js.Array[std.js.Dom.IDBDatabaseInfo]] ->
     receiver.databases().
 
 pub delete_database_typechecks(receiver: IDBFactory, name: JsString): IDBOpenDBRequest ->
@@ -27,6 +26,6 @@ pub delete_database_typechecks(receiver: IDBFactory, name: JsString): IDBOpenDBR
 pub open_typechecks(
     receiver: IDBFactory,
     name: JsString,
-    version: std.core.Option.Option[std.js.Number.JsNumber],
+    version: std.core.Option[std.js.Number.JsNumber],
 ): IDBOpenDBRequest ->
     receiver.open(name, version).

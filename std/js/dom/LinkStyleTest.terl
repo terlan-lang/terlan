@@ -14,7 +14,5 @@ module std.js.Dom.LinkStyleTest.
 
 import type std.js.Dom.LinkStyle.
 
-pub sheet_typechecks(
-    receiver: LinkStyle,
-): std.core.Option.Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
+pub sheet_typechecks(receiver: LinkStyle): std.core.Option[std.js.Dom.CSSStyleSheet] ->
     receiver.sheet().

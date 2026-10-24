@@ -15,10 +15,10 @@ module std.js.Dom.CookieStoreDeleteOptions.
 
 pub opaque type CookieStoreDeleteOptions.
 
-pub (receiver: CookieStoreDeleteOptions) domain(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: CookieStoreDeleteOptions) domain(): std.core.Option[std.js.String.JsString].
 
 pub (receiver: CookieStoreDeleteOptions) name(): std.js.String.JsString.
 
-pub (receiver: CookieStoreDeleteOptions) partitioned(): std.core.Option.Option[Bool].
+pub (receiver: CookieStoreDeleteOptions) partitioned(): std.core.Option[Bool].
 
-pub (receiver: CookieStoreDeleteOptions) path(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: CookieStoreDeleteOptions) path(): std.core.Option[std.js.String.JsString].

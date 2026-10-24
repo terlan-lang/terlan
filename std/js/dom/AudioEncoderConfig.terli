@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AudioEncoderConfig.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type AudioEncoderConfig.
@@ -23,6 +23,6 @@ pub (receiver: AudioEncoderConfig) codec(): std.js.String.JsString.
 
 pub (receiver: AudioEncoderConfig) number_of_channels(): JsNumber.
 
-pub (receiver: AudioEncoderConfig) opus(): Option[std.js.Dom.OpusEncoderConfig.OpusEncoderConfig].
+pub (receiver: AudioEncoderConfig) opus(): Option[std.js.Dom.OpusEncoderConfig].
 
 pub (receiver: AudioEncoderConfig) sample_rate(): JsNumber.

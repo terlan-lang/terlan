@@ -14,5 +14,5 @@ module std.js.Dom.WorkerOptions.
 
 pub opaque type WorkerOptions.
 
-pub (receiver: WorkerOptions) name(): std.core.Option.Option[std.js.String.JsString] ->
+pub (receiver: WorkerOptions) name(): std.core.Option[std.js.String.JsString] ->
     native.

@@ -25,7 +25,7 @@ pub opaque type FileSystemEntry.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/filesystem)
  */
-pub (receiver: FileSystemEntry) filesystem(): std.js.Dom.FileSystem.FileSystem.
+pub (receiver: FileSystemEntry) filesystem(): std.js.Dom.FileSystem.
 
 /**
  * The read-only **`fullPath`** property of the FileSystemEntry interface returns a string specifying the full, absolute path from the file system's root to the file represented by the entry.
@@ -60,4 +60,4 @@ pub (receiver: FileSystemEntry) name(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/getParent)
  */
-pub (receiver: FileSystemEntry) get_parent(success_callback: std.core.Option.Option[std.js.Dom.FileSystemEntryCallback.FileSystemEntryCallback], error_callback: std.core.Option.Option[std.js.Dom.ErrorCallback.ErrorCallback]): std.core.Unit.Unit.
+pub (receiver: FileSystemEntry) get_parent(success_callback: std.core.Option[std.js.Dom.FileSystemEntryCallback], error_callback: std.core.Option[std.js.Dom.ErrorCallback]): std.core.Unit.

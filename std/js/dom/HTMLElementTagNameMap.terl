@@ -12,17 +12,11 @@
  */
 module std.js.Dom.HTMLElementTagNameMap.
 
-import type std.js.Dom.HTMLElement.{HTMLElement}.
-import type std.js.Dom.HTMLHeadingElement.{HTMLHeadingElement}.
-import type std.js.Dom.HTMLModElement.{HTMLModElement}.
-import type std.js.Dom.HTMLQuoteElement.{HTMLQuoteElement}.
-import type std.js.Dom.HTMLTableCellElement.{HTMLTableCellElement}.
-import type std.js.Dom.HTMLTableColElement.{HTMLTableColElement}.
-import type std.js.Dom.HTMLTableSectionElement.{HTMLTableSectionElement}.
+import type std.js.Dom.{HTMLElement, HTMLHeadingElement, HTMLModElement, HTMLQuoteElement, HTMLTableCellElement, HTMLTableColElement, HTMLTableSectionElement}.
 
 pub opaque type HTMLElementTagNameMap.
 
-pub (receiver: HTMLElementTagNameMap) a(): std.js.Dom.HTMLAnchorElement.HTMLAnchorElement ->
+pub (receiver: HTMLElementTagNameMap) a(): std.js.Dom.HTMLAnchorElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) abbr(): HTMLElement ->
@@ -31,7 +25,7 @@ pub (receiver: HTMLElementTagNameMap) abbr(): HTMLElement ->
 pub (receiver: HTMLElementTagNameMap) address(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) area(): std.js.Dom.HTMLAreaElement.HTMLAreaElement ->
+pub (receiver: HTMLElementTagNameMap) area(): std.js.Dom.HTMLAreaElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) article(): HTMLElement ->
@@ -40,13 +34,13 @@ pub (receiver: HTMLElementTagNameMap) article(): HTMLElement ->
 pub (receiver: HTMLElementTagNameMap) aside(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) audio(): std.js.Dom.HTMLAudioElement.HTMLAudioElement ->
+pub (receiver: HTMLElementTagNameMap) audio(): std.js.Dom.HTMLAudioElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) b(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) base(): std.js.Dom.HTMLBaseElement.HTMLBaseElement ->
+pub (receiver: HTMLElementTagNameMap) base(): std.js.Dom.HTMLBaseElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) bdi(): HTMLElement ->
@@ -58,19 +52,19 @@ pub (receiver: HTMLElementTagNameMap) bdo(): HTMLElement ->
 pub (receiver: HTMLElementTagNameMap) blockquote(): HTMLQuoteElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) body(): std.js.Dom.HTMLBodyElement.HTMLBodyElement ->
+pub (receiver: HTMLElementTagNameMap) body(): std.js.Dom.HTMLBodyElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) br(): std.js.Dom.HTMLBRElement.HTMLBRElement ->
+pub (receiver: HTMLElementTagNameMap) br(): std.js.Dom.HTMLBRElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) button(): std.js.Dom.HTMLButtonElement.HTMLButtonElement ->
+pub (receiver: HTMLElementTagNameMap) button(): std.js.Dom.HTMLButtonElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) canvas(): std.js.Dom.HTMLCanvasElement.HTMLCanvasElement ->
+pub (receiver: HTMLElementTagNameMap) canvas(): std.js.Dom.HTMLCanvasElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) caption(): std.js.Dom.HTMLTableCaptionElement.HTMLTableCaptionElement ->
+pub (receiver: HTMLElementTagNameMap) caption(): std.js.Dom.HTMLTableCaptionElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) cite(): HTMLElement ->
@@ -85,10 +79,10 @@ pub (receiver: HTMLElementTagNameMap) col(): HTMLTableColElement ->
 pub (receiver: HTMLElementTagNameMap) colgroup(): HTMLTableColElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) data(): std.js.Dom.HTMLDataElement.HTMLDataElement ->
+pub (receiver: HTMLElementTagNameMap) data(): std.js.Dom.HTMLDataElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) datalist(): std.js.Dom.HTMLDataListElement.HTMLDataListElement ->
+pub (receiver: HTMLElementTagNameMap) datalist(): std.js.Dom.HTMLDataListElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) dd(): HTMLElement ->
@@ -97,19 +91,19 @@ pub (receiver: HTMLElementTagNameMap) dd(): HTMLElement ->
 pub (receiver: HTMLElementTagNameMap) del(): HTMLModElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) details(): std.js.Dom.HTMLDetailsElement.HTMLDetailsElement ->
+pub (receiver: HTMLElementTagNameMap) details(): std.js.Dom.HTMLDetailsElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) dfn(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) dialog(): std.js.Dom.HTMLDialogElement.HTMLDialogElement ->
+pub (receiver: HTMLElementTagNameMap) dialog(): std.js.Dom.HTMLDialogElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) div_(): std.js.Dom.HTMLDivElement.HTMLDivElement ->
+pub (receiver: HTMLElementTagNameMap) div_(): std.js.Dom.HTMLDivElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) dl(): std.js.Dom.HTMLDListElement.HTMLDListElement ->
+pub (receiver: HTMLElementTagNameMap) dl(): std.js.Dom.HTMLDListElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) dt(): HTMLElement ->
@@ -118,10 +112,10 @@ pub (receiver: HTMLElementTagNameMap) dt(): HTMLElement ->
 pub (receiver: HTMLElementTagNameMap) em(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) embed(): std.js.Dom.HTMLEmbedElement.HTMLEmbedElement ->
+pub (receiver: HTMLElementTagNameMap) embed(): std.js.Dom.HTMLEmbedElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) fieldset(): std.js.Dom.HTMLFieldSetElement.HTMLFieldSetElement ->
+pub (receiver: HTMLElementTagNameMap) fieldset(): std.js.Dom.HTMLFieldSetElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) figcaption(): HTMLElement ->
@@ -133,7 +127,7 @@ pub (receiver: HTMLElementTagNameMap) figure(): HTMLElement ->
 pub (receiver: HTMLElementTagNameMap) footer(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) form(): std.js.Dom.HTMLFormElement.HTMLFormElement ->
+pub (receiver: HTMLElementTagNameMap) form(): std.js.Dom.HTMLFormElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) h1(): HTMLHeadingElement ->
@@ -154,7 +148,7 @@ pub (receiver: HTMLElementTagNameMap) h5(): HTMLHeadingElement ->
 pub (receiver: HTMLElementTagNameMap) h6(): HTMLHeadingElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) head(): std.js.Dom.HTMLHeadElement.HTMLHeadElement ->
+pub (receiver: HTMLElementTagNameMap) head(): std.js.Dom.HTMLHeadElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) header(): HTMLElement ->
@@ -163,22 +157,22 @@ pub (receiver: HTMLElementTagNameMap) header(): HTMLElement ->
 pub (receiver: HTMLElementTagNameMap) hgroup(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) hr(): std.js.Dom.HTMLHRElement.HTMLHRElement ->
+pub (receiver: HTMLElementTagNameMap) hr(): std.js.Dom.HTMLHRElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) html_(): std.js.Dom.HTMLHtmlElement.HTMLHtmlElement ->
+pub (receiver: HTMLElementTagNameMap) html_(): std.js.Dom.HTMLHtmlElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) i(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) iframe(): std.js.Dom.HTMLIFrameElement.HTMLIFrameElement ->
+pub (receiver: HTMLElementTagNameMap) iframe(): std.js.Dom.HTMLIFrameElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) img(): std.js.Dom.HTMLImageElement.HTMLImageElement ->
+pub (receiver: HTMLElementTagNameMap) img(): std.js.Dom.HTMLImageElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) input(): std.js.Dom.HTMLInputElement.HTMLInputElement ->
+pub (receiver: HTMLElementTagNameMap) input(): std.js.Dom.HTMLInputElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) ins(): HTMLModElement ->
@@ -187,34 +181,34 @@ pub (receiver: HTMLElementTagNameMap) ins(): HTMLModElement ->
 pub (receiver: HTMLElementTagNameMap) kbd(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) label(): std.js.Dom.HTMLLabelElement.HTMLLabelElement ->
+pub (receiver: HTMLElementTagNameMap) label(): std.js.Dom.HTMLLabelElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) legend(): std.js.Dom.HTMLLegendElement.HTMLLegendElement ->
+pub (receiver: HTMLElementTagNameMap) legend(): std.js.Dom.HTMLLegendElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) li(): std.js.Dom.HTMLLIElement.HTMLLIElement ->
+pub (receiver: HTMLElementTagNameMap) li(): std.js.Dom.HTMLLIElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) link(): std.js.Dom.HTMLLinkElement.HTMLLinkElement ->
+pub (receiver: HTMLElementTagNameMap) link(): std.js.Dom.HTMLLinkElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) main(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) map(): std.js.Dom.HTMLMapElement.HTMLMapElement ->
+pub (receiver: HTMLElementTagNameMap) map(): std.js.Dom.HTMLMapElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) mark(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) menu(): std.js.Dom.HTMLMenuElement.HTMLMenuElement ->
+pub (receiver: HTMLElementTagNameMap) menu(): std.js.Dom.HTMLMenuElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) meta(): std.js.Dom.HTMLMetaElement.HTMLMetaElement ->
+pub (receiver: HTMLElementTagNameMap) meta(): std.js.Dom.HTMLMetaElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) meter(): std.js.Dom.HTMLMeterElement.HTMLMeterElement ->
+pub (receiver: HTMLElementTagNameMap) meter(): std.js.Dom.HTMLMeterElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) nav(): HTMLElement ->
@@ -223,31 +217,31 @@ pub (receiver: HTMLElementTagNameMap) nav(): HTMLElement ->
 pub (receiver: HTMLElementTagNameMap) noscript(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) object(): std.js.Dom.HTMLObjectElement.HTMLObjectElement ->
+pub (receiver: HTMLElementTagNameMap) object(): std.js.Dom.HTMLObjectElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) ol(): std.js.Dom.HTMLOListElement.HTMLOListElement ->
+pub (receiver: HTMLElementTagNameMap) ol(): std.js.Dom.HTMLOListElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) optgroup(): std.js.Dom.HTMLOptGroupElement.HTMLOptGroupElement ->
+pub (receiver: HTMLElementTagNameMap) optgroup(): std.js.Dom.HTMLOptGroupElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) option(): std.js.Dom.HTMLOptionElement.HTMLOptionElement ->
+pub (receiver: HTMLElementTagNameMap) option(): std.js.Dom.HTMLOptionElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) output(): std.js.Dom.HTMLOutputElement.HTMLOutputElement ->
+pub (receiver: HTMLElementTagNameMap) output(): std.js.Dom.HTMLOutputElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) p(): std.js.Dom.HTMLParagraphElement.HTMLParagraphElement ->
+pub (receiver: HTMLElementTagNameMap) p(): std.js.Dom.HTMLParagraphElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) picture(): std.js.Dom.HTMLPictureElement.HTMLPictureElement ->
+pub (receiver: HTMLElementTagNameMap) picture(): std.js.Dom.HTMLPictureElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) pre(): std.js.Dom.HTMLPreElement.HTMLPreElement ->
+pub (receiver: HTMLElementTagNameMap) pre(): std.js.Dom.HTMLPreElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) progress(): std.js.Dom.HTMLProgressElement.HTMLProgressElement ->
+pub (receiver: HTMLElementTagNameMap) progress(): std.js.Dom.HTMLProgressElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) q(): HTMLQuoteElement ->
@@ -268,7 +262,7 @@ pub (receiver: HTMLElementTagNameMap) s(): HTMLElement ->
 pub (receiver: HTMLElementTagNameMap) samp(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) script(): std.js.Dom.HTMLScriptElement.HTMLScriptElement ->
+pub (receiver: HTMLElementTagNameMap) script(): std.js.Dom.HTMLScriptElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) search(): HTMLElement ->
@@ -277,25 +271,25 @@ pub (receiver: HTMLElementTagNameMap) search(): HTMLElement ->
 pub (receiver: HTMLElementTagNameMap) section(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) select(): std.js.Dom.HTMLSelectElement.HTMLSelectElement ->
+pub (receiver: HTMLElementTagNameMap) select(): std.js.Dom.HTMLSelectElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) slot(): std.js.Dom.HTMLSlotElement.HTMLSlotElement ->
+pub (receiver: HTMLElementTagNameMap) slot(): std.js.Dom.HTMLSlotElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) small(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) source(): std.js.Dom.HTMLSourceElement.HTMLSourceElement ->
+pub (receiver: HTMLElementTagNameMap) source(): std.js.Dom.HTMLSourceElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) span(): std.js.Dom.HTMLSpanElement.HTMLSpanElement ->
+pub (receiver: HTMLElementTagNameMap) span(): std.js.Dom.HTMLSpanElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) strong(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) style(): std.js.Dom.HTMLStyleElement.HTMLStyleElement ->
+pub (receiver: HTMLElementTagNameMap) style(): std.js.Dom.HTMLStyleElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) sub(): HTMLElement ->
@@ -307,7 +301,7 @@ pub (receiver: HTMLElementTagNameMap) summary(): HTMLElement ->
 pub (receiver: HTMLElementTagNameMap) sup(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) table(): std.js.Dom.HTMLTableElement.HTMLTableElement ->
+pub (receiver: HTMLElementTagNameMap) table(): std.js.Dom.HTMLTableElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) tbody(): HTMLTableSectionElement ->
@@ -316,10 +310,10 @@ pub (receiver: HTMLElementTagNameMap) tbody(): HTMLTableSectionElement ->
 pub (receiver: HTMLElementTagNameMap) td(): HTMLTableCellElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) template_(): std.js.Dom.HTMLTemplateElement.HTMLTemplateElement ->
+pub (receiver: HTMLElementTagNameMap) template_(): std.js.Dom.HTMLTemplateElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) textarea(): std.js.Dom.HTMLTextAreaElement.HTMLTextAreaElement ->
+pub (receiver: HTMLElementTagNameMap) textarea(): std.js.Dom.HTMLTextAreaElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) tfoot(): HTMLTableSectionElement ->
@@ -331,28 +325,28 @@ pub (receiver: HTMLElementTagNameMap) th(): HTMLTableCellElement ->
 pub (receiver: HTMLElementTagNameMap) thead(): HTMLTableSectionElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) time(): std.js.Dom.HTMLTimeElement.HTMLTimeElement ->
+pub (receiver: HTMLElementTagNameMap) time(): std.js.Dom.HTMLTimeElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) title(): std.js.Dom.HTMLTitleElement.HTMLTitleElement ->
+pub (receiver: HTMLElementTagNameMap) title(): std.js.Dom.HTMLTitleElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) tr(): std.js.Dom.HTMLTableRowElement.HTMLTableRowElement ->
+pub (receiver: HTMLElementTagNameMap) tr(): std.js.Dom.HTMLTableRowElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) track(): std.js.Dom.HTMLTrackElement.HTMLTrackElement ->
+pub (receiver: HTMLElementTagNameMap) track(): std.js.Dom.HTMLTrackElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) u(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) ul(): std.js.Dom.HTMLUListElement.HTMLUListElement ->
+pub (receiver: HTMLElementTagNameMap) ul(): std.js.Dom.HTMLUListElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) var(): HTMLElement ->
     native.
 
-pub (receiver: HTMLElementTagNameMap) video(): std.js.Dom.HTMLVideoElement.HTMLVideoElement ->
+pub (receiver: HTMLElementTagNameMap) video(): std.js.Dom.HTMLVideoElement ->
     native.
 
 pub (receiver: HTMLElementTagNameMap) wbr(): HTMLElement ->

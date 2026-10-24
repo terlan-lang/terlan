@@ -15,212 +15,212 @@ module std.js.Dom.GlobalEventHandlersEventMap.
 
 pub opaque type GlobalEventHandlersEventMap.
 
-pub (receiver: GlobalEventHandlersEventMap) abort(): std.js.Dom.UIEvent.UIEvent.
+pub (receiver: GlobalEventHandlersEventMap) abort(): std.js.Dom.UIEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) animationcancel(): std.js.Dom.AnimationEvent.AnimationEvent.
+pub (receiver: GlobalEventHandlersEventMap) animationcancel(): std.js.Dom.AnimationEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) animationend(): std.js.Dom.AnimationEvent.AnimationEvent.
+pub (receiver: GlobalEventHandlersEventMap) animationend(): std.js.Dom.AnimationEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) animationiteration(): std.js.Dom.AnimationEvent.AnimationEvent.
+pub (receiver: GlobalEventHandlersEventMap) animationiteration(): std.js.Dom.AnimationEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) animationstart(): std.js.Dom.AnimationEvent.AnimationEvent.
+pub (receiver: GlobalEventHandlersEventMap) animationstart(): std.js.Dom.AnimationEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) auxclick(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) auxclick(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) beforeinput(): std.js.Dom.InputEvent.InputEvent.
+pub (receiver: GlobalEventHandlersEventMap) beforeinput(): std.js.Dom.InputEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) beforematch(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) beforematch(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) beforetoggle(): std.js.Dom.ToggleEvent.ToggleEvent.
+pub (receiver: GlobalEventHandlersEventMap) beforetoggle(): std.js.Dom.ToggleEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) blur(): std.js.Dom.FocusEvent.FocusEvent.
+pub (receiver: GlobalEventHandlersEventMap) blur(): std.js.Dom.FocusEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) cancel(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) cancel(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) canplay(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) canplay(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) canplaythrough(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) canplaythrough(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) change(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) change(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) click(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) click(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) close(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) close(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) compositionend(): std.js.Dom.CompositionEvent.CompositionEvent.
+pub (receiver: GlobalEventHandlersEventMap) compositionend(): std.js.Dom.CompositionEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) compositionstart(): std.js.Dom.CompositionEvent.CompositionEvent.
+pub (receiver: GlobalEventHandlersEventMap) compositionstart(): std.js.Dom.CompositionEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) compositionupdate(): std.js.Dom.CompositionEvent.CompositionEvent.
+pub (receiver: GlobalEventHandlersEventMap) compositionupdate(): std.js.Dom.CompositionEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) contextlost(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) contextlost(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) contextmenu(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) contextmenu(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) contextrestored(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) contextrestored(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) copy(): std.js.Dom.ClipboardEvent.ClipboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) copy(): std.js.Dom.ClipboardEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) cuechange(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) cuechange(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) cut(): std.js.Dom.ClipboardEvent.ClipboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) cut(): std.js.Dom.ClipboardEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) dblclick(): std.js.Dom.MouseEvent.MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) dblclick(): std.js.Dom.MouseEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) drag(): std.js.Dom.DragEvent.DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) drag(): std.js.Dom.DragEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) dragend(): std.js.Dom.DragEvent.DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) dragend(): std.js.Dom.DragEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) dragenter(): std.js.Dom.DragEvent.DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) dragenter(): std.js.Dom.DragEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) dragleave(): std.js.Dom.DragEvent.DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) dragleave(): std.js.Dom.DragEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) dragover(): std.js.Dom.DragEvent.DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) dragover(): std.js.Dom.DragEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) dragstart(): std.js.Dom.DragEvent.DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) dragstart(): std.js.Dom.DragEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) drop(): std.js.Dom.DragEvent.DragEvent.
+pub (receiver: GlobalEventHandlersEventMap) drop(): std.js.Dom.DragEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) durationchange(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) durationchange(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) emptied(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) emptied(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) ended(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) ended(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) error(): std.js.Dom.ErrorEvent.ErrorEvent.
+pub (receiver: GlobalEventHandlersEventMap) error(): std.js.Dom.ErrorEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) focus(): std.js.Dom.FocusEvent.FocusEvent.
+pub (receiver: GlobalEventHandlersEventMap) focus(): std.js.Dom.FocusEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) focusin(): std.js.Dom.FocusEvent.FocusEvent.
+pub (receiver: GlobalEventHandlersEventMap) focusin(): std.js.Dom.FocusEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) focusout(): std.js.Dom.FocusEvent.FocusEvent.
+pub (receiver: GlobalEventHandlersEventMap) focusout(): std.js.Dom.FocusEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) formdata(): std.js.Dom.FormDataEvent.FormDataEvent.
+pub (receiver: GlobalEventHandlersEventMap) formdata(): std.js.Dom.FormDataEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) gotpointercapture(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) gotpointercapture(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) input(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) input(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) invalid(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) invalid(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) keydown(): std.js.Dom.KeyboardEvent.KeyboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) keydown(): std.js.Dom.KeyboardEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) keypress(): std.js.Dom.KeyboardEvent.KeyboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) keypress(): std.js.Dom.KeyboardEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) keyup(): std.js.Dom.KeyboardEvent.KeyboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) keyup(): std.js.Dom.KeyboardEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) load(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) load(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) loadeddata(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) loadeddata(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) loadedmetadata(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) loadedmetadata(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) loadstart(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) loadstart(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) lostpointercapture(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) lostpointercapture(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) mousedown(): std.js.Dom.MouseEvent.MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mousedown(): std.js.Dom.MouseEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) mouseenter(): std.js.Dom.MouseEvent.MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mouseenter(): std.js.Dom.MouseEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) mouseleave(): std.js.Dom.MouseEvent.MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mouseleave(): std.js.Dom.MouseEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) mousemove(): std.js.Dom.MouseEvent.MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mousemove(): std.js.Dom.MouseEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) mouseout(): std.js.Dom.MouseEvent.MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mouseout(): std.js.Dom.MouseEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) mouseover(): std.js.Dom.MouseEvent.MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mouseover(): std.js.Dom.MouseEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) mouseup(): std.js.Dom.MouseEvent.MouseEvent.
+pub (receiver: GlobalEventHandlersEventMap) mouseup(): std.js.Dom.MouseEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) paste(): std.js.Dom.ClipboardEvent.ClipboardEvent.
+pub (receiver: GlobalEventHandlersEventMap) paste(): std.js.Dom.ClipboardEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) pause(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) pause(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) play(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) play(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) playing(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) playing(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) pointercancel(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointercancel(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) pointerdown(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerdown(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) pointerenter(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerenter(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) pointerleave(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerleave(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) pointermove(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointermove(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) pointerout(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerout(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) pointerover(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerover(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) pointerrawupdate(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) pointerrawupdate(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) pointerup(): std.js.Dom.PointerEvent.PointerEvent.
+pub (receiver: GlobalEventHandlersEventMap) pointerup(): std.js.Dom.PointerEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) progress(): std.js.Dom.ProgressEvent.ProgressEvent.
+pub (receiver: GlobalEventHandlersEventMap) progress(): std.js.Dom.ProgressEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) ratechange(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) ratechange(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) reset(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) reset(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) resize(): std.js.Dom.UIEvent.UIEvent.
+pub (receiver: GlobalEventHandlersEventMap) resize(): std.js.Dom.UIEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) scroll(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) scroll(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) scrollend(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) scrollend(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) securitypolicyviolation(): std.js.Dom.SecurityPolicyViolationEvent.SecurityPolicyViolationEvent.
+pub (receiver: GlobalEventHandlersEventMap) securitypolicyviolation(): std.js.Dom.SecurityPolicyViolationEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) seeked(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) seeked(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) seeking(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) seeking(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) select(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) select(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) selectionchange(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) selectionchange(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) selectstart(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) selectstart(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) slotchange(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) slotchange(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) stalled(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) stalled(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) submit(): std.js.Dom.SubmitEvent.SubmitEvent.
+pub (receiver: GlobalEventHandlersEventMap) submit(): std.js.Dom.SubmitEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) suspend(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) suspend(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) timeupdate(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) timeupdate(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) toggle(): std.js.Dom.ToggleEvent.ToggleEvent.
+pub (receiver: GlobalEventHandlersEventMap) toggle(): std.js.Dom.ToggleEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) touchcancel(): std.js.Dom.TouchEvent.TouchEvent.
+pub (receiver: GlobalEventHandlersEventMap) touchcancel(): std.js.Dom.TouchEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) touchend(): std.js.Dom.TouchEvent.TouchEvent.
+pub (receiver: GlobalEventHandlersEventMap) touchend(): std.js.Dom.TouchEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) touchmove(): std.js.Dom.TouchEvent.TouchEvent.
+pub (receiver: GlobalEventHandlersEventMap) touchmove(): std.js.Dom.TouchEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) touchstart(): std.js.Dom.TouchEvent.TouchEvent.
+pub (receiver: GlobalEventHandlersEventMap) touchstart(): std.js.Dom.TouchEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) transitioncancel(): std.js.Dom.TransitionEvent.TransitionEvent.
+pub (receiver: GlobalEventHandlersEventMap) transitioncancel(): std.js.Dom.TransitionEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) transitionend(): std.js.Dom.TransitionEvent.TransitionEvent.
+pub (receiver: GlobalEventHandlersEventMap) transitionend(): std.js.Dom.TransitionEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) transitionrun(): std.js.Dom.TransitionEvent.TransitionEvent.
+pub (receiver: GlobalEventHandlersEventMap) transitionrun(): std.js.Dom.TransitionEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) transitionstart(): std.js.Dom.TransitionEvent.TransitionEvent.
+pub (receiver: GlobalEventHandlersEventMap) transitionstart(): std.js.Dom.TransitionEvent.
 
-pub (receiver: GlobalEventHandlersEventMap) volumechange(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) volumechange(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) waiting(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) waiting(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) webkitanimationend(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) webkitanimationend(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) webkitanimationiteration(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) webkitanimationiteration(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) webkitanimationstart(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) webkitanimationstart(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) webkittransitionend(): std.js.Dom.Event.Event.
+pub (receiver: GlobalEventHandlersEventMap) webkittransitionend(): std.js.Dom.Event.
 
-pub (receiver: GlobalEventHandlersEventMap) wheel(): std.js.Dom.WheelEvent.WheelEvent.
+pub (receiver: GlobalEventHandlersEventMap) wheel(): std.js.Dom.WheelEvent.

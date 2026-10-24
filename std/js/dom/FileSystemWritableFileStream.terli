@@ -12,9 +12,9 @@
  */
 module std.js.Dom.FileSystemWritableFileStream.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Number.{JsNumber}.
-import type std.js.Promise.{Promise}.
+import type std.js.{Promise}.
 
 /**
  * The **`FileSystemWritableFileStream`** interface of the File System API is a WritableStream object with additional convenience methods, which operates on a single file on disk.
@@ -43,4 +43,4 @@ pub (receiver: FileSystemWritableFileStream) truncate(size: JsNumber): Promise[U
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemWritableFileStream/write)
  */
-pub (receiver: FileSystemWritableFileStream) write(data: std.js.Dom.FileSystemWriteChunkType.FileSystemWriteChunkType): Promise[Unit].
+pub (receiver: FileSystemWritableFileStream) write(data: std.js.Dom.FileSystemWriteChunkType): Promise[Unit].

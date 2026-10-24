@@ -15,6 +15,6 @@ module std.js.Dom.DoubleRange.
 
 pub opaque type DoubleRange.
 
-pub (receiver: DoubleRange) max(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DoubleRange) max(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DoubleRange) min(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DoubleRange) min(): std.core.Option[std.js.Number.JsNumber].

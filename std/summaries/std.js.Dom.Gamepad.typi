@@ -25,14 +25,14 @@ pub opaque type Gamepad.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/axes)
  */
-pub (receiver: Gamepad) axes(): std.js.Array.Array[std.js.Number.JsNumber].
+pub (receiver: Gamepad) axes(): std.js.Array[std.js.Number.JsNumber].
 
 /**
  * The **`buttons`** property of the Gamepad interface returns an array of GamepadButton objects representing the buttons present on the device.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/buttons)
  */
-pub (receiver: Gamepad) buttons(): std.js.Array.Array[std.js.Dom.GamepadButton.GamepadButton].
+pub (receiver: Gamepad) buttons(): std.js.Array[std.js.Dom.GamepadButton].
 
 /**
  * The **`Gamepad.connected`** property of the still connected to the system.
@@ -60,11 +60,11 @@ pub (receiver: Gamepad) index(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/timestamp)
  */
-pub (receiver: Gamepad) timestamp(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: Gamepad) timestamp(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The **`vibrationActuator`** read-only property of the Gamepad interface returns a GamepadHapticActuator object, which represents haptic feedback hardware available on the controller.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/vibrationActuator)
  */
-pub (receiver: Gamepad) vibration_actuator(): std.js.Dom.GamepadHapticActuator.GamepadHapticActuator.
+pub (receiver: Gamepad) vibration_actuator(): std.js.Dom.GamepadHapticActuator.

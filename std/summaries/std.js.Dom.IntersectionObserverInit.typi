@@ -15,8 +15,8 @@ module std.js.Dom.IntersectionObserverInit.
 
 pub opaque type IntersectionObserverInit.
 
-pub (receiver: IntersectionObserverInit) root(): std.core.Option.Option[std.js.Dom.Document.Document | std.js.Dom.Element.Element].
+pub (receiver: IntersectionObserverInit) root(): std.core.Option[std.js.Dom.Document | std.js.Dom.Element].
 
-pub (receiver: IntersectionObserverInit) root_margin(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: IntersectionObserverInit) root_margin(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: IntersectionObserverInit) threshold(): std.core.Option.Option[std.js.Array.Array[std.js.Number.JsNumber] | std.js.Number.JsNumber].
+pub (receiver: IntersectionObserverInit) threshold(): std.core.Option[std.js.Array[std.js.Number.JsNumber] | std.js.Number.JsNumber].

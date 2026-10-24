@@ -32,7 +32,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    hyphenate_limit_zone: std.core.Option.Option[Value],
+    hyphenate_limit_zone: std.core.Option[Value],
 }.
 
 /**

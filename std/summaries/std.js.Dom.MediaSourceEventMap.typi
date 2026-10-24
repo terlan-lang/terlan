@@ -15,8 +15,8 @@ module std.js.Dom.MediaSourceEventMap.
 
 pub opaque type MediaSourceEventMap.
 
-pub (receiver: MediaSourceEventMap) sourceclose(): std.js.Dom.Event.Event.
+pub (receiver: MediaSourceEventMap) sourceclose(): std.js.Dom.Event.
 
-pub (receiver: MediaSourceEventMap) sourceended(): std.js.Dom.Event.Event.
+pub (receiver: MediaSourceEventMap) sourceended(): std.js.Dom.Event.
 
-pub (receiver: MediaSourceEventMap) sourceopen(): std.js.Dom.Event.Event.
+pub (receiver: MediaSourceEventMap) sourceopen(): std.js.Dom.Event.

@@ -26,4 +26,4 @@ pub opaque type MIDIMessageEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIMessageEvent/data)
  */
-pub (receiver: MIDIMessageEvent) data(): std.core.Option.Option[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]].
+pub (receiver: MIDIMessageEvent) data(): std.core.Option[std.js.Uint8Array[std.js.ArrayBuffer]].

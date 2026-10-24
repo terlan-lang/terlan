@@ -106,7 +106,7 @@ pub is_err(value: Result[A, E]): Bool ->
  * module result_map_example.
  *
  * import std.core.Result.{Err, Ok}.
- * import type std.core.Result.Result.
+ * import type std.core.Result.
  *
  * pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
  *    case value {
@@ -134,7 +134,7 @@ pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
  * module result_map_error_example.
  *
  * import std.core.Result.{Err, Ok}.
- * import type std.core.Result.Result.
+ * import type std.core.Result.
  *
  * pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
  *    case value {
@@ -166,7 +166,7 @@ pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
  * module result_and_then_example.
  *
  * import std.core.Result.{Err, Ok}.
- * import type std.core.Result.Result.
+ * import type std.core.Result.
  *
  * pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
  *    case value {
@@ -194,7 +194,7 @@ pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
  * module result_with_default_example.
  *
  * import std.core.Result.{Err, Ok}.
- * import type std.core.Result.Result.
+ * import type std.core.Result.
  *
  * pub with_default(value: Result[A, E], default: A): A ->
  *    case value {

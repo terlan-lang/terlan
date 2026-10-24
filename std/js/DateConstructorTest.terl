@@ -12,11 +12,11 @@
  */
 module std.js.DateConstructorTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.DateConstructor.
 import type std.js.Number.{JsNumber}.
 
-pub prototype_typechecks(receiver: DateConstructor): std.js.Date.Date ->
+pub prototype_typechecks(receiver: DateConstructor): std.js.Date ->
     receiver.prototype().
 
 pub parse_typechecks(receiver: DateConstructor, s: std.js.String.JsString): JsNumber ->

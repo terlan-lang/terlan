@@ -18,6 +18,6 @@ import type std.js.String.{JsString}.
 pub register_protocol_handler_typechecks(
     receiver: NavigatorContentUtils,
     scheme: JsString,
-    url: std.js.Dom.URL.URL | JsString,
-): std.core.Unit.Unit ->
+    url: std.js.Dom.URL | JsString,
+): std.core.Unit ->
     receiver.register_protocol_handler(scheme, url).

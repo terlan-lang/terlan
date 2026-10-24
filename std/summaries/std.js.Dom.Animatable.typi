@@ -18,9 +18,9 @@ pub opaque type Animatable.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/animate)
  */
-pub (receiver: Animatable) animate(keyframes: std.core.Option.Option[std.js.Dom.PropertyIndexedKeyframes.PropertyIndexedKeyframes | std.js.Array.Array[std.js.Dom.Keyframe.Keyframe]], options: std.core.Option.Option[std.js.Dom.KeyframeAnimationOptions.KeyframeAnimationOptions | std.js.Number.JsNumber]): std.js.Dom.Animation.Animation.
+pub (receiver: Animatable) animate(keyframes: std.core.Option[std.js.Dom.PropertyIndexedKeyframes | std.js.Array[std.js.Dom.Keyframe]], options: std.core.Option[std.js.Dom.KeyframeAnimationOptions | std.js.Number.JsNumber]): std.js.Dom.Animation.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getAnimations)
  */
-pub (receiver: Animatable) get_animations(options: std.core.Option.Option[std.js.Dom.GetAnimationsOptions.GetAnimationsOptions]): std.js.Array.Array[std.js.Dom.Animation.Animation].
+pub (receiver: Animatable) get_animations(options: std.core.Option[std.js.Dom.GetAnimationsOptions]): std.js.Array[std.js.Dom.Animation].

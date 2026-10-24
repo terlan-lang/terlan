@@ -34,7 +34,7 @@ pub (receiver: EncodedVideoChunk) byte_length(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedVideoChunk/duration)
  */
-pub (receiver: EncodedVideoChunk) duration(): std.core.Option.Option[JsNumber] ->
+pub (receiver: EncodedVideoChunk) duration(): std.core.Option[JsNumber] ->
     native.
 
 /**
@@ -50,7 +50,5 @@ pub (receiver: EncodedVideoChunk) timestamp(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedVideoChunk/copyTo)
  */
-pub (receiver: EncodedVideoChunk) copy_to(
-    destination: std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource,
-): std.core.Unit.Unit ->
+pub (receiver: EncodedVideoChunk) copy_to(destination: std.js.Dom.AllowSharedBufferSource): std.core.Unit ->
     native.

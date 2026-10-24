@@ -12,13 +12,13 @@
  */
 module std.js.Dom.WriteParamsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.WriteParams.
 import type std.js.Number.{JsNumber}.
 
 pub data_typechecks(
     receiver: WriteParams,
-): Option[std.js.Dom.Blob.Blob | std.js.Dom.BufferSource.BufferSource | std.js.String.JsString] ->
+): Option[std.js.Dom.Blob | std.js.Dom.BufferSource | std.js.String.JsString] ->
     receiver.data().
 
 pub position_typechecks(receiver: WriteParams): Option[JsNumber] ->

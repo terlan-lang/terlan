@@ -26,7 +26,7 @@ pub opaque type PaymentAddress.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/addressLine)
  */
-pub (receiver: PaymentAddress) address_line(): std.js.Array.Array[JsString] ->
+pub (receiver: PaymentAddress) address_line(): std.js.Array[JsString] ->
     native.
 
 /**

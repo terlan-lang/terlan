@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AuthenticationExtensionsPRFOutputsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.AuthenticationExtensionsPRFOutputs.
 
 pub enabled_typechecks(receiver: AuthenticationExtensionsPRFOutputs): Option[Bool] ->
@@ -20,5 +20,5 @@ pub enabled_typechecks(receiver: AuthenticationExtensionsPRFOutputs): Option[Boo
 
 pub results_typechecks(
     receiver: AuthenticationExtensionsPRFOutputs,
-): Option[std.js.Dom.AuthenticationExtensionsPRFValues.AuthenticationExtensionsPRFValues] ->
+): Option[std.js.Dom.AuthenticationExtensionsPRFValues] ->
     receiver.results().

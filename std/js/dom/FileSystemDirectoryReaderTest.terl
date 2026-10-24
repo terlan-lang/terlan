@@ -16,7 +16,7 @@ import type std.js.Dom.FileSystemDirectoryReader.
 
 pub read_entries_typechecks(
     receiver: FileSystemDirectoryReader,
-    success_callback: std.js.Dom.FileSystemEntriesCallback.FileSystemEntriesCallback,
-    error_callback: std.core.Option.Option[std.js.Dom.ErrorCallback.ErrorCallback],
-): std.core.Unit.Unit ->
+    success_callback: std.js.Dom.FileSystemEntriesCallback,
+    error_callback: std.core.Option[std.js.Dom.ErrorCallback],
+): std.core.Unit ->
     receiver.read_entries(success_callback, error_callback).

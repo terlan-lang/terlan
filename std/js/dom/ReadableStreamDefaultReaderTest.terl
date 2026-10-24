@@ -16,8 +16,8 @@ import type std.js.Dom.ReadableStreamDefaultReader.
 
 pub read_typechecks(
     receiver: ReadableStreamDefaultReader[R],
-): std.js.Promise.Promise[std.js.Dom.ReadableStreamReadResult.ReadableStreamReadResult[R]] ->
+): std.js.Promise[std.js.Dom.ReadableStreamReadResult[R]] ->
     receiver.read().
 
-pub release_lock_typechecks(receiver: ReadableStreamDefaultReader[R]): std.core.Unit.Unit ->
+pub release_lock_typechecks(receiver: ReadableStreamDefaultReader[R]): std.core.Unit ->
     receiver.release_lock().

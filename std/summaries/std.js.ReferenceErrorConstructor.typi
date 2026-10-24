@@ -15,4 +15,4 @@ module std.js.ReferenceErrorConstructor.
 
 pub opaque type ReferenceErrorConstructor.
 
-pub (receiver: ReferenceErrorConstructor) prototype(): std.js.ReferenceError.ReferenceError.
+pub (receiver: ReferenceErrorConstructor) prototype(): std.js.ReferenceError.

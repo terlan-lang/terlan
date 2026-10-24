@@ -12,6 +12,4 @@
  */
 module std.js.Dom.Float32List.
 
-pub type Float32List =
-      std.js.Float32Array.Float32Array[ArrayBufferLike]
-    | std.js.Array.Array[std.js.Dom.GLfloat.GLfloat].
+pub type Float32List = std.js.Float32Array[ArrayBufferLike] | std.js.Array[std.js.Dom.GLfloat].

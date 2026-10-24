@@ -15,4 +15,4 @@ module std.js.Dom.MediaKeyMessageEventInit.
 
 pub opaque type MediaKeyMessageEventInit.
 
-pub (receiver: MediaKeyMessageEventInit) message(): std.js.ArrayBuffer.ArrayBuffer.
+pub (receiver: MediaKeyMessageEventInit) message(): std.js.ArrayBuffer.

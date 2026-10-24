@@ -14,6 +14,6 @@ module std.js.Dom.AudioEncoderInit.
 
 pub opaque type AudioEncoderInit.
 
-pub (receiver: AudioEncoderInit) error(): std.js.Dom.WebCodecsErrorCallback.WebCodecsErrorCallback.
+pub (receiver: AudioEncoderInit) error(): std.js.Dom.WebCodecsErrorCallback.
 
-pub (receiver: AudioEncoderInit) output(): std.js.Dom.EncodedAudioChunkOutputCallback.EncodedAudioChunkOutputCallback.
+pub (receiver: AudioEncoderInit) output(): std.js.Dom.EncodedAudioChunkOutputCallback.

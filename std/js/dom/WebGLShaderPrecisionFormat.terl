@@ -12,7 +12,7 @@
  */
 module std.js.Dom.WebGLShaderPrecisionFormat.
 
-import type std.js.Dom.GLint.{GLint}.
+import type std.js.Dom.{GLint}.
 
 /**
  * The **WebGLShaderPrecisionFormat** interface is part of the WebGL API and represents the information returned by calling the WebGLRenderingContext.getShaderPrecisionFormat() method.

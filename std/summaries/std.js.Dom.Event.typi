@@ -54,7 +54,7 @@ pub (receiver: Event) composed(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/currentTarget)
  */
-pub (receiver: Event) current_target(): std.core.Option.Option[std.js.Dom.EventTarget.EventTarget].
+pub (receiver: Event) current_target(): std.core.Option[std.js.Dom.EventTarget].
 
 /**
  * The **`defaultPrevented`** read-only property of the Event interface returns a boolean value indicating whether or not the call to Event.preventDefault() canceled the event.
@@ -91,21 +91,21 @@ pub (receiver: Event) return_value(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/srcElement)
  */
-pub (receiver: Event) src_element(): std.core.Option.Option[std.js.Dom.EventTarget.EventTarget].
+pub (receiver: Event) src_element(): std.core.Option[std.js.Dom.EventTarget].
 
 /**
  * The read-only **`target`** property of the dispatched.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/target)
  */
-pub (receiver: Event) target_(): std.core.Option.Option[std.js.Dom.EventTarget.EventTarget].
+pub (receiver: Event) target_(): std.core.Option[std.js.Dom.EventTarget].
 
 /**
  * The **`timeStamp`** read-only property of the Event interface returns the time (in milliseconds) at which the event was created.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/timeStamp)
  */
-pub (receiver: Event) time_stamp(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: Event) time_stamp(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The **`type`** read-only property of the Event interface returns a string containing the event's type.
@@ -119,7 +119,7 @@ pub (receiver: Event) type_(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/composedPath)
  */
-pub (receiver: Event) composed_path(): std.js.Array.Array[std.js.Dom.EventTarget.EventTarget].
+pub (receiver: Event) composed_path(): std.js.Array[std.js.Dom.EventTarget].
 
 /**
  * The **`Event.initEvent()`** method is used to initialize the value of an event created using Document.createEvent().
@@ -127,25 +127,25 @@ pub (receiver: Event) composed_path(): std.js.Array.Array[std.js.Dom.EventTarget
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/initEvent)
  */
-pub (receiver: Event) init_event(type_: std.js.String.JsString, bubbles: std.core.Option.Option[Bool], cancelable: std.core.Option.Option[Bool]): std.core.Unit.Unit.
+pub (receiver: Event) init_event(type_: std.js.String.JsString, bubbles: std.core.Option[Bool], cancelable: std.core.Option[Bool]): std.core.Unit.
 
 /**
  * The **`preventDefault()`** method of the Event interface tells the user agent that if the event does not get explicitly handled, its default action should not be taken as it normally would be.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/preventDefault)
  */
-pub (receiver: Event) prevent_default(): std.core.Unit.Unit.
+pub (receiver: Event) prevent_default(): std.core.Unit.
 
 /**
  * The **`stopImmediatePropagation()`** method of the If several listeners are attached to the same element for the same event type, they are called in the order in which they were added.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/stopImmediatePropagation)
  */
-pub (receiver: Event) stop_immediate_propagation(): std.core.Unit.Unit.
+pub (receiver: Event) stop_immediate_propagation(): std.core.Unit.
 
 /**
  * The **`stopPropagation()`** method of the Event interface prevents further propagation of the current event in the capturing and bubbling phases.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/stopPropagation)
  */
-pub (receiver: Event) stop_propagation(): std.core.Unit.Unit.
+pub (receiver: Event) stop_propagation(): std.core.Unit.

@@ -1,6 +1,6 @@
 schema = "terlan.self-host.projection-adapter/v1"
 status = "implemented-unvalidated"
-input = "self_host.CanonicalToken.CanonicalToken"
+input = "self_host.CanonicalToken"
 output = "self_host.ProjectionSyntax.ProjectionOutput"
 preserves_text = true
 preserves_byte_spans = true

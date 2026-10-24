@@ -12,12 +12,10 @@
  */
 module std.js.Dom.Blob.
 
-import type std.core.Option.{Option}.
-import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
-import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
-import type std.js.Uint8Array.{Uint8Array}.
+import type std.js.{ArrayBuffer, Promise, Uint8Array}.
 
 /**
  * The **`Blob`** interface represents a blob, which is a file-like object of immutable, raw data; they can be read as text or binary data, or converted into a ReadableStream so its methods can be used for processing the data.
@@ -71,7 +69,7 @@ pub (receiver: Blob) slice(start: Option[JsNumber], end: Option[JsNumber], conte
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/stream)
  */
-pub (receiver: Blob) stream(): std.js.Dom.ReadableStream.ReadableStream[Uint8Array[ArrayBuffer]] ->
+pub (receiver: Blob) stream(): std.js.Dom.ReadableStream[Uint8Array[ArrayBuffer]] ->
     native.
 
 /**

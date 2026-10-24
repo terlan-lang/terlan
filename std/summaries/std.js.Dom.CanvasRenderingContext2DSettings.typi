@@ -15,8 +15,8 @@ module std.js.Dom.CanvasRenderingContext2DSettings.
 
 pub opaque type CanvasRenderingContext2DSettings.
 
-pub (receiver: CanvasRenderingContext2DSettings) alpha(): std.core.Option.Option[Bool].
+pub (receiver: CanvasRenderingContext2DSettings) alpha(): std.core.Option[Bool].
 
-pub (receiver: CanvasRenderingContext2DSettings) desynchronized(): std.core.Option.Option[Bool].
+pub (receiver: CanvasRenderingContext2DSettings) desynchronized(): std.core.Option[Bool].
 
-pub (receiver: CanvasRenderingContext2DSettings) will_read_frequently(): std.core.Option.Option[Bool].
+pub (receiver: CanvasRenderingContext2DSettings) will_read_frequently(): std.core.Option[Bool].

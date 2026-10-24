@@ -18,6 +18,6 @@ pub opaque type AudioBufferOptions.
 
 pub (receiver: AudioBufferOptions) length(): JsNumber.
 
-pub (receiver: AudioBufferOptions) number_of_channels(): std.core.Option.Option[JsNumber].
+pub (receiver: AudioBufferOptions) number_of_channels(): std.core.Option[JsNumber].
 
 pub (receiver: AudioBufferOptions) sample_rate(): JsNumber.

@@ -15,8 +15,8 @@ module std.js.Dom.TransitionEventInit.
 
 pub opaque type TransitionEventInit.
 
-pub (receiver: TransitionEventInit) elapsed_time(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: TransitionEventInit) elapsed_time(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: TransitionEventInit) property_name(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: TransitionEventInit) property_name(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: TransitionEventInit) pseudo_element(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: TransitionEventInit) pseudo_element(): std.core.Option[std.js.String.JsString].

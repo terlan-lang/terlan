@@ -15,8 +15,8 @@ module std.js.Dom.RTCIceServer.
 
 pub opaque type RTCIceServer.
 
-pub (receiver: RTCIceServer) credential(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCIceServer) credential(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCIceServer) urls(): std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString.
+pub (receiver: RTCIceServer) urls(): std.js.Array[std.js.String.JsString] | std.js.String.JsString.
 
-pub (receiver: RTCIceServer) username(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCIceServer) username(): std.core.Option[std.js.String.JsString].

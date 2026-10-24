@@ -75,7 +75,7 @@ pub(super) fn render_consumer_test(
             function.role == NativeFunctionRole::ImmutableMethod
                 && matches!(
                     function.returns.as_str(),
-                    "String" | "std.vm.Bytes.Bytes" | "List[Int]" | "List[Float]"
+                    "String" | "std.vm.Bytes" | "std.vm.Bytes.Bytes" | "List[Int]" | "List[Float]"
                 )
         })
         .collect::<Vec<_>>();
@@ -462,8 +462,16 @@ pub(super) fn role_name(role: NativeFunctionRole) -> &'static str {
 pub(super) fn render_args(args: &[NativeBindingArg]) -> String {
     args.iter()
         .map(|arg| match &arg.default {
-            Some(default) => format!("{}: {} = {default}", arg.name, arg.ty),
-            None => format!("{}: {}", arg.name, arg.ty),
+            Some(default) => format!(
+                "{}: {} = {default}",
+                arg.name,
+                crate::terlan_hir::public_type_text(&arg.ty)
+            ),
+            None => format!(
+                "{}: {}",
+                arg.name,
+                crate::terlan_hir::public_type_text(&arg.ty)
+            ),
         })
         .collect::<Vec<_>>()
         .join(", ")

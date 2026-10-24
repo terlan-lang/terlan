@@ -12,8 +12,7 @@
  */
 module std.js.Dom.CSSSkewTest.
 
-import type std.js.Dom.CSSNumericValue.{CSSNumericValue}.
-import type std.js.Dom.CSSSkew.
+import type std.js.Dom.{CSSNumericValue, CSSSkew}.
 
 pub ax_typechecks(receiver: CSSSkew): CSSNumericValue ->
     receiver.ax().

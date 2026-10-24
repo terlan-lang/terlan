@@ -16,5 +16,5 @@ import type std.js.Dom.ChannelSplitterOptions.
 
 pub number_of_outputs_typechecks(
     receiver: ChannelSplitterOptions,
-): std.core.Option.Option[std.js.Number.JsNumber] ->
+): std.core.Option[std.js.Number.JsNumber] ->
     receiver.number_of_outputs().

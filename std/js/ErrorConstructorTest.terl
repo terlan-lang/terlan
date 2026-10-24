@@ -14,5 +14,5 @@ module std.js.ErrorConstructorTest.
 
 import type std.js.ErrorConstructor.
 
-pub prototype_typechecks(receiver: ErrorConstructor): std.js.Error.Error ->
+pub prototype_typechecks(receiver: ErrorConstructor): std.js.Error ->
     receiver.prototype().

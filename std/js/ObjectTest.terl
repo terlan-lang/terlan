@@ -15,7 +15,7 @@ module std.js.ObjectTest.
 import type std.js.Object.
 import type std.js.String.{JsString}.
 
-pub constructor__typechecks(receiver: Object): std.js.Function.Function ->
+pub constructor__typechecks(receiver: Object): std.js.Function ->
     receiver.constructor_().
 
 pub to_string_typechecks(receiver: Object): JsString ->

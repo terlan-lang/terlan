@@ -15,6 +15,6 @@ module std.js.Dom.WebAssembly.WebAssemblyInstantiatedSource.
 
 pub opaque type WebAssemblyInstantiatedSource.
 
-pub (receiver: WebAssemblyInstantiatedSource) instance(): std.js.Dom.WebAssembly.Instance.Instance.
+pub (receiver: WebAssemblyInstantiatedSource) instance(): std.js.Dom.WebAssembly.Instance.
 
-pub (receiver: WebAssemblyInstantiatedSource) module_(): std.js.Dom.WebAssembly.Module.Module.
+pub (receiver: WebAssemblyInstantiatedSource) module_(): std.js.Dom.WebAssembly.Module.

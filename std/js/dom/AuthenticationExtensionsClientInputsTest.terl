@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AuthenticationExtensionsClientInputsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.AuthenticationExtensionsClientInputs.
 import type std.js.String.{JsString}.
 
@@ -37,7 +37,7 @@ pub hmac_create_secret_typechecks(receiver: AuthenticationExtensionsClientInputs
 
 pub large_blob_typechecks(
     receiver: AuthenticationExtensionsClientInputs,
-): Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputs.AuthenticationExtensionsLargeBlobInputs] ->
+): Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputs] ->
     receiver.large_blob().
 
 pub min_pin_length_typechecks(receiver: AuthenticationExtensionsClientInputs): Option[Bool] ->
@@ -45,5 +45,5 @@ pub min_pin_length_typechecks(receiver: AuthenticationExtensionsClientInputs): O
 
 pub prf_typechecks(
     receiver: AuthenticationExtensionsClientInputs,
-): Option[std.js.Dom.AuthenticationExtensionsPRFInputs.AuthenticationExtensionsPRFInputs] ->
+): Option[std.js.Dom.AuthenticationExtensionsPRFInputs] ->
     receiver.prf().

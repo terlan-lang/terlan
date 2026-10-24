@@ -21,5 +21,5 @@ pub name_typechecks(receiver: Error): JsString ->
 pub message_typechecks(receiver: Error): JsString ->
     receiver.message().
 
-pub stack_typechecks(receiver: Error): std.core.Option.Option[JsString] ->
+pub stack_typechecks(receiver: Error): std.core.Option[JsString] ->
     receiver.stack().

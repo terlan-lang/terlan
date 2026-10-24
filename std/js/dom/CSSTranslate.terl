@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CSSTranslate.
 
-import type std.js.Dom.CSSNumericValue.{CSSNumericValue}.
+import type std.js.Dom.{CSSNumericValue}.
 
 /**
  * The **`CSSTranslate`** interface of the CSS Typed Object Model API represents the translate() value of the individual transform property in CSS.

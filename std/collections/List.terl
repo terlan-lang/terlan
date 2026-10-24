@@ -126,7 +126,7 @@ pub (list: List[T]) subtract(values: List[T]): List[T] ->
  * Returns an iterator over the list.
  *
  * Input: one `List[T]`.
- * Output: a `std.collections.Iterator.Iterator[T]` positioned at the beginning
+ * Output: a `std.collections.Iterator[T]` positioned at the beginning
  * of the list.
  * Transformation: lowers through the compiler-owned `core.list.iterator`
  * intrinsic. The source-level iterator state is immutable;
@@ -134,7 +134,7 @@ pub (list: List[T]) subtract(values: List[T]): List[T] ->
  * the efficient representation behind the opaque iterator type.
  */
 @compiler.intrinsic
-pub (list: List[T]) iterator(): std.collections.Iterator.Iterator[T] ->
+pub (list: List[T]) iterator(): std.collections.Iterator[T] ->
     list.
 
 /**

@@ -12,11 +12,10 @@
  */
 module std.js.Dom.PointerEventInitTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.PointerEvent.{PointerEvent}.
-import type std.js.Dom.PointerEventInit.
+import type std.core.{Option}.
+import type std.js.Dom.{PointerEvent, PointerEventInit}.
 import type std.js.Number.{JsNumber}.
+import type std.js.{Array}.
 
 pub altitude_angle_typechecks(receiver: PointerEventInit): Option[JsNumber] ->
     receiver.altitude_angle().

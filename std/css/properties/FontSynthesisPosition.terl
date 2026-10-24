@@ -29,7 +29,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    font_synthesis_position: std.core.Option.Option[Value],
+    font_synthesis_position: std.core.Option[Value],
 }.
 
 /**

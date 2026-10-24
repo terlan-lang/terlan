@@ -14,5 +14,5 @@ module std.js.Dom.CustomEventInit.
 
 pub opaque type CustomEventInit[T].
 
-pub (receiver: CustomEventInit[T]) detail(): std.core.Option.Option[T] ->
+pub (receiver: CustomEventInit[T]) detail(): std.core.Option[T] ->
     native.

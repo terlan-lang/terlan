@@ -17,5 +17,5 @@ import type std.js.Dom.MediaKeyStatusMap.
 pub size_typechecks(receiver: MediaKeyStatusMap): std.js.Number.JsNumber ->
     receiver.size().
 
-pub has_typechecks(receiver: MediaKeyStatusMap, key_id: std.js.Dom.BufferSource.BufferSource): Bool ->
+pub has_typechecks(receiver: MediaKeyStatusMap, key_id: std.js.Dom.BufferSource): Bool ->
     receiver.has(key_id).

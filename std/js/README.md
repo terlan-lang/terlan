@@ -21,8 +21,8 @@ for Terlan-native bridge types such as `JsString`, `Array`, `Promise`, and
 ## Public Surface
 
 - `std.js.String.JsString`: JavaScript-native string wrapper.
-- `std.js.Array.Array[T]`: JavaScript-native array wrapper.
-- `std.js.Promise.Promise[T]`: JavaScript-native promise wrapper.
+- `std.js.Array[T]`: JavaScript-native array wrapper.
+- `std.js.Promise[T]`: JavaScript-native promise wrapper.
 - `std.js.Number.JsNumber`: JavaScript-native number wrapper.
 - `std.js.Map`, `std.js.Set`, `std.js.WeakMap`, `std.js.WeakSet`, and readonly
   or constructor variants generated from `lib.es2015.collection.d.ts`.

@@ -14,5 +14,5 @@ module std.js.Dom.PictureInPictureWindowEventMapTest.
 
 import type std.js.Dom.PictureInPictureWindowEventMap.
 
-pub resize_typechecks(receiver: PictureInPictureWindowEventMap): std.js.Dom.Event.Event ->
+pub resize_typechecks(receiver: PictureInPictureWindowEventMap): std.js.Dom.Event ->
     receiver.resize().

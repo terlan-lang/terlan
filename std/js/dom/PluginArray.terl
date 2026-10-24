@@ -12,8 +12,8 @@
  */
 module std.js.Dom.PluginArray.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.Plugin.{Plugin}.
+import type std.core.{Option}.
+import type std.js.Dom.{Plugin}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -45,5 +45,5 @@ pub (receiver: PluginArray) named_item(name: std.js.String.JsString): Option[Plu
 /**
  * @deprecated
  */
-pub (receiver: PluginArray) refresh(): std.core.Unit.Unit ->
+pub (receiver: PluginArray) refresh(): std.core.Unit ->
     native.

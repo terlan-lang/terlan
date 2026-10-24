@@ -15,6 +15,6 @@ module std.js.Intl.CollatorOptions.
 
 pub opaque type CollatorOptions.
 
-pub (receiver: CollatorOptions) numeric(): std.core.Option.Option[Bool].
+pub (receiver: CollatorOptions) numeric(): std.core.Option[Bool].
 
-pub (receiver: CollatorOptions) ignore_punctuation(): std.core.Option.Option[Bool].
+pub (receiver: CollatorOptions) ignore_punctuation(): std.core.Option[Bool].

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.IDBCursorTest.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.IDBCursor.
-import type std.js.Dom.IDBValidKey.{IDBValidKey}.
+import type std.core.{Unit}.
+import type std.js.Dom.{IDBCursor, IDBValidKey}.
 
 pub key_typechecks(receiver: IDBCursor): IDBValidKey ->
     receiver.key().
@@ -22,18 +21,16 @@ pub key_typechecks(receiver: IDBCursor): IDBValidKey ->
 pub primary_key_typechecks(receiver: IDBCursor): IDBValidKey ->
     receiver.primary_key().
 
-pub request_typechecks(receiver: IDBCursor): std.js.Dom.IDBRequest.IDBRequest ->
+pub request_typechecks(receiver: IDBCursor): std.js.Dom.IDBRequest ->
     receiver.request().
 
-pub source_typechecks(
-    receiver: IDBCursor,
-): std.js.Dom.IDBIndex.IDBIndex | std.js.Dom.IDBObjectStore.IDBObjectStore ->
+pub source_typechecks(receiver: IDBCursor): std.js.Dom.IDBIndex | std.js.Dom.IDBObjectStore ->
     receiver.source().
 
 pub advance_typechecks(receiver: IDBCursor, count: std.js.Number.JsNumber): Unit ->
     receiver.advance(count).
 
-pub continue_typechecks(receiver: IDBCursor, key: std.core.Option.Option[IDBValidKey]): Unit ->
+pub continue_typechecks(receiver: IDBCursor, key: std.core.Option[IDBValidKey]): Unit ->
     receiver.continue(key).
 
 pub continue_primary_key_typechecks(

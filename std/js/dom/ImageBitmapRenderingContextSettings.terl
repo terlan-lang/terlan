@@ -14,5 +14,5 @@ module std.js.Dom.ImageBitmapRenderingContextSettings.
 
 pub opaque type ImageBitmapRenderingContextSettings.
 
-pub (receiver: ImageBitmapRenderingContextSettings) alpha(): std.core.Option.Option[Bool] ->
+pub (receiver: ImageBitmapRenderingContextSettings) alpha(): std.core.Option[Bool] ->
     native.

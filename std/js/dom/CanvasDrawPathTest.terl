@@ -12,9 +12,8 @@
  */
 module std.js.Dom.CanvasDrawPathTest.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.CanvasDrawPath.
-import type std.js.Dom.Path2D.{Path2D}.
+import type std.core.{Unit}.
+import type std.js.Dom.{CanvasDrawPath, Path2D}.
 import type std.js.Number.{JsNumber}.
 
 pub begin_path_typechecks(receiver: CanvasDrawPath): Unit ->

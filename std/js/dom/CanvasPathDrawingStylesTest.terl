@@ -12,9 +12,9 @@
  */
 module std.js.Dom.CanvasPathDrawingStylesTest.
 
-import type std.js.Array.{Array}.
 import type std.js.Dom.CanvasPathDrawingStyles.
 import type std.js.Number.{JsNumber}.
+import type std.js.{Array}.
 
 pub line_dash_offset_typechecks(receiver: CanvasPathDrawingStyles): JsNumber ->
     receiver.line_dash_offset().
@@ -31,5 +31,5 @@ pub get_line_dash_typechecks(receiver: CanvasPathDrawingStyles): Array[JsNumber]
 pub set_line_dash_typechecks(
     receiver: CanvasPathDrawingStyles,
     segments: Array[JsNumber],
-): std.core.Unit.Unit ->
+): std.core.Unit ->
     receiver.set_line_dash(segments).

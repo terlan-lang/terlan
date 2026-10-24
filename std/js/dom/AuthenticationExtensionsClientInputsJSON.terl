@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AuthenticationExtensionsClientInputsJSON.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type AuthenticationExtensionsClientInputsJSON.
 
@@ -22,8 +22,8 @@ pub (receiver: AuthenticationExtensionsClientInputsJSON) appid(): Option[std.js.
 pub (receiver: AuthenticationExtensionsClientInputsJSON) cred_props(): Option[Bool] ->
     native.
 
-pub (receiver: AuthenticationExtensionsClientInputsJSON) large_blob(): Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputsJSON.AuthenticationExtensionsLargeBlobInputsJSON] ->
+pub (receiver: AuthenticationExtensionsClientInputsJSON) large_blob(): Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputsJSON] ->
     native.
 
-pub (receiver: AuthenticationExtensionsClientInputsJSON) prf(): Option[std.js.Dom.AuthenticationExtensionsPRFInputsJSON.AuthenticationExtensionsPRFInputsJSON] ->
+pub (receiver: AuthenticationExtensionsClientInputsJSON) prf(): Option[std.js.Dom.AuthenticationExtensionsPRFInputsJSON] ->
     native.

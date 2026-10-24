@@ -18,7 +18,7 @@ import type std.js.String.{JsString}.
 pub inherits_typechecks(receiver: CSSPropertyRule): Bool ->
     receiver.inherits().
 
-pub initial_value_typechecks(receiver: CSSPropertyRule): std.core.Option.Option[JsString] ->
+pub initial_value_typechecks(receiver: CSSPropertyRule): std.core.Option[JsString] ->
     receiver.initial_value().
 
 pub name_typechecks(receiver: CSSPropertyRule): JsString ->

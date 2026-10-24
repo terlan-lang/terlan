@@ -12,8 +12,8 @@
  */
 module std.js.Dom.NavigationPreloadManager.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Unit}.
+import type std.js.{Promise}.
 
 /**
  * The **`NavigationPreloadManager`** interface of the Service Worker API provides methods for managing the preloading of resources in parallel with service worker bootup.
@@ -44,7 +44,7 @@ pub (receiver: NavigationPreloadManager) enable(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/getState)
  */
-pub (receiver: NavigationPreloadManager) get_state(): Promise[std.js.Dom.NavigationPreloadState.NavigationPreloadState] ->
+pub (receiver: NavigationPreloadManager) get_state(): Promise[std.js.Dom.NavigationPreloadState] ->
     native.
 
 /**

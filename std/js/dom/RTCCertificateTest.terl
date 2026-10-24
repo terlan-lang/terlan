@@ -14,10 +14,10 @@ module std.js.Dom.RTCCertificateTest.
 
 import type std.js.Dom.RTCCertificate.
 
-pub expires_typechecks(receiver: RTCCertificate): std.js.Dom.EpochTimeStamp.EpochTimeStamp ->
+pub expires_typechecks(receiver: RTCCertificate): std.js.Dom.EpochTimeStamp ->
     receiver.expires().
 
 pub get_fingerprints_typechecks(
     receiver: RTCCertificate,
-): std.js.Array.Array[std.js.Dom.RTCDtlsFingerprint.RTCDtlsFingerprint] ->
+): std.js.Array[std.js.Dom.RTCDtlsFingerprint] ->
     receiver.get_fingerprints().

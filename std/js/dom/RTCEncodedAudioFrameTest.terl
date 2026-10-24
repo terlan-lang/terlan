@@ -14,13 +14,11 @@ module std.js.Dom.RTCEncodedAudioFrameTest.
 
 import type std.js.Dom.RTCEncodedAudioFrame.
 
-pub data_typechecks(receiver: RTCEncodedAudioFrame): std.js.ArrayBuffer.ArrayBuffer ->
+pub data_typechecks(receiver: RTCEncodedAudioFrame): std.js.ArrayBuffer ->
     receiver.data().
 
 pub timestamp_typechecks(receiver: RTCEncodedAudioFrame): std.js.Number.JsNumber ->
     receiver.timestamp().
 
-pub get_metadata_typechecks(
-    receiver: RTCEncodedAudioFrame,
-): std.js.Dom.RTCEncodedAudioFrameMetadata.RTCEncodedAudioFrameMetadata ->
+pub get_metadata_typechecks(receiver: RTCEncodedAudioFrame): std.js.Dom.RTCEncodedAudioFrameMetadata ->
     receiver.get_metadata().

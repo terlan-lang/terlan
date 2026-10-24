@@ -39,23 +39,23 @@ pub (receiver: Attr) name(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/namespaceURI)
  */
-pub (receiver: Attr) namespace_uri(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: Attr) namespace_uri(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: Attr) owner_document(): std.js.Dom.Document.Document.
+pub (receiver: Attr) owner_document(): std.js.Dom.Document.
 
 /**
  * The read-only **`ownerElement`** property of the Attr interface returns the Element the attribute belongs to.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/ownerElement)
  */
-pub (receiver: Attr) owner_element(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: Attr) owner_element(): std.core.Option[std.js.Dom.Element].
 
 /**
  * The read-only **`prefix`** property of the Attr returns the namespace prefix of the attribute, or `null` if no prefix is specified.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/prefix)
  */
-pub (receiver: Attr) prefix(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: Attr) prefix(): std.core.Option[std.js.String.JsString].
 
 /**
  * The read-only **`specified`** property of the Attr interface always returns `true`.

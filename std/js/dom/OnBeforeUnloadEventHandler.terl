@@ -12,5 +12,4 @@
  */
 module std.js.Dom.OnBeforeUnloadEventHandler.
 
-pub type OnBeforeUnloadEventHandler =
-      std.core.Option.Option[std.js.Dom.OnBeforeUnloadEventHandlerNonNull.OnBeforeUnloadEventHandlerNonNull].
+pub type OnBeforeUnloadEventHandler = std.core.Option[std.js.Dom.OnBeforeUnloadEventHandlerNonNull].

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AudioEncoderConfigTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.AudioEncoderConfig.
 import type std.js.Number.{JsNumber}.
 
@@ -25,9 +25,7 @@ pub codec_typechecks(receiver: AudioEncoderConfig): std.js.String.JsString ->
 pub number_of_channels_typechecks(receiver: AudioEncoderConfig): JsNumber ->
     receiver.number_of_channels().
 
-pub opus_typechecks(
-    receiver: AudioEncoderConfig,
-): Option[std.js.Dom.OpusEncoderConfig.OpusEncoderConfig] ->
+pub opus_typechecks(receiver: AudioEncoderConfig): Option[std.js.Dom.OpusEncoderConfig] ->
     receiver.opus().
 
 pub sample_rate_typechecks(receiver: AudioEncoderConfig): JsNumber ->

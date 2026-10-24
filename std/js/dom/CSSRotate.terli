@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CSSRotate.
 
-import type std.js.Dom.CSSNumberish.{CSSNumberish}.
+import type std.js.Dom.{CSSNumberish}.
 
 /**
  * The **`CSSRotate`** interface of the CSS Typed Object Model API represents the rotate value of the individual transform property in CSS.
@@ -26,7 +26,7 @@ pub opaque type CSSRotate.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSRotate/angle)
  */
-pub (receiver: CSSRotate) angle(): std.js.Dom.CSSNumericValue.CSSNumericValue.
+pub (receiver: CSSRotate) angle(): std.js.Dom.CSSNumericValue.
 
 /**
  * The **`x`** property of the translating vector.

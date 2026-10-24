@@ -14,5 +14,5 @@ module std.js.Dom.GainOptionsTest.
 
 import type std.js.Dom.GainOptions.
 
-pub gain_typechecks(receiver: GainOptions): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub gain_typechecks(receiver: GainOptions): std.core.Option[std.js.Number.JsNumber] ->
     receiver.gain().

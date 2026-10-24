@@ -17,7 +17,7 @@ and target paths that can provide efficient vector-like memory.
 
 ## Public Surface
 
-- `std.native.collections.Vector.Vector[T]`: opaque native indexed collection.
+- `std.native.collections.Vector[T]`: opaque native indexed collection.
 - `std.native.collections.Vector.new`: native vector allocation.
 - `std.native.collections.Vector.from_list`: portable list to vector
   conversion.

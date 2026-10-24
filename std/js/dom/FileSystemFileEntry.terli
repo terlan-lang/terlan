@@ -25,6 +25,6 @@ pub opaque type FileSystemFileEntry.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemFileEntry/file)
  */
 pub (receiver: FileSystemFileEntry) file_(
-    success_callback: std.js.Dom.FileCallback.FileCallback,
-    error_callback: std.core.Option.Option[std.js.Dom.ErrorCallback.ErrorCallback],
-): std.core.Unit.Unit.
+    success_callback: std.js.Dom.FileCallback,
+    error_callback: std.core.Option[std.js.Dom.ErrorCallback],
+): std.core.Unit.

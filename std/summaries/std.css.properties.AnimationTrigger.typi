@@ -8,7 +8,7 @@ module std.css.properties.AnimationTrigger.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    animation_trigger: std.core.Option.Option[Value]
+    animation_trigger: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

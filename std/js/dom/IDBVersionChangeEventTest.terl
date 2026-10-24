@@ -15,7 +15,7 @@ module std.js.Dom.IDBVersionChangeEventTest.
 import type std.js.Dom.IDBVersionChangeEvent.
 import type std.js.Number.{JsNumber}.
 
-pub new_version_typechecks(receiver: IDBVersionChangeEvent): std.core.Option.Option[JsNumber] ->
+pub new_version_typechecks(receiver: IDBVersionChangeEvent): std.core.Option[JsNumber] ->
     receiver.new_version().
 
 pub old_version_typechecks(receiver: IDBVersionChangeEvent): JsNumber ->

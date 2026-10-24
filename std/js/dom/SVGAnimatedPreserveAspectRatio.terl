@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedPreserveAspectRatio.
 
-import type std.js.Dom.SVGPreserveAspectRatio.{SVGPreserveAspectRatio}.
+import type std.js.Dom.{SVGPreserveAspectRatio}.
 
 /**
  * The **`SVGAnimatedPreserveAspectRatio`** interface represents attributes of type SVGPreserveAspectRatio which can be animated.

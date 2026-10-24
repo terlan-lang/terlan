@@ -16,5 +16,5 @@ import type std.js.Dom.ClipboardEventInit.
 
 pub clipboard_data_typechecks(
     receiver: ClipboardEventInit,
-): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer] ->
+): std.core.Option[std.js.Dom.DataTransfer] ->
     receiver.clipboard_data().

@@ -12,8 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedAngleTest.
 
-import type std.js.Dom.SVGAngle.{SVGAngle}.
-import type std.js.Dom.SVGAnimatedAngle.
+import type std.js.Dom.{SVGAngle, SVGAnimatedAngle}.
 
 pub anim_val_typechecks(receiver: SVGAnimatedAngle): SVGAngle ->
     receiver.anim_val().

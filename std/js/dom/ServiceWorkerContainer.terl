@@ -12,13 +12,10 @@
  */
 module std.js.Dom.ServiceWorkerContainer.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.ServiceWorkerRegistration.{ServiceWorkerRegistration}.
-import type std.js.Dom.URL.{URL}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, ServiceWorkerRegistration, URL}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 /**
  * The **`ServiceWorkerContainer`** interface of the Service Worker API provides an object representing the service worker as an overall unit in the network ecosystem, including facilities to register, unregister and update service workers, and access the state of service workers and their registrations.
@@ -33,7 +30,7 @@ pub opaque type ServiceWorkerContainer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/controller)
  */
-pub (receiver: ServiceWorkerContainer) controller(): Option[std.js.Dom.ServiceWorker.ServiceWorker] ->
+pub (receiver: ServiceWorkerContainer) controller(): Option[std.js.Dom.ServiceWorker] ->
     native.
 
 /**
@@ -57,7 +54,7 @@ pub (receiver: ServiceWorkerContainer) get_registration(client_url: Option[URL |
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/getRegistrations)
  */
-pub (receiver: ServiceWorkerContainer) get_registrations(): Promise[std.js.Array.Array[ServiceWorkerRegistration]] ->
+pub (receiver: ServiceWorkerContainer) get_registrations(): Promise[std.js.Array[ServiceWorkerRegistration]] ->
     native.
 
 /**
@@ -67,7 +64,7 @@ pub (receiver: ServiceWorkerContainer) get_registrations(): Promise[std.js.Array
  */
 pub (receiver: ServiceWorkerContainer) register(
     script_url: URL | JsString,
-    options: Option[std.js.Dom.RegistrationOptions.RegistrationOptions],
+    options: Option[std.js.Dom.RegistrationOptions],
 ): Promise[ServiceWorkerRegistration] ->
     native.
 
@@ -82,13 +79,13 @@ pub (receiver: ServiceWorkerContainer) start_messages(): Unit ->
 pub (receiver: ServiceWorkerContainer) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: ServiceWorkerContainer) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

@@ -12,10 +12,10 @@
  */
 module std.js.Dom.QueuingStrategy.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type QueuingStrategy[T].
 
 pub (receiver: QueuingStrategy[T]) high_water_mark(): Option[std.js.Number.JsNumber].
 
-pub (receiver: QueuingStrategy[T]) size(): Option[std.js.Dom.QueuingStrategySize.QueuingStrategySize[T]].
+pub (receiver: QueuingStrategy[T]) size(): Option[std.js.Dom.QueuingStrategySize[T]].

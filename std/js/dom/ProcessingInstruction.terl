@@ -19,7 +19,7 @@ module std.js.Dom.ProcessingInstruction.
  */
 pub opaque type ProcessingInstruction.
 
-pub (receiver: ProcessingInstruction) owner_document(): std.js.Dom.Document.Document ->
+pub (receiver: ProcessingInstruction) owner_document(): std.js.Dom.Document ->
     native.
 
 /**

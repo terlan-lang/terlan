@@ -16,5 +16,5 @@ import type std.js.Dom.DocumentTimelineOptions.
 
 pub origin_time_typechecks(
     receiver: DocumentTimelineOptions,
-): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp] ->
+): std.core.Option[std.js.Dom.DOMHighResTimeStamp] ->
     receiver.origin_time().

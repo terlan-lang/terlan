@@ -12,12 +12,12 @@
  */
 module std.js.Dom.VideoFrameCopyToOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type VideoFrameCopyToOptions.
 
-pub (receiver: VideoFrameCopyToOptions) layout(): Option[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]] ->
+pub (receiver: VideoFrameCopyToOptions) layout(): Option[std.js.Array[std.js.Dom.PlaneLayout]] ->
     native.
 
-pub (receiver: VideoFrameCopyToOptions) rect(): Option[std.js.Dom.DOMRectInit.DOMRectInit] ->
+pub (receiver: VideoFrameCopyToOptions) rect(): Option[std.js.Dom.DOMRectInit] ->
     native.

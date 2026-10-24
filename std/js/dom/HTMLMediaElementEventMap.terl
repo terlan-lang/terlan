@@ -14,8 +14,8 @@ module std.js.Dom.HTMLMediaElementEventMap.
 
 pub opaque type HTMLMediaElementEventMap.
 
-pub (receiver: HTMLMediaElementEventMap) encrypted(): std.js.Dom.MediaEncryptedEvent.MediaEncryptedEvent ->
+pub (receiver: HTMLMediaElementEventMap) encrypted(): std.js.Dom.MediaEncryptedEvent ->
     native.
 
-pub (receiver: HTMLMediaElementEventMap) waitingforkey(): std.js.Dom.Event.Event ->
+pub (receiver: HTMLMediaElementEventMap) waitingforkey(): std.js.Dom.Event ->
     native.

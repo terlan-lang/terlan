@@ -53,42 +53,42 @@ pub (receiver: PannerNode) max_distance(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/orientationX)
  */
-pub (receiver: PannerNode) orientation_x(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: PannerNode) orientation_x(): std.js.Dom.AudioParam.
 
 /**
  * The **`orientationY`** property of the PannerNode interface indicates the Y (vertical) component of the direction the audio source is facing, in 3D Cartesian coordinate space.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/orientationY)
  */
-pub (receiver: PannerNode) orientation_y(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: PannerNode) orientation_y(): std.js.Dom.AudioParam.
 
 /**
  * The **`orientationZ`** property of the PannerNode interface indicates the Z (depth) component of the direction the audio source is facing, in 3D Cartesian coordinate space.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/orientationZ)
  */
-pub (receiver: PannerNode) orientation_z(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: PannerNode) orientation_z(): std.js.Dom.AudioParam.
 
 /**
  * The **`positionX`** property of the PannerNode interface specifies the X coordinate of the audio source's position in 3D Cartesian coordinates, corresponding to the _horizontal_ axis (left-right).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/positionX)
  */
-pub (receiver: PannerNode) position_x(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: PannerNode) position_x(): std.js.Dom.AudioParam.
 
 /**
  * The **`positionY`** property of the PannerNode interface specifies the Y coordinate of the audio source's position in 3D Cartesian coordinates, corresponding to the _vertical_ axis (top-bottom).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/positionY)
  */
-pub (receiver: PannerNode) position_y(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: PannerNode) position_y(): std.js.Dom.AudioParam.
 
 /**
  * The **`positionZ`** property of the PannerNode interface specifies the Z coordinate of the audio source's position in 3D Cartesian coordinates, corresponding to the _depth_ axis (behind-in front of the listener).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/positionZ)
  */
-pub (receiver: PannerNode) position_z(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: PannerNode) position_z(): std.js.Dom.AudioParam.
 
 /**
  * The `refDistance` property of the PannerNode interface is a double value representing the reference distance for reducing volume as the audio source moves further from the listener – i.e., the distance at which the volume reduction starts taking effect.
@@ -110,7 +110,7 @@ pub (receiver: PannerNode) rolloff_factor(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/setOrientation)
  */
-pub (receiver: PannerNode) set_orientation(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: PannerNode) set_orientation(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The `setPosition()` method of the PannerNode Interface defines the position of the audio source relative to the listener (represented by an AudioListener object stored in the BaseAudioContext.listener attribute.) The three parameters `x`, `y` and `z` are unitless and describe the source's position in 3D space using the right-hand Cartesian coordinate system.
@@ -118,4 +118,4 @@ pub (receiver: PannerNode) set_orientation(x: std.js.Number.JsNumber, y: std.js.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PannerNode/setPosition)
  */
-pub (receiver: PannerNode) set_position(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: PannerNode) set_position(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber): std.core.Unit.

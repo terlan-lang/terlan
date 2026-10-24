@@ -12,8 +12,7 @@
  */
 module std.js.Dom.TransformStreamDefaultControllerTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
+import type std.core.{Option, Unit}.
 import type std.js.Dom.TransformStreamDefaultController.
 
 pub desired_size_typechecks(

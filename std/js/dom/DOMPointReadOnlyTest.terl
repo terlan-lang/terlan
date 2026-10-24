@@ -29,6 +29,6 @@ pub z_typechecks(receiver: DOMPointReadOnly): JsNumber ->
 
 pub matrix_transform_typechecks(
     receiver: DOMPointReadOnly,
-    matrix: std.core.Option.Option[std.js.Dom.DOMMatrixInit.DOMMatrixInit],
-): std.js.Dom.DOMPoint.DOMPoint ->
+    matrix: std.core.Option[std.js.Dom.DOMMatrixInit],
+): std.js.Dom.DOMPoint ->
     receiver.matrix_transform(matrix).

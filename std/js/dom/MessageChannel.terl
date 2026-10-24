@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MessageChannel.
 
-import type std.js.Dom.MessagePort.{MessagePort}.
+import type std.js.Dom.{MessagePort}.
 
 /**
  * The **`MessageChannel`** interface of the Channel Messaging API allows us to create a new message channel and send data through it via its two MessagePort properties.

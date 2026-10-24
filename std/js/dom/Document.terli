@@ -12,21 +12,11 @@
  */
 module std.js.Dom.Document.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.Attr.{Attr}.
-import type std.js.Dom.Element.{Element}.
-import type std.js.Dom.ElementCreationOptions.{ElementCreationOptions}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLAnchorElement.{HTMLAnchorElement}.
-import type std.js.Dom.HTMLCollectionOf.{HTMLCollectionOf}.
-import type std.js.Dom.HTMLElement.{HTMLElement}.
-import type std.js.Dom.HTMLEmbedElement.{HTMLEmbedElement}.
-import type std.js.Dom.Range.{Range}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Attr, Element, ElementCreationOptions, EventListenerOrEventListenerObject, HTMLAnchorElement, HTMLCollectionOf, HTMLElement, HTMLEmbedElement, Range}.
 import type std.js.Number.{JsNumber}.
-import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
+import type std.js.{Array, Promise}.
 
 /**
  * The **`Document`** interface represents any web page loaded in the browser and serves as an entry point into the web page's content, which is the DOM tree.
@@ -56,7 +46,7 @@ pub (receiver: Document) alink_color(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/all)
  */
-pub (receiver: Document) all(): std.js.Dom.HTMLAllCollection.HTMLAllCollection.
+pub (receiver: Document) all(): std.js.Dom.HTMLAllCollection.
 
 /**
  * The **`anchors`** read-only property of the An HTMLCollection.
@@ -72,7 +62,7 @@ pub (receiver: Document) anchors(): HTMLCollectionOf[HTMLAnchorElement].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/applets)
  */
-pub (receiver: Document) applets(): std.js.Dom.HTMLCollection.HTMLCollection.
+pub (receiver: Document) applets(): std.js.Dom.HTMLCollection.
 
 /**
  * The deprecated `bgColor` property gets or sets the background color of the current document.
@@ -129,7 +119,7 @@ pub (receiver: Document) cookie(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/currentScript)
  */
-pub (receiver: Document) current_script(): Option[std.js.Dom.HTMLOrSVGScriptElement.HTMLOrSVGScriptElement].
+pub (receiver: Document) current_script(): Option[std.js.Dom.HTMLOrSVGScriptElement].
 
 /**
  * **`document.designMode`** controls whether the entire document is editable.
@@ -150,7 +140,7 @@ pub (receiver: Document) dir(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/doctype)
  */
-pub (receiver: Document) doctype(): Option[std.js.Dom.DocumentType.DocumentType].
+pub (receiver: Document) doctype(): Option[std.js.Dom.DocumentType].
 
 /**
  * The **`documentElement`** read-only property of the Document interface returns the example, the html element for HTML documents).
@@ -194,14 +184,14 @@ pub (receiver: Document) fg_color(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/forms)
  */
-pub (receiver: Document) forms(): HTMLCollectionOf[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: Document) forms(): HTMLCollectionOf[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`fragmentDirective`** read-only property of the Document interface returns the FragmentDirective for the current document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fragmentDirective)
  */
-pub (receiver: Document) fragment_directive(): std.js.Dom.FragmentDirective.FragmentDirective.
+pub (receiver: Document) fragment_directive(): std.js.Dom.FragmentDirective.
 
 /**
  * The obsolete Document interface's **`fullscreen`** read-only property reports whether or not the document is currently displaying content in fullscreen mode.
@@ -223,7 +213,7 @@ pub (receiver: Document) fullscreen_enabled(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/head)
  */
-pub (receiver: Document) head(): std.js.Dom.HTMLHeadElement.HTMLHeadElement.
+pub (receiver: Document) head(): std.js.Dom.HTMLHeadElement.
 
 /**
  * The **`Document.hidden`** read-only property returns a Boolean value indicating if the page is considered hidden or not.
@@ -237,14 +227,14 @@ pub (receiver: Document) hidden(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/images)
  */
-pub (receiver: Document) images(): HTMLCollectionOf[std.js.Dom.HTMLImageElement.HTMLImageElement].
+pub (receiver: Document) images(): HTMLCollectionOf[std.js.Dom.HTMLImageElement].
 
 /**
  * The **`Document.implementation`** property returns a A DOMImplementation object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/implementation)
  */
-pub (receiver: Document) implementation(): std.js.Dom.DOMImplementation.DOMImplementation.
+pub (receiver: Document) implementation(): std.js.Dom.DOMImplementation.
 
 /**
  * @deprecated This is a legacy alias of `characterSet`.
@@ -273,14 +263,14 @@ pub (receiver: Document) link_color(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/links)
  */
-pub (receiver: Document) links(): HTMLCollectionOf[HTMLAnchorElement | std.js.Dom.HTMLAreaElement.HTMLAreaElement].
+pub (receiver: Document) links(): HTMLCollectionOf[HTMLAnchorElement | std.js.Dom.HTMLAreaElement].
 
 /**
  * The **`Document.location`** read-only property returns a and provides methods for changing that URL and loading another URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/location)
  */
-pub (receiver: Document) location(): std.js.Dom.Location.Location.
+pub (receiver: Document) location(): std.js.Dom.Location.
 
 /**
  * The read-only **`pictureInPictureEnabled`** property of the available.
@@ -309,14 +299,14 @@ pub (receiver: Document) referrer(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/rootElement)
  */
-pub (receiver: Document) root_element(): Option[std.js.Dom.SVGSVGElement.SVGSVGElement].
+pub (receiver: Document) root_element(): Option[std.js.Dom.SVGSVGElement].
 
 /**
  * The **`scripts`** property of the Document interface returns a list of the script elements in the document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/scripts)
  */
-pub (receiver: Document) scripts(): HTMLCollectionOf[std.js.Dom.HTMLScriptElement.HTMLScriptElement].
+pub (receiver: Document) scripts(): HTMLCollectionOf[std.js.Dom.HTMLScriptElement].
 
 /**
  * The **`scrollingElement`** read-only property of the scrolls the document.
@@ -330,7 +320,7 @@ pub (receiver: Document) scrolling_element(): Option[Element].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/timeline)
  */
-pub (receiver: Document) timeline(): std.js.Dom.DocumentTimeline.DocumentTimeline.
+pub (receiver: Document) timeline(): std.js.Dom.DocumentTimeline.
 
 /**
  * The **`document.title`** property gets or sets the current title of the document.
@@ -360,8 +350,8 @@ pub (receiver: Document) capture_events(): Unit.
 pub (receiver: Document) caret_position_from_point(
     x: JsNumber,
     y: JsNumber,
-    options: Option[std.js.Dom.CaretPositionFromPointOptions.CaretPositionFromPointOptions],
-): Option[std.js.Dom.CaretPosition.CaretPosition].
+    options: Option[std.js.Dom.CaretPositionFromPointOptions],
+): Option[std.js.Dom.CaretPosition].
 
 /**
  * @deprecated
@@ -402,21 +392,21 @@ pub (receiver: Document) create_attribute_ns(namespace: Option[JsString], qualif
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createCDATASection)
  */
-pub (receiver: Document) create_cdata_section(data: JsString): std.js.Dom.CDATASection.CDATASection.
+pub (receiver: Document) create_cdata_section(data: JsString): std.js.Dom.CDATASection.
 
 /**
  * **`createComment()`** creates a new comment node, and returns it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createComment)
  */
-pub (receiver: Document) create_comment(data: JsString): std.js.Dom.Comment.Comment.
+pub (receiver: Document) create_comment(data: JsString): std.js.Dom.Comment.
 
 /**
  * Creates a new empty DocumentFragment into which DOM nodes can be added to build an offscreen DOM tree.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createDocumentFragment)
  */
-pub (receiver: Document) create_document_fragment(): std.js.Dom.DocumentFragment.DocumentFragment.
+pub (receiver: Document) create_document_fragment(): std.js.Dom.DocumentFragment.
 
 pub (receiver: Document) create_element(tag_name: JsString, options: Option[ElementCreationOptions]): HTMLElement.
 
@@ -432,7 +422,7 @@ pub (receiver: Document) create_element_ns_overload_2(
     options: Option[ElementCreationOptions | JsString],
 ): Element.
 
-pub (receiver: Document) create_event(event_interface: JsString): std.js.Dom.Event.Event.
+pub (receiver: Document) create_event(event_interface: JsString): std.js.Dom.Event.
 
 /**
  * `createProcessingInstruction()` generates a new processing instruction node and returns it.
@@ -442,7 +432,7 @@ pub (receiver: Document) create_event(event_interface: JsString): std.js.Dom.Eve
 pub (receiver: Document) create_processing_instruction(
     target_: JsString,
     data: JsString,
-): std.js.Dom.ProcessingInstruction.ProcessingInstruction.
+): std.js.Dom.ProcessingInstruction.
 
 /**
  * The **`Document.createRange()`** method returns a new ```js-nolint createRange() ``` None.
@@ -456,7 +446,7 @@ pub (receiver: Document) create_range(): Range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createTextNode)
  */
-pub (receiver: Document) create_text_node(data: JsString): std.js.Dom.Text.Text.
+pub (receiver: Document) create_text_node(data: JsString): std.js.Dom.Text.
 
 /**
  * The **`execCommand`** method implements multiple different commands.
@@ -501,7 +491,7 @@ pub (receiver: Document) get_elements_by_class_name(class_names: JsString): HTML
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getElementsByName)
  */
-pub (receiver: Document) get_elements_by_name(element_name: JsString): std.js.Dom.NodeListOf.NodeListOf[HTMLElement].
+pub (receiver: Document) get_elements_by_name(element_name: JsString): std.js.Dom.NodeListOf[HTMLElement].
 
 pub (receiver: Document) get_elements_by_tag_name(qualified_name: JsString): HTMLCollectionOf[Element].
 
@@ -515,7 +505,7 @@ pub (receiver: Document) get_elements_by_tag_name_ns(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getSelection)
  */
-pub (receiver: Document) get_selection(): Option[std.js.Dom.Selection.Selection].
+pub (receiver: Document) get_selection(): Option[std.js.Dom.Selection].
 
 /**
  * The **`hasFocus()`** method of the Document interface returns a boolean value indicating whether the document or any element inside the document has focus.
@@ -539,10 +529,10 @@ pub (receiver: Document) has_storage_access(): Promise[Bool].
 pub (receiver: Document) open(unused1: Option[JsString], unused2: Option[JsString]): Document.
 
 pub (receiver: Document) open_overload_2(
-    url: std.js.Dom.URL.URL | JsString,
+    url: std.js.Dom.URL | JsString,
     name: JsString,
     features: JsString,
-): Option[std.js.Dom.WindowProxy.WindowProxy].
+): Option[std.js.Dom.WindowProxy].
 
 /**
  * The **`Document.queryCommandEnabled()`** method reports whether or not the specified editor command is enabled by the browser.
@@ -596,8 +586,8 @@ pub (receiver: Document) request_storage_access(): Promise[Unit].
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/startViewTransition)
  */
 pub (receiver: Document) start_view_transition(
-    callback_options: Option[std.js.Dom.StartViewTransitionOptions.StartViewTransitionOptions | std.js.Dom.ViewTransitionUpdateCallback.ViewTransitionUpdateCallback],
-): std.js.Dom.ViewTransition.ViewTransition.
+    callback_options: Option[std.js.Dom.StartViewTransitionOptions | std.js.Dom.ViewTransitionUpdateCallback],
+): std.js.Dom.ViewTransition.
 
 /**
  * The **`write()`** method of the Document interface writes text in one or more TrustedHTML or string parameters to a document stream opened by document.open().
@@ -617,11 +607,11 @@ pub (receiver: Document) writeln(text: Array[JsString]): Unit.
 pub (receiver: Document) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: Document) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

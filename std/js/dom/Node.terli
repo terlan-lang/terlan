@@ -12,8 +12,8 @@
  */
 module std.js.Dom.Node.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.ChildNode.{ChildNode}.
+import type std.core.{Option}.
+import type std.js.Dom.{ChildNode}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -36,7 +36,7 @@ pub (receiver: Node) base_uri(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/childNodes)
  */
-pub (receiver: Node) child_nodes(): std.js.Dom.NodeListOf.NodeListOf[ChildNode].
+pub (receiver: Node) child_nodes(): std.js.Dom.NodeListOf[ChildNode].
 
 /**
  * The read-only **`firstChild`** property of the Node interface returns the node's first child in the tree, or `null` if the node has no children.
@@ -92,21 +92,21 @@ pub (receiver: Node) node_value(): Option[JsString].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/ownerDocument)
  */
-pub (receiver: Node) owner_document(): Option[std.js.Dom.Document.Document].
+pub (receiver: Node) owner_document(): Option[std.js.Dom.Document].
 
 /**
  * The read-only **`parentElement`** property of Node interface returns the DOM node's parent Element, or `null` if the node either has no parent, or its parent isn't a DOM Element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentElement)
  */
-pub (receiver: Node) parent_element(): Option[std.js.Dom.HTMLElement.HTMLElement].
+pub (receiver: Node) parent_element(): Option[std.js.Dom.HTMLElement].
 
 /**
  * The read-only **`parentNode`** property of the Node interface returns the parent of the specified node in the DOM tree.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentNode)
  */
-pub (receiver: Node) parent_node(): Option[std.js.Dom.ParentNode.ParentNode].
+pub (receiver: Node) parent_node(): Option[std.js.Dom.ParentNode].
 
 /**
  * The read-only **`previousSibling`** property of the Node interface returns the node immediately preceding the specified one in its parent's or `null` if the specified node is the first in that list.
@@ -148,7 +148,7 @@ pub (receiver: Node) contains(other: Option[Node]): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/getRootNode)
  */
-pub (receiver: Node) get_root_node(options: Option[std.js.Dom.GetRootNodeOptions.GetRootNodeOptions]): Node.
+pub (receiver: Node) get_root_node(options: Option[std.js.Dom.GetRootNodeOptions]): Node.
 
 /**
  * The **`hasChildNodes()`** method of the Node interface returns a boolean value indicating whether the given Node has child nodes or not.
@@ -197,4 +197,4 @@ pub (receiver: Node) lookup_prefix(namespace: Option[JsString]): Option[JsString
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/normalize)
  */
-pub (receiver: Node) normalize(): std.core.Unit.Unit.
+pub (receiver: Node) normalize(): std.core.Unit.

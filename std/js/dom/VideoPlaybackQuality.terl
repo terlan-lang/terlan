@@ -35,7 +35,7 @@ pub (receiver: VideoPlaybackQuality) corrupted_video_frames(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoPlaybackQuality/creationTime)
  */
-pub (receiver: VideoPlaybackQuality) creation_time(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
+pub (receiver: VideoPlaybackQuality) creation_time(): std.js.Dom.DOMHighResTimeStamp ->
     native.
 
 /**

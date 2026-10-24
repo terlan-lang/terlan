@@ -12,10 +12,10 @@
  */
 module std.js.Dom.PageSwapEventInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type PageSwapEventInit.
 
-pub (receiver: PageSwapEventInit) activation(): Option[std.js.Dom.NavigationActivation.NavigationActivation].
+pub (receiver: PageSwapEventInit) activation(): Option[std.js.Dom.NavigationActivation].
 
-pub (receiver: PageSwapEventInit) view_transition(): Option[std.js.Dom.ViewTransition.ViewTransition].
+pub (receiver: PageSwapEventInit) view_transition(): Option[std.js.Dom.ViewTransition].

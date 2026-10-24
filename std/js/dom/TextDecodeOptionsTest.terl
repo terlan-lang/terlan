@@ -14,5 +14,5 @@ module std.js.Dom.TextDecodeOptionsTest.
 
 import type std.js.Dom.TextDecodeOptions.
 
-pub stream_typechecks(receiver: TextDecodeOptions): std.core.Option.Option[Bool] ->
+pub stream_typechecks(receiver: TextDecodeOptions): std.core.Option[Bool] ->
     receiver.stream().

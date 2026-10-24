@@ -14,4 +14,4 @@ module std.js.Dom.VibratePattern.
 
 import type std.js.Number.{JsNumber}.
 
-pub type VibratePattern = std.js.Array.Array[JsNumber] | JsNumber.
+pub type VibratePattern = std.js.Array[JsNumber] | JsNumber.

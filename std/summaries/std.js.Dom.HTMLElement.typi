@@ -109,7 +109,7 @@ pub (receiver: HTMLElement) offset_left(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/offsetParent)
  */
-pub (receiver: HTMLElement) offset_parent(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: HTMLElement) offset_parent(): std.core.Option[std.js.Dom.Element].
 
 /**
  * The **`offsetTop`** read-only property of the HTMLElement interface returns the distance from the outer border of the current element (including its margin) to the top padding edge of the HTMLelement.offsetParent, the _closest positioned_ ancestor element.
@@ -137,7 +137,7 @@ pub (receiver: HTMLElement) outer_text(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/popover)
  */
-pub (receiver: HTMLElement) popover(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: HTMLElement) popover(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`spellcheck`** property of the HTMLElement interface represents a boolean value that controls the spell-checking hint.
@@ -172,36 +172,36 @@ pub (receiver: HTMLElement) writing_suggestions(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/attachInternals)
  */
-pub (receiver: HTMLElement) attach_internals(): std.js.Dom.ElementInternals.ElementInternals.
+pub (receiver: HTMLElement) attach_internals(): std.js.Dom.ElementInternals.
 
 /**
  * The **`HTMLElement.click()`** method simulates a mouse click on an element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/click)
  */
-pub (receiver: HTMLElement) click(): std.core.Unit.Unit.
+pub (receiver: HTMLElement) click(): std.core.Unit.
 
 /**
  * The **`hidePopover()`** method of the HTMLElement interface hides a popover element (i.e., one that has a valid `popover` attribute) by removing it from the top layer and styling it with `display: none`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/hidePopover)
  */
-pub (receiver: HTMLElement) hide_popover(): std.core.Unit.Unit.
+pub (receiver: HTMLElement) hide_popover(): std.core.Unit.
 
 /**
  * The **`showPopover()`** method of the HTMLElement interface shows a Popover_API element (i.e., one that has a valid `popover` attribute) by adding it to the top layer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/showPopover)
  */
-pub (receiver: HTMLElement) show_popover(): std.core.Unit.Unit.
+pub (receiver: HTMLElement) show_popover(): std.core.Unit.
 
 /**
  * The **`togglePopover()`** method of the HTMLElement interface toggles a Popover_API element (i.e., one that has a valid `popover` attribute) between the hidden and showing states.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/togglePopover)
  */
-pub (receiver: HTMLElement) toggle_popover(options: std.core.Option.Option[Bool]): Bool.
+pub (receiver: HTMLElement) toggle_popover(options: std.core.Option[Bool]): Bool.
 
-pub (receiver: HTMLElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

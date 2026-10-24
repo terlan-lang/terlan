@@ -14,7 +14,7 @@ module std.js.Dom.WebAssembly.GlobalDescriptorTest.
 
 import type std.js.Dom.WebAssembly.GlobalDescriptor.
 
-pub mutable_typechecks(receiver: GlobalDescriptor[T]): std.core.Option.Option[Bool] ->
+pub mutable_typechecks(receiver: GlobalDescriptor[T]): std.core.Option[Bool] ->
     receiver.mutable().
 
 pub value_typechecks(receiver: GlobalDescriptor[T]): T ->

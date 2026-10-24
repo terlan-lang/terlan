@@ -12,10 +12,8 @@
  */
 module std.js.Dom.HTMLEmbedElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLEmbedElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLEmbedElement}.
 import type std.js.String.{JsString}.
 
 pub align_typechecks(receiver: HTMLEmbedElement): JsString ->
@@ -36,14 +34,14 @@ pub type__typechecks(receiver: HTMLEmbedElement): JsString ->
 pub width_typechecks(receiver: HTMLEmbedElement): JsString ->
     receiver.width().
 
-pub get_svg_document_typechecks(receiver: HTMLEmbedElement): Option[std.js.Dom.Document.Document] ->
+pub get_svg_document_typechecks(receiver: HTMLEmbedElement): Option[std.js.Dom.Document] ->
     receiver.get_svg_document().
 
 pub add_event_listener_typechecks(
     receiver: HTMLEmbedElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -51,6 +49,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLEmbedElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

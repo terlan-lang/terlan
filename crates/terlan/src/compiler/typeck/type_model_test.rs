@@ -1202,3 +1202,28 @@ fn reveal_opaque_aliases_expands_nested_generic_arguments() {
         Type::Float
     );
 }
+
+/// Public paths omit the primary suffix recursively, but retain secondary names.
+#[test]
+fn primary_type_paths_render_without_duplicate_names() {
+    let json = Type::Named {
+        module: Some("std.data.Json".into()),
+        name: "Json".into(),
+        args: vec![],
+    };
+    let map = Type::Named {
+        module: Some("std.collections.Map".into()),
+        name: "Map".into(),
+        args: vec![Type::Binary, json],
+    };
+    assert_eq!(
+        pretty_type(&map),
+        "std.collections.Map[Binary, std.data.Json]"
+    );
+    let secondary = Type::Named {
+        module: Some("std.data.Json".into()),
+        name: "JsonError".into(),
+        args: vec![],
+    };
+    assert_eq!(pretty_type(&secondary), "std.data.Json.JsonError");
+}

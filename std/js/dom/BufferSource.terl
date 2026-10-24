@@ -12,6 +12,6 @@
  */
 module std.js.Dom.BufferSource.
 
-import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.js.{ArrayBuffer}.
 
-pub type BufferSource = ArrayBuffer | std.js.ArrayBufferView.ArrayBufferView[ArrayBuffer].
+pub type BufferSource = ArrayBuffer | std.js.ArrayBufferView[ArrayBuffer].

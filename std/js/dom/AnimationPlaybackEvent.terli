@@ -12,8 +12,8 @@
  */
 module std.js.Dom.AnimationPlaybackEvent.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.CSSNumberish.{CSSNumberish}.
+import type std.core.{Option}.
+import type std.js.Dom.{CSSNumberish}.
 
 /**
  * The AnimationPlaybackEvent interface of the Web Animations API represents animation events.

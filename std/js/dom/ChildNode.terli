@@ -12,10 +12,10 @@
  */
 module std.js.Dom.ChildNode.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.Node.{Node}.
+import type std.core.{Unit}.
+import type std.js.Dom.{Node}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 pub opaque type ChildNode.
 

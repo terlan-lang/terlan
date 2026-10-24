@@ -15,6 +15,6 @@ module std.js.Dom.RTCRtcpParameters.
 
 pub opaque type RTCRtcpParameters.
 
-pub (receiver: RTCRtcpParameters) cname(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCRtcpParameters) cname(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCRtcpParameters) reduced_size(): std.core.Option.Option[Bool].
+pub (receiver: RTCRtcpParameters) reduced_size(): std.core.Option[Bool].

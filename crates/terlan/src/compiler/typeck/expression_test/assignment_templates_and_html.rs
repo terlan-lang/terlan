@@ -305,7 +305,7 @@ pub invalid_membership(value: Int): Bool ->\n\
     assert!(
         diagnostics.iter().any(|diag| {
             diag.message
-                .contains("right side expected std.range.Range.Range found List[Int]")
+                .contains("right side expected std.range.Range found List[Int]")
         }),
         "diagnostics: {:?}",
         diagnostics

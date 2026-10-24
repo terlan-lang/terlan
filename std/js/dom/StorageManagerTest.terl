@@ -13,16 +13,14 @@
 module std.js.Dom.StorageManagerTest.
 
 import type std.js.Dom.StorageManager.
-import type std.js.Promise.{Promise}.
+import type std.js.{Promise}.
 
-pub estimate_typechecks(
-    receiver: StorageManager,
-): Promise[std.js.Dom.StorageEstimate.StorageEstimate] ->
+pub estimate_typechecks(receiver: StorageManager): Promise[std.js.Dom.StorageEstimate] ->
     receiver.estimate().
 
 pub get_directory_typechecks(
     receiver: StorageManager,
-): Promise[std.js.Dom.FileSystemDirectoryHandle.FileSystemDirectoryHandle] ->
+): Promise[std.js.Dom.FileSystemDirectoryHandle] ->
     receiver.get_directory().
 
 pub persist_typechecks(receiver: StorageManager): Promise[Bool] ->

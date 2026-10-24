@@ -14,5 +14,5 @@ module std.js.Dom.EcdhKeyDeriveParams.
 
 pub opaque type EcdhKeyDeriveParams.
 
-pub (receiver: EcdhKeyDeriveParams) public(): std.js.Dom.CryptoKey.CryptoKey ->
+pub (receiver: EcdhKeyDeriveParams) public(): std.js.Dom.CryptoKey ->
     native.

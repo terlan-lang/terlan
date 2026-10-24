@@ -14,4 +14,4 @@
 module std.js.Dom.RTCRtpTransform.
 
 pub type RTCRtpTransform =
-    std.js.Dom.RTCRtpScriptTransform.RTCRtpScriptTransform.
+    std.js.Dom.RTCRtpScriptTransform.

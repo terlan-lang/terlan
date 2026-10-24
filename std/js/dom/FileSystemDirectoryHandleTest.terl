@@ -12,34 +12,34 @@
  */
 module std.js.Dom.FileSystemDirectoryHandleTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.FileSystemDirectoryHandle.
-import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 pub get_directory_handle_typechecks(
     receiver: FileSystemDirectoryHandle,
     name: JsString,
-    options: Option[std.js.Dom.FileSystemGetDirectoryOptions.FileSystemGetDirectoryOptions],
+    options: Option[std.js.Dom.FileSystemGetDirectoryOptions],
 ): Promise[FileSystemDirectoryHandle] ->
     receiver.get_directory_handle(name, options).
 
 pub get_file_handle_typechecks(
     receiver: FileSystemDirectoryHandle,
     name: JsString,
-    options: Option[std.js.Dom.FileSystemGetFileOptions.FileSystemGetFileOptions],
-): Promise[std.js.Dom.FileSystemFileHandle.FileSystemFileHandle] ->
+    options: Option[std.js.Dom.FileSystemGetFileOptions],
+): Promise[std.js.Dom.FileSystemFileHandle] ->
     receiver.get_file_handle(name, options).
 
 pub remove_entry_typechecks(
     receiver: FileSystemDirectoryHandle,
     name: JsString,
-    options: Option[std.js.Dom.FileSystemRemoveOptions.FileSystemRemoveOptions],
-): Promise[std.core.Unit.Unit] ->
+    options: Option[std.js.Dom.FileSystemRemoveOptions],
+): Promise[std.core.Unit] ->
     receiver.remove_entry(name, options).
 
 pub resolve_typechecks(
     receiver: FileSystemDirectoryHandle,
-    possible_descendant: std.js.Dom.FileSystemHandle.FileSystemHandle,
-): Promise[Option[std.js.Array.Array[JsString]]] ->
+    possible_descendant: std.js.Dom.FileSystemHandle,
+): Promise[Option[std.js.Array[JsString]]] ->
     receiver.resolve(possible_descendant).

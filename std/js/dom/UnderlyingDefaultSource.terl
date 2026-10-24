@@ -14,5 +14,5 @@ module std.js.Dom.UnderlyingDefaultSource.
 
 pub opaque type UnderlyingDefaultSource[R].
 
-pub (receiver: UnderlyingDefaultSource[R]) cancel(): std.core.Option.Option[std.js.Dom.UnderlyingSourceCancelCallback.UnderlyingSourceCancelCallback] ->
+pub (receiver: UnderlyingDefaultSource[R]) cancel(): std.core.Option[std.js.Dom.UnderlyingSourceCancelCallback] ->
     native.

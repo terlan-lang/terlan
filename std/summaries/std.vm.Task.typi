@@ -3,7 +3,7 @@
 module std.vm.Task.
 
 pub type Task[T] =
-    {Atom["task"], process: std.vm.Process.Process[TaskCommand[T]], witness: T}.
+    {Atom["task"], process: std.vm.Process[TaskCommand[T]], witness: T}.
 
 pub type TaskAwait =
     Atom["task_await"].
@@ -12,7 +12,7 @@ pub type TaskCancel =
     Atom["task_cancel"].
 
 pub type TaskCommand[T] =
-    {Atom["task_command"], kind: TaskCommandKind, request_id: Int, reply_to: std.vm.Process.Process[TaskReply[T]], witness: T}.
+    {Atom["task_command"], kind: TaskCommandKind, request_id: Int, reply_to: std.vm.Process[TaskReply[T]], witness: T}.
 
 pub type TaskCommandKind =
     TaskAwait
@@ -36,7 +36,7 @@ pub await_reply[T](request_id: Int, witness: T): T.
 
 pub cancel[T](task: Task[T]): Unit.
 
-pub make_task[T](process: std.vm.Process.Process[TaskCommand[T]], witness: T): Task[T].
+pub make_task[T](process: std.vm.Process[TaskCommand[T]], witness: T): Task[T].
 
 /// Thin policy wrapper for VM-owned failure monitoring.
 
@@ -56,4 +56,4 @@ pub serve[T](value: T): Unit.
 
 /// Builds a typed task handle for a statically spawned task entry.
 
-pub start[T](process: std.vm.Process.Process[TaskCommand[T]], witness: T): Task[T].
+pub start[T](process: std.vm.Process[TaskCommand[T]], witness: T): Task[T].

@@ -15,10 +15,10 @@ module std.js.Dom.WheelEventInit.
 
 pub opaque type WheelEventInit.
 
-pub (receiver: WheelEventInit) delta_mode(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: WheelEventInit) delta_mode(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: WheelEventInit) delta_x(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: WheelEventInit) delta_x(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: WheelEventInit) delta_y(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: WheelEventInit) delta_y(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: WheelEventInit) delta_z(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: WheelEventInit) delta_z(): std.core.Option[std.js.Number.JsNumber].

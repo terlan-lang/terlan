@@ -14,5 +14,5 @@ module std.js.Dom.WakeLockSentinelEventMapTest.
 
 import type std.js.Dom.WakeLockSentinelEventMap.
 
-pub release_typechecks(receiver: WakeLockSentinelEventMap): std.js.Dom.Event.Event ->
+pub release_typechecks(receiver: WakeLockSentinelEventMap): std.js.Dom.Event ->
     receiver.release().

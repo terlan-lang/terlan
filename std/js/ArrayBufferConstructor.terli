@@ -14,4 +14,4 @@ module std.js.ArrayBufferConstructor.
 
 pub opaque type ArrayBufferConstructor.
 
-pub (receiver: ArrayBufferConstructor) prototype(): std.js.ArrayBuffer.ArrayBuffer.
+pub (receiver: ArrayBufferConstructor) prototype(): std.js.ArrayBuffer.

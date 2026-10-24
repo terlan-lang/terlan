@@ -30,7 +30,7 @@ pub type Unit =
 /// inputs are always equal.
 ///
 /// This function is the named implementation hook for compiler-known
-/// `std.core.Ordering.Ordering[Unit]` conformance in 0.0.1.
+/// `std.core.Ordering[Unit]` conformance in 0.0.1.
 ///
 /// ```terlan
 /// module unit_compare_example.

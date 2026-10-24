@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AnalyserOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.AnalyserOptions.
 import type std.js.Number.{JsNumber}.
 

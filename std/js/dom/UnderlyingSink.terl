@@ -12,18 +12,18 @@
  */
 module std.js.Dom.UnderlyingSink.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type UnderlyingSink[W].
 
-pub (receiver: UnderlyingSink[W]) abort(): Option[std.js.Dom.UnderlyingSinkAbortCallback.UnderlyingSinkAbortCallback] ->
+pub (receiver: UnderlyingSink[W]) abort(): Option[std.js.Dom.UnderlyingSinkAbortCallback] ->
     native.
 
-pub (receiver: UnderlyingSink[W]) close(): Option[std.js.Dom.UnderlyingSinkCloseCallback.UnderlyingSinkCloseCallback] ->
+pub (receiver: UnderlyingSink[W]) close(): Option[std.js.Dom.UnderlyingSinkCloseCallback] ->
     native.
 
-pub (receiver: UnderlyingSink[W]) start(): Option[std.js.Dom.UnderlyingSinkStartCallback.UnderlyingSinkStartCallback] ->
+pub (receiver: UnderlyingSink[W]) start(): Option[std.js.Dom.UnderlyingSinkStartCallback] ->
     native.
 
-pub (receiver: UnderlyingSink[W]) write(): Option[std.js.Dom.UnderlyingSinkWriteCallback.UnderlyingSinkWriteCallback[W]] ->
+pub (receiver: UnderlyingSink[W]) write(): Option[std.js.Dom.UnderlyingSinkWriteCallback[W]] ->
     native.

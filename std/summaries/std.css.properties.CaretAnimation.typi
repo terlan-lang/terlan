@@ -8,7 +8,7 @@ module std.css.properties.CaretAnimation.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    caret_animation: std.core.Option.Option[Value]
+    caret_animation: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

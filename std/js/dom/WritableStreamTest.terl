@@ -17,10 +17,8 @@ import type std.js.Dom.WritableStream.
 pub locked_typechecks(receiver: WritableStream[W]): Bool ->
     receiver.locked().
 
-pub close_typechecks(receiver: WritableStream[W]): std.js.Promise.Promise[std.core.Unit.Unit] ->
+pub close_typechecks(receiver: WritableStream[W]): std.js.Promise[std.core.Unit] ->
     receiver.close().
 
-pub get_writer_typechecks(
-    receiver: WritableStream[W],
-): std.js.Dom.WritableStreamDefaultWriter.WritableStreamDefaultWriter[W] ->
+pub get_writer_typechecks(receiver: WritableStream[W]): std.js.Dom.WritableStreamDefaultWriter[W] ->
     receiver.get_writer().

@@ -14,4 +14,4 @@ module std.js.Dom.MIDIPortEventMap.
 
 pub opaque type MIDIPortEventMap.
 
-pub (receiver: MIDIPortEventMap) statechange(): std.js.Dom.MIDIConnectionEvent.MIDIConnectionEvent.
+pub (receiver: MIDIPortEventMap) statechange(): std.js.Dom.MIDIConnectionEvent.

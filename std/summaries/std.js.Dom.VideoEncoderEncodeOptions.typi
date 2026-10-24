@@ -15,6 +15,6 @@ module std.js.Dom.VideoEncoderEncodeOptions.
 
 pub opaque type VideoEncoderEncodeOptions.
 
-pub (receiver: VideoEncoderEncodeOptions) avc(): std.core.Option.Option[std.js.Dom.VideoEncoderEncodeOptionsForAvc.VideoEncoderEncodeOptionsForAvc].
+pub (receiver: VideoEncoderEncodeOptions) avc(): std.core.Option[std.js.Dom.VideoEncoderEncodeOptionsForAvc].
 
-pub (receiver: VideoEncoderEncodeOptions) key_frame(): std.core.Option.Option[Bool].
+pub (receiver: VideoEncoderEncodeOptions) key_frame(): std.core.Option[Bool].

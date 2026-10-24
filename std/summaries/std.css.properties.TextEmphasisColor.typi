@@ -8,7 +8,7 @@ module std.css.properties.TextEmphasisColor.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    text_emphasis_color: std.core.Option.Option[Value]
+    text_emphasis_color: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -55,14 +55,14 @@ pub (receiver: HTMLObjectElement) code_type(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/contentDocument)
  */
-pub (receiver: HTMLObjectElement) content_document(): std.core.Option.Option[std.js.Dom.Document.Document].
+pub (receiver: HTMLObjectElement) content_document(): std.core.Option[std.js.Dom.Document].
 
 /**
  * The **`contentWindow`** read-only property of the HTMLObjectElement interface returns a WindowProxy representing the window proxy of the object element's nested browsing context, if any; otherwise null.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/contentWindow)
  */
-pub (receiver: HTMLObjectElement) content_window(): std.core.Option.Option[std.js.Dom.WindowProxy.WindowProxy].
+pub (receiver: HTMLObjectElement) content_window(): std.core.Option[std.js.Dom.WindowProxy].
 
 /**
  * The **`data`** property of the reflects the `data` HTML attribute, specifying the address of a resource's data.
@@ -81,7 +81,7 @@ pub (receiver: HTMLObjectElement) declare(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/form)
  */
-pub (receiver: HTMLObjectElement) form(): std.core.Option.Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: HTMLObjectElement) form(): std.core.Option[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`height`** property of the reflects the `height` HTML attribute, specifying the displayed height of the resource in CSS pixels.
@@ -134,7 +134,7 @@ pub (receiver: HTMLObjectElement) validation_message(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/validity)
  */
-pub (receiver: HTMLObjectElement) validity(): std.js.Dom.ValidityState.ValidityState.
+pub (receiver: HTMLObjectElement) validity(): std.js.Dom.ValidityState.
 
 /**
  * @deprecated
@@ -167,7 +167,7 @@ pub (receiver: HTMLObjectElement) check_validity(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/getSVGDocument)
  */
-pub (receiver: HTMLObjectElement) get_svg_document(): std.core.Option.Option[std.js.Dom.Document.Document].
+pub (receiver: HTMLObjectElement) get_svg_document(): std.core.Option[std.js.Dom.Document].
 
 /**
  * The **`reportValidity()`** method of the HTMLObjectElement interface performs the same validity checking steps as the HTMLObjectElement.checkValidity method.
@@ -181,8 +181,8 @@ pub (receiver: HTMLObjectElement) report_validity(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/setCustomValidity)
  */
-pub (receiver: HTMLObjectElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: HTMLObjectElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.
 
-pub (receiver: HTMLObjectElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLObjectElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLObjectElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLObjectElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

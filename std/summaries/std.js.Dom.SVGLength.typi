@@ -53,11 +53,11 @@ pub (receiver: SVGLength) value_in_specified_units(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLength/convertToSpecifiedUnits)
  */
-pub (receiver: SVGLength) convert_to_specified_units(unit_type: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGLength) convert_to_specified_units(unit_type: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The `newValueSpecifiedUnits()` method of the SVGLength interface resets the value as a number with an associated SVGLength.unitType, thereby replacing the values for all of the attributes on the object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLength/newValueSpecifiedUnits)
  */
-pub (receiver: SVGLength) new_value_specified_units(unit_type: std.js.Number.JsNumber, value_in_specified_units: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGLength) new_value_specified_units(unit_type: std.js.Number.JsNumber, value_in_specified_units: std.js.Number.JsNumber): std.core.Unit.

@@ -14,5 +14,5 @@ module std.js.Dom.NavigatorLocksTest.
 
 import type std.js.Dom.NavigatorLocks.
 
-pub locks_typechecks(receiver: NavigatorLocks): std.js.Dom.LockManager.LockManager ->
+pub locks_typechecks(receiver: NavigatorLocks): std.js.Dom.LockManager ->
     receiver.locks().

@@ -33,5 +33,5 @@ pub (receiver: MediaKeyStatusMap) size(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeyStatusMap/has)
  */
-pub (receiver: MediaKeyStatusMap) has(key_id: std.js.Dom.BufferSource.BufferSource): Bool ->
+pub (receiver: MediaKeyStatusMap) has(key_id: std.js.Dom.BufferSource): Bool ->
     native.

@@ -15,6 +15,6 @@ module std.js.Dom.AudioTimestamp.
 
 pub opaque type AudioTimestamp.
 
-pub (receiver: AudioTimestamp) context_time(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AudioTimestamp) context_time(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: AudioTimestamp) performance_time(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp].
+pub (receiver: AudioTimestamp) performance_time(): std.core.Option[std.js.Dom.DOMHighResTimeStamp].

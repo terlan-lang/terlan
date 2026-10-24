@@ -17,7 +17,7 @@ not in the compiler's runtime implementation directory.
 
 ## Public Surface
 
-- `std.data.Json.Json`: opaque JSON value handle.
+- `std.data.Json`: opaque JSON value handle.
 - `std.data.Json.JsonError`: portable JSON operation error.
 - `std.data.Json`: JSON builders, parser, renderer, object lookup, array
   lookup, and typed scalar accessors.

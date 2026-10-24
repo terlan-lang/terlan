@@ -14,12 +14,8 @@ module std.js.Dom.ReadableWritablePairTest.
 
 import type std.js.Dom.ReadableWritablePair.
 
-pub readable_typechecks(
-    receiver: ReadableWritablePair[R, W],
-): std.js.Dom.ReadableStream.ReadableStream[R] ->
+pub readable_typechecks(receiver: ReadableWritablePair[R, W]): std.js.Dom.ReadableStream[R] ->
     receiver.readable().
 
-pub writable_typechecks(
-    receiver: ReadableWritablePair[R, W],
-): std.js.Dom.WritableStream.WritableStream[W] ->
+pub writable_typechecks(receiver: ReadableWritablePair[R, W]): std.js.Dom.WritableStream[W] ->
     receiver.writable().

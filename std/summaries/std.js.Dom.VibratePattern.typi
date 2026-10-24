@@ -14,4 +14,4 @@
 module std.js.Dom.VibratePattern.
 
 pub type VibratePattern =
-    std.js.Array.Array[std.js.Number.JsNumber] | std.js.Number.JsNumber.
+    std.js.Array[std.js.Number.JsNumber] | std.js.Number.JsNumber.

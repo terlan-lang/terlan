@@ -14,4 +14,4 @@
 module std.js.Dom.CSSNumberish.
 
 pub type CSSNumberish =
-    std.js.Dom.CSSNumericValue.CSSNumericValue | std.js.Number.JsNumber.
+    std.js.Dom.CSSNumericValue | std.js.Number.JsNumber.

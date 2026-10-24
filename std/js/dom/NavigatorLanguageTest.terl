@@ -18,5 +18,5 @@ import type std.js.String.{JsString}.
 pub language_typechecks(receiver: NavigatorLanguage): JsString ->
     receiver.language().
 
-pub languages_typechecks(receiver: NavigatorLanguage): std.js.Array.Array[JsString] ->
+pub languages_typechecks(receiver: NavigatorLanguage): std.js.Array[JsString] ->
     receiver.languages().

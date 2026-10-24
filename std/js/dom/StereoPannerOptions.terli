@@ -14,4 +14,4 @@ module std.js.Dom.StereoPannerOptions.
 
 pub opaque type StereoPannerOptions.
 
-pub (receiver: StereoPannerOptions) pan(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: StereoPannerOptions) pan(): std.core.Option[std.js.Number.JsNumber].

@@ -15,13 +15,13 @@ module std.js.Dom.DocumentFragmentTest.
 import type std.js.Dom.DocumentFragment.
 import type std.js.String.{JsString}.
 
-pub owner_document_typechecks(receiver: DocumentFragment): std.js.Dom.Document.Document ->
+pub owner_document_typechecks(receiver: DocumentFragment): std.js.Dom.Document ->
     receiver.owner_document().
 
 pub get_element_by_id_typechecks(
     receiver: DocumentFragment,
     element_id: JsString,
-): std.core.Option.Option[std.js.Dom.HTMLElement.HTMLElement] ->
+): std.core.Option[std.js.Dom.HTMLElement] ->
     receiver.get_element_by_id(element_id).
 
 pub text_content_typechecks(receiver: DocumentFragment): JsString ->

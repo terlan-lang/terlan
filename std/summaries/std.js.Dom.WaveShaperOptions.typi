@@ -15,4 +15,4 @@ module std.js.Dom.WaveShaperOptions.
 
 pub opaque type WaveShaperOptions.
 
-pub (receiver: WaveShaperOptions) curve(): std.core.Option.Option[std.js.Float32Array.Float32Array | std.js.Array.Array[std.js.Number.JsNumber]].
+pub (receiver: WaveShaperOptions) curve(): std.core.Option[std.js.Float32Array | std.js.Array[std.js.Number.JsNumber]].

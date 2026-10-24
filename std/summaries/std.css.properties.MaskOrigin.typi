@@ -8,7 +8,7 @@ module std.css.properties.MaskOrigin.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    mask_origin: std.core.Option.Option[Value]
+    mask_origin: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

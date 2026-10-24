@@ -107,37 +107,37 @@ fn render_facade_source(include_bodies: bool) -> String {
     let mut output = String::new();
     output.push_str("module terlan.angular.Ng.\n\n");
     for (doc, signature) in [
-        ("Returns the Angular.ts runtime handle.", "pub angular(): terlan.angular.ng.Angular.Angular"),
-        ("Creates an Angular.ts module without dependencies.", "pub ng_module(name: std.js.String.JsString): terlan.angular.ng.NgModule.NgModule"),
-        ("Creates an Angular.ts module with dependency names.", "pub ng_module_with_dependencies(name: std.js.String.JsString, dependencies: List[std.js.String.JsString]): terlan.angular.ng.NgModule.NgModule"),
-        ("Registers a component on an Angular.ts module.", "pub register_component(target: terlan.angular.ng.NgModule.NgModule, name: std.js.String.JsString, component: terlan.angular.ng.Component.Component): terlan.angular.ng.NgModule.NgModule"),
-        ("Registers a directive factory on an Angular.ts module.", "pub register_directive(target: terlan.angular.ng.NgModule.NgModule, name: std.js.String.JsString, factory: Dynamic): terlan.angular.ng.NgModule.NgModule"),
-        ("Registers a controller factory on an Angular.ts module.", "pub register_controller(target: terlan.angular.ng.NgModule.NgModule, name: std.js.String.JsString, controller: Dynamic): terlan.angular.ng.NgModule.NgModule"),
-        ("Runs an Angular.ts scope update cycle.", "pub apply_scope(scope: terlan.angular.ng.Scope.Scope): Unit"),
-        ("Stores a template in the Angular.ts template cache.", "pub template_put(templates: terlan.angular.ng.TemplateCacheService.TemplateCacheService, key: std.js.String.JsString, template_source: std.js.String.JsString): terlan.angular.ng.TemplateCacheService.TemplateCacheService"),
-        ("Reads a template from the Angular.ts template cache.", "pub template_get(templates: terlan.angular.ng.TemplateCacheService.TemplateCacheService, key: std.js.String.JsString): Option[std.js.String.JsString]"),
-        ("Removes a template from the Angular.ts template cache.", "pub template_remove(templates: terlan.angular.ng.TemplateCacheService.TemplateCacheService, key: std.js.String.JsString): Bool"),
-        ("Issues an Angular.ts HTTP GET request.", "pub http_get(http: terlan.angular.ng.HttpService.HttpService, url: std.js.String.JsString): std.js.Promise[terlan.angular.ng.HttpResponse.HttpResponse[Dynamic]]"),
-        ("Creates a state machine from an explicit Angular.ts machine configuration.", "pub machine(service: terlan.angular.ng.MachineService.MachineService, config: terlan.angular.ng.MachineConfig.MachineConfig[Dynamic]): terlan.angular.ng.Machine.Machine[Dynamic]"),
-        ("Sends an event and payload through a generated machine wrapper.", "pub machine_send(machine: terlan.angular.ng.Machine.Machine[Dynamic], event: std.js.String.JsString, payload: Dynamic): terlan.angular.ng.MachineSendResult.MachineSendResult[std.js.String.JsString]"),
-        ("Snapshots a generated machine wrapper.", "pub machine_snapshot(machine: terlan.angular.ng.Machine.Machine[Dynamic]): terlan.angular.ng.MachineSnapshot.MachineSnapshot[Dynamic]"),
-        ("Creates a workflow from an explicit Angular.ts workflow configuration.", "pub workflow(service: terlan.angular.ng.WorkflowService.WorkflowService, config: Dynamic): terlan.angular.ng.Workflow.Workflow[Dynamic]"),
-        ("Runs one named workflow command with a payload.", "pub workflow_run(workflow: terlan.angular.ng.Workflow.Workflow[Dynamic], command: std.js.String.JsString, input: Dynamic): std.js.Promise[terlan.angular.ng.WorkflowResult.WorkflowResult[Dynamic]]"),
-        ("Snapshots a generated workflow wrapper.", "pub workflow_snapshot(workflow: terlan.angular.ng.Workflow.Workflow[Dynamic]): terlan.angular.ng.WorkflowSnapshot.WorkflowSnapshot[Dynamic]"),
-        ("Opens an SSE connection with Angular.ts defaults.", "pub sse_connect(service: terlan.angular.ng.SseService.SseService, url: std.js.String.JsString): terlan.angular.ng.SseConnection.SseConnection"),
-        ("Opens an SSE connection with explicit options.", "pub sse_connect_with_config(service: terlan.angular.ng.SseService.SseService, url: std.js.String.JsString, config: terlan.angular.ng.SseConfig.SseConfig): terlan.angular.ng.SseConnection.SseConnection"),
-        ("Reconnects an SSE connection while preserving its listeners.", "pub sse_reconnect(connection: terlan.angular.ng.SseConnection.SseConnection): Unit"),
-        ("Closes an SSE connection and its reconnect lifecycle.", "pub sse_close(connection: terlan.angular.ng.SseConnection.SseConnection): Unit"),
-        ("Opens a WebSocket connection with Angular.ts defaults.", "pub websocket_connect(service: terlan.angular.ng.WebSocketService.WebSocketService, url: std.js.String.JsString): terlan.angular.ng.WebSocketConnection.WebSocketConnection"),
-        ("Opens a WebSocket connection with explicit options.", "pub websocket_connect_with_config(service: terlan.angular.ng.WebSocketService.WebSocketService, url: std.js.String.JsString, config: terlan.angular.ng.WebSocketConfig.WebSocketConfig): terlan.angular.ng.WebSocketConnection.WebSocketConnection"),
-        ("Sends one value through a managed WebSocket connection.", "pub websocket_send(connection: terlan.angular.ng.WebSocketConnection.WebSocketConnection, data: Dynamic): Unit"),
-        ("Closes a managed WebSocket connection.", "pub websocket_close(connection: terlan.angular.ng.WebSocketConnection.WebSocketConnection): Unit"),
-        ("Starts a managed worker with Angular.ts defaults.", "pub worker_start(service: terlan.angular.ng.WorkerService.WorkerService, script_path: std.js.String.JsString): terlan.angular.ng.WorkerHandle.WorkerHandle[Dynamic, Dynamic]"),
-        ("Starts a managed worker with explicit decode and restart options.", "pub worker_start_with_config(service: terlan.angular.ng.WorkerService.WorkerService, script_path: std.js.String.JsString, config: terlan.angular.ng.WorkerConfig.WorkerConfig[Dynamic]): terlan.angular.ng.WorkerHandle.WorkerHandle[Dynamic, Dynamic]"),
-        ("Subscribes to worker messages and returns the unsubscribe callback.", "pub worker_on_message(worker: terlan.angular.ng.WorkerHandle.WorkerHandle[Dynamic, Dynamic], listener: Dynamic): Dynamic"),
-        ("Subscribes to worker errors and returns the unsubscribe callback.", "pub worker_on_error(worker: terlan.angular.ng.WorkerHandle.WorkerHandle[Dynamic, Dynamic], listener: Dynamic): Dynamic"),
-        ("Permanently terminates a managed worker and its callback lifecycle.", "pub worker_terminate(worker: terlan.angular.ng.WorkerHandle.WorkerHandle[Dynamic, Dynamic]): Unit"),
-        ("Constructs a directive shape with an explicit restrict mode and link callback.", "pub directive_with_link(restrict: std.js.String.JsString, link: Dynamic): terlan.angular.ng.Directive.Directive[Dynamic]"),
+        ("Returns the Angular.ts runtime handle.", "pub angular(): terlan.angular.ng.Angular"),
+        ("Creates an Angular.ts module without dependencies.", "pub ng_module(name: std.js.String.JsString): terlan.angular.ng.NgModule"),
+        ("Creates an Angular.ts module with dependency names.", "pub ng_module_with_dependencies(name: std.js.String.JsString, dependencies: List[std.js.String.JsString]): terlan.angular.ng.NgModule"),
+        ("Registers a component on an Angular.ts module.", "pub register_component(target: terlan.angular.ng.NgModule, name: std.js.String.JsString, component: terlan.angular.ng.Component): terlan.angular.ng.NgModule"),
+        ("Registers a directive factory on an Angular.ts module.", "pub register_directive(target: terlan.angular.ng.NgModule, name: std.js.String.JsString, factory: Dynamic): terlan.angular.ng.NgModule"),
+        ("Registers a controller factory on an Angular.ts module.", "pub register_controller(target: terlan.angular.ng.NgModule, name: std.js.String.JsString, controller: Dynamic): terlan.angular.ng.NgModule"),
+        ("Runs an Angular.ts scope update cycle.", "pub apply_scope(scope: terlan.angular.ng.Scope): Unit"),
+        ("Stores a template in the Angular.ts template cache.", "pub template_put(templates: terlan.angular.ng.TemplateCacheService, key: std.js.String.JsString, template_source: std.js.String.JsString): terlan.angular.ng.TemplateCacheService"),
+        ("Reads a template from the Angular.ts template cache.", "pub template_get(templates: terlan.angular.ng.TemplateCacheService, key: std.js.String.JsString): Option[std.js.String.JsString]"),
+        ("Removes a template from the Angular.ts template cache.", "pub template_remove(templates: terlan.angular.ng.TemplateCacheService, key: std.js.String.JsString): Bool"),
+        ("Issues an Angular.ts HTTP GET request.", "pub http_get(http: terlan.angular.ng.HttpService, url: std.js.String.JsString): std.js.Promise[terlan.angular.ng.HttpResponse[Dynamic]]"),
+        ("Creates a state machine from an explicit Angular.ts machine configuration.", "pub machine(service: terlan.angular.ng.MachineService, config: terlan.angular.ng.MachineConfig[Dynamic]): terlan.angular.ng.Machine[Dynamic]"),
+        ("Sends an event and payload through a generated machine wrapper.", "pub machine_send(machine: terlan.angular.ng.Machine[Dynamic], event: std.js.String.JsString, payload: Dynamic): terlan.angular.ng.MachineSendResult[std.js.String.JsString]"),
+        ("Snapshots a generated machine wrapper.", "pub machine_snapshot(machine: terlan.angular.ng.Machine[Dynamic]): terlan.angular.ng.MachineSnapshot[Dynamic]"),
+        ("Creates a workflow from an explicit Angular.ts workflow configuration.", "pub workflow(service: terlan.angular.ng.WorkflowService, config: Dynamic): terlan.angular.ng.Workflow[Dynamic]"),
+        ("Runs one named workflow command with a payload.", "pub workflow_run(workflow: terlan.angular.ng.Workflow[Dynamic], command: std.js.String.JsString, input: Dynamic): std.js.Promise[terlan.angular.ng.WorkflowResult[Dynamic]]"),
+        ("Snapshots a generated workflow wrapper.", "pub workflow_snapshot(workflow: terlan.angular.ng.Workflow[Dynamic]): terlan.angular.ng.WorkflowSnapshot[Dynamic]"),
+        ("Opens an SSE connection with Angular.ts defaults.", "pub sse_connect(service: terlan.angular.ng.SseService, url: std.js.String.JsString): terlan.angular.ng.SseConnection"),
+        ("Opens an SSE connection with explicit options.", "pub sse_connect_with_config(service: terlan.angular.ng.SseService, url: std.js.String.JsString, config: terlan.angular.ng.SseConfig): terlan.angular.ng.SseConnection"),
+        ("Reconnects an SSE connection while preserving its listeners.", "pub sse_reconnect(connection: terlan.angular.ng.SseConnection): Unit"),
+        ("Closes an SSE connection and its reconnect lifecycle.", "pub sse_close(connection: terlan.angular.ng.SseConnection): Unit"),
+        ("Opens a WebSocket connection with Angular.ts defaults.", "pub websocket_connect(service: terlan.angular.ng.WebSocketService, url: std.js.String.JsString): terlan.angular.ng.WebSocketConnection"),
+        ("Opens a WebSocket connection with explicit options.", "pub websocket_connect_with_config(service: terlan.angular.ng.WebSocketService, url: std.js.String.JsString, config: terlan.angular.ng.WebSocketConfig): terlan.angular.ng.WebSocketConnection"),
+        ("Sends one value through a managed WebSocket connection.", "pub websocket_send(connection: terlan.angular.ng.WebSocketConnection, data: Dynamic): Unit"),
+        ("Closes a managed WebSocket connection.", "pub websocket_close(connection: terlan.angular.ng.WebSocketConnection): Unit"),
+        ("Starts a managed worker with Angular.ts defaults.", "pub worker_start(service: terlan.angular.ng.WorkerService, script_path: std.js.String.JsString): terlan.angular.ng.WorkerHandle[Dynamic, Dynamic]"),
+        ("Starts a managed worker with explicit decode and restart options.", "pub worker_start_with_config(service: terlan.angular.ng.WorkerService, script_path: std.js.String.JsString, config: terlan.angular.ng.WorkerConfig[Dynamic]): terlan.angular.ng.WorkerHandle[Dynamic, Dynamic]"),
+        ("Subscribes to worker messages and returns the unsubscribe callback.", "pub worker_on_message(worker: terlan.angular.ng.WorkerHandle[Dynamic, Dynamic], listener: Dynamic): Dynamic"),
+        ("Subscribes to worker errors and returns the unsubscribe callback.", "pub worker_on_error(worker: terlan.angular.ng.WorkerHandle[Dynamic, Dynamic], listener: Dynamic): Dynamic"),
+        ("Permanently terminates a managed worker and its callback lifecycle.", "pub worker_terminate(worker: terlan.angular.ng.WorkerHandle[Dynamic, Dynamic]): Unit"),
+        ("Constructs a directive shape with an explicit restrict mode and link callback.", "pub directive_with_link(restrict: std.js.String.JsString, link: Dynamic): terlan.angular.ng.Directive[Dynamic]"),
     ] {
         push_facade_function(&mut output, doc, signature, include_bodies);
     }
@@ -151,17 +151,17 @@ fn render_facade_test() -> String {
     output.push_str("pub generated_angular_facade_surface_contract(): Bool ->\n    true.\n");
     output.push_str(
         "\n\
-pub ng_module_typechecks(name: std.js.String.JsString): terlan.angular.ng.NgModule.NgModule ->\n\
+pub ng_module_typechecks(name: std.js.String.JsString): terlan.angular.ng.NgModule ->\n\
     terlan.angular.Ng.ng_module(name).\n",
     );
     output.push_str(
         "\n\
-pub component_typechecks(target: terlan.angular.ng.NgModule.NgModule, name: std.js.String.JsString, component: terlan.angular.ng.Component.Component): terlan.angular.ng.NgModule.NgModule ->\n\
+pub component_typechecks(target: terlan.angular.ng.NgModule, name: std.js.String.JsString, component: terlan.angular.ng.Component): terlan.angular.ng.NgModule ->\n\
     terlan.angular.Ng.register_component(target, name, component).\n",
     );
     output.push_str(
         "\n\
-pub callback_lifecycle_typechecks(worker: terlan.angular.ng.WorkerHandle.WorkerHandle[Dynamic, Dynamic], listener: Dynamic): Dynamic ->\n\
+pub callback_lifecycle_typechecks(worker: terlan.angular.ng.WorkerHandle[Dynamic, Dynamic], listener: Dynamic): Dynamic ->\n\
     terlan.angular.Ng.worker_on_message(worker, listener).\n",
     );
     output

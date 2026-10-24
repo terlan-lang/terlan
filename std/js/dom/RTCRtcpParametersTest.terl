@@ -12,7 +12,7 @@
  */
 module std.js.Dom.RTCRtcpParametersTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.RTCRtcpParameters.
 
 pub cname_typechecks(receiver: RTCRtcpParameters): Option[std.js.String.JsString] ->

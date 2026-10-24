@@ -14,7 +14,5 @@ module std.js.Dom.CanvasRenderingContext2DTest.
 
 import type std.js.Dom.CanvasRenderingContext2D.
 
-pub canvas_typechecks(
-    receiver: CanvasRenderingContext2D,
-): std.js.Dom.HTMLCanvasElement.HTMLCanvasElement ->
+pub canvas_typechecks(receiver: CanvasRenderingContext2D): std.js.Dom.HTMLCanvasElement ->
     receiver.canvas().

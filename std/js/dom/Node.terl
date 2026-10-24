@@ -12,8 +12,8 @@
  */
 module std.js.Dom.Node.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.ChildNode.{ChildNode}.
+import type std.core.{Option}.
+import type std.js.Dom.{ChildNode}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -37,7 +37,7 @@ pub (receiver: Node) base_uri(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/childNodes)
  */
-pub (receiver: Node) child_nodes(): std.js.Dom.NodeListOf.NodeListOf[ChildNode] ->
+pub (receiver: Node) child_nodes(): std.js.Dom.NodeListOf[ChildNode] ->
     native.
 
 /**
@@ -101,7 +101,7 @@ pub (receiver: Node) node_value(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/ownerDocument)
  */
-pub (receiver: Node) owner_document(): Option[std.js.Dom.Document.Document] ->
+pub (receiver: Node) owner_document(): Option[std.js.Dom.Document] ->
     native.
 
 /**
@@ -109,7 +109,7 @@ pub (receiver: Node) owner_document(): Option[std.js.Dom.Document.Document] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentElement)
  */
-pub (receiver: Node) parent_element(): Option[std.js.Dom.HTMLElement.HTMLElement] ->
+pub (receiver: Node) parent_element(): Option[std.js.Dom.HTMLElement] ->
     native.
 
 /**
@@ -117,7 +117,7 @@ pub (receiver: Node) parent_element(): Option[std.js.Dom.HTMLElement.HTMLElement
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/parentNode)
  */
-pub (receiver: Node) parent_node(): Option[std.js.Dom.ParentNode.ParentNode] ->
+pub (receiver: Node) parent_node(): Option[std.js.Dom.ParentNode] ->
     native.
 
 /**
@@ -165,7 +165,7 @@ pub (receiver: Node) contains(other: Option[Node]): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/getRootNode)
  */
-pub (receiver: Node) get_root_node(options: Option[std.js.Dom.GetRootNodeOptions.GetRootNodeOptions]): Node ->
+pub (receiver: Node) get_root_node(options: Option[std.js.Dom.GetRootNodeOptions]): Node ->
     native.
 
 /**
@@ -221,5 +221,5 @@ pub (receiver: Node) lookup_prefix(namespace: Option[JsString]): Option[JsString
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Node/normalize)
  */
-pub (receiver: Node) normalize(): std.core.Unit.Unit ->
+pub (receiver: Node) normalize(): std.core.Unit ->
     native.

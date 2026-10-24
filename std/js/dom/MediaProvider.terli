@@ -12,7 +12,4 @@
  */
 module std.js.Dom.MediaProvider.
 
-pub type MediaProvider =
-      std.js.Dom.Blob.Blob
-    | std.js.Dom.MediaSource.MediaSource
-    | std.js.Dom.MediaStream.MediaStream.
+pub type MediaProvider = std.js.Dom.Blob | std.js.Dom.MediaSource | std.js.Dom.MediaStream.

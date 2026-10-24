@@ -32,7 +32,7 @@ pub (receiver: HTMLLinkElement) as_(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/blocking)
  */
-pub (receiver: HTMLLinkElement) blocking(): std.js.Dom.DOMTokenList.DOMTokenList.
+pub (receiver: HTMLLinkElement) blocking(): std.js.Dom.DOMTokenList.
 
 /**
  * @deprecated
@@ -44,7 +44,7 @@ pub (receiver: HTMLLinkElement) charset(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/crossOrigin)
  */
-pub (receiver: HTMLLinkElement) cross_origin(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: HTMLLinkElement) cross_origin(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`disabled`** property of the HTMLLinkElement interface is a boolean value that represents whether the link is disabled.
@@ -114,7 +114,7 @@ pub (receiver: HTMLLinkElement) rel(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/relList)
  */
-pub (receiver: HTMLLinkElement) rel_list(): std.js.Dom.DOMTokenList.DOMTokenList.
+pub (receiver: HTMLLinkElement) rel_list(): std.js.Dom.DOMTokenList.
 
 /**
  * @deprecated
@@ -126,7 +126,7 @@ pub (receiver: HTMLLinkElement) rev(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/sizes)
  */
-pub (receiver: HTMLLinkElement) sizes(): std.js.Dom.DOMTokenList.DOMTokenList.
+pub (receiver: HTMLLinkElement) sizes(): std.js.Dom.DOMTokenList.
 
 /**
  * @deprecated
@@ -140,6 +140,6 @@ pub (receiver: HTMLLinkElement) target_(): std.js.String.JsString.
  */
 pub (receiver: HTMLLinkElement) type_(): std.js.String.JsString.
 
-pub (receiver: HTMLLinkElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLLinkElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLLinkElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLLinkElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

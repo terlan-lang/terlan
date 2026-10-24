@@ -14,4 +14,4 @@
 module std.js.Dom.SVGPoint.
 
 pub type SVGPoint =
-    std.js.Dom.DOMPoint.DOMPoint.
+    std.js.Dom.DOMPoint.

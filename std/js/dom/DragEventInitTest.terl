@@ -14,7 +14,5 @@ module std.js.Dom.DragEventInitTest.
 
 import type std.js.Dom.DragEventInit.
 
-pub data_transfer_typechecks(
-    receiver: DragEventInit,
-): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer] ->
+pub data_transfer_typechecks(receiver: DragEventInit): std.core.Option[std.js.Dom.DataTransfer] ->
     receiver.data_transfer().

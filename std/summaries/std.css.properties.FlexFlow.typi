@@ -16,7 +16,7 @@ pub opaque type FlexWrapPart.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    flex_flow: std.core.Option.Option[Value]
+    flex_flow: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

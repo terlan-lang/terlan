@@ -117,19 +117,46 @@ pub(super) fn collect_syntax_import_maps(
 /// - Repackages resolver import metadata into the typechecker's compact
 ///   qualified-name representation.
 pub(super) fn imported_type_names(resolved: &ResolvedModule) -> HashMap<String, QualifiedTypeName> {
-    resolved
+    let mut names = resolved
         .imported_types
         .iter()
         .map(|(local_name, imported)| {
             (
                 local_name.clone(),
                 QualifiedTypeName {
-                    module: imported.source_module.clone(),
+                    module: Some(imported.source_module.clone()),
                     name: imported.source_name.clone(),
                 },
             )
         })
-        .collect()
+        .collect::<HashMap<_, _>>();
+    // Qualified primary paths are resolved from actual exported declarations,
+    // never inferred by splitting the path at an arbitrary package boundary.
+    for interface in resolved.interface_map.values() {
+        let Some(name) = interface.module.rsplit('.').next() else {
+            continue;
+        };
+        if interface.public_types.contains(name) || interface.opaque_types.contains(name) {
+            names.insert(
+                interface.module.clone(),
+                QualifiedTypeName {
+                    module: Some(interface.module.clone()),
+                    name: name.to_string(),
+                },
+            );
+        }
+    }
+    for name in resolved.local_type_names.keys() {
+        let local = QualifiedTypeName {
+            module: None,
+            name: name.clone(),
+        };
+        names.insert(format!("{}.{name}", resolved.name), local.clone());
+        if resolved.name.rsplit('.').next() == Some(name.as_str()) {
+            names.insert(resolved.name.clone(), local);
+        }
+    }
+    names
 }
 
 /// Collects imported type aliases and identity aliases from interfaces.

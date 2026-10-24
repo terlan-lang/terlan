@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AddEventListenerOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.AddEventListenerOptions.
 
 pub once_typechecks(receiver: AddEventListenerOptions): Option[Bool] ->
@@ -21,5 +21,5 @@ pub once_typechecks(receiver: AddEventListenerOptions): Option[Bool] ->
 pub passive_typechecks(receiver: AddEventListenerOptions): Option[Bool] ->
     receiver.passive().
 
-pub signal_typechecks(receiver: AddEventListenerOptions): Option[std.js.Dom.AbortSignal.AbortSignal] ->
+pub signal_typechecks(receiver: AddEventListenerOptions): Option[std.js.Dom.AbortSignal] ->
     receiver.signal().

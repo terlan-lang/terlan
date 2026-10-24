@@ -12,25 +12,10 @@
  */
 module std.js.Dom.RTCPeerConnectionTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.MediaStreamTrack.{MediaStreamTrack}.
-import type std.js.Dom.RTCConfiguration.{RTCConfiguration}.
-import type std.js.Dom.RTCIceCandidateInit.{RTCIceCandidateInit}.
-import type std.js.Dom.RTCLocalSessionDescriptionInit.{RTCLocalSessionDescriptionInit}.
-import type std.js.Dom.RTCOfferOptions.{RTCOfferOptions}.
-import type std.js.Dom.RTCPeerConnection.
-import type std.js.Dom.RTCPeerConnectionErrorCallback.{RTCPeerConnectionErrorCallback}.
-import type std.js.Dom.RTCRtpSender.{RTCRtpSender}.
-import type std.js.Dom.RTCRtpTransceiver.{RTCRtpTransceiver}.
-import type std.js.Dom.RTCSessionDescription.{RTCSessionDescription}.
-import type std.js.Dom.RTCSessionDescriptionCallback.{RTCSessionDescriptionCallback}.
-import type std.js.Dom.RTCSessionDescriptionInit.{RTCSessionDescriptionInit}.
-import type std.js.Dom.VoidFunction.{VoidFunction}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, MediaStreamTrack, RTCConfiguration, RTCIceCandidateInit, RTCLocalSessionDescriptionInit, RTCOfferOptions, RTCPeerConnection, RTCPeerConnectionErrorCallback, RTCRtpSender, RTCRtpTransceiver, RTCSessionDescription, RTCSessionDescriptionCallback, RTCSessionDescriptionInit, VoidFunction}.
 import type std.js.String.{JsString}.
+import type std.js.{Array, Promise}.
 
 pub can_trickle_ice_candidates_typechecks(receiver: RTCPeerConnection): Option[Bool] ->
     receiver.can_trickle_ice_candidates().
@@ -57,9 +42,7 @@ pub pending_remote_description_typechecks(
 pub remote_description_typechecks(receiver: RTCPeerConnection): Option[RTCSessionDescription] ->
     receiver.remote_description().
 
-pub sctp_typechecks(
-    receiver: RTCPeerConnection,
-): Option[std.js.Dom.RTCSctpTransport.RTCSctpTransport] ->
+pub sctp_typechecks(receiver: RTCPeerConnection): Option[std.js.Dom.RTCSctpTransport] ->
     receiver.sctp().
 
 pub add_ice_candidate_typechecks(
@@ -79,14 +62,14 @@ pub add_ice_candidate_overload_2_typechecks(
 pub add_track_typechecks(
     receiver: RTCPeerConnection,
     track: MediaStreamTrack,
-    streams: Array[std.js.Dom.MediaStream.MediaStream],
+    streams: Array[std.js.Dom.MediaStream],
 ): RTCRtpSender ->
     receiver.add_track(track, streams).
 
 pub add_transceiver_typechecks(
     receiver: RTCPeerConnection,
     track_or_kind: MediaStreamTrack | JsString,
-    init: Option[std.js.Dom.RTCRtpTransceiverInit.RTCRtpTransceiverInit],
+    init: Option[std.js.Dom.RTCRtpTransceiverInit],
 ): RTCRtpTransceiver ->
     receiver.add_transceiver(track_or_kind, init).
 
@@ -95,7 +78,7 @@ pub close_typechecks(receiver: RTCPeerConnection): Unit ->
 
 pub create_answer_typechecks(
     receiver: RTCPeerConnection,
-    options: Option[std.js.Dom.RTCAnswerOptions.RTCAnswerOptions],
+    options: Option[std.js.Dom.RTCAnswerOptions],
 ): Promise[RTCSessionDescriptionInit] ->
     receiver.create_answer(options).
 
@@ -109,8 +92,8 @@ pub create_answer_overload_2_typechecks(
 pub create_data_channel_typechecks(
     receiver: RTCPeerConnection,
     label: JsString,
-    data_channel_dict: Option[std.js.Dom.RTCDataChannelInit.RTCDataChannelInit],
-): std.js.Dom.RTCDataChannel.RTCDataChannel ->
+    data_channel_dict: Option[std.js.Dom.RTCDataChannelInit],
+): std.js.Dom.RTCDataChannel ->
     receiver.create_data_channel(label, data_channel_dict).
 
 pub create_offer_typechecks(
@@ -130,9 +113,7 @@ pub create_offer_overload_2_typechecks(
 pub get_configuration_typechecks(receiver: RTCPeerConnection): RTCConfiguration ->
     receiver.get_configuration().
 
-pub get_receivers_typechecks(
-    receiver: RTCPeerConnection,
-): Array[std.js.Dom.RTCRtpReceiver.RTCRtpReceiver] ->
+pub get_receivers_typechecks(receiver: RTCPeerConnection): Array[std.js.Dom.RTCRtpReceiver] ->
     receiver.get_receivers().
 
 pub get_senders_typechecks(receiver: RTCPeerConnection): Array[RTCRtpSender] ->
@@ -141,7 +122,7 @@ pub get_senders_typechecks(receiver: RTCPeerConnection): Array[RTCRtpSender] ->
 pub get_stats_typechecks(
     receiver: RTCPeerConnection,
     selector: Option[Option[MediaStreamTrack]],
-): Promise[std.js.Dom.RTCStatsReport.RTCStatsReport] ->
+): Promise[std.js.Dom.RTCStatsReport] ->
     receiver.get_stats(selector).
 
 pub get_transceivers_typechecks(receiver: RTCPeerConnection): Array[RTCRtpTransceiver] ->
@@ -191,7 +172,7 @@ pub add_event_listener_typechecks(
     receiver: RTCPeerConnection,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -199,6 +180,6 @@ pub remove_event_listener_typechecks(
     receiver: RTCPeerConnection,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

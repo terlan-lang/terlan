@@ -12,7 +12,7 @@
  */
 module std.js.Uint8ClampedArray.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -75,17 +75,14 @@ pub (receiver: Uint8ClampedArray[TArrayBuffer]) length(): JsNumber.
  * @param array A typed or untyped array of values to set.
  * @param offset The index in the current array at which the values are to be written.
  */
-pub (receiver: Uint8ClampedArray[TArrayBuffer]) set(array: std.js.ArrayLike.ArrayLike[JsNumber], offset: Option[JsNumber]): std.core.Unit.Unit.
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) set(array: std.js.ArrayLike[JsNumber], offset: Option[JsNumber]): std.core.Unit.
 
 /**
  * Returns a section of an array.
  * @param start The beginning of the specified portion of the array.
  * @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
  */
-pub (receiver: Uint8ClampedArray[TArrayBuffer]) slice(
-    start: Option[JsNumber],
-    end: Option[JsNumber],
-): Uint8ClampedArray[std.js.ArrayBuffer.ArrayBuffer].
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) slice(start: Option[JsNumber], end: Option[JsNumber]): Uint8ClampedArray[std.js.ArrayBuffer].
 
 /**
  * Gets a new Uint8ClampedArray view of the ArrayBuffer store for this array, referencing the elements

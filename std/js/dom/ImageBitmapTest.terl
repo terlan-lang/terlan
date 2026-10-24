@@ -21,5 +21,5 @@ pub height_typechecks(receiver: ImageBitmap): JsNumber ->
 pub width_typechecks(receiver: ImageBitmap): JsNumber ->
     receiver.width().
 
-pub close_typechecks(receiver: ImageBitmap): std.core.Unit.Unit ->
+pub close_typechecks(receiver: ImageBitmap): std.core.Unit ->
     receiver.close().

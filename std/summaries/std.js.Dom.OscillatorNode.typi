@@ -25,22 +25,22 @@ pub opaque type OscillatorNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OscillatorNode/detune)
  */
-pub (receiver: OscillatorNode) detune(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: OscillatorNode) detune(): std.js.Dom.AudioParam.
 
 /**
  * The **`frequency`** property of the OscillatorNode interface is an a-rate AudioParam representing the frequency of oscillation in hertz.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OscillatorNode/frequency)
  */
-pub (receiver: OscillatorNode) frequency(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: OscillatorNode) frequency(): std.js.Dom.AudioParam.
 
 /**
  * The **`setPeriodicWave()`** method of the OscillatorNode interface is used to point to a PeriodicWave defining a periodic waveform that can be used to shape the oscillator's output, when ```js-nolint setPeriodicWave(wave) ``` - `wave` - : A PeriodicWave object representing the waveform to use as the shape of the oscillator's output.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OscillatorNode/setPeriodicWave)
  */
-pub (receiver: OscillatorNode) set_periodic_wave(periodic_wave: std.js.Dom.PeriodicWave.PeriodicWave): std.core.Unit.Unit.
+pub (receiver: OscillatorNode) set_periodic_wave(periodic_wave: std.js.Dom.PeriodicWave): std.core.Unit.
 
-pub (receiver: OscillatorNode) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: OscillatorNode) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: OscillatorNode) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: OscillatorNode) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

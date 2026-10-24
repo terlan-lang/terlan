@@ -12,7 +12,7 @@
  */
 module std.js.Dom.WebTransportOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.WebTransportOptions.
 
 pub allow_pooling_typechecks(receiver: WebTransportOptions): Option[Bool] ->
@@ -23,5 +23,5 @@ pub require_unreliable_typechecks(receiver: WebTransportOptions): Option[Bool] -
 
 pub server_certificate_hashes_typechecks(
     receiver: WebTransportOptions,
-): Option[std.js.Array.Array[std.js.Dom.WebTransportHash.WebTransportHash]] ->
+): Option[std.js.Array[std.js.Dom.WebTransportHash]] ->
     receiver.server_certificate_hashes().

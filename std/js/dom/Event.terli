@@ -12,9 +12,8 @@
  */
 module std.js.Dom.Event.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventTarget.{EventTarget}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventTarget}.
 import type std.js.String.{JsString}.
 
 /**
@@ -109,7 +108,7 @@ pub (receiver: Event) target_(): Option[EventTarget].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/timeStamp)
  */
-pub (receiver: Event) time_stamp(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: Event) time_stamp(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The **`type`** read-only property of the Event interface returns a string containing the event's type.
@@ -123,7 +122,7 @@ pub (receiver: Event) type_(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/composedPath)
  */
-pub (receiver: Event) composed_path(): std.js.Array.Array[EventTarget].
+pub (receiver: Event) composed_path(): std.js.Array[EventTarget].
 
 /**
  * The **`Event.initEvent()`** method is used to initialize the value of an event created using Document.createEvent().

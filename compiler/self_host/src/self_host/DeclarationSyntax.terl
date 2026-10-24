@@ -1,11 +1,11 @@
-/** Typed declaration handoff owned by the self-hosted syntax phase. */
+/**
+ * Typed declaration handoff owned by the self-hosted syntax phase.
+ */
 module self_host.DeclarationSyntax.
 
 import self_host.Syntax.{DeclarationClass, ParseError, SyntaxSpan}.
-
 import std.collections.List.
 import std.core.String.
-
 
 /**
  * Normalized declaration identity with a lossless body.
@@ -34,18 +34,19 @@ pub constructor DeclarationSyntax {
         }
 }.
 
-
-/** Typed declaration result for one source module. */
+/**
+ * Typed declaration result for one source module.
+ */
 pub struct ModuleSyntax {
     valid: Bool,
     name: String,
-    declarations: List[self_host.DeclarationSyntax.DeclarationSyntax],
+    declarations: List[self_host.DeclarationSyntax],
     errors: List[ParseError],
     span: SyntaxSpan,
 }.
 
 pub constructor ModuleSyntax {
-    (valid: Bool, name: String, declarations: List[self_host.DeclarationSyntax.DeclarationSyntax], errors: List[ParseError], span: SyntaxSpan): ModuleSyntax ->
+    (valid: Bool, name: String, declarations: List[self_host.DeclarationSyntax], errors: List[ParseError], span: SyntaxSpan): ModuleSyntax ->
         ModuleSyntax {
             valid: valid,
             name: name,
@@ -54,5 +55,3 @@ pub constructor ModuleSyntax {
             span: span,
         }
 }.
-
-

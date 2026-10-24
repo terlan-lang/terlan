@@ -15,6 +15,6 @@ module std.js.Dom.MediaEncryptedEventInit.
 
 pub opaque type MediaEncryptedEventInit.
 
-pub (receiver: MediaEncryptedEventInit) init_data(): std.core.Option.Option[std.js.ArrayBuffer.ArrayBuffer].
+pub (receiver: MediaEncryptedEventInit) init_data(): std.core.Option[std.js.ArrayBuffer].
 
-pub (receiver: MediaEncryptedEventInit) init_data_type(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MediaEncryptedEventInit) init_data_type(): std.core.Option[std.js.String.JsString].

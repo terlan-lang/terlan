@@ -12,10 +12,10 @@
  */
 module std.js.Dom.ReportingObserverOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type ReportingObserverOptions.
 
 pub (receiver: ReportingObserverOptions) buffered(): Option[Bool].
 
-pub (receiver: ReportingObserverOptions) types(): Option[std.js.Array.Array[std.js.String.JsString]].
+pub (receiver: ReportingObserverOptions) types(): Option[std.js.Array[std.js.String.JsString]].

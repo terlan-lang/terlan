@@ -14,13 +14,13 @@ module std.js.Dom.NavigatorPluginsTest.
 
 import type std.js.Dom.NavigatorPlugins.
 
-pub mime_types_typechecks(receiver: NavigatorPlugins): std.js.Dom.MimeTypeArray.MimeTypeArray ->
+pub mime_types_typechecks(receiver: NavigatorPlugins): std.js.Dom.MimeTypeArray ->
     receiver.mime_types().
 
 pub pdf_viewer_enabled_typechecks(receiver: NavigatorPlugins): Bool ->
     receiver.pdf_viewer_enabled().
 
-pub plugins_typechecks(receiver: NavigatorPlugins): std.js.Dom.PluginArray.PluginArray ->
+pub plugins_typechecks(receiver: NavigatorPlugins): std.js.Dom.PluginArray ->
     receiver.plugins().
 
 pub java_enabled_typechecks(receiver: NavigatorPlugins): Bool ->

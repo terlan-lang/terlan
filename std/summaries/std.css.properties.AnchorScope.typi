@@ -8,7 +8,7 @@ module std.css.properties.AnchorScope.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    anchor_scope: std.core.Option.Option[Value]
+    anchor_scope: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

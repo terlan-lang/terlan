@@ -12,7 +12,7 @@
  */
 module std.js.Dom.VideoFrameInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.VideoFrameInit.
 import type std.js.Number.{JsNumber}.
 
@@ -28,5 +28,5 @@ pub duration_typechecks(receiver: VideoFrameInit): Option[JsNumber] ->
 pub timestamp_typechecks(receiver: VideoFrameInit): Option[JsNumber] ->
     receiver.timestamp().
 
-pub visible_rect_typechecks(receiver: VideoFrameInit): Option[std.js.Dom.DOMRectInit.DOMRectInit] ->
+pub visible_rect_typechecks(receiver: VideoFrameInit): Option[std.js.Dom.DOMRectInit] ->
     receiver.visible_rect().

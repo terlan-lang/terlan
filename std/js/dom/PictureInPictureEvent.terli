@@ -24,4 +24,4 @@ pub opaque type PictureInPictureEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PictureInPictureEvent/pictureInPictureWindow)
  */
-pub (receiver: PictureInPictureEvent) picture_in_picture_window(): std.js.Dom.PictureInPictureWindow.PictureInPictureWindow.
+pub (receiver: PictureInPictureEvent) picture_in_picture_window(): std.js.Dom.PictureInPictureWindow.

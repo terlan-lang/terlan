@@ -26,7 +26,7 @@ pub opaque type CryptoKey.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/algorithm)
  */
-pub (receiver: CryptoKey) algorithm(): std.js.Dom.KeyAlgorithm.KeyAlgorithm.
+pub (receiver: CryptoKey) algorithm(): std.js.Dom.KeyAlgorithm.
 
 /**
  * The read-only **`extractable`** property of the CryptoKey interface indicates whether or not the key may be extracted using `SubtleCrypto.exportKey()` or `SubtleCrypto.wrapKey()`.

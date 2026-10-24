@@ -14,5 +14,5 @@ module std.js.Dom.PermissionStatusEventMap.
 
 pub opaque type PermissionStatusEventMap.
 
-pub (receiver: PermissionStatusEventMap) change(): std.js.Dom.Event.Event ->
+pub (receiver: PermissionStatusEventMap) change(): std.js.Dom.Event ->
     native.

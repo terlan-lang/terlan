@@ -12,10 +12,9 @@
  */
 module std.js.Dom.CookieStoreManager.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.CookieStoreGetOptions.{CookieStoreGetOptions}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Unit}.
+import type std.js.Dom.{CookieStoreGetOptions}.
+import type std.js.{Array, Promise}.
 
 /**
  * The **`CookieStoreManager`** interface of the Cookie Store API allows service workers to subscribe to cookie change events.

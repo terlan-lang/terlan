@@ -15,16 +15,16 @@ module std.js.Dom.RTCEncodedVideoFrameMetadata.
 
 pub opaque type RTCEncodedVideoFrameMetadata.
 
-pub (receiver: RTCEncodedVideoFrameMetadata) dependencies(): std.core.Option.Option[std.js.Array.Array[std.js.Number.JsNumber]].
+pub (receiver: RTCEncodedVideoFrameMetadata) dependencies(): std.core.Option[std.js.Array[std.js.Number.JsNumber]].
 
-pub (receiver: RTCEncodedVideoFrameMetadata) frame_id(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCEncodedVideoFrameMetadata) frame_id(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCEncodedVideoFrameMetadata) height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCEncodedVideoFrameMetadata) height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCEncodedVideoFrameMetadata) spatial_index(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCEncodedVideoFrameMetadata) spatial_index(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCEncodedVideoFrameMetadata) temporal_index(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCEncodedVideoFrameMetadata) temporal_index(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCEncodedVideoFrameMetadata) timestamp(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCEncodedVideoFrameMetadata) timestamp(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCEncodedVideoFrameMetadata) width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCEncodedVideoFrameMetadata) width(): std.core.Option[std.js.Number.JsNumber].

@@ -8,7 +8,7 @@ module std.css.properties.TextAlignLast.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    text_align_last: std.core.Option.Option[Value]
+    text_align_last: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

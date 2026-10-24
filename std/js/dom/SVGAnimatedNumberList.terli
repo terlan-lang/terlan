@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedNumberList.
 
-import type std.js.Dom.SVGNumberList.{SVGNumberList}.
+import type std.js.Dom.{SVGNumberList}.
 
 /**
  * The **`SVGAnimatedNumberList`** interface represents a list of attributes of type \<number> which can be animated.

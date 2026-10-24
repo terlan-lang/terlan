@@ -17,10 +17,8 @@ import type std.js.Dom.CaretPosition.
 pub offset_typechecks(receiver: CaretPosition): std.js.Number.JsNumber ->
     receiver.offset().
 
-pub offset_node_typechecks(receiver: CaretPosition): std.js.Dom.Node.Node ->
+pub offset_node_typechecks(receiver: CaretPosition): std.js.Dom.Node ->
     receiver.offset_node().
 
-pub get_client_rect_typechecks(
-    receiver: CaretPosition,
-): std.core.Option.Option[std.js.Dom.DOMRect.DOMRect] ->
+pub get_client_rect_typechecks(receiver: CaretPosition): std.core.Option[std.js.Dom.DOMRect] ->
     receiver.get_client_rect().

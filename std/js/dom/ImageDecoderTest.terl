@@ -12,9 +12,9 @@
  */
 module std.js.Dom.ImageDecoderTest.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Dom.ImageDecoder.
-import type std.js.Promise.{Promise}.
+import type std.js.{Promise}.
 
 pub complete_typechecks(receiver: ImageDecoder): Bool ->
     receiver.complete().
@@ -22,7 +22,7 @@ pub complete_typechecks(receiver: ImageDecoder): Bool ->
 pub completed_typechecks(receiver: ImageDecoder): Promise[Unit] ->
     receiver.completed().
 
-pub tracks_typechecks(receiver: ImageDecoder): std.js.Dom.ImageTrackList.ImageTrackList ->
+pub tracks_typechecks(receiver: ImageDecoder): std.js.Dom.ImageTrackList ->
     receiver.tracks().
 
 pub type__typechecks(receiver: ImageDecoder): std.js.String.JsString ->
@@ -33,8 +33,8 @@ pub close_typechecks(receiver: ImageDecoder): Unit ->
 
 pub decode_typechecks(
     receiver: ImageDecoder,
-    options: std.core.Option.Option[std.js.Dom.ImageDecodeOptions.ImageDecodeOptions],
-): Promise[std.js.Dom.ImageDecodeResult.ImageDecodeResult] ->
+    options: std.core.Option[std.js.Dom.ImageDecodeOptions],
+): Promise[std.js.Dom.ImageDecodeResult] ->
     receiver.decode(options).
 
 pub reset_typechecks(receiver: ImageDecoder): Unit ->

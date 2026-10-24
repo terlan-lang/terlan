@@ -14,5 +14,5 @@ module std.js.ReferenceErrorConstructorTest.
 
 import type std.js.ReferenceErrorConstructor.
 
-pub prototype_typechecks(receiver: ReferenceErrorConstructor): std.js.ReferenceError.ReferenceError ->
+pub prototype_typechecks(receiver: ReferenceErrorConstructor): std.js.ReferenceError ->
     receiver.prototype().

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.WebTransportDatagramDuplexStream.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -63,9 +63,9 @@ pub (receiver: WebTransportDatagramDuplexStream) outgoing_max_age(): Option[JsNu
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream/readable)
  */
-pub (receiver: WebTransportDatagramDuplexStream) readable(): std.js.Dom.ReadableStream.ReadableStream.
+pub (receiver: WebTransportDatagramDuplexStream) readable(): std.js.Dom.ReadableStream.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransportDatagramDuplexStream/writable)
  */
-pub (receiver: WebTransportDatagramDuplexStream) writable(): std.js.Dom.WritableStream.WritableStream.
+pub (receiver: WebTransportDatagramDuplexStream) writable(): std.js.Dom.WritableStream.

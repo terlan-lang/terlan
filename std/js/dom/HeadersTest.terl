@@ -12,7 +12,7 @@
  */
 module std.js.Dom.HeadersTest.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Dom.Headers.
 import type std.js.String.{JsString}.
 
@@ -22,10 +22,10 @@ pub append_typechecks(receiver: Headers, name: JsString, value: JsString): Unit 
 pub delete_typechecks(receiver: Headers, name: JsString): Unit ->
     receiver.delete(name).
 
-pub get_typechecks(receiver: Headers, name: JsString): std.core.Option.Option[JsString] ->
+pub get_typechecks(receiver: Headers, name: JsString): std.core.Option[JsString] ->
     receiver.get(name).
 
-pub get_set_cookie_typechecks(receiver: Headers): std.js.Array.Array[JsString] ->
+pub get_set_cookie_typechecks(receiver: Headers): std.js.Array[JsString] ->
     receiver.get_set_cookie().
 
 pub has_typechecks(receiver: Headers, name: JsString): Bool ->

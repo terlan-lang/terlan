@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedLength.
 
-import type std.js.Dom.SVGLength.{SVGLength}.
+import type std.js.Dom.{SVGLength}.
 
 /**
  * The **`SVGAnimatedLength`** interface represents attributes of type \<length> which can be animated.

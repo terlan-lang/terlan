@@ -26,35 +26,35 @@ pub opaque type ServiceWorkerRegistration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/active)
  */
-pub (receiver: ServiceWorkerRegistration) active(): std.core.Option.Option[std.js.Dom.ServiceWorker.ServiceWorker].
+pub (receiver: ServiceWorkerRegistration) active(): std.core.Option[std.js.Dom.ServiceWorker].
 
 /**
  * The **`cookies`** read-only property of the ServiceWorkerRegistration interface returns a reference to the CookieStoreManager interface, which enables a web app to subscribe to and unsubscribe from cookie change events in a service worker.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/cookies)
  */
-pub (receiver: ServiceWorkerRegistration) cookies(): std.js.Dom.CookieStoreManager.CookieStoreManager.
+pub (receiver: ServiceWorkerRegistration) cookies(): std.js.Dom.CookieStoreManager.
 
 /**
  * The **`installing`** read-only property of the initially set to `null`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/installing)
  */
-pub (receiver: ServiceWorkerRegistration) installing(): std.core.Option.Option[std.js.Dom.ServiceWorker.ServiceWorker].
+pub (receiver: ServiceWorkerRegistration) installing(): std.core.Option[std.js.Dom.ServiceWorker].
 
 /**
  * The **`navigationPreload`** read-only property of the ServiceWorkerRegistration interface returns the NavigationPreloadManager associated with the current service worker registration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/navigationPreload)
  */
-pub (receiver: ServiceWorkerRegistration) navigation_preload(): std.js.Dom.NavigationPreloadManager.NavigationPreloadManager.
+pub (receiver: ServiceWorkerRegistration) navigation_preload(): std.js.Dom.NavigationPreloadManager.
 
 /**
  * The **`pushManager`** read-only property of the support for subscribing, getting an active subscription, and accessing push permission status.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/pushManager)
  */
-pub (receiver: ServiceWorkerRegistration) push_manager(): std.js.Dom.PushManager.PushManager.
+pub (receiver: ServiceWorkerRegistration) push_manager(): std.js.Dom.PushManager.
 
 /**
  * The **`scope`** read-only property of the ServiceWorkerRegistration interface returns a string representing a URL that defines a service worker's registration scope; that is, the range of URLs a service worker can control.
@@ -68,36 +68,36 @@ pub (receiver: ServiceWorkerRegistration) scope(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/waiting)
  */
-pub (receiver: ServiceWorkerRegistration) waiting(): std.core.Option.Option[std.js.Dom.ServiceWorker.ServiceWorker].
+pub (receiver: ServiceWorkerRegistration) waiting(): std.core.Option[std.js.Dom.ServiceWorker].
 
 /**
  * The **`getNotifications()`** method of the ServiceWorkerRegistration interface returns a list of the notifications in the order that they were created from the current origin via the current service worker registration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/getNotifications)
  */
-pub (receiver: ServiceWorkerRegistration) get_notifications(filter: std.core.Option.Option[std.js.Dom.GetNotificationOptions.GetNotificationOptions]): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.Notification.Notification]].
+pub (receiver: ServiceWorkerRegistration) get_notifications(filter: std.core.Option[std.js.Dom.GetNotificationOptions]): std.js.Promise[std.js.Array[std.js.Dom.Notification]].
 
 /**
  * The **`showNotification()`** method of the service worker.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/showNotification)
  */
-pub (receiver: ServiceWorkerRegistration) show_notification(title: std.js.String.JsString, options: std.core.Option.Option[std.js.Dom.NotificationOptions.NotificationOptions]): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: ServiceWorkerRegistration) show_notification(title: std.js.String.JsString, options: std.core.Option[std.js.Dom.NotificationOptions]): std.js.Promise[std.core.Unit].
 
 /**
  * The **`unregister()`** method of the registration and returns a Promise.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/unregister)
  */
-pub (receiver: ServiceWorkerRegistration) unregister(): std.js.Promise.Promise[Bool].
+pub (receiver: ServiceWorkerRegistration) unregister(): std.js.Promise[Bool].
 
 /**
  * The **`update()`** method of the worker.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/update)
  */
-pub (receiver: ServiceWorkerRegistration) update(): std.js.Promise.Promise[ServiceWorkerRegistration].
+pub (receiver: ServiceWorkerRegistration) update(): std.js.Promise[ServiceWorkerRegistration].
 
-pub (receiver: ServiceWorkerRegistration) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: ServiceWorkerRegistration) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: ServiceWorkerRegistration) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: ServiceWorkerRegistration) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

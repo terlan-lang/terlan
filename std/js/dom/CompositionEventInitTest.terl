@@ -14,5 +14,5 @@ module std.js.Dom.CompositionEventInitTest.
 
 import type std.js.Dom.CompositionEventInit.
 
-pub data_typechecks(receiver: CompositionEventInit): std.core.Option.Option[std.js.String.JsString] ->
+pub data_typechecks(receiver: CompositionEventInit): std.core.Option[std.js.String.JsString] ->
     receiver.data().

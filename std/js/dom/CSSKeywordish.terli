@@ -12,4 +12,4 @@
  */
 module std.js.Dom.CSSKeywordish.
 
-pub type CSSKeywordish = std.js.Dom.CSSKeywordValue.CSSKeywordValue | std.js.String.JsString.
+pub type CSSKeywordish = std.js.Dom.CSSKeywordValue | std.js.String.JsString.

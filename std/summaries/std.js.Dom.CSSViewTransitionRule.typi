@@ -17,4 +17,4 @@ pub opaque type CSSViewTransitionRule.
 
 pub (receiver: CSSViewTransitionRule) navigation(): std.js.String.JsString.
 
-pub (receiver: CSSViewTransitionRule) types(): std.js.Array.Array[std.js.String.JsString].
+pub (receiver: CSSViewTransitionRule) types(): std.js.Array[std.js.String.JsString].

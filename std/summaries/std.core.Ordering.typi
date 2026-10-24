@@ -77,7 +77,7 @@ pub type Lt =
 /// `Lt < Eq < Gt`.
 ///
 /// This function is the named implementation hook for compiler-known
-/// `std.core.Ordering.Ordering[Comparison]` conformance in 0.0.1.
+/// `std.core.Ordering[Comparison]` conformance in 0.0.1.
 ///
 /// ```terlan
 /// module comparison_compare_example.

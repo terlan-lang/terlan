@@ -31,7 +31,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    float_defer: std.core.Option.Option[Value],
+    float_defer: std.core.Option[Value],
 }.
 
 /**

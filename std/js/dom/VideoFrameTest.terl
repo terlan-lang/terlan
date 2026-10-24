@@ -12,10 +12,8 @@
  */
 module std.js.Dom.VideoFrameTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.DOMRectReadOnly.{DOMRectReadOnly}.
-import type std.js.Dom.VideoFrame.
-import type std.js.Dom.VideoFrameCopyToOptions.{VideoFrameCopyToOptions}.
+import type std.core.{Option}.
+import type std.js.Dom.{DOMRectReadOnly, VideoFrame, VideoFrameCopyToOptions}.
 import type std.js.Number.{JsNumber}.
 
 pub coded_height_typechecks(receiver: VideoFrame): JsNumber ->
@@ -27,7 +25,7 @@ pub coded_rect_typechecks(receiver: VideoFrame): Option[DOMRectReadOnly] ->
 pub coded_width_typechecks(receiver: VideoFrame): JsNumber ->
     receiver.coded_width().
 
-pub color_space_typechecks(receiver: VideoFrame): std.js.Dom.VideoColorSpace.VideoColorSpace ->
+pub color_space_typechecks(receiver: VideoFrame): std.js.Dom.VideoColorSpace ->
     receiver.color_space().
 
 pub display_height_typechecks(receiver: VideoFrame): JsNumber ->
@@ -54,12 +52,12 @@ pub allocation_size_typechecks(
 pub clone_typechecks(receiver: VideoFrame): VideoFrame ->
     receiver.clone().
 
-pub close_typechecks(receiver: VideoFrame): std.core.Unit.Unit ->
+pub close_typechecks(receiver: VideoFrame): std.core.Unit ->
     receiver.close().
 
 pub copy_to_typechecks(
     receiver: VideoFrame,
-    destination: std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource,
+    destination: std.js.Dom.AllowSharedBufferSource,
     options: Option[VideoFrameCopyToOptions],
-): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]] ->
+): std.js.Promise[std.js.Array[std.js.Dom.PlaneLayout]] ->
     receiver.copy_to(destination, options).

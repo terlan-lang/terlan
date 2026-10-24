@@ -12,10 +12,9 @@
  */
 module std.js.Dom.PeriodicWaveOptions.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
-import type std.js.Float32Array.{Float32Array}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
+import type std.js.{Array, Float32Array}.
 
 pub opaque type PeriodicWaveOptions.
 

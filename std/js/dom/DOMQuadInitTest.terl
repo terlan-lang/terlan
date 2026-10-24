@@ -12,9 +12,8 @@
  */
 module std.js.Dom.DOMQuadInitTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.DOMPointInit.{DOMPointInit}.
-import type std.js.Dom.DOMQuadInit.
+import type std.core.{Option}.
+import type std.js.Dom.{DOMPointInit, DOMQuadInit}.
 
 pub p1_typechecks(receiver: DOMQuadInit): Option[DOMPointInit] ->
     receiver.p1().

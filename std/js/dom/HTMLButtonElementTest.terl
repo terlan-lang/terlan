@@ -12,16 +12,14 @@
  */
 module std.js.Dom.HTMLButtonElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLButtonElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLButtonElement}.
 import type std.js.String.{JsString}.
 
 pub disabled_typechecks(receiver: HTMLButtonElement): Bool ->
     receiver.disabled().
 
-pub form_typechecks(receiver: HTMLButtonElement): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
+pub form_typechecks(receiver: HTMLButtonElement): Option[std.js.Dom.HTMLFormElement] ->
     receiver.form().
 
 pub form_action_typechecks(receiver: HTMLButtonElement): JsString ->
@@ -41,7 +39,7 @@ pub form_target_typechecks(receiver: HTMLButtonElement): JsString ->
 
 pub labels_typechecks(
     receiver: HTMLButtonElement,
-): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement] ->
+): std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement] ->
     receiver.labels().
 
 pub name_typechecks(receiver: HTMLButtonElement): JsString ->
@@ -50,7 +48,7 @@ pub name_typechecks(receiver: HTMLButtonElement): JsString ->
 pub validation_message_typechecks(receiver: HTMLButtonElement): JsString ->
     receiver.validation_message().
 
-pub validity_typechecks(receiver: HTMLButtonElement): std.js.Dom.ValidityState.ValidityState ->
+pub validity_typechecks(receiver: HTMLButtonElement): std.js.Dom.ValidityState ->
     receiver.validity().
 
 pub value_typechecks(receiver: HTMLButtonElement): JsString ->
@@ -72,7 +70,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLButtonElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -80,6 +78,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLButtonElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

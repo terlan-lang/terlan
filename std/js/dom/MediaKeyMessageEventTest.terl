@@ -14,5 +14,5 @@ module std.js.Dom.MediaKeyMessageEventTest.
 
 import type std.js.Dom.MediaKeyMessageEvent.
 
-pub message_typechecks(receiver: MediaKeyMessageEvent): std.js.ArrayBuffer.ArrayBuffer ->
+pub message_typechecks(receiver: MediaKeyMessageEvent): std.js.ArrayBuffer ->
     receiver.message().

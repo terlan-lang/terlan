@@ -14,5 +14,5 @@ module std.js.ArrayBufferTypesTest.
 
 import type std.js.ArrayBufferTypes.
 
-pub array_buffer_typechecks(receiver: ArrayBufferTypes): std.js.ArrayBuffer.ArrayBuffer ->
+pub array_buffer_typechecks(receiver: ArrayBufferTypes): std.js.ArrayBuffer ->
     receiver.array_buffer().

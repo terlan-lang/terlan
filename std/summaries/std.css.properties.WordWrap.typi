@@ -8,7 +8,7 @@ module std.css.properties.WordWrap.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    word_wrap: std.core.Option.Option[Value]
+    word_wrap: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

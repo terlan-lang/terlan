@@ -39,18 +39,18 @@ pub (receiver: DataTransferItem) type_(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/getAsFile)
  */
-pub (receiver: DataTransferItem) get_as_file(): std.core.Option.Option[std.js.Dom.File.File].
+pub (receiver: DataTransferItem) get_as_file(): std.core.Option[std.js.Dom.File].
 
 /**
  * The **`DataTransferItem.getAsString()`** method invokes the given callback with the drag data item's string data as the argument if the item's DataTransferItem.kind is a _Plain unicode string_ (i.e., `kind` is `string`).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/getAsString)
  */
-pub (receiver: DataTransferItem) get_as_string(callback: std.core.Option.Option[std.js.Dom.FunctionStringCallback.FunctionStringCallback]): std.core.Unit.Unit.
+pub (receiver: DataTransferItem) get_as_string(callback: std.core.Option[std.js.Dom.FunctionStringCallback]): std.core.Unit.
 
 /**
  * If the item described by the DataTransferItem is a file, `webkitGetAsEntry()` returns a FileSystemFileEntry or FileSystemDirectoryEntry representing it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/webkitGetAsEntry)
  */
-pub (receiver: DataTransferItem) webkit_get_as_entry(): std.core.Option.Option[std.js.Dom.FileSystemEntry.FileSystemEntry].
+pub (receiver: DataTransferItem) webkit_get_as_entry(): std.core.Option[std.js.Dom.FileSystemEntry].

@@ -12,12 +12,10 @@
  */
 module std.js.Dom.VideoEncoderSupportTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.VideoEncoderSupport.
 
-pub config_typechecks(
-    receiver: VideoEncoderSupport,
-): Option[std.js.Dom.VideoEncoderConfig.VideoEncoderConfig] ->
+pub config_typechecks(receiver: VideoEncoderSupport): Option[std.js.Dom.VideoEncoderConfig] ->
     receiver.config().
 
 pub supported_typechecks(receiver: VideoEncoderSupport): Option[Bool] ->

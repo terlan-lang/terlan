@@ -12,8 +12,7 @@
  */
 module std.js.Dom.HTMLOrSVGElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
+import type std.core.{Option, Unit}.
 
 pub opaque type HTMLOrSVGElement.
 
@@ -26,7 +25,7 @@ pub (receiver: HTMLOrSVGElement) autofocus(): Bool ->
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/dataset)
  */
-pub (receiver: HTMLOrSVGElement) dataset(): std.js.Dom.DOMStringMap.DOMStringMap ->
+pub (receiver: HTMLOrSVGElement) dataset(): std.js.Dom.DOMStringMap ->
     native.
 
 /**
@@ -50,5 +49,5 @@ pub (receiver: HTMLOrSVGElement) blur(): Unit ->
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/focus)
  */
-pub (receiver: HTMLOrSVGElement) focus(options: Option[std.js.Dom.FocusOptions.FocusOptions]): Unit ->
+pub (receiver: HTMLOrSVGElement) focus(options: Option[std.js.Dom.FocusOptions]): Unit ->
     native.

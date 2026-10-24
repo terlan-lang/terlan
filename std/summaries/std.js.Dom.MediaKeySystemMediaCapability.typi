@@ -15,8 +15,8 @@ module std.js.Dom.MediaKeySystemMediaCapability.
 
 pub opaque type MediaKeySystemMediaCapability.
 
-pub (receiver: MediaKeySystemMediaCapability) content_type(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MediaKeySystemMediaCapability) content_type(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: MediaKeySystemMediaCapability) encryption_scheme(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MediaKeySystemMediaCapability) encryption_scheme(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: MediaKeySystemMediaCapability) robustness(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MediaKeySystemMediaCapability) robustness(): std.core.Option[std.js.String.JsString].

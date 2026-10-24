@@ -19,5 +19,5 @@ pub popover_target_action_typechecks(receiver: PopoverInvokerElement): std.js.St
 
 pub popover_target_element_typechecks(
     receiver: PopoverInvokerElement,
-): std.core.Option.Option[std.js.Dom.Element.Element] ->
+): std.core.Option[std.js.Dom.Element] ->
     receiver.popover_target_element().

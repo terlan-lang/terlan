@@ -12,11 +12,8 @@
  */
 module std.js.Dom.SVGFEConvolveMatrixElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGAnimatedInteger.{SVGAnimatedInteger}.
-import type std.js.Dom.SVGAnimatedNumber.{SVGAnimatedNumber}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, SVGAnimatedInteger, SVGAnimatedNumber}.
 import type std.js.String.{JsString}.
 
 /**
@@ -45,21 +42,21 @@ pub (receiver: SVGFEConvolveMatrixElement) divisor(): SVGAnimatedNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/edgeMode)
  */
-pub (receiver: SVGFEConvolveMatrixElement) edge_mode(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration.
+pub (receiver: SVGFEConvolveMatrixElement) edge_mode(): std.js.Dom.SVGAnimatedEnumeration.
 
 /**
  * The **`in1`** read-only property of the SVGFEConvolveMatrixElement interface reflects the in attribute of the given feConvolveMatrix element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/in1)
  */
-pub (receiver: SVGFEConvolveMatrixElement) in1(): std.js.Dom.SVGAnimatedString.SVGAnimatedString.
+pub (receiver: SVGFEConvolveMatrixElement) in1(): std.js.Dom.SVGAnimatedString.
 
 /**
  * The **`kernelMatrix`** read-only property of the SVGFEConvolveMatrixElement interface reflects the kernelMatrix attribute of the given feConvolveMatrix element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/kernelMatrix)
  */
-pub (receiver: SVGFEConvolveMatrixElement) kernel_matrix(): std.js.Dom.SVGAnimatedNumberList.SVGAnimatedNumberList.
+pub (receiver: SVGFEConvolveMatrixElement) kernel_matrix(): std.js.Dom.SVGAnimatedNumberList.
 
 /**
  * The **`kernelUnitLengthX`** read-only property of the SVGFEConvolveMatrixElement interface reflects the kernelUnitLength attribute of the given feConvolveMatrix element.
@@ -94,7 +91,7 @@ pub (receiver: SVGFEConvolveMatrixElement) order_y(): SVGAnimatedInteger.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEConvolveMatrixElement/preserveAlpha)
  */
-pub (receiver: SVGFEConvolveMatrixElement) preserve_alpha(): std.js.Dom.SVGAnimatedBoolean.SVGAnimatedBoolean.
+pub (receiver: SVGFEConvolveMatrixElement) preserve_alpha(): std.js.Dom.SVGAnimatedBoolean.
 
 /**
  * The **`targetX`** read-only property of the SVGFEConvolveMatrixElement interface reflects the targetX attribute of the given feConvolveMatrix element.
@@ -113,11 +110,11 @@ pub (receiver: SVGFEConvolveMatrixElement) target_y(): SVGAnimatedInteger.
 pub (receiver: SVGFEConvolveMatrixElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: SVGFEConvolveMatrixElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

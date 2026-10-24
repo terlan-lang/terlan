@@ -12,8 +12,8 @@
  */
 module std.js.Dom.KeyframeEffect.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
+import type std.core.{Option}.
+import type std.js.{Array}.
 
 /**
  * The **`KeyframeEffect`** interface of the Web Animations API lets us create sets of animatable properties and values, called **keyframes.** These can then be played using the Animation.Animation constructor.
@@ -34,14 +34,14 @@ pub (receiver: KeyframeEffect) pseudo_element(): Option[std.js.String.JsString].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/target)
  */
-pub (receiver: KeyframeEffect) target_(): Option[std.js.Dom.Element.Element].
+pub (receiver: KeyframeEffect) target_(): Option[std.js.Dom.Element].
 
 /**
  * The **`getKeyframes()`** method of a KeyframeEffect returns an Array of the computed keyframes that make up this animation along with their computed offsets.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/getKeyframes)
  */
-pub (receiver: KeyframeEffect) get_keyframes(): Array[std.js.Dom.ComputedKeyframe.ComputedKeyframe].
+pub (receiver: KeyframeEffect) get_keyframes(): Array[std.js.Dom.ComputedKeyframe].
 
 /**
  * The **`setKeyframes()`** method of the KeyframeEffect interface replaces the keyframes that make up the affected `KeyframeEffect` with a new set of keyframes.
@@ -49,5 +49,5 @@ pub (receiver: KeyframeEffect) get_keyframes(): Array[std.js.Dom.ComputedKeyfram
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/setKeyframes)
  */
 pub (receiver: KeyframeEffect) set_keyframes(
-    keyframes: Option[std.js.Dom.PropertyIndexedKeyframes.PropertyIndexedKeyframes | Array[std.js.Dom.Keyframe.Keyframe]],
-): std.core.Unit.Unit.
+    keyframes: Option[std.js.Dom.PropertyIndexedKeyframes | Array[std.js.Dom.Keyframe]],
+): std.core.Unit.

@@ -12,8 +12,8 @@
  */
 module std.js.Dom.AudioData.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.AudioDataCopyToOptions.{AudioDataCopyToOptions}.
+import type std.core.{Unit}.
+import type std.js.Dom.{AudioDataCopyToOptions}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -92,8 +92,5 @@ pub (receiver: AudioData) close(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioData/copyTo)
  */
-pub (receiver: AudioData) copy_to(
-    destination: std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource,
-    options: AudioDataCopyToOptions,
-): Unit ->
+pub (receiver: AudioData) copy_to(destination: std.js.Dom.AllowSharedBufferSource, options: AudioDataCopyToOptions): Unit ->
     native.

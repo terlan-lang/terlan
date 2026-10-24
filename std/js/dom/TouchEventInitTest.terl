@@ -12,10 +12,9 @@
  */
 module std.js.Dom.TouchEventInitTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.Touch.{Touch}.
-import type std.js.Dom.TouchEventInit.
+import type std.core.{Option}.
+import type std.js.Dom.{Touch, TouchEventInit}.
+import type std.js.{Array}.
 
 pub changed_touches_typechecks(receiver: TouchEventInit): Option[Array[Touch]] ->
     receiver.changed_touches().

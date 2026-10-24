@@ -14,8 +14,8 @@ module std.js.Dom.PaymentDetailsInit.
 
 pub opaque type PaymentDetailsInit.
 
-pub (receiver: PaymentDetailsInit) id(): std.core.Option.Option[std.js.String.JsString] ->
+pub (receiver: PaymentDetailsInit) id(): std.core.Option[std.js.String.JsString] ->
     native.
 
-pub (receiver: PaymentDetailsInit) total(): std.js.Dom.PaymentItem.PaymentItem ->
+pub (receiver: PaymentDetailsInit) total(): std.js.Dom.PaymentItem ->
     native.

@@ -14,5 +14,5 @@ module std.js.Dom.FilePropertyBag.
 
 pub opaque type FilePropertyBag.
 
-pub (receiver: FilePropertyBag) last_modified(): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub (receiver: FilePropertyBag) last_modified(): std.core.Option[std.js.Number.JsNumber] ->
     native.

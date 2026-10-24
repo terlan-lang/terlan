@@ -8,7 +8,7 @@ module std.css.properties.BoxSnap.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    box_snap: std.core.Option.Option[Value]
+    box_snap: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

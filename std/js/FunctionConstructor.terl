@@ -14,5 +14,5 @@ module std.js.FunctionConstructor.
 
 pub opaque type FunctionConstructor.
 
-pub (receiver: FunctionConstructor) prototype(): std.js.Function.Function ->
+pub (receiver: FunctionConstructor) prototype(): std.js.Function ->
     native.

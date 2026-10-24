@@ -24,11 +24,11 @@ pub opaque type ReadableStreamDefaultReader[R].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultReader/read)
  */
-pub (receiver: ReadableStreamDefaultReader[R]) read(): std.js.Promise.Promise[std.js.Dom.ReadableStreamReadResult.ReadableStreamReadResult[R]].
+pub (receiver: ReadableStreamDefaultReader[R]) read(): std.js.Promise[std.js.Dom.ReadableStreamReadResult[R]].
 
 /**
  * The **`releaseLock()`** method of the ReadableStreamDefaultReader interface releases the reader's lock on the stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultReader/releaseLock)
  */
-pub (receiver: ReadableStreamDefaultReader[R]) release_lock(): std.core.Unit.Unit.
+pub (receiver: ReadableStreamDefaultReader[R]) release_lock(): std.core.Unit.

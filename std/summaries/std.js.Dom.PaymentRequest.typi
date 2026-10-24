@@ -34,7 +34,7 @@ pub (receiver: PaymentRequest) id(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/shippingAddress)
  */
-pub (receiver: PaymentRequest) shipping_address(): std.core.Option.Option[std.js.Dom.PaymentAddress.PaymentAddress].
+pub (receiver: PaymentRequest) shipping_address(): std.core.Option[std.js.Dom.PaymentAddress].
 
 /**
  * The **`shippingOption`** read-only attribute of the PaymentRequest interface returns either the id of a selected shipping option, null (if no shipping option was set to be selected) or a shipping option selected by the user.
@@ -42,29 +42,29 @@ pub (receiver: PaymentRequest) shipping_address(): std.core.Option.Option[std.js
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/shippingOption)
  */
-pub (receiver: PaymentRequest) shipping_option(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: PaymentRequest) shipping_option(): std.core.Option[std.js.String.JsString].
 
 /**
  * The `PaymentRequest.abort()` method of the PaymentRequest interface causes the user agent to end the payment request and to remove any user interface that might be shown.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/abort)
  */
-pub (receiver: PaymentRequest) abort(): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: PaymentRequest) abort(): std.js.Promise[std.core.Unit].
 
 /**
  * The PaymentRequest method **`canMakePayment()`** determines whether or not the request is configured in a way that is compatible with at least one payment method supported by the user agent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/canMakePayment)
  */
-pub (receiver: PaymentRequest) can_make_payment(): std.js.Promise.Promise[Bool].
+pub (receiver: PaymentRequest) can_make_payment(): std.js.Promise[Bool].
 
 /**
  * The **PaymentRequest** interface's **`show()`** method instructs the user agent to begin the process of showing and handling the user interface for the payment request to the user.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentRequest/show)
  */
-pub (receiver: PaymentRequest) show(details_promise: std.core.Option.Option[std.js.Dom.PaymentDetailsUpdate.PaymentDetailsUpdate | std.js.PromiseLike.PromiseLike[std.js.Dom.PaymentDetailsUpdate.PaymentDetailsUpdate]]): std.js.Promise.Promise[std.js.Dom.PaymentResponse.PaymentResponse].
+pub (receiver: PaymentRequest) show(details_promise: std.core.Option[std.js.Dom.PaymentDetailsUpdate | std.js.PromiseLike[std.js.Dom.PaymentDetailsUpdate]]): std.js.Promise[std.js.Dom.PaymentResponse].
 
-pub (receiver: PaymentRequest) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: PaymentRequest) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: PaymentRequest) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: PaymentRequest) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

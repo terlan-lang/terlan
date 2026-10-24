@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MessageEventTargetEventMap.
 
-import type std.js.Dom.MessageEvent.{MessageEvent}.
+import type std.js.Dom.{MessageEvent}.
 
 pub opaque type MessageEventTargetEventMap.
 

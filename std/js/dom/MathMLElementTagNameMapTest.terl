@@ -12,8 +12,7 @@
  */
 module std.js.Dom.MathMLElementTagNameMapTest.
 
-import type std.js.Dom.MathMLElement.{MathMLElement}.
-import type std.js.Dom.MathMLElementTagNameMap.
+import type std.js.Dom.{MathMLElement, MathMLElementTagNameMap}.
 
 pub annotation__typechecks(receiver: MathMLElementTagNameMap): MathMLElement ->
     receiver.annotation_().

@@ -14,5 +14,5 @@ module std.js.Dom.ChannelSplitterOptions.
 
 pub opaque type ChannelSplitterOptions.
 
-pub (receiver: ChannelSplitterOptions) number_of_outputs(): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub (receiver: ChannelSplitterOptions) number_of_outputs(): std.core.Option[std.js.Number.JsNumber] ->
     native.

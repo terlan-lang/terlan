@@ -14,5 +14,5 @@ module std.js.Dom.MediaCapabilitiesDecodingInfo.
 
 pub opaque type MediaCapabilitiesDecodingInfo.
 
-pub (receiver: MediaCapabilitiesDecodingInfo) key_system_access(): std.core.Option.Option[std.js.Dom.MediaKeySystemAccess.MediaKeySystemAccess] ->
+pub (receiver: MediaCapabilitiesDecodingInfo) key_system_access(): std.core.Option[std.js.Dom.MediaKeySystemAccess] ->
     native.

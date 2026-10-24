@@ -15,6 +15,6 @@ module std.js.Dom.RTCSentRtpStreamStats.
 
 pub opaque type RTCSentRtpStreamStats.
 
-pub (receiver: RTCSentRtpStreamStats) bytes_sent(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCSentRtpStreamStats) bytes_sent(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCSentRtpStreamStats) packets_sent(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCSentRtpStreamStats) packets_sent(): std.core.Option[std.js.Number.JsNumber].

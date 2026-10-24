@@ -14,4 +14,4 @@
 module std.js.Dom.ImageDataArray.
 
 pub type ImageDataArray =
-    std.js.Uint8ClampedArray.Uint8ClampedArray[std.js.ArrayBuffer.ArrayBuffer].
+    std.js.Uint8ClampedArray[std.js.ArrayBuffer].

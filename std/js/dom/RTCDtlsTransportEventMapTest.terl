@@ -14,8 +14,8 @@ module std.js.Dom.RTCDtlsTransportEventMapTest.
 
 import type std.js.Dom.RTCDtlsTransportEventMap.
 
-pub error_typechecks(receiver: RTCDtlsTransportEventMap): std.js.Dom.RTCErrorEvent.RTCErrorEvent ->
+pub error_typechecks(receiver: RTCDtlsTransportEventMap): std.js.Dom.RTCErrorEvent ->
     receiver.error().
 
-pub statechange_typechecks(receiver: RTCDtlsTransportEventMap): std.js.Dom.Event.Event ->
+pub statechange_typechecks(receiver: RTCDtlsTransportEventMap): std.js.Dom.Event ->
     receiver.statechange().

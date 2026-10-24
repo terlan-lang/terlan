@@ -8,7 +8,7 @@ module std.css.properties.BackgroundAttachment.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    background_attachment: std.core.Option.Option[Value]
+    background_attachment: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -12,12 +12,12 @@
  */
 module std.js.Dom.WebTransportHash.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type WebTransportHash.
 
 pub (receiver: WebTransportHash) algorithm(): Option[std.js.String.JsString] ->
     native.
 
-pub (receiver: WebTransportHash) value(): Option[std.js.Dom.BufferSource.BufferSource] ->
+pub (receiver: WebTransportHash) value(): Option[std.js.Dom.BufferSource] ->
     native.

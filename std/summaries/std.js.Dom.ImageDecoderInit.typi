@@ -15,14 +15,14 @@ module std.js.Dom.ImageDecoderInit.
 
 pub opaque type ImageDecoderInit.
 
-pub (receiver: ImageDecoderInit) data(): std.js.Dom.ImageBufferSource.ImageBufferSource.
+pub (receiver: ImageDecoderInit) data(): std.js.Dom.ImageBufferSource.
 
-pub (receiver: ImageDecoderInit) desired_height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ImageDecoderInit) desired_height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: ImageDecoderInit) desired_width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ImageDecoderInit) desired_width(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: ImageDecoderInit) prefer_animation(): std.core.Option.Option[Bool].
+pub (receiver: ImageDecoderInit) prefer_animation(): std.core.Option[Bool].
 
-pub (receiver: ImageDecoderInit) transfer(): std.core.Option.Option[std.js.Array.Array[std.js.ArrayBuffer.ArrayBuffer]].
+pub (receiver: ImageDecoderInit) transfer(): std.core.Option[std.js.Array[std.js.ArrayBuffer]].
 
 pub (receiver: ImageDecoderInit) type_(): std.js.String.JsString.

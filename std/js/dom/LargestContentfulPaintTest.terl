@@ -12,13 +12,10 @@
  */
 module std.js.Dom.LargestContentfulPaintTest.
 
-import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
-import type std.js.Dom.LargestContentfulPaint.
+import type std.js.Dom.{DOMHighResTimeStamp, LargestContentfulPaint}.
 import type std.js.String.{JsString}.
 
-pub element_typechecks(
-    receiver: LargestContentfulPaint,
-): std.core.Option.Option[std.js.Dom.Element.Element] ->
+pub element_typechecks(receiver: LargestContentfulPaint): std.core.Option[std.js.Dom.Element] ->
     receiver.element().
 
 pub id_typechecks(receiver: LargestContentfulPaint): JsString ->

@@ -19,4 +19,4 @@ pub (receiver: Error) name(): std.js.String.JsString.
 
 pub (receiver: Error) message(): std.js.String.JsString.
 
-pub (receiver: Error) stack(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: Error) stack(): std.core.Option[std.js.String.JsString].

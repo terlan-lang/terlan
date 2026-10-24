@@ -12,9 +12,8 @@
  */
 module std.js.Dom.HTMLCanvasElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -44,7 +43,7 @@ pub (receiver: HTMLCanvasElement) width(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/captureStream)
  */
-pub (receiver: HTMLCanvasElement) capture_stream(frame_request_rate: Option[JsNumber]): std.js.Dom.MediaStream.MediaStream.
+pub (receiver: HTMLCanvasElement) capture_stream(frame_request_rate: Option[JsNumber]): std.js.Dom.MediaStream.
 
 /**
  * The **`HTMLCanvasElement.toBlob()`** method creates a Blob object representing the image contained in the canvas.
@@ -52,7 +51,7 @@ pub (receiver: HTMLCanvasElement) capture_stream(frame_request_rate: Option[JsNu
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toBlob)
  */
 pub (receiver: HTMLCanvasElement) to_blob(
-    callback: std.js.Dom.BlobCallback.BlobCallback,
+    callback: std.js.Dom.BlobCallback,
     type_: Option[JsString],
     quality: Option[JsNumber],
 ): Unit.
@@ -69,16 +68,16 @@ pub (receiver: HTMLCanvasElement) to_data_url(type_: Option[JsString], quality: 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/transferControlToOffscreen)
  */
-pub (receiver: HTMLCanvasElement) transfer_control_to_offscreen(): std.js.Dom.OffscreenCanvas.OffscreenCanvas.
+pub (receiver: HTMLCanvasElement) transfer_control_to_offscreen(): std.js.Dom.OffscreenCanvas.
 
 pub (receiver: HTMLCanvasElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: HTMLCanvasElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

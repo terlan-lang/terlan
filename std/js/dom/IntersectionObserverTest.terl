@@ -12,14 +12,11 @@
  */
 module std.js.Dom.IntersectionObserverTest.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.Element.{Element}.
-import type std.js.Dom.IntersectionObserver.
+import type std.core.{Unit}.
+import type std.js.Dom.{Element, IntersectionObserver}.
+import type std.js.{Array}.
 
-pub root_typechecks(
-    receiver: IntersectionObserver,
-): std.core.Option.Option[std.js.Dom.Document.Document | Element] ->
+pub root_typechecks(receiver: IntersectionObserver): std.core.Option[std.js.Dom.Document | Element] ->
     receiver.root().
 
 pub root_margin_typechecks(receiver: IntersectionObserver): std.js.String.JsString ->
@@ -36,7 +33,7 @@ pub observe_typechecks(receiver: IntersectionObserver, target_: Element): Unit -
 
 pub take_records_typechecks(
     receiver: IntersectionObserver,
-): Array[std.js.Dom.IntersectionObserverEntry.IntersectionObserverEntry] ->
+): Array[std.js.Dom.IntersectionObserverEntry] ->
     receiver.take_records().
 
 pub unobserve_typechecks(receiver: IntersectionObserver, target_: Element): Unit ->

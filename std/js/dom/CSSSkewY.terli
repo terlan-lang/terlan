@@ -24,4 +24,4 @@ pub opaque type CSSSkewY.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSSkewY/ay)
  */
-pub (receiver: CSSSkewY) ay(): std.js.Dom.CSSNumericValue.CSSNumericValue.
+pub (receiver: CSSSkewY) ay(): std.js.Dom.CSSNumericValue.

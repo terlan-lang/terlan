@@ -12,7 +12,7 @@
  */
 module std.js.Dom.VideoFrameInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type VideoFrameInit.
@@ -25,4 +25,4 @@ pub (receiver: VideoFrameInit) duration(): Option[JsNumber].
 
 pub (receiver: VideoFrameInit) timestamp(): Option[JsNumber].
 
-pub (receiver: VideoFrameInit) visible_rect(): Option[std.js.Dom.DOMRectInit.DOMRectInit].
+pub (receiver: VideoFrameInit) visible_rect(): Option[std.js.Dom.DOMRectInit].

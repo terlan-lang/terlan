@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CanvasState.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 
 pub opaque type CanvasState.
 

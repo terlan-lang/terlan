@@ -12,13 +12,11 @@
  */
 module std.js.Dom.AudioContextTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.AudioContext.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{AudioContext, EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
-import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 pub base_latency_typechecks(receiver: AudioContext): JsNumber ->
     receiver.base_latency().
@@ -31,24 +29,22 @@ pub close_typechecks(receiver: AudioContext): Promise[Unit] ->
 
 pub create_media_element_source_typechecks(
     receiver: AudioContext,
-    media_element: std.js.Dom.HTMLMediaElement.HTMLMediaElement,
-): std.js.Dom.MediaElementAudioSourceNode.MediaElementAudioSourceNode ->
+    media_element: std.js.Dom.HTMLMediaElement,
+): std.js.Dom.MediaElementAudioSourceNode ->
     receiver.create_media_element_source(media_element).
 
 pub create_media_stream_destination_typechecks(
     receiver: AudioContext,
-): std.js.Dom.MediaStreamAudioDestinationNode.MediaStreamAudioDestinationNode ->
+): std.js.Dom.MediaStreamAudioDestinationNode ->
     receiver.create_media_stream_destination().
 
 pub create_media_stream_source_typechecks(
     receiver: AudioContext,
-    media_stream: std.js.Dom.MediaStream.MediaStream,
-): std.js.Dom.MediaStreamAudioSourceNode.MediaStreamAudioSourceNode ->
+    media_stream: std.js.Dom.MediaStream,
+): std.js.Dom.MediaStreamAudioSourceNode ->
     receiver.create_media_stream_source(media_stream).
 
-pub get_output_timestamp_typechecks(
-    receiver: AudioContext,
-): std.js.Dom.AudioTimestamp.AudioTimestamp ->
+pub get_output_timestamp_typechecks(receiver: AudioContext): std.js.Dom.AudioTimestamp ->
     receiver.get_output_timestamp().
 
 pub resume_typechecks(receiver: AudioContext): Promise[Unit] ->
@@ -61,7 +57,7 @@ pub add_event_listener_typechecks(
     receiver: AudioContext,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -69,6 +65,6 @@ pub remove_event_listener_typechecks(
     receiver: AudioContext,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -26,53 +26,53 @@ pub opaque type WebTransport.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransport/closed)
  */
-pub (receiver: WebTransport) closed(): std.js.Promise.Promise[std.js.Dom.WebTransportCloseInfo.WebTransportCloseInfo].
+pub (receiver: WebTransport) closed(): std.js.Promise[std.js.Dom.WebTransportCloseInfo].
 
 /**
  * The **`datagrams`** read-only property of the WebTransport interface returns a WebTransportDatagramDuplexStream instance that can be used to send and receive datagrams — unreliable data transmission.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransport/datagrams)
  */
-pub (receiver: WebTransport) datagrams(): std.js.Dom.WebTransportDatagramDuplexStream.WebTransportDatagramDuplexStream.
+pub (receiver: WebTransport) datagrams(): std.js.Dom.WebTransportDatagramDuplexStream.
 
 /**
  * The **`incomingBidirectionalStreams`** read-only property of the WebTransport interface represents one or more bidirectional streams opened by the server.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransport/incomingBidirectionalStreams)
  */
-pub (receiver: WebTransport) incoming_bidirectional_streams(): std.js.Dom.ReadableStream.ReadableStream.
+pub (receiver: WebTransport) incoming_bidirectional_streams(): std.js.Dom.ReadableStream.
 
 /**
  * The **`incomingUnidirectionalStreams`** read-only property of the WebTransport interface represents one or more unidirectional streams opened by the server.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransport/incomingUnidirectionalStreams)
  */
-pub (receiver: WebTransport) incoming_unidirectional_streams(): std.js.Dom.ReadableStream.ReadableStream.
+pub (receiver: WebTransport) incoming_unidirectional_streams(): std.js.Dom.ReadableStream.
 
 /**
  * The **`ready`** read-only property of the WebTransport interface returns a promise that resolves when the transport is ready to use.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransport/ready)
  */
-pub (receiver: WebTransport) ready(): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: WebTransport) ready(): std.js.Promise[std.core.Unit].
 
 /**
  * The **`close()`** method of the WebTransport interface closes an ongoing WebTransport session.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransport/close)
  */
-pub (receiver: WebTransport) close(close_info: std.core.Option.Option[std.js.Dom.WebTransportCloseInfo.WebTransportCloseInfo]): std.core.Unit.Unit.
+pub (receiver: WebTransport) close(close_info: std.core.Option[std.js.Dom.WebTransportCloseInfo]): std.core.Unit.
 
 /**
  * The **`createBidirectionalStream()`** method of the WebTransport interface asynchronously opens and returns a bidirectional stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransport/createBidirectionalStream)
  */
-pub (receiver: WebTransport) create_bidirectional_stream(options: std.core.Option.Option[std.js.Dom.WebTransportSendStreamOptions.WebTransportSendStreamOptions]): std.js.Promise.Promise[std.js.Dom.WebTransportBidirectionalStream.WebTransportBidirectionalStream].
+pub (receiver: WebTransport) create_bidirectional_stream(options: std.core.Option[std.js.Dom.WebTransportSendStreamOptions]): std.js.Promise[std.js.Dom.WebTransportBidirectionalStream].
 
 /**
  * The **`createUnidirectionalStream()`** method of the WebTransport interface asynchronously opens a unidirectional stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransport/createUnidirectionalStream)
  */
-pub (receiver: WebTransport) create_unidirectional_stream(options: std.core.Option.Option[std.js.Dom.WebTransportSendStreamOptions.WebTransportSendStreamOptions]): std.js.Promise.Promise[std.js.Dom.WritableStream.WritableStream].
+pub (receiver: WebTransport) create_unidirectional_stream(options: std.core.Option[std.js.Dom.WebTransportSendStreamOptions]): std.js.Promise[std.js.Dom.WritableStream].

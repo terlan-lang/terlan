@@ -14,5 +14,5 @@ module std.js.Dom.FormDataEventInitTest.
 
 import type std.js.Dom.FormDataEventInit.
 
-pub form_data_typechecks(receiver: FormDataEventInit): std.js.Dom.FormData.FormData ->
+pub form_data_typechecks(receiver: FormDataEventInit): std.js.Dom.FormData ->
     receiver.form_data().

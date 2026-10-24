@@ -25,22 +25,22 @@ pub opaque type SVGCircleElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGCircleElement/cx)
  */
-pub (receiver: SVGCircleElement) cx(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGCircleElement) cx(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`cy`** read-only property of the SVGCircleElement interface reflects the cy attribute of a circle element and by that defines the y-coordinate of the circle's center.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGCircleElement/cy)
  */
-pub (receiver: SVGCircleElement) cy(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGCircleElement) cy(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`r`** read-only property of the SVGCircleElement interface reflects the r attribute of a circle element and by that defines the radius of the circle.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGCircleElement/r)
  */
-pub (receiver: SVGCircleElement) r(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGCircleElement) r(): std.js.Dom.SVGAnimatedLength.
 
-pub (receiver: SVGCircleElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SVGCircleElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SVGCircleElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SVGCircleElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

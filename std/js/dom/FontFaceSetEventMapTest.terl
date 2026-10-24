@@ -12,8 +12,7 @@
  */
 module std.js.Dom.FontFaceSetEventMapTest.
 
-import type std.js.Dom.FontFaceSetEventMap.
-import type std.js.Dom.FontFaceSetLoadEvent.{FontFaceSetLoadEvent}.
+import type std.js.Dom.{FontFaceSetEventMap, FontFaceSetLoadEvent}.
 
 pub loading_typechecks(receiver: FontFaceSetEventMap): FontFaceSetLoadEvent ->
     receiver.loading().

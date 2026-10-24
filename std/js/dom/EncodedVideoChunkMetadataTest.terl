@@ -16,5 +16,5 @@ import type std.js.Dom.EncodedVideoChunkMetadata.
 
 pub decoder_config_typechecks(
     receiver: EncodedVideoChunkMetadata,
-): std.core.Option.Option[std.js.Dom.VideoDecoderConfig.VideoDecoderConfig] ->
+): std.core.Option[std.js.Dom.VideoDecoderConfig] ->
     receiver.decoder_config().

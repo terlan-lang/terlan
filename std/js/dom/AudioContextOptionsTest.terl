@@ -14,7 +14,5 @@ module std.js.Dom.AudioContextOptionsTest.
 
 import type std.js.Dom.AudioContextOptions.
 
-pub sample_rate_typechecks(
-    receiver: AudioContextOptions,
-): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub sample_rate_typechecks(receiver: AudioContextOptions): std.core.Option[std.js.Number.JsNumber] ->
     receiver.sample_rate().

@@ -25,63 +25,63 @@ pub opaque type AudioListener.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/forwardX)
  */
-pub (receiver: AudioListener) forward_x(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: AudioListener) forward_x(): std.js.Dom.AudioParam.
 
 /**
  * The `forwardY` read-only property of the AudioListener interface is an AudioParam representing the y value of the direction vector defining the forward direction the listener is pointing in.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/forwardY)
  */
-pub (receiver: AudioListener) forward_y(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: AudioListener) forward_y(): std.js.Dom.AudioParam.
 
 /**
  * The `forwardZ` read-only property of the AudioListener interface is an AudioParam representing the z value of the direction vector defining the forward direction the listener is pointing in.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/forwardZ)
  */
-pub (receiver: AudioListener) forward_z(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: AudioListener) forward_z(): std.js.Dom.AudioParam.
 
 /**
  * The `positionX` read-only property of the AudioListener interface is an AudioParam representing the x position of the listener in 3D cartesian space.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/positionX)
  */
-pub (receiver: AudioListener) position_x(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: AudioListener) position_x(): std.js.Dom.AudioParam.
 
 /**
  * The `positionY` read-only property of the AudioListener interface is an AudioParam representing the y position of the listener in 3D cartesian space.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/positionY)
  */
-pub (receiver: AudioListener) position_y(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: AudioListener) position_y(): std.js.Dom.AudioParam.
 
 /**
  * The `positionZ` read-only property of the AudioListener interface is an AudioParam representing the z position of the listener in 3D cartesian space.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/positionZ)
  */
-pub (receiver: AudioListener) position_z(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: AudioListener) position_z(): std.js.Dom.AudioParam.
 
 /**
  * The `upX` read-only property of the AudioListener interface is an AudioParam representing the x value of the direction vector defining the up direction the listener is pointing in.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/upX)
  */
-pub (receiver: AudioListener) up_x(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: AudioListener) up_x(): std.js.Dom.AudioParam.
 
 /**
  * The `upY` read-only property of the AudioListener interface is an AudioParam representing the y value of the direction vector defining the up direction the listener is pointing in.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/upY)
  */
-pub (receiver: AudioListener) up_y(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: AudioListener) up_y(): std.js.Dom.AudioParam.
 
 /**
  * The `upZ` read-only property of the AudioListener interface is an AudioParam representing the z value of the direction vector defining the up direction the listener is pointing in.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/upZ)
  */
-pub (receiver: AudioListener) up_z(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: AudioListener) up_z(): std.js.Dom.AudioParam.
 
 /**
  * The `setOrientation()` method of the AudioListener interface defines the orientation of the listener.
@@ -89,7 +89,7 @@ pub (receiver: AudioListener) up_z(): std.js.Dom.AudioParam.AudioParam.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/setOrientation)
  */
-pub (receiver: AudioListener) set_orientation(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber, x_up: std.js.Number.JsNumber, y_up: std.js.Number.JsNumber, z_up: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: AudioListener) set_orientation(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber, x_up: std.js.Number.JsNumber, y_up: std.js.Number.JsNumber, z_up: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The `setPosition()` method of the AudioListener Interface defines the position of the listener.
@@ -97,4 +97,4 @@ pub (receiver: AudioListener) set_orientation(x: std.js.Number.JsNumber, y: std.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioListener/setPosition)
  */
-pub (receiver: AudioListener) set_position(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: AudioListener) set_position(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, z: std.js.Number.JsNumber): std.core.Unit.

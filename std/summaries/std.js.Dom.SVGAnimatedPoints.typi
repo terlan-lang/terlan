@@ -18,9 +18,9 @@ pub opaque type SVGAnimatedPoints.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPolygonElement/animatedPoints)
  */
-pub (receiver: SVGAnimatedPoints) animated_points(): std.js.Dom.SVGPointList.SVGPointList.
+pub (receiver: SVGAnimatedPoints) animated_points(): std.js.Dom.SVGPointList.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPolygonElement/points)
  */
-pub (receiver: SVGAnimatedPoints) points(): std.js.Dom.SVGPointList.SVGPointList.
+pub (receiver: SVGAnimatedPoints) points(): std.js.Dom.SVGPointList.

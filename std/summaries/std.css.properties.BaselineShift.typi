@@ -8,7 +8,7 @@ module std.css.properties.BaselineShift.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    baseline_shift: std.core.Option.Option[Value]
+    baseline_shift: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

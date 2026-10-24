@@ -15,6 +15,6 @@ module std.js.Dom.RTCRtpSendParameters.
 
 pub opaque type RTCRtpSendParameters.
 
-pub (receiver: RTCRtpSendParameters) encodings(): std.js.Array.Array[std.js.Dom.RTCRtpEncodingParameters.RTCRtpEncodingParameters].
+pub (receiver: RTCRtpSendParameters) encodings(): std.js.Array[std.js.Dom.RTCRtpEncodingParameters].
 
 pub (receiver: RTCRtpSendParameters) transaction_id(): std.js.String.JsString.

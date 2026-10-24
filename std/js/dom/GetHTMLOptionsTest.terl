@@ -12,13 +12,11 @@
  */
 module std.js.Dom.GetHTMLOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.GetHTMLOptions.
 
 pub serializable_shadow_roots_typechecks(receiver: GetHTMLOptions): Option[Bool] ->
     receiver.serializable_shadow_roots().
 
-pub shadow_roots_typechecks(
-    receiver: GetHTMLOptions,
-): Option[std.js.Array.Array[std.js.Dom.ShadowRoot.ShadowRoot]] ->
+pub shadow_roots_typechecks(receiver: GetHTMLOptions): Option[std.js.Array[std.js.Dom.ShadowRoot]] ->
     receiver.shadow_roots().

@@ -16,5 +16,5 @@ import type std.js.Dom.MediaTrackConstraints.
 
 pub advanced_typechecks(
     receiver: MediaTrackConstraints,
-): std.core.Option.Option[std.js.Array.Array[std.js.Dom.MediaTrackConstraintSet.MediaTrackConstraintSet]] ->
+): std.core.Option[std.js.Array[std.js.Dom.MediaTrackConstraintSet]] ->
     receiver.advanced().

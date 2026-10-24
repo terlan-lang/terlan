@@ -26,7 +26,7 @@ pub opaque type IDBVersionChangeEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBVersionChangeEvent/newVersion)
  */
-pub (receiver: IDBVersionChangeEvent) new_version(): std.core.Option.Option[JsNumber] ->
+pub (receiver: IDBVersionChangeEvent) new_version(): std.core.Option[JsNumber] ->
     native.
 
 /**

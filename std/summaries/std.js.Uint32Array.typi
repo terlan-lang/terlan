@@ -45,14 +45,14 @@ pub (receiver: Uint32Array[TArrayBuffer]) byte_offset(): std.js.Number.JsNumber.
  * @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
  * search starts at index 0.
  */
-pub (receiver: Uint32Array[TArrayBuffer]) index_of(search_element: std.js.Number.JsNumber, from_index: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Uint32Array[TArrayBuffer]) index_of(search_element: std.js.Number.JsNumber, from_index: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Adds all the elements of an array separated by the specified separator string.
  * @param separator A string used to separate one element of an array from the next in the
  * resulting String. If omitted, the array elements are separated with a comma.
  */
-pub (receiver: Uint32Array[TArrayBuffer]) join(separator: std.core.Option.Option[std.js.String.JsString]): std.js.String.JsString.
+pub (receiver: Uint32Array[TArrayBuffer]) join(separator: std.core.Option[std.js.String.JsString]): std.js.String.JsString.
 
 /**
  * Returns the index of the last occurrence of a value in an array.
@@ -60,7 +60,7 @@ pub (receiver: Uint32Array[TArrayBuffer]) join(separator: std.core.Option.Option
  * @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
  * search starts at index 0.
  */
-pub (receiver: Uint32Array[TArrayBuffer]) last_index_of(search_element: std.js.Number.JsNumber, from_index: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Uint32Array[TArrayBuffer]) last_index_of(search_element: std.js.Number.JsNumber, from_index: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * The length of the array.
@@ -72,14 +72,14 @@ pub (receiver: Uint32Array[TArrayBuffer]) length(): std.js.Number.JsNumber.
  * @param array A typed or untyped array of values to set.
  * @param offset The index in the current array at which the values are to be written.
  */
-pub (receiver: Uint32Array[TArrayBuffer]) set(array: std.js.ArrayLike.ArrayLike[std.js.Number.JsNumber], offset: std.core.Option.Option[std.js.Number.JsNumber]): std.core.Unit.Unit.
+pub (receiver: Uint32Array[TArrayBuffer]) set(array: std.js.ArrayLike[std.js.Number.JsNumber], offset: std.core.Option[std.js.Number.JsNumber]): std.core.Unit.
 
 /**
  * Returns a section of an array.
  * @param start The beginning of the specified portion of the array.
  * @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
  */
-pub (receiver: Uint32Array[TArrayBuffer]) slice(start: std.core.Option.Option[std.js.Number.JsNumber], end: std.core.Option.Option[std.js.Number.JsNumber]): Uint32Array[std.js.ArrayBuffer.ArrayBuffer].
+pub (receiver: Uint32Array[TArrayBuffer]) slice(start: std.core.Option[std.js.Number.JsNumber], end: std.core.Option[std.js.Number.JsNumber]): Uint32Array[std.js.ArrayBuffer].
 
 /**
  * Gets a new Uint32Array view of the ArrayBuffer store for this array, referencing the elements
@@ -87,7 +87,7 @@ pub (receiver: Uint32Array[TArrayBuffer]) slice(start: std.core.Option.Option[st
  * @param begin The index of the beginning of the array.
  * @param end The index of the end of the array.
  */
-pub (receiver: Uint32Array[TArrayBuffer]) subarray(begin: std.core.Option.Option[std.js.Number.JsNumber], end: std.core.Option.Option[std.js.Number.JsNumber]): Uint32Array[TArrayBuffer].
+pub (receiver: Uint32Array[TArrayBuffer]) subarray(begin: std.core.Option[std.js.Number.JsNumber], end: std.core.Option[std.js.Number.JsNumber]): Uint32Array[TArrayBuffer].
 
 /**
  * Converts a number to a string by using the current locale.

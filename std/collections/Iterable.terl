@@ -18,7 +18,7 @@ import type std.collections.{List, Map, Set}.
  * depending on a platform-native iterator protocol.
  */
 pub trait Iterable[C, T] {
-    iterator(collection: C): std.collections.Iterator.Iterator[T].
+    iterator(collection: C): std.collections.Iterator[T].
 }.
 
 /**
@@ -30,8 +30,8 @@ pub trait Iterable[C, T] {
  * receiver contract so trait dispatch and direct receiver dispatch share the
  * same backend-neutral traversal shape.
  */
-pub impl Iterable[std.collections.List.List[T], T] for std.collections.List.List[T] {
-    iterator(collection: List[T]): std.collections.Iterator.Iterator[T] ->
+pub impl Iterable[std.collections.List[T], T] for std.collections.List[T] {
+    iterator(collection: List[T]): std.collections.Iterator[T] ->
         List.iterator(collection).
 }.
 
@@ -44,8 +44,8 @@ pub impl Iterable[std.collections.List.List[T], T] for std.collections.List.List
  * receiver contract so trait dispatch and direct receiver dispatch share the
  * same backend-neutral traversal shape.
  */
-pub impl Iterable[std.collections.Map.Map[K, V], {K, V}] for std.collections.Map.Map[K, V] {
-    iterator(collection: Map[K, V]): std.collections.Iterator.Iterator[{K, V}] ->
+pub impl Iterable[std.collections.Map[K, V], {K, V}] for std.collections.Map[K, V] {
+    iterator(collection: Map[K, V]): std.collections.Iterator[{K, V}] ->
         Map.iterator(collection).
 }.
 
@@ -58,7 +58,7 @@ pub impl Iterable[std.collections.Map.Map[K, V], {K, V}] for std.collections.Map
  * receiver contract so trait dispatch and direct receiver dispatch share the
  * same backend-neutral traversal shape.
  */
-pub impl Iterable[std.collections.Set.Set[T], T] for std.collections.Set.Set[T] {
-    iterator(collection: Set[T]): std.collections.Iterator.Iterator[T] ->
+pub impl Iterable[std.collections.Set[T], T] for std.collections.Set[T] {
+    iterator(collection: Set[T]): std.collections.Iterator[T] ->
         Set.iterator(collection).
 }.

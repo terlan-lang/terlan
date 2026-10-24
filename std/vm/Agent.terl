@@ -32,14 +32,14 @@ pub type AgentCommand[T] =
           Atom["agent_command"],
           kind: AgentCommandKind,
           request_id: Int,
-          reply_to: std.vm.Process.Process[AgentReply[T]],
+          reply_to: std.vm.Process[AgentReply[T]],
           value: T
       }.
 
-pub type Agent[T] = {Atom["agent"], process: std.vm.Process.Process[AgentCommand[T]], placeholder: T}.
+pub type Agent[T] = {Atom["agent"], process: std.vm.Process[AgentCommand[T]], placeholder: T}.
 
 @target.vm {process_mailbox: true}
-pub start[T](process: std.vm.Process.Process[AgentCommand[T]], initial: T): Agent[T] ->
+pub start[T](process: std.vm.Process[AgentCommand[T]], initial: T): Agent[T] ->
     let agent = make_agent[T](process, initial);
     let reply_to = Process.current[AgentReply[T]]();
     Process.send[AgentCommand[T]](
@@ -48,7 +48,7 @@ pub start[T](process: std.vm.Process.Process[AgentCommand[T]], initial: T): Agen
     );
     agent.
 
-pub make_agent[T](process: std.vm.Process.Process[AgentCommand[T]], initial: T): Agent[T] ->
+pub make_agent[T](process: std.vm.Process[AgentCommand[T]], initial: T): Agent[T] ->
     Agent(process, initial).
 
 @target.vm {process_mailbox: true}
@@ -79,11 +79,7 @@ pub get[T](agent: Agent[T], request_id: Int): T ->
     }.
 
 @target.vm {process_mailbox: true}
-pub request_get[T](
-    agent: Agent[T],
-    request_id: Int,
-    reply_to: std.vm.Process.Process[AgentReply[T]],
-): Unit ->
+pub request_get[T](agent: Agent[T], request_id: Int, reply_to: std.vm.Process[AgentReply[T]]): Unit ->
     case agent {
         {AgentTag, process, placeholder} ->
             Process.send[AgentCommand[T]](
@@ -164,7 +160,7 @@ pub serve_state[T](state: T): Unit ->
             }
     }.
 
-pub send_reply[T](reply_to: std.vm.Process.Process[AgentReply[T]], request_id: Int, value: T): Unit ->
+pub send_reply[T](reply_to: std.vm.Process[AgentReply[T]], request_id: Int, value: T): Unit ->
     Process.send[AgentReply[T]](
         reply_to,
         Message.wrap[AgentReply[T]](AgentReply(request_id, value)),

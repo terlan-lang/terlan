@@ -72,7 +72,7 @@ pub (receiver: HTMLAreaElement) rel(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/relList)
  */
-pub (receiver: HTMLAreaElement) rel_list(): std.js.Dom.DOMTokenList.DOMTokenList.
+pub (receiver: HTMLAreaElement) rel_list(): std.js.Dom.DOMTokenList.
 
 /**
  * The **`shape`** property of the HTMLAreaElement interface specifies the shape of an image map area.
@@ -88,6 +88,6 @@ pub (receiver: HTMLAreaElement) shape(): std.js.String.JsString.
  */
 pub (receiver: HTMLAreaElement) target_(): std.js.String.JsString.
 
-pub (receiver: HTMLAreaElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLAreaElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLAreaElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLAreaElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

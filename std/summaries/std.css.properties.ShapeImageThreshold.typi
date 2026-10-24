@@ -8,7 +8,7 @@ module std.css.properties.ShapeImageThreshold.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    shape_image_threshold: std.core.Option.Option[Value]
+    shape_image_threshold: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

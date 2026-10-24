@@ -26,4 +26,4 @@ pub opaque type HTMLFormControlsCollection.
  */
 pub (receiver: HTMLFormControlsCollection) named_item(
     name: std.js.String.JsString,
-): std.core.Option.Option[std.js.Dom.Element.Element | std.js.Dom.RadioNodeList.RadioNodeList].
+): std.core.Option[std.js.Dom.Element | std.js.Dom.RadioNodeList].

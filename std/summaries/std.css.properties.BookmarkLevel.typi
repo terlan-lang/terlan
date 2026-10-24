@@ -8,7 +8,7 @@ module std.css.properties.BookmarkLevel.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    bookmark_level: std.core.Option.Option[Value]
+    bookmark_level: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

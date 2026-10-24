@@ -14,7 +14,5 @@ module std.js.Dom.LockManagerTest.
 
 import type std.js.Dom.LockManager.
 
-pub query_typechecks(
-    receiver: LockManager,
-): std.js.Promise.Promise[std.js.Dom.LockManagerSnapshot.LockManagerSnapshot] ->
+pub query_typechecks(receiver: LockManager): std.js.Promise[std.js.Dom.LockManagerSnapshot] ->
     receiver.query().

@@ -110,11 +110,11 @@ pub (receiver: PointerEvent) width(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/getCoalescedEvents)
  */
-pub (receiver: PointerEvent) get_coalesced_events(): std.js.Array.Array[PointerEvent].
+pub (receiver: PointerEvent) get_coalesced_events(): std.js.Array[PointerEvent].
 
 /**
  * The **`getPredictedEvents()`** method of the PointerEvent interface returns a sequence of `PointerEvent` instances that are estimated future pointer positions.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PointerEvent/getPredictedEvents)
  */
-pub (receiver: PointerEvent) get_predicted_events(): std.js.Array.Array[PointerEvent].
+pub (receiver: PointerEvent) get_predicted_events(): std.js.Array[PointerEvent].

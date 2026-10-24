@@ -14,7 +14,5 @@ module std.js.Dom.OfflineAudioCompletionEventInitTest.
 
 import type std.js.Dom.OfflineAudioCompletionEventInit.
 
-pub rendered_buffer_typechecks(
-    receiver: OfflineAudioCompletionEventInit,
-): std.js.Dom.AudioBuffer.AudioBuffer ->
+pub rendered_buffer_typechecks(receiver: OfflineAudioCompletionEventInit): std.js.Dom.AudioBuffer ->
     receiver.rendered_buffer().

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.VideoEncoder.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -46,7 +45,7 @@ pub (receiver: VideoEncoder) close(): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/configure)
  */
-pub (receiver: VideoEncoder) configure(config: std.js.Dom.VideoEncoderConfig.VideoEncoderConfig): Unit ->
+pub (receiver: VideoEncoder) configure(config: std.js.Dom.VideoEncoderConfig): Unit ->
     native.
 
 /**
@@ -55,8 +54,8 @@ pub (receiver: VideoEncoder) configure(config: std.js.Dom.VideoEncoderConfig.Vid
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/encode)
  */
 pub (receiver: VideoEncoder) encode(
-    frame: std.js.Dom.VideoFrame.VideoFrame,
-    options: Option[std.js.Dom.VideoEncoderEncodeOptions.VideoEncoderEncodeOptions],
+    frame: std.js.Dom.VideoFrame,
+    options: Option[std.js.Dom.VideoEncoderEncodeOptions],
 ): Unit ->
     native.
 
@@ -65,7 +64,7 @@ pub (receiver: VideoEncoder) encode(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoEncoder/flush)
  */
-pub (receiver: VideoEncoder) flush(): std.js.Promise.Promise[Unit] ->
+pub (receiver: VideoEncoder) flush(): std.js.Promise[Unit] ->
     native.
 
 /**
@@ -79,13 +78,13 @@ pub (receiver: VideoEncoder) reset(): Unit ->
 pub (receiver: VideoEncoder) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: VideoEncoder) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

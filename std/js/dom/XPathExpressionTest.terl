@@ -12,13 +12,12 @@
  */
 module std.js.Dom.XPathExpressionTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.XPathExpression.
-import type std.js.Dom.XPathResult.{XPathResult}.
+import type std.core.{Option}.
+import type std.js.Dom.{XPathExpression, XPathResult}.
 
 pub evaluate_typechecks(
     receiver: XPathExpression,
-    context_node: std.js.Dom.Node.Node,
+    context_node: std.js.Dom.Node,
     type_: Option[std.js.Number.JsNumber],
     result: Option[Option[XPathResult]],
 ): XPathResult ->

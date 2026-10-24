@@ -15,10 +15,7 @@ module std.js.RegExpTest.
 import type std.js.RegExp.
 import type std.js.String.{JsString}.
 
-pub exec_typechecks(
-    receiver: RegExp,
-    string: JsString,
-): std.core.Option.Option[std.js.RegExpExecArray.RegExpExecArray] ->
+pub exec_typechecks(receiver: RegExp, string: JsString): std.core.Option[std.js.RegExpExecArray] ->
     receiver.exec(string).
 
 pub test_typechecks(receiver: RegExp, string: JsString): Bool ->

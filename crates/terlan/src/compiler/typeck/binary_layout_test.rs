@@ -141,7 +141,7 @@ pub packet(prefix: String): Dynamic ->\n\
         diagnostics.iter().any(|diag| {
             diag.message
                 .contains("binary_constructor_field_type_mismatch")
-                && diag.message.contains("std.vm.Bytes.Bytes")
+                && diag.message.contains("std.vm.Bytes")
         }),
         "diagnostics: {diagnostics:?}"
     );
@@ -205,9 +205,7 @@ pub packet(payload: String): Dynamic ->\n\
         diagnostics.iter().any(|diag| {
             diag.message
                 .contains("binary_constructor_field_type_mismatch")
-                && diag
-                    .message
-                    .contains("std.vm.Bytes.Bytes for terminal Rest")
+                && diag.message.contains("std.vm.Bytes for terminal Rest")
         }),
         "diagnostics: {diagnostics:?}"
     );

@@ -25,4 +25,4 @@ pub opaque type PageRevealEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PageRevealEvent/viewTransition)
  */
-pub (receiver: PageRevealEvent) view_transition(): std.core.Option.Option[std.js.Dom.ViewTransition.ViewTransition].
+pub (receiver: PageRevealEvent) view_transition(): std.core.Option[std.js.Dom.ViewTransition].

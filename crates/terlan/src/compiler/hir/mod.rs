@@ -42,6 +42,7 @@ pub use model::{
 pub use naming::{
     identifier_to_snake, module_path_to_native_boundary_module, source_name_to_terlan_identifier,
 };
+pub(crate) use naming::{public_type_path, public_type_text};
 pub use shapes::expand_syntax_shape_imports;
 #[cfg(test)]
 pub(crate) use test_support::checked_in_std_interfaces_for_module;

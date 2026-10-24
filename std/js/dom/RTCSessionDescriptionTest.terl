@@ -17,7 +17,5 @@ import type std.js.Dom.RTCSessionDescription.
 pub sdp_typechecks(receiver: RTCSessionDescription): std.js.String.JsString ->
     receiver.sdp().
 
-pub to_json_typechecks(
-    receiver: RTCSessionDescription,
-): std.js.Dom.RTCSessionDescriptionInit.RTCSessionDescriptionInit ->
+pub to_json_typechecks(receiver: RTCSessionDescription): std.js.Dom.RTCSessionDescriptionInit ->
     receiver.to_json().

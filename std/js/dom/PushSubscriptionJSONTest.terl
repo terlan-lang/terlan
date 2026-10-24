@@ -12,13 +12,11 @@
  */
 module std.js.Dom.PushSubscriptionJSONTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.PushSubscriptionJSON.
 
 pub endpoint_typechecks(receiver: PushSubscriptionJSON): Option[std.js.String.JsString] ->
     receiver.endpoint().
 
-pub expiration_time_typechecks(
-    receiver: PushSubscriptionJSON,
-): Option[std.js.Dom.EpochTimeStamp.EpochTimeStamp] ->
+pub expiration_time_typechecks(receiver: PushSubscriptionJSON): Option[std.js.Dom.EpochTimeStamp] ->
     receiver.expiration_time().

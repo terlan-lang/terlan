@@ -26,39 +26,39 @@ pub opaque type SubtleCrypto.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/decrypt)
  */
-pub (receiver: SubtleCrypto) decrypt(algorithm: std.js.Dom.AesCbcParams.AesCbcParams | std.js.Dom.AesCtrParams.AesCtrParams | std.js.Dom.AesGcmParams.AesGcmParams | std.js.Dom.AlgorithmIdentifier.AlgorithmIdentifier | std.js.Dom.RsaOaepParams.RsaOaepParams, key: std.js.Dom.CryptoKey.CryptoKey, data: std.js.Dom.BufferSource.BufferSource): std.js.Promise.Promise[std.js.ArrayBuffer.ArrayBuffer].
+pub (receiver: SubtleCrypto) decrypt(algorithm: std.js.Dom.AesCbcParams | std.js.Dom.AesCtrParams | std.js.Dom.AesGcmParams | std.js.Dom.AlgorithmIdentifier | std.js.Dom.RsaOaepParams, key: std.js.Dom.CryptoKey, data: std.js.Dom.BufferSource): std.js.Promise[std.js.ArrayBuffer].
 
 /**
  * The **`deriveBits()`** method of the key.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/deriveBits)
  */
-pub (receiver: SubtleCrypto) derive_bits(algorithm: std.js.Dom.AlgorithmIdentifier.AlgorithmIdentifier | std.js.Dom.EcdhKeyDeriveParams.EcdhKeyDeriveParams | std.js.Dom.HkdfParams.HkdfParams | std.js.Dom.Pbkdf2Params.Pbkdf2Params, base_key: std.js.Dom.CryptoKey.CryptoKey, length: std.core.Option.Option[std.core.Option.Option[std.js.Number.JsNumber]]): std.js.Promise.Promise[std.js.ArrayBuffer.ArrayBuffer].
+pub (receiver: SubtleCrypto) derive_bits(algorithm: std.js.Dom.AlgorithmIdentifier | std.js.Dom.EcdhKeyDeriveParams | std.js.Dom.HkdfParams | std.js.Dom.Pbkdf2Params, base_key: std.js.Dom.CryptoKey, length: std.core.Option[std.core.Option[std.js.Number.JsNumber]]): std.js.Promise[std.js.ArrayBuffer].
 
 /**
  * The **`digest()`** method of the SubtleCrypto interface generates a _digest_ of the given data, using the specified hash function.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/digest)
  */
-pub (receiver: SubtleCrypto) digest(algorithm: std.js.Dom.AlgorithmIdentifier.AlgorithmIdentifier, data: std.js.Dom.BufferSource.BufferSource): std.js.Promise.Promise[std.js.ArrayBuffer.ArrayBuffer].
+pub (receiver: SubtleCrypto) digest(algorithm: std.js.Dom.AlgorithmIdentifier, data: std.js.Dom.BufferSource): std.js.Promise[std.js.ArrayBuffer].
 
 /**
  * The **`encrypt()`** method of the SubtleCrypto interface encrypts data.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/encrypt)
  */
-pub (receiver: SubtleCrypto) encrypt(algorithm: std.js.Dom.AesCbcParams.AesCbcParams | std.js.Dom.AesCtrParams.AesCtrParams | std.js.Dom.AesGcmParams.AesGcmParams | std.js.Dom.AlgorithmIdentifier.AlgorithmIdentifier | std.js.Dom.RsaOaepParams.RsaOaepParams, key: std.js.Dom.CryptoKey.CryptoKey, data: std.js.Dom.BufferSource.BufferSource): std.js.Promise.Promise[std.js.ArrayBuffer.ArrayBuffer].
+pub (receiver: SubtleCrypto) encrypt(algorithm: std.js.Dom.AesCbcParams | std.js.Dom.AesCtrParams | std.js.Dom.AesGcmParams | std.js.Dom.AlgorithmIdentifier | std.js.Dom.RsaOaepParams, key: std.js.Dom.CryptoKey, data: std.js.Dom.BufferSource): std.js.Promise[std.js.ArrayBuffer].
 
 /**
  * The **`sign()`** method of the SubtleCrypto interface generates a digital signature.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/sign)
  */
-pub (receiver: SubtleCrypto) sign(algorithm: std.js.Dom.AlgorithmIdentifier.AlgorithmIdentifier | std.js.Dom.EcdsaParams.EcdsaParams | std.js.Dom.RsaPssParams.RsaPssParams, key: std.js.Dom.CryptoKey.CryptoKey, data: std.js.Dom.BufferSource.BufferSource): std.js.Promise.Promise[std.js.ArrayBuffer.ArrayBuffer].
+pub (receiver: SubtleCrypto) sign(algorithm: std.js.Dom.AlgorithmIdentifier | std.js.Dom.EcdsaParams | std.js.Dom.RsaPssParams, key: std.js.Dom.CryptoKey, data: std.js.Dom.BufferSource): std.js.Promise[std.js.ArrayBuffer].
 
 /**
  * The **`verify()`** method of the SubtleCrypto interface verifies a digital signature.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/verify)
  */
-pub (receiver: SubtleCrypto) verify(algorithm: std.js.Dom.AlgorithmIdentifier.AlgorithmIdentifier | std.js.Dom.EcdsaParams.EcdsaParams | std.js.Dom.RsaPssParams.RsaPssParams, key: std.js.Dom.CryptoKey.CryptoKey, signature: std.js.Dom.BufferSource.BufferSource, data: std.js.Dom.BufferSource.BufferSource): std.js.Promise.Promise[Bool].
+pub (receiver: SubtleCrypto) verify(algorithm: std.js.Dom.AlgorithmIdentifier | std.js.Dom.EcdsaParams | std.js.Dom.RsaPssParams, key: std.js.Dom.CryptoKey, signature: std.js.Dom.BufferSource, data: std.js.Dom.BufferSource): std.js.Promise[Bool].

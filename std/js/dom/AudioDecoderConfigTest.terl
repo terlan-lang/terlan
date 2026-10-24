@@ -20,7 +20,7 @@ pub codec_typechecks(receiver: AudioDecoderConfig): std.js.String.JsString ->
 
 pub description_typechecks(
     receiver: AudioDecoderConfig,
-): std.core.Option.Option[std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource] ->
+): std.core.Option[std.js.Dom.AllowSharedBufferSource] ->
     receiver.description().
 
 pub number_of_channels_typechecks(receiver: AudioDecoderConfig): JsNumber ->

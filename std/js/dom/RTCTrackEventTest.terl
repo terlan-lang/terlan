@@ -14,16 +14,14 @@ module std.js.Dom.RTCTrackEventTest.
 
 import type std.js.Dom.RTCTrackEvent.
 
-pub receiver_typechecks(receiver: RTCTrackEvent): std.js.Dom.RTCRtpReceiver.RTCRtpReceiver ->
+pub receiver_typechecks(receiver: RTCTrackEvent): std.js.Dom.RTCRtpReceiver ->
     receiver.receiver().
 
-pub streams_typechecks(
-    receiver: RTCTrackEvent,
-): std.js.Array.Array[std.js.Dom.MediaStream.MediaStream] ->
+pub streams_typechecks(receiver: RTCTrackEvent): std.js.Array[std.js.Dom.MediaStream] ->
     receiver.streams().
 
-pub track_typechecks(receiver: RTCTrackEvent): std.js.Dom.MediaStreamTrack.MediaStreamTrack ->
+pub track_typechecks(receiver: RTCTrackEvent): std.js.Dom.MediaStreamTrack ->
     receiver.track().
 
-pub transceiver_typechecks(receiver: RTCTrackEvent): std.js.Dom.RTCRtpTransceiver.RTCRtpTransceiver ->
+pub transceiver_typechecks(receiver: RTCTrackEvent): std.js.Dom.RTCRtpTransceiver ->
     receiver.transceiver().

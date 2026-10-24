@@ -1,7 +1,7 @@
 /**
  * Portable TOML parsing contract.
  *
- * TOML documents lower into `std.data.Json.Json` because both formats share
+ * TOML documents lower into `std.data.Json` because both formats share
  * the object, array, string, integer, float, and boolean data model required by
  * repository manifests. This keeps one typed accessor surface while the
  * selected backend owns TOML syntax and parser errors.

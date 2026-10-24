@@ -12,10 +12,8 @@
  */
 module std.js.Dom.HTMLIFrameElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Document.{Document}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Document, EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -56,7 +54,7 @@ pub (receiver: HTMLIFrameElement) content_document(): Option[Document].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/contentWindow)
  */
-pub (receiver: HTMLIFrameElement) content_window(): Option[std.js.Dom.WindowProxy.WindowProxy].
+pub (receiver: HTMLIFrameElement) content_window(): Option[std.js.Dom.WindowProxy].
 
 /**
  * @deprecated
@@ -97,7 +95,7 @@ pub (receiver: HTMLIFrameElement) name(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLIFrameElement/sandbox)
  */
-pub (receiver: HTMLIFrameElement) sandbox(): std.js.Dom.DOMTokenList.DOMTokenList.
+pub (receiver: HTMLIFrameElement) sandbox(): std.js.Dom.DOMTokenList.
 
 /**
  * @deprecated
@@ -135,11 +133,11 @@ pub (receiver: HTMLIFrameElement) get_svg_document(): Option[Document].
 pub (receiver: HTMLIFrameElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: HTMLIFrameElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

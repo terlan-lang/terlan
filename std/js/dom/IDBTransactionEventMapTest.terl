@@ -12,8 +12,7 @@
  */
 module std.js.Dom.IDBTransactionEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.IDBTransactionEventMap.
+import type std.js.Dom.{Event, IDBTransactionEventMap}.
 
 pub abort_typechecks(receiver: IDBTransactionEventMap): Event ->
     receiver.abort().

@@ -12,21 +12,21 @@
  */
 module std.js.Dom.RTCRtpTransceiverTest.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Dom.RTCRtpTransceiver.
 
-pub mid_typechecks(receiver: RTCRtpTransceiver): std.core.Option.Option[std.js.String.JsString] ->
+pub mid_typechecks(receiver: RTCRtpTransceiver): std.core.Option[std.js.String.JsString] ->
     receiver.mid().
 
-pub receiver_typechecks(receiver: RTCRtpTransceiver): std.js.Dom.RTCRtpReceiver.RTCRtpReceiver ->
+pub receiver_typechecks(receiver: RTCRtpTransceiver): std.js.Dom.RTCRtpReceiver ->
     receiver.receiver().
 
-pub sender_typechecks(receiver: RTCRtpTransceiver): std.js.Dom.RTCRtpSender.RTCRtpSender ->
+pub sender_typechecks(receiver: RTCRtpTransceiver): std.js.Dom.RTCRtpSender ->
     receiver.sender().
 
 pub set_codec_preferences_typechecks(
     receiver: RTCRtpTransceiver,
-    codecs: std.js.Array.Array[std.js.Dom.RTCRtpCodec.RTCRtpCodec],
+    codecs: std.js.Array[std.js.Dom.RTCRtpCodec],
 ): Unit ->
     receiver.set_codec_preferences(codecs).
 

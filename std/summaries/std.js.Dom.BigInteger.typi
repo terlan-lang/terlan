@@ -14,4 +14,4 @@
 module std.js.Dom.BigInteger.
 
 pub type BigInteger =
-    std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer].
+    std.js.Uint8Array[std.js.ArrayBuffer].

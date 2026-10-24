@@ -25,29 +25,29 @@ pub opaque type SVGForeignObjectElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGForeignObjectElement/height)
  */
-pub (receiver: SVGForeignObjectElement) height(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGForeignObjectElement) height(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`width`** read-only property of the SVGForeignObjectElement interface describes the width of the `<foreignObject>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGForeignObjectElement/width)
  */
-pub (receiver: SVGForeignObjectElement) width(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGForeignObjectElement) width(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`x`** read-only property of the SVGForeignObjectElement interface describes the x-axis coordinate of the `<foreignObject>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGForeignObjectElement/x)
  */
-pub (receiver: SVGForeignObjectElement) x(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGForeignObjectElement) x(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`y`** read-only property of the SVGForeignObjectElement interface describes the y-axis coordinate of the `<foreignObject>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGForeignObjectElement/y)
  */
-pub (receiver: SVGForeignObjectElement) y(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGForeignObjectElement) y(): std.js.Dom.SVGAnimatedLength.
 
-pub (receiver: SVGForeignObjectElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SVGForeignObjectElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SVGForeignObjectElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SVGForeignObjectElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

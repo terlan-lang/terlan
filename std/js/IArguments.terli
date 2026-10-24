@@ -16,4 +16,4 @@ pub opaque type IArguments.
 
 pub (receiver: IArguments) length(): std.js.Number.JsNumber.
 
-pub (receiver: IArguments) callee(): std.js.Function.Function.
+pub (receiver: IArguments) callee(): std.js.Function.

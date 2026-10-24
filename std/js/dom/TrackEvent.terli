@@ -24,4 +24,4 @@ pub opaque type TrackEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TrackEvent/track)
  */
-pub (receiver: TrackEvent) track(): std.core.Option.Option[std.js.Dom.TextTrack.TextTrack].
+pub (receiver: TrackEvent) track(): std.core.Option[std.js.Dom.TextTrack].

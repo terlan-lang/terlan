@@ -418,11 +418,12 @@ fn optional_attribute_inner_type(type_text: &str) -> Option<String> {
 /// Returns the inner type for a normalized Option spelling.
 fn option_inner_from_normalized_type(type_text: &str) -> Option<&str> {
     const SHORT_PREFIX: &str = "Option[";
-    const QUALIFIED_PREFIX: &str = "std.core.Option.Option[";
+    const QUALIFIED_PREFIX: &str = "std.core.Option[";
 
     let inner = type_text
         .strip_prefix(SHORT_PREFIX)
-        .or_else(|| type_text.strip_prefix(QUALIFIED_PREFIX))?
+        .or_else(|| type_text.strip_prefix(QUALIFIED_PREFIX))
+        .or_else(|| type_text.strip_prefix("std.core.Option.Option["))?
         .strip_suffix(']')?;
     if inner.is_empty() {
         None
@@ -435,8 +436,10 @@ fn option_inner_from_normalized_type(type_text: &str) -> Option<&str> {
 fn collection_inner_from_normalized_type(type_text: &str) -> Option<&str> {
     const PREFIXES: &[&str] = &[
         "List[",
+        "std.collections.List[",
         "std.collections.List.List[",
         "Set[",
+        "std.collections.Set[",
         "std.collections.Set.Set[",
     ];
 
@@ -523,5 +526,33 @@ fn collect_template_slot_uses<'a>(
         crate::terlan_html::HtmlNode::Text(_)
         | crate::terlan_html::HtmlNode::Comment(_)
         | crate::terlan_html::HtmlNode::Doctype(_) => {}
+    }
+}
+
+#[cfg(test)]
+mod primary_type_tests {
+    use super::{collection_inner_from_normalized_type, option_inner_from_normalized_type};
+
+    #[test]
+    fn template_type_text_accepts_primary_and_legacy_core_paths() {
+        for ty in [
+            "Option[Int]",
+            "std.core.Option[Int]",
+            "std.core.Option.Option[Int]",
+        ] {
+            assert_eq!(option_inner_from_normalized_type(ty), Some("Int"));
+        }
+        for ty in [
+            "std.collections.List[Int]",
+            "std.collections.List.List[Int]",
+            "std.collections.Set[Int]",
+            "std.collections.Set.Set[Int]",
+        ] {
+            assert_eq!(collection_inner_from_normalized_type(ty), Some("Int"));
+        }
+        assert_eq!(
+            option_inner_from_normalized_type("custom.Option[Int]"),
+            None
+        );
     }
 }

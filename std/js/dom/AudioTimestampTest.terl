@@ -12,13 +12,11 @@
  */
 module std.js.Dom.AudioTimestampTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.AudioTimestamp.
 
 pub context_time_typechecks(receiver: AudioTimestamp): Option[std.js.Number.JsNumber] ->
     receiver.context_time().
 
-pub performance_time_typechecks(
-    receiver: AudioTimestamp,
-): Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp] ->
+pub performance_time_typechecks(receiver: AudioTimestamp): Option[std.js.Dom.DOMHighResTimeStamp] ->
     receiver.performance_time().

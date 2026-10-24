@@ -12,7 +12,7 @@
  */
 module std.js.Dom.ImageDecodeOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.ImageDecodeOptions.
 
 pub complete_frames_only_typechecks(receiver: ImageDecodeOptions): Option[Bool] ->

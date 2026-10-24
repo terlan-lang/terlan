@@ -225,7 +225,7 @@ impl ModuleInterface {
             if include_docs {
                 push_doc_lines(&mut out, "/", &shape.docs);
             }
-            out.push_str(&shape.signature);
+            out.push_str(&super::naming::public_type_text(&shape.signature));
             out.push_str("\n\n");
         }
 
@@ -837,7 +837,9 @@ fn render_param_signature(param: &ParamSignature) -> String {
 ///   type-parameter delimiter.
 fn render_type_params(params: Option<&Vec<String>>) -> String {
     match params {
-        Some(params) if !params.is_empty() => format!("[{}]", params.join(", ")),
+        Some(params) if !params.is_empty() => {
+            format!("[{}]", normalize_type_text(&params.join(", ")))
+        }
         _ => String::new(),
     }
 }
@@ -857,7 +859,7 @@ fn render_generic_bounds(bounds: &[String]) -> String {
     if bounds.is_empty() {
         String::new()
     } else {
-        format!("<{}>", bounds.join(", "))
+        format!("<{}>", normalize_type_text(&bounds.join(", ")))
     }
 }
 
@@ -899,14 +901,12 @@ fn push_doc_lines(out: &mut String, marker: &str, docs: &[String]) {
 /// - `input`: source-derived type or expression text.
 ///
 /// Output:
-/// - Stable, compact text with normalized bracket, comma, and whitespace
-///   spacing.
+/// - Stable, compact text with normalized brackets, commas, and whitespace.
 ///
 /// Transformation:
-/// - Applies conservative whitespace cleanup without changing identifiers or
-///   operators.
+/// - Uses primary type paths and conservative whitespace cleanup.
 pub(crate) fn normalize_type_text(input: &str) -> String {
-    input
+    super::naming::public_type_text(input)
         .replace(" [", "[")
         .replace("[ ", "[")
         .replace(" ]", "]")

@@ -26,43 +26,43 @@ pub opaque type ServiceWorkerContainer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/controller)
  */
-pub (receiver: ServiceWorkerContainer) controller(): std.core.Option.Option[std.js.Dom.ServiceWorker.ServiceWorker].
+pub (receiver: ServiceWorkerContainer) controller(): std.core.Option[std.js.Dom.ServiceWorker].
 
 /**
  * The **`ready`** read-only property of the ServiceWorkerContainer interface provides a way of delaying code execution until a service worker is active.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/ready)
  */
-pub (receiver: ServiceWorkerContainer) ready(): std.js.Promise.Promise[std.js.Dom.ServiceWorkerRegistration.ServiceWorkerRegistration].
+pub (receiver: ServiceWorkerContainer) ready(): std.js.Promise[std.js.Dom.ServiceWorkerRegistration].
 
 /**
  * The **`getRegistration()`** method of the client URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/getRegistration)
  */
-pub (receiver: ServiceWorkerContainer) get_registration(client_url: std.core.Option.Option[std.js.Dom.URL.URL | std.js.String.JsString]): std.js.Promise.Promise[std.core.Option.Option[std.js.Dom.ServiceWorkerRegistration.ServiceWorkerRegistration]].
+pub (receiver: ServiceWorkerContainer) get_registration(client_url: std.core.Option[std.js.Dom.URL | std.js.String.JsString]): std.js.Promise[std.core.Option[std.js.Dom.ServiceWorkerRegistration]].
 
 /**
  * The **`getRegistrations()`** method of the `ServiceWorkerContainer`, in an array.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/getRegistrations)
  */
-pub (receiver: ServiceWorkerContainer) get_registrations(): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.ServiceWorkerRegistration.ServiceWorkerRegistration]].
+pub (receiver: ServiceWorkerContainer) get_registrations(): std.js.Promise[std.js.Array[std.js.Dom.ServiceWorkerRegistration]].
 
 /**
  * The **`register()`** method of the ServiceWorkerContainer interface creates or updates a ServiceWorkerRegistration for the given scope.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/register)
  */
-pub (receiver: ServiceWorkerContainer) register(script_url: std.js.Dom.URL.URL | std.js.String.JsString, options: std.core.Option.Option[std.js.Dom.RegistrationOptions.RegistrationOptions]): std.js.Promise.Promise[std.js.Dom.ServiceWorkerRegistration.ServiceWorkerRegistration].
+pub (receiver: ServiceWorkerContainer) register(script_url: std.js.Dom.URL | std.js.String.JsString, options: std.core.Option[std.js.Dom.RegistrationOptions]): std.js.Promise[std.js.Dom.ServiceWorkerRegistration].
 
 /**
  * The **`startMessages()`** method of the ServiceWorkerContainer interface explicitly starts the flow of messages being dispatched from a service worker to pages under its control (e.g., sent via Client.postMessage()).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/startMessages)
  */
-pub (receiver: ServiceWorkerContainer) start_messages(): std.core.Unit.Unit.
+pub (receiver: ServiceWorkerContainer) start_messages(): std.core.Unit.
 
-pub (receiver: ServiceWorkerContainer) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: ServiceWorkerContainer) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: ServiceWorkerContainer) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: ServiceWorkerContainer) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

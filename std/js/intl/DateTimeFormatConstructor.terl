@@ -12,16 +12,16 @@
  */
 module std.js.Intl.DateTimeFormatConstructor.
 
-import type std.js.Array.{Array}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 pub opaque type DateTimeFormatConstructor.
 
 pub (receiver: DateTimeFormatConstructor) supported_locales_of(
     locales: Array[JsString] | JsString,
-    options: std.core.Option.Option[std.js.Intl.DateTimeFormatOptions.DateTimeFormatOptions],
+    options: std.core.Option[std.js.Intl.DateTimeFormatOptions],
 ): Array[JsString] ->
     native.
 
-pub (receiver: DateTimeFormatConstructor) prototype(): std.js.Intl.DateTimeFormat.DateTimeFormat ->
+pub (receiver: DateTimeFormatConstructor) prototype(): std.js.Intl.DateTimeFormat ->
     native.

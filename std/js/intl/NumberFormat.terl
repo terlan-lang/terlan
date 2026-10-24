@@ -17,5 +17,5 @@ pub opaque type NumberFormat.
 pub (receiver: NumberFormat) format(value: std.js.Number.JsNumber): std.js.String.JsString ->
     native.
 
-pub (receiver: NumberFormat) resolved_options(): std.js.Intl.ResolvedNumberFormatOptions.ResolvedNumberFormatOptions ->
+pub (receiver: NumberFormat) resolved_options(): std.js.Intl.ResolvedNumberFormatOptions ->
     native.

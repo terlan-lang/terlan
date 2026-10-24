@@ -12,9 +12,8 @@
  */
 module std.js.Dom.EventTarget.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -32,7 +31,7 @@ pub opaque type EventTarget.
 pub (receiver: EventTarget) add_event_listener(
     type_: JsString,
     callback: Option[EventListenerOrEventListenerObject],
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
@@ -41,7 +40,7 @@ pub (receiver: EventTarget) add_event_listener(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/dispatchEvent)
  */
-pub (receiver: EventTarget) dispatch_event(event: std.js.Dom.Event.Event): Bool ->
+pub (receiver: EventTarget) dispatch_event(event: std.js.Dom.Event): Bool ->
     native.
 
 /**
@@ -52,6 +51,6 @@ pub (receiver: EventTarget) dispatch_event(event: std.js.Dom.Event.Event): Bool 
 pub (receiver: EventTarget) remove_event_listener(
     type_: JsString,
     callback: Option[EventListenerOrEventListenerObject],
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

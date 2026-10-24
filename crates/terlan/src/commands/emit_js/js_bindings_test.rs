@@ -85,3 +85,37 @@ fn execute(javascript: &str, assertion: &str) {
         String::from_utf8_lossy(&result.stderr)
     );
 }
+
+#[test]
+fn primary_option_arguments_decode_the_same_as_legacy_spelling() {
+    for ty in [
+        "Option[Int]",
+        "std.core.Option[Int]",
+        "std.core.Option.Option[Int]",
+    ] {
+        let expression = decode_nullable_argument("value", ty);
+        execute(
+            "const value = 'none';",
+            &format!("if (({expression}) !== null) throw new Error('missing nullable argument');"),
+        );
+        execute(
+            "const value = ['some', 42];",
+            &format!("if (({expression}) !== 42) throw new Error('present nullable argument');"),
+        );
+    }
+}
+
+#[test]
+fn primary_option_results_and_unit_results_keep_host_conversion() {
+    let (_, option) =
+        adapter("std.js.Dom.Document.get_element_by_id", 2).expect("nullable DOM method");
+    execute(
+        "const a0 = { getElementById() { return null; } }; const a1 = 'div';",
+        &format!("if (({option}) !== 'none') throw new Error('missing nullable result');"),
+    );
+    let (_, unit) = adapter("std.js.Dom.Event.prevent_default", 1).expect("unit DOM method");
+    execute(
+        "const a0 = { preventDefault() { return 42; } };",
+        &format!("if (({unit}) !== 'unit') throw new Error('unit result');"),
+    );
+}

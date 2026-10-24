@@ -21,10 +21,10 @@ pub (receiver: VideoConfiguration) content_type(): std.js.String.JsString.
 
 pub (receiver: VideoConfiguration) framerate(): std.js.Number.JsNumber.
 
-pub (receiver: VideoConfiguration) has_alpha_channel(): std.core.Option.Option[Bool].
+pub (receiver: VideoConfiguration) has_alpha_channel(): std.core.Option[Bool].
 
 pub (receiver: VideoConfiguration) height(): std.js.Number.JsNumber.
 
-pub (receiver: VideoConfiguration) scalability_mode(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: VideoConfiguration) scalability_mode(): std.core.Option[std.js.String.JsString].
 
 pub (receiver: VideoConfiguration) width(): std.js.Number.JsNumber.

@@ -12,18 +12,15 @@
  */
 module std.js.Dom.ParentNodeTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.Element.{Element}.
-import type std.js.Dom.Node.{Node}.
-import type std.js.Dom.ParentNode.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Element, Node, ParentNode}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 pub child_element_count_typechecks(receiver: ParentNode): std.js.Number.JsNumber ->
     receiver.child_element_count().
 
-pub children_typechecks(receiver: ParentNode): std.js.Dom.HTMLCollection.HTMLCollection ->
+pub children_typechecks(receiver: ParentNode): std.js.Dom.HTMLCollection ->
     receiver.children().
 
 pub first_element_child_typechecks(receiver: ParentNode): Option[Element] ->

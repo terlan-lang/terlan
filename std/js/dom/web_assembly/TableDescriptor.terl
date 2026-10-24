@@ -19,5 +19,5 @@ pub opaque type TableDescriptor.
 pub (receiver: TableDescriptor) initial(): JsNumber ->
     native.
 
-pub (receiver: TableDescriptor) maximum(): std.core.Option.Option[JsNumber] ->
+pub (receiver: TableDescriptor) maximum(): std.core.Option[JsNumber] ->
     native.

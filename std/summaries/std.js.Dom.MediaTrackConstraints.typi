@@ -15,4 +15,4 @@ module std.js.Dom.MediaTrackConstraints.
 
 pub opaque type MediaTrackConstraints.
 
-pub (receiver: MediaTrackConstraints) advanced(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.MediaTrackConstraintSet.MediaTrackConstraintSet]].
+pub (receiver: MediaTrackConstraints) advanced(): std.core.Option[std.js.Array[std.js.Dom.MediaTrackConstraintSet]].

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.EventInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.EventInit.
 
 pub bubbles_typechecks(receiver: EventInit): Option[Bool] ->

@@ -15,6 +15,6 @@ module std.js.Dom.AudioDecoderSupport.
 
 pub opaque type AudioDecoderSupport.
 
-pub (receiver: AudioDecoderSupport) config(): std.core.Option.Option[std.js.Dom.AudioDecoderConfig.AudioDecoderConfig].
+pub (receiver: AudioDecoderSupport) config(): std.core.Option[std.js.Dom.AudioDecoderConfig].
 
-pub (receiver: AudioDecoderSupport) supported(): std.core.Option.Option[Bool].
+pub (receiver: AudioDecoderSupport) supported(): std.core.Option[Bool].

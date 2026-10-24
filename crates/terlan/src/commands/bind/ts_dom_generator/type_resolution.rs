@@ -9,18 +9,17 @@ use super::*;
 pub(super) fn qualify(mapping: &mut DomModuleMapping) {
     let mut types = BTreeMap::<String, Vec<String>>::new();
     for module in &mapping.modules {
-        types
-            .entry(module.type_name.clone())
-            .or_default()
-            .push(format!("{}.{}", module.module_path, module.type_name));
+        types.entry(module.type_name.clone()).or_default().push(
+            crate::terlan_hir::public_type_path(&module.module_path, &module.type_name),
+        );
     }
     for (name, provider) in [
         ("JsString", "std.js.String.JsString"),
         ("JsNumber", "std.js.Number.JsNumber"),
-        ("Array", "std.js.Array.Array"),
-        ("Promise", "std.js.Promise.Promise"),
-        ("Option", "std.core.Option.Option"),
-        ("Unit", "std.core.Unit.Unit"),
+        ("Array", "std.js.Array"),
+        ("Promise", "std.js.Promise"),
+        ("Option", "std.core.Option"),
+        ("Unit", "std.core.Unit"),
     ] {
         types.insert(name.into(), vec![provider.into()]);
     }
@@ -96,11 +95,6 @@ fn qualify_type(
                 cursor += 1;
             }
             let name = &source[start..cursor];
-            let name = match name {
-                "std.js.Array" => "std.js.Array.Array",
-                "std.js.Promise" => "std.js.Promise.Promise",
-                other => other,
-            };
             if name.contains('.')
                 || name == module.type_name
                 || module.type_params.iter().any(|parameter| parameter == name)

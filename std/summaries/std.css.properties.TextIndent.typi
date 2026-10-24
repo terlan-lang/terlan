@@ -8,7 +8,7 @@ module std.css.properties.TextIndent.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    text_indent: std.core.Option.Option[Value]
+    text_indent: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

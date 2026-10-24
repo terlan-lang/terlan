@@ -12,14 +12,14 @@
  */
 module std.js.Dom.TextTrackListEventMap.
 
-import type std.js.Dom.TrackEvent.{TrackEvent}.
+import type std.js.Dom.{TrackEvent}.
 
 pub opaque type TextTrackListEventMap.
 
 pub (receiver: TextTrackListEventMap) addtrack(): TrackEvent ->
     native.
 
-pub (receiver: TextTrackListEventMap) change(): std.js.Dom.Event.Event ->
+pub (receiver: TextTrackListEventMap) change(): std.js.Dom.Event ->
     native.
 
 pub (receiver: TextTrackListEventMap) removetrack(): TrackEvent ->

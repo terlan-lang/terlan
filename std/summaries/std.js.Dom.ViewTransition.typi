@@ -25,27 +25,27 @@ pub opaque type ViewTransition.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ViewTransition/finished)
  */
-pub (receiver: ViewTransition) finished(): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: ViewTransition) finished(): std.js.Promise[std.core.Unit].
 
 /**
  * The **`ready`** read-only property of the `ready` will reject if the transition cannot begin.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ViewTransition/ready)
  */
-pub (receiver: ViewTransition) ready(): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: ViewTransition) ready(): std.js.Promise[std.core.Unit].
 
-pub (receiver: ViewTransition) types(): std.js.Dom.ViewTransitionTypeSet.ViewTransitionTypeSet.
+pub (receiver: ViewTransition) types(): std.js.Dom.ViewTransitionTypeSet.
 
 /**
  * The **`updateCallbackDone`** read-only property of the `updateCallbackDone` is useful when you don't care about the success/failure of a same-document (SPA) view transition animation, and just want to know if and when the DOM is updated.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ViewTransition/updateCallbackDone)
  */
-pub (receiver: ViewTransition) update_callback_done(): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: ViewTransition) update_callback_done(): std.js.Promise[std.core.Unit].
 
 /**
  * The **`skipTransition()`** method of the ```js-nolint skipTransition() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ViewTransition/skipTransition)
  */
-pub (receiver: ViewTransition) skip_transition(): std.core.Unit.Unit.
+pub (receiver: ViewTransition) skip_transition(): std.core.Unit.

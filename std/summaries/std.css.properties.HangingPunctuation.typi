@@ -8,7 +8,7 @@ module std.css.properties.HangingPunctuation.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    hanging_punctuation: std.core.Option.Option[Value]
+    hanging_punctuation: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

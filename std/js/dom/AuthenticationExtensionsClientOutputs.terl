@@ -12,21 +12,21 @@
  */
 module std.js.Dom.AuthenticationExtensionsClientOutputs.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type AuthenticationExtensionsClientOutputs.
 
 pub (receiver: AuthenticationExtensionsClientOutputs) appid(): Option[Bool] ->
     native.
 
-pub (receiver: AuthenticationExtensionsClientOutputs) cred_props(): Option[std.js.Dom.CredentialPropertiesOutput.CredentialPropertiesOutput] ->
+pub (receiver: AuthenticationExtensionsClientOutputs) cred_props(): Option[std.js.Dom.CredentialPropertiesOutput] ->
     native.
 
 pub (receiver: AuthenticationExtensionsClientOutputs) hmac_create_secret(): Option[Bool] ->
     native.
 
-pub (receiver: AuthenticationExtensionsClientOutputs) large_blob(): Option[std.js.Dom.AuthenticationExtensionsLargeBlobOutputs.AuthenticationExtensionsLargeBlobOutputs] ->
+pub (receiver: AuthenticationExtensionsClientOutputs) large_blob(): Option[std.js.Dom.AuthenticationExtensionsLargeBlobOutputs] ->
     native.
 
-pub (receiver: AuthenticationExtensionsClientOutputs) prf(): Option[std.js.Dom.AuthenticationExtensionsPRFOutputs.AuthenticationExtensionsPRFOutputs] ->
+pub (receiver: AuthenticationExtensionsClientOutputs) prf(): Option[std.js.Dom.AuthenticationExtensionsPRFOutputs] ->
     native.

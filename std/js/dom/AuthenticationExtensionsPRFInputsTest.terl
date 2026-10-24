@@ -16,5 +16,5 @@ import type std.js.Dom.AuthenticationExtensionsPRFInputs.
 
 pub eval_typechecks(
     receiver: AuthenticationExtensionsPRFInputs,
-): std.core.Option.Option[std.js.Dom.AuthenticationExtensionsPRFValues.AuthenticationExtensionsPRFValues] ->
+): std.core.Option[std.js.Dom.AuthenticationExtensionsPRFValues] ->
     receiver.eval().

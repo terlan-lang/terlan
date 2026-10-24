@@ -12,27 +12,21 @@
  */
 module std.js.Dom.SVGClipPathElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGClipPathElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, SVGClipPathElement}.
 import type std.js.String.{JsString}.
 
-pub clip_path_units_typechecks(
-    receiver: SVGClipPathElement,
-): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration ->
+pub clip_path_units_typechecks(receiver: SVGClipPathElement): std.js.Dom.SVGAnimatedEnumeration ->
     receiver.clip_path_units().
 
-pub transform_typechecks(
-    receiver: SVGClipPathElement,
-): std.js.Dom.SVGAnimatedTransformList.SVGAnimatedTransformList ->
+pub transform_typechecks(receiver: SVGClipPathElement): std.js.Dom.SVGAnimatedTransformList ->
     receiver.transform().
 
 pub add_event_listener_typechecks(
     receiver: SVGClipPathElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -40,6 +34,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGClipPathElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

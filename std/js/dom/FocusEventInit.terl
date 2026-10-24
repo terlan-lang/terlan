@@ -14,5 +14,5 @@ module std.js.Dom.FocusEventInit.
 
 pub opaque type FocusEventInit.
 
-pub (receiver: FocusEventInit) related_target(): std.core.Option.Option[std.js.Dom.EventTarget.EventTarget] ->
+pub (receiver: FocusEventInit) related_target(): std.core.Option[std.js.Dom.EventTarget] ->
     native.

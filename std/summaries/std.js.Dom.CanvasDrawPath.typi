@@ -18,18 +18,18 @@ pub opaque type CanvasDrawPath.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/beginPath)
  */
-pub (receiver: CanvasDrawPath) begin_path(): std.core.Unit.Unit.
+pub (receiver: CanvasDrawPath) begin_path(): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInStroke)
  */
 pub (receiver: CanvasDrawPath) is_point_in_stroke(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): Bool.
 
-pub (receiver: CanvasDrawPath) is_point_in_stroke_overload_2(path: std.js.Dom.Path2D.Path2D, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): Bool.
+pub (receiver: CanvasDrawPath) is_point_in_stroke_overload_2(path: std.js.Dom.Path2D, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): Bool.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/stroke)
  */
-pub (receiver: CanvasDrawPath) stroke(): std.core.Unit.Unit.
+pub (receiver: CanvasDrawPath) stroke(): std.core.Unit.
 
-pub (receiver: CanvasDrawPath) stroke_overload_2(path: std.js.Dom.Path2D.Path2D): std.core.Unit.Unit.
+pub (receiver: CanvasDrawPath) stroke_overload_2(path: std.js.Dom.Path2D): std.core.Unit.

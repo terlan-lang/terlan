@@ -21,5 +21,5 @@ pub length_typechecks(receiver: StyleSheetList): JsNumber ->
 pub item_typechecks(
     receiver: StyleSheetList,
     index: JsNumber,
-): std.core.Option.Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
+): std.core.Option[std.js.Dom.CSSStyleSheet] ->
     receiver.item(index).

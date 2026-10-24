@@ -14,5 +14,5 @@ module std.js.Dom.CookieStoreEventMapTest.
 
 import type std.js.Dom.CookieStoreEventMap.
 
-pub change_typechecks(receiver: CookieStoreEventMap): std.js.Dom.CookieChangeEvent.CookieChangeEvent ->
+pub change_typechecks(receiver: CookieStoreEventMap): std.js.Dom.CookieChangeEvent ->
     receiver.change().

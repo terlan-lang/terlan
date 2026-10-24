@@ -124,7 +124,7 @@ pub int_range(min: Int, max: Int): Gen[Int] ->
  * Transformation: constructs ranges through the public `Range` constructor so
  * range generation follows the standard library contract under VM execution.
  */
-pub range_of(start: Int, stop: Int): Gen[std.range.Range.Range] ->
+pub range_of(start: Int, stop: Int): Gen[std.range.Range] ->
     let step =
         if {
             start <= stop -> 1;
@@ -371,7 +371,7 @@ pub pair_of(left: Gen[A], right: Gen[B]): Gen[{A, B}] ->
  * Transformation: establishes bounded map generation without hidden randomness
  * or unbounded growth.
  */
-pub map_of(keys: Gen[K], values: Gen[V]): Gen[std.collections.Map.Map[K, V]] ->
+pub map_of(keys: Gen[K], values: Gen[V]): Gen[std.collections.Map[K, V]] ->
     {Atom["gen"], [Map.new[K, V](), Map.from_entries(pair_values(sample(keys), sample(values)))]}.
 
 /**

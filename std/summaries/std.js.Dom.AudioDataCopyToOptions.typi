@@ -15,8 +15,8 @@ module std.js.Dom.AudioDataCopyToOptions.
 
 pub opaque type AudioDataCopyToOptions.
 
-pub (receiver: AudioDataCopyToOptions) frame_count(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AudioDataCopyToOptions) frame_count(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: AudioDataCopyToOptions) frame_offset(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AudioDataCopyToOptions) frame_offset(): std.core.Option[std.js.Number.JsNumber].
 
 pub (receiver: AudioDataCopyToOptions) plane_index(): std.js.Number.JsNumber.

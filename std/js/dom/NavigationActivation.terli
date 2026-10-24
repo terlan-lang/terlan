@@ -12,7 +12,7 @@
  */
 module std.js.Dom.NavigationActivation.
 
-import type std.js.Dom.NavigationHistoryEntry.{NavigationHistoryEntry}.
+import type std.js.Dom.{NavigationHistoryEntry}.
 
 /**
  * The **`NavigationActivation`** interface of the Navigation API represents a recent cross-document navigation.
@@ -33,4 +33,4 @@ pub (receiver: NavigationActivation) entry(): NavigationHistoryEntry.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationActivation/from)
  */
-pub (receiver: NavigationActivation) from_(): std.core.Option.Option[NavigationHistoryEntry].
+pub (receiver: NavigationActivation) from_(): std.core.Option[NavigationHistoryEntry].

@@ -19,10 +19,10 @@ pub key_system_typechecks(receiver: MediaKeySystemAccess): std.js.String.JsStrin
 
 pub create_media_keys_typechecks(
     receiver: MediaKeySystemAccess,
-): std.js.Promise.Promise[std.js.Dom.MediaKeys.MediaKeys] ->
+): std.js.Promise[std.js.Dom.MediaKeys] ->
     receiver.create_media_keys().
 
 pub get_configuration_typechecks(
     receiver: MediaKeySystemAccess,
-): std.js.Dom.MediaKeySystemConfiguration.MediaKeySystemConfiguration ->
+): std.js.Dom.MediaKeySystemConfiguration ->
     receiver.get_configuration().

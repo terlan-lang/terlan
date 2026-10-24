@@ -326,7 +326,11 @@ fn infer_syntax_call_with_arg_types(
         }
 
         if let Some(imported) = ctx.constructor_aliases.get(function_name) {
-            if let Some(interface) = ctx.interface_map.get(&imported.module) {
+            if let Some(interface) = imported
+                .module
+                .as_ref()
+                .and_then(|module| ctx.interface_map.get(module))
+            {
                 if let Some(schemes) = parse_interface_constructor_schemes(
                     interface
                         .constructors
@@ -350,8 +354,11 @@ fn infer_syntax_call_with_arg_types(
                 }
                 if interface.opaque_types.contains(&imported.name) {
                     errors.push(format!(
-                        "cannot construct opaque type {}.{} outside defining module",
-                        imported.module, imported.name
+                        "cannot construct opaque type {} outside defining module",
+                        crate::terlan_hir::public_type_path(
+                            imported.module.as_deref().unwrap_or_default(),
+                            &imported.name
+                        )
                     ));
                     return Type::Dynamic;
                 }

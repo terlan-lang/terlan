@@ -67,7 +67,7 @@ for (const module of modules) {
         });
         const actual = helper(receiver, ...arguments_);
         const option = Boolean(optionalInner(member.return_type));
-        const unit = ['Unit', 'std.core.Unit.Unit'].includes(member.return_type);
+        const unit = ['Unit', 'std.core.Unit', 'std.core.Unit.Unit'].includes(member.return_type);
         const value = option ? actual[1] : actual;
         if (unit ? value !== 'unit' : value !== expected) throw new Error(`Incorrect result for ${member.name}`);
         if (option && actual[0] !== 'some') throw new Error(`Incorrect Option tag for ${member.name}`);

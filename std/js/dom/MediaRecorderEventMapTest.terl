@@ -12,13 +12,12 @@
  */
 module std.js.Dom.MediaRecorderEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.MediaRecorderEventMap.
+import type std.js.Dom.{Event, MediaRecorderEventMap}.
 
-pub dataavailable_typechecks(receiver: MediaRecorderEventMap): std.js.Dom.BlobEvent.BlobEvent ->
+pub dataavailable_typechecks(receiver: MediaRecorderEventMap): std.js.Dom.BlobEvent ->
     receiver.dataavailable().
 
-pub error_typechecks(receiver: MediaRecorderEventMap): std.js.Dom.ErrorEvent.ErrorEvent ->
+pub error_typechecks(receiver: MediaRecorderEventMap): std.js.Dom.ErrorEvent ->
     receiver.error().
 
 pub pause_typechecks(receiver: MediaRecorderEventMap): Event ->

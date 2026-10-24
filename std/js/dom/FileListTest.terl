@@ -18,8 +18,5 @@ import type std.js.Number.{JsNumber}.
 pub length_typechecks(receiver: FileList): JsNumber ->
     receiver.length().
 
-pub item_typechecks(
-    receiver: FileList,
-    index: JsNumber,
-): std.core.Option.Option[std.js.Dom.File.File] ->
+pub item_typechecks(receiver: FileList, index: JsNumber): std.core.Option[std.js.Dom.File] ->
     receiver.item(index).

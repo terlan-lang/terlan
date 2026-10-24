@@ -105,7 +105,7 @@ pub abs(value: Float): Float ->
  * `std.core.Ordering.Comparison`.
  *
  * This function is the named implementation hook for compiler-known
- * `std.core.Ordering.Ordering[Float]` conformance in 0.0.1. Non-finite values
+ * `std.core.Ordering[Float]` conformance in 0.0.1. Non-finite values
  * are outside the 0.0.1 source contract.
  *
  * ```terlan

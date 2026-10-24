@@ -12,8 +12,8 @@
  */
 module std.js.Dom.AuthenticatorAssertionResponseTest.
 
-import type std.js.ArrayBuffer.{ArrayBuffer}.
 import type std.js.Dom.AuthenticatorAssertionResponse.
+import type std.js.{ArrayBuffer}.
 
 pub authenticator_data_typechecks(receiver: AuthenticatorAssertionResponse): ArrayBuffer ->
     receiver.authenticator_data().
@@ -21,7 +21,5 @@ pub authenticator_data_typechecks(receiver: AuthenticatorAssertionResponse): Arr
 pub signature_typechecks(receiver: AuthenticatorAssertionResponse): ArrayBuffer ->
     receiver.signature().
 
-pub user_handle_typechecks(
-    receiver: AuthenticatorAssertionResponse,
-): std.core.Option.Option[ArrayBuffer] ->
+pub user_handle_typechecks(receiver: AuthenticatorAssertionResponse): std.core.Option[ArrayBuffer] ->
     receiver.user_handle().

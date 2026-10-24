@@ -12,10 +12,8 @@
  */
 module std.js.Dom.ShadowRootTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.ShadowRoot.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, ShadowRoot}.
 import type std.js.String.{JsString}.
 
 pub clonable_typechecks(receiver: ShadowRoot): Bool ->
@@ -24,7 +22,7 @@ pub clonable_typechecks(receiver: ShadowRoot): Bool ->
 pub delegates_focus_typechecks(receiver: ShadowRoot): Bool ->
     receiver.delegates_focus().
 
-pub host_typechecks(receiver: ShadowRoot): std.js.Dom.Element.Element ->
+pub host_typechecks(receiver: ShadowRoot): std.js.Dom.Element ->
     receiver.host().
 
 pub inner_html_typechecks(receiver: ShadowRoot): JsString ->
@@ -33,10 +31,7 @@ pub inner_html_typechecks(receiver: ShadowRoot): JsString ->
 pub serializable_typechecks(receiver: ShadowRoot): Bool ->
     receiver.serializable().
 
-pub get_html_typechecks(
-    receiver: ShadowRoot,
-    options: Option[std.js.Dom.GetHTMLOptions.GetHTMLOptions],
-): JsString ->
+pub get_html_typechecks(receiver: ShadowRoot, options: Option[std.js.Dom.GetHTMLOptions]): JsString ->
     receiver.get_html(options).
 
 pub set_html_unsafe_typechecks(receiver: ShadowRoot, html_: JsString): Unit ->
@@ -46,7 +41,7 @@ pub add_event_listener_typechecks(
     receiver: ShadowRoot,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -54,6 +49,6 @@ pub remove_event_listener_typechecks(
     receiver: ShadowRoot,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

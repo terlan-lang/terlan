@@ -12,12 +12,11 @@
  */
 module std.js.Dom.RTCDataChannel.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.ArrayBuffer.{ArrayBuffer}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
+import type std.js.{ArrayBuffer}.
 
 /**
  * The **`RTCDataChannel`** interface represents a network channel which can be used for bidirectional peer-to-peer transfers of arbitrary data.
@@ -103,20 +102,20 @@ pub (receiver: RTCDataChannel) close(): Unit.
  */
 pub (receiver: RTCDataChannel) send(data: JsString): Unit.
 
-pub (receiver: RTCDataChannel) send_overload_2(data: std.js.Dom.Blob.Blob): Unit.
+pub (receiver: RTCDataChannel) send_overload_2(data: std.js.Dom.Blob): Unit.
 
 pub (receiver: RTCDataChannel) send_overload_3(data: ArrayBuffer): Unit.
 
-pub (receiver: RTCDataChannel) send_overload_4(data: std.js.ArrayBufferView.ArrayBufferView[ArrayBuffer]): Unit.
+pub (receiver: RTCDataChannel) send_overload_4(data: std.js.ArrayBufferView[ArrayBuffer]): Unit.
 
 pub (receiver: RTCDataChannel) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: RTCDataChannel) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

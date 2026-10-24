@@ -12,10 +12,8 @@
  */
 module std.js.Dom.MutationRecordTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.MutationRecord.
-import type std.js.Dom.Node.{Node}.
-import type std.js.Dom.NodeList.{NodeList}.
+import type std.core.{Option}.
+import type std.js.Dom.{MutationRecord, Node, NodeList}.
 import type std.js.String.{JsString}.
 
 pub added_nodes_typechecks(receiver: MutationRecord): NodeList ->

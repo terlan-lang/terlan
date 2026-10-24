@@ -29,14 +29,14 @@ pub (receiver: PluginArray) length(): std.js.Number.JsNumber.
 /**
  * @deprecated
  */
-pub (receiver: PluginArray) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.Plugin.Plugin].
+pub (receiver: PluginArray) item(index: std.js.Number.JsNumber): std.core.Option[std.js.Dom.Plugin].
 
 /**
  * @deprecated
  */
-pub (receiver: PluginArray) named_item(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.Plugin.Plugin].
+pub (receiver: PluginArray) named_item(name: std.js.String.JsString): std.core.Option[std.js.Dom.Plugin].
 
 /**
  * @deprecated
  */
-pub (receiver: PluginArray) refresh(): std.core.Unit.Unit.
+pub (receiver: PluginArray) refresh(): std.core.Unit.

@@ -33,36 +33,36 @@ pub (receiver: MIDIPort) id(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/manufacturer)
  */
-pub (receiver: MIDIPort) manufacturer(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MIDIPort) manufacturer(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`name`** read-only property of the MIDIPort interface returns the system name of the port.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/name)
  */
-pub (receiver: MIDIPort) name(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MIDIPort) name(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`version`** read-only property of the MIDIPort interface returns the version of the port.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/version)
  */
-pub (receiver: MIDIPort) version(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MIDIPort) version(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`close()`** method of the MIDIPort interface makes the access to the MIDI device connected to this `MIDIPort` unavailable.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/close)
  */
-pub (receiver: MIDIPort) close(): std.js.Promise.Promise[MIDIPort].
+pub (receiver: MIDIPort) close(): std.js.Promise[MIDIPort].
 
 /**
  * The **`open()`** method of the MIDIPort interface makes the MIDI device connected to this `MIDIPort` explicitly available.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIPort/open)
  */
-pub (receiver: MIDIPort) open(): std.js.Promise.Promise[MIDIPort].
+pub (receiver: MIDIPort) open(): std.js.Promise[MIDIPort].
 
-pub (receiver: MIDIPort) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: MIDIPort) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: MIDIPort) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: MIDIPort) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

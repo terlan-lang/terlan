@@ -12,7 +12,7 @@
  */
 module std.js.Dom.TouchEvent.
 
-import type std.js.Dom.TouchList.{TouchList}.
+import type std.js.Dom.{TouchList}.
 
 /**
  * The **`TouchEvent`** interface represents an UIEvent which is sent when the state of contacts with a touch-sensitive surface changes.

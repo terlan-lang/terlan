@@ -14,5 +14,5 @@ module std.js.Dom.VideoDecoderEventMapTest.
 
 import type std.js.Dom.VideoDecoderEventMap.
 
-pub dequeue_typechecks(receiver: VideoDecoderEventMap): std.js.Dom.Event.Event ->
+pub dequeue_typechecks(receiver: VideoDecoderEventMap): std.js.Dom.Event ->
     receiver.dequeue().

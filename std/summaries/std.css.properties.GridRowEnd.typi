@@ -8,7 +8,7 @@ module std.css.properties.GridRowEnd.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    grid_row_end: std.core.Option.Option[Value]
+    grid_row_end: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

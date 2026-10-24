@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CharacterDataTest.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Dom.CharacterData.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
@@ -23,7 +23,7 @@ pub data_typechecks(receiver: CharacterData): JsString ->
 pub length_typechecks(receiver: CharacterData): JsNumber ->
     receiver.length().
 
-pub owner_document_typechecks(receiver: CharacterData): std.js.Dom.Document.Document ->
+pub owner_document_typechecks(receiver: CharacterData): std.js.Dom.Document ->
     receiver.owner_document().
 
 pub append_data_typechecks(receiver: CharacterData, data: JsString): Unit ->

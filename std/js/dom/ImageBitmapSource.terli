@@ -12,7 +12,4 @@
  */
 module std.js.Dom.ImageBitmapSource.
 
-pub type ImageBitmapSource =
-      std.js.Dom.Blob.Blob
-    | std.js.Dom.CanvasImageSource.CanvasImageSource
-    | std.js.Dom.ImageData.ImageData.
+pub type ImageBitmapSource = std.js.Dom.Blob | std.js.Dom.CanvasImageSource | std.js.Dom.ImageData.

@@ -14,5 +14,5 @@ module std.js.Dom.RTCDataChannelEventInitTest.
 
 import type std.js.Dom.RTCDataChannelEventInit.
 
-pub channel_typechecks(receiver: RTCDataChannelEventInit): std.js.Dom.RTCDataChannel.RTCDataChannel ->
+pub channel_typechecks(receiver: RTCDataChannelEventInit): std.js.Dom.RTCDataChannel ->
     receiver.channel().

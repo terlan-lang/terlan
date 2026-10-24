@@ -15,8 +15,8 @@ module std.js.Dom.PositionOptions.
 
 pub opaque type PositionOptions.
 
-pub (receiver: PositionOptions) enable_high_accuracy(): std.core.Option.Option[Bool].
+pub (receiver: PositionOptions) enable_high_accuracy(): std.core.Option[Bool].
 
-pub (receiver: PositionOptions) maximum_age(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PositionOptions) maximum_age(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PositionOptions) timeout(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PositionOptions) timeout(): std.core.Option[std.js.Number.JsNumber].

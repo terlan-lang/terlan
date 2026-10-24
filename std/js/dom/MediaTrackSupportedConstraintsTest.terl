@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MediaTrackSupportedConstraintsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.MediaTrackSupportedConstraints.
 
 pub aspect_ratio_typechecks(receiver: MediaTrackSupportedConstraints): Option[Bool] ->

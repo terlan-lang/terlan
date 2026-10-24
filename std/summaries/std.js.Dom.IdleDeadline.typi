@@ -32,4 +32,4 @@ pub (receiver: IdleDeadline) did_timeout(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IdleDeadline/timeRemaining)
  */
-pub (receiver: IdleDeadline) time_remaining(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: IdleDeadline) time_remaining(): std.js.Dom.DOMHighResTimeStamp.

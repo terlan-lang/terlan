@@ -18,14 +18,14 @@ typed request, response, and error modules rather than backend server values.
 
 ## Public Surface
 
-- `std.http.Request.Request`: source-owned managed record with private fields.
-- `std.http.Response.Response`: source-owned managed record with private fields.
-- `std.http.Session.Session`: source-owned record with private identity fields.
+- `std.http.Request`: source-owned managed record with private fields.
+- `std.http.Response`: source-owned managed record with private fields.
+- `std.http.Session`: source-owned record with private identity fields.
 - `std.http.Sse.Event`: source-owned event record with optional metadata.
 - `std.http.Sse.Endpoint`: source-owned limits and callback declarations.
 - `std.http.WebSocket.Frame`: source-owned text, ping, pong, or close intent.
 - `std.http.WebSocket.Endpoint`: source-owned limits, callbacks, and pairing policies.
-- `std.http.Router.Router`: immutable source-owned record with private declarations.
+- `std.http.Router`: immutable source-owned record with private declarations.
 - `std.http.Router.Handler`: typed route handler function shape.
 - `std.http.Error.HttpError`: portable HTTP helper error.
 - `std.http.Cookies.Options`: typed `Set-Cookie` option contract.

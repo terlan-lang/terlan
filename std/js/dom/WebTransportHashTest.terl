@@ -12,11 +12,11 @@
  */
 module std.js.Dom.WebTransportHashTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.WebTransportHash.
 
 pub algorithm_typechecks(receiver: WebTransportHash): Option[std.js.String.JsString] ->
     receiver.algorithm().
 
-pub value_typechecks(receiver: WebTransportHash): Option[std.js.Dom.BufferSource.BufferSource] ->
+pub value_typechecks(receiver: WebTransportHash): Option[std.js.Dom.BufferSource] ->
     receiver.value().

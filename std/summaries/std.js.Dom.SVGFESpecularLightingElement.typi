@@ -25,43 +25,43 @@ pub opaque type SVGFESpecularLightingElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpecularLightingElement/in1)
  */
-pub (receiver: SVGFESpecularLightingElement) in1(): std.js.Dom.SVGAnimatedString.SVGAnimatedString.
+pub (receiver: SVGFESpecularLightingElement) in1(): std.js.Dom.SVGAnimatedString.
 
 /**
  * The **`kernelUnitLengthX`** read-only property of the SVGFESpecularLightingElement interface reflects the x value of the kernelUnitLength attribute of the given feSpecularLighting element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpecularLightingElement/kernelUnitLengthX)
  */
-pub (receiver: SVGFESpecularLightingElement) kernel_unit_length_x(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
+pub (receiver: SVGFESpecularLightingElement) kernel_unit_length_x(): std.js.Dom.SVGAnimatedNumber.
 
 /**
  * The **`kernelUnitLengthY`** read-only property of the SVGFESpecularLightingElement interface reflects the y value of the kernelUnitLength attribute of the given feSpecularLighting element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpecularLightingElement/kernelUnitLengthY)
  */
-pub (receiver: SVGFESpecularLightingElement) kernel_unit_length_y(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
+pub (receiver: SVGFESpecularLightingElement) kernel_unit_length_y(): std.js.Dom.SVGAnimatedNumber.
 
 /**
  * The **`specularConstant`** read-only property of the SVGFESpecularLightingElement interface reflects the specularConstant attribute of the given feSpecularLighting element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpecularLightingElement/specularConstant)
  */
-pub (receiver: SVGFESpecularLightingElement) specular_constant(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
+pub (receiver: SVGFESpecularLightingElement) specular_constant(): std.js.Dom.SVGAnimatedNumber.
 
 /**
  * The **`specularExponent`** read-only property of the SVGFESpecularLightingElement interface reflects the specularExponent attribute of the given feSpecularLighting element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpecularLightingElement/specularExponent)
  */
-pub (receiver: SVGFESpecularLightingElement) specular_exponent(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
+pub (receiver: SVGFESpecularLightingElement) specular_exponent(): std.js.Dom.SVGAnimatedNumber.
 
 /**
  * The **`surfaceScale`** read-only property of the SVGFESpecularLightingElement interface reflects the surfaceScale attribute of the given feSpecularLighting element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpecularLightingElement/surfaceScale)
  */
-pub (receiver: SVGFESpecularLightingElement) surface_scale(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber.
+pub (receiver: SVGFESpecularLightingElement) surface_scale(): std.js.Dom.SVGAnimatedNumber.
 
-pub (receiver: SVGFESpecularLightingElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SVGFESpecularLightingElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SVGFESpecularLightingElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SVGFESpecularLightingElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

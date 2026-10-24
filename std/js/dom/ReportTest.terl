@@ -15,7 +15,7 @@ module std.js.Dom.ReportTest.
 import type std.js.Dom.Report.
 import type std.js.String.{JsString}.
 
-pub body_typechecks(receiver: Report): std.core.Option.Option[std.js.Dom.ReportBody.ReportBody] ->
+pub body_typechecks(receiver: Report): std.core.Option[std.js.Dom.ReportBody] ->
     receiver.body().
 
 pub type__typechecks(receiver: Report): JsString ->

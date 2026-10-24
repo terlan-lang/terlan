@@ -14,5 +14,5 @@ module std.js.Dom.RTCErrorEventTest.
 
 import type std.js.Dom.RTCErrorEvent.
 
-pub error_typechecks(receiver: RTCErrorEvent): std.js.Dom.RTCError.RTCError ->
+pub error_typechecks(receiver: RTCErrorEvent): std.js.Dom.RTCError ->
     receiver.error().

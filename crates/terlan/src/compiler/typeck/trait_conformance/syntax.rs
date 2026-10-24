@@ -11,6 +11,9 @@ struct KindDiagnosticEnvironment<'a> {
 }
 use crate::terlan_syntax::TokenKind;
 
+mod constructors;
+use constructors::{type_constructor_arities, type_constructor_variances};
+
 #[path = "syntax/macro_decls.rs"]
 mod macro_decls;
 pub(crate) use macro_decls::check_syntax_macro_decl_signatures;
@@ -490,97 +493,6 @@ fn collect_type_application_arity_diagnostic(
         ),
         severity: DiagSeverity::Error,
     });
-}
-
-/// Collects visible type-constructor arities from the module and aliases.
-///
-/// Inputs:
-/// - `module`: syntax-output module containing local type declarations.
-/// - `aliases`: visible type aliases, including imported aliases.
-///
-/// Output:
-/// - Map from source-visible type name to constructor arity.
-///
-/// Transformation:
-/// - Starts with built-in generic type constructors, adds visible aliases, and
-///   overlays local type declarations using their declared parameter count.
-fn type_constructor_arities(
-    module: &SyntaxModuleOutput,
-    aliases: &HashMap<String, TypeAlias>,
-) -> HashMap<String, usize> {
-    let mut arities = HashMap::from([
-        ("List".to_string(), 1usize),
-        ("Map".to_string(), 2usize),
-        ("FixedArray".to_string(), 2usize),
-    ]);
-
-    for (name, alias) in aliases {
-        arities.insert(name.clone(), alias.params.len());
-        if let Some(last) = name.rsplit('.').next() {
-            arities
-                .entry(last.to_string())
-                .or_insert(alias.params.len());
-        }
-    }
-
-    for declaration in &module.declarations {
-        match &declaration.payload {
-            SyntaxDeclarationPayload::Type { name, params, .. }
-            | SyntaxDeclarationPayload::Constructor { name, params, .. } => {
-                arities.insert(name.clone(), params.len());
-            }
-            _ => {}
-        }
-    }
-
-    arities
-}
-
-/// Collects visible type-constructor parameter variances.
-///
-/// Inputs:
-/// - `module`: syntax-output module containing local type declarations.
-/// - `aliases`: visible type aliases, including imported aliases.
-///
-/// Output:
-/// - Map from source-visible type constructor name to parameter variances.
-///
-/// Transformation:
-/// - Starts with built-in collection defaults, imports alias variance metadata,
-///   and overlays local type declarations using their source parameter markers.
-fn type_constructor_variances(
-    module: &SyntaxModuleOutput,
-    aliases: &HashMap<String, TypeAlias>,
-) -> HashMap<String, Vec<Variance>> {
-    let mut variances = HashMap::from([
-        ("List".to_string(), vec![Variance::Covariant]),
-        (
-            "Map".to_string(),
-            vec![Variance::Covariant, Variance::Covariant],
-        ),
-        ("FixedArray".to_string(), vec![Variance::Covariant]),
-    ]);
-
-    for (name, alias) in aliases {
-        variances.insert(name.clone(), alias.param_variance.clone());
-        if let Some(last) = name.rsplit('.').next() {
-            variances
-                .entry(last.to_string())
-                .or_insert_with(|| alias.param_variance.clone());
-        }
-    }
-
-    for declaration in &module.declarations {
-        match &declaration.payload {
-            SyntaxDeclarationPayload::Type { name, params, .. }
-            | SyntaxDeclarationPayload::Constructor { name, params, .. } => {
-                variances.insert(name.clone(), type_param_variances(params));
-            }
-            _ => {}
-        }
-    }
-
-    variances
 }
 
 /// Builds a kind-arity map from type parameter declarations.

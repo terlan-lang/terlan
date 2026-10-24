@@ -12,7 +12,7 @@
  */
 module std.js.Dom.RTCOfferOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.RTCOfferOptions.
 
 pub ice_restart_typechecks(receiver: RTCOfferOptions): Option[Bool] ->

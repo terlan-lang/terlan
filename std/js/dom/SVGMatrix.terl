@@ -12,4 +12,4 @@
  */
 module std.js.Dom.SVGMatrix.
 
-pub type SVGMatrix = std.js.Dom.DOMMatrix.DOMMatrix.
+pub type SVGMatrix = std.js.Dom.DOMMatrix.

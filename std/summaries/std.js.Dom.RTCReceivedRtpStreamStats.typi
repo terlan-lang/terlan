@@ -15,8 +15,8 @@ module std.js.Dom.RTCReceivedRtpStreamStats.
 
 pub opaque type RTCReceivedRtpStreamStats.
 
-pub (receiver: RTCReceivedRtpStreamStats) jitter(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCReceivedRtpStreamStats) jitter(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCReceivedRtpStreamStats) packets_lost(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCReceivedRtpStreamStats) packets_lost(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCReceivedRtpStreamStats) packets_received(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCReceivedRtpStreamStats) packets_received(): std.core.Option[std.js.Number.JsNumber].

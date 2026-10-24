@@ -12,19 +12,17 @@
  */
 module std.js.Dom.OVR_multiview2Test.
 
-import type std.js.Dom.GLenum.{GLenum}.
-import type std.js.Dom.GLint.{GLint}.
-import type std.js.Dom.OVR_multiview2.
+import type std.js.Dom.{GLenum, GLint, OVR_multiview2}.
 
 pub framebuffer_texture_multiview_ovr_typechecks(
     receiver: OVR_multiview2,
     target_: GLenum,
     attachment: GLenum,
-    texture: std.core.Option.Option[std.js.Dom.WebGLTexture.WebGLTexture],
+    texture: std.core.Option[std.js.Dom.WebGLTexture],
     level: GLint,
     base_view_index: GLint,
-    num_views: std.js.Dom.GLsizei.GLsizei,
-): std.core.Unit.Unit ->
+    num_views: std.js.Dom.GLsizei,
+): std.core.Unit ->
     receiver
         .framebuffer_texture_multiview_ovr(
             target_,

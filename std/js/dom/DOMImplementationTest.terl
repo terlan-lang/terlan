@@ -12,9 +12,8 @@
  */
 module std.js.Dom.DOMImplementationTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.DOMImplementation.
-import type std.js.Dom.DocumentType.{DocumentType}.
+import type std.core.{Option}.
+import type std.js.Dom.{DOMImplementation, DocumentType}.
 import type std.js.String.{JsString}.
 
 pub create_document_typechecks(
@@ -22,7 +21,7 @@ pub create_document_typechecks(
     namespace: Option[JsString],
     qualified_name: Option[JsString],
     doctype: Option[Option[DocumentType]],
-): std.js.Dom.XMLDocument.XMLDocument ->
+): std.js.Dom.XMLDocument ->
     receiver.create_document(namespace, qualified_name, doctype).
 
 pub create_document_type_typechecks(
@@ -36,5 +35,5 @@ pub create_document_type_typechecks(
 pub create_html_document_typechecks(
     receiver: DOMImplementation,
     title: Option[JsString],
-): std.js.Dom.Document.Document ->
+): std.js.Dom.Document ->
     receiver.create_html_document(title).

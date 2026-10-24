@@ -12,9 +12,8 @@
  */
 module std.js.Dom.MediaStreamConstraintsTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.MediaStreamConstraints.
-import type std.js.Dom.MediaTrackConstraints.{MediaTrackConstraints}.
+import type std.core.{Option}.
+import type std.js.Dom.{MediaStreamConstraints, MediaTrackConstraints}.
 
 pub audio_typechecks(receiver: MediaStreamConstraints): Option[Bool | MediaTrackConstraints] ->
     receiver.audio().

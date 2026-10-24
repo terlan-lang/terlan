@@ -8,7 +8,7 @@ module std.css.properties.TransformBox.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    transform_box: std.core.Option.Option[Value]
+    transform_box: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

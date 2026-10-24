@@ -15,7 +15,7 @@ module std.js.Dom.WebAssembly.ValueTypeMapTest.
 import type std.js.Dom.WebAssembly.ValueTypeMap.
 import type std.js.Number.{JsNumber}.
 
-pub anyfunc_typechecks(receiver: ValueTypeMap): std.js.Function.Function ->
+pub anyfunc_typechecks(receiver: ValueTypeMap): std.js.Function ->
     receiver.anyfunc().
 
 pub f32_typechecks(receiver: ValueTypeMap): JsNumber ->

@@ -25,18 +25,18 @@ pub opaque type IDBFactory.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBFactory/databases)
  */
-pub (receiver: IDBFactory) databases(): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.IDBDatabaseInfo.IDBDatabaseInfo]].
+pub (receiver: IDBFactory) databases(): std.js.Promise[std.js.Array[std.js.Dom.IDBDatabaseInfo]].
 
 /**
  * The **`deleteDatabase()`** method of the returns an IDBOpenDBRequest object immediately, and performs the deletion operation asynchronously.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBFactory/deleteDatabase)
  */
-pub (receiver: IDBFactory) delete_database(name: std.js.String.JsString): std.js.Dom.IDBOpenDBRequest.IDBOpenDBRequest.
+pub (receiver: IDBFactory) delete_database(name: std.js.String.JsString): std.js.Dom.IDBOpenDBRequest.
 
 /**
  * The **`open()`** method of the IDBFactory interface requests opening a connection to a database.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBFactory/open)
  */
-pub (receiver: IDBFactory) open(name: std.js.String.JsString, version: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Dom.IDBOpenDBRequest.IDBOpenDBRequest.
+pub (receiver: IDBFactory) open(name: std.js.String.JsString, version: std.core.Option[std.js.Number.JsNumber]): std.js.Dom.IDBOpenDBRequest.

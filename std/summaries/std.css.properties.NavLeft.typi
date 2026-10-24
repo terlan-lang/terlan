@@ -8,7 +8,7 @@ module std.css.properties.NavLeft.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    nav_left: std.core.Option.Option[Value]
+    nav_left: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

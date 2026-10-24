@@ -24,4 +24,4 @@ pub opaque type WritableStreamDefaultController.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultController/signal)
  */
-pub (receiver: WritableStreamDefaultController) signal(): std.js.Dom.AbortSignal.AbortSignal.
+pub (receiver: WritableStreamDefaultController) signal(): std.js.Dom.AbortSignal.

@@ -14,4 +14,4 @@ module std.js.Dom.ServiceWorkerRegistrationEventMap.
 
 pub opaque type ServiceWorkerRegistrationEventMap.
 
-pub (receiver: ServiceWorkerRegistrationEventMap) updatefound(): std.js.Dom.Event.Event.
+pub (receiver: ServiceWorkerRegistrationEventMap) updatefound(): std.js.Dom.Event.

@@ -16,5 +16,5 @@ import type std.js.Dom.WEBGL_compressed_texture_astc.
 
 pub get_supported_profiles_typechecks(
     receiver: WEBGL_compressed_texture_astc,
-): std.js.Array.Array[std.js.String.JsString] ->
+): std.js.Array[std.js.String.JsString] ->
     receiver.get_supported_profiles().

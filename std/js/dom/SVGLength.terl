@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SVGLength.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Number.{JsNumber}.
 
 /**

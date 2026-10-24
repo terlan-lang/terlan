@@ -18,18 +18,18 @@ pub opaque type CanvasImageData.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createImageData)
  */
-pub (receiver: CanvasImageData) create_image_data(sw: std.js.Number.JsNumber, sh: std.js.Number.JsNumber, settings: std.core.Option.Option[std.js.Dom.ImageDataSettings.ImageDataSettings]): std.js.Dom.ImageData.ImageData.
+pub (receiver: CanvasImageData) create_image_data(sw: std.js.Number.JsNumber, sh: std.js.Number.JsNumber, settings: std.core.Option[std.js.Dom.ImageDataSettings]): std.js.Dom.ImageData.
 
-pub (receiver: CanvasImageData) create_image_data_overload_2(image_data: std.js.Dom.ImageData.ImageData): std.js.Dom.ImageData.ImageData.
+pub (receiver: CanvasImageData) create_image_data_overload_2(image_data: std.js.Dom.ImageData): std.js.Dom.ImageData.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/getImageData)
  */
-pub (receiver: CanvasImageData) get_image_data(sx: std.js.Number.JsNumber, sy: std.js.Number.JsNumber, sw: std.js.Number.JsNumber, sh: std.js.Number.JsNumber, settings: std.core.Option.Option[std.js.Dom.ImageDataSettings.ImageDataSettings]): std.js.Dom.ImageData.ImageData.
+pub (receiver: CanvasImageData) get_image_data(sx: std.js.Number.JsNumber, sy: std.js.Number.JsNumber, sw: std.js.Number.JsNumber, sh: std.js.Number.JsNumber, settings: std.core.Option[std.js.Dom.ImageDataSettings]): std.js.Dom.ImageData.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/putImageData)
  */
-pub (receiver: CanvasImageData) put_image_data(image_data: std.js.Dom.ImageData.ImageData, dx: std.js.Number.JsNumber, dy: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: CanvasImageData) put_image_data(image_data: std.js.Dom.ImageData, dx: std.js.Number.JsNumber, dy: std.js.Number.JsNumber): std.core.Unit.
 
-pub (receiver: CanvasImageData) put_image_data_overload_2(image_data: std.js.Dom.ImageData.ImageData, dx: std.js.Number.JsNumber, dy: std.js.Number.JsNumber, dirty_x: std.js.Number.JsNumber, dirty_y: std.js.Number.JsNumber, dirty_width: std.js.Number.JsNumber, dirty_height: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: CanvasImageData) put_image_data_overload_2(image_data: std.js.Dom.ImageData, dx: std.js.Number.JsNumber, dy: std.js.Number.JsNumber, dirty_x: std.js.Number.JsNumber, dirty_y: std.js.Number.JsNumber, dirty_width: std.js.Number.JsNumber, dirty_height: std.js.Number.JsNumber): std.core.Unit.

@@ -12,16 +12,14 @@
  */
 module std.js.Dom.IDBDatabaseTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.IDBDatabase.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, IDBDatabase}.
 import type std.js.String.{JsString}.
 
 pub name_typechecks(receiver: IDBDatabase): JsString ->
     receiver.name().
 
-pub object_store_names_typechecks(receiver: IDBDatabase): std.js.Dom.DOMStringList.DOMStringList ->
+pub object_store_names_typechecks(receiver: IDBDatabase): std.js.Dom.DOMStringList ->
     receiver.object_store_names().
 
 pub version_typechecks(receiver: IDBDatabase): std.js.Number.JsNumber ->
@@ -33,8 +31,8 @@ pub close_typechecks(receiver: IDBDatabase): Unit ->
 pub create_object_store_typechecks(
     receiver: IDBDatabase,
     name: JsString,
-    options: Option[std.js.Dom.IDBObjectStoreParameters.IDBObjectStoreParameters],
-): std.js.Dom.IDBObjectStore.IDBObjectStore ->
+    options: Option[std.js.Dom.IDBObjectStoreParameters],
+): std.js.Dom.IDBObjectStore ->
     receiver.create_object_store(name, options).
 
 pub delete_object_store_typechecks(receiver: IDBDatabase, name: JsString): Unit ->
@@ -44,7 +42,7 @@ pub add_event_listener_typechecks(
     receiver: IDBDatabase,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -52,6 +50,6 @@ pub remove_event_listener_typechecks(
     receiver: IDBDatabase,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

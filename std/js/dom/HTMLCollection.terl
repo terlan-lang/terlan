@@ -19,5 +19,5 @@ pub opaque type HTMLCollection.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCollection/namedItem)
  */
-pub (receiver: HTMLCollection) named_item(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.Element.Element] ->
+pub (receiver: HTMLCollection) named_item(name: std.js.String.JsString): std.core.Option[std.js.Dom.Element] ->
     native.

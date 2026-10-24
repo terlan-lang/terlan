@@ -33,7 +33,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    stroke_dashoffset: std.core.Option.Option[Value],
+    stroke_dashoffset: std.core.Option[Value],
 }.
 
 /**

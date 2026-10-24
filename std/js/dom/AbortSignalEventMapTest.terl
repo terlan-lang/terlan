@@ -14,5 +14,5 @@ module std.js.Dom.AbortSignalEventMapTest.
 
 import type std.js.Dom.AbortSignalEventMap.
 
-pub abort_typechecks(receiver: AbortSignalEventMap): std.js.Dom.Event.Event ->
+pub abort_typechecks(receiver: AbortSignalEventMap): std.js.Dom.Event ->
     receiver.abort().

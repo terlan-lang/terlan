@@ -53,18 +53,18 @@ pub (receiver: AudioBuffer) sample_rate(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/copyFromChannel)
  */
-pub (receiver: AudioBuffer) copy_from_channel(destination: std.js.Float32Array.Float32Array[std.js.ArrayBuffer.ArrayBuffer], channel_number: std.js.Number.JsNumber, buffer_offset: std.core.Option.Option[std.js.Number.JsNumber]): std.core.Unit.Unit.
+pub (receiver: AudioBuffer) copy_from_channel(destination: std.js.Float32Array[std.js.ArrayBuffer], channel_number: std.js.Number.JsNumber, buffer_offset: std.core.Option[std.js.Number.JsNumber]): std.core.Unit.
 
 /**
  * The `copyToChannel()` method of the AudioBuffer interface copies the samples to the specified channel of the `AudioBuffer`, from the source array.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/copyToChannel)
  */
-pub (receiver: AudioBuffer) copy_to_channel(source: std.js.Float32Array.Float32Array[std.js.ArrayBuffer.ArrayBuffer], channel_number: std.js.Number.JsNumber, buffer_offset: std.core.Option.Option[std.js.Number.JsNumber]): std.core.Unit.Unit.
+pub (receiver: AudioBuffer) copy_to_channel(source: std.js.Float32Array[std.js.ArrayBuffer], channel_number: std.js.Number.JsNumber, buffer_offset: std.core.Option[std.js.Number.JsNumber]): std.core.Unit.
 
 /**
  * The **`getChannelData()`** method of the AudioBuffer Interface returns a Float32Array containing the PCM data associated with the channel, defined by the channel parameter (with 0 representing the first channel).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBuffer/getChannelData)
  */
-pub (receiver: AudioBuffer) get_channel_data(channel: std.js.Number.JsNumber): std.js.Float32Array.Float32Array[std.js.ArrayBuffer.ArrayBuffer].
+pub (receiver: AudioBuffer) get_channel_data(channel: std.js.Number.JsNumber): std.js.Float32Array[std.js.ArrayBuffer].

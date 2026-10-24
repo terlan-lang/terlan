@@ -8,7 +8,7 @@ module std.css.properties.PositionTryOrder.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    position_try_order: std.core.Option.Option[Value]
+    position_try_order: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

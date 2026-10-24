@@ -12,8 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedLengthTest.
 
-import type std.js.Dom.SVGAnimatedLength.
-import type std.js.Dom.SVGLength.{SVGLength}.
+import type std.js.Dom.{SVGAnimatedLength, SVGLength}.
 
 pub anim_val_typechecks(receiver: SVGAnimatedLength): SVGLength ->
     receiver.anim_val().

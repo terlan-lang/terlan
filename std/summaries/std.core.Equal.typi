@@ -37,8 +37,8 @@ pub impl Equal[Int] for Int {
 pub impl Equal[String] for String {
 }.
 
-pub impl Equal[std.core.Ordering.Comparison.Comparison] for std.core.Ordering.Comparison.Comparison {
+pub impl Equal[std.core.Ordering.Comparison] for std.core.Ordering.Comparison {
 }.
 
-pub impl Equal[std.core.Unit.Unit] for std.core.Unit.Unit {
+pub impl Equal[std.core.Unit] for std.core.Unit {
 }.

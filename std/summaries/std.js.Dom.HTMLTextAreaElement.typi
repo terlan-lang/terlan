@@ -53,14 +53,14 @@ pub (receiver: HTMLTextAreaElement) disabled(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/form)
  */
-pub (receiver: HTMLTextAreaElement) form(): std.core.Option.Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: HTMLTextAreaElement) form(): std.core.Option[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`HTMLTextAreaElement.labels`** read-only property returns a NodeList of the label elements associated with the A NodeList containing the `<label>` elements associated with the `<textArea>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/labels)
  */
-pub (receiver: HTMLTextAreaElement) labels(): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement].
+pub (receiver: HTMLTextAreaElement) labels(): std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement].
 
 /**
  * The **`maxLength`** property of the HTMLTextAreaElement interface indicates the maximum number of characters (in UTF-16 code units) allowed to be entered for the value of the textarea element, and the maximum number of characters allowed for the value to be valid.
@@ -151,7 +151,7 @@ pub (receiver: HTMLTextAreaElement) validation_message(): std.js.String.JsString
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/validity)
  */
-pub (receiver: HTMLTextAreaElement) validity(): std.js.Dom.ValidityState.ValidityState.
+pub (receiver: HTMLTextAreaElement) validity(): std.js.Dom.ValidityState.
 
 /**
  * The **`value`** property of the HTMLTextAreaElement interface represents the value of the textarea element as a string, which is an empty string if the widget contains no content.
@@ -193,22 +193,22 @@ pub (receiver: HTMLTextAreaElement) report_validity(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/select)
  */
-pub (receiver: HTMLTextAreaElement) select(): std.core.Unit.Unit.
+pub (receiver: HTMLTextAreaElement) select(): std.core.Unit.
 
 /**
  * The **`setCustomValidity()`** method of the HTMLTextAreaElement interface sets the custom validity message for the textarea element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/setCustomValidity)
  */
-pub (receiver: HTMLTextAreaElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: HTMLTextAreaElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`setRangeText()`** method of the HTMLTextAreaElement interface replaces a range of text in a textarea element with new text passed as the argument.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/setRangeText)
  */
-pub (receiver: HTMLTextAreaElement) set_range_text(replacement: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: HTMLTextAreaElement) set_range_text(replacement: std.js.String.JsString): std.core.Unit.
 
-pub (receiver: HTMLTextAreaElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLTextAreaElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLTextAreaElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLTextAreaElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

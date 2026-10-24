@@ -12,7 +12,7 @@
  */
 module std.js.Dom.FontFaceSetEventMap.
 
-import type std.js.Dom.FontFaceSetLoadEvent.{FontFaceSetLoadEvent}.
+import type std.js.Dom.{FontFaceSetLoadEvent}.
 
 pub opaque type FontFaceSetEventMap.
 

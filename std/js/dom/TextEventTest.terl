@@ -12,7 +12,7 @@
  */
 module std.js.Dom.TextEventTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.TextEvent.
 import type std.js.String.{JsString}.
 
@@ -24,7 +24,7 @@ pub init_text_event_typechecks(
     type_: JsString,
     bubbles: Option[Bool],
     cancelable: Option[Bool],
-    view: Option[Option[std.js.Dom.Window.Window]],
+    view: Option[Option[std.js.Dom.Window]],
     data: Option[JsString],
-): std.core.Unit.Unit ->
+): std.core.Unit ->
     receiver.init_text_event(type_, bubbles, cancelable, view, data).

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.OffscreenCanvas.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -46,9 +45,7 @@ pub (receiver: OffscreenCanvas) width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/convertToBlob)
  */
-pub (receiver: OffscreenCanvas) convert_to_blob(
-    options: Option[std.js.Dom.ImageEncodeOptions.ImageEncodeOptions],
-): std.js.Promise.Promise[std.js.Dom.Blob.Blob] ->
+pub (receiver: OffscreenCanvas) convert_to_blob(options: Option[std.js.Dom.ImageEncodeOptions]): std.js.Promise[std.js.Dom.Blob] ->
     native.
 
 /**
@@ -56,19 +53,19 @@ pub (receiver: OffscreenCanvas) convert_to_blob(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/transferToImageBitmap)
  */
-pub (receiver: OffscreenCanvas) transfer_to_image_bitmap(): std.js.Dom.ImageBitmap.ImageBitmap ->
+pub (receiver: OffscreenCanvas) transfer_to_image_bitmap(): std.js.Dom.ImageBitmap ->
     native.
 
 pub (receiver: OffscreenCanvas) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: OffscreenCanvas) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

@@ -21,7 +21,7 @@ pub length_computable_typechecks(receiver: ProgressEvent[T]): Bool ->
 pub loaded_typechecks(receiver: ProgressEvent[T]): JsNumber ->
     receiver.loaded().
 
-pub target__typechecks(receiver: ProgressEvent[T]): std.core.Option.Option[T] ->
+pub target__typechecks(receiver: ProgressEvent[T]): std.core.Option[T] ->
     receiver.target_().
 
 pub total_typechecks(receiver: ProgressEvent[T]): JsNumber ->

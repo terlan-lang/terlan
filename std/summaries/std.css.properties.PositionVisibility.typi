@@ -8,7 +8,7 @@ module std.css.properties.PositionVisibility.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    position_visibility: std.core.Option.Option[Value]
+    position_visibility: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

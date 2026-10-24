@@ -14,10 +14,8 @@ module std.js.Dom.VideoColorSpaceTest.
 
 import type std.js.Dom.VideoColorSpace.
 
-pub full_range_typechecks(receiver: VideoColorSpace): std.core.Option.Option[Bool] ->
+pub full_range_typechecks(receiver: VideoColorSpace): std.core.Option[Bool] ->
     receiver.full_range().
 
-pub to_json_typechecks(
-    receiver: VideoColorSpace,
-): std.js.Dom.VideoColorSpaceInit.VideoColorSpaceInit ->
+pub to_json_typechecks(receiver: VideoColorSpace): std.js.Dom.VideoColorSpaceInit ->
     receiver.to_json().

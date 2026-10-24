@@ -16,5 +16,5 @@ import type std.js.Dom.RTCEncodedAudioFrameMetadata.
 
 pub sequence_number_typechecks(
     receiver: RTCEncodedAudioFrameMetadata,
-): std.core.Option.Option[std.js.Number.JsNumber] ->
+): std.core.Option[std.js.Number.JsNumber] ->
     receiver.sequence_number().

@@ -14,5 +14,5 @@ module std.js.Dom.TrackEventTest.
 
 import type std.js.Dom.TrackEvent.
 
-pub track_typechecks(receiver: TrackEvent): std.core.Option.Option[std.js.Dom.TextTrack.TextTrack] ->
+pub track_typechecks(receiver: TrackEvent): std.core.Option[std.js.Dom.TextTrack] ->
     receiver.track().

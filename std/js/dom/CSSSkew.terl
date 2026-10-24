@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CSSSkew.
 
-import type std.js.Dom.CSSNumericValue.{CSSNumericValue}.
+import type std.js.Dom.{CSSNumericValue}.
 
 /**
  * The **`CSSSkew`** interface of the CSS Typed Object Model API is part of the CSSTransformValue interface.

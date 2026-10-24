@@ -14,5 +14,5 @@ module std.js.Dom.PageTransitionEventInit.
 
 pub opaque type PageTransitionEventInit.
 
-pub (receiver: PageTransitionEventInit) persisted(): std.core.Option.Option[Bool] ->
+pub (receiver: PageTransitionEventInit) persisted(): std.core.Option[Bool] ->
     native.

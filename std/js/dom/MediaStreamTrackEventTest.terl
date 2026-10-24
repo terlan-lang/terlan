@@ -14,5 +14,5 @@ module std.js.Dom.MediaStreamTrackEventTest.
 
 import type std.js.Dom.MediaStreamTrackEvent.
 
-pub track_typechecks(receiver: MediaStreamTrackEvent): std.js.Dom.MediaStreamTrack.MediaStreamTrack ->
+pub track_typechecks(receiver: MediaStreamTrackEvent): std.js.Dom.MediaStreamTrack ->
     receiver.track().

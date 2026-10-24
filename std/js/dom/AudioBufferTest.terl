@@ -12,12 +12,10 @@
  */
 module std.js.Dom.AudioBufferTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.core.{Option, Unit}.
 import type std.js.Dom.AudioBuffer.
-import type std.js.Float32Array.{Float32Array}.
 import type std.js.Number.{JsNumber}.
+import type std.js.{ArrayBuffer, Float32Array}.
 
 pub duration_typechecks(receiver: AudioBuffer): JsNumber ->
     receiver.duration().

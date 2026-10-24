@@ -25,25 +25,25 @@ pub opaque type MediaSession.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/metadata)
  */
-pub (receiver: MediaSession) metadata(): std.core.Option.Option[std.js.Dom.MediaMetadata.MediaMetadata].
+pub (receiver: MediaSession) metadata(): std.core.Option[std.js.Dom.MediaMetadata].
 
 /**
  * The **`setCameraActive()`** method of the MediaSession interface is used to indicate to the user agent whether the user's camera is considered to be active.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/setCameraActive)
  */
-pub (receiver: MediaSession) set_camera_active(active: Bool): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: MediaSession) set_camera_active(active: Bool): std.js.Promise[std.core.Unit].
 
 /**
  * The **`setMicrophoneActive()`** method of the MediaSession interface is used to indicate to the user agent whether the user's microphone is considered to be currently muted.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/setMicrophoneActive)
  */
-pub (receiver: MediaSession) set_microphone_active(active: Bool): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: MediaSession) set_microphone_active(active: Bool): std.js.Promise[std.core.Unit].
 
 /**
  * The **`setPositionState()`** method of the document's media playback position and speed for presentation by user's device in any kind of interface that provides details about ongoing media.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/setPositionState)
  */
-pub (receiver: MediaSession) set_position_state(state: std.core.Option.Option[std.js.Dom.MediaPositionState.MediaPositionState]): std.core.Unit.Unit.
+pub (receiver: MediaSession) set_position_state(state: std.core.Option[std.js.Dom.MediaPositionState]): std.core.Unit.

@@ -15,30 +15,30 @@ module std.js.Dom.PointerEventInit.
 
 pub opaque type PointerEventInit.
 
-pub (receiver: PointerEventInit) altitude_angle(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PointerEventInit) altitude_angle(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PointerEventInit) azimuth_angle(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PointerEventInit) azimuth_angle(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PointerEventInit) coalesced_events(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.PointerEvent.PointerEvent]].
+pub (receiver: PointerEventInit) coalesced_events(): std.core.Option[std.js.Array[std.js.Dom.PointerEvent]].
 
-pub (receiver: PointerEventInit) height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PointerEventInit) height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PointerEventInit) is_primary(): std.core.Option.Option[Bool].
+pub (receiver: PointerEventInit) is_primary(): std.core.Option[Bool].
 
-pub (receiver: PointerEventInit) pointer_id(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PointerEventInit) pointer_id(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PointerEventInit) pointer_type(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: PointerEventInit) pointer_type(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: PointerEventInit) predicted_events(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.PointerEvent.PointerEvent]].
+pub (receiver: PointerEventInit) predicted_events(): std.core.Option[std.js.Array[std.js.Dom.PointerEvent]].
 
-pub (receiver: PointerEventInit) pressure(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PointerEventInit) pressure(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PointerEventInit) tangential_pressure(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PointerEventInit) tangential_pressure(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PointerEventInit) tilt_x(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PointerEventInit) tilt_x(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PointerEventInit) tilt_y(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PointerEventInit) tilt_y(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PointerEventInit) twist(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PointerEventInit) twist(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PointerEventInit) width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PointerEventInit) width(): std.core.Option[std.js.Number.JsNumber].

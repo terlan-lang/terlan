@@ -97,7 +97,7 @@ pub(super) fn render_module_source(
             ),
             function.name,
             render_args(&function.args),
-            function.returns
+            crate::terlan_hir::public_type_text(&function.returns)
         ));
     }
     source

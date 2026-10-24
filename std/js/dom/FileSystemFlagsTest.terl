@@ -12,7 +12,7 @@
  */
 module std.js.Dom.FileSystemFlagsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.FileSystemFlags.
 
 pub create_typechecks(receiver: FileSystemFlags): Option[Bool] ->

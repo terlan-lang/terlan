@@ -32,7 +32,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    voice_range: std.core.Option.Option[Value],
+    voice_range: std.core.Option[Value],
 }.
 
 /**

@@ -12,8 +12,8 @@
  */
 module std.js.Dom.VideoFrameCallbackMetadata.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
+import type std.core.{Option}.
+import type std.js.Dom.{DOMHighResTimeStamp}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type VideoFrameCallbackMetadata.

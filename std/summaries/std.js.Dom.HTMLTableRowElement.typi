@@ -41,7 +41,7 @@ pub (receiver: HTMLTableRowElement) bg_color(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/cells)
  */
-pub (receiver: HTMLTableRowElement) cells(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLTableCellElement.HTMLTableCellElement].
+pub (receiver: HTMLTableRowElement) cells(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLTableCellElement].
 
 /**
  * The **`ch`** property of the HTMLTableRowElement interface does nothing.
@@ -86,15 +86,15 @@ pub (receiver: HTMLTableRowElement) v_align(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/deleteCell)
  */
-pub (receiver: HTMLTableRowElement) delete_cell(index: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: HTMLTableRowElement) delete_cell(index: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`insertCell()`** method of the HTMLTableRowElement interface inserts a new cell (td) into a table row (tr) and returns a reference to the cell.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableRowElement/insertCell)
  */
-pub (receiver: HTMLTableRowElement) insert_cell(index: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Dom.HTMLTableCellElement.HTMLTableCellElement.
+pub (receiver: HTMLTableRowElement) insert_cell(index: std.core.Option[std.js.Number.JsNumber]): std.js.Dom.HTMLTableCellElement.
 
-pub (receiver: HTMLTableRowElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLTableRowElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLTableRowElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLTableRowElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

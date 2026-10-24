@@ -14,5 +14,5 @@ module std.js.Dom.AudioContextOptions.
 
 pub opaque type AudioContextOptions.
 
-pub (receiver: AudioContextOptions) sample_rate(): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub (receiver: AudioContextOptions) sample_rate(): std.core.Option[std.js.Number.JsNumber] ->
     native.

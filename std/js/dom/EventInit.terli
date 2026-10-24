@@ -12,7 +12,7 @@
  */
 module std.js.Dom.EventInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type EventInit.
 

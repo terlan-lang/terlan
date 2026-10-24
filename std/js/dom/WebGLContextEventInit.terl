@@ -14,5 +14,5 @@ module std.js.Dom.WebGLContextEventInit.
 
 pub opaque type WebGLContextEventInit.
 
-pub (receiver: WebGLContextEventInit) status_message(): std.core.Option.Option[std.js.String.JsString] ->
+pub (receiver: WebGLContextEventInit) status_message(): std.core.Option[std.js.String.JsString] ->
     native.

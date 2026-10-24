@@ -31,7 +31,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    z_index: std.core.Option.Option[Value],
+    z_index: std.core.Option[Value],
 }.
 
 /**

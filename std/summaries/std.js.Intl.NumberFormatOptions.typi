@@ -15,14 +15,14 @@ module std.js.Intl.NumberFormatOptions.
 
 pub opaque type NumberFormatOptions.
 
-pub (receiver: NumberFormatOptions) currency(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: NumberFormatOptions) currency(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: NumberFormatOptions) minimum_integer_digits(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: NumberFormatOptions) minimum_integer_digits(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: NumberFormatOptions) minimum_fraction_digits(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: NumberFormatOptions) minimum_fraction_digits(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: NumberFormatOptions) maximum_fraction_digits(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: NumberFormatOptions) maximum_fraction_digits(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: NumberFormatOptions) minimum_significant_digits(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: NumberFormatOptions) minimum_significant_digits(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: NumberFormatOptions) maximum_significant_digits(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: NumberFormatOptions) maximum_significant_digits(): std.core.Option[std.js.Number.JsNumber].

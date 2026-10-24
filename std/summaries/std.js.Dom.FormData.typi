@@ -25,32 +25,32 @@ pub opaque type FormData.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/append)
  */
-pub (receiver: FormData) append(name: std.js.String.JsString, value: std.js.Dom.Blob.Blob | std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: FormData) append(name: std.js.String.JsString, value: std.js.Dom.Blob | std.js.String.JsString): std.core.Unit.
 
-pub (receiver: FormData) append_overload_2(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: FormData) append_overload_2(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
 
-pub (receiver: FormData) append_overload_3(name: std.js.String.JsString, blob_value: std.js.Dom.Blob.Blob, filename: std.core.Option.Option[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: FormData) append_overload_3(name: std.js.String.JsString, blob_value: std.js.Dom.Blob, filename: std.core.Option[std.js.String.JsString]): std.core.Unit.
 
 /**
  * The **`delete()`** method of the FormData interface deletes a key and its value(s) from a `FormData` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/delete)
  */
-pub (receiver: FormData) delete(name: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: FormData) delete(name: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`get()`** method of the FormData interface returns the first value associated with a given key from within a `FormData` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/get)
  */
-pub (receiver: FormData) get(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.FormDataEntryValue.FormDataEntryValue].
+pub (receiver: FormData) get(name: std.js.String.JsString): std.core.Option[std.js.Dom.FormDataEntryValue].
 
 /**
  * The **`getAll()`** method of the FormData interface returns all the values associated with a given key from within a `FormData` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/getAll)
  */
-pub (receiver: FormData) get_all(name: std.js.String.JsString): std.js.Array.Array[std.js.Dom.FormDataEntryValue.FormDataEntryValue].
+pub (receiver: FormData) get_all(name: std.js.String.JsString): std.js.Array[std.js.Dom.FormDataEntryValue].
 
 /**
  * The **`has()`** method of the FormData interface returns whether a `FormData` object contains a certain key.
@@ -64,8 +64,8 @@ pub (receiver: FormData) has(name: std.js.String.JsString): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/set)
  */
-pub (receiver: FormData) set(name: std.js.String.JsString, value: std.js.Dom.Blob.Blob | std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: FormData) set(name: std.js.String.JsString, value: std.js.Dom.Blob | std.js.String.JsString): std.core.Unit.
 
-pub (receiver: FormData) set_overload_2(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: FormData) set_overload_2(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
 
-pub (receiver: FormData) set_overload_3(name: std.js.String.JsString, blob_value: std.js.Dom.Blob.Blob, filename: std.core.Option.Option[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: FormData) set_overload_3(name: std.js.String.JsString, blob_value: std.js.Dom.Blob, filename: std.core.Option[std.js.String.JsString]): std.core.Unit.

@@ -8,7 +8,7 @@ module std.css.properties.OverscrollBehaviorBlock.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    overscroll_behavior_block: std.core.Option.Option[Value]
+    overscroll_behavior_block: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

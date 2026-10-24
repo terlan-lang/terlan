@@ -18,24 +18,24 @@ pub opaque type SVGFilterPrimitiveStandardAttributes.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/height)
  */
-pub (receiver: SVGFilterPrimitiveStandardAttributes) height(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGFilterPrimitiveStandardAttributes) height(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/result)
  */
-pub (receiver: SVGFilterPrimitiveStandardAttributes) result(): std.js.Dom.SVGAnimatedString.SVGAnimatedString.
+pub (receiver: SVGFilterPrimitiveStandardAttributes) result(): std.js.Dom.SVGAnimatedString.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/width)
  */
-pub (receiver: SVGFilterPrimitiveStandardAttributes) width(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGFilterPrimitiveStandardAttributes) width(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/x)
  */
-pub (receiver: SVGFilterPrimitiveStandardAttributes) x(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGFilterPrimitiveStandardAttributes) x(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEBlendElement/y)
  */
-pub (receiver: SVGFilterPrimitiveStandardAttributes) y(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGFilterPrimitiveStandardAttributes) y(): std.js.Dom.SVGAnimatedLength.

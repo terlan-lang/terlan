@@ -12,9 +12,8 @@
  */
 module std.js.Dom.CookieChangeEventInitTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.CookieChangeEventInit.
-import type std.js.Dom.CookieList.{CookieList}.
+import type std.core.{Option}.
+import type std.js.Dom.{CookieChangeEventInit, CookieList}.
 
 pub changed_typechecks(receiver: CookieChangeEventInit): Option[CookieList] ->
     receiver.changed().

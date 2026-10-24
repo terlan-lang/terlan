@@ -16,11 +16,11 @@ import type std.js.Dom.ImageBitmapRenderingContext.
 
 pub canvas_typechecks(
     receiver: ImageBitmapRenderingContext,
-): std.js.Dom.HTMLCanvasElement.HTMLCanvasElement | std.js.Dom.OffscreenCanvas.OffscreenCanvas ->
+): std.js.Dom.HTMLCanvasElement | std.js.Dom.OffscreenCanvas ->
     receiver.canvas().
 
 pub transfer_from_image_bitmap_typechecks(
     receiver: ImageBitmapRenderingContext,
-    bitmap: std.core.Option.Option[std.js.Dom.ImageBitmap.ImageBitmap],
-): std.core.Unit.Unit ->
+    bitmap: std.core.Option[std.js.Dom.ImageBitmap],
+): std.core.Unit ->
     receiver.transfer_from_image_bitmap(bitmap).

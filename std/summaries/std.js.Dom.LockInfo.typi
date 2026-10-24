@@ -15,6 +15,6 @@ module std.js.Dom.LockInfo.
 
 pub opaque type LockInfo.
 
-pub (receiver: LockInfo) client_id(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: LockInfo) client_id(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: LockInfo) name(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: LockInfo) name(): std.core.Option[std.js.String.JsString].

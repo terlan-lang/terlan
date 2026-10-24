@@ -25,7 +25,7 @@ pub opaque type GeolocationPosition.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationPosition/coords)
  */
-pub (receiver: GeolocationPosition) coords(): std.js.Dom.GeolocationCoordinates.GeolocationCoordinates ->
+pub (receiver: GeolocationPosition) coords(): std.js.Dom.GeolocationCoordinates ->
     native.
 
 /**
@@ -33,5 +33,5 @@ pub (receiver: GeolocationPosition) coords(): std.js.Dom.GeolocationCoordinates.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationPosition/timestamp)
  */
-pub (receiver: GeolocationPosition) timestamp(): std.js.Dom.EpochTimeStamp.EpochTimeStamp ->
+pub (receiver: GeolocationPosition) timestamp(): std.js.Dom.EpochTimeStamp ->
     native.

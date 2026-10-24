@@ -33,4 +33,4 @@ pub (receiver: CompositionEvent) data(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CompositionEvent/initCompositionEvent)
  */
-pub (receiver: CompositionEvent) init_composition_event(type_arg: std.js.String.JsString, bubbles_arg: std.core.Option.Option[Bool], cancelable_arg: std.core.Option.Option[Bool], view_arg: std.core.Option.Option[std.core.Option.Option[std.js.Dom.WindowProxy.WindowProxy]], data_arg: std.core.Option.Option[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: CompositionEvent) init_composition_event(type_arg: std.js.String.JsString, bubbles_arg: std.core.Option[Bool], cancelable_arg: std.core.Option[Bool], view_arg: std.core.Option[std.core.Option[std.js.Dom.WindowProxy]], data_arg: std.core.Option[std.js.String.JsString]): std.core.Unit.

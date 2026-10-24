@@ -8,7 +8,7 @@ module std.css.properties.Animation.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    animation: std.core.Option.Option[Value]
+    animation: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

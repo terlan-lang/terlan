@@ -12,10 +12,8 @@
  */
 module std.js.Dom.PaymentResponseTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.PaymentResponse.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, PaymentResponse}.
 import type std.js.String.{JsString}.
 
 pub method_name_typechecks(receiver: PaymentResponse): JsString ->
@@ -33,9 +31,7 @@ pub payer_phone_typechecks(receiver: PaymentResponse): Option[JsString] ->
 pub request_id_typechecks(receiver: PaymentResponse): JsString ->
     receiver.request_id().
 
-pub shipping_address_typechecks(
-    receiver: PaymentResponse,
-): Option[std.js.Dom.PaymentAddress.PaymentAddress] ->
+pub shipping_address_typechecks(receiver: PaymentResponse): Option[std.js.Dom.PaymentAddress] ->
     receiver.shipping_address().
 
 pub shipping_option_typechecks(receiver: PaymentResponse): Option[JsString] ->
@@ -43,15 +39,15 @@ pub shipping_option_typechecks(receiver: PaymentResponse): Option[JsString] ->
 
 pub retry_typechecks(
     receiver: PaymentResponse,
-    error_fields: Option[std.js.Dom.PaymentValidationErrors.PaymentValidationErrors],
-): std.js.Promise.Promise[Unit] ->
+    error_fields: Option[std.js.Dom.PaymentValidationErrors],
+): std.js.Promise[Unit] ->
     receiver.retry(error_fields).
 
 pub add_event_listener_typechecks(
     receiver: PaymentResponse,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -59,6 +55,6 @@ pub remove_event_listener_typechecks(
     receiver: PaymentResponse,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

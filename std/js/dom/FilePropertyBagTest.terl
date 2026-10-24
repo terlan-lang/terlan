@@ -14,7 +14,5 @@ module std.js.Dom.FilePropertyBagTest.
 
 import type std.js.Dom.FilePropertyBag.
 
-pub last_modified_typechecks(
-    receiver: FilePropertyBag,
-): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub last_modified_typechecks(receiver: FilePropertyBag): std.core.Option[std.js.Number.JsNumber] ->
     receiver.last_modified().

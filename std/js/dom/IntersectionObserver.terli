@@ -12,9 +12,9 @@
  */
 module std.js.Dom.IntersectionObserver.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.Element.{Element}.
+import type std.core.{Unit}.
+import type std.js.Dom.{Element}.
+import type std.js.{Array}.
 
 /**
  * The **`IntersectionObserver`** interface of the Intersection Observer API provides a way to asynchronously observe changes in the intersection of a target element with an ancestor element or with a top-level document's viewport.
@@ -28,7 +28,7 @@ pub opaque type IntersectionObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserver/root)
  */
-pub (receiver: IntersectionObserver) root(): std.core.Option.Option[std.js.Dom.Document.Document | Element].
+pub (receiver: IntersectionObserver) root(): std.core.Option[std.js.Dom.Document | Element].
 
 /**
  * The IntersectionObserver interface's read-only **`rootMargin`** property is a string with syntax similar to that of the CSS margin property.
@@ -63,7 +63,7 @@ pub (receiver: IntersectionObserver) observe(target_: Element): Unit.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IntersectionObserver/takeRecords)
  */
-pub (receiver: IntersectionObserver) take_records(): Array[std.js.Dom.IntersectionObserverEntry.IntersectionObserverEntry].
+pub (receiver: IntersectionObserver) take_records(): Array[std.js.Dom.IntersectionObserverEntry].
 
 /**
  * The IntersectionObserver method **`unobserve()`** instructs the `IntersectionObserver` to stop observing the specified target element.

@@ -15,26 +15,26 @@ module std.js.Dom.DOMMatrix2DInit.
 
 pub opaque type DOMMatrix2DInit.
 
-pub (receiver: DOMMatrix2DInit) a(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) a(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DOMMatrix2DInit) b(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) b(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DOMMatrix2DInit) c(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) c(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DOMMatrix2DInit) d(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) d(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DOMMatrix2DInit) e(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) e(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DOMMatrix2DInit) f(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) f(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DOMMatrix2DInit) m11(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) m11(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DOMMatrix2DInit) m12(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) m12(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DOMMatrix2DInit) m21(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) m21(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DOMMatrix2DInit) m22(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) m22(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DOMMatrix2DInit) m41(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) m41(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DOMMatrix2DInit) m42(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DOMMatrix2DInit) m42(): std.core.Option[std.js.Number.JsNumber].

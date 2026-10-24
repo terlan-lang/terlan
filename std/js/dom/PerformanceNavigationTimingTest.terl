@@ -12,8 +12,7 @@
  */
 module std.js.Dom.PerformanceNavigationTimingTest.
 
-import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
-import type std.js.Dom.PerformanceNavigationTiming.
+import type std.js.Dom.{DOMHighResTimeStamp, PerformanceNavigationTiming}.
 
 pub dom_complete_typechecks(receiver: PerformanceNavigationTiming): DOMHighResTimeStamp ->
     receiver.dom_complete().

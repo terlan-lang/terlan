@@ -61,7 +61,7 @@ pub(super) fn infer_syntax_binary_layout(
                 let bytes_type = vm_named_type("std.vm.Bytes", "Bytes");
                 if let Err(message) = unify(&bytes_type, field_type, subst) {
                     errors.push(format!(
-                        "binary_constructor_field_type_mismatch: field `{}` expects std.vm.Bytes.Bytes: {message}",
+                        "binary_constructor_field_type_mismatch: field `{}` expects std.vm.Bytes: {message}",
                         field.key
                     ));
                 }
@@ -116,7 +116,7 @@ pub(super) fn infer_syntax_binary_layout(
                 let bytes_type = vm_named_type("std.vm.Bytes", "Bytes");
                 if let Err(message) = unify(&bytes_type, field_type, subst) {
                     errors.push(format!(
-                        "binary_constructor_field_type_mismatch: field `{}` expects std.vm.Bytes.Bytes for terminal Rest: {message}",
+                        "binary_constructor_field_type_mismatch: field `{}` expects std.vm.Bytes for terminal Rest: {message}",
                         field.key
                     ));
                 }

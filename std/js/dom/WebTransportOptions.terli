@@ -12,7 +12,7 @@
  */
 module std.js.Dom.WebTransportOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type WebTransportOptions.
 
@@ -20,4 +20,4 @@ pub (receiver: WebTransportOptions) allow_pooling(): Option[Bool].
 
 pub (receiver: WebTransportOptions) require_unreliable(): Option[Bool].
 
-pub (receiver: WebTransportOptions) server_certificate_hashes(): Option[std.js.Array.Array[std.js.Dom.WebTransportHash.WebTransportHash]].
+pub (receiver: WebTransportOptions) server_certificate_hashes(): Option[std.js.Array[std.js.Dom.WebTransportHash]].

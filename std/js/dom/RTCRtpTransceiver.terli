@@ -12,7 +12,7 @@
  */
 module std.js.Dom.RTCRtpTransceiver.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 
 /**
  * The WebRTC interface **`RTCRtpTransceiver`** describes a permanent pairing of an RTCRtpSender and an RTCRtpReceiver, along with some shared state.
@@ -26,28 +26,28 @@ pub opaque type RTCRtpTransceiver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/mid)
  */
-pub (receiver: RTCRtpTransceiver) mid(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCRtpTransceiver) mid(): std.core.Option[std.js.String.JsString].
 
 /**
  * The read-only **`receiver`** property of WebRTC's RTCRtpTransceiver interface indicates the data for the transceiver's stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/receiver)
  */
-pub (receiver: RTCRtpTransceiver) receiver(): std.js.Dom.RTCRtpReceiver.RTCRtpReceiver.
+pub (receiver: RTCRtpTransceiver) receiver(): std.js.Dom.RTCRtpReceiver.
 
 /**
  * The read-only **`sender`** property of WebRTC's RTCRtpTransceiver interface indicates the for the transceiver's stream.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/sender)
  */
-pub (receiver: RTCRtpTransceiver) sender(): std.js.Dom.RTCRtpSender.RTCRtpSender.
+pub (receiver: RTCRtpTransceiver) sender(): std.js.Dom.RTCRtpSender.
 
 /**
  * The **`setCodecPreferences()`** method of the RTCRtpTransceiver interface is used to set the codecs that the transceiver allows for decoding _received_ data, in order of decreasing preference.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/setCodecPreferences)
  */
-pub (receiver: RTCRtpTransceiver) set_codec_preferences(codecs: std.js.Array.Array[std.js.Dom.RTCRtpCodec.RTCRtpCodec]): Unit.
+pub (receiver: RTCRtpTransceiver) set_codec_preferences(codecs: std.js.Array[std.js.Dom.RTCRtpCodec]): Unit.
 
 /**
  * The **`stop()`** method in the RTCRtpTransceiver interface permanently stops the transceiver by stopping both the associated RTCRtpSender and ```js-nolint stop() ``` None.

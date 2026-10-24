@@ -12,8 +12,8 @@
  */
 module std.js.Dom.DeviceMotionEvent.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.DeviceMotionEventAcceleration.{DeviceMotionEventAcceleration}.
+import type std.core.{Option}.
+import type std.js.Dom.{DeviceMotionEventAcceleration}.
 
 /**
  * The **`DeviceMotionEvent`** interface of the Device Orientation Events provides web developers with information about the speed of changes for the device's position and orientation.
@@ -52,5 +52,5 @@ pub (receiver: DeviceMotionEvent) interval(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DeviceMotionEvent/rotationRate)
  */
-pub (receiver: DeviceMotionEvent) rotation_rate(): Option[std.js.Dom.DeviceMotionEventRotationRate.DeviceMotionEventRotationRate] ->
+pub (receiver: DeviceMotionEvent) rotation_rate(): Option[std.js.Dom.DeviceMotionEventRotationRate] ->
     native.

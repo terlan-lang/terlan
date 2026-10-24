@@ -15,8 +15,8 @@ module std.js.Dom.PhotoSettings.
 
 pub opaque type PhotoSettings.
 
-pub (receiver: PhotoSettings) image_height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PhotoSettings) image_height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PhotoSettings) image_width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: PhotoSettings) image_width(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: PhotoSettings) red_eye_reduction(): std.core.Option.Option[Bool].
+pub (receiver: PhotoSettings) red_eye_reduction(): std.core.Option[Bool].

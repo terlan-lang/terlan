@@ -12,11 +12,11 @@
  */
 module std.js.Dom.FileSystemEntryTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.FileSystemEntry.
 import type std.js.String.{JsString}.
 
-pub filesystem_typechecks(receiver: FileSystemEntry): std.js.Dom.FileSystem.FileSystem ->
+pub filesystem_typechecks(receiver: FileSystemEntry): std.js.Dom.FileSystem ->
     receiver.filesystem().
 
 pub full_path_typechecks(receiver: FileSystemEntry): JsString ->
@@ -33,7 +33,7 @@ pub name_typechecks(receiver: FileSystemEntry): JsString ->
 
 pub get_parent_typechecks(
     receiver: FileSystemEntry,
-    success_callback: Option[std.js.Dom.FileSystemEntryCallback.FileSystemEntryCallback],
-    error_callback: Option[std.js.Dom.ErrorCallback.ErrorCallback],
-): std.core.Unit.Unit ->
+    success_callback: Option[std.js.Dom.FileSystemEntryCallback],
+    error_callback: Option[std.js.Dom.ErrorCallback],
+): std.core.Unit ->
     receiver.get_parent(success_callback, error_callback).

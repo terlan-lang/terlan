@@ -15,6 +15,6 @@ module std.js.Dom.ElementCreationOptions.
 
 pub opaque type ElementCreationOptions.
 
-pub (receiver: ElementCreationOptions) custom_element_registry(): std.core.Option.Option[std.js.Dom.CustomElementRegistry.CustomElementRegistry].
+pub (receiver: ElementCreationOptions) custom_element_registry(): std.core.Option[std.js.Dom.CustomElementRegistry].
 
-pub (receiver: ElementCreationOptions) is(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ElementCreationOptions) is(): std.core.Option[std.js.String.JsString].

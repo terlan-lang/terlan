@@ -12,8 +12,7 @@
  */
 module std.js.Dom.XPathEvaluatorBaseTest.
 
-import type std.js.Dom.Node.{Node}.
-import type std.js.Dom.XPathEvaluatorBase.
+import type std.js.Dom.{Node, XPathEvaluatorBase}.
 
 pub create_ns_resolver_typechecks(receiver: XPathEvaluatorBase, node_resolver: Node): Node ->
     receiver.create_ns_resolver(node_resolver).

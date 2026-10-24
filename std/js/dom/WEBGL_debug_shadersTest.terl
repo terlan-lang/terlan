@@ -16,6 +16,6 @@ import type std.js.Dom.WEBGL_debug_shaders.
 
 pub get_translated_shader_source_typechecks(
     receiver: WEBGL_debug_shaders,
-    shader: std.js.Dom.WebGLShader.WebGLShader,
+    shader: std.js.Dom.WebGLShader,
 ): std.js.String.JsString ->
     receiver.get_translated_shader_source(shader).

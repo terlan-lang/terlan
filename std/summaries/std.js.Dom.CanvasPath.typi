@@ -18,44 +18,44 @@ pub opaque type CanvasPath.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/arc)
  */
-pub (receiver: CanvasPath) arc(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, radius: std.js.Number.JsNumber, start_angle: std.js.Number.JsNumber, end_angle: std.js.Number.JsNumber, counterclockwise: std.core.Option.Option[Bool]): std.core.Unit.Unit.
+pub (receiver: CanvasPath) arc(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, radius: std.js.Number.JsNumber, start_angle: std.js.Number.JsNumber, end_angle: std.js.Number.JsNumber, counterclockwise: std.core.Option[Bool]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/arcTo)
  */
-pub (receiver: CanvasPath) arc_to(x1: std.js.Number.JsNumber, y1: std.js.Number.JsNumber, x2: std.js.Number.JsNumber, y2: std.js.Number.JsNumber, radius: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: CanvasPath) arc_to(x1: std.js.Number.JsNumber, y1: std.js.Number.JsNumber, x2: std.js.Number.JsNumber, y2: std.js.Number.JsNumber, radius: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/bezierCurveTo)
  */
-pub (receiver: CanvasPath) bezier_curve_to(cp1x: std.js.Number.JsNumber, cp1y: std.js.Number.JsNumber, cp2x: std.js.Number.JsNumber, cp2y: std.js.Number.JsNumber, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: CanvasPath) bezier_curve_to(cp1x: std.js.Number.JsNumber, cp1y: std.js.Number.JsNumber, cp2x: std.js.Number.JsNumber, cp2y: std.js.Number.JsNumber, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/closePath)
  */
-pub (receiver: CanvasPath) close_path(): std.core.Unit.Unit.
+pub (receiver: CanvasPath) close_path(): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/ellipse)
  */
-pub (receiver: CanvasPath) ellipse(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, radius_x: std.js.Number.JsNumber, radius_y: std.js.Number.JsNumber, rotation: std.js.Number.JsNumber, start_angle: std.js.Number.JsNumber, end_angle: std.js.Number.JsNumber, counterclockwise: std.core.Option.Option[Bool]): std.core.Unit.Unit.
+pub (receiver: CanvasPath) ellipse(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, radius_x: std.js.Number.JsNumber, radius_y: std.js.Number.JsNumber, rotation: std.js.Number.JsNumber, start_angle: std.js.Number.JsNumber, end_angle: std.js.Number.JsNumber, counterclockwise: std.core.Option[Bool]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineTo)
  */
-pub (receiver: CanvasPath) line_to(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: CanvasPath) line_to(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/moveTo)
  */
-pub (receiver: CanvasPath) move_to(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: CanvasPath) move_to(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/quadraticCurveTo)
  */
-pub (receiver: CanvasPath) quadratic_curve_to(cpx: std.js.Number.JsNumber, cpy: std.js.Number.JsNumber, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: CanvasPath) quadratic_curve_to(cpx: std.js.Number.JsNumber, cpy: std.js.Number.JsNumber, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/rect)
  */
-pub (receiver: CanvasPath) rect(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, w: std.js.Number.JsNumber, h: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: CanvasPath) rect(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, w: std.js.Number.JsNumber, h: std.js.Number.JsNumber): std.core.Unit.

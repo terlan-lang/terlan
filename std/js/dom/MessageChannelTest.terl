@@ -12,8 +12,7 @@
  */
 module std.js.Dom.MessageChannelTest.
 
-import type std.js.Dom.MessageChannel.
-import type std.js.Dom.MessagePort.{MessagePort}.
+import type std.js.Dom.{MessageChannel, MessagePort}.
 
 pub port1_typechecks(receiver: MessageChannel): MessagePort ->
     receiver.port1().

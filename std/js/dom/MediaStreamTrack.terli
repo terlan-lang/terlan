@@ -12,10 +12,8 @@
  */
 module std.js.Dom.MediaStreamTrack.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.MediaTrackConstraints.{MediaTrackConstraints}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, MediaTrackConstraints}.
 import type std.js.String.{JsString}.
 
 /**
@@ -72,7 +70,7 @@ pub (receiver: MediaStreamTrack) muted(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/applyConstraints)
  */
-pub (receiver: MediaStreamTrack) apply_constraints(constraints: Option[MediaTrackConstraints]): std.js.Promise.Promise[Unit].
+pub (receiver: MediaStreamTrack) apply_constraints(constraints: Option[MediaTrackConstraints]): std.js.Promise[Unit].
 
 /**
  * The **`clone()`** method of the MediaStreamTrack interface creates a duplicate of the `MediaStreamTrack`.
@@ -86,7 +84,7 @@ pub (receiver: MediaStreamTrack) clone(): MediaStreamTrack.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/getCapabilities)
  */
-pub (receiver: MediaStreamTrack) get_capabilities(): std.js.Dom.MediaTrackCapabilities.MediaTrackCapabilities.
+pub (receiver: MediaStreamTrack) get_capabilities(): std.js.Dom.MediaTrackCapabilities.
 
 /**
  * The **`getConstraints()`** method of the MediaStreamTrack interface returns a recently established for the track using a prior call to constraints indicate values and ranges of values that the website or application has specified are required or acceptable for the included constrainable properties.
@@ -100,7 +98,7 @@ pub (receiver: MediaStreamTrack) get_constraints(): MediaTrackConstraints.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamTrack/getSettings)
  */
-pub (receiver: MediaStreamTrack) get_settings(): std.js.Dom.MediaTrackSettings.MediaTrackSettings.
+pub (receiver: MediaStreamTrack) get_settings(): std.js.Dom.MediaTrackSettings.
 
 /**
  * The **`stop()`** method of the MediaStreamTrack interface stops the track.
@@ -112,11 +110,11 @@ pub (receiver: MediaStreamTrack) stop(): Unit.
 pub (receiver: MediaStreamTrack) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: MediaStreamTrack) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

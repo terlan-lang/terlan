@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedTransformList.
 
-import type std.js.Dom.SVGTransformList.{SVGTransformList}.
+import type std.js.Dom.{SVGTransformList}.
 
 /**
  * The **`SVGAnimatedTransformList`** interface represents attributes which take a list of numbers and which can be animated.

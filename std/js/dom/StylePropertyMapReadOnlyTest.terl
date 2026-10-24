@@ -12,8 +12,7 @@
  */
 module std.js.Dom.StylePropertyMapReadOnlyTest.
 
-import type std.js.Dom.CSSStyleValue.{CSSStyleValue}.
-import type std.js.Dom.StylePropertyMapReadOnly.
+import type std.js.Dom.{CSSStyleValue, StylePropertyMapReadOnly}.
 import type std.js.String.{JsString}.
 
 pub size_typechecks(receiver: StylePropertyMapReadOnly): std.js.Number.JsNumber ->
@@ -22,13 +21,13 @@ pub size_typechecks(receiver: StylePropertyMapReadOnly): std.js.Number.JsNumber 
 pub get_typechecks(
     receiver: StylePropertyMapReadOnly,
     property: JsString,
-): std.core.Option.Option[CSSStyleValue] ->
+): std.core.Option[CSSStyleValue] ->
     receiver.get(property).
 
 pub get_all_typechecks(
     receiver: StylePropertyMapReadOnly,
     property: JsString,
-): std.js.Array.Array[CSSStyleValue] ->
+): std.js.Array[CSSStyleValue] ->
     receiver.get_all(property).
 
 pub has_typechecks(receiver: StylePropertyMapReadOnly, property: JsString): Bool ->

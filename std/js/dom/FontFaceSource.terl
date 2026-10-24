@@ -17,5 +17,5 @@ pub opaque type FontFaceSource.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fonts)
  */
-pub (receiver: FontFaceSource) fonts(): std.js.Dom.FontFaceSet.FontFaceSet ->
+pub (receiver: FontFaceSource) fonts(): std.js.Dom.FontFaceSet ->
     native.

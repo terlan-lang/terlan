@@ -12,12 +12,10 @@
  */
 module std.js.Dom.FontFaceSetTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.FontFaceSet.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, FontFaceSet}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 pub ready_typechecks(receiver: FontFaceSet): Promise[FontFaceSet] ->
     receiver.ready().
@@ -29,14 +27,14 @@ pub load_typechecks(
     receiver: FontFaceSet,
     font: JsString,
     text: Option[JsString],
-): Promise[std.js.Array.Array[std.js.Dom.FontFace.FontFace]] ->
+): Promise[std.js.Array[std.js.Dom.FontFace]] ->
     receiver.load(font, text).
 
 pub add_event_listener_typechecks(
     receiver: FontFaceSet,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -44,6 +42,6 @@ pub remove_event_listener_typechecks(
     receiver: FontFaceSet,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

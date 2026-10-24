@@ -8,7 +8,7 @@ module std.css.properties.Clip.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    clip: std.core.Option.Option[Value]
+    clip: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -14,5 +14,5 @@ module std.js.Dom.AudioNodeOptions.
 
 pub opaque type AudioNodeOptions.
 
-pub (receiver: AudioNodeOptions) channel_count(): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub (receiver: AudioNodeOptions) channel_count(): std.core.Option[std.js.Number.JsNumber] ->
     native.

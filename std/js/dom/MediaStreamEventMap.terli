@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MediaStreamEventMap.
 
-import type std.js.Dom.MediaStreamTrackEvent.{MediaStreamTrackEvent}.
+import type std.js.Dom.{MediaStreamTrackEvent}.
 
 pub opaque type MediaStreamEventMap.
 

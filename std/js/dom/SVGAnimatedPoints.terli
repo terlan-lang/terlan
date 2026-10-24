@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedPoints.
 
-import type std.js.Dom.SVGPointList.{SVGPointList}.
+import type std.js.Dom.{SVGPointList}.
 
 pub opaque type SVGAnimatedPoints.
 

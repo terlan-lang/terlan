@@ -12,7 +12,7 @@
  */
 module std.js.Dom.OscillatorOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.OscillatorOptions.
 import type std.js.Number.{JsNumber}.
 
@@ -22,7 +22,5 @@ pub detune_typechecks(receiver: OscillatorOptions): Option[JsNumber] ->
 pub frequency_typechecks(receiver: OscillatorOptions): Option[JsNumber] ->
     receiver.frequency().
 
-pub periodic_wave_typechecks(
-    receiver: OscillatorOptions,
-): Option[std.js.Dom.PeriodicWave.PeriodicWave] ->
+pub periodic_wave_typechecks(receiver: OscillatorOptions): Option[std.js.Dom.PeriodicWave] ->
     receiver.periodic_wave().

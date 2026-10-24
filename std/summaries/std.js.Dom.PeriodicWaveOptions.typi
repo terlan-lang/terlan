@@ -15,6 +15,6 @@ module std.js.Dom.PeriodicWaveOptions.
 
 pub opaque type PeriodicWaveOptions.
 
-pub (receiver: PeriodicWaveOptions) imag(): std.core.Option.Option[std.js.Float32Array.Float32Array | std.js.Array.Array[std.js.Number.JsNumber]].
+pub (receiver: PeriodicWaveOptions) imag(): std.core.Option[std.js.Float32Array | std.js.Array[std.js.Number.JsNumber]].
 
-pub (receiver: PeriodicWaveOptions) real(): std.core.Option.Option[std.js.Float32Array.Float32Array | std.js.Array.Array[std.js.Number.JsNumber]].
+pub (receiver: PeriodicWaveOptions) real(): std.core.Option[std.js.Float32Array | std.js.Array[std.js.Number.JsNumber]].

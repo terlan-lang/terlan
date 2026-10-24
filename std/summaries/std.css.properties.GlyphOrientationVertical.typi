@@ -8,7 +8,7 @@ module std.css.properties.GlyphOrientationVertical.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    glyph_orientation_vertical: std.core.Option.Option[Value]
+    glyph_orientation_vertical: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

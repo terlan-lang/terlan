@@ -120,10 +120,8 @@ pub(crate) fn qualify_syntax_type_text(
 /// - Fully qualified type reference used in generated interface summaries.
 ///
 /// Transformation:
-/// - Preserves selected imports as `module.Item`.
-/// - Expands default type imports such as `import std.collections.List.` from
-///   parser shape `module_name = "std.collections", item = "List"` into the
-///   default exported type `std.collections.List.List`.
+/// - Preserves secondary types as `module.Item` and uses the module path for
+///   a same-named primary type, including default and aliased imports.
 fn imported_type_ref_target(
     module_name: &str,
     item_name: &str,
@@ -135,8 +133,8 @@ fn imported_type_ref_target(
             .chars()
             .next()
             .is_some_and(|first| first.is_ascii_uppercase());
-        provider_is_module.then(|| format!("{module_name}.{item_name}"))
+        provider_is_module.then(|| super::naming::public_type_path(module_name, item_name))
     } else {
-        Some(format!("{module_name}.{item_name}.{item_name}"))
+        Some(format!("{module_name}.{item_name}"))
     }
 }

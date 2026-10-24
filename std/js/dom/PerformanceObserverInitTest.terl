@@ -12,14 +12,14 @@
  */
 module std.js.Dom.PerformanceObserverInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.PerformanceObserverInit.
 import type std.js.String.{JsString}.
 
 pub buffered_typechecks(receiver: PerformanceObserverInit): Option[Bool] ->
     receiver.buffered().
 
-pub entry_types_typechecks(receiver: PerformanceObserverInit): Option[std.js.Array.Array[JsString]] ->
+pub entry_types_typechecks(receiver: PerformanceObserverInit): Option[std.js.Array[JsString]] ->
     receiver.entry_types().
 
 pub type__typechecks(receiver: PerformanceObserverInit): Option[JsString] ->

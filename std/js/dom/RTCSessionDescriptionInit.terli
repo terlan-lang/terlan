@@ -14,4 +14,4 @@ module std.js.Dom.RTCSessionDescriptionInit.
 
 pub opaque type RTCSessionDescriptionInit.
 
-pub (receiver: RTCSessionDescriptionInit) sdp(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCSessionDescriptionInit) sdp(): std.core.Option[std.js.String.JsString].

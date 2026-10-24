@@ -8,7 +8,7 @@ module std.css.properties.FrameSizing.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    frame_sizing: std.core.Option.Option[Value]
+    frame_sizing: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

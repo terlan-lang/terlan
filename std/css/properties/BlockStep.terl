@@ -54,7 +54,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    block_step: std.core.Option.Option[Value],
+    block_step: std.core.Option[Value],
 }.
 
 /**

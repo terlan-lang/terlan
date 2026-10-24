@@ -105,7 +105,7 @@ pub abs(value: Int): Int ->
  * `std.core.Ordering.Comparison`.
  *
  * This function is the named implementation hook for compiler-known
- * `std.core.Ordering.Ordering[Int]` conformance in 0.0.1.
+ * `std.core.Ordering[Int]` conformance in 0.0.1.
  *
  * ```terlan
  * module int_compare_example.

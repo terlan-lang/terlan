@@ -15,7 +15,7 @@ module std.js.RegExpConstructorTest.
 import type std.js.RegExpConstructor.
 import type std.js.String.{JsString}.
 
-pub prototype_typechecks(receiver: RegExpConstructor): std.js.RegExp.RegExp ->
+pub prototype_typechecks(receiver: RegExpConstructor): std.js.RegExp ->
     receiver.prototype().
 
 pub value_1_typechecks(receiver: RegExpConstructor): JsString ->

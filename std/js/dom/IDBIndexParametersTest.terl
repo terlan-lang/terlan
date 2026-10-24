@@ -12,7 +12,7 @@
  */
 module std.js.Dom.IDBIndexParametersTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.IDBIndexParameters.
 
 pub multi_entry_typechecks(receiver: IDBIndexParameters): Option[Bool] ->

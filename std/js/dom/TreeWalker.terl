@@ -12,8 +12,8 @@
  */
 module std.js.Dom.TreeWalker.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.Node.{Node}.
+import type std.core.{Option}.
+import type std.js.Dom.{Node}.
 
 /**
  * The **`TreeWalker`** object represents the nodes of a document subtree and a position within them.

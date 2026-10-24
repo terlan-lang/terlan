@@ -16,7 +16,7 @@ import type std.js.Dom.PushSubscriptionOptions.
 
 pub application_server_key_typechecks(
     receiver: PushSubscriptionOptions,
-): std.core.Option.Option[std.js.ArrayBuffer.ArrayBuffer] ->
+): std.core.Option[std.js.ArrayBuffer] ->
     receiver.application_server_key().
 
 pub user_visible_only_typechecks(receiver: PushSubscriptionOptions): Bool ->

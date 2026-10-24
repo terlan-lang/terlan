@@ -12,15 +12,15 @@
  */
 module std.js.Dom.Transformer.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type Transformer[I, O].
 
-pub (receiver: Transformer[I, O]) flush(): Option[std.js.Dom.TransformerFlushCallback.TransformerFlushCallback[O]] ->
+pub (receiver: Transformer[I, O]) flush(): Option[std.js.Dom.TransformerFlushCallback[O]] ->
     native.
 
-pub (receiver: Transformer[I, O]) start(): Option[std.js.Dom.TransformerStartCallback.TransformerStartCallback[O]] ->
+pub (receiver: Transformer[I, O]) start(): Option[std.js.Dom.TransformerStartCallback[O]] ->
     native.
 
-pub (receiver: Transformer[I, O]) transform(): Option[std.js.Dom.TransformerTransformCallback.TransformerTransformCallback[I, O]] ->
+pub (receiver: Transformer[I, O]) transform(): Option[std.js.Dom.TransformerTransformCallback[I, O]] ->
     native.

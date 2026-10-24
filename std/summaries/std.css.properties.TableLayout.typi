@@ -8,7 +8,7 @@ module std.css.properties.TableLayout.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    table_layout: std.core.Option.Option[Value]
+    table_layout: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -14,5 +14,5 @@ module std.js.Dom.EcdhKeyDeriveParamsTest.
 
 import type std.js.Dom.EcdhKeyDeriveParams.
 
-pub public_typechecks(receiver: EcdhKeyDeriveParams): std.js.Dom.CryptoKey.CryptoKey ->
+pub public_typechecks(receiver: EcdhKeyDeriveParams): std.js.Dom.CryptoKey ->
     receiver.public().

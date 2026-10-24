@@ -26,4 +26,4 @@ pub opaque type Crypto.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Crypto/subtle)
  */
-pub (receiver: Crypto) subtle(): std.js.Dom.SubtleCrypto.SubtleCrypto.
+pub (receiver: Crypto) subtle(): std.js.Dom.SubtleCrypto.

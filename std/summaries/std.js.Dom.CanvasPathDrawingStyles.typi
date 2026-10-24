@@ -33,9 +33,9 @@ pub (receiver: CanvasPathDrawingStyles) miter_limit(): std.js.Number.JsNumber.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/getLineDash)
  */
-pub (receiver: CanvasPathDrawingStyles) get_line_dash(): std.js.Array.Array[std.js.Number.JsNumber].
+pub (receiver: CanvasPathDrawingStyles) get_line_dash(): std.js.Array[std.js.Number.JsNumber].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/setLineDash)
  */
-pub (receiver: CanvasPathDrawingStyles) set_line_dash(segments: std.js.Array.Array[std.js.Number.JsNumber]): std.core.Unit.Unit.
+pub (receiver: CanvasPathDrawingStyles) set_line_dash(segments: std.js.Array[std.js.Number.JsNumber]): std.core.Unit.

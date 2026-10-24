@@ -14,5 +14,5 @@ module std.js.Dom.RsaOaepParams.
 
 pub opaque type RsaOaepParams.
 
-pub (receiver: RsaOaepParams) label(): std.core.Option.Option[std.js.Dom.BufferSource.BufferSource] ->
+pub (receiver: RsaOaepParams) label(): std.core.Option[std.js.Dom.BufferSource] ->
     native.

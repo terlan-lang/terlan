@@ -12,7 +12,7 @@
  */
 module std.js.Dom.PerformanceEntry.
 
-import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
+import type std.js.Dom.{DOMHighResTimeStamp}.
 import type std.js.String.{JsString}.
 
 /**

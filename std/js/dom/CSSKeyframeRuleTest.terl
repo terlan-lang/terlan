@@ -17,5 +17,5 @@ import type std.js.Dom.CSSKeyframeRule.
 pub key_text_typechecks(receiver: CSSKeyframeRule): std.js.String.JsString ->
     receiver.key_text().
 
-pub style_typechecks(receiver: CSSKeyframeRule): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration ->
+pub style_typechecks(receiver: CSSKeyframeRule): std.js.Dom.CSSStyleDeclaration ->
     receiver.style().

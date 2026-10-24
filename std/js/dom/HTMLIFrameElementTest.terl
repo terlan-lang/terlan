@@ -12,11 +12,8 @@
  */
 module std.js.Dom.HTMLIFrameElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Document.{Document}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLIFrameElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Document, EventListenerOrEventListenerObject, HTMLIFrameElement}.
 import type std.js.String.{JsString}.
 
 pub align_typechecks(receiver: HTMLIFrameElement): JsString ->
@@ -31,9 +28,7 @@ pub allow_fullscreen_typechecks(receiver: HTMLIFrameElement): Bool ->
 pub content_document_typechecks(receiver: HTMLIFrameElement): Option[Document] ->
     receiver.content_document().
 
-pub content_window_typechecks(
-    receiver: HTMLIFrameElement,
-): Option[std.js.Dom.WindowProxy.WindowProxy] ->
+pub content_window_typechecks(receiver: HTMLIFrameElement): Option[std.js.Dom.WindowProxy] ->
     receiver.content_window().
 
 pub frame_border_typechecks(receiver: HTMLIFrameElement): JsString ->
@@ -54,7 +49,7 @@ pub margin_width_typechecks(receiver: HTMLIFrameElement): JsString ->
 pub name_typechecks(receiver: HTMLIFrameElement): JsString ->
     receiver.name().
 
-pub sandbox_typechecks(receiver: HTMLIFrameElement): std.js.Dom.DOMTokenList.DOMTokenList ->
+pub sandbox_typechecks(receiver: HTMLIFrameElement): std.js.Dom.DOMTokenList ->
     receiver.sandbox().
 
 pub scrolling_typechecks(receiver: HTMLIFrameElement): JsString ->
@@ -76,7 +71,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLIFrameElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -84,6 +79,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLIFrameElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

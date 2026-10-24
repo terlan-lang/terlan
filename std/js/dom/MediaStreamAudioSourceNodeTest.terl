@@ -14,7 +14,5 @@ module std.js.Dom.MediaStreamAudioSourceNodeTest.
 
 import type std.js.Dom.MediaStreamAudioSourceNode.
 
-pub media_stream_typechecks(
-    receiver: MediaStreamAudioSourceNode,
-): std.js.Dom.MediaStream.MediaStream ->
+pub media_stream_typechecks(receiver: MediaStreamAudioSourceNode): std.js.Dom.MediaStream ->
     receiver.media_stream().

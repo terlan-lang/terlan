@@ -14,5 +14,5 @@ module std.js.EvalErrorConstructor.
 
 pub opaque type EvalErrorConstructor.
 
-pub (receiver: EvalErrorConstructor) prototype(): std.js.EvalError.EvalError ->
+pub (receiver: EvalErrorConstructor) prototype(): std.js.EvalError ->
     native.

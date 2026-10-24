@@ -28,20 +28,20 @@ pub type TaskCommand[T] =
           Atom["task_command"],
           kind: TaskCommandKind,
           request_id: Int,
-          reply_to: std.vm.Process.Process[TaskReply[T]],
+          reply_to: std.vm.Process[TaskReply[T]],
           witness: T
       }.
 
-pub type Task[T] = {Atom["task"], process: std.vm.Process.Process[TaskCommand[T]], witness: T}.
+pub type Task[T] = {Atom["task"], process: std.vm.Process[TaskCommand[T]], witness: T}.
 
 /**
  * Builds a typed task handle for a statically spawned task entry.
  */
 @target.vm {process_mailbox: true}
-pub start[T](process: std.vm.Process.Process[TaskCommand[T]], witness: T): Task[T] ->
+pub start[T](process: std.vm.Process[TaskCommand[T]], witness: T): Task[T] ->
     make_task[T](process, witness).
 
-pub make_task[T](process: std.vm.Process.Process[TaskCommand[T]], witness: T): Task[T] ->
+pub make_task[T](process: std.vm.Process[TaskCommand[T]], witness: T): Task[T] ->
     Task(process, witness).
 
 /**

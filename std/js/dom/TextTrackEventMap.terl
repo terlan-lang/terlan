@@ -14,5 +14,5 @@ module std.js.Dom.TextTrackEventMap.
 
 pub opaque type TextTrackEventMap.
 
-pub (receiver: TextTrackEventMap) cuechange(): std.js.Dom.Event.Event ->
+pub (receiver: TextTrackEventMap) cuechange(): std.js.Dom.Event ->
     native.

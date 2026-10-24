@@ -15,18 +15,18 @@ module std.js.Dom.WebGLContextAttributes.
 
 pub opaque type WebGLContextAttributes.
 
-pub (receiver: WebGLContextAttributes) alpha(): std.core.Option.Option[Bool].
+pub (receiver: WebGLContextAttributes) alpha(): std.core.Option[Bool].
 
-pub (receiver: WebGLContextAttributes) antialias(): std.core.Option.Option[Bool].
+pub (receiver: WebGLContextAttributes) antialias(): std.core.Option[Bool].
 
-pub (receiver: WebGLContextAttributes) depth(): std.core.Option.Option[Bool].
+pub (receiver: WebGLContextAttributes) depth(): std.core.Option[Bool].
 
-pub (receiver: WebGLContextAttributes) desynchronized(): std.core.Option.Option[Bool].
+pub (receiver: WebGLContextAttributes) desynchronized(): std.core.Option[Bool].
 
-pub (receiver: WebGLContextAttributes) fail_if_major_performance_caveat(): std.core.Option.Option[Bool].
+pub (receiver: WebGLContextAttributes) fail_if_major_performance_caveat(): std.core.Option[Bool].
 
-pub (receiver: WebGLContextAttributes) premultiplied_alpha(): std.core.Option.Option[Bool].
+pub (receiver: WebGLContextAttributes) premultiplied_alpha(): std.core.Option[Bool].
 
-pub (receiver: WebGLContextAttributes) preserve_drawing_buffer(): std.core.Option.Option[Bool].
+pub (receiver: WebGLContextAttributes) preserve_drawing_buffer(): std.core.Option[Bool].
 
-pub (receiver: WebGLContextAttributes) stencil(): std.core.Option.Option[Bool].
+pub (receiver: WebGLContextAttributes) stencil(): std.core.Option[Bool].

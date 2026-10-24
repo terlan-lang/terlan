@@ -17,5 +17,5 @@ import type std.js.Dom.RsaKeyGenParams.
 pub modulus_length_typechecks(receiver: RsaKeyGenParams): std.js.Number.JsNumber ->
     receiver.modulus_length().
 
-pub public_exponent_typechecks(receiver: RsaKeyGenParams): std.js.Dom.BigInteger.BigInteger ->
+pub public_exponent_typechecks(receiver: RsaKeyGenParams): std.js.Dom.BigInteger ->
     receiver.public_exponent().

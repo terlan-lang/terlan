@@ -12,8 +12,8 @@
  */
 module std.js.Dom.ResizeObserverEntry.
 
-import type std.js.Array.{Array}.
-import type std.js.Dom.ResizeObserverSize.{ResizeObserverSize}.
+import type std.js.Dom.{ResizeObserverSize}.
+import type std.js.{Array}.
 
 /**
  * The **`ResizeObserverEntry`** interface represents the object passed to the ResizeObserver.ResizeObserver constructor's callback function, which allows you to access the new dimensions of the Element or SVGElement being observed.
@@ -41,7 +41,7 @@ pub (receiver: ResizeObserverEntry) content_box_size(): Array[ResizeObserverSize
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/contentRect)
  */
-pub (receiver: ResizeObserverEntry) content_rect(): std.js.Dom.DOMRectReadOnly.DOMRectReadOnly.
+pub (receiver: ResizeObserverEntry) content_rect(): std.js.Dom.DOMRectReadOnly.
 
 /**
  * The **`devicePixelContentBoxSize`** read-only property of the ResizeObserverEntry interface returns an array containing the size in device pixels of the observed element when the callback is run.
@@ -55,4 +55,4 @@ pub (receiver: ResizeObserverEntry) device_pixel_content_box_size(): Array[Resiz
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/target)
  */
-pub (receiver: ResizeObserverEntry) target_(): std.js.Dom.Element.Element.
+pub (receiver: ResizeObserverEntry) target_(): std.js.Dom.Element.

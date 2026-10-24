@@ -12,8 +12,7 @@
  */
 module std.js.DataViewTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
+import type std.core.{Option, Unit}.
 import type std.js.DataView.
 import type std.js.Number.{JsNumber}.
 

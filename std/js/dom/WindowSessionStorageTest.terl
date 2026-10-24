@@ -14,5 +14,5 @@ module std.js.Dom.WindowSessionStorageTest.
 
 import type std.js.Dom.WindowSessionStorage.
 
-pub session_storage_typechecks(receiver: WindowSessionStorage): std.js.Dom.Storage.Storage ->
+pub session_storage_typechecks(receiver: WindowSessionStorage): std.js.Dom.Storage ->
     receiver.session_storage().

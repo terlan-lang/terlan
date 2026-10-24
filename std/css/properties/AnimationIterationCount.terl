@@ -32,7 +32,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    animation_iteration_count: std.core.Option.Option[Value],
+    animation_iteration_count: std.core.Option[Value],
 }.
 
 /**

@@ -21,7 +21,7 @@ option_int_equals(value: Option[Int], expected: Int): Bool ->
         None -> false
     }.
 
-option_bytes_equals(value: Option[std.vm.Bytes.Bytes], expected: std.vm.Bytes.Bytes): Bool ->
+option_bytes_equals(value: Option[std.vm.Bytes], expected: std.vm.Bytes): Bool ->
     case value {
         Some(actual) -> actual == expected;
         None -> false
@@ -30,10 +30,10 @@ option_bytes_equals(value: Option[std.vm.Bytes.Bytes], expected: std.vm.Bytes.By
 pub benchmark_int_field(name: String, value: Int): DecodedField ->
     decoded_int_field(name, value).
 
-pub benchmark_bytes_field(name: String, value: std.vm.Bytes.Bytes): DecodedField ->
+pub benchmark_bytes_field(name: String, value: std.vm.Bytes): DecodedField ->
     decoded_bytes_field(name, value).
 
-pub benchmark_protocol(fields: List[DecodedField], body: std.vm.Bytes.Bytes): DecodedProtocol ->
+pub benchmark_protocol(fields: List[DecodedField], body: std.vm.Bytes): DecodedProtocol ->
     {fields, body}.
 
 pub fixed_header_shape(): ProtocolShape ->
@@ -82,7 +82,7 @@ pub repeat_fixed_header_100(): Bool ->
 pub repeat_fixed_header_1000(): Bool ->
     repeat_fixed_header(1000).
 
-pub variable_body_value(length: Int, body: std.vm.Bytes.Bytes): DecodedProtocol ->
+pub variable_body_value(length: Int, body: std.vm.Bytes): DecodedProtocol ->
     benchmark_protocol(
         List(
             benchmark_int_field("stream_id", 4660),

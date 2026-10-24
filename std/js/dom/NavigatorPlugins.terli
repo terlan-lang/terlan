@@ -19,7 +19,7 @@ pub opaque type NavigatorPlugins.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/mimeTypes)
  */
-pub (receiver: NavigatorPlugins) mime_types(): std.js.Dom.MimeTypeArray.MimeTypeArray.
+pub (receiver: NavigatorPlugins) mime_types(): std.js.Dom.MimeTypeArray.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/pdfViewerEnabled)
@@ -31,7 +31,7 @@ pub (receiver: NavigatorPlugins) pdf_viewer_enabled(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/plugins)
  */
-pub (receiver: NavigatorPlugins) plugins(): std.js.Dom.PluginArray.PluginArray.
+pub (receiver: NavigatorPlugins) plugins(): std.js.Dom.PluginArray.
 
 /**
  * @deprecated

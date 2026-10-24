@@ -18,4 +18,4 @@ module std.js.ArrayBufferTypes.
  */
 pub opaque type ArrayBufferTypes.
 
-pub (receiver: ArrayBufferTypes) array_buffer(): std.js.ArrayBuffer.ArrayBuffer.
+pub (receiver: ArrayBufferTypes) array_buffer(): std.js.ArrayBuffer.

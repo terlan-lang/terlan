@@ -15,8 +15,8 @@ module std.js.Dom.PaymentItem.
 
 pub opaque type PaymentItem.
 
-pub (receiver: PaymentItem) amount(): std.js.Dom.PaymentCurrencyAmount.PaymentCurrencyAmount.
+pub (receiver: PaymentItem) amount(): std.js.Dom.PaymentCurrencyAmount.
 
 pub (receiver: PaymentItem) label(): std.js.String.JsString.
 
-pub (receiver: PaymentItem) pending(): std.core.Option.Option[Bool].
+pub (receiver: PaymentItem) pending(): std.core.Option[Bool].

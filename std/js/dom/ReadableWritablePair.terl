@@ -14,7 +14,7 @@ module std.js.Dom.ReadableWritablePair.
 
 pub opaque type ReadableWritablePair[R, W].
 
-pub (receiver: ReadableWritablePair[R, W]) readable(): std.js.Dom.ReadableStream.ReadableStream[R] ->
+pub (receiver: ReadableWritablePair[R, W]) readable(): std.js.Dom.ReadableStream[R] ->
     native.
 
 /**
@@ -22,5 +22,5 @@ pub (receiver: ReadableWritablePair[R, W]) readable(): std.js.Dom.ReadableStream
  *
  * Piping a stream will lock it for the duration of the pipe, preventing any other consumer from acquiring a reader.
  */
-pub (receiver: ReadableWritablePair[R, W]) writable(): std.js.Dom.WritableStream.WritableStream[W] ->
+pub (receiver: ReadableWritablePair[R, W]) writable(): std.js.Dom.WritableStream[W] ->
     native.

@@ -12,10 +12,8 @@
  */
 module std.js.Dom.ElementInternals.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.File.{File}.
-import type std.js.Dom.FormData.{FormData}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{File, FormData}.
 import type std.js.String.{JsString}.
 
 /**
@@ -30,28 +28,28 @@ pub opaque type ElementInternals.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/form)
  */
-pub (receiver: ElementInternals) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: ElementInternals) form(): Option[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`labels`** read-only property of the ElementInternals interface returns the labels associated with the element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/labels)
  */
-pub (receiver: ElementInternals) labels(): std.js.Dom.NodeList.NodeList.
+pub (receiver: ElementInternals) labels(): std.js.Dom.NodeList.
 
 /**
  * The **`shadowRoot`** read-only property of the ElementInternals interface returns the ShadowRoot for this element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/shadowRoot)
  */
-pub (receiver: ElementInternals) shadow_root(): Option[std.js.Dom.ShadowRoot.ShadowRoot].
+pub (receiver: ElementInternals) shadow_root(): Option[std.js.Dom.ShadowRoot].
 
 /**
  * The **`states`** read-only property of the ElementInternals interface returns a CustomStateSet representing the possible states of the custom element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/states)
  */
-pub (receiver: ElementInternals) states(): std.js.Dom.CustomStateSet.CustomStateSet.
+pub (receiver: ElementInternals) states(): std.js.Dom.CustomStateSet.
 
 /**
  * The **`validationMessage`** read-only property of the ElementInternals interface returns the validation message for the element.
@@ -65,7 +63,7 @@ pub (receiver: ElementInternals) validation_message(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/validity)
  */
-pub (receiver: ElementInternals) validity(): std.js.Dom.ValidityState.ValidityState.
+pub (receiver: ElementInternals) validity(): std.js.Dom.ValidityState.
 
 /**
  * The **`willValidate`** read-only property of the ElementInternals interface returns `true` if the element is a submittable element that is a candidate for constraint validation.
@@ -104,7 +102,7 @@ pub (receiver: ElementInternals) set_form_value(
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/setValidity)
  */
 pub (receiver: ElementInternals) set_validity(
-    flags: Option[std.js.Dom.ValidityStateFlags.ValidityStateFlags],
+    flags: Option[std.js.Dom.ValidityStateFlags],
     message: Option[JsString],
-    anchor: Option[std.js.Dom.HTMLElement.HTMLElement],
+    anchor: Option[std.js.Dom.HTMLElement],
 ): Unit.

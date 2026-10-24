@@ -7,7 +7,7 @@ import std.test.Test.{assert_equal}.
 
 import type std.collections.Iterator.
 
-sum_values(iterator: std.collections.Iterator.Iterator[Int], sum: Int): Int ->
+sum_values(iterator: std.collections.Iterator[Int], sum: Int): Int ->
     case next(iterator) {
         None -> sum;
         Some({value: value, next: rest}) -> sum_values(rest, sum + value)

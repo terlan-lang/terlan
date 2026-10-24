@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CryptoKeyPair.
 
-import type std.js.Dom.CryptoKey.{CryptoKey}.
+import type std.js.Dom.{CryptoKey}.
 
 pub opaque type CryptoKeyPair.
 

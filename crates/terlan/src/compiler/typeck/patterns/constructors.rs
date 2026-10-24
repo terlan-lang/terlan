@@ -286,7 +286,7 @@ fn constructor_pattern_schemes(
     }
 
     let imported = ctx.constructor_aliases.get(name)?;
-    let interface = ctx.interface_map.get(&imported.module)?;
+    let interface = ctx.interface_map.get(imported.module.as_ref()?)?;
     parse_interface_constructor_schemes(
         interface
             .constructors
@@ -314,11 +314,14 @@ fn imported_opaque_constructor_pattern_error(
     ctx: &ExprInferContext<'_>,
 ) -> Option<String> {
     let imported = ctx.constructor_aliases.get(name)?;
-    let interface = ctx.interface_map.get(&imported.module)?;
+    let interface = ctx.interface_map.get(imported.module.as_ref()?)?;
     interface.opaque_types.contains(&imported.name).then(|| {
         format!(
-            "cannot match opaque type {}.{} as constructor pattern outside defining module",
-            imported.module, imported.name
+            "cannot match opaque type {} as constructor pattern outside defining module",
+            crate::terlan_hir::public_type_path(
+                imported.module.as_deref().unwrap_or_default(),
+                &imported.name
+            )
         )
     })
 }

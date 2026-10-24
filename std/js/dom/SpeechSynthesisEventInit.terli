@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SpeechSynthesisEventInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type SpeechSynthesisEventInit.
@@ -25,4 +25,4 @@ pub (receiver: SpeechSynthesisEventInit) elapsed_time(): Option[JsNumber].
 
 pub (receiver: SpeechSynthesisEventInit) name(): Option[std.js.String.JsString].
 
-pub (receiver: SpeechSynthesisEventInit) utterance(): std.js.Dom.SpeechSynthesisUtterance.SpeechSynthesisUtterance.
+pub (receiver: SpeechSynthesisEventInit) utterance(): std.js.Dom.SpeechSynthesisUtterance.

@@ -12,12 +12,12 @@
  */
 module std.js.Dom.TextDecoderTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.TextDecoder.
 
 pub decode_typechecks(
     receiver: TextDecoder,
-    input: Option[std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource],
-    options: Option[std.js.Dom.TextDecodeOptions.TextDecodeOptions],
+    input: Option[std.js.Dom.AllowSharedBufferSource],
+    options: Option[std.js.Dom.TextDecodeOptions],
 ): std.js.String.JsString ->
     receiver.decode(input, options).

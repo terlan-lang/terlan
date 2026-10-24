@@ -32,22 +32,22 @@ pub (receiver: OfflineAudioContext) length(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OfflineAudioContext/resume)
  */
-pub (receiver: OfflineAudioContext) resume(): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: OfflineAudioContext) resume(): std.js.Promise[std.core.Unit].
 
 /**
  * The `startRendering()` method of the OfflineAudioContext Interface starts rendering the audio graph, taking into account the current connections and the current scheduled changes.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OfflineAudioContext/startRendering)
  */
-pub (receiver: OfflineAudioContext) start_rendering(): std.js.Promise.Promise[std.js.Dom.AudioBuffer.AudioBuffer].
+pub (receiver: OfflineAudioContext) start_rendering(): std.js.Promise[std.js.Dom.AudioBuffer].
 
 /**
  * The **`suspend()`** method of the OfflineAudioContext interface schedules a suspension of the time progression in the audio context at the specified time and returns a promise.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OfflineAudioContext/suspend)
  */
-pub (receiver: OfflineAudioContext) suspend(suspend_time: std.js.Number.JsNumber): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: OfflineAudioContext) suspend(suspend_time: std.js.Number.JsNumber): std.js.Promise[std.core.Unit].
 
-pub (receiver: OfflineAudioContext) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: OfflineAudioContext) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: OfflineAudioContext) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: OfflineAudioContext) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

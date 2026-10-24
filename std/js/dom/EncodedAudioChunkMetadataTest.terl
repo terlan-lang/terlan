@@ -16,5 +16,5 @@ import type std.js.Dom.EncodedAudioChunkMetadata.
 
 pub decoder_config_typechecks(
     receiver: EncodedAudioChunkMetadata,
-): std.core.Option.Option[std.js.Dom.AudioDecoderConfig.AudioDecoderConfig] ->
+): std.core.Option[std.js.Dom.AudioDecoderConfig] ->
     receiver.decoder_config().

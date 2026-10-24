@@ -12,7 +12,7 @@
  */
 module std.js.Dom.NotificationOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.NotificationOptions.
 import type std.js.String.{JsString}.
 

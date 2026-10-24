@@ -12,9 +12,9 @@
  */
 module std.js.Dom.JsonWebKey.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
+import type std.core.{Option}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 pub opaque type JsonWebKey.
 
@@ -51,7 +51,7 @@ pub (receiver: JsonWebKey) kty(): Option[JsString] ->
 pub (receiver: JsonWebKey) n(): Option[JsString] ->
     native.
 
-pub (receiver: JsonWebKey) oth(): Option[Array[std.js.Dom.RsaOtherPrimesInfo.RsaOtherPrimesInfo]] ->
+pub (receiver: JsonWebKey) oth(): Option[Array[std.js.Dom.RsaOtherPrimesInfo]] ->
     native.
 
 pub (receiver: JsonWebKey) p(): Option[JsString] ->

@@ -15,7 +15,7 @@ module std.js.Dom.ResponseTest.
 import type std.js.Dom.Response.
 import type std.js.String.{JsString}.
 
-pub headers_typechecks(receiver: Response): std.js.Dom.Headers.Headers ->
+pub headers_typechecks(receiver: Response): std.js.Dom.Headers ->
     receiver.headers().
 
 pub ok_typechecks(receiver: Response): Bool ->

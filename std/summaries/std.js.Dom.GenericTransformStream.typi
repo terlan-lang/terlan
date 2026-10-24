@@ -18,9 +18,9 @@ pub opaque type GenericTransformStream.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CompressionStream/readable)
  */
-pub (receiver: GenericTransformStream) readable(): std.js.Dom.ReadableStream.ReadableStream.
+pub (receiver: GenericTransformStream) readable(): std.js.Dom.ReadableStream.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CompressionStream/writable)
  */
-pub (receiver: GenericTransformStream) writable(): std.js.Dom.WritableStream.WritableStream.
+pub (receiver: GenericTransformStream) writable(): std.js.Dom.WritableStream.

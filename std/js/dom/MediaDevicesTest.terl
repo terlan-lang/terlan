@@ -12,33 +12,30 @@
  */
 module std.js.Dom.MediaDevicesTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.MediaDevices.
-import type std.js.Dom.MediaStream.{MediaStream}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, MediaDevices, MediaStream}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 pub enumerate_devices_typechecks(
     receiver: MediaDevices,
-): Promise[std.js.Array.Array[std.js.Dom.MediaDeviceInfo.MediaDeviceInfo]] ->
+): Promise[std.js.Array[std.js.Dom.MediaDeviceInfo]] ->
     receiver.enumerate_devices().
 
 pub get_display_media_typechecks(
     receiver: MediaDevices,
-    options: Option[std.js.Dom.DisplayMediaStreamOptions.DisplayMediaStreamOptions],
+    options: Option[std.js.Dom.DisplayMediaStreamOptions],
 ): Promise[MediaStream] ->
     receiver.get_display_media(options).
 
 pub get_supported_constraints_typechecks(
     receiver: MediaDevices,
-): std.js.Dom.MediaTrackSupportedConstraints.MediaTrackSupportedConstraints ->
+): std.js.Dom.MediaTrackSupportedConstraints ->
     receiver.get_supported_constraints().
 
 pub get_user_media_typechecks(
     receiver: MediaDevices,
-    constraints: Option[std.js.Dom.MediaStreamConstraints.MediaStreamConstraints],
+    constraints: Option[std.js.Dom.MediaStreamConstraints],
 ): Promise[MediaStream] ->
     receiver.get_user_media(constraints).
 
@@ -46,7 +43,7 @@ pub add_event_listener_typechecks(
     receiver: MediaDevices,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -54,6 +51,6 @@ pub remove_event_listener_typechecks(
     receiver: MediaDevices,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

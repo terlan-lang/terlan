@@ -8,7 +8,7 @@ module std.css.properties.PaddingTop.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    padding_top: std.core.Option.Option[Value]
+    padding_top: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

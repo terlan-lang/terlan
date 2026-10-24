@@ -25,7 +25,7 @@ pub opaque type Location.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/ancestorOrigins)
  */
-pub (receiver: Location) ancestor_origins(): std.js.Dom.DOMStringList.DOMStringList.
+pub (receiver: Location) ancestor_origins(): std.js.Dom.DOMStringList.
 
 /**
  * The **`hash`** property of the Location interface is a string containing a `'#'` followed by the fragment identifier of the location URL.
@@ -97,18 +97,18 @@ pub (receiver: Location) search(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/assign)
  */
-pub (receiver: Location) assign(url: std.js.Dom.URL.URL | std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: Location) assign(url: std.js.Dom.URL | std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`reload()`** method of the Location interface reloads the current URL, like the Refresh button.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/reload)
  */
-pub (receiver: Location) reload(): std.core.Unit.Unit.
+pub (receiver: Location) reload(): std.core.Unit.
 
 /**
  * The **`replace()`** method of the Location interface replaces the current resource with the one at the provided URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Location/replace)
  */
-pub (receiver: Location) replace(url: std.js.Dom.URL.URL | std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: Location) replace(url: std.js.Dom.URL | std.js.String.JsString): std.core.Unit.

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.RequestInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type RequestInit.
@@ -20,7 +20,7 @@ pub opaque type RequestInit.
 /**
  * A BodyInit object or null to set request's body.
  */
-pub (receiver: RequestInit) body(): Option[std.js.Dom.BodyInit.BodyInit].
+pub (receiver: RequestInit) body(): Option[std.js.Dom.BodyInit].
 
 /**
  * A cryptographic hash of the resource to be fetched by request. Sets request's integrity.
@@ -45,4 +45,4 @@ pub (receiver: RequestInit) referrer(): Option[JsString].
 /**
  * An AbortSignal to set request's signal.
  */
-pub (receiver: RequestInit) signal(): Option[std.js.Dom.AbortSignal.AbortSignal].
+pub (receiver: RequestInit) signal(): Option[std.js.Dom.AbortSignal].

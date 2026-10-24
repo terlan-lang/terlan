@@ -25,29 +25,29 @@ pub opaque type SVGLineElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLineElement/x1)
  */
-pub (receiver: SVGLineElement) x1(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGLineElement) x1(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`x2`** read-only property of the SVGLineElement interface describes the x-axis coordinate value of the end of a line as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLineElement/x2)
  */
-pub (receiver: SVGLineElement) x2(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGLineElement) x2(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`y1`** read-only property of the SVGLineElement interface describes the start of the SVG line along the y-axis as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLineElement/y1)
  */
-pub (receiver: SVGLineElement) y1(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGLineElement) y1(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`y2`** read-only property of the SVGLineElement interface describes the v-axis coordinate value of the end of a line as an SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLineElement/y2)
  */
-pub (receiver: SVGLineElement) y2(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGLineElement) y2(): std.js.Dom.SVGAnimatedLength.
 
-pub (receiver: SVGLineElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SVGLineElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SVGLineElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SVGLineElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

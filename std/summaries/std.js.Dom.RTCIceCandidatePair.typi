@@ -21,9 +21,9 @@ pub opaque type RTCIceCandidatePair.
 /**
  * The **`local`** property of the **RTCIceCandidatePair** dictionary specifies the RTCIceCandidate which describes the configuration of the local end of a viable WebRTC connection.
  */
-pub (receiver: RTCIceCandidatePair) local(): std.js.Dom.RTCIceCandidate.RTCIceCandidate.
+pub (receiver: RTCIceCandidatePair) local(): std.js.Dom.RTCIceCandidate.
 
 /**
  * The **`remote`** property of the **RTCIceCandidatePair** dictionary specifies the viable WebRTC connection.
  */
-pub (receiver: RTCIceCandidatePair) remote(): std.js.Dom.RTCIceCandidate.RTCIceCandidate.
+pub (receiver: RTCIceCandidatePair) remote(): std.js.Dom.RTCIceCandidate.

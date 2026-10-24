@@ -12,7 +12,7 @@
  */
 module std.js.Dom.NavigationPreloadStateTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.NavigationPreloadState.
 
 pub enabled_typechecks(receiver: NavigationPreloadState): Option[Bool] ->

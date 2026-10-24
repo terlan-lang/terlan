@@ -12,10 +12,9 @@
  */
 module std.js.Dom.CSSRotateTest.
 
-import type std.js.Dom.CSSNumberish.{CSSNumberish}.
-import type std.js.Dom.CSSRotate.
+import type std.js.Dom.{CSSNumberish, CSSRotate}.
 
-pub angle_typechecks(receiver: CSSRotate): std.js.Dom.CSSNumericValue.CSSNumericValue ->
+pub angle_typechecks(receiver: CSSRotate): std.js.Dom.CSSNumericValue ->
     receiver.angle().
 
 pub x_typechecks(receiver: CSSRotate): CSSNumberish ->

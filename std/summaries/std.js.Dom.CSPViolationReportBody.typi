@@ -25,14 +25,14 @@ pub opaque type CSPViolationReportBody.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/blockedURL)
  */
-pub (receiver: CSPViolationReportBody) blocked_url(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: CSPViolationReportBody) blocked_url(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`columnNumber`** read-only property of the CSPViolationReportBody interface indicates the column number in the source file that triggered the Content Security Policy (CSP) violation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/columnNumber)
  */
-pub (receiver: CSPViolationReportBody) column_number(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: CSPViolationReportBody) column_number(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`documentURL`** read-only property of the CSPViolationReportBody interface is a string that represents the URL of the document or worker that violated the Content Security Policy (CSP).
@@ -53,7 +53,7 @@ pub (receiver: CSPViolationReportBody) effective_directive(): std.js.String.JsSt
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/lineNumber)
  */
-pub (receiver: CSPViolationReportBody) line_number(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: CSPViolationReportBody) line_number(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`originalPolicy`** read-only property of the CSPViolationReportBody interface is a string that represents the Content Security Policy (CSP) whose enforcement uncovered the violation.
@@ -67,21 +67,21 @@ pub (receiver: CSPViolationReportBody) original_policy(): std.js.String.JsString
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/referrer)
  */
-pub (receiver: CSPViolationReportBody) referrer(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: CSPViolationReportBody) referrer(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`sample`** read-only property of the CSPViolationReportBody interface is a string that contains a part of the resource that violated the Content Security Policy (CSP).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/sample)
  */
-pub (receiver: CSPViolationReportBody) sample(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: CSPViolationReportBody) sample(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`sourceFile`** read-only property of the CSPViolationReportBody interface indicates the URL of the source file that violated the Content Security Policy (CSP).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSPViolationReportBody/sourceFile)
  */
-pub (receiver: CSPViolationReportBody) source_file(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: CSPViolationReportBody) source_file(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`statusCode`** read-only property of the CSPViolationReportBody interface is a number representing the HTTP status code of the response to the request that triggered a Content Security Policy (CSP) violation (when loading a window or worker).

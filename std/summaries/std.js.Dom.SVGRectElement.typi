@@ -25,43 +25,43 @@ pub opaque type SVGRectElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/height)
  */
-pub (receiver: SVGRectElement) height(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGRectElement) height(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`rx`** read-only property of the SVGRectElement interface describes the horizontal curve of the corners of an SVG rectangle as a SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/rx)
  */
-pub (receiver: SVGRectElement) rx(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGRectElement) rx(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`ry`** read-only property of the SVGRectElement interface describes the vertical curve of the corners of an SVG rectangle as a SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/ry)
  */
-pub (receiver: SVGRectElement) ry(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGRectElement) ry(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`width`** read-only property of the SVGRectElement interface describes the horizontal size of an SVG rectangle as a SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/width)
  */
-pub (receiver: SVGRectElement) width(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGRectElement) width(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`x`** read-only property of the SVGRectElement interface describes the horizontal coordinate of the position of an SVG rectangle as a SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/x)
  */
-pub (receiver: SVGRectElement) x(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGRectElement) x(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`y`** read-only property of the SVGRectElement interface describes the vertical coordinate of the position of an SVG rectangle as a SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGRectElement/y)
  */
-pub (receiver: SVGRectElement) y(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGRectElement) y(): std.js.Dom.SVGAnimatedLength.
 
-pub (receiver: SVGRectElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SVGRectElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SVGRectElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SVGRectElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

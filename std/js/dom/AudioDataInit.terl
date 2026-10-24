@@ -16,7 +16,7 @@ import type std.js.Number.{JsNumber}.
 
 pub opaque type AudioDataInit.
 
-pub (receiver: AudioDataInit) data(): std.js.Dom.BufferSource.BufferSource ->
+pub (receiver: AudioDataInit) data(): std.js.Dom.BufferSource ->
     native.
 
 pub (receiver: AudioDataInit) number_of_channels(): JsNumber ->
@@ -31,5 +31,5 @@ pub (receiver: AudioDataInit) sample_rate(): JsNumber ->
 pub (receiver: AudioDataInit) timestamp(): JsNumber ->
     native.
 
-pub (receiver: AudioDataInit) transfer(): std.core.Option.Option[std.js.Array.Array[std.js.ArrayBuffer.ArrayBuffer]] ->
+pub (receiver: AudioDataInit) transfer(): std.core.Option[std.js.Array[std.js.ArrayBuffer]] ->
     native.

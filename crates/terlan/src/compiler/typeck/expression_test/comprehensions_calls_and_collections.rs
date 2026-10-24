@@ -567,7 +567,7 @@ pub schedule(): Unit -> Process.schedule(1).\n\
     for expected in [
         "expected std.vm.Process.Entry[Int] found 1",
         "expected std.vm.Process.Timer found 1",
-        "expected std.vm.Process.Process[Int] found 1",
+        "expected std.vm.Process[Int] found 1",
         "expected std.vm.Process.ResourceKind[Int] found 1",
         "expected std.vm.Process.ExitReason found 1",
         "expected std.vm.Process.SchedulingClass found 1",

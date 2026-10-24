@@ -8,7 +8,7 @@ module std.css.properties.ListStyleType.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    list_style_type: std.core.Option.Option[Value]
+    list_style_type: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

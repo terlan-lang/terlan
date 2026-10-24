@@ -12,4 +12,4 @@
  */
 module std.js.Dom.HashAlgorithmIdentifier.
 
-pub type HashAlgorithmIdentifier = std.js.Dom.AlgorithmIdentifier.AlgorithmIdentifier.
+pub type HashAlgorithmIdentifier = std.js.Dom.AlgorithmIdentifier.

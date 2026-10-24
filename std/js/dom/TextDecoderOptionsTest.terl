@@ -12,7 +12,7 @@
  */
 module std.js.Dom.TextDecoderOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.TextDecoderOptions.
 
 pub fatal_typechecks(receiver: TextDecoderOptions): Option[Bool] ->

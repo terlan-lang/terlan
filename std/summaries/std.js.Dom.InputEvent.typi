@@ -25,14 +25,14 @@ pub opaque type InputEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/data)
  */
-pub (receiver: InputEvent) data(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: InputEvent) data(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`dataTransfer`** read-only property of the containing information about richtext or plaintext data being added to or removed from editable content.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/dataTransfer)
  */
-pub (receiver: InputEvent) data_transfer(): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer].
+pub (receiver: InputEvent) data_transfer(): std.core.Option[std.js.Dom.DataTransfer].
 
 /**
  * The **`inputType`** read-only property of the Possible changes include for example inserting, deleting, and formatting text.
@@ -53,4 +53,4 @@ pub (receiver: InputEvent) is_composing(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputEvent/getTargetRanges)
  */
-pub (receiver: InputEvent) get_target_ranges(): std.js.Array.Array[std.js.Dom.StaticRange.StaticRange].
+pub (receiver: InputEvent) get_target_ranges(): std.js.Array[std.js.Dom.StaticRange].

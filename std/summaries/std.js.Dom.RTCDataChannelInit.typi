@@ -15,14 +15,14 @@ module std.js.Dom.RTCDataChannelInit.
 
 pub opaque type RTCDataChannelInit.
 
-pub (receiver: RTCDataChannelInit) id(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCDataChannelInit) id(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCDataChannelInit) max_packet_life_time(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCDataChannelInit) max_packet_life_time(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCDataChannelInit) max_retransmits(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCDataChannelInit) max_retransmits(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCDataChannelInit) negotiated(): std.core.Option.Option[Bool].
+pub (receiver: RTCDataChannelInit) negotiated(): std.core.Option[Bool].
 
-pub (receiver: RTCDataChannelInit) ordered(): std.core.Option.Option[Bool].
+pub (receiver: RTCDataChannelInit) ordered(): std.core.Option[Bool].
 
-pub (receiver: RTCDataChannelInit) protocol(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCDataChannelInit) protocol(): std.core.Option[std.js.String.JsString].

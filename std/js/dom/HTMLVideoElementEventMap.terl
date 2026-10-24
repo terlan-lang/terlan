@@ -12,7 +12,7 @@
  */
 module std.js.Dom.HTMLVideoElementEventMap.
 
-import type std.js.Dom.PictureInPictureEvent.{PictureInPictureEvent}.
+import type std.js.Dom.{PictureInPictureEvent}.
 
 pub opaque type HTMLVideoElementEventMap.
 

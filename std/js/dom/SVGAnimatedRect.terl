@@ -24,7 +24,7 @@ pub opaque type SVGAnimatedRect.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedRect/animVal)
  */
-pub (receiver: SVGAnimatedRect) anim_val(): std.js.Dom.DOMRectReadOnly.DOMRectReadOnly ->
+pub (receiver: SVGAnimatedRect) anim_val(): std.js.Dom.DOMRectReadOnly ->
     native.
 
 /**
@@ -32,5 +32,5 @@ pub (receiver: SVGAnimatedRect) anim_val(): std.js.Dom.DOMRectReadOnly.DOMRectRe
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedRect/baseVal)
  */
-pub (receiver: SVGAnimatedRect) base_val(): std.js.Dom.DOMRect.DOMRect ->
+pub (receiver: SVGAnimatedRect) base_val(): std.js.Dom.DOMRect ->
     native.

@@ -32,21 +32,21 @@ pub (receiver: HTMLOutputElement) default_value(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/form)
  */
-pub (receiver: HTMLOutputElement) form(): std.core.Option.Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: HTMLOutputElement) form(): std.core.Option[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`htmlFor`** property of the HTMLOutputElement interface is a string containing a space-separated list of other elements' `id`s, indicating that those elements contributed input values to (or otherwise affected) the calculation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/htmlFor)
  */
-pub (receiver: HTMLOutputElement) html_for(): std.js.Dom.DOMTokenList.DOMTokenList.
+pub (receiver: HTMLOutputElement) html_for(): std.js.Dom.DOMTokenList.
 
 /**
  * The **`HTMLOutputElement.labels`** read-only property returns a A NodeList containing the `<label>` elements associated with the `<output>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/labels)
  */
-pub (receiver: HTMLOutputElement) labels(): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement].
+pub (receiver: HTMLOutputElement) labels(): std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement].
 
 /**
  * The **`name`** property of the HTMLOutputElement interface indicates the name of the output element.
@@ -74,7 +74,7 @@ pub (receiver: HTMLOutputElement) validation_message(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/validity)
  */
-pub (receiver: HTMLOutputElement) validity(): std.js.Dom.ValidityState.ValidityState.
+pub (receiver: HTMLOutputElement) validity(): std.js.Dom.ValidityState.
 
 /**
  * The **`value`** property of the HTMLOutputElement interface represents the value of the output element as a string, or the empty string if no value is set.
@@ -109,8 +109,8 @@ pub (receiver: HTMLOutputElement) report_validity(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/setCustomValidity)
  */
-pub (receiver: HTMLOutputElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: HTMLOutputElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.
 
-pub (receiver: HTMLOutputElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLOutputElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLOutputElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLOutputElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

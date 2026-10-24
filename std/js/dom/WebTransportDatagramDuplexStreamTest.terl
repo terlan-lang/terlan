@@ -12,7 +12,7 @@
  */
 module std.js.Dom.WebTransportDatagramDuplexStreamTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.WebTransportDatagramDuplexStream.
 import type std.js.Number.{JsNumber}.
 
@@ -31,12 +31,8 @@ pub outgoing_high_water_mark_typechecks(receiver: WebTransportDatagramDuplexStre
 pub outgoing_max_age_typechecks(receiver: WebTransportDatagramDuplexStream): Option[JsNumber] ->
     receiver.outgoing_max_age().
 
-pub readable_typechecks(
-    receiver: WebTransportDatagramDuplexStream,
-): std.js.Dom.ReadableStream.ReadableStream ->
+pub readable_typechecks(receiver: WebTransportDatagramDuplexStream): std.js.Dom.ReadableStream ->
     receiver.readable().
 
-pub writable_typechecks(
-    receiver: WebTransportDatagramDuplexStream,
-): std.js.Dom.WritableStream.WritableStream ->
+pub writable_typechecks(receiver: WebTransportDatagramDuplexStream): std.js.Dom.WritableStream ->
     receiver.writable().

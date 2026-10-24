@@ -8,7 +8,7 @@ module std.css.properties.ScrollPaddingBlockEnd.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    scroll_padding_block_end: std.core.Option.Option[Value]
+    scroll_padding_block_end: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

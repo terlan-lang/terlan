@@ -296,6 +296,8 @@ pub(super) fn native_role_can_produce_resource(role: NativeFunctionRole) -> bool
 
 /// Matches local and fully qualified Terlan type spellings.
 pub(super) fn terlan_type_matches(value: &str, expected: &str) -> bool {
+    let value = crate::terlan_hir::public_type_text(value);
+    let expected = crate::terlan_hir::public_type_text(expected);
     value == expected || value.ends_with(&format!(".{expected}"))
 }
 
@@ -463,7 +465,7 @@ pub(super) fn render_module_source(module: &NativeBindingModule) -> String {
                 function.documentation,
                 function.name,
                 render_args(&function.args),
-                function.returns
+                crate::terlan_hir::public_type_text(&function.returns)
             ));
         } else {
             source.push_str(&format!(
@@ -476,7 +478,7 @@ pub(super) fn render_module_source(module: &NativeBindingModule) -> String {
                 ),
                 function.name,
                 render_args(&function.args),
-                function.returns
+                crate::terlan_hir::public_type_text(&function.returns)
             ));
         }
     }
@@ -797,4 +799,29 @@ pub(super) fn render_platform_predicate(condition: &CppPlatformCondition) -> Str
 /// Escapes a validated value for a generated Rust string literal.
 pub(super) fn escape_cargo_directive(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+#[cfg(test)]
+mod primary_type_tests {
+    use super::terlan_type_matches;
+
+    #[test]
+    fn canonical_binding_types_preserve_provider_ownership() {
+        assert!(terlan_type_matches(
+            "pytorch.Tensor",
+            "pytorch.Tensor.Tensor"
+        ));
+        assert!(terlan_type_matches(
+            "pytorch.Tensor.Tensor",
+            "pytorch.Tensor"
+        ));
+        assert!(!terlan_type_matches(
+            "pytorch.Tensor",
+            "other.Tensor.Tensor"
+        ));
+        assert!(!terlan_type_matches(
+            "polars.DataFrame",
+            "polars.DataFrame.Series"
+        ));
+    }
 }

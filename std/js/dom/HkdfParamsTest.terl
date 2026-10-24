@@ -12,12 +12,9 @@
  */
 module std.js.Dom.HkdfParamsTest.
 
-import type std.js.Dom.BufferSource.{BufferSource}.
-import type std.js.Dom.HkdfParams.
+import type std.js.Dom.{BufferSource, HkdfParams}.
 
-pub hash_typechecks(
-    receiver: HkdfParams,
-): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier ->
+pub hash_typechecks(receiver: HkdfParams): std.js.Dom.HashAlgorithmIdentifier ->
     receiver.hash().
 
 pub info_typechecks(receiver: HkdfParams): BufferSource ->

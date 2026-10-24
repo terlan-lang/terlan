@@ -15,10 +15,10 @@ module std.js.Dom.RTCRtpCodec.
 
 pub opaque type RTCRtpCodec.
 
-pub (receiver: RTCRtpCodec) channels(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCRtpCodec) channels(): std.core.Option[std.js.Number.JsNumber].
 
 pub (receiver: RTCRtpCodec) clock_rate(): std.js.Number.JsNumber.
 
 pub (receiver: RTCRtpCodec) mime_type(): std.js.String.JsString.
 
-pub (receiver: RTCRtpCodec) sdp_fmtp_line(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCRtpCodec) sdp_fmtp_line(): std.core.Option[std.js.String.JsString].

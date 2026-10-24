@@ -14,4 +14,4 @@ module std.js.Dom.OfflineAudioCompletionEventInit.
 
 pub opaque type OfflineAudioCompletionEventInit.
 
-pub (receiver: OfflineAudioCompletionEventInit) rendered_buffer(): std.js.Dom.AudioBuffer.AudioBuffer.
+pub (receiver: OfflineAudioCompletionEventInit) rendered_buffer(): std.js.Dom.AudioBuffer.

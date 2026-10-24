@@ -8,7 +8,7 @@ module std.css.properties.PaddingBlockStart.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    padding_block_start: std.core.Option.Option[Value]
+    padding_block_start: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -8,7 +8,7 @@ module std.css.properties.AlignSelf.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    align_self: std.core.Option.Option[Value]
+    align_self: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

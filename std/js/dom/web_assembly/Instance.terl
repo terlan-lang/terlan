@@ -20,5 +20,5 @@ pub opaque type Instance.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/WebAssembly/Reference/JavaScript_interface/Instance/exports)
  */
-pub (receiver: Instance) exports(): std.js.Dom.WebAssembly.Exports.Exports ->
+pub (receiver: Instance) exports(): std.js.Dom.WebAssembly.Exports ->
     native.

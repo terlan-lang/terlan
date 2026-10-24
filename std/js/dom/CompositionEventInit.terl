@@ -14,5 +14,5 @@ module std.js.Dom.CompositionEventInit.
 
 pub opaque type CompositionEventInit.
 
-pub (receiver: CompositionEventInit) data(): std.core.Option.Option[std.js.String.JsString] ->
+pub (receiver: CompositionEventInit) data(): std.core.Option[std.js.String.JsString] ->
     native.

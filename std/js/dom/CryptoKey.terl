@@ -25,7 +25,7 @@ pub opaque type CryptoKey.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/algorithm)
  */
-pub (receiver: CryptoKey) algorithm(): std.js.Dom.KeyAlgorithm.KeyAlgorithm ->
+pub (receiver: CryptoKey) algorithm(): std.js.Dom.KeyAlgorithm ->
     native.
 
 /**

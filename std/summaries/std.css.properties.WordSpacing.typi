@@ -8,7 +8,7 @@ module std.css.properties.WordSpacing.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    word_spacing: std.core.Option.Option[Value]
+    word_spacing: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

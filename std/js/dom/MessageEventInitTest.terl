@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MessageEventInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.MessageEventInit.
 import type std.js.String.{JsString}.
 
@@ -25,12 +25,8 @@ pub last_event_id_typechecks(receiver: MessageEventInit[T]): Option[JsString] ->
 pub origin_typechecks(receiver: MessageEventInit[T]): Option[JsString] ->
     receiver.origin().
 
-pub ports_typechecks(
-    receiver: MessageEventInit[T],
-): Option[std.js.Array.Array[std.js.Dom.MessagePort.MessagePort]] ->
+pub ports_typechecks(receiver: MessageEventInit[T]): Option[std.js.Array[std.js.Dom.MessagePort]] ->
     receiver.ports().
 
-pub source_typechecks(
-    receiver: MessageEventInit[T],
-): Option[std.js.Dom.MessageEventSource.MessageEventSource] ->
+pub source_typechecks(receiver: MessageEventInit[T]): Option[std.js.Dom.MessageEventSource] ->
     receiver.source().

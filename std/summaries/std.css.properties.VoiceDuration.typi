@@ -8,7 +8,7 @@ module std.css.properties.VoiceDuration.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    voice_duration: std.core.Option.Option[Value]
+    voice_duration: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

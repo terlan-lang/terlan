@@ -8,7 +8,7 @@ module std.css.properties.CueAfter.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    cue_after: std.core.Option.Option[Value]
+    cue_after: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

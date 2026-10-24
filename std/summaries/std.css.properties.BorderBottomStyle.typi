@@ -8,7 +8,7 @@ module std.css.properties.BorderBottomStyle.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    border_bottom_style: std.core.Option.Option[Value]
+    border_bottom_style: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

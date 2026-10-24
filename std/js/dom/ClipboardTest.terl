@@ -12,11 +12,10 @@
  */
 module std.js.Dom.ClipboardTest.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Clipboard.
-import type std.js.Dom.ClipboardItems.{ClipboardItems}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Unit}.
+import type std.js.Dom.{Clipboard, ClipboardItems}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 pub read_typechecks(receiver: Clipboard): Promise[ClipboardItems] ->
     receiver.read().

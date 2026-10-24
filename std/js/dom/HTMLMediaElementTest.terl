@@ -12,15 +12,11 @@
  */
 module std.js.Dom.HTMLMediaElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLMediaElement.
-import type std.js.Dom.MediaKeys.{MediaKeys}.
-import type std.js.Dom.TimeRanges.{TimeRanges}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLMediaElement, MediaKeys, TimeRanges}.
 import type std.js.Number.{JsNumber}.
-import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 pub autoplay_typechecks(receiver: HTMLMediaElement): Bool ->
     receiver.autoplay().
@@ -55,7 +51,7 @@ pub duration_typechecks(receiver: HTMLMediaElement): JsNumber ->
 pub ended_typechecks(receiver: HTMLMediaElement): Bool ->
     receiver.ended().
 
-pub error_typechecks(receiver: HTMLMediaElement): Option[std.js.Dom.MediaError.MediaError] ->
+pub error_typechecks(receiver: HTMLMediaElement): Option[std.js.Dom.MediaError] ->
     receiver.error().
 
 pub loop_typechecks(receiver: HTMLMediaElement): Bool ->
@@ -85,7 +81,7 @@ pub preserves_pitch_typechecks(receiver: HTMLMediaElement): Bool ->
 pub ready_state_typechecks(receiver: HTMLMediaElement): JsNumber ->
     receiver.ready_state().
 
-pub remote_typechecks(receiver: HTMLMediaElement): std.js.Dom.RemotePlayback.RemotePlayback ->
+pub remote_typechecks(receiver: HTMLMediaElement): std.js.Dom.RemotePlayback ->
     receiver.remote().
 
 pub seekable_typechecks(receiver: HTMLMediaElement): TimeRanges ->
@@ -100,12 +96,10 @@ pub sink_id_typechecks(receiver: HTMLMediaElement): JsString ->
 pub src_typechecks(receiver: HTMLMediaElement): JsString ->
     receiver.src().
 
-pub src_object_typechecks(
-    receiver: HTMLMediaElement,
-): Option[std.js.Dom.MediaProvider.MediaProvider] ->
+pub src_object_typechecks(receiver: HTMLMediaElement): Option[std.js.Dom.MediaProvider] ->
     receiver.src_object().
 
-pub text_tracks_typechecks(receiver: HTMLMediaElement): std.js.Dom.TextTrackList.TextTrackList ->
+pub text_tracks_typechecks(receiver: HTMLMediaElement): std.js.Dom.TextTrackList ->
     receiver.text_tracks().
 
 pub volume_typechecks(receiver: HTMLMediaElement): JsNumber ->
@@ -136,7 +130,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLMediaElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -144,6 +138,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLMediaElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

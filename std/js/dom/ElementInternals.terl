@@ -12,10 +12,8 @@
  */
 module std.js.Dom.ElementInternals.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.File.{File}.
-import type std.js.Dom.FormData.{FormData}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{File, FormData}.
 import type std.js.String.{JsString}.
 
 /**
@@ -30,7 +28,7 @@ pub opaque type ElementInternals.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/form)
  */
-pub (receiver: ElementInternals) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
+pub (receiver: ElementInternals) form(): Option[std.js.Dom.HTMLFormElement] ->
     native.
 
 /**
@@ -38,7 +36,7 @@ pub (receiver: ElementInternals) form(): Option[std.js.Dom.HTMLFormElement.HTMLF
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/labels)
  */
-pub (receiver: ElementInternals) labels(): std.js.Dom.NodeList.NodeList ->
+pub (receiver: ElementInternals) labels(): std.js.Dom.NodeList ->
     native.
 
 /**
@@ -46,7 +44,7 @@ pub (receiver: ElementInternals) labels(): std.js.Dom.NodeList.NodeList ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/shadowRoot)
  */
-pub (receiver: ElementInternals) shadow_root(): Option[std.js.Dom.ShadowRoot.ShadowRoot] ->
+pub (receiver: ElementInternals) shadow_root(): Option[std.js.Dom.ShadowRoot] ->
     native.
 
 /**
@@ -54,7 +52,7 @@ pub (receiver: ElementInternals) shadow_root(): Option[std.js.Dom.ShadowRoot.Sha
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/states)
  */
-pub (receiver: ElementInternals) states(): std.js.Dom.CustomStateSet.CustomStateSet ->
+pub (receiver: ElementInternals) states(): std.js.Dom.CustomStateSet ->
     native.
 
 /**
@@ -70,7 +68,7 @@ pub (receiver: ElementInternals) validation_message(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/validity)
  */
-pub (receiver: ElementInternals) validity(): std.js.Dom.ValidityState.ValidityState ->
+pub (receiver: ElementInternals) validity(): std.js.Dom.ValidityState ->
     native.
 
 /**
@@ -114,8 +112,8 @@ pub (receiver: ElementInternals) set_form_value(
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ElementInternals/setValidity)
  */
 pub (receiver: ElementInternals) set_validity(
-    flags: Option[std.js.Dom.ValidityStateFlags.ValidityStateFlags],
+    flags: Option[std.js.Dom.ValidityStateFlags],
     message: Option[JsString],
-    anchor: Option[std.js.Dom.HTMLElement.HTMLElement],
+    anchor: Option[std.js.Dom.HTMLElement],
 ): Unit ->
     native.

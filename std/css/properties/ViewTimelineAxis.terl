@@ -29,7 +29,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    view_timeline_axis: std.core.Option.Option[Value],
+    view_timeline_axis: std.core.Option[Value],
 }.
 
 /**

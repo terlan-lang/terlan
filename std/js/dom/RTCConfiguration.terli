@@ -12,13 +12,13 @@
  */
 module std.js.Dom.RTCConfiguration.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
+import type std.core.{Option}.
+import type std.js.{Array}.
 
 pub opaque type RTCConfiguration.
 
-pub (receiver: RTCConfiguration) certificates(): Option[Array[std.js.Dom.RTCCertificate.RTCCertificate]].
+pub (receiver: RTCConfiguration) certificates(): Option[Array[std.js.Dom.RTCCertificate]].
 
 pub (receiver: RTCConfiguration) ice_candidate_pool_size(): Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCConfiguration) ice_servers(): Option[Array[std.js.Dom.RTCIceServer.RTCIceServer]].
+pub (receiver: RTCConfiguration) ice_servers(): Option[Array[std.js.Dom.RTCIceServer]].

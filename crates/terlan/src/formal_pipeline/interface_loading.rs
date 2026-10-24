@@ -272,6 +272,11 @@ fn collect_type_modules(text: &str, modules: &mut BTreeSet<String>) {
             if let Some((module, name)) = token.rsplit_once('.') {
                 if name.starts_with(|ch: char| ch.is_ascii_uppercase()) {
                     modules.insert(module.to_string());
+                    // A qualified head can itself be the module's primary type.
+                    // The loader admits only candidates present in the catalog.
+                    if module.rsplit('.').next() != Some(name) {
+                        modules.insert(token.clone());
+                    }
                 }
             }
             token.clear();

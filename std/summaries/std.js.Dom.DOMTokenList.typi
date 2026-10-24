@@ -41,7 +41,7 @@ pub (receiver: DOMTokenList) to_string(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/add)
  */
-pub (receiver: DOMTokenList) add(tokens: std.js.Array.Array[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: DOMTokenList) add(tokens: std.js.Array[std.js.String.JsString]): std.core.Unit.
 
 /**
  * The **`contains()`** method of the DOMTokenList interface returns a boolean value — `true` if the underlying list contains the given token, otherwise `false`.
@@ -55,14 +55,14 @@ pub (receiver: DOMTokenList) contains(token: std.js.String.JsString): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/item)
  */
-pub (receiver: DOMTokenList) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: DOMTokenList) item(index: std.js.Number.JsNumber): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`remove()`** method of the DOMTokenList interface removes the specified _tokens_ from the list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/remove)
  */
-pub (receiver: DOMTokenList) remove(tokens: std.js.Array.Array[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: DOMTokenList) remove(tokens: std.js.Array[std.js.String.JsString]): std.core.Unit.
 
 /**
  * The **`replace()`** method of the DOMTokenList interface replaces an existing token with a new token.
@@ -83,4 +83,4 @@ pub (receiver: DOMTokenList) supports(token: std.js.String.JsString): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMTokenList/toggle)
  */
-pub (receiver: DOMTokenList) toggle(token: std.js.String.JsString, force: std.core.Option.Option[Bool]): Bool.
+pub (receiver: DOMTokenList) toggle(token: std.js.String.JsString, force: std.core.Option[Bool]): Bool.

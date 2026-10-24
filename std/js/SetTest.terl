@@ -14,7 +14,7 @@ module std.js.SetTest.
 
 import type std.js.Set.
 
-pub clear_typechecks(receiver: Set[T]): std.core.Unit.Unit ->
+pub clear_typechecks(receiver: Set[T]): std.core.Unit ->
     receiver.clear().
 
 pub delete_typechecks(receiver: Set[T], value: T): Bool ->

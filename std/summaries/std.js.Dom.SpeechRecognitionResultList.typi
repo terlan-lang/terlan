@@ -33,4 +33,4 @@ pub (receiver: SpeechRecognitionResultList) length(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResultList/item)
  */
-pub (receiver: SpeechRecognitionResultList) item(index: std.js.Number.JsNumber): std.js.Dom.SpeechRecognitionResult.SpeechRecognitionResult.
+pub (receiver: SpeechRecognitionResultList) item(index: std.js.Number.JsNumber): std.js.Dom.SpeechRecognitionResult.

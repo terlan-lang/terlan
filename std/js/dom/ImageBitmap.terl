@@ -42,5 +42,5 @@ pub (receiver: ImageBitmap) width(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageBitmap/close)
  */
-pub (receiver: ImageBitmap) close(): std.core.Unit.Unit ->
+pub (receiver: ImageBitmap) close(): std.core.Unit ->
     native.

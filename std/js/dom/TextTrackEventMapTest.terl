@@ -14,5 +14,5 @@ module std.js.Dom.TextTrackEventMapTest.
 
 import type std.js.Dom.TextTrackEventMap.
 
-pub cuechange_typechecks(receiver: TextTrackEventMap): std.js.Dom.Event.Event ->
+pub cuechange_typechecks(receiver: TextTrackEventMap): std.js.Dom.Event ->
     receiver.cuechange().

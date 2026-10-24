@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CanvasRenderingContext2DSettingsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.CanvasRenderingContext2DSettings.
 
 pub alpha_typechecks(receiver: CanvasRenderingContext2DSettings): Option[Bool] ->

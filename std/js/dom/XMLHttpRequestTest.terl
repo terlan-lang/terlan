@@ -12,12 +12,8 @@
  */
 module std.js.Dom.XMLHttpRequestTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Document.{Document}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.URL.{URL}.
-import type std.js.Dom.XMLHttpRequest.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Document, EventListenerOrEventListenerObject, URL, XMLHttpRequest}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -42,9 +38,7 @@ pub status_text_typechecks(receiver: XMLHttpRequest): JsString ->
 pub timeout_typechecks(receiver: XMLHttpRequest): JsNumber ->
     receiver.timeout().
 
-pub upload_typechecks(
-    receiver: XMLHttpRequest,
-): std.js.Dom.XMLHttpRequestUpload.XMLHttpRequestUpload ->
+pub upload_typechecks(receiver: XMLHttpRequest): std.js.Dom.XMLHttpRequestUpload ->
     receiver.upload().
 
 pub with_credentials_typechecks(receiver: XMLHttpRequest): Bool ->
@@ -77,7 +71,7 @@ pub override_mime_type_typechecks(receiver: XMLHttpRequest, mime: JsString): Uni
 
 pub send_typechecks(
     receiver: XMLHttpRequest,
-    body: Option[Option[Document | std.js.Dom.XMLHttpRequestBodyInit.XMLHttpRequestBodyInit]],
+    body: Option[Option[Document | std.js.Dom.XMLHttpRequestBodyInit]],
 ): Unit ->
     receiver.send(body).
 
@@ -88,7 +82,7 @@ pub add_event_listener_typechecks(
     receiver: XMLHttpRequest,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -96,6 +90,6 @@ pub remove_event_listener_typechecks(
     receiver: XMLHttpRequest,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

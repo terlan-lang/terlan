@@ -12,8 +12,7 @@
  */
 module std.js.Dom.RTCDataChannelEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.RTCDataChannelEventMap.
+import type std.js.Dom.{Event, RTCDataChannelEventMap}.
 
 pub bufferedamountlow_typechecks(receiver: RTCDataChannelEventMap): Event ->
     receiver.bufferedamountlow().
@@ -24,10 +23,10 @@ pub close_typechecks(receiver: RTCDataChannelEventMap): Event ->
 pub closing_typechecks(receiver: RTCDataChannelEventMap): Event ->
     receiver.closing().
 
-pub error_typechecks(receiver: RTCDataChannelEventMap): std.js.Dom.RTCErrorEvent.RTCErrorEvent ->
+pub error_typechecks(receiver: RTCDataChannelEventMap): std.js.Dom.RTCErrorEvent ->
     receiver.error().
 
-pub message_typechecks(receiver: RTCDataChannelEventMap): std.js.Dom.MessageEvent.MessageEvent ->
+pub message_typechecks(receiver: RTCDataChannelEventMap): std.js.Dom.MessageEvent ->
     receiver.message().
 
 pub open_typechecks(receiver: RTCDataChannelEventMap): Event ->

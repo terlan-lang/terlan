@@ -12,10 +12,8 @@
  */
 module std.js.Dom.SVGFESpecularLightingElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGAnimatedNumber.{SVGAnimatedNumber}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, SVGAnimatedNumber}.
 import type std.js.String.{JsString}.
 
 /**
@@ -30,7 +28,7 @@ pub opaque type SVGFESpecularLightingElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFESpecularLightingElement/in1)
  */
-pub (receiver: SVGFESpecularLightingElement) in1(): std.js.Dom.SVGAnimatedString.SVGAnimatedString ->
+pub (receiver: SVGFESpecularLightingElement) in1(): std.js.Dom.SVGAnimatedString ->
     native.
 
 /**
@@ -76,13 +74,13 @@ pub (receiver: SVGFESpecularLightingElement) surface_scale(): SVGAnimatedNumber 
 pub (receiver: SVGFESpecularLightingElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: SVGFESpecularLightingElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

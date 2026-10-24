@@ -12,13 +12,11 @@
  */
 module std.js.Dom.QueuingStrategyTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.QueuingStrategy.
 
 pub high_water_mark_typechecks(receiver: QueuingStrategy[T]): Option[std.js.Number.JsNumber] ->
     receiver.high_water_mark().
 
-pub size_typechecks(
-    receiver: QueuingStrategy[T],
-): Option[std.js.Dom.QueuingStrategySize.QueuingStrategySize[T]] ->
+pub size_typechecks(receiver: QueuingStrategy[T]): Option[std.js.Dom.QueuingStrategySize[T]] ->
     receiver.size().

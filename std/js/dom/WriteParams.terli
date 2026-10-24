@@ -12,12 +12,12 @@
  */
 module std.js.Dom.WriteParams.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type WriteParams.
 
-pub (receiver: WriteParams) data(): Option[std.js.Dom.Blob.Blob | std.js.Dom.BufferSource.BufferSource | std.js.String.JsString].
+pub (receiver: WriteParams) data(): Option[std.js.Dom.Blob | std.js.Dom.BufferSource | std.js.String.JsString].
 
 pub (receiver: WriteParams) position(): Option[JsNumber].
 

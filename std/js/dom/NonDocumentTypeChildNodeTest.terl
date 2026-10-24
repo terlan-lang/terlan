@@ -12,9 +12,8 @@
  */
 module std.js.Dom.NonDocumentTypeChildNodeTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.Element.{Element}.
-import type std.js.Dom.NonDocumentTypeChildNode.
+import type std.core.{Option}.
+import type std.js.Dom.{Element, NonDocumentTypeChildNode}.
 
 pub next_element_sibling_typechecks(receiver: NonDocumentTypeChildNode): Option[Element] ->
     receiver.next_element_sibling().

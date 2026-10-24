@@ -12,12 +12,12 @@
  */
 module std.js.Dom.StartViewTransitionOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type StartViewTransitionOptions.
 
-pub (receiver: StartViewTransitionOptions) types(): Option[std.js.Array.Array[std.js.String.JsString]] ->
+pub (receiver: StartViewTransitionOptions) types(): Option[std.js.Array[std.js.String.JsString]] ->
     native.
 
-pub (receiver: StartViewTransitionOptions) update(): Option[std.js.Dom.ViewTransitionUpdateCallback.ViewTransitionUpdateCallback] ->
+pub (receiver: StartViewTransitionOptions) update(): Option[std.js.Dom.ViewTransitionUpdateCallback] ->
     native.

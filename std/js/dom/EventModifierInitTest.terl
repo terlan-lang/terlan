@@ -12,7 +12,7 @@
  */
 module std.js.Dom.EventModifierInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.EventModifierInit.
 
 pub alt_key_typechecks(receiver: EventModifierInit): Option[Bool] ->

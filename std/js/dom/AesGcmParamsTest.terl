@@ -12,9 +12,8 @@
  */
 module std.js.Dom.AesGcmParamsTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.AesGcmParams.
-import type std.js.Dom.BufferSource.{BufferSource}.
+import type std.core.{Option}.
+import type std.js.Dom.{AesGcmParams, BufferSource}.
 
 pub additional_data_typechecks(receiver: AesGcmParams): Option[BufferSource] ->
     receiver.additional_data().

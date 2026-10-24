@@ -25,11 +25,11 @@ pub opaque type AnimationPlaybackEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationPlaybackEvent/currentTime)
  */
-pub (receiver: AnimationPlaybackEvent) current_time(): std.core.Option.Option[std.js.Dom.CSSNumberish.CSSNumberish].
+pub (receiver: AnimationPlaybackEvent) current_time(): std.core.Option[std.js.Dom.CSSNumberish].
 
 /**
  * The **`timelineTime`** read-only property of the AnimationPlaybackEvent interface represents the time value of the animation's AnimationTimeline at the moment the event is queued.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationPlaybackEvent/timelineTime)
  */
-pub (receiver: AnimationPlaybackEvent) timeline_time(): std.core.Option.Option[std.js.Dom.CSSNumberish.CSSNumberish].
+pub (receiver: AnimationPlaybackEvent) timeline_time(): std.core.Option[std.js.Dom.CSSNumberish].

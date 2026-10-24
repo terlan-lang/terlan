@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CustomEvent.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 /**
  * The **`CustomEvent`** interface represents events initialized by an application for any purpose.
@@ -39,4 +39,4 @@ pub (receiver: CustomEvent[T]) init_custom_event(
     bubbles: Option[Bool],
     cancelable: Option[Bool],
     detail: Option[T],
-): std.core.Unit.Unit.
+): std.core.Unit.

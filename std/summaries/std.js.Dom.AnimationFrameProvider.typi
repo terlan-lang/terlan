@@ -18,9 +18,9 @@ pub opaque type AnimationFrameProvider.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DedicatedWorkerGlobalScope/cancelAnimationFrame)
  */
-pub (receiver: AnimationFrameProvider) cancel_animation_frame(handle: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: AnimationFrameProvider) cancel_animation_frame(handle: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DedicatedWorkerGlobalScope/requestAnimationFrame)
  */
-pub (receiver: AnimationFrameProvider) request_animation_frame(callback: std.js.Dom.FrameRequestCallback.FrameRequestCallback): std.js.Number.JsNumber.
+pub (receiver: AnimationFrameProvider) request_animation_frame(callback: std.js.Dom.FrameRequestCallback): std.js.Number.JsNumber.

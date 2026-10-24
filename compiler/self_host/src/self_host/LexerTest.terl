@@ -1,19 +1,21 @@
 module self_host.LexerTest.
 
-import self_host.Token.{Identifier, IntegerLiteral, Keyword, StringLiteral, Symbol}.
-
 import self_host.Lexer.
+import self_host.Token.{Identifier, IntegerLiteral, Keyword, StringLiteral, Symbol}.
 import std.collections.List.
 
-lexemes(tokens: List[self_host.Token.Token], output: List[String]): List[String] ->
+import type self_host.Token.{TokenKind}.
+import type self_host.{Token}.
+
+lexemes(tokens: List[Token], output: List[String]): List[String] ->
     case tokens {
         [] -> output;
         [token | rest] -> [token.lexeme | lexemes(rest, output)]
     }.
 
-kinds(tokens: List[self_host.Token.Token]): List[self_host.Token.TokenKind] ->
+kinds(tokens: List[Token]): List[TokenKind] ->
     case tokens {
-        [] -> List.new[self_host.Token.TokenKind]();
+        [] -> List.new[TokenKind]();
         [token | rest] -> [token.kind | kinds(rest)]
     }.
 
@@ -21,8 +23,22 @@ kinds(tokens: List[self_host.Token.Token]): List[self_host.Token.TokenKind] ->
 pub lexer_accepts_module_function_and_unicode_string(): Bool ->
     let result = Lexer.lex("module sample.Main.\npub answer(): String -> \"café\".\n");
     List.is_empty(result.errors)
-        and lexemes(result.tokens, [])
-            == ["module", "sample", ".", "Main", ".", "pub", "answer", "(", ")", ":", "String", "->", "\"café\"", "."].
+        and lexemes(result.tokens, []) == [
+    "module",
+    "sample",
+    ".",
+    "Main",
+    ".",
+    "pub",
+    "answer",
+    "(",
+    ")",
+    ":",
+    "String",
+    "->",
+    "\"café\"",
+    ".",
+].
 
 @test
 pub lexer_rejects_unicode_identifier(): Bool ->

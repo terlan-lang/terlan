@@ -8,7 +8,7 @@ module std.css.properties.AccentColor.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    accent_color: std.core.Option.Option[Value]
+    accent_color: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

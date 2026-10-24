@@ -16,5 +16,5 @@ import type std.js.Dom.PageRevealEventInit.
 
 pub view_transition_typechecks(
     receiver: PageRevealEventInit,
-): std.core.Option.Option[std.js.Dom.ViewTransition.ViewTransition] ->
+): std.core.Option[std.js.Dom.ViewTransition] ->
     receiver.view_transition().

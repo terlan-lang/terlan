@@ -12,10 +12,10 @@
  */
 module std.js.Dom.UnderlyingByteSource.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type UnderlyingByteSource.
 
 pub (receiver: UnderlyingByteSource) auto_allocate_chunk_size(): Option[std.js.Number.JsNumber].
 
-pub (receiver: UnderlyingByteSource) cancel(): Option[std.js.Dom.UnderlyingSourceCancelCallback.UnderlyingSourceCancelCallback].
+pub (receiver: UnderlyingByteSource) cancel(): Option[std.js.Dom.UnderlyingSourceCancelCallback].

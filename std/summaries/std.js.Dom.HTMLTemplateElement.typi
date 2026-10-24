@@ -25,7 +25,7 @@ pub opaque type HTMLTemplateElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTemplateElement/content)
  */
-pub (receiver: HTMLTemplateElement) content(): std.js.Dom.DocumentFragment.DocumentFragment.
+pub (receiver: HTMLTemplateElement) content(): std.js.Dom.DocumentFragment.
 
 /**
  * The **`shadowRootClonable`** property reflects the value of the `shadowrootclonable` attribute of the associated `<template>` element.
@@ -55,6 +55,6 @@ pub (receiver: HTMLTemplateElement) shadow_root_mode(): std.js.String.JsString.
  */
 pub (receiver: HTMLTemplateElement) shadow_root_serializable(): Bool.
 
-pub (receiver: HTMLTemplateElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLTemplateElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLTemplateElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLTemplateElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

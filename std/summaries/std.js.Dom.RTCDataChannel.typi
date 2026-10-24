@@ -39,7 +39,7 @@ pub (receiver: RTCDataChannel) buffered_amount_low_threshold(): std.js.Number.Js
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/id)
  */
-pub (receiver: RTCDataChannel) id(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCDataChannel) id(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The read-only `RTCDataChannel` property **`label`** returns a string containing a name describing the data channel.
@@ -53,14 +53,14 @@ pub (receiver: RTCDataChannel) label(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/maxPacketLifeTime)
  */
-pub (receiver: RTCDataChannel) max_packet_life_time(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCDataChannel) max_packet_life_time(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The read-only `RTCDataChannel` property **`maxRetransmits`** returns the maximum number of times the browser should try to retransmit a message before giving up, as set when the data channel was created, or `null`, which indicates that there is no maximum.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/maxRetransmits)
  */
-pub (receiver: RTCDataChannel) max_retransmits(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCDataChannel) max_retransmits(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The read-only `RTCDataChannel` property **`negotiated`** indicates whether the (`true`) or by the WebRTC layer (`false`).
@@ -88,21 +88,21 @@ pub (receiver: RTCDataChannel) protocol(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/close)
  */
-pub (receiver: RTCDataChannel) close(): std.core.Unit.Unit.
+pub (receiver: RTCDataChannel) close(): std.core.Unit.
 
 /**
  * The **`send()`** method of the remote peer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCDataChannel/send)
  */
-pub (receiver: RTCDataChannel) send(data: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: RTCDataChannel) send(data: std.js.String.JsString): std.core.Unit.
 
-pub (receiver: RTCDataChannel) send_overload_2(data: std.js.Dom.Blob.Blob): std.core.Unit.Unit.
+pub (receiver: RTCDataChannel) send_overload_2(data: std.js.Dom.Blob): std.core.Unit.
 
-pub (receiver: RTCDataChannel) send_overload_3(data: std.js.ArrayBuffer.ArrayBuffer): std.core.Unit.Unit.
+pub (receiver: RTCDataChannel) send_overload_3(data: std.js.ArrayBuffer): std.core.Unit.
 
-pub (receiver: RTCDataChannel) send_overload_4(data: std.js.ArrayBufferView.ArrayBufferView[std.js.ArrayBuffer.ArrayBuffer]): std.core.Unit.Unit.
+pub (receiver: RTCDataChannel) send_overload_4(data: std.js.ArrayBufferView[std.js.ArrayBuffer]): std.core.Unit.
 
-pub (receiver: RTCDataChannel) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: RTCDataChannel) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: RTCDataChannel) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: RTCDataChannel) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

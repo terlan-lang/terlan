@@ -12,11 +12,8 @@
  */
 module std.js.Dom.SVGMarkerElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGAnimatedEnumeration.{SVGAnimatedEnumeration}.
-import type std.js.Dom.SVGAnimatedLength.{SVGAnimatedLength}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, SVGAnimatedEnumeration, SVGAnimatedLength}.
 import type std.js.String.{JsString}.
 
 /**
@@ -55,7 +52,7 @@ pub (receiver: SVGMarkerElement) marker_width(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/orientAngle)
  */
-pub (receiver: SVGMarkerElement) orient_angle(): std.js.Dom.SVGAnimatedAngle.SVGAnimatedAngle ->
+pub (receiver: SVGMarkerElement) orient_angle(): std.js.Dom.SVGAnimatedAngle ->
     native.
 
 /**
@@ -87,7 +84,7 @@ pub (receiver: SVGMarkerElement) ref_y(): SVGAnimatedLength ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/setOrientToAngle)
  */
-pub (receiver: SVGMarkerElement) set_orient_to_angle(angle: std.js.Dom.SVGAngle.SVGAngle): Unit ->
+pub (receiver: SVGMarkerElement) set_orient_to_angle(angle: std.js.Dom.SVGAngle): Unit ->
     native.
 
 /**
@@ -101,13 +98,13 @@ pub (receiver: SVGMarkerElement) set_orient_to_auto(): Unit ->
 pub (receiver: SVGMarkerElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: SVGMarkerElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

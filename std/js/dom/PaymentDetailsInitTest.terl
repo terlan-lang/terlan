@@ -14,8 +14,8 @@ module std.js.Dom.PaymentDetailsInitTest.
 
 import type std.js.Dom.PaymentDetailsInit.
 
-pub id_typechecks(receiver: PaymentDetailsInit): std.core.Option.Option[std.js.String.JsString] ->
+pub id_typechecks(receiver: PaymentDetailsInit): std.core.Option[std.js.String.JsString] ->
     receiver.id().
 
-pub total_typechecks(receiver: PaymentDetailsInit): std.js.Dom.PaymentItem.PaymentItem ->
+pub total_typechecks(receiver: PaymentDetailsInit): std.js.Dom.PaymentItem ->
     receiver.total().

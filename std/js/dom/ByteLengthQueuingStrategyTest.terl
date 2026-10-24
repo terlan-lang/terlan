@@ -19,5 +19,5 @@ pub high_water_mark_typechecks(receiver: ByteLengthQueuingStrategy): std.js.Numb
 
 pub size_typechecks(
     receiver: ByteLengthQueuingStrategy,
-): std.js.Dom.QueuingStrategySize.QueuingStrategySize[std.js.ArrayBufferView.ArrayBufferView] ->
+): std.js.Dom.QueuingStrategySize[std.js.ArrayBufferView] ->
     receiver.size().

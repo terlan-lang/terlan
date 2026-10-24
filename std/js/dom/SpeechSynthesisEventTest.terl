@@ -27,7 +27,5 @@ pub elapsed_time_typechecks(receiver: SpeechSynthesisEvent): JsNumber ->
 pub name_typechecks(receiver: SpeechSynthesisEvent): std.js.String.JsString ->
     receiver.name().
 
-pub utterance_typechecks(
-    receiver: SpeechSynthesisEvent,
-): std.js.Dom.SpeechSynthesisUtterance.SpeechSynthesisUtterance ->
+pub utterance_typechecks(receiver: SpeechSynthesisEvent): std.js.Dom.SpeechSynthesisUtterance ->
     receiver.utterance().

@@ -8,7 +8,7 @@ module std.css.properties.ContainIntrinsicHeight.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    contain_intrinsic_height: std.core.Option.Option[Value]
+    contain_intrinsic_height: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

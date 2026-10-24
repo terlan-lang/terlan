@@ -45,7 +45,7 @@ pub trait GuardResult[R, F[_]] {
 /**
  * The standard effect descriptor explicitly opts into comprehension guards.
  */
-pub impl GuardResult[Effect[Bool], std.core.Effect.Effect] for Effect[Bool] {
+pub impl GuardResult[Effect[Bool], std.core.Effect] for Effect[Bool] {
     into_guard(result: Effect[Bool]): Effect[Bool] ->
         result.
 }.

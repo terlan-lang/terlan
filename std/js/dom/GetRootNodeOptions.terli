@@ -14,4 +14,4 @@ module std.js.Dom.GetRootNodeOptions.
 
 pub opaque type GetRootNodeOptions.
 
-pub (receiver: GetRootNodeOptions) composed(): std.core.Option.Option[Bool].
+pub (receiver: GetRootNodeOptions) composed(): std.core.Option[Bool].

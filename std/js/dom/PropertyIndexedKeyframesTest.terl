@@ -17,5 +17,5 @@ import type std.js.String.{JsString}.
 
 pub easing_typechecks(
     receiver: PropertyIndexedKeyframes,
-): std.core.Option.Option[std.js.Array.Array[JsString] | JsString] ->
+): std.core.Option[std.js.Array[JsString] | JsString] ->
     receiver.easing().

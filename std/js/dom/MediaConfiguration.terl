@@ -12,12 +12,12 @@
  */
 module std.js.Dom.MediaConfiguration.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type MediaConfiguration.
 
-pub (receiver: MediaConfiguration) audio(): Option[std.js.Dom.AudioConfiguration.AudioConfiguration] ->
+pub (receiver: MediaConfiguration) audio(): Option[std.js.Dom.AudioConfiguration] ->
     native.
 
-pub (receiver: MediaConfiguration) video(): Option[std.js.Dom.VideoConfiguration.VideoConfiguration] ->
+pub (receiver: MediaConfiguration) video(): Option[std.js.Dom.VideoConfiguration] ->
     native.

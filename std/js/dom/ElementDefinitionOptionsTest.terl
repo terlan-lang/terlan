@@ -14,7 +14,5 @@ module std.js.Dom.ElementDefinitionOptionsTest.
 
 import type std.js.Dom.ElementDefinitionOptions.
 
-pub extends__typechecks(
-    receiver: ElementDefinitionOptions,
-): std.core.Option.Option[std.js.String.JsString] ->
+pub extends__typechecks(receiver: ElementDefinitionOptions): std.core.Option[std.js.String.JsString] ->
     receiver.extends_().

@@ -64,7 +64,7 @@ pub set_value_at_time_typechecks(
 
 pub set_value_curve_at_time_typechecks(
     receiver: AudioParam,
-    values: std.js.Float32Array.Float32Array | std.js.Array.Array[JsNumber],
+    values: std.js.Float32Array | std.js.Array[JsNumber],
     start_time: JsNumber,
     duration: JsNumber,
 ): AudioParam ->

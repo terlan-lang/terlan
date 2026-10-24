@@ -15,6 +15,6 @@ module std.js.Dom.ConvolverOptions.
 
 pub opaque type ConvolverOptions.
 
-pub (receiver: ConvolverOptions) buffer(): std.core.Option.Option[std.js.Dom.AudioBuffer.AudioBuffer].
+pub (receiver: ConvolverOptions) buffer(): std.core.Option[std.js.Dom.AudioBuffer].
 
-pub (receiver: ConvolverOptions) disable_normalization(): std.core.Option.Option[Bool].
+pub (receiver: ConvolverOptions) disable_normalization(): std.core.Option[Bool].

@@ -13,8 +13,8 @@
 module std.js.Dom.XMLHttpRequestBodyInit.
 
 pub type XMLHttpRequestBodyInit =
-      std.js.Dom.Blob.Blob
-    | std.js.Dom.BufferSource.BufferSource
-    | std.js.Dom.FormData.FormData
-    | std.js.Dom.URLSearchParams.URLSearchParams
+      std.js.Dom.Blob
+    | std.js.Dom.BufferSource
+    | std.js.Dom.FormData
+    | std.js.Dom.URLSearchParams
     | std.js.String.JsString.

@@ -15,4 +15,4 @@ module std.js.Dom.KeyframeEffectOptions.
 
 pub opaque type KeyframeEffectOptions.
 
-pub (receiver: KeyframeEffectOptions) pseudo_element(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: KeyframeEffectOptions) pseudo_element(): std.core.Option[std.js.String.JsString].

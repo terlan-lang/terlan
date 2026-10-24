@@ -12,23 +12,21 @@
  */
 module std.js.Dom.AudioWorkletNodeTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.AudioWorkletNode.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{AudioWorkletNode, EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
-pub parameters_typechecks(receiver: AudioWorkletNode): std.js.Dom.AudioParamMap.AudioParamMap ->
+pub parameters_typechecks(receiver: AudioWorkletNode): std.js.Dom.AudioParamMap ->
     receiver.parameters().
 
-pub port_typechecks(receiver: AudioWorkletNode): std.js.Dom.MessagePort.MessagePort ->
+pub port_typechecks(receiver: AudioWorkletNode): std.js.Dom.MessagePort ->
     receiver.port().
 
 pub add_event_listener_typechecks(
     receiver: AudioWorkletNode,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -36,6 +34,6 @@ pub remove_event_listener_typechecks(
     receiver: AudioWorkletNode,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

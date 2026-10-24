@@ -18,5 +18,5 @@ pub add_color_stop_typechecks(
     receiver: CanvasGradient,
     offset: std.js.Number.JsNumber,
     color: std.js.String.JsString,
-): std.core.Unit.Unit ->
+): std.core.Unit ->
     receiver.add_color_stop(offset, color).

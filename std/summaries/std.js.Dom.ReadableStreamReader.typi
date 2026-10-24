@@ -14,4 +14,4 @@
 module std.js.Dom.ReadableStreamReader.
 
 pub type ReadableStreamReader[T] =
-    std.js.Dom.ReadableStreamBYOBReader.ReadableStreamBYOBReader | std.js.Dom.ReadableStreamDefaultReader.ReadableStreamDefaultReader[T].
+    std.js.Dom.ReadableStreamBYOBReader | std.js.Dom.ReadableStreamDefaultReader[T].

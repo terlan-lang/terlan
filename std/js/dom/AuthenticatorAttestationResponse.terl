@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AuthenticatorAttestationResponse.
 
-import type std.js.ArrayBuffer.{ArrayBuffer}.
+import type std.js.{ArrayBuffer}.
 
 /**
  * The **`AuthenticatorAttestationResponse`** interface of the Web Authentication API is the result of a WebAuthn credential registration.
@@ -43,7 +43,7 @@ pub (receiver: AuthenticatorAttestationResponse) get_authenticator_data(): Array
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AuthenticatorAttestationResponse/getPublicKey)
  */
-pub (receiver: AuthenticatorAttestationResponse) get_public_key(): std.core.Option.Option[ArrayBuffer] ->
+pub (receiver: AuthenticatorAttestationResponse) get_public_key(): std.core.Option[ArrayBuffer] ->
     native.
 
 /**
@@ -51,7 +51,7 @@ pub (receiver: AuthenticatorAttestationResponse) get_public_key(): std.core.Opti
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AuthenticatorAttestationResponse/getPublicKeyAlgorithm)
  */
-pub (receiver: AuthenticatorAttestationResponse) get_public_key_algorithm(): std.js.Dom.COSEAlgorithmIdentifier.COSEAlgorithmIdentifier ->
+pub (receiver: AuthenticatorAttestationResponse) get_public_key_algorithm(): std.js.Dom.COSEAlgorithmIdentifier ->
     native.
 
 /**
@@ -59,5 +59,5 @@ pub (receiver: AuthenticatorAttestationResponse) get_public_key_algorithm(): std
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AuthenticatorAttestationResponse/getTransports)
  */
-pub (receiver: AuthenticatorAttestationResponse) get_transports(): std.js.Array.Array[std.js.String.JsString] ->
+pub (receiver: AuthenticatorAttestationResponse) get_transports(): std.js.Array[std.js.String.JsString] ->
     native.

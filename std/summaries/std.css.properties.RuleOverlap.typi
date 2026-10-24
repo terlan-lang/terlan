@@ -8,7 +8,7 @@ module std.css.properties.RuleOverlap.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    rule_overlap: std.core.Option.Option[Value]
+    rule_overlap: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

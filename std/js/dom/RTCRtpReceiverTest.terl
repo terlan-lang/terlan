@@ -12,44 +12,36 @@
  */
 module std.js.Dom.RTCRtpReceiverTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
+import type std.core.{Option}.
 import type std.js.Dom.RTCRtpReceiver.
+import type std.js.{Array}.
 
 pub jitter_buffer_target_typechecks(
     receiver: RTCRtpReceiver,
-): Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp] ->
+): Option[std.js.Dom.DOMHighResTimeStamp] ->
     receiver.jitter_buffer_target().
 
-pub track_typechecks(receiver: RTCRtpReceiver): std.js.Dom.MediaStreamTrack.MediaStreamTrack ->
+pub track_typechecks(receiver: RTCRtpReceiver): std.js.Dom.MediaStreamTrack ->
     receiver.track().
 
-pub transform_typechecks(
-    receiver: RTCRtpReceiver,
-): Option[std.js.Dom.RTCRtpTransform.RTCRtpTransform] ->
+pub transform_typechecks(receiver: RTCRtpReceiver): Option[std.js.Dom.RTCRtpTransform] ->
     receiver.transform().
 
-pub transport_typechecks(
-    receiver: RTCRtpReceiver,
-): Option[std.js.Dom.RTCDtlsTransport.RTCDtlsTransport] ->
+pub transport_typechecks(receiver: RTCRtpReceiver): Option[std.js.Dom.RTCDtlsTransport] ->
     receiver.transport().
 
 pub get_contributing_sources_typechecks(
     receiver: RTCRtpReceiver,
-): Array[std.js.Dom.RTCRtpContributingSource.RTCRtpContributingSource] ->
+): Array[std.js.Dom.RTCRtpContributingSource] ->
     receiver.get_contributing_sources().
 
-pub get_parameters_typechecks(
-    receiver: RTCRtpReceiver,
-): std.js.Dom.RTCRtpReceiveParameters.RTCRtpReceiveParameters ->
+pub get_parameters_typechecks(receiver: RTCRtpReceiver): std.js.Dom.RTCRtpReceiveParameters ->
     receiver.get_parameters().
 
-pub get_stats_typechecks(
-    receiver: RTCRtpReceiver,
-): std.js.Promise.Promise[std.js.Dom.RTCStatsReport.RTCStatsReport] ->
+pub get_stats_typechecks(receiver: RTCRtpReceiver): std.js.Promise[std.js.Dom.RTCStatsReport] ->
     receiver.get_stats().
 
 pub get_synchronization_sources_typechecks(
     receiver: RTCRtpReceiver,
-): Array[std.js.Dom.RTCRtpSynchronizationSource.RTCRtpSynchronizationSource] ->
+): Array[std.js.Dom.RTCRtpSynchronizationSource] ->
     receiver.get_synchronization_sources().

@@ -14,5 +14,5 @@ module std.js.Dom.AudioWorkletNodeEventMapTest.
 
 import type std.js.Dom.AudioWorkletNodeEventMap.
 
-pub processorerror_typechecks(receiver: AudioWorkletNodeEventMap): std.js.Dom.ErrorEvent.ErrorEvent ->
+pub processorerror_typechecks(receiver: AudioWorkletNodeEventMap): std.js.Dom.ErrorEvent ->
     receiver.processorerror().

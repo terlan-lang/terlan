@@ -12,9 +12,8 @@
  */
 module std.js.Dom.HTMLOutputElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -36,21 +35,21 @@ pub (receiver: HTMLOutputElement) default_value(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/form)
  */
-pub (receiver: HTMLOutputElement) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: HTMLOutputElement) form(): Option[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`htmlFor`** property of the HTMLOutputElement interface is a string containing a space-separated list of other elements' `id`s, indicating that those elements contributed input values to (or otherwise affected) the calculation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/htmlFor)
  */
-pub (receiver: HTMLOutputElement) html_for(): std.js.Dom.DOMTokenList.DOMTokenList.
+pub (receiver: HTMLOutputElement) html_for(): std.js.Dom.DOMTokenList.
 
 /**
  * The **`HTMLOutputElement.labels`** read-only property returns a A NodeList containing the `<label>` elements associated with the `<output>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/labels)
  */
-pub (receiver: HTMLOutputElement) labels(): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement].
+pub (receiver: HTMLOutputElement) labels(): std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement].
 
 /**
  * The **`name`** property of the HTMLOutputElement interface indicates the name of the output element.
@@ -78,7 +77,7 @@ pub (receiver: HTMLOutputElement) validation_message(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOutputElement/validity)
  */
-pub (receiver: HTMLOutputElement) validity(): std.js.Dom.ValidityState.ValidityState.
+pub (receiver: HTMLOutputElement) validity(): std.js.Dom.ValidityState.
 
 /**
  * The **`value`** property of the HTMLOutputElement interface represents the value of the output element as a string, or the empty string if no value is set.
@@ -118,11 +117,11 @@ pub (receiver: HTMLOutputElement) set_custom_validity(error: JsString): Unit.
 pub (receiver: HTMLOutputElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: HTMLOutputElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

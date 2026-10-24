@@ -14,5 +14,5 @@ module std.js.Dom.CSSMathProductTest.
 
 import type std.js.Dom.CSSMathProduct.
 
-pub values_typechecks(receiver: CSSMathProduct): std.js.Dom.CSSNumericArray.CSSNumericArray ->
+pub values_typechecks(receiver: CSSMathProduct): std.js.Dom.CSSNumericArray ->
     receiver.values().

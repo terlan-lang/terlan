@@ -14,4 +14,4 @@ module std.js.Dom.NavigationHistoryEntryEventMap.
 
 pub opaque type NavigationHistoryEntryEventMap.
 
-pub (receiver: NavigationHistoryEntryEventMap) dispose(): std.js.Dom.Event.Event.
+pub (receiver: NavigationHistoryEntryEventMap) dispose(): std.js.Dom.Event.

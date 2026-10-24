@@ -46,36 +46,36 @@ pub (receiver: SpeechSynthesis) speaking(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/cancel)
  */
-pub (receiver: SpeechSynthesis) cancel(): std.core.Unit.Unit.
+pub (receiver: SpeechSynthesis) cancel(): std.core.Unit.
 
 /**
  * The **`getVoices()`** method of the current device.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/getVoices)
  */
-pub (receiver: SpeechSynthesis) get_voices(): std.js.Array.Array[std.js.Dom.SpeechSynthesisVoice.SpeechSynthesisVoice].
+pub (receiver: SpeechSynthesis) get_voices(): std.js.Array[std.js.Dom.SpeechSynthesisVoice].
 
 /**
  * The **`pause()`** method of the SpeechSynthesis interface puts the `SpeechSynthesis` object into a paused state.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/pause)
  */
-pub (receiver: SpeechSynthesis) pause(): std.core.Unit.Unit.
+pub (receiver: SpeechSynthesis) pause(): std.core.Unit.
 
 /**
  * The **`resume()`** method of the SpeechSynthesis interface puts the `SpeechSynthesis` object into a non-paused state: resumes it if it was already paused.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/resume)
  */
-pub (receiver: SpeechSynthesis) resume(): std.core.Unit.Unit.
+pub (receiver: SpeechSynthesis) resume(): std.core.Unit.
 
 /**
  * The **`speak()`** method of the SpeechSynthesis interface adds an SpeechSynthesisUtterance to the utterance queue; it will be spoken when any other utterances queued before it have been spoken.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/speak)
  */
-pub (receiver: SpeechSynthesis) speak(utterance: std.js.Dom.SpeechSynthesisUtterance.SpeechSynthesisUtterance): std.core.Unit.Unit.
+pub (receiver: SpeechSynthesis) speak(utterance: std.js.Dom.SpeechSynthesisUtterance): std.core.Unit.
 
-pub (receiver: SpeechSynthesis) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SpeechSynthesis) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SpeechSynthesis) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SpeechSynthesis) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

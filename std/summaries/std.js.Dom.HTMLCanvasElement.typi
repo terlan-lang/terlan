@@ -39,29 +39,29 @@ pub (receiver: HTMLCanvasElement) width(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/captureStream)
  */
-pub (receiver: HTMLCanvasElement) capture_stream(frame_request_rate: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Dom.MediaStream.MediaStream.
+pub (receiver: HTMLCanvasElement) capture_stream(frame_request_rate: std.core.Option[std.js.Number.JsNumber]): std.js.Dom.MediaStream.
 
 /**
  * The **`HTMLCanvasElement.toBlob()`** method creates a Blob object representing the image contained in the canvas.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toBlob)
  */
-pub (receiver: HTMLCanvasElement) to_blob(callback: std.js.Dom.BlobCallback.BlobCallback, type_: std.core.Option.Option[std.js.String.JsString], quality: std.core.Option.Option[std.js.Number.JsNumber]): std.core.Unit.Unit.
+pub (receiver: HTMLCanvasElement) to_blob(callback: std.js.Dom.BlobCallback, type_: std.core.Option[std.js.String.JsString], quality: std.core.Option[std.js.Number.JsNumber]): std.core.Unit.
 
 /**
  * The **`HTMLCanvasElement.toDataURL()`** method returns a data URL containing a representation of the image in the format specified by the `type` parameter.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toDataURL)
  */
-pub (receiver: HTMLCanvasElement) to_data_url(type_: std.core.Option.Option[std.js.String.JsString], quality: std.core.Option.Option[std.js.Number.JsNumber]): std.js.String.JsString.
+pub (receiver: HTMLCanvasElement) to_data_url(type_: std.core.Option[std.js.String.JsString], quality: std.core.Option[std.js.Number.JsNumber]): std.js.String.JsString.
 
 /**
  * The **`HTMLCanvasElement.transferControlToOffscreen()`** method transfers control to an OffscreenCanvas object, either on the main thread or on a worker.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/transferControlToOffscreen)
  */
-pub (receiver: HTMLCanvasElement) transfer_control_to_offscreen(): std.js.Dom.OffscreenCanvas.OffscreenCanvas.
+pub (receiver: HTMLCanvasElement) transfer_control_to_offscreen(): std.js.Dom.OffscreenCanvas.
 
-pub (receiver: HTMLCanvasElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLCanvasElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLCanvasElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLCanvasElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

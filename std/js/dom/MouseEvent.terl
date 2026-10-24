@@ -12,8 +12,8 @@
  */
 module std.js.Dom.MouseEvent.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.EventTarget.{EventTarget}.
+import type std.core.{Option}.
+import type std.js.Dom.{EventTarget}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -210,7 +210,7 @@ pub (receiver: MouseEvent) init_mouse_event(
     type_arg: JsString,
     can_bubble_arg: Bool,
     cancelable_arg: Bool,
-    view_arg: std.js.Dom.Window.Window,
+    view_arg: std.js.Dom.Window,
     detail_arg: JsNumber,
     screen_x_arg: JsNumber,
     screen_y_arg: JsNumber,
@@ -222,5 +222,5 @@ pub (receiver: MouseEvent) init_mouse_event(
     meta_key_arg: Bool,
     button_arg: JsNumber,
     related_target_arg: Option[EventTarget],
-): std.core.Unit.Unit ->
+): std.core.Unit ->
     native.

@@ -8,7 +8,7 @@ module std.css.properties.RuleWidth.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    rule_width: std.core.Option.Option[Value]
+    rule_width: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

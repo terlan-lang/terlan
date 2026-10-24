@@ -8,7 +8,7 @@ module std.css.properties.Display.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    display: std.core.Option.Option[Value]
+    display: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

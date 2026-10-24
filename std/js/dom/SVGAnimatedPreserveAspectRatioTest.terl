@@ -12,8 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedPreserveAspectRatioTest.
 
-import type std.js.Dom.SVGAnimatedPreserveAspectRatio.
-import type std.js.Dom.SVGPreserveAspectRatio.{SVGPreserveAspectRatio}.
+import type std.js.Dom.{SVGAnimatedPreserveAspectRatio, SVGPreserveAspectRatio}.
 
 pub anim_val_typechecks(receiver: SVGAnimatedPreserveAspectRatio): SVGPreserveAspectRatio ->
     receiver.anim_val().

@@ -12,11 +12,8 @@
  */
 module std.js.Dom.Performance.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.PerformanceEntryList.{PerformanceEntryList}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{DOMHighResTimeStamp, EventListenerOrEventListenerObject, PerformanceEntryList}.
 import type std.js.String.{JsString}.
 
 /**
@@ -31,7 +28,7 @@ pub opaque type Performance.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/eventCounts)
  */
-pub (receiver: Performance) event_counts(): std.js.Dom.EventCounts.EventCounts ->
+pub (receiver: Performance) event_counts(): std.js.Dom.EventCounts ->
     native.
 
 /**
@@ -40,7 +37,7 @@ pub (receiver: Performance) event_counts(): std.js.Dom.EventCounts.EventCounts -
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/navigation)
  */
-pub (receiver: Performance) navigation(): std.js.Dom.PerformanceNavigation.PerformanceNavigation ->
+pub (receiver: Performance) navigation(): std.js.Dom.PerformanceNavigation ->
     native.
 
 /**
@@ -57,7 +54,7 @@ pub (receiver: Performance) time_origin(): DOMHighResTimeStamp ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Performance/timing)
  */
-pub (receiver: Performance) timing(): std.js.Dom.PerformanceTiming.PerformanceTiming ->
+pub (receiver: Performance) timing(): std.js.Dom.PerformanceTiming ->
     native.
 
 /**
@@ -115,8 +112,8 @@ pub (receiver: Performance) get_entries_by_type(type_: JsString): PerformanceEnt
  */
 pub (receiver: Performance) mark(
     mark_name: JsString,
-    mark_options: Option[std.js.Dom.PerformanceMarkOptions.PerformanceMarkOptions],
-): std.js.Dom.PerformanceMark.PerformanceMark ->
+    mark_options: Option[std.js.Dom.PerformanceMarkOptions],
+): std.js.Dom.PerformanceMark ->
     native.
 
 /**
@@ -126,9 +123,9 @@ pub (receiver: Performance) mark(
  */
 pub (receiver: Performance) measure(
     measure_name: JsString,
-    start_or_measure_options: Option[std.js.Dom.PerformanceMeasureOptions.PerformanceMeasureOptions | JsString],
+    start_or_measure_options: Option[std.js.Dom.PerformanceMeasureOptions | JsString],
     end_mark: Option[JsString],
-): std.js.Dom.PerformanceMeasure.PerformanceMeasure ->
+): std.js.Dom.PerformanceMeasure ->
     native.
 
 /**
@@ -150,13 +147,13 @@ pub (receiver: Performance) set_resource_timing_buffer_size(max_size: std.js.Num
 pub (receiver: Performance) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: Performance) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

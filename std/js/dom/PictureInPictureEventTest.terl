@@ -16,5 +16,5 @@ import type std.js.Dom.PictureInPictureEvent.
 
 pub picture_in_picture_window_typechecks(
     receiver: PictureInPictureEvent,
-): std.js.Dom.PictureInPictureWindow.PictureInPictureWindow ->
+): std.js.Dom.PictureInPictureWindow ->
     receiver.picture_in_picture_window().

@@ -33,21 +33,21 @@ pub (receiver: GeolocationCoordinates) accuracy(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/altitude)
  */
-pub (receiver: GeolocationCoordinates) altitude(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: GeolocationCoordinates) altitude(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`altitudeAccuracy`** read-only property of the GeolocationCoordinates interface is a strictly positive `double` representing the accuracy, with a 95% confidence level, of the `altitude` expressed in meters.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/altitudeAccuracy)
  */
-pub (receiver: GeolocationCoordinates) altitude_accuracy(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: GeolocationCoordinates) altitude_accuracy(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`heading`** read-only property of the GeolocationCoordinates interface is a `double` representing the direction in which the device is traveling.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/heading)
  */
-pub (receiver: GeolocationCoordinates) heading(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: GeolocationCoordinates) heading(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`latitude`** read-only property of the GeolocationCoordinates interface is a `double` representing the latitude of the position in decimal degrees.
@@ -68,4 +68,4 @@ pub (receiver: GeolocationCoordinates) longitude(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GeolocationCoordinates/speed)
  */
-pub (receiver: GeolocationCoordinates) speed(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: GeolocationCoordinates) speed(): std.core.Option[std.js.Number.JsNumber].

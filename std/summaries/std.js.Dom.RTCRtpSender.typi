@@ -25,60 +25,60 @@ pub opaque type RTCRtpSender.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/dtmf)
  */
-pub (receiver: RTCRtpSender) dtmf(): std.core.Option.Option[std.js.Dom.RTCDTMFSender.RTCDTMFSender].
+pub (receiver: RTCRtpSender) dtmf(): std.core.Option[std.js.Dom.RTCDTMFSender].
 
 /**
  * The **`track`** read-only property of the RTCRtpSender interface returns the MediaStreamTrack which is being handled by the `RTCRtpSender`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/track)
  */
-pub (receiver: RTCRtpSender) track(): std.core.Option.Option[std.js.Dom.MediaStreamTrack.MediaStreamTrack].
+pub (receiver: RTCRtpSender) track(): std.core.Option[std.js.Dom.MediaStreamTrack].
 
 /**
  * The **`transform`** property of the RTCRtpSender object is used to insert a transform stream (TransformStream) running in a worker thread into the sender pipeline.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/transform)
  */
-pub (receiver: RTCRtpSender) transform(): std.core.Option.Option[std.js.Dom.RTCRtpTransform.RTCRtpTransform].
+pub (receiver: RTCRtpSender) transform(): std.core.Option[std.js.Dom.RTCRtpTransform].
 
 /**
  * The read-only **`transport`** property of an used to interact with the underlying transport over which the sender is exchanging Real-time Transport Control Protocol (RTCP) packets.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/transport)
  */
-pub (receiver: RTCRtpSender) transport(): std.core.Option.Option[std.js.Dom.RTCDtlsTransport.RTCDtlsTransport].
+pub (receiver: RTCRtpSender) transport(): std.core.Option[std.js.Dom.RTCDtlsTransport].
 
 /**
  * The **`getParameters()`** method of the RTCRtpSender interface returns an object describing the current configuration for how the sender's RTCRtpSender.track will be encoded and transmitted to a remote RTCRtpReceiver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/getParameters)
  */
-pub (receiver: RTCRtpSender) get_parameters(): std.js.Dom.RTCRtpSendParameters.RTCRtpSendParameters.
+pub (receiver: RTCRtpSender) get_parameters(): std.js.Dom.RTCRtpSendParameters.
 
 /**
  * The RTCRtpSender method **`getStats()`** asynchronously requests an RTCStatsReport object which provides statistics about outgoing traffic on the RTCPeerConnection which owns the sender, returning a Promise which is fulfilled when the results are available.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/getStats)
  */
-pub (receiver: RTCRtpSender) get_stats(): std.js.Promise.Promise[std.js.Dom.RTCStatsReport.RTCStatsReport].
+pub (receiver: RTCRtpSender) get_stats(): std.js.Promise[std.js.Dom.RTCStatsReport].
 
 /**
  * The RTCRtpSender method **`replaceTrack()`** replaces the track currently being used as the sender's source with a new MediaStreamTrack.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/replaceTrack)
  */
-pub (receiver: RTCRtpSender) replace_track(with_track: std.core.Option.Option[std.js.Dom.MediaStreamTrack.MediaStreamTrack]): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: RTCRtpSender) replace_track(with_track: std.core.Option[std.js.Dom.MediaStreamTrack]): std.js.Promise[std.core.Unit].
 
 /**
  * The **`setParameters()`** method of the RTCRtpSender interface applies changes the configuration of sender's RTCRtpSender.track, which is the MediaStreamTrack for which the `RTCRtpSender` is responsible.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/setParameters)
  */
-pub (receiver: RTCRtpSender) set_parameters(parameters: std.js.Dom.RTCRtpSendParameters.RTCRtpSendParameters, set_parameter_options: std.core.Option.Option[std.js.Dom.RTCSetParameterOptions.RTCSetParameterOptions]): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: RTCRtpSender) set_parameters(parameters: std.js.Dom.RTCRtpSendParameters, set_parameter_options: std.core.Option[std.js.Dom.RTCSetParameterOptions]): std.js.Promise[std.core.Unit].
 
 /**
  * The RTCRtpSender method **`setStreams()`** associates the sender's RTCRtpSender.track with the specified MediaStream objects.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/setStreams)
  */
-pub (receiver: RTCRtpSender) set_streams(streams: std.js.Array.Array[std.js.Dom.MediaStream.MediaStream]): std.core.Unit.Unit.
+pub (receiver: RTCRtpSender) set_streams(streams: std.js.Array[std.js.Dom.MediaStream]): std.core.Unit.

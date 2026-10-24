@@ -14,4 +14,4 @@ module std.js.Dom.DocumentTimelineOptions.
 
 pub opaque type DocumentTimelineOptions.
 
-pub (receiver: DocumentTimelineOptions) origin_time(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp].
+pub (receiver: DocumentTimelineOptions) origin_time(): std.core.Option[std.js.Dom.DOMHighResTimeStamp].

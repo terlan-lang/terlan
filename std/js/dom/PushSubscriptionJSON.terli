@@ -12,10 +12,10 @@
  */
 module std.js.Dom.PushSubscriptionJSON.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type PushSubscriptionJSON.
 
 pub (receiver: PushSubscriptionJSON) endpoint(): Option[std.js.String.JsString].
 
-pub (receiver: PushSubscriptionJSON) expiration_time(): Option[std.js.Dom.EpochTimeStamp.EpochTimeStamp].
+pub (receiver: PushSubscriptionJSON) expiration_time(): Option[std.js.Dom.EpochTimeStamp].

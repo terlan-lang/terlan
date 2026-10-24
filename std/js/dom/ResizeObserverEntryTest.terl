@@ -12,9 +12,8 @@
  */
 module std.js.Dom.ResizeObserverEntryTest.
 
-import type std.js.Array.{Array}.
-import type std.js.Dom.ResizeObserverEntry.
-import type std.js.Dom.ResizeObserverSize.{ResizeObserverSize}.
+import type std.js.Dom.{ResizeObserverEntry, ResizeObserverSize}.
+import type std.js.{Array}.
 
 pub border_box_size_typechecks(receiver: ResizeObserverEntry): Array[ResizeObserverSize] ->
     receiver.border_box_size().
@@ -22,9 +21,7 @@ pub border_box_size_typechecks(receiver: ResizeObserverEntry): Array[ResizeObser
 pub content_box_size_typechecks(receiver: ResizeObserverEntry): Array[ResizeObserverSize] ->
     receiver.content_box_size().
 
-pub content_rect_typechecks(
-    receiver: ResizeObserverEntry,
-): std.js.Dom.DOMRectReadOnly.DOMRectReadOnly ->
+pub content_rect_typechecks(receiver: ResizeObserverEntry): std.js.Dom.DOMRectReadOnly ->
     receiver.content_rect().
 
 pub device_pixel_content_box_size_typechecks(
@@ -32,5 +29,5 @@ pub device_pixel_content_box_size_typechecks(
 ): Array[ResizeObserverSize] ->
     receiver.device_pixel_content_box_size().
 
-pub target__typechecks(receiver: ResizeObserverEntry): std.js.Dom.Element.Element ->
+pub target__typechecks(receiver: ResizeObserverEntry): std.js.Dom.Element ->
     receiver.target_().

@@ -15,10 +15,10 @@ module std.js.Dom.RTCTrackEventInit.
 
 pub opaque type RTCTrackEventInit.
 
-pub (receiver: RTCTrackEventInit) receiver(): std.js.Dom.RTCRtpReceiver.RTCRtpReceiver.
+pub (receiver: RTCTrackEventInit) receiver(): std.js.Dom.RTCRtpReceiver.
 
-pub (receiver: RTCTrackEventInit) streams(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.MediaStream.MediaStream]].
+pub (receiver: RTCTrackEventInit) streams(): std.core.Option[std.js.Array[std.js.Dom.MediaStream]].
 
-pub (receiver: RTCTrackEventInit) track(): std.js.Dom.MediaStreamTrack.MediaStreamTrack.
+pub (receiver: RTCTrackEventInit) track(): std.js.Dom.MediaStreamTrack.
 
-pub (receiver: RTCTrackEventInit) transceiver(): std.js.Dom.RTCRtpTransceiver.RTCRtpTransceiver.
+pub (receiver: RTCTrackEventInit) transceiver(): std.js.Dom.RTCRtpTransceiver.

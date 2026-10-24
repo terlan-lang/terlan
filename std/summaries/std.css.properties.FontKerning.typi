@@ -8,7 +8,7 @@ module std.css.properties.FontKerning.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    font_kerning: std.core.Option.Option[Value]
+    font_kerning: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

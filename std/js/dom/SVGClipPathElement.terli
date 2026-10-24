@@ -12,9 +12,8 @@
  */
 module std.js.Dom.SVGClipPathElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -29,23 +28,23 @@ pub opaque type SVGClipPathElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGClipPathElement/clipPathUnits)
  */
-pub (receiver: SVGClipPathElement) clip_path_units(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration.
+pub (receiver: SVGClipPathElement) clip_path_units(): std.js.Dom.SVGAnimatedEnumeration.
 
 /**
  * The read-only **`transform`** property of the SVGClipPathElement interface reflects the transform attribute of a clipPath element, that is a list of transformations applied to the element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGClipPathElement/transform)
  */
-pub (receiver: SVGClipPathElement) transform(): std.js.Dom.SVGAnimatedTransformList.SVGAnimatedTransformList.
+pub (receiver: SVGClipPathElement) transform(): std.js.Dom.SVGAnimatedTransformList.
 
 pub (receiver: SVGClipPathElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: SVGClipPathElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

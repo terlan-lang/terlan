@@ -12,8 +12,8 @@
  */
 module std.js.Dom.IDBCursor.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.IDBValidKey.{IDBValidKey}.
+import type std.core.{Unit}.
+import type std.js.Dom.{IDBValidKey}.
 
 /**
  * The **`IDBCursor`** interface of the IndexedDB API represents a cursor for traversing or iterating over multiple records in a database.
@@ -43,7 +43,7 @@ pub (receiver: IDBCursor) primary_key(): IDBValidKey ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/request)
  */
-pub (receiver: IDBCursor) request(): std.js.Dom.IDBRequest.IDBRequest ->
+pub (receiver: IDBCursor) request(): std.js.Dom.IDBRequest ->
     native.
 
 /**
@@ -51,7 +51,7 @@ pub (receiver: IDBCursor) request(): std.js.Dom.IDBRequest.IDBRequest ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/source)
  */
-pub (receiver: IDBCursor) source(): std.js.Dom.IDBIndex.IDBIndex | std.js.Dom.IDBObjectStore.IDBObjectStore ->
+pub (receiver: IDBCursor) source(): std.js.Dom.IDBIndex | std.js.Dom.IDBObjectStore ->
     native.
 
 /**
@@ -67,7 +67,7 @@ pub (receiver: IDBCursor) advance(count: std.js.Number.JsNumber): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/continue)
  */
-pub (receiver: IDBCursor) continue(key: std.core.Option.Option[IDBValidKey]): Unit ->
+pub (receiver: IDBCursor) continue(key: std.core.Option[IDBValidKey]): Unit ->
     native.
 
 /**

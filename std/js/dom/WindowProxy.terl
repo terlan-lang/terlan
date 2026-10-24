@@ -12,4 +12,4 @@
  */
 module std.js.Dom.WindowProxy.
 
-pub type WindowProxy = std.js.Dom.Window.Window.
+pub type WindowProxy = std.js.Dom.Window.

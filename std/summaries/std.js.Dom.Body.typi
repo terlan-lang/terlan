@@ -18,7 +18,7 @@ pub opaque type Body.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/body)
  */
-pub (receiver: Body) body(): std.core.Option.Option[std.js.Dom.ReadableStream.ReadableStream[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]]].
+pub (receiver: Body) body(): std.core.Option[std.js.Dom.ReadableStream[std.js.Uint8Array[std.js.ArrayBuffer]]].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/bodyUsed)
@@ -28,24 +28,24 @@ pub (receiver: Body) body_used(): Bool.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/arrayBuffer)
  */
-pub (receiver: Body) array_buffer(): std.js.Promise.Promise[std.js.ArrayBuffer.ArrayBuffer].
+pub (receiver: Body) array_buffer(): std.js.Promise[std.js.ArrayBuffer].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/blob)
  */
-pub (receiver: Body) blob(): std.js.Promise.Promise[std.js.Dom.Blob.Blob].
+pub (receiver: Body) blob(): std.js.Promise[std.js.Dom.Blob].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/bytes)
  */
-pub (receiver: Body) bytes(): std.js.Promise.Promise[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]].
+pub (receiver: Body) bytes(): std.js.Promise[std.js.Uint8Array[std.js.ArrayBuffer]].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/formData)
  */
-pub (receiver: Body) form_data(): std.js.Promise.Promise[std.js.Dom.FormData.FormData].
+pub (receiver: Body) form_data(): std.js.Promise[std.js.Dom.FormData].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/text)
  */
-pub (receiver: Body) text(): std.js.Promise.Promise[std.js.String.JsString].
+pub (receiver: Body) text(): std.js.Promise[std.js.String.JsString].

@@ -15,6 +15,6 @@ module std.js.Dom.PageSwapEventInit.
 
 pub opaque type PageSwapEventInit.
 
-pub (receiver: PageSwapEventInit) activation(): std.core.Option.Option[std.js.Dom.NavigationActivation.NavigationActivation].
+pub (receiver: PageSwapEventInit) activation(): std.core.Option[std.js.Dom.NavigationActivation].
 
-pub (receiver: PageSwapEventInit) view_transition(): std.core.Option.Option[std.js.Dom.ViewTransition.ViewTransition].
+pub (receiver: PageSwapEventInit) view_transition(): std.core.Option[std.js.Dom.ViewTransition].

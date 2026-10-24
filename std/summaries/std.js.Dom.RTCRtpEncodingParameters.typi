@@ -15,10 +15,10 @@ module std.js.Dom.RTCRtpEncodingParameters.
 
 pub opaque type RTCRtpEncodingParameters.
 
-pub (receiver: RTCRtpEncodingParameters) active(): std.core.Option.Option[Bool].
+pub (receiver: RTCRtpEncodingParameters) active(): std.core.Option[Bool].
 
-pub (receiver: RTCRtpEncodingParameters) max_bitrate(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCRtpEncodingParameters) max_bitrate(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCRtpEncodingParameters) max_framerate(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCRtpEncodingParameters) max_framerate(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCRtpEncodingParameters) scale_resolution_down_by(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCRtpEncodingParameters) scale_resolution_down_by(): std.core.Option[std.js.Number.JsNumber].

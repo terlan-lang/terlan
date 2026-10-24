@@ -12,8 +12,8 @@
  */
 module std.js.Dom.ImageDecoder.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Unit}.
+import type std.js.{Promise}.
 
 /**
  * The **`ImageDecoder`** interface of the WebCodecs API provides a way to unpack and decode encoded image data.
@@ -42,7 +42,7 @@ pub (receiver: ImageDecoder) completed(): Promise[Unit].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/tracks)
  */
-pub (receiver: ImageDecoder) tracks(): std.js.Dom.ImageTrackList.ImageTrackList.
+pub (receiver: ImageDecoder) tracks(): std.js.Dom.ImageTrackList.
 
 /**
  * The **`type`** read-only property of the ImageDecoder interface reflects the MIME type configured during construction.
@@ -64,8 +64,8 @@ pub (receiver: ImageDecoder) close(): Unit.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ImageDecoder/decode)
  */
 pub (receiver: ImageDecoder) decode(
-    options: std.core.Option.Option[std.js.Dom.ImageDecodeOptions.ImageDecodeOptions],
-): Promise[std.js.Dom.ImageDecodeResult.ImageDecodeResult].
+    options: std.core.Option[std.js.Dom.ImageDecodeOptions],
+): Promise[std.js.Dom.ImageDecodeResult].
 
 /**
  * The **`reset()`** method of the ImageDecoder interface aborts all pending `decode()` operations; rejecting all pending promises.

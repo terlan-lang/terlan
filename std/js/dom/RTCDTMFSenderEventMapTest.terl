@@ -14,7 +14,5 @@ module std.js.Dom.RTCDTMFSenderEventMapTest.
 
 import type std.js.Dom.RTCDTMFSenderEventMap.
 
-pub tonechange_typechecks(
-    receiver: RTCDTMFSenderEventMap,
-): std.js.Dom.RTCDTMFToneChangeEvent.RTCDTMFToneChangeEvent ->
+pub tonechange_typechecks(receiver: RTCDTMFSenderEventMap): std.js.Dom.RTCDTMFToneChangeEvent ->
     receiver.tonechange().

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CSSMathClamp.
 
-import type std.js.Dom.CSSNumericValue.{CSSNumericValue}.
+import type std.js.Dom.{CSSNumericValue}.
 
 pub opaque type CSSMathClamp.
 

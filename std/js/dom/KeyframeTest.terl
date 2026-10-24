@@ -12,7 +12,7 @@
  */
 module std.js.Dom.KeyframeTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.Keyframe.
 
 pub easing_typechecks(receiver: Keyframe): Option[std.js.String.JsString] ->

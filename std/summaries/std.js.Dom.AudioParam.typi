@@ -95,4 +95,4 @@ pub (receiver: AudioParam) set_value_at_time(value: std.js.Number.JsNumber, star
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioParam/setValueCurveAtTime)
  */
-pub (receiver: AudioParam) set_value_curve_at_time(values: std.js.Float32Array.Float32Array | std.js.Array.Array[std.js.Number.JsNumber], start_time: std.js.Number.JsNumber, duration: std.js.Number.JsNumber): AudioParam.
+pub (receiver: AudioParam) set_value_curve_at_time(values: std.js.Float32Array | std.js.Array[std.js.Number.JsNumber], start_time: std.js.Number.JsNumber, duration: std.js.Number.JsNumber): AudioParam.

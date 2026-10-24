@@ -12,8 +12,8 @@
  */
 module std.js.Dom.CookieChangeEventInit.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.CookieList.{CookieList}.
+import type std.core.{Option}.
+import type std.js.Dom.{CookieList}.
 
 pub opaque type CookieChangeEventInit.
 

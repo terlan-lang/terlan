@@ -12,7 +12,7 @@
  */
 module std.js.Dom.PerformanceEventTiming.
 
-import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
+import type std.js.Dom.{DOMHighResTimeStamp}.
 
 /**
  * The `PerformanceEventTiming` interface of the Event Timing API provides insights into the latency of certain event types triggered by user interaction.
@@ -50,5 +50,5 @@ pub (receiver: PerformanceEventTiming) processing_start(): DOMHighResTimeStamp -
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEventTiming/target)
  */
-pub (receiver: PerformanceEventTiming) target_(): std.core.Option.Option[std.js.Dom.Node.Node] ->
+pub (receiver: PerformanceEventTiming) target_(): std.core.Option[std.js.Dom.Node] ->
     native.

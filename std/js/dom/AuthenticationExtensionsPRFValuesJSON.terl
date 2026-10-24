@@ -12,12 +12,12 @@
  */
 module std.js.Dom.AuthenticationExtensionsPRFValuesJSON.
 
-import type std.js.Dom.Base64URLString.{Base64URLString}.
+import type std.js.Dom.{Base64URLString}.
 
 pub opaque type AuthenticationExtensionsPRFValuesJSON.
 
 pub (receiver: AuthenticationExtensionsPRFValuesJSON) first(): Base64URLString ->
     native.
 
-pub (receiver: AuthenticationExtensionsPRFValuesJSON) second(): std.core.Option.Option[Base64URLString] ->
+pub (receiver: AuthenticationExtensionsPRFValuesJSON) second(): std.core.Option[Base64URLString] ->
     native.

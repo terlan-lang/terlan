@@ -12,8 +12,7 @@
  */
 module std.js.Dom.ElementEventMapTest.
 
-import type std.js.Dom.ElementEventMap.
-import type std.js.Dom.Event.{Event}.
+import type std.js.Dom.{ElementEventMap, Event}.
 
 pub fullscreenchange_typechecks(receiver: ElementEventMap): Event ->
     receiver.fullscreenchange().

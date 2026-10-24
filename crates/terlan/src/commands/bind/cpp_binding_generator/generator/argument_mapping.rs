@@ -375,8 +375,10 @@ pub(super) fn validate_scalar_argument(
             && (is_rust_str_type(&parameter.ty)
                 || is_cpp_string_view_type(&parameter.ty)
                 || is_optional_cpp_string_view_type(&parameter.ty))
-        || matches!(argument.ty.as_str(), "std.vm.Bytes.Bytes" | "Bytes")
-            && is_u8_slice_type(&parameter.ty)
+        || matches!(
+            argument.ty.as_str(),
+            "std.vm.Bytes" | "std.vm.Bytes.Bytes" | "Bytes"
+        ) && is_u8_slice_type(&parameter.ty)
         || argument.ty == "List[Int]"
             && (is_i64_slice_type(&parameter.ty)
                 || is_i64_array_ref_type(&parameter.ty)

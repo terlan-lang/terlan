@@ -12,7 +12,7 @@
  */
 module std.js.Dom.ExternalTest.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Dom.External.
 
 pub add_search_provider_typechecks(receiver: External): Unit ->

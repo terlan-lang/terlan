@@ -12,13 +12,13 @@
  */
 module std.js.Dom.PaymentDetailsBase.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
+import type std.core.{Option}.
+import type std.js.{Array}.
 
 pub opaque type PaymentDetailsBase.
 
-pub (receiver: PaymentDetailsBase) display_items(): Option[Array[std.js.Dom.PaymentItem.PaymentItem]].
+pub (receiver: PaymentDetailsBase) display_items(): Option[Array[std.js.Dom.PaymentItem]].
 
-pub (receiver: PaymentDetailsBase) modifiers(): Option[Array[std.js.Dom.PaymentDetailsModifier.PaymentDetailsModifier]].
+pub (receiver: PaymentDetailsBase) modifiers(): Option[Array[std.js.Dom.PaymentDetailsModifier]].
 
-pub (receiver: PaymentDetailsBase) shipping_options(): Option[Array[std.js.Dom.PaymentShippingOption.PaymentShippingOption]].
+pub (receiver: PaymentDetailsBase) shipping_options(): Option[Array[std.js.Dom.PaymentShippingOption]].

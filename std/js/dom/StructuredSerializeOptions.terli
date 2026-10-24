@@ -14,4 +14,4 @@ module std.js.Dom.StructuredSerializeOptions.
 
 pub opaque type StructuredSerializeOptions.
 
-pub (receiver: StructuredSerializeOptions) transfer(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.Transferable.Transferable]].
+pub (receiver: StructuredSerializeOptions) transfer(): std.core.Option[std.js.Array[std.js.Dom.Transferable]].

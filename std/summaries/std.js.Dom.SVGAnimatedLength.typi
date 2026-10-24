@@ -25,11 +25,11 @@ pub opaque type SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedLength/animVal)
  */
-pub (receiver: SVGAnimatedLength) anim_val(): std.js.Dom.SVGLength.SVGLength.
+pub (receiver: SVGAnimatedLength) anim_val(): std.js.Dom.SVGLength.
 
 /**
  * The **`baseVal`** property of the SVGAnimatedLength interface contains the initial value of an SVG enumeration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedLength/baseVal)
  */
-pub (receiver: SVGAnimatedLength) base_val(): std.js.Dom.SVGLength.SVGLength.
+pub (receiver: SVGAnimatedLength) base_val(): std.js.Dom.SVGLength.

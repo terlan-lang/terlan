@@ -12,10 +12,8 @@
  */
 module std.js.Dom.HTMLObjectElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Document.{Document}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Document, EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -75,7 +73,7 @@ pub (receiver: HTMLObjectElement) content_document(): Option[Document] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/contentWindow)
  */
-pub (receiver: HTMLObjectElement) content_window(): Option[std.js.Dom.WindowProxy.WindowProxy] ->
+pub (receiver: HTMLObjectElement) content_window(): Option[std.js.Dom.WindowProxy] ->
     native.
 
 /**
@@ -97,7 +95,7 @@ pub (receiver: HTMLObjectElement) declare(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/form)
  */
-pub (receiver: HTMLObjectElement) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
+pub (receiver: HTMLObjectElement) form(): Option[std.js.Dom.HTMLFormElement] ->
     native.
 
 /**
@@ -158,7 +156,7 @@ pub (receiver: HTMLObjectElement) validation_message(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLObjectElement/validity)
  */
-pub (receiver: HTMLObjectElement) validity(): std.js.Dom.ValidityState.ValidityState ->
+pub (receiver: HTMLObjectElement) validity(): std.js.Dom.ValidityState ->
     native.
 
 /**
@@ -218,13 +216,13 @@ pub (receiver: HTMLObjectElement) set_custom_validity(error: JsString): Unit ->
 pub (receiver: HTMLObjectElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: HTMLObjectElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

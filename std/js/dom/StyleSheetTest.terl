@@ -12,7 +12,7 @@
  */
 module std.js.Dom.StyleSheetTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.StyleSheet.
 import type std.js.String.{JsString}.
 
@@ -22,17 +22,15 @@ pub disabled_typechecks(receiver: StyleSheet): Bool ->
 pub href_typechecks(receiver: StyleSheet): Option[JsString] ->
     receiver.href().
 
-pub media_typechecks(receiver: StyleSheet): std.js.Dom.MediaList.MediaList ->
+pub media_typechecks(receiver: StyleSheet): std.js.Dom.MediaList ->
     receiver.media().
 
 pub owner_node_typechecks(
     receiver: StyleSheet,
-): Option[std.js.Dom.Element.Element | std.js.Dom.ProcessingInstruction.ProcessingInstruction] ->
+): Option[std.js.Dom.Element | std.js.Dom.ProcessingInstruction] ->
     receiver.owner_node().
 
-pub parent_style_sheet_typechecks(
-    receiver: StyleSheet,
-): Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
+pub parent_style_sheet_typechecks(receiver: StyleSheet): Option[std.js.Dom.CSSStyleSheet] ->
     receiver.parent_style_sheet().
 
 pub title_typechecks(receiver: StyleSheet): Option[JsString] ->

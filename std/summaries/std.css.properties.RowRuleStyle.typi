@@ -8,7 +8,7 @@ module std.css.properties.RowRuleStyle.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    row_rule_style: std.core.Option.Option[Value]
+    row_rule_style: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

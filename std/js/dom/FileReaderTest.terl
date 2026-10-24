@@ -12,17 +12,14 @@
  */
 module std.js.Dom.FileReaderTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Blob.{Blob}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.FileReader.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Blob, EventListenerOrEventListenerObject, FileReader}.
 import type std.js.String.{JsString}.
 
-pub error_typechecks(receiver: FileReader): Option[std.js.Dom.DOMException.DOMException] ->
+pub error_typechecks(receiver: FileReader): Option[std.js.Dom.DOMException] ->
     receiver.error().
 
-pub result_typechecks(receiver: FileReader): Option[std.js.ArrayBuffer.ArrayBuffer | JsString] ->
+pub result_typechecks(receiver: FileReader): Option[std.js.ArrayBuffer | JsString] ->
     receiver.result().
 
 pub abort_typechecks(receiver: FileReader): Unit ->
@@ -44,7 +41,7 @@ pub add_event_listener_typechecks(
     receiver: FileReader,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -52,6 +49,6 @@ pub remove_event_listener_typechecks(
     receiver: FileReader,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -13,14 +13,14 @@
 module std.js.Dom.Transferable.
 
 pub type Transferable =
-      std.js.ArrayBuffer.ArrayBuffer
-    | std.js.Dom.AudioData.AudioData
-    | std.js.Dom.ImageBitmap.ImageBitmap
-    | std.js.Dom.MediaSourceHandle.MediaSourceHandle
-    | std.js.Dom.MessagePort.MessagePort
-    | std.js.Dom.OffscreenCanvas.OffscreenCanvas
-    | std.js.Dom.RTCDataChannel.RTCDataChannel
-    | std.js.Dom.ReadableStream.ReadableStream
-    | std.js.Dom.TransformStream.TransformStream
-    | std.js.Dom.VideoFrame.VideoFrame
-    | std.js.Dom.WritableStream.WritableStream.
+      std.js.ArrayBuffer
+    | std.js.Dom.AudioData
+    | std.js.Dom.ImageBitmap
+    | std.js.Dom.MediaSourceHandle
+    | std.js.Dom.MessagePort
+    | std.js.Dom.OffscreenCanvas
+    | std.js.Dom.RTCDataChannel
+    | std.js.Dom.ReadableStream
+    | std.js.Dom.TransformStream
+    | std.js.Dom.VideoFrame
+    | std.js.Dom.WritableStream.

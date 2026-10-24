@@ -29,7 +29,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    spatial_navigation_function: std.core.Option.Option[Value],
+    spatial_navigation_function: std.core.Option[Value],
 }.
 
 /**

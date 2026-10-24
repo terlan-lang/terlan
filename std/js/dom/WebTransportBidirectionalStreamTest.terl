@@ -14,12 +14,8 @@ module std.js.Dom.WebTransportBidirectionalStreamTest.
 
 import type std.js.Dom.WebTransportBidirectionalStream.
 
-pub readable_typechecks(
-    receiver: WebTransportBidirectionalStream,
-): std.js.Dom.ReadableStream.ReadableStream ->
+pub readable_typechecks(receiver: WebTransportBidirectionalStream): std.js.Dom.ReadableStream ->
     receiver.readable().
 
-pub writable_typechecks(
-    receiver: WebTransportBidirectionalStream,
-): std.js.Dom.WritableStream.WritableStream ->
+pub writable_typechecks(receiver: WebTransportBidirectionalStream): std.js.Dom.WritableStream ->
     receiver.writable().

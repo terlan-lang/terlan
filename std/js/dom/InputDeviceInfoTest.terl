@@ -14,7 +14,5 @@ module std.js.Dom.InputDeviceInfoTest.
 
 import type std.js.Dom.InputDeviceInfo.
 
-pub get_capabilities_typechecks(
-    receiver: InputDeviceInfo,
-): std.js.Dom.MediaTrackCapabilities.MediaTrackCapabilities ->
+pub get_capabilities_typechecks(receiver: InputDeviceInfo): std.js.Dom.MediaTrackCapabilities ->
     receiver.get_capabilities().

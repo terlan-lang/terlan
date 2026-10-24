@@ -24,40 +24,40 @@ pub opaque type DocumentOrShadowRoot.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/activeElement)
  */
-pub (receiver: DocumentOrShadowRoot) active_element(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: DocumentOrShadowRoot) active_element(): std.core.Option[std.js.Dom.Element].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/adoptedStyleSheets)
  */
-pub (receiver: DocumentOrShadowRoot) adopted_style_sheets(): std.js.Array.Array[std.js.Dom.CSSStyleSheet.CSSStyleSheet].
+pub (receiver: DocumentOrShadowRoot) adopted_style_sheets(): std.js.Array[std.js.Dom.CSSStyleSheet].
 
 /**
  * Returns document's fullscreen element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fullscreenElement)
  */
-pub (receiver: DocumentOrShadowRoot) fullscreen_element(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: DocumentOrShadowRoot) fullscreen_element(): std.core.Option[std.js.Dom.Element].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/pictureInPictureElement)
  */
-pub (receiver: DocumentOrShadowRoot) picture_in_picture_element(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: DocumentOrShadowRoot) picture_in_picture_element(): std.core.Option[std.js.Dom.Element].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/pointerLockElement)
  */
-pub (receiver: DocumentOrShadowRoot) pointer_lock_element(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: DocumentOrShadowRoot) pointer_lock_element(): std.core.Option[std.js.Dom.Element].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/styleSheets)
  */
-pub (receiver: DocumentOrShadowRoot) style_sheets(): std.js.Dom.StyleSheetList.StyleSheetList.
+pub (receiver: DocumentOrShadowRoot) style_sheets(): std.js.Dom.StyleSheetList.
 
-pub (receiver: DocumentOrShadowRoot) element_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: DocumentOrShadowRoot) element_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Option[std.js.Dom.Element].
 
-pub (receiver: DocumentOrShadowRoot) elements_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.js.Array.Array[std.js.Dom.Element.Element].
+pub (receiver: DocumentOrShadowRoot) elements_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.js.Array[std.js.Dom.Element].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getAnimations)
  */
-pub (receiver: DocumentOrShadowRoot) get_animations(): std.js.Array.Array[std.js.Dom.Animation.Animation].
+pub (receiver: DocumentOrShadowRoot) get_animations(): std.js.Array[std.js.Dom.Animation].

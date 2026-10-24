@@ -14,7 +14,7 @@ module std.js.Dom.CryptoKeyTest.
 
 import type std.js.Dom.CryptoKey.
 
-pub algorithm_typechecks(receiver: CryptoKey): std.js.Dom.KeyAlgorithm.KeyAlgorithm ->
+pub algorithm_typechecks(receiver: CryptoKey): std.js.Dom.KeyAlgorithm ->
     receiver.algorithm().
 
 pub extractable_typechecks(receiver: CryptoKey): Bool ->

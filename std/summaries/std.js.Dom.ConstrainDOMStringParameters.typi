@@ -15,6 +15,6 @@ module std.js.Dom.ConstrainDOMStringParameters.
 
 pub opaque type ConstrainDOMStringParameters.
 
-pub (receiver: ConstrainDOMStringParameters) exact(): std.core.Option.Option[std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString].
+pub (receiver: ConstrainDOMStringParameters) exact(): std.core.Option[std.js.Array[std.js.String.JsString] | std.js.String.JsString].
 
-pub (receiver: ConstrainDOMStringParameters) ideal(): std.core.Option.Option[std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString].
+pub (receiver: ConstrainDOMStringParameters) ideal(): std.core.Option[std.js.Array[std.js.String.JsString] | std.js.String.JsString].

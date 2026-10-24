@@ -32,7 +32,7 @@ pub (receiver: VideoFrame) coded_height(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/codedRect)
  */
-pub (receiver: VideoFrame) coded_rect(): std.core.Option.Option[std.js.Dom.DOMRectReadOnly.DOMRectReadOnly].
+pub (receiver: VideoFrame) coded_rect(): std.core.Option[std.js.Dom.DOMRectReadOnly].
 
 /**
  * The **`codedWidth`** property of the VideoFrame interface returns the width of the `VideoFrame` in pixels, potentially including non-visible padding, and prior to considering potential ratio adjustments.
@@ -46,7 +46,7 @@ pub (receiver: VideoFrame) coded_width(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/colorSpace)
  */
-pub (receiver: VideoFrame) color_space(): std.js.Dom.VideoColorSpace.VideoColorSpace.
+pub (receiver: VideoFrame) color_space(): std.js.Dom.VideoColorSpace.
 
 /**
  * The **`displayHeight`** property of the VideoFrame interface returns the height of the `VideoFrame` after applying aspect ratio adjustments.
@@ -67,7 +67,7 @@ pub (receiver: VideoFrame) display_width(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/duration)
  */
-pub (receiver: VideoFrame) duration(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoFrame) duration(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`timestamp`** property of the VideoFrame interface returns an integer indicating the timestamp of the video in microseconds.
@@ -81,14 +81,14 @@ pub (receiver: VideoFrame) timestamp(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/visibleRect)
  */
-pub (receiver: VideoFrame) visible_rect(): std.core.Option.Option[std.js.Dom.DOMRectReadOnly.DOMRectReadOnly].
+pub (receiver: VideoFrame) visible_rect(): std.core.Option[std.js.Dom.DOMRectReadOnly].
 
 /**
  * The **`allocationSize()`** method of the VideoFrame interface returns the number of bytes required to hold the video as filtered by options passed into the method.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/allocationSize)
  */
-pub (receiver: VideoFrame) allocation_size(options: std.core.Option.Option[std.js.Dom.VideoFrameCopyToOptions.VideoFrameCopyToOptions]): std.js.Number.JsNumber.
+pub (receiver: VideoFrame) allocation_size(options: std.core.Option[std.js.Dom.VideoFrameCopyToOptions]): std.js.Number.JsNumber.
 
 /**
  * The **`clone()`** method of the VideoFrame interface creates a new `VideoFrame` object referencing the same media resource as the original.
@@ -102,11 +102,11 @@ pub (receiver: VideoFrame) clone(): VideoFrame.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/close)
  */
-pub (receiver: VideoFrame) close(): std.core.Unit.Unit.
+pub (receiver: VideoFrame) close(): std.core.Unit.
 
 /**
  * The **`copyTo()`** method of the VideoFrame interface copies the contents of the `VideoFrame` to an `ArrayBuffer`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/copyTo)
  */
-pub (receiver: VideoFrame) copy_to(destination: std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource, options: std.core.Option.Option[std.js.Dom.VideoFrameCopyToOptions.VideoFrameCopyToOptions]): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]].
+pub (receiver: VideoFrame) copy_to(destination: std.js.Dom.AllowSharedBufferSource, options: std.core.Option[std.js.Dom.VideoFrameCopyToOptions]): std.js.Promise[std.js.Array[std.js.Dom.PlaneLayout]].

@@ -32,7 +32,7 @@ pub (receiver: SVGTransform) angle(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/matrix)
  */
-pub (receiver: SVGTransform) matrix(): std.js.Dom.DOMMatrix.DOMMatrix.
+pub (receiver: SVGTransform) matrix(): std.js.Dom.DOMMatrix.
 
 /**
  * The **`type`** read-only property of the SVGTransform interface represents the `type` of transformation applied, specified by one of the `SVG_TRANSFORM_*` constants defined on this interface.
@@ -46,39 +46,39 @@ pub (receiver: SVGTransform) type_(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setMatrix)
  */
-pub (receiver: SVGTransform) set_matrix(matrix: std.core.Option.Option[std.js.Dom.DOMMatrix2DInit.DOMMatrix2DInit]): std.core.Unit.Unit.
+pub (receiver: SVGTransform) set_matrix(matrix: std.core.Option[std.js.Dom.DOMMatrix2DInit]): std.core.Unit.
 
 /**
  * The `setRotate()` method of the SVGTransform interface sets the transform type to `SVG_TRANSFORM_ROTATE`, with parameter `angle` defining the rotation angle and parameters `cx` and `cy` defining the optional center of rotation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setRotate)
  */
-pub (receiver: SVGTransform) set_rotate(angle: std.js.Number.JsNumber, cx: std.js.Number.JsNumber, cy: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGTransform) set_rotate(angle: std.js.Number.JsNumber, cx: std.js.Number.JsNumber, cy: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The `setScale()` method of the SVGTransform interface sets the transform type to `SVG_TRANSFORM_SCALE`, with parameters `sx` and `sy` defining the scale amounts.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setScale)
  */
-pub (receiver: SVGTransform) set_scale(sx: std.js.Number.JsNumber, sy: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGTransform) set_scale(sx: std.js.Number.JsNumber, sy: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The `setSkewX()` method of the SVGTransform interface sets the transform type to `SVG_TRANSFORM_SKEWX`, with parameter `angle` defining the amount of skew along the X-axis.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setSkewX)
  */
-pub (receiver: SVGTransform) set_skew_x(angle: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGTransform) set_skew_x(angle: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The `setSkewY()` method of the SVGTransform interface sets the transform type to `SVG_TRANSFORM_SKEWY`, with parameter `angle` defining the amount of skew along the Y-axis.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setSkewY)
  */
-pub (receiver: SVGTransform) set_skew_y(angle: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGTransform) set_skew_y(angle: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The `setTranslate()` method of the SVGTransform interface sets the transform type to `SVG_TRANSFORM_TRANSLATE`, with parameters `tx` and `ty` defining the translation amounts.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransform/setTranslate)
  */
-pub (receiver: SVGTransform) set_translate(tx: std.js.Number.JsNumber, ty: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGTransform) set_translate(tx: std.js.Number.JsNumber, ty: std.js.Number.JsNumber): std.core.Unit.

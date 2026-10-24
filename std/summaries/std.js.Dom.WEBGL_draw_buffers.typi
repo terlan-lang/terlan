@@ -25,4 +25,4 @@ pub opaque type WEBGL_draw_buffers.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_draw_buffers/drawBuffersWEBGL)
  */
-pub (receiver: WEBGL_draw_buffers) draw_buffers_webgl(buffers: std.js.Array.Array[std.js.Dom.GLenum.GLenum]): std.core.Unit.Unit.
+pub (receiver: WEBGL_draw_buffers) draw_buffers_webgl(buffers: std.js.Array[std.js.Dom.GLenum]): std.core.Unit.

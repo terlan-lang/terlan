@@ -53,7 +53,11 @@ pub(super) fn infer_constructor_call(
     // An imported explicit constructor owns construction authority before an
     // imported transparent alias can suggest a physical initializer shape.
     if let Some(imported) = ctx.constructor_aliases.get(name) {
-        if let Some(interface) = ctx.interface_map.get(&imported.module) {
+        if let Some(interface) = imported
+            .module
+            .as_ref()
+            .and_then(|module| ctx.interface_map.get(module))
+        {
             if let Some(schemes) = parse_interface_constructor_schemes(
                 interface
                     .constructors

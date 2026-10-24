@@ -12,11 +12,10 @@
  */
 module std.js.Dom.PaymentRequestUpdateEventTest.
 
-import type std.js.Dom.PaymentDetailsUpdate.{PaymentDetailsUpdate}.
-import type std.js.Dom.PaymentRequestUpdateEvent.
+import type std.js.Dom.{PaymentDetailsUpdate, PaymentRequestUpdateEvent}.
 
 pub update_with_typechecks(
     receiver: PaymentRequestUpdateEvent,
-    details_promise: PaymentDetailsUpdate | std.js.PromiseLike.PromiseLike[PaymentDetailsUpdate],
-): std.core.Unit.Unit ->
+    details_promise: PaymentDetailsUpdate | std.js.PromiseLike[PaymentDetailsUpdate],
+): std.core.Unit ->
     receiver.update_with(details_promise).

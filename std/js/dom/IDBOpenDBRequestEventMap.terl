@@ -12,7 +12,7 @@
  */
 module std.js.Dom.IDBOpenDBRequestEventMap.
 
-import type std.js.Dom.IDBVersionChangeEvent.{IDBVersionChangeEvent}.
+import type std.js.Dom.{IDBVersionChangeEvent}.
 
 pub opaque type IDBOpenDBRequestEventMap.
 

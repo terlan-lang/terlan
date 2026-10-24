@@ -8,7 +8,7 @@ module std.css.properties.BackgroundPositionX.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    background_position_x: std.core.Option.Option[Value]
+    background_position_x: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

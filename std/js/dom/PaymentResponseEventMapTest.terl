@@ -16,5 +16,5 @@ import type std.js.Dom.PaymentResponseEventMap.
 
 pub payerdetailchange_typechecks(
     receiver: PaymentResponseEventMap,
-): std.js.Dom.PaymentRequestUpdateEvent.PaymentRequestUpdateEvent ->
+): std.js.Dom.PaymentRequestUpdateEvent ->
     receiver.payerdetailchange().

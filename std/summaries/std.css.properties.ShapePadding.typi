@@ -8,7 +8,7 @@ module std.css.properties.ShapePadding.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    shape_padding: std.core.Option.Option[Value]
+    shape_padding: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

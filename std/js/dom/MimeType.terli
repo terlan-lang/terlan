@@ -32,7 +32,7 @@ pub (receiver: MimeType) description(): JsString.
  * Returns the Plugin object that implements this MIME type.
  * @deprecated
  */
-pub (receiver: MimeType) enabled_plugin(): std.js.Dom.Plugin.Plugin.
+pub (receiver: MimeType) enabled_plugin(): std.js.Dom.Plugin.
 
 /**
  * Returns the MIME type's typical file extensions, in a comma-separated list.

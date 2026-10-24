@@ -130,7 +130,7 @@ pub (receiver: MouseEvent) page_y(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/relatedTarget)
  */
-pub (receiver: MouseEvent) related_target(): std.core.Option.Option[std.js.Dom.EventTarget.EventTarget].
+pub (receiver: MouseEvent) related_target(): std.core.Option[std.js.Dom.EventTarget].
 
 /**
  * The **`screenX`** read-only property of the MouseEvent interface provides the horizontal coordinate (offset) of the mouse pointer in screen coordinates.
@@ -180,4 +180,4 @@ pub (receiver: MouseEvent) get_modifier_state(key_arg: std.js.String.JsString): 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MouseEvent/initMouseEvent)
  */
-pub (receiver: MouseEvent) init_mouse_event(type_arg: std.js.String.JsString, can_bubble_arg: Bool, cancelable_arg: Bool, view_arg: std.js.Dom.Window.Window, detail_arg: std.js.Number.JsNumber, screen_x_arg: std.js.Number.JsNumber, screen_y_arg: std.js.Number.JsNumber, client_x_arg: std.js.Number.JsNumber, client_y_arg: std.js.Number.JsNumber, ctrl_key_arg: Bool, alt_key_arg: Bool, shift_key_arg: Bool, meta_key_arg: Bool, button_arg: std.js.Number.JsNumber, related_target_arg: std.core.Option.Option[std.js.Dom.EventTarget.EventTarget]): std.core.Unit.Unit.
+pub (receiver: MouseEvent) init_mouse_event(type_arg: std.js.String.JsString, can_bubble_arg: Bool, cancelable_arg: Bool, view_arg: std.js.Dom.Window, detail_arg: std.js.Number.JsNumber, screen_x_arg: std.js.Number.JsNumber, screen_y_arg: std.js.Number.JsNumber, client_x_arg: std.js.Number.JsNumber, client_y_arg: std.js.Number.JsNumber, ctrl_key_arg: Bool, alt_key_arg: Bool, shift_key_arg: Bool, meta_key_arg: Bool, button_arg: std.js.Number.JsNumber, related_target_arg: std.core.Option[std.js.Dom.EventTarget]): std.core.Unit.

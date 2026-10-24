@@ -75,7 +75,7 @@ pub sha256(text: String): String.
  * Returns the lowercase SHA-256 digest of immutable binary data.
  */
 @compiler.native
-pub sha256_bytes(bytes: std.vm.Bytes.Bytes): String.
+pub sha256_bytes(bytes: std.vm.Bytes): String.
 
 /**
  * Hashes ordered UTF-8 fields with unsigned 64-bit length framing.

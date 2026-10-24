@@ -14,5 +14,5 @@ module std.js.EvalErrorConstructorTest.
 
 import type std.js.EvalErrorConstructor.
 
-pub prototype_typechecks(receiver: EvalErrorConstructor): std.js.EvalError.EvalError ->
+pub prototype_typechecks(receiver: EvalErrorConstructor): std.js.EvalError ->
     receiver.prototype().

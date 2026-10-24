@@ -14,7 +14,5 @@ module std.js.Dom.ClipboardEventTest.
 
 import type std.js.Dom.ClipboardEvent.
 
-pub clipboard_data_typechecks(
-    receiver: ClipboardEvent,
-): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer] ->
+pub clipboard_data_typechecks(receiver: ClipboardEvent): std.core.Option[std.js.Dom.DataTransfer] ->
     receiver.clipboard_data().

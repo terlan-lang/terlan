@@ -8,7 +8,7 @@ module std.css.properties.MinWidth.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    min_width: std.core.Option.Option[Value]
+    min_width: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

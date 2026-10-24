@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SpeechSynthesisEventInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.SpeechSynthesisEventInit.
 import type std.js.Number.{JsNumber}.
 
@@ -28,7 +28,5 @@ pub elapsed_time_typechecks(receiver: SpeechSynthesisEventInit): Option[JsNumber
 pub name_typechecks(receiver: SpeechSynthesisEventInit): Option[std.js.String.JsString] ->
     receiver.name().
 
-pub utterance_typechecks(
-    receiver: SpeechSynthesisEventInit,
-): std.js.Dom.SpeechSynthesisUtterance.SpeechSynthesisUtterance ->
+pub utterance_typechecks(receiver: SpeechSynthesisEventInit): std.js.Dom.SpeechSynthesisUtterance ->
     receiver.utterance().

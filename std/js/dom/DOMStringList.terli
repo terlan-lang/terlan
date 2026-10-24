@@ -41,4 +41,4 @@ pub (receiver: DOMStringList) contains(string: JsString): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMStringList/item)
  */
-pub (receiver: DOMStringList) item(index: JsNumber): std.core.Option.Option[JsString].
+pub (receiver: DOMStringList) item(index: JsNumber): std.core.Option[JsString].

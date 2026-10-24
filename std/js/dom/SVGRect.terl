@@ -12,4 +12,4 @@
  */
 module std.js.Dom.SVGRect.
 
-pub type SVGRect = std.js.Dom.DOMRect.DOMRect.
+pub type SVGRect = std.js.Dom.DOMRect.

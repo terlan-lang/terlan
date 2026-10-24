@@ -12,11 +12,9 @@
  */
 module std.js.Dom.RTCRtpSender.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.MediaStreamTrack.{MediaStreamTrack}.
-import type std.js.Dom.RTCRtpSendParameters.{RTCRtpSendParameters}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{MediaStreamTrack, RTCRtpSendParameters}.
+import type std.js.{Promise}.
 
 /**
  * The **`RTCRtpSender`** interface provides the ability to control and obtain details about how a particular MediaStreamTrack is encoded and sent to a remote peer.
@@ -30,7 +28,7 @@ pub opaque type RTCRtpSender.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/dtmf)
  */
-pub (receiver: RTCRtpSender) dtmf(): Option[std.js.Dom.RTCDTMFSender.RTCDTMFSender] ->
+pub (receiver: RTCRtpSender) dtmf(): Option[std.js.Dom.RTCDTMFSender] ->
     native.
 
 /**
@@ -46,7 +44,7 @@ pub (receiver: RTCRtpSender) track(): Option[MediaStreamTrack] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/transform)
  */
-pub (receiver: RTCRtpSender) transform(): Option[std.js.Dom.RTCRtpTransform.RTCRtpTransform] ->
+pub (receiver: RTCRtpSender) transform(): Option[std.js.Dom.RTCRtpTransform] ->
     native.
 
 /**
@@ -54,7 +52,7 @@ pub (receiver: RTCRtpSender) transform(): Option[std.js.Dom.RTCRtpTransform.RTCR
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/transport)
  */
-pub (receiver: RTCRtpSender) transport(): Option[std.js.Dom.RTCDtlsTransport.RTCDtlsTransport] ->
+pub (receiver: RTCRtpSender) transport(): Option[std.js.Dom.RTCDtlsTransport] ->
     native.
 
 /**
@@ -70,7 +68,7 @@ pub (receiver: RTCRtpSender) get_parameters(): RTCRtpSendParameters ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/getStats)
  */
-pub (receiver: RTCRtpSender) get_stats(): Promise[std.js.Dom.RTCStatsReport.RTCStatsReport] ->
+pub (receiver: RTCRtpSender) get_stats(): Promise[std.js.Dom.RTCStatsReport] ->
     native.
 
 /**
@@ -88,7 +86,7 @@ pub (receiver: RTCRtpSender) replace_track(with_track: Option[MediaStreamTrack])
  */
 pub (receiver: RTCRtpSender) set_parameters(
     parameters: RTCRtpSendParameters,
-    set_parameter_options: Option[std.js.Dom.RTCSetParameterOptions.RTCSetParameterOptions],
+    set_parameter_options: Option[std.js.Dom.RTCSetParameterOptions],
 ): Promise[Unit] ->
     native.
 
@@ -97,5 +95,5 @@ pub (receiver: RTCRtpSender) set_parameters(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpSender/setStreams)
  */
-pub (receiver: RTCRtpSender) set_streams(streams: std.js.Array.Array[std.js.Dom.MediaStream.MediaStream]): Unit ->
+pub (receiver: RTCRtpSender) set_streams(streams: std.js.Array[std.js.Dom.MediaStream]): Unit ->
     native.

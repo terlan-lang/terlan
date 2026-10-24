@@ -12,7 +12,7 @@
  */
 module std.js.ImportCallOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 /**
  * The type for the optional second argument to `import()`.
@@ -25,8 +25,8 @@ pub opaque type ImportCallOptions.
 /**
  * @deprecated
  */
-pub (receiver: ImportCallOptions) assert(): Option[std.js.ImportAssertions.ImportAssertions] ->
+pub (receiver: ImportCallOptions) assert(): Option[std.js.ImportAssertions] ->
     native.
 
-pub (receiver: ImportCallOptions) with_(): Option[std.js.ImportAttributes.ImportAttributes] ->
+pub (receiver: ImportCallOptions) with_(): Option[std.js.ImportAttributes] ->
     native.

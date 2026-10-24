@@ -8,7 +8,7 @@ module std.css.properties.InitialLetterAlign.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    initial_letter_align: std.core.Option.Option[Value]
+    initial_letter_align: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

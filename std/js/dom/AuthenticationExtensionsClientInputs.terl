@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AuthenticationExtensionsClientInputs.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type AuthenticationExtensionsClientInputs.
@@ -32,11 +32,11 @@ pub (receiver: AuthenticationExtensionsClientInputs) enforce_credential_protecti
 pub (receiver: AuthenticationExtensionsClientInputs) hmac_create_secret(): Option[Bool] ->
     native.
 
-pub (receiver: AuthenticationExtensionsClientInputs) large_blob(): Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputs.AuthenticationExtensionsLargeBlobInputs] ->
+pub (receiver: AuthenticationExtensionsClientInputs) large_blob(): Option[std.js.Dom.AuthenticationExtensionsLargeBlobInputs] ->
     native.
 
 pub (receiver: AuthenticationExtensionsClientInputs) min_pin_length(): Option[Bool] ->
     native.
 
-pub (receiver: AuthenticationExtensionsClientInputs) prf(): Option[std.js.Dom.AuthenticationExtensionsPRFInputs.AuthenticationExtensionsPRFInputs] ->
+pub (receiver: AuthenticationExtensionsClientInputs) prf(): Option[std.js.Dom.AuthenticationExtensionsPRFInputs] ->
     native.

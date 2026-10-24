@@ -29,7 +29,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    word_space_transform: std.core.Option.Option[Value],
+    word_space_transform: std.core.Option[Value],
 }.
 
 /**

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.DeviceMotionEventInitTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.DeviceMotionEventAccelerationInit.{DeviceMotionEventAccelerationInit}.
-import type std.js.Dom.DeviceMotionEventInit.
+import type std.core.{Option}.
+import type std.js.Dom.{DeviceMotionEventAccelerationInit, DeviceMotionEventInit}.
 
 pub acceleration_typechecks(
     receiver: DeviceMotionEventInit,
@@ -31,5 +30,5 @@ pub interval_typechecks(receiver: DeviceMotionEventInit): Option[std.js.Number.J
 
 pub rotation_rate_typechecks(
     receiver: DeviceMotionEventInit,
-): Option[std.js.Dom.DeviceMotionEventRotationRateInit.DeviceMotionEventRotationRateInit] ->
+): Option[std.js.Dom.DeviceMotionEventRotationRateInit] ->
     receiver.rotation_rate().

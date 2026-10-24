@@ -25,53 +25,53 @@ pub opaque type RTCRtpReceiver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/jitterBufferTarget)
  */
-pub (receiver: RTCRtpReceiver) jitter_buffer_target(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp].
+pub (receiver: RTCRtpReceiver) jitter_buffer_target(): std.core.Option[std.js.Dom.DOMHighResTimeStamp].
 
 /**
  * The **`track`** read-only property of the associated with the current RTCRtpReceiver instance.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/track)
  */
-pub (receiver: RTCRtpReceiver) track(): std.js.Dom.MediaStreamTrack.MediaStreamTrack.
+pub (receiver: RTCRtpReceiver) track(): std.js.Dom.MediaStreamTrack.
 
 /**
  * The **`transform`** property of the RTCRtpReceiver object is used to insert a transform stream (TransformStream) running in a worker thread into the receiver pipeline.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/transform)
  */
-pub (receiver: RTCRtpReceiver) transform(): std.core.Option.Option[std.js.Dom.RTCRtpTransform.RTCRtpTransform].
+pub (receiver: RTCRtpReceiver) transform(): std.core.Option[std.js.Dom.RTCRtpTransform].
 
 /**
  * The read-only **`transport`** property of an used to interact with the underlying transport over which the receiver is exchanging Real-time Transport Control Protocol (RTCP) packets.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/transport)
  */
-pub (receiver: RTCRtpReceiver) transport(): std.core.Option.Option[std.js.Dom.RTCDtlsTransport.RTCDtlsTransport].
+pub (receiver: RTCRtpReceiver) transport(): std.core.Option[std.js.Dom.RTCDtlsTransport].
 
 /**
  * The **`getContributingSources()`** method of the RTCRtpReceiver interface returns an array of objects, each corresponding to one CSRC (contributing source) identifier received by the current `RTCRtpReceiver` in the last ten seconds.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/getContributingSources)
  */
-pub (receiver: RTCRtpReceiver) get_contributing_sources(): std.js.Array.Array[std.js.Dom.RTCRtpContributingSource.RTCRtpContributingSource].
+pub (receiver: RTCRtpReceiver) get_contributing_sources(): std.js.Array[std.js.Dom.RTCRtpContributingSource].
 
 /**
  * The **`getParameters()`** method of the RTCRtpReceiver interface returns an object describing the current configuration for how the receiver's RTCRtpReceiver.track is decoded.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/getParameters)
  */
-pub (receiver: RTCRtpReceiver) get_parameters(): std.js.Dom.RTCRtpReceiveParameters.RTCRtpReceiveParameters.
+pub (receiver: RTCRtpReceiver) get_parameters(): std.js.Dom.RTCRtpReceiveParameters.
 
 /**
  * The RTCRtpReceiver method **`getStats()`** asynchronously requests an RTCStatsReport object which provides statistics about incoming traffic on the owning RTCPeerConnection, returning a Promise whose fulfillment handler will be called once the results are available.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/getStats)
  */
-pub (receiver: RTCRtpReceiver) get_stats(): std.js.Promise.Promise[std.js.Dom.RTCStatsReport.RTCStatsReport].
+pub (receiver: RTCRtpReceiver) get_stats(): std.js.Promise[std.js.Dom.RTCStatsReport].
 
 /**
  * The **`getSynchronizationSources()`** method of the RTCRtpReceiver interface returns an array of objects, each corresponding to one SSRC (synchronization source) identifier received by the current `RTCRtpReceiver` in the last ten seconds.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpReceiver/getSynchronizationSources)
  */
-pub (receiver: RTCRtpReceiver) get_synchronization_sources(): std.js.Array.Array[std.js.Dom.RTCRtpSynchronizationSource.RTCRtpSynchronizationSource].
+pub (receiver: RTCRtpReceiver) get_synchronization_sources(): std.js.Array[std.js.Dom.RTCRtpSynchronizationSource].

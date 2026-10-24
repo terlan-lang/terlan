@@ -15,10 +15,10 @@ module std.js.Dom.RTCIceCandidateInit.
 
 pub opaque type RTCIceCandidateInit.
 
-pub (receiver: RTCIceCandidateInit) candidate(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCIceCandidateInit) candidate(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCIceCandidateInit) sdp_m_line_index(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCIceCandidateInit) sdp_m_line_index(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCIceCandidateInit) sdp_mid(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCIceCandidateInit) sdp_mid(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCIceCandidateInit) username_fragment(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCIceCandidateInit) username_fragment(): std.core.Option[std.js.String.JsString].

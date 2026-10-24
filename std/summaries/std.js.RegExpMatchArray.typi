@@ -18,9 +18,9 @@ pub opaque type RegExpMatchArray.
 /**
  * The index of the search at which the result was found.
  */
-pub (receiver: RegExpMatchArray) index(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RegExpMatchArray) index(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * A copy of the search string.
  */
-pub (receiver: RegExpMatchArray) input(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RegExpMatchArray) input(): std.core.Option[std.js.String.JsString].

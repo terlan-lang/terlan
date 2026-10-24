@@ -25,4 +25,4 @@ pub opaque type CanvasRenderingContext2D.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/canvas)
  */
-pub (receiver: CanvasRenderingContext2D) canvas(): std.js.Dom.HTMLCanvasElement.HTMLCanvasElement.
+pub (receiver: CanvasRenderingContext2D) canvas(): std.js.Dom.HTMLCanvasElement.

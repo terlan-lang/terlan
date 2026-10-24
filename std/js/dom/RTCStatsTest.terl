@@ -17,5 +17,5 @@ import type std.js.Dom.RTCStats.
 pub id_typechecks(receiver: RTCStats): std.js.String.JsString ->
     receiver.id().
 
-pub timestamp_typechecks(receiver: RTCStats): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
+pub timestamp_typechecks(receiver: RTCStats): std.js.Dom.DOMHighResTimeStamp ->
     receiver.timestamp().

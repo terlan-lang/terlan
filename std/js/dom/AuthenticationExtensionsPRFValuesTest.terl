@@ -12,13 +12,10 @@
  */
 module std.js.Dom.AuthenticationExtensionsPRFValuesTest.
 
-import type std.js.Dom.AuthenticationExtensionsPRFValues.
-import type std.js.Dom.BufferSource.{BufferSource}.
+import type std.js.Dom.{AuthenticationExtensionsPRFValues, BufferSource}.
 
 pub first_typechecks(receiver: AuthenticationExtensionsPRFValues): BufferSource ->
     receiver.first().
 
-pub second_typechecks(
-    receiver: AuthenticationExtensionsPRFValues,
-): std.core.Option.Option[BufferSource] ->
+pub second_typechecks(receiver: AuthenticationExtensionsPRFValues): std.core.Option[BufferSource] ->
     receiver.second().

@@ -8,7 +8,7 @@ module std.css.properties.BlockStepSize.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    block_step_size: std.core.Option.Option[Value]
+    block_step_size: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

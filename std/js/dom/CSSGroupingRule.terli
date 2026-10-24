@@ -26,18 +26,18 @@ pub opaque type CSSGroupingRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSGroupingRule/cssRules)
  */
-pub (receiver: CSSGroupingRule) css_rules(): std.js.Dom.CSSRuleList.CSSRuleList.
+pub (receiver: CSSGroupingRule) css_rules(): std.js.Dom.CSSRuleList.
 
 /**
  * The **`deleteRule()`** method of the rules.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSGroupingRule/deleteRule)
  */
-pub (receiver: CSSGroupingRule) delete_rule(index: JsNumber): std.core.Unit.Unit.
+pub (receiver: CSSGroupingRule) delete_rule(index: JsNumber): std.core.Unit.
 
 /**
  * The **`insertRule()`** method of the ```js-nolint insertRule(rule) insertRule(rule, index) ``` - `rule` - : A string - `index` [MISSING: optional_inline] - : An optional index at which to insert the rule; defaults to 0.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSGroupingRule/insertRule)
  */
-pub (receiver: CSSGroupingRule) insert_rule(rule: std.js.String.JsString, index: std.core.Option.Option[JsNumber]): JsNumber.
+pub (receiver: CSSGroupingRule) insert_rule(rule: std.js.String.JsString, index: std.core.Option[JsNumber]): JsNumber.

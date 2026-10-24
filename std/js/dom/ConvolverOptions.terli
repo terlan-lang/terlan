@@ -12,10 +12,10 @@
  */
 module std.js.Dom.ConvolverOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type ConvolverOptions.
 
-pub (receiver: ConvolverOptions) buffer(): Option[std.js.Dom.AudioBuffer.AudioBuffer].
+pub (receiver: ConvolverOptions) buffer(): Option[std.js.Dom.AudioBuffer].
 
 pub (receiver: ConvolverOptions) disable_normalization(): Option[Bool].

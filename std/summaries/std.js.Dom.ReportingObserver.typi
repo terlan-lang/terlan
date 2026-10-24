@@ -25,18 +25,18 @@ pub opaque type ReportingObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReportingObserver/disconnect)
  */
-pub (receiver: ReportingObserver) disconnect(): std.core.Unit.Unit.
+pub (receiver: ReportingObserver) disconnect(): std.core.Unit.
 
 /**
  * The **`observe()`** method of the collecting reports in its report queue.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReportingObserver/observe)
  */
-pub (receiver: ReportingObserver) observe(): std.core.Unit.Unit.
+pub (receiver: ReportingObserver) observe(): std.core.Unit.
 
 /**
  * The **`takeRecords()`** method of the in the observer's report queue, and empties the queue.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReportingObserver/takeRecords)
  */
-pub (receiver: ReportingObserver) take_records(): std.js.Dom.ReportList.ReportList.
+pub (receiver: ReportingObserver) take_records(): std.js.Dom.ReportList.

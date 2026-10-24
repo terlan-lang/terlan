@@ -16,6 +16,6 @@ import type std.js.Dom.MediaKeys.
 
 pub set_server_certificate_typechecks(
     receiver: MediaKeys,
-    server_certificate: std.js.Dom.BufferSource.BufferSource,
-): std.js.Promise.Promise[Bool] ->
+    server_certificate: std.js.Dom.BufferSource,
+): std.js.Promise[Bool] ->
     receiver.set_server_certificate(server_certificate).

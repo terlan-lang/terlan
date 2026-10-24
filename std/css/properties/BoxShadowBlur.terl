@@ -33,7 +33,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    box_shadow_blur: std.core.Option.Option[Value],
+    box_shadow_blur: std.core.Option[Value],
 }.
 
 /**

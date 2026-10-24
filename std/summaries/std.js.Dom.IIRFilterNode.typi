@@ -25,4 +25,4 @@ pub opaque type IIRFilterNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IIRFilterNode/getFrequencyResponse)
  */
-pub (receiver: IIRFilterNode) get_frequency_response(frequency_hz: std.js.Float32Array.Float32Array[std.js.ArrayBuffer.ArrayBuffer], mag_response: std.js.Float32Array.Float32Array[std.js.ArrayBuffer.ArrayBuffer], phase_response: std.js.Float32Array.Float32Array[std.js.ArrayBuffer.ArrayBuffer]): std.core.Unit.Unit.
+pub (receiver: IIRFilterNode) get_frequency_response(frequency_hz: std.js.Float32Array[std.js.ArrayBuffer], mag_response: std.js.Float32Array[std.js.ArrayBuffer], phase_response: std.js.Float32Array[std.js.ArrayBuffer]): std.core.Unit.

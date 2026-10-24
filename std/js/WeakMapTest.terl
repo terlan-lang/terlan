@@ -17,7 +17,7 @@ import type std.js.WeakMap.
 pub delete_typechecks(receiver: WeakMap[K, V], key: K): Bool ->
     receiver.delete(key).
 
-pub get_typechecks(receiver: WeakMap[K, V], key: K): std.core.Option.Option[V] ->
+pub get_typechecks(receiver: WeakMap[K, V], key: K): std.core.Option[V] ->
     receiver.get(key).
 
 pub has_typechecks(receiver: WeakMap[K, V], key: K): Bool ->

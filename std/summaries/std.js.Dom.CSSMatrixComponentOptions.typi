@@ -15,4 +15,4 @@ module std.js.Dom.CSSMatrixComponentOptions.
 
 pub opaque type CSSMatrixComponentOptions.
 
-pub (receiver: CSSMatrixComponentOptions) is2_d(): std.core.Option.Option[Bool].
+pub (receiver: CSSMatrixComponentOptions) is2_d(): std.core.Option[Bool].

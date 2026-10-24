@@ -15,6 +15,6 @@ module std.js.Intl.NumberFormatConstructor.
 
 pub opaque type NumberFormatConstructor.
 
-pub (receiver: NumberFormatConstructor) supported_locales_of(locales: std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString, options: std.core.Option.Option[std.js.Intl.NumberFormatOptions.NumberFormatOptions]): std.js.Array.Array[std.js.String.JsString].
+pub (receiver: NumberFormatConstructor) supported_locales_of(locales: std.js.Array[std.js.String.JsString] | std.js.String.JsString, options: std.core.Option[std.js.Intl.NumberFormatOptions]): std.js.Array[std.js.String.JsString].
 
-pub (receiver: NumberFormatConstructor) prototype(): std.js.Intl.NumberFormat.NumberFormat.
+pub (receiver: NumberFormatConstructor) prototype(): std.js.Intl.NumberFormat.

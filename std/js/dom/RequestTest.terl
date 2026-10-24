@@ -15,7 +15,7 @@ module std.js.Dom.RequestTest.
 import type std.js.Dom.Request.
 import type std.js.String.{JsString}.
 
-pub headers_typechecks(receiver: Request): std.js.Dom.Headers.Headers ->
+pub headers_typechecks(receiver: Request): std.js.Dom.Headers ->
     receiver.headers().
 
 pub integrity_typechecks(receiver: Request): JsString ->
@@ -30,7 +30,7 @@ pub method_typechecks(receiver: Request): JsString ->
 pub referrer_typechecks(receiver: Request): JsString ->
     receiver.referrer().
 
-pub signal_typechecks(receiver: Request): std.js.Dom.AbortSignal.AbortSignal ->
+pub signal_typechecks(receiver: Request): std.js.Dom.AbortSignal ->
     receiver.signal().
 
 pub url_typechecks(receiver: Request): JsString ->

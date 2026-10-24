@@ -15,4 +15,4 @@ module std.js.Dom.RTCCertificateExpiration.
 
 pub opaque type RTCCertificateExpiration.
 
-pub (receiver: RTCCertificateExpiration) expires(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCCertificateExpiration) expires(): std.core.Option[std.js.Number.JsNumber].

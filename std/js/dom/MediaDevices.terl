@@ -12,12 +12,10 @@
  */
 module std.js.Dom.MediaDevices.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.MediaStream.{MediaStream}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, MediaStream}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 /**
  * The **`MediaDevices`** interface of the Media Capture and Streams API provides access to connected media input devices like cameras and microphones, as well as screen sharing.
@@ -32,7 +30,7 @@ pub opaque type MediaDevices.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDevices/enumerateDevices)
  */
-pub (receiver: MediaDevices) enumerate_devices(): Promise[std.js.Array.Array[std.js.Dom.MediaDeviceInfo.MediaDeviceInfo]] ->
+pub (receiver: MediaDevices) enumerate_devices(): Promise[std.js.Array[std.js.Dom.MediaDeviceInfo]] ->
     native.
 
 /**
@@ -40,9 +38,7 @@ pub (receiver: MediaDevices) enumerate_devices(): Promise[std.js.Array.Array[std
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDevices/getDisplayMedia)
  */
-pub (receiver: MediaDevices) get_display_media(
-    options: Option[std.js.Dom.DisplayMediaStreamOptions.DisplayMediaStreamOptions],
-): Promise[MediaStream] ->
+pub (receiver: MediaDevices) get_display_media(options: Option[std.js.Dom.DisplayMediaStreamOptions]): Promise[MediaStream] ->
     native.
 
 /**
@@ -50,7 +46,7 @@ pub (receiver: MediaDevices) get_display_media(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDevices/getSupportedConstraints)
  */
-pub (receiver: MediaDevices) get_supported_constraints(): std.js.Dom.MediaTrackSupportedConstraints.MediaTrackSupportedConstraints ->
+pub (receiver: MediaDevices) get_supported_constraints(): std.js.Dom.MediaTrackSupportedConstraints ->
     native.
 
 /**
@@ -58,21 +54,19 @@ pub (receiver: MediaDevices) get_supported_constraints(): std.js.Dom.MediaTrackS
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaDevices/getUserMedia)
  */
-pub (receiver: MediaDevices) get_user_media(
-    constraints: Option[std.js.Dom.MediaStreamConstraints.MediaStreamConstraints],
-): Promise[MediaStream] ->
+pub (receiver: MediaDevices) get_user_media(constraints: Option[std.js.Dom.MediaStreamConstraints]): Promise[MediaStream] ->
     native.
 
 pub (receiver: MediaDevices) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: MediaDevices) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

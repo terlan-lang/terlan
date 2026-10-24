@@ -12,8 +12,7 @@
  */
 module std.js.Dom.PerformanceObserverEntryListTest.
 
-import type std.js.Dom.PerformanceEntryList.{PerformanceEntryList}.
-import type std.js.Dom.PerformanceObserverEntryList.
+import type std.js.Dom.{PerformanceEntryList, PerformanceObserverEntryList}.
 import type std.js.String.{JsString}.
 
 pub get_entries_typechecks(receiver: PerformanceObserverEntryList): PerformanceEntryList ->
@@ -22,7 +21,7 @@ pub get_entries_typechecks(receiver: PerformanceObserverEntryList): PerformanceE
 pub get_entries_by_name_typechecks(
     receiver: PerformanceObserverEntryList,
     name: JsString,
-    type_: std.core.Option.Option[JsString],
+    type_: std.core.Option[JsString],
 ): PerformanceEntryList ->
     receiver.get_entries_by_name(name, type_).
 

@@ -12,12 +12,9 @@
  */
 module std.js.Dom.WebTransport.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.ReadableStream.{ReadableStream}.
-import type std.js.Dom.WebTransportCloseInfo.{WebTransportCloseInfo}.
-import type std.js.Dom.WebTransportSendStreamOptions.{WebTransportSendStreamOptions}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{ReadableStream, WebTransportCloseInfo, WebTransportSendStreamOptions}.
+import type std.js.{Promise}.
 
 /**
  * The **`WebTransport`** interface of the WebTransport API provides functionality to enable a user agent to connect to an HTTP/3 server, initiate reliable and unreliable transport in either or both directions, and close the connection once it is no longer needed.
@@ -39,7 +36,7 @@ pub (receiver: WebTransport) closed(): Promise[WebTransportCloseInfo].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebTransport/datagrams)
  */
-pub (receiver: WebTransport) datagrams(): std.js.Dom.WebTransportDatagramDuplexStream.WebTransportDatagramDuplexStream.
+pub (receiver: WebTransport) datagrams(): std.js.Dom.WebTransportDatagramDuplexStream.
 
 /**
  * The **`incomingBidirectionalStreams`** read-only property of the WebTransport interface represents one or more bidirectional streams opened by the server.
@@ -76,7 +73,7 @@ pub (receiver: WebTransport) close(close_info: Option[WebTransportCloseInfo]): U
  */
 pub (receiver: WebTransport) create_bidirectional_stream(
     options: Option[WebTransportSendStreamOptions],
-): Promise[std.js.Dom.WebTransportBidirectionalStream.WebTransportBidirectionalStream].
+): Promise[std.js.Dom.WebTransportBidirectionalStream].
 
 /**
  * The **`createUnidirectionalStream()`** method of the WebTransport interface asynchronously opens a unidirectional stream.
@@ -85,4 +82,4 @@ pub (receiver: WebTransport) create_bidirectional_stream(
  */
 pub (receiver: WebTransport) create_unidirectional_stream(
     options: Option[WebTransportSendStreamOptions],
-): Promise[std.js.Dom.WritableStream.WritableStream].
+): Promise[std.js.Dom.WritableStream].

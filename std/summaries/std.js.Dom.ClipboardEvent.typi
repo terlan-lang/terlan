@@ -25,4 +25,4 @@ pub opaque type ClipboardEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardEvent/clipboardData)
  */
-pub (receiver: ClipboardEvent) clipboard_data(): std.core.Option.Option[std.js.Dom.DataTransfer.DataTransfer].
+pub (receiver: ClipboardEvent) clipboard_data(): std.core.Option[std.js.Dom.DataTransfer].

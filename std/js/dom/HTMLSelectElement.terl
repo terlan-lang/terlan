@@ -12,10 +12,8 @@
  */
 module std.js.Dom.HTMLSelectElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLOptionElement.{HTMLOptionElement}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLOptionElement}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -39,7 +37,7 @@ pub (receiver: HTMLSelectElement) disabled(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/form)
  */
-pub (receiver: HTMLSelectElement) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
+pub (receiver: HTMLSelectElement) form(): Option[std.js.Dom.HTMLFormElement] ->
     native.
 
 /**
@@ -47,7 +45,7 @@ pub (receiver: HTMLSelectElement) form(): Option[std.js.Dom.HTMLFormElement.HTML
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/labels)
  */
-pub (receiver: HTMLSelectElement) labels(): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement] ->
+pub (receiver: HTMLSelectElement) labels(): std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement] ->
     native.
 
 /**
@@ -79,7 +77,7 @@ pub (receiver: HTMLSelectElement) name(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/options)
  */
-pub (receiver: HTMLSelectElement) options(): std.js.Dom.HTMLOptionsCollection.HTMLOptionsCollection ->
+pub (receiver: HTMLSelectElement) options(): std.js.Dom.HTMLOptionsCollection ->
     native.
 
 /**
@@ -103,7 +101,7 @@ pub (receiver: HTMLSelectElement) selected_index(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/selectedOptions)
  */
-pub (receiver: HTMLSelectElement) selected_options(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[HTMLOptionElement] ->
+pub (receiver: HTMLSelectElement) selected_options(): std.js.Dom.HTMLCollectionOf[HTMLOptionElement] ->
     native.
 
 /**
@@ -127,7 +125,7 @@ pub (receiver: HTMLSelectElement) validation_message(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/validity)
  */
-pub (receiver: HTMLSelectElement) validity(): std.js.Dom.ValidityState.ValidityState ->
+pub (receiver: HTMLSelectElement) validity(): std.js.Dom.ValidityState ->
     native.
 
 /**
@@ -152,8 +150,8 @@ pub (receiver: HTMLSelectElement) will_validate(): Bool ->
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/add)
  */
 pub (receiver: HTMLSelectElement) add(
-    element: std.js.Dom.HTMLOptGroupElement.HTMLOptGroupElement | HTMLOptionElement,
-    before: Option[Option[std.js.Dom.HTMLElement.HTMLElement | JsNumber]],
+    element: std.js.Dom.HTMLOptGroupElement | HTMLOptionElement,
+    before: Option[Option[std.js.Dom.HTMLElement | JsNumber]],
 ): Unit ->
     native.
 
@@ -219,13 +217,13 @@ pub (receiver: HTMLSelectElement) show_picker(): Unit ->
 pub (receiver: HTMLSelectElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: HTMLSelectElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

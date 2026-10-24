@@ -25,14 +25,14 @@ pub opaque type CSSStyleSheet.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/cssRules)
  */
-pub (receiver: CSSStyleSheet) css_rules(): std.js.Dom.CSSRuleList.CSSRuleList.
+pub (receiver: CSSStyleSheet) css_rules(): std.js.Dom.CSSRuleList.
 
 /**
  * The read-only CSSStyleSheet property **`ownerRule`** returns the CSSImportRule corresponding to the @import at-rule which imported the stylesheet into the document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/ownerRule)
  */
-pub (receiver: CSSStyleSheet) owner_rule(): std.core.Option.Option[std.js.Dom.CSSRule.CSSRule].
+pub (receiver: CSSStyleSheet) owner_rule(): std.core.Option[std.js.Dom.CSSRule].
 
 /**
  * **`rules`** is a _deprecated_ _legacy property_ of the CSSStyleSheet interface.
@@ -40,7 +40,7 @@ pub (receiver: CSSStyleSheet) owner_rule(): std.core.Option.Option[std.js.Dom.CS
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/rules)
  */
-pub (receiver: CSSStyleSheet) rules(): std.js.Dom.CSSRuleList.CSSRuleList.
+pub (receiver: CSSStyleSheet) rules(): std.js.Dom.CSSRuleList.
 
 /**
  * The obsolete CSSStyleSheet interface's **`addRule()`** _legacy method_ adds a new rule to the stylesheet.
@@ -48,21 +48,21 @@ pub (receiver: CSSStyleSheet) rules(): std.js.Dom.CSSRuleList.CSSRuleList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/addRule)
  */
-pub (receiver: CSSStyleSheet) add_rule(selector: std.core.Option.Option[std.js.String.JsString], style: std.core.Option.Option[std.js.String.JsString], index: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: CSSStyleSheet) add_rule(selector: std.core.Option[std.js.String.JsString], style: std.core.Option[std.js.String.JsString], index: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * The CSSStyleSheet method **`deleteRule()`** removes a rule from the stylesheet object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/deleteRule)
  */
-pub (receiver: CSSStyleSheet) delete_rule(index: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: CSSStyleSheet) delete_rule(index: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`CSSStyleSheet.insertRule()`** method inserts a new CSS rule into the current style sheet.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/insertRule)
  */
-pub (receiver: CSSStyleSheet) insert_rule(rule: std.js.String.JsString, index: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: CSSStyleSheet) insert_rule(rule: std.js.String.JsString, index: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * The obsolete CSSStyleSheet method **`removeRule()`** removes a rule from the stylesheet object.
@@ -70,18 +70,18 @@ pub (receiver: CSSStyleSheet) insert_rule(rule: std.js.String.JsString, index: s
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/removeRule)
  */
-pub (receiver: CSSStyleSheet) remove_rule(index: std.core.Option.Option[std.js.Number.JsNumber]): std.core.Unit.Unit.
+pub (receiver: CSSStyleSheet) remove_rule(index: std.core.Option[std.js.Number.JsNumber]): std.core.Unit.
 
 /**
  * The **`replace()`** method of the CSSStyleSheet interface asynchronously replaces the content of the stylesheet with the content passed into it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/replace)
  */
-pub (receiver: CSSStyleSheet) replace(text: std.js.String.JsString): std.js.Promise.Promise[CSSStyleSheet].
+pub (receiver: CSSStyleSheet) replace(text: std.js.String.JsString): std.js.Promise[CSSStyleSheet].
 
 /**
  * The **`replaceSync()`** method of the CSSStyleSheet interface synchronously replaces the content of the stylesheet with the content passed into it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleSheet/replaceSync)
  */
-pub (receiver: CSSStyleSheet) replace_sync(text: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: CSSStyleSheet) replace_sync(text: std.js.String.JsString): std.core.Unit.

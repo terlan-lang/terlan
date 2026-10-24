@@ -14,13 +14,11 @@ module std.js.Dom.RTCEncodedVideoFrameTest.
 
 import type std.js.Dom.RTCEncodedVideoFrame.
 
-pub data_typechecks(receiver: RTCEncodedVideoFrame): std.js.ArrayBuffer.ArrayBuffer ->
+pub data_typechecks(receiver: RTCEncodedVideoFrame): std.js.ArrayBuffer ->
     receiver.data().
 
 pub timestamp_typechecks(receiver: RTCEncodedVideoFrame): std.js.Number.JsNumber ->
     receiver.timestamp().
 
-pub get_metadata_typechecks(
-    receiver: RTCEncodedVideoFrame,
-): std.js.Dom.RTCEncodedVideoFrameMetadata.RTCEncodedVideoFrameMetadata ->
+pub get_metadata_typechecks(receiver: RTCEncodedVideoFrame): std.js.Dom.RTCEncodedVideoFrameMetadata ->
     receiver.get_metadata().

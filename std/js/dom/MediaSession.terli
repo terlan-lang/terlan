@@ -12,9 +12,8 @@
  */
 module std.js.Dom.MediaSession.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.{Promise}.
 
 /**
  * The **`MediaSession`** interface of the Media Session API allows a web page to provide custom behaviors for standard media playback interactions, and to report metadata that can be sent by the user agent to the device or operating system for presentation in standardized user interface elements.
@@ -28,7 +27,7 @@ pub opaque type MediaSession.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/metadata)
  */
-pub (receiver: MediaSession) metadata(): Option[std.js.Dom.MediaMetadata.MediaMetadata].
+pub (receiver: MediaSession) metadata(): Option[std.js.Dom.MediaMetadata].
 
 /**
  * The **`setCameraActive()`** method of the MediaSession interface is used to indicate to the user agent whether the user's camera is considered to be active.
@@ -49,4 +48,4 @@ pub (receiver: MediaSession) set_microphone_active(active: Bool): Promise[Unit].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSession/setPositionState)
  */
-pub (receiver: MediaSession) set_position_state(state: Option[std.js.Dom.MediaPositionState.MediaPositionState]): Unit.
+pub (receiver: MediaSession) set_position_state(state: Option[std.js.Dom.MediaPositionState]): Unit.

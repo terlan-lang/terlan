@@ -12,8 +12,7 @@
  */
 module std.js.Dom.AnimationEventMapTest.
 
-import type std.js.Dom.AnimationEventMap.
-import type std.js.Dom.AnimationPlaybackEvent.{AnimationPlaybackEvent}.
+import type std.js.Dom.{AnimationEventMap, AnimationPlaybackEvent}.
 
 pub cancel_typechecks(receiver: AnimationEventMap): AnimationPlaybackEvent ->
     receiver.cancel().

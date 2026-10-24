@@ -12,12 +12,12 @@
  */
 module std.js.Dom.ElementCreationOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.ElementCreationOptions.
 
 pub custom_element_registry_typechecks(
     receiver: ElementCreationOptions,
-): Option[std.js.Dom.CustomElementRegistry.CustomElementRegistry] ->
+): Option[std.js.Dom.CustomElementRegistry] ->
     receiver.custom_element_registry().
 
 pub is_typechecks(receiver: ElementCreationOptions): Option[std.js.String.JsString] ->

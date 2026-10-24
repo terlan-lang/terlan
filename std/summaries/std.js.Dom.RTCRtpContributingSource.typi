@@ -15,10 +15,10 @@ module std.js.Dom.RTCRtpContributingSource.
 
 pub opaque type RTCRtpContributingSource.
 
-pub (receiver: RTCRtpContributingSource) audio_level(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCRtpContributingSource) audio_level(): std.core.Option[std.js.Number.JsNumber].
 
 pub (receiver: RTCRtpContributingSource) rtp_timestamp(): std.js.Number.JsNumber.
 
 pub (receiver: RTCRtpContributingSource) source(): std.js.Number.JsNumber.
 
-pub (receiver: RTCRtpContributingSource) timestamp(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: RTCRtpContributingSource) timestamp(): std.js.Dom.DOMHighResTimeStamp.

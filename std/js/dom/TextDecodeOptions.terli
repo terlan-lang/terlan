@@ -14,4 +14,4 @@ module std.js.Dom.TextDecodeOptions.
 
 pub opaque type TextDecodeOptions.
 
-pub (receiver: TextDecodeOptions) stream(): std.core.Option.Option[Bool].
+pub (receiver: TextDecodeOptions) stream(): std.core.Option[Bool].

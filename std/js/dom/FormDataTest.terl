@@ -12,11 +12,8 @@
  */
 module std.js.Dom.FormDataTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Blob.{Blob}.
-import type std.js.Dom.FormData.
-import type std.js.Dom.FormDataEntryValue.{FormDataEntryValue}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Blob, FormData, FormDataEntryValue}.
 import type std.js.String.{JsString}.
 
 pub append_typechecks(receiver: FormData, name: JsString, value: Blob | JsString): Unit ->
@@ -39,7 +36,7 @@ pub delete_typechecks(receiver: FormData, name: JsString): Unit ->
 pub get_typechecks(receiver: FormData, name: JsString): Option[FormDataEntryValue] ->
     receiver.get(name).
 
-pub get_all_typechecks(receiver: FormData, name: JsString): std.js.Array.Array[FormDataEntryValue] ->
+pub get_all_typechecks(receiver: FormData, name: JsString): std.js.Array[FormDataEntryValue] ->
     receiver.get_all(name).
 
 pub has_typechecks(receiver: FormData, name: JsString): Bool ->

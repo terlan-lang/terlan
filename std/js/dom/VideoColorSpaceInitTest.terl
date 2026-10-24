@@ -14,5 +14,5 @@ module std.js.Dom.VideoColorSpaceInitTest.
 
 import type std.js.Dom.VideoColorSpaceInit.
 
-pub full_range_typechecks(receiver: VideoColorSpaceInit): std.core.Option.Option[Bool] ->
+pub full_range_typechecks(receiver: VideoColorSpaceInit): std.core.Option[Bool] ->
     receiver.full_range().

@@ -32,7 +32,7 @@ pub (receiver: HTMLButtonElement) disabled(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/form)
  */
-pub (receiver: HTMLButtonElement) form(): std.core.Option.Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: HTMLButtonElement) form(): std.core.Option[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`formAction`** property of the HTMLButtonElement interface is the URL of the program that is executed on the server when the form that owns this control is submitted.
@@ -74,7 +74,7 @@ pub (receiver: HTMLButtonElement) form_target(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/labels)
  */
-pub (receiver: HTMLButtonElement) labels(): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement].
+pub (receiver: HTMLButtonElement) labels(): std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement].
 
 /**
  * The **`name`** property of the HTMLButtonElement interface indicates the name of the button element or the empty string if the element has no name.
@@ -95,7 +95,7 @@ pub (receiver: HTMLButtonElement) validation_message(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/validity)
  */
-pub (receiver: HTMLButtonElement) validity(): std.js.Dom.ValidityState.ValidityState.
+pub (receiver: HTMLButtonElement) validity(): std.js.Dom.ValidityState.
 
 /**
  * The **`value`** property of the HTMLButtonElement interface represents the value of the button element as a string, or the empty string if no value is set.
@@ -130,8 +130,8 @@ pub (receiver: HTMLButtonElement) report_validity(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/setCustomValidity)
  */
-pub (receiver: HTMLButtonElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: HTMLButtonElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.
 
-pub (receiver: HTMLButtonElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLButtonElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLButtonElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLButtonElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

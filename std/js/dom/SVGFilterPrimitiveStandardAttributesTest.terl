@@ -12,15 +12,12 @@
  */
 module std.js.Dom.SVGFilterPrimitiveStandardAttributesTest.
 
-import type std.js.Dom.SVGAnimatedLength.{SVGAnimatedLength}.
-import type std.js.Dom.SVGFilterPrimitiveStandardAttributes.
+import type std.js.Dom.{SVGAnimatedLength, SVGFilterPrimitiveStandardAttributes}.
 
 pub height_typechecks(receiver: SVGFilterPrimitiveStandardAttributes): SVGAnimatedLength ->
     receiver.height().
 
-pub result_typechecks(
-    receiver: SVGFilterPrimitiveStandardAttributes,
-): std.js.Dom.SVGAnimatedString.SVGAnimatedString ->
+pub result_typechecks(receiver: SVGFilterPrimitiveStandardAttributes): std.js.Dom.SVGAnimatedString ->
     receiver.result().
 
 pub width_typechecks(receiver: SVGFilterPrimitiveStandardAttributes): SVGAnimatedLength ->

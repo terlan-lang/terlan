@@ -12,14 +12,11 @@
  */
 module std.js.Dom.HTMLMediaElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.MediaKeys.{MediaKeys}.
-import type std.js.Dom.TimeRanges.{TimeRanges}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, MediaKeys, TimeRanges}.
 import type std.js.Number.{JsNumber}.
-import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 /**
  * The **`HTMLMediaElement`** interface adds to HTMLElement the properties and methods needed to support basic media-related capabilities that are common to audio and video.
@@ -110,7 +107,7 @@ pub (receiver: HTMLMediaElement) ended(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/error)
  */
-pub (receiver: HTMLMediaElement) error(): Option[std.js.Dom.MediaError.MediaError].
+pub (receiver: HTMLMediaElement) error(): Option[std.js.Dom.MediaError].
 
 /**
  * The **`HTMLMediaElement.loop`** property reflects the `loop` HTML attribute, which controls whether the media element should start over when it reaches the end.
@@ -181,7 +178,7 @@ pub (receiver: HTMLMediaElement) ready_state(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/remote)
  */
-pub (receiver: HTMLMediaElement) remote(): std.js.Dom.RemotePlayback.RemotePlayback.
+pub (receiver: HTMLMediaElement) remote(): std.js.Dom.RemotePlayback.
 
 /**
  * The **`seekable`** read-only property of HTMLMediaElement objects returns a new static normalized `TimeRanges` object that represents the ranges of the media resource, if any, that the user agent is able to seek to at the time `seekable` property is accessed.
@@ -217,14 +214,14 @@ pub (receiver: HTMLMediaElement) src(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/srcObject)
  */
-pub (receiver: HTMLMediaElement) src_object(): Option[std.js.Dom.MediaProvider.MediaProvider].
+pub (receiver: HTMLMediaElement) src_object(): Option[std.js.Dom.MediaProvider].
 
 /**
  * The read-only **`textTracks`** property on HTMLMediaElement objects returns a objects representing the media element's text tracks, in the same order as in the list of text tracks.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/textTracks)
  */
-pub (receiver: HTMLMediaElement) text_tracks(): std.js.Dom.TextTrackList.TextTrackList.
+pub (receiver: HTMLMediaElement) text_tracks(): std.js.Dom.TextTrackList.
 
 /**
  * The **`HTMLMediaElement.volume`** property sets the volume at which the media will be played.
@@ -280,11 +277,11 @@ pub (receiver: HTMLMediaElement) set_sink_id(sink_id: JsString): Promise[Unit].
 pub (receiver: HTMLMediaElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: HTMLMediaElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

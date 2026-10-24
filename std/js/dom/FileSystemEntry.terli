@@ -12,7 +12,7 @@
  */
 module std.js.Dom.FileSystemEntry.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +27,7 @@ pub opaque type FileSystemEntry.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/filesystem)
  */
-pub (receiver: FileSystemEntry) filesystem(): std.js.Dom.FileSystem.FileSystem.
+pub (receiver: FileSystemEntry) filesystem(): std.js.Dom.FileSystem.
 
 /**
  * The read-only **`fullPath`** property of the FileSystemEntry interface returns a string specifying the full, absolute path from the file system's root to the file represented by the entry.
@@ -63,6 +63,6 @@ pub (receiver: FileSystemEntry) name(): JsString.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/getParent)
  */
 pub (receiver: FileSystemEntry) get_parent(
-    success_callback: Option[std.js.Dom.FileSystemEntryCallback.FileSystemEntryCallback],
-    error_callback: Option[std.js.Dom.ErrorCallback.ErrorCallback],
-): std.core.Unit.Unit.
+    success_callback: Option[std.js.Dom.FileSystemEntryCallback],
+    error_callback: Option[std.js.Dom.ErrorCallback],
+): std.core.Unit.

@@ -12,12 +12,11 @@
  */
 module std.js.Dom.RemotePlayback.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
-import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 /**
  * The **`RemotePlayback`** interface of the Remote Playback API allows the page to detect availability of remote playback devices, then connect to and control playing on these devices.
@@ -47,21 +46,19 @@ pub (receiver: RemotePlayback) prompt(): Promise[Unit] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RemotePlayback/watchAvailability)
  */
-pub (receiver: RemotePlayback) watch_availability(
-    callback: std.js.Dom.RemotePlaybackAvailabilityCallback.RemotePlaybackAvailabilityCallback,
-): Promise[JsNumber] ->
+pub (receiver: RemotePlayback) watch_availability(callback: std.js.Dom.RemotePlaybackAvailabilityCallback): Promise[JsNumber] ->
     native.
 
 pub (receiver: RemotePlayback) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: RemotePlayback) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

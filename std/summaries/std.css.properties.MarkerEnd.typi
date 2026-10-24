@@ -8,7 +8,7 @@ module std.css.properties.MarkerEnd.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    marker_end: std.core.Option.Option[Value]
+    marker_end: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

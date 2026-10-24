@@ -14,5 +14,5 @@ module std.js.Dom.PerformanceEventMap.
 
 pub opaque type PerformanceEventMap.
 
-pub (receiver: PerformanceEventMap) resourcetimingbufferfull(): std.js.Dom.Event.Event ->
+pub (receiver: PerformanceEventMap) resourcetimingbufferfull(): std.js.Dom.Event ->
     native.

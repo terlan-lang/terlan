@@ -25,43 +25,43 @@ pub opaque type SVGImageElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/crossOrigin)
  */
-pub (receiver: SVGImageElement) cross_origin(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: SVGImageElement) cross_origin(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`height`** read-only property of the corresponding to the height attribute of the given An SVGAnimatedLength.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/height)
  */
-pub (receiver: SVGImageElement) height(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGImageElement) height(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`preserveAspectRatio`** read-only property of the SVGImageElement interface returns an element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/preserveAspectRatio)
  */
-pub (receiver: SVGImageElement) preserve_aspect_ratio(): std.js.Dom.SVGAnimatedPreserveAspectRatio.SVGAnimatedPreserveAspectRatio.
+pub (receiver: SVGImageElement) preserve_aspect_ratio(): std.js.Dom.SVGAnimatedPreserveAspectRatio.
 
 /**
  * The **`width`** read-only property of the corresponding to the width attribute of the given image element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/width)
  */
-pub (receiver: SVGImageElement) width(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGImageElement) width(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`x`** read-only property of the corresponding to the x attribute of the given image element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/x)
  */
-pub (receiver: SVGImageElement) x(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGImageElement) x(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`y`** read-only property of the corresponding to the y attribute of the given image element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGImageElement/y)
  */
-pub (receiver: SVGImageElement) y(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGImageElement) y(): std.js.Dom.SVGAnimatedLength.
 
-pub (receiver: SVGImageElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SVGImageElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SVGImageElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SVGImageElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

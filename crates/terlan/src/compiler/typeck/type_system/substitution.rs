@@ -85,6 +85,38 @@ fn expand_type_aliases_inner(
             args,
         } => {
             let qualified_name = format!("{}.{}", module, name);
+            // A primary module path names its same-named exported type. Keep
+            // alias table keys and nominal identities stable so global short
+            // name uniqueness and backend ownership do not change.
+            let primary_key = format!("{qualified_name}.{name}");
+            let primary_alias = aliases.get(&primary_key);
+            if !aliases.contains_key(&qualified_name) {
+                if let Some(alias) = primary_alias.filter(|alias| alias.params.len() == args.len())
+                {
+                    let args = args
+                        .iter()
+                        .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
+                        .collect::<Vec<_>>();
+                    if alias.is_opaque {
+                        return Type::Named {
+                            module: Some(qualified_name),
+                            name: name.clone(),
+                            args,
+                        };
+                    }
+                    if !active_aliases.insert(primary_key.clone()) {
+                        return ty.clone();
+                    }
+                    let mapping = alias.params.iter().copied().zip(args).collect();
+                    let expanded = expand_type_aliases_inner(
+                        &substitute_type_vars(&alias.body, &mapping),
+                        aliases,
+                        active_aliases,
+                    );
+                    active_aliases.remove(&primary_key);
+                    return expanded;
+                }
+            }
             if let Some(alias) = aliases.get(&qualified_name) {
                 if alias.is_opaque {
                     return Type::Named {

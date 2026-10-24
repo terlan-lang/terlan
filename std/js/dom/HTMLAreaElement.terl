@@ -12,9 +12,8 @@
  */
 module std.js.Dom.HTMLAreaElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -83,7 +82,7 @@ pub (receiver: HTMLAreaElement) rel(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAreaElement/relList)
  */
-pub (receiver: HTMLAreaElement) rel_list(): std.js.Dom.DOMTokenList.DOMTokenList ->
+pub (receiver: HTMLAreaElement) rel_list(): std.js.Dom.DOMTokenList ->
     native.
 
 /**
@@ -105,13 +104,13 @@ pub (receiver: HTMLAreaElement) target_(): JsString ->
 pub (receiver: HTMLAreaElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: HTMLAreaElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

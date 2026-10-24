@@ -15,8 +15,8 @@ module std.js.Dom.TextTrackListEventMap.
 
 pub opaque type TextTrackListEventMap.
 
-pub (receiver: TextTrackListEventMap) addtrack(): std.js.Dom.TrackEvent.TrackEvent.
+pub (receiver: TextTrackListEventMap) addtrack(): std.js.Dom.TrackEvent.
 
-pub (receiver: TextTrackListEventMap) change(): std.js.Dom.Event.Event.
+pub (receiver: TextTrackListEventMap) change(): std.js.Dom.Event.
 
-pub (receiver: TextTrackListEventMap) removetrack(): std.js.Dom.TrackEvent.TrackEvent.
+pub (receiver: TextTrackListEventMap) removetrack(): std.js.Dom.TrackEvent.

@@ -12,19 +12,17 @@
  */
 module std.js.Dom.IDBTransactionTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.IDBTransaction.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, IDBTransaction}.
 import type std.js.String.{JsString}.
 
-pub db_typechecks(receiver: IDBTransaction): std.js.Dom.IDBDatabase.IDBDatabase ->
+pub db_typechecks(receiver: IDBTransaction): std.js.Dom.IDBDatabase ->
     receiver.db().
 
-pub error_typechecks(receiver: IDBTransaction): Option[std.js.Dom.DOMException.DOMException] ->
+pub error_typechecks(receiver: IDBTransaction): Option[std.js.Dom.DOMException] ->
     receiver.error().
 
-pub object_store_names_typechecks(receiver: IDBTransaction): std.js.Dom.DOMStringList.DOMStringList ->
+pub object_store_names_typechecks(receiver: IDBTransaction): std.js.Dom.DOMStringList ->
     receiver.object_store_names().
 
 pub abort_typechecks(receiver: IDBTransaction): Unit ->
@@ -33,17 +31,14 @@ pub abort_typechecks(receiver: IDBTransaction): Unit ->
 pub commit_typechecks(receiver: IDBTransaction): Unit ->
     receiver.commit().
 
-pub object_store_typechecks(
-    receiver: IDBTransaction,
-    name: JsString,
-): std.js.Dom.IDBObjectStore.IDBObjectStore ->
+pub object_store_typechecks(receiver: IDBTransaction, name: JsString): std.js.Dom.IDBObjectStore ->
     receiver.object_store(name).
 
 pub add_event_listener_typechecks(
     receiver: IDBTransaction,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -51,6 +46,6 @@ pub remove_event_listener_typechecks(
     receiver: IDBTransaction,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

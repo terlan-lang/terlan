@@ -86,14 +86,14 @@ pub (receiver: HTMLInputElement) disabled(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/files)
  */
-pub (receiver: HTMLInputElement) files(): std.core.Option.Option[std.js.Dom.FileList.FileList].
+pub (receiver: HTMLInputElement) files(): std.core.Option[std.js.Dom.FileList].
 
 /**
  * The **`form`** read-only property of the HTMLInputElement interface returns an HTMLFormElement object that owns this input, or `null` if this input is not owned by any form.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/form)
  */
-pub (receiver: HTMLInputElement) form(): std.core.Option.Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: HTMLInputElement) form(): std.core.Option[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`formAction`** property of the HTMLInputElement interface is the URL of the program that is executed on the server when the form that owns this control is submitted.
@@ -149,14 +149,14 @@ pub (receiver: HTMLInputElement) indeterminate(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/labels)
  */
-pub (receiver: HTMLInputElement) labels(): std.core.Option.Option[std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement]].
+pub (receiver: HTMLInputElement) labels(): std.core.Option[std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement]].
 
 /**
  * The **`list`** read-only property of the HTMLInputElement interface returns the HTMLDataListElement pointed to by the `list` attribute of the element, or `null` if the `list` attribute is not defined or the `list` attribute's value is not associated with any `<datalist>` in the same tree.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/list)
  */
-pub (receiver: HTMLInputElement) list(): std.core.Option.Option[std.js.Dom.HTMLDataListElement.HTMLDataListElement].
+pub (receiver: HTMLInputElement) list(): std.core.Option[std.js.Dom.HTMLDataListElement].
 
 /**
  * The **`max`** property of the HTMLInputElement interface reflects the input element's `max` attribute, which generally defines the maximum valid value for a numeric or date-time input.
@@ -233,14 +233,14 @@ pub (receiver: HTMLInputElement) required(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/selectionEnd)
  */
-pub (receiver: HTMLInputElement) selection_end(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: HTMLInputElement) selection_end(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`selectionStart`** property of the HTMLInputElement interface is a number that represents the beginning index of the selected text.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/selectionStart)
  */
-pub (receiver: HTMLInputElement) selection_start(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: HTMLInputElement) selection_start(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`size`** property of the HTMLInputElement interface defines the number of visible characters displayed.
@@ -287,7 +287,7 @@ pub (receiver: HTMLInputElement) validation_message(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/validity)
  */
-pub (receiver: HTMLInputElement) validity(): std.js.Dom.ValidityState.ValidityState.
+pub (receiver: HTMLInputElement) validity(): std.js.Dom.ValidityState.
 
 /**
  * The **`value`** property of the HTMLInputElement interface represents the current value of the input element as a string.
@@ -301,7 +301,7 @@ pub (receiver: HTMLInputElement) value(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/valueAsDate)
  */
-pub (receiver: HTMLInputElement) value_as_date(): std.core.Option.Option[std.js.Date.Date].
+pub (receiver: HTMLInputElement) value_as_date(): std.core.Option[std.js.Date].
 
 /**
  * The **`valueAsNumber`** property of the HTMLInputElement interface represents the current value of the input element as a number or `NaN` if converting to a numeric value is not possible.
@@ -315,7 +315,7 @@ pub (receiver: HTMLInputElement) value_as_number(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/webkitEntries)
  */
-pub (receiver: HTMLInputElement) webkit_entries(): std.js.Array.Array[std.js.Dom.FileSystemEntry.FileSystemEntry].
+pub (receiver: HTMLInputElement) webkit_entries(): std.js.Array[std.js.Dom.FileSystemEntry].
 
 /**
  * The **`HTMLInputElement.webkitdirectory`** is a property that reflects the `webkitdirectory` HTML attribute and indicates that the input element should let the user select directories instead of files.
@@ -357,43 +357,43 @@ pub (receiver: HTMLInputElement) report_validity(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/select)
  */
-pub (receiver: HTMLInputElement) select(): std.core.Unit.Unit.
+pub (receiver: HTMLInputElement) select(): std.core.Unit.
 
 /**
  * The **`HTMLInputElement.setCustomValidity()`** method sets a custom validity message for the element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/setCustomValidity)
  */
-pub (receiver: HTMLInputElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: HTMLInputElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`HTMLInputElement.setRangeText()`** method replaces a range of text in an input or textarea element with a new string.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/setRangeText)
  */
-pub (receiver: HTMLInputElement) set_range_text(replacement: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: HTMLInputElement) set_range_text(replacement: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`HTMLInputElement.showPicker()`** method displays the browser picker for an `input` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/showPicker)
  */
-pub (receiver: HTMLInputElement) show_picker(): std.core.Unit.Unit.
+pub (receiver: HTMLInputElement) show_picker(): std.core.Unit.
 
 /**
  * The **`HTMLInputElement.stepDown()`** method decrements the value of a numeric type of input element by the value of the `step` attribute or up to `n` multiples of the step attribute if a number is passed as the parameter.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/stepDown)
  */
-pub (receiver: HTMLInputElement) step_down(n: std.core.Option.Option[std.js.Number.JsNumber]): std.core.Unit.Unit.
+pub (receiver: HTMLInputElement) step_down(n: std.core.Option[std.js.Number.JsNumber]): std.core.Unit.
 
 /**
  * The **`HTMLInputElement.stepUp()`** method increments the value of a numeric type of input element by the value of the `step` attribute, or the default `step` value if the step attribute is not explicitly set.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/stepUp)
  */
-pub (receiver: HTMLInputElement) step_up(n: std.core.Option.Option[std.js.Number.JsNumber]): std.core.Unit.Unit.
+pub (receiver: HTMLInputElement) step_up(n: std.core.Option[std.js.Number.JsNumber]): std.core.Unit.
 
-pub (receiver: HTMLInputElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLInputElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLInputElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLInputElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

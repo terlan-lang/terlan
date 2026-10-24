@@ -23,4 +23,4 @@ pub (receiver: PopoverInvokerElement) popover_target_action(): std.js.String.JsS
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLButtonElement/popoverTargetElement)
  */
-pub (receiver: PopoverInvokerElement) popover_target_element(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: PopoverInvokerElement) popover_target_element(): std.core.Option[std.js.Dom.Element].

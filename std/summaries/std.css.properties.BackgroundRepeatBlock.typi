@@ -8,7 +8,7 @@ module std.css.properties.BackgroundRepeatBlock.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    background_repeat_block: std.core.Option.Option[Value]
+    background_repeat_block: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

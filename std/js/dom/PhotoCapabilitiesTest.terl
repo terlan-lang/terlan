@@ -12,9 +12,8 @@
  */
 module std.js.Dom.PhotoCapabilitiesTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.MediaSettingsRange.{MediaSettingsRange}.
-import type std.js.Dom.PhotoCapabilities.
+import type std.core.{Option}.
+import type std.js.Dom.{MediaSettingsRange, PhotoCapabilities}.
 
 pub image_height_typechecks(receiver: PhotoCapabilities): Option[MediaSettingsRange] ->
     receiver.image_height().

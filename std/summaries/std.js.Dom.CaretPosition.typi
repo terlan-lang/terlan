@@ -22,6 +22,6 @@ pub opaque type CaretPosition.
 
 pub (receiver: CaretPosition) offset(): std.js.Number.JsNumber.
 
-pub (receiver: CaretPosition) offset_node(): std.js.Dom.Node.Node.
+pub (receiver: CaretPosition) offset_node(): std.js.Dom.Node.
 
-pub (receiver: CaretPosition) get_client_rect(): std.core.Option.Option[std.js.Dom.DOMRect.DOMRect].
+pub (receiver: CaretPosition) get_client_rect(): std.core.Option[std.js.Dom.DOMRect].

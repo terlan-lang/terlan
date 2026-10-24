@@ -12,16 +12,15 @@
  */
 module std.js.Dom.CanvasUserInterfaceTest.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.CanvasUserInterface.
-import type std.js.Dom.Element.{Element}.
+import type std.core.{Unit}.
+import type std.js.Dom.{CanvasUserInterface, Element}.
 
 pub draw_focus_if_needed_typechecks(receiver: CanvasUserInterface, element: Element): Unit ->
     receiver.draw_focus_if_needed(element).
 
 pub draw_focus_if_needed_overload_2_typechecks(
     receiver: CanvasUserInterface,
-    path: std.js.Dom.Path2D.Path2D,
+    path: std.js.Dom.Path2D,
     element: Element,
 ): Unit ->
     receiver.draw_focus_if_needed_overload_2(path, element).

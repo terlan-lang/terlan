@@ -8,7 +8,7 @@ module std.css.properties.InterestDelayEnd.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    interest_delay_end: std.core.Option.Option[Value]
+    interest_delay_end: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

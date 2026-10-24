@@ -25,53 +25,53 @@ pub opaque type MutationRecord.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/addedNodes)
  */
-pub (receiver: MutationRecord) added_nodes(): std.js.Dom.NodeList.NodeList.
+pub (receiver: MutationRecord) added_nodes(): std.js.Dom.NodeList.
 
 /**
  * The MutationRecord read-only property **`attributeName`** contains the name of a changed attribute belonging to a node that is observed by a MutationObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/attributeName)
  */
-pub (receiver: MutationRecord) attribute_name(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MutationRecord) attribute_name(): std.core.Option[std.js.String.JsString].
 
 /**
  * The MutationRecord read-only property **`attributeNamespace`** is the namespace of the mutated attribute in the MutationRecord observed by a MutationObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/attributeNamespace)
  */
-pub (receiver: MutationRecord) attribute_namespace(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MutationRecord) attribute_namespace(): std.core.Option[std.js.String.JsString].
 
 /**
  * The MutationRecord read-only property **`nextSibling`** is the next sibling of an added or removed child node of the `target` of a MutationObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/nextSibling)
  */
-pub (receiver: MutationRecord) next_sibling(): std.core.Option.Option[std.js.Dom.Node.Node].
+pub (receiver: MutationRecord) next_sibling(): std.core.Option[std.js.Dom.Node].
 
 /**
  * The MutationRecord read-only property **`oldValue`** contains the character data or attribute value of an observed node before it was changed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/oldValue)
  */
-pub (receiver: MutationRecord) old_value(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MutationRecord) old_value(): std.core.Option[std.js.String.JsString].
 
 /**
  * The MutationRecord read-only property **`previousSibling`** is the previous sibling of an added or removed child node of the `target` of a MutationObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/previousSibling)
  */
-pub (receiver: MutationRecord) previous_sibling(): std.core.Option.Option[std.js.Dom.Node.Node].
+pub (receiver: MutationRecord) previous_sibling(): std.core.Option[std.js.Dom.Node].
 
 /**
  * The MutationRecord read-only property **`removedNodes`** is a NodeList of nodes removed from a target node by a mutation observed with a MutationObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/removedNodes)
  */
-pub (receiver: MutationRecord) removed_nodes(): std.js.Dom.NodeList.NodeList.
+pub (receiver: MutationRecord) removed_nodes(): std.js.Dom.NodeList.
 
 /**
  * The MutationRecord read-only property **`target`** is the target (i.e., the mutated/changed node) of a mutation observed with a MutationObserver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MutationRecord/target)
  */
-pub (receiver: MutationRecord) target_(): std.js.Dom.Node.Node.
+pub (receiver: MutationRecord) target_(): std.js.Dom.Node.

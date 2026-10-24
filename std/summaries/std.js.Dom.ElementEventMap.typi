@@ -15,6 +15,6 @@ module std.js.Dom.ElementEventMap.
 
 pub opaque type ElementEventMap.
 
-pub (receiver: ElementEventMap) fullscreenchange(): std.js.Dom.Event.Event.
+pub (receiver: ElementEventMap) fullscreenchange(): std.js.Dom.Event.
 
-pub (receiver: ElementEventMap) fullscreenerror(): std.js.Dom.Event.Event.
+pub (receiver: ElementEventMap) fullscreenerror(): std.js.Dom.Event.

@@ -39,11 +39,11 @@ pub (receiver: HTMLOptionsCollection) selected_index(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/add)
  */
-pub (receiver: HTMLOptionsCollection) add(element: std.js.Dom.HTMLOptGroupElement.HTMLOptGroupElement | std.js.Dom.HTMLOptionElement.HTMLOptionElement, before: std.core.Option.Option[std.core.Option.Option[std.js.Dom.HTMLElement.HTMLElement | std.js.Number.JsNumber]]): std.core.Unit.Unit.
+pub (receiver: HTMLOptionsCollection) add(element: std.js.Dom.HTMLOptGroupElement | std.js.Dom.HTMLOptionElement, before: std.core.Option[std.core.Option[std.js.Dom.HTMLElement | std.js.Number.JsNumber]]): std.core.Unit.
 
 /**
  * The **`remove()`** method of the HTMLOptionsCollection interface removes the option element specified by the index from this collection.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLOptionsCollection/remove)
  */
-pub (receiver: HTMLOptionsCollection) remove(index: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: HTMLOptionsCollection) remove(index: std.js.Number.JsNumber): std.core.Unit.

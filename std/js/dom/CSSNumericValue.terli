@@ -12,9 +12,9 @@
  */
 module std.js.Dom.CSSNumericValue.
 
-import type std.js.Array.{Array}.
-import type std.js.Dom.CSSNumberish.{CSSNumberish}.
+import type std.js.Dom.{CSSNumberish}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 /**
  * The **`CSSNumericValue`** interface of the CSS Typed Object Model API represents operations that all numeric values can perform.
@@ -77,18 +77,18 @@ pub (receiver: CSSNumericValue) sub(values: Array[CSSNumberish]): CSSNumericValu
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/to)
  */
-pub (receiver: CSSNumericValue) to(unit: JsString): std.js.Dom.CSSUnitValue.CSSUnitValue.
+pub (receiver: CSSNumericValue) to(unit: JsString): std.js.Dom.CSSUnitValue.
 
 /**
  * The **`toSum()`** method of the ```js-nolint toSum(units) ``` - `units` - : The units to convert to.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/toSum)
  */
-pub (receiver: CSSNumericValue) to_sum(units: Array[JsString]): std.js.Dom.CSSMathSum.CSSMathSum.
+pub (receiver: CSSNumericValue) to_sum(units: Array[JsString]): std.js.Dom.CSSMathSum.
 
 /**
  * The **`type()`** method of the `CSSNumericValue`, one of `angle`, `flex`, `frequency`, `length`, `resolution`, `percent`, `percentHint`, or `time`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/type)
  */
-pub (receiver: CSSNumericValue) type_(): std.js.Dom.CSSNumericType.CSSNumericType.
+pub (receiver: CSSNumericValue) type_(): std.js.Dom.CSSNumericType.

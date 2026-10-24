@@ -14,4 +14,4 @@ module std.js.Dom.PointerLockOptions.
 
 pub opaque type PointerLockOptions.
 
-pub (receiver: PointerLockOptions) unadjusted_movement(): std.core.Option.Option[Bool].
+pub (receiver: PointerLockOptions) unadjusted_movement(): std.core.Option[Bool].

@@ -2,7 +2,7 @@ use crate::terlan_typeck::Type;
 
 pub(super) const SQL_SCALAR_ABI_TYPE_SUMMARY: &str = "Int, Float, Number, Binary, or Bool";
 pub(super) const SQL_ROW_DECODE_ABI_TYPE_SUMMARY: &str =
-    "Int, Binary, Bool, std.data.Json.Json, or Option of one of these";
+    "Int, Binary, Bool, std.data.Json, or Option of one of these";
 
 /// Returns whether a type can cross the current SQL scalar parameter ABI.
 pub(super) fn sql_scalar_abi_type_is_supported(ty: &Type) -> bool {

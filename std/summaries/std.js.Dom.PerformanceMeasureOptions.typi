@@ -15,8 +15,8 @@ module std.js.Dom.PerformanceMeasureOptions.
 
 pub opaque type PerformanceMeasureOptions.
 
-pub (receiver: PerformanceMeasureOptions) duration(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp].
+pub (receiver: PerformanceMeasureOptions) duration(): std.core.Option[std.js.Dom.DOMHighResTimeStamp].
 
-pub (receiver: PerformanceMeasureOptions) end(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp | std.js.String.JsString].
+pub (receiver: PerformanceMeasureOptions) end(): std.core.Option[std.js.Dom.DOMHighResTimeStamp | std.js.String.JsString].
 
-pub (receiver: PerformanceMeasureOptions) start(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp | std.js.String.JsString].
+pub (receiver: PerformanceMeasureOptions) start(): std.core.Option[std.js.Dom.DOMHighResTimeStamp | std.js.String.JsString].

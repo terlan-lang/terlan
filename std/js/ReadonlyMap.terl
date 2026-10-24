@@ -14,7 +14,7 @@ module std.js.ReadonlyMap.
 
 pub opaque type ReadonlyMap[K, V].
 
-pub (receiver: ReadonlyMap[K, V]) get(key: K): std.core.Option.Option[V] ->
+pub (receiver: ReadonlyMap[K, V]) get(key: K): std.core.Option[V] ->
     native.
 
 pub (receiver: ReadonlyMap[K, V]) has(key: K): Bool ->

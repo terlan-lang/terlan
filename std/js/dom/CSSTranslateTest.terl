@@ -12,8 +12,7 @@
  */
 module std.js.Dom.CSSTranslateTest.
 
-import type std.js.Dom.CSSNumericValue.{CSSNumericValue}.
-import type std.js.Dom.CSSTranslate.
+import type std.js.Dom.{CSSNumericValue, CSSTranslate}.
 
 pub x_typechecks(receiver: CSSTranslate): CSSNumericValue ->
     receiver.x().

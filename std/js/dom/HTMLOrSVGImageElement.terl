@@ -12,6 +12,4 @@
  */
 module std.js.Dom.HTMLOrSVGImageElement.
 
-pub type HTMLOrSVGImageElement =
-      std.js.Dom.HTMLImageElement.HTMLImageElement
-    | std.js.Dom.SVGImageElement.SVGImageElement.
+pub type HTMLOrSVGImageElement = std.js.Dom.HTMLImageElement | std.js.Dom.SVGImageElement.

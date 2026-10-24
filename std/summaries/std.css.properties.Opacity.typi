@@ -8,7 +8,7 @@ module std.css.properties.Opacity.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    opacity: std.core.Option.Option[Value]
+    opacity: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

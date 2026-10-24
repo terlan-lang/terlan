@@ -15,10 +15,10 @@ module std.js.Dom.AnalyserOptions.
 
 pub opaque type AnalyserOptions.
 
-pub (receiver: AnalyserOptions) fft_size(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AnalyserOptions) fft_size(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: AnalyserOptions) max_decibels(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AnalyserOptions) max_decibels(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: AnalyserOptions) min_decibels(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AnalyserOptions) min_decibels(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: AnalyserOptions) smoothing_time_constant(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AnalyserOptions) smoothing_time_constant(): std.core.Option[std.js.Number.JsNumber].

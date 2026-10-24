@@ -12,12 +12,12 @@
  */
 module std.js.Dom.MutationObserverInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.MutationObserverInit.
 
 pub attribute_filter_typechecks(
     receiver: MutationObserverInit,
-): Option[std.js.Array.Array[std.js.String.JsString]] ->
+): Option[std.js.Array[std.js.String.JsString]] ->
     receiver.attribute_filter().
 
 pub attribute_old_value_typechecks(receiver: MutationObserverInit): Option[Bool] ->

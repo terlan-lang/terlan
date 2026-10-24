@@ -15,6 +15,6 @@ module std.js.Dom.FileSystemFlags.
 
 pub opaque type FileSystemFlags.
 
-pub (receiver: FileSystemFlags) create(): std.core.Option.Option[Bool].
+pub (receiver: FileSystemFlags) create(): std.core.Option[Bool].
 
-pub (receiver: FileSystemFlags) exclusive(): std.core.Option.Option[Bool].
+pub (receiver: FileSystemFlags) exclusive(): std.core.Option[Bool].

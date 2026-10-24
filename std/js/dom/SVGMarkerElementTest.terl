@@ -12,12 +12,8 @@
  */
 module std.js.Dom.SVGMarkerElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGAnimatedEnumeration.{SVGAnimatedEnumeration}.
-import type std.js.Dom.SVGAnimatedLength.{SVGAnimatedLength}.
-import type std.js.Dom.SVGMarkerElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, SVGAnimatedEnumeration, SVGAnimatedLength, SVGMarkerElement}.
 import type std.js.String.{JsString}.
 
 pub marker_height_typechecks(receiver: SVGMarkerElement): SVGAnimatedLength ->
@@ -29,9 +25,7 @@ pub marker_units_typechecks(receiver: SVGMarkerElement): SVGAnimatedEnumeration 
 pub marker_width_typechecks(receiver: SVGMarkerElement): SVGAnimatedLength ->
     receiver.marker_width().
 
-pub orient_angle_typechecks(
-    receiver: SVGMarkerElement,
-): std.js.Dom.SVGAnimatedAngle.SVGAnimatedAngle ->
+pub orient_angle_typechecks(receiver: SVGMarkerElement): std.js.Dom.SVGAnimatedAngle ->
     receiver.orient_angle().
 
 pub orient_type_typechecks(receiver: SVGMarkerElement): SVGAnimatedEnumeration ->
@@ -43,10 +37,7 @@ pub ref_x_typechecks(receiver: SVGMarkerElement): SVGAnimatedLength ->
 pub ref_y_typechecks(receiver: SVGMarkerElement): SVGAnimatedLength ->
     receiver.ref_y().
 
-pub set_orient_to_angle_typechecks(
-    receiver: SVGMarkerElement,
-    angle: std.js.Dom.SVGAngle.SVGAngle,
-): Unit ->
+pub set_orient_to_angle_typechecks(receiver: SVGMarkerElement, angle: std.js.Dom.SVGAngle): Unit ->
     receiver.set_orient_to_angle(angle).
 
 pub set_orient_to_auto_typechecks(receiver: SVGMarkerElement): Unit ->
@@ -56,7 +47,7 @@ pub add_event_listener_typechecks(
     receiver: SVGMarkerElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -64,6 +55,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGMarkerElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.AnimationPlaybackEventTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.AnimationPlaybackEvent.
-import type std.js.Dom.CSSNumberish.{CSSNumberish}.
+import type std.core.{Option}.
+import type std.js.Dom.{AnimationPlaybackEvent, CSSNumberish}.
 
 pub current_time_typechecks(receiver: AnimationPlaybackEvent): Option[CSSNumberish] ->
     receiver.current_time().

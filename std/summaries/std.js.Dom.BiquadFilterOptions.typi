@@ -15,10 +15,10 @@ module std.js.Dom.BiquadFilterOptions.
 
 pub opaque type BiquadFilterOptions.
 
-pub (receiver: BiquadFilterOptions) q(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: BiquadFilterOptions) q(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: BiquadFilterOptions) detune(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: BiquadFilterOptions) detune(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: BiquadFilterOptions) frequency(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: BiquadFilterOptions) frequency(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: BiquadFilterOptions) gain(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: BiquadFilterOptions) gain(): std.core.Option[std.js.Number.JsNumber].

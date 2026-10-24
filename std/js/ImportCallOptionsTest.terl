@@ -12,11 +12,11 @@
  */
 module std.js.ImportCallOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.ImportCallOptions.
 
-pub assert_typechecks(receiver: ImportCallOptions): Option[std.js.ImportAssertions.ImportAssertions] ->
+pub assert_typechecks(receiver: ImportCallOptions): Option[std.js.ImportAssertions] ->
     receiver.assert().
 
-pub with__typechecks(receiver: ImportCallOptions): Option[std.js.ImportAttributes.ImportAttributes] ->
+pub with__typechecks(receiver: ImportCallOptions): Option[std.js.ImportAttributes] ->
     receiver.with_().

@@ -12,11 +12,11 @@
  */
 module std.js.Dom.ImportNodeOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type ImportNodeOptions.
 
-pub (receiver: ImportNodeOptions) custom_element_registry(): Option[std.js.Dom.CustomElementRegistry.CustomElementRegistry] ->
+pub (receiver: ImportNodeOptions) custom_element_registry(): Option[std.js.Dom.CustomElementRegistry] ->
     native.
 
 pub (receiver: ImportNodeOptions) self_only(): Option[Bool] ->

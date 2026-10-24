@@ -21,5 +21,5 @@ pub computed_offset_typechecks(receiver: ComputedKeyframe): JsNumber ->
 pub easing_typechecks(receiver: ComputedKeyframe): std.js.String.JsString ->
     receiver.easing().
 
-pub offset_typechecks(receiver: ComputedKeyframe): std.core.Option.Option[JsNumber] ->
+pub offset_typechecks(receiver: ComputedKeyframe): std.core.Option[JsNumber] ->
     receiver.offset().

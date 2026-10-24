@@ -12,9 +12,8 @@
  */
 module std.js.Dom.TextTrackList.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -37,19 +36,19 @@ pub (receiver: TextTrackList) length(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextTrackList/getTrackById)
  */
-pub (receiver: TextTrackList) get_track_by_id(id: JsString): Option[std.js.Dom.TextTrack.TextTrack] ->
+pub (receiver: TextTrackList) get_track_by_id(id: JsString): Option[std.js.Dom.TextTrack] ->
     native.
 
 pub (receiver: TextTrackList) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: TextTrackList) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

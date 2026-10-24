@@ -8,7 +8,7 @@ module std.css.properties.Transition.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    transition: std.core.Option.Option[Value]
+    transition: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

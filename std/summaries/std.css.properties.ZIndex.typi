@@ -8,7 +8,7 @@ module std.css.properties.ZIndex.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    z_index: std.core.Option.Option[Value]
+    z_index: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -53,11 +53,11 @@ pub (receiver: SVGAngle) value_in_specified_units(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/convertToSpecifiedUnits)
  */
-pub (receiver: SVGAngle) convert_to_specified_units(unit_type: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGAngle) convert_to_specified_units(unit_type: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The `newValueSpecifiedUnits()` method of the SVGAngle interface sets the value to a number with an associated SVGAngle.unitType, thereby replacing the values for all of the attributes on the object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAngle/newValueSpecifiedUnits)
  */
-pub (receiver: SVGAngle) new_value_specified_units(unit_type: std.js.Number.JsNumber, value_in_specified_units: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: SVGAngle) new_value_specified_units(unit_type: std.js.Number.JsNumber, value_in_specified_units: std.js.Number.JsNumber): std.core.Unit.

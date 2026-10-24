@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SVGNumberList.
 
-import type std.js.Dom.SVGNumber.{SVGNumber}.
+import type std.js.Dom.{SVGNumber}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -51,7 +51,7 @@ pub (receiver: SVGNumberList) append_item(new_item: SVGNumber): SVGNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGNumberList/clear)
  */
-pub (receiver: SVGNumberList) clear(): std.core.Unit.Unit ->
+pub (receiver: SVGNumberList) clear(): std.core.Unit ->
     native.
 
 /**

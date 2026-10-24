@@ -14,5 +14,5 @@ module std.js.Dom.ScreenOrientationEventMap.
 
 pub opaque type ScreenOrientationEventMap.
 
-pub (receiver: ScreenOrientationEventMap) change(): std.js.Dom.Event.Event ->
+pub (receiver: ScreenOrientationEventMap) change(): std.js.Dom.Event ->
     native.

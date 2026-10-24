@@ -14,10 +14,8 @@ module std.js.Dom.HmacKeyGenParamsTest.
 
 import type std.js.Dom.HmacKeyGenParams.
 
-pub hash_typechecks(
-    receiver: HmacKeyGenParams,
-): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier ->
+pub hash_typechecks(receiver: HmacKeyGenParams): std.js.Dom.HashAlgorithmIdentifier ->
     receiver.hash().
 
-pub length_typechecks(receiver: HmacKeyGenParams): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub length_typechecks(receiver: HmacKeyGenParams): std.core.Option[std.js.Number.JsNumber] ->
     receiver.length().

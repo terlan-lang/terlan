@@ -14,12 +14,8 @@ module std.js.Dom.VideoEncoderInitTest.
 
 import type std.js.Dom.VideoEncoderInit.
 
-pub error_typechecks(
-    receiver: VideoEncoderInit,
-): std.js.Dom.WebCodecsErrorCallback.WebCodecsErrorCallback ->
+pub error_typechecks(receiver: VideoEncoderInit): std.js.Dom.WebCodecsErrorCallback ->
     receiver.error().
 
-pub output_typechecks(
-    receiver: VideoEncoderInit,
-): std.js.Dom.EncodedVideoChunkOutputCallback.EncodedVideoChunkOutputCallback ->
+pub output_typechecks(receiver: VideoEncoderInit): std.js.Dom.EncodedVideoChunkOutputCallback ->
     receiver.output().

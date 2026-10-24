@@ -27,7 +27,7 @@ pub color_depth_typechecks(receiver: Screen): JsNumber ->
 pub height_typechecks(receiver: Screen): JsNumber ->
     receiver.height().
 
-pub orientation_typechecks(receiver: Screen): std.js.Dom.ScreenOrientation.ScreenOrientation ->
+pub orientation_typechecks(receiver: Screen): std.js.Dom.ScreenOrientation ->
     receiver.orientation().
 
 pub pixel_depth_typechecks(receiver: Screen): JsNumber ->

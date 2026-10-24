@@ -12,8 +12,7 @@
  */
 module std.js.Dom.AudioProcessingEventTest.
 
-import type std.js.Dom.AudioBuffer.{AudioBuffer}.
-import type std.js.Dom.AudioProcessingEvent.
+import type std.js.Dom.{AudioBuffer, AudioProcessingEvent}.
 
 pub input_buffer_typechecks(receiver: AudioProcessingEvent): AudioBuffer ->
     receiver.input_buffer().

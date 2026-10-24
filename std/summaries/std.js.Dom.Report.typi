@@ -25,7 +25,7 @@ pub opaque type Report.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Report/body)
  */
-pub (receiver: Report) body(): std.core.Option.Option[std.js.Dom.ReportBody.ReportBody].
+pub (receiver: Report) body(): std.core.Option[std.js.Dom.ReportBody].
 
 /**
  * The **`type`** read-only property of the Report interface returns the type of report generated, e.g., `deprecation` or `intervention`.

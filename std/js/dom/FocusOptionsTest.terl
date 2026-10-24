@@ -14,5 +14,5 @@ module std.js.Dom.FocusOptionsTest.
 
 import type std.js.Dom.FocusOptions.
 
-pub prevent_scroll_typechecks(receiver: FocusOptions): std.core.Option.Option[Bool] ->
+pub prevent_scroll_typechecks(receiver: FocusOptions): std.core.Option[Bool] ->
     receiver.prevent_scroll().

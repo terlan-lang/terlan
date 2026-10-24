@@ -12,7 +12,7 @@
  */
 module std.js.Dom.Attr.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.String.{JsString}.
 
 /**
@@ -46,7 +46,7 @@ pub (receiver: Attr) name(): JsString ->
 pub (receiver: Attr) namespace_uri(): Option[JsString] ->
     native.
 
-pub (receiver: Attr) owner_document(): std.js.Dom.Document.Document ->
+pub (receiver: Attr) owner_document(): std.js.Dom.Document ->
     native.
 
 /**
@@ -54,7 +54,7 @@ pub (receiver: Attr) owner_document(): std.js.Dom.Document.Document ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Attr/ownerElement)
  */
-pub (receiver: Attr) owner_element(): Option[std.js.Dom.Element.Element] ->
+pub (receiver: Attr) owner_element(): Option[std.js.Dom.Element] ->
     native.
 
 /**

@@ -8,7 +8,7 @@ module std.css.properties.FlexLineCount.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    flex_line_count: std.core.Option.Option[Value]
+    flex_line_count: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

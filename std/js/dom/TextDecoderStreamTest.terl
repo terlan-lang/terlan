@@ -16,10 +16,10 @@ import type std.js.Dom.TextDecoderStream.
 
 pub readable_typechecks(
     receiver: TextDecoderStream,
-): std.js.Dom.ReadableStream.ReadableStream[std.js.String.JsString] ->
+): std.js.Dom.ReadableStream[std.js.String.JsString] ->
     receiver.readable().
 
 pub writable_typechecks(
     receiver: TextDecoderStream,
-): std.js.Dom.WritableStream.WritableStream[std.js.Dom.BufferSource.BufferSource] ->
+): std.js.Dom.WritableStream[std.js.Dom.BufferSource] ->
     receiver.writable().

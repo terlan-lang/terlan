@@ -16,7 +16,7 @@ pub opaque type CornerShapePart.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    corner: std.core.Option.Option[Value]
+    corner: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

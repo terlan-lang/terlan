@@ -12,12 +12,12 @@
  */
 module std.js.Dom.GetHTMLOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type GetHTMLOptions.
 
 pub (receiver: GetHTMLOptions) serializable_shadow_roots(): Option[Bool] ->
     native.
 
-pub (receiver: GetHTMLOptions) shadow_roots(): Option[std.js.Array.Array[std.js.Dom.ShadowRoot.ShadowRoot]] ->
+pub (receiver: GetHTMLOptions) shadow_roots(): Option[std.js.Array[std.js.Dom.ShadowRoot]] ->
     native.

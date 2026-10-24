@@ -12,8 +12,8 @@
  */
 module std.js.Dom.CookieChangeEvent.
 
-import type std.js.Array.{Array}.
-import type std.js.Dom.CookieListItem.{CookieListItem}.
+import type std.js.Dom.{CookieListItem}.
+import type std.js.{Array}.
 
 /**
  * The **`CookieChangeEvent`** interface of the Cookie Store API is the event type of the CookieStore/change_event event fired at a CookieStore when any cookies are created or deleted.

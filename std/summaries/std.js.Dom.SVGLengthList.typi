@@ -39,46 +39,46 @@ pub (receiver: SVGLengthList) number_of_items(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/appendItem)
  */
-pub (receiver: SVGLengthList) append_item(new_item: std.js.Dom.SVGLength.SVGLength): std.js.Dom.SVGLength.SVGLength.
+pub (receiver: SVGLengthList) append_item(new_item: std.js.Dom.SVGLength): std.js.Dom.SVGLength.
 
 /**
  * The **`clear()`** method of the SVGLengthList interface clears all existing items from the list, with the result being an empty list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/clear)
  */
-pub (receiver: SVGLengthList) clear(): std.core.Unit.Unit.
+pub (receiver: SVGLengthList) clear(): std.core.Unit.
 
 /**
  * The **`getItem()`** method of the SVGLengthList interface returns the specified item from the list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/getItem)
  */
-pub (receiver: SVGLengthList) get_item(index: std.js.Number.JsNumber): std.js.Dom.SVGLength.SVGLength.
+pub (receiver: SVGLengthList) get_item(index: std.js.Number.JsNumber): std.js.Dom.SVGLength.
 
 /**
  * The **`initialize()`** method of the SVGLengthList interface clears all existing items from the list and re-initializes the list to hold the single item specified by the parameter.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/initialize)
  */
-pub (receiver: SVGLengthList) initialize(new_item: std.js.Dom.SVGLength.SVGLength): std.js.Dom.SVGLength.SVGLength.
+pub (receiver: SVGLengthList) initialize(new_item: std.js.Dom.SVGLength): std.js.Dom.SVGLength.
 
 /**
  * The **`insertItemBefore()`** method of the SVGLengthList interface inserts a new item into the list at the specified position.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/insertItemBefore)
  */
-pub (receiver: SVGLengthList) insert_item_before(new_item: std.js.Dom.SVGLength.SVGLength, index: std.js.Number.JsNumber): std.js.Dom.SVGLength.SVGLength.
+pub (receiver: SVGLengthList) insert_item_before(new_item: std.js.Dom.SVGLength, index: std.js.Number.JsNumber): std.js.Dom.SVGLength.
 
 /**
  * The **`removeItem()`** method of the SVGLengthList interface removes an existing item at the given index from the list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/removeItem)
  */
-pub (receiver: SVGLengthList) remove_item(index: std.js.Number.JsNumber): std.js.Dom.SVGLength.SVGLength.
+pub (receiver: SVGLengthList) remove_item(index: std.js.Number.JsNumber): std.js.Dom.SVGLength.
 
 /**
  * The **`replaceItem()`** method of the SVGLengthList interface replaces an existing item in the list with a new item.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGLengthList/replaceItem)
  */
-pub (receiver: SVGLengthList) replace_item(new_item: std.js.Dom.SVGLength.SVGLength, index: std.js.Number.JsNumber): std.js.Dom.SVGLength.SVGLength.
+pub (receiver: SVGLengthList) replace_item(new_item: std.js.Dom.SVGLength, index: std.js.Number.JsNumber): std.js.Dom.SVGLength.

@@ -14,4 +14,4 @@ module std.js.Dom.FileSystemCreateWritableOptions.
 
 pub opaque type FileSystemCreateWritableOptions.
 
-pub (receiver: FileSystemCreateWritableOptions) keep_existing_data(): std.core.Option.Option[Bool].
+pub (receiver: FileSystemCreateWritableOptions) keep_existing_data(): std.core.Option[Bool].

@@ -12,11 +12,8 @@
  */
 module std.js.Dom.XMLHttpRequest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Document.{Document}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.URL.{URL}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Document, EventListenerOrEventListenerObject, URL}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -81,7 +78,7 @@ pub (receiver: XMLHttpRequest) timeout(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/upload)
  */
-pub (receiver: XMLHttpRequest) upload(): std.js.Dom.XMLHttpRequestUpload.XMLHttpRequestUpload.
+pub (receiver: XMLHttpRequest) upload(): std.js.Dom.XMLHttpRequestUpload.
 
 /**
  * The **`XMLHttpRequest.withCredentials`** property is a boolean value that indicates whether or not cross-site `Access-Control` requests should be made using credentials such as cookies, authentication headers or TLS client certificates.
@@ -138,9 +135,7 @@ pub (receiver: XMLHttpRequest) override_mime_type(mime: JsString): Unit.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/send)
  */
-pub (receiver: XMLHttpRequest) send(
-    body: Option[Option[Document | std.js.Dom.XMLHttpRequestBodyInit.XMLHttpRequestBodyInit]],
-): Unit.
+pub (receiver: XMLHttpRequest) send(body: Option[Option[Document | std.js.Dom.XMLHttpRequestBodyInit]]): Unit.
 
 /**
  * The XMLHttpRequest method **`setRequestHeader()`** sets the value of an HTTP request header.
@@ -152,11 +147,11 @@ pub (receiver: XMLHttpRequest) set_request_header(name: JsString, value: JsStrin
 pub (receiver: XMLHttpRequest) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: XMLHttpRequest) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

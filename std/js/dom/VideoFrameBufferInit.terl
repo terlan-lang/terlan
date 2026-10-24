@@ -12,7 +12,7 @@
  */
 module std.js.Dom.VideoFrameBufferInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type VideoFrameBufferInit.
@@ -23,7 +23,7 @@ pub (receiver: VideoFrameBufferInit) coded_height(): JsNumber ->
 pub (receiver: VideoFrameBufferInit) coded_width(): JsNumber ->
     native.
 
-pub (receiver: VideoFrameBufferInit) color_space(): Option[std.js.Dom.VideoColorSpaceInit.VideoColorSpaceInit] ->
+pub (receiver: VideoFrameBufferInit) color_space(): Option[std.js.Dom.VideoColorSpaceInit] ->
     native.
 
 pub (receiver: VideoFrameBufferInit) display_height(): Option[JsNumber] ->
@@ -35,11 +35,11 @@ pub (receiver: VideoFrameBufferInit) display_width(): Option[JsNumber] ->
 pub (receiver: VideoFrameBufferInit) duration(): Option[JsNumber] ->
     native.
 
-pub (receiver: VideoFrameBufferInit) layout(): Option[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]] ->
+pub (receiver: VideoFrameBufferInit) layout(): Option[std.js.Array[std.js.Dom.PlaneLayout]] ->
     native.
 
 pub (receiver: VideoFrameBufferInit) timestamp(): JsNumber ->
     native.
 
-pub (receiver: VideoFrameBufferInit) visible_rect(): Option[std.js.Dom.DOMRectInit.DOMRectInit] ->
+pub (receiver: VideoFrameBufferInit) visible_rect(): Option[std.js.Dom.DOMRectInit] ->
     native.

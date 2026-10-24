@@ -48,5 +48,5 @@ pub screen_x_typechecks(receiver: Touch): JsNumber ->
 pub screen_y_typechecks(receiver: Touch): JsNumber ->
     receiver.screen_y().
 
-pub target__typechecks(receiver: Touch): std.js.Dom.EventTarget.EventTarget ->
+pub target__typechecks(receiver: Touch): std.js.Dom.EventTarget ->
     receiver.target_().

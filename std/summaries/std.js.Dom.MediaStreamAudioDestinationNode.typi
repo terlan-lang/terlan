@@ -25,4 +25,4 @@ pub opaque type MediaStreamAudioDestinationNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaStreamAudioDestinationNode/stream)
  */
-pub (receiver: MediaStreamAudioDestinationNode) stream(): std.js.Dom.MediaStream.MediaStream.
+pub (receiver: MediaStreamAudioDestinationNode) stream(): std.js.Dom.MediaStream.

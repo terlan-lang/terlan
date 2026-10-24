@@ -27,7 +27,7 @@ pub opaque type DocumentType.
  */
 pub (receiver: DocumentType) name(): std.js.String.JsString.
 
-pub (receiver: DocumentType) owner_document(): std.js.Dom.Document.Document.
+pub (receiver: DocumentType) owner_document(): std.js.Dom.Document.
 
 /**
  * The read-only **`publicId`** property of the DocumentType returns a formal identifier of the document.

@@ -240,7 +240,7 @@ pub constructor ProtocolShapeSet {
 /**
  * DecodedValue is the closed scalar result set supported by protocol decoding.
  */
-pub type DecodedValue = Int | std.vm.BitString.BitString | std.vm.Bytes.Bytes.
+pub type DecodedValue = Int | std.vm.BitString | std.vm.Bytes.
 
 /**
  * Runtime tags keep decoded field payloads representation-safe after they are
@@ -259,8 +259,8 @@ pub type DecodedBytesFieldTag = Atom["decoded_bytes_field"].
  */
 pub type DecodedField =
       {DecodedIntFieldTag, String, Int}
-    | {DecodedBitsFieldTag, String, std.vm.BitString.BitString}
-    | {DecodedBytesFieldTag, String, std.vm.Bytes.Bytes}.
+    | {DecodedBitsFieldTag, String, std.vm.BitString}
+    | {DecodedBytesFieldTag, String, std.vm.Bytes}.
 
 /**
  * Constructs one integer decoded field.
@@ -271,24 +271,24 @@ pub decoded_int_field(name: String, value: Int): DecodedField ->
 /**
  * Constructs one exact bitstring decoded field.
  */
-pub decoded_bits_field(name: String, value: std.vm.BitString.BitString): DecodedField ->
+pub decoded_bits_field(name: String, value: std.vm.BitString): DecodedField ->
     {DecodedBitsFieldTag, name, value}.
 
 /**
  * Constructs one immutable byte decoded field.
  */
-pub decoded_bytes_field(name: String, value: std.vm.Bytes.Bytes): DecodedField ->
+pub decoded_bytes_field(name: String, value: std.vm.Bytes): DecodedField ->
     {DecodedBytesFieldTag, name, value}.
 
 /**
  * DecodedProtocol stores ordered scalar fields and the remaining byte body.
  */
-pub type DecodedProtocol = {List[DecodedField], std.vm.Bytes.Bytes}.
+pub type DecodedProtocol = {List[DecodedField], std.vm.Bytes}.
 
 /**
  * Constructs one decoded protocol result.
  */
-pub decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes.Bytes): DecodedProtocol ->
+pub decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes): DecodedProtocol ->
     {fields, body}.
 
 /**
@@ -356,19 +356,13 @@ pub decode_protocol_int_value(fields: List[DecodedField], name: String): Option[
 /**
  * Returns one named exact bitstring field when its runtime tag matches.
  */
-pub decoded_protocol_bits_value(
-    decoded: DecodedProtocol,
-    name: String,
-): Option[std.vm.BitString.BitString] ->
+pub decoded_protocol_bits_value(decoded: DecodedProtocol, name: String): Option[std.vm.BitString] ->
     decode_protocol_bits_value(decoded_protocol_fields(decoded), name).
 
 /**
  * Finds one tagged exact bitstring without accepting another managed kind.
  */
-pub decode_protocol_bits_value(
-    fields: List[DecodedField],
-    name: String,
-): Option[std.vm.BitString.BitString] ->
+pub decode_protocol_bits_value(fields: List[DecodedField], name: String): Option[std.vm.BitString] ->
     case fields {
         [] -> None;
         [field | rest] ->
@@ -385,16 +379,13 @@ pub decode_protocol_bits_value(
 /**
  * Returns one named immutable byte field when its runtime tag matches.
  */
-pub decoded_protocol_bytes_value(decoded: DecodedProtocol, name: String): Option[std.vm.Bytes.Bytes] ->
+pub decoded_protocol_bytes_value(decoded: DecodedProtocol, name: String): Option[std.vm.Bytes] ->
     decode_protocol_bytes_value(decoded_protocol_fields(decoded), name).
 
 /**
  * Finds one tagged immutable byte field without accepting another managed kind.
  */
-pub decode_protocol_bytes_value(
-    fields: List[DecodedField],
-    name: String,
-): Option[std.vm.Bytes.Bytes] ->
+pub decode_protocol_bytes_value(fields: List[DecodedField], name: String): Option[std.vm.Bytes] ->
     case fields {
         [] -> None;
         [field | rest] ->
@@ -411,7 +402,7 @@ pub decode_protocol_bytes_value(
 /**
  * Returns the immutable byte suffix after decoded fields.
  */
-pub decoded_protocol_remaining_bytes(decoded: DecodedProtocol): std.vm.Bytes.Bytes ->
+pub decoded_protocol_remaining_bytes(decoded: DecodedProtocol): std.vm.Bytes ->
     let {_fields, body} = decoded;
     body.
 
@@ -722,7 +713,7 @@ pub resolve_named_protocol_shape(
 pub protocol_shape_set_decode(
     set: ProtocolShapeSet,
     name: String,
-    payload: std.vm.Bytes.Bytes,
+    payload: std.vm.Bytes,
 ): Result[DecodedProtocol, BinaryDecodeError] ->
     case protocol_shape_set_resolve(set, name) {
         Err(reason) -> Err(reason);
@@ -736,7 +727,7 @@ pub protocol_shape_set_encode_exact(
     set: ProtocolShapeSet,
     name: String,
     value: DecodedProtocol,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+): Result[std.vm.Bytes, BinaryConstructError] ->
     case protocol_shape_set_resolve(set, name) {
         Err(reason) -> Err(binary_construct_error(reason));
         Ok(shape) -> encode_exact(shape, value)
@@ -749,7 +740,7 @@ pub protocol_shape_set_encode_prefix(
     set: ProtocolShapeSet,
     name: String,
     value: DecodedProtocol,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+): Result[std.vm.Bytes, BinaryConstructError] ->
     case protocol_shape_set_resolve(set, name) {
         Err(reason) -> Err(binary_construct_error(reason));
         Ok(shape) -> encode_prefix(shape, value)
@@ -973,9 +964,9 @@ pub compose_header_body(
  * VM-owned byte slices, preserving every input byte exactly once and in order.
  */
 pub split_header_body(
-    payload: std.vm.Bytes.Bytes,
+    payload: std.vm.Bytes,
     header_length: Int,
-): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError] ->
+): Result[{std.vm.Bytes, std.vm.Bytes}, BinaryDecodeError] ->
     let payload_length = payload.length();
     if {
         header_length < 0 -> Err(InvalidWidth);
@@ -1000,8 +991,8 @@ pub split_header_body(
  */
 pub split_protocol_header(
     shape: ProtocolShape,
-    payload: std.vm.Bytes.Bytes,
-): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError] ->
+    payload: std.vm.Bytes,
+): Result[{std.vm.Bytes, std.vm.Bytes}, BinaryDecodeError] ->
     case validate_protocol_shape(shape) {
         Err(reason) -> Err(reason);
         Ok(validated) -> split_protocol_header_fields(validated.fields, 0, payload)
@@ -1013,8 +1004,8 @@ pub split_protocol_header(
 pub split_protocol_header_fields(
     fields: List[ProtocolField],
     total: Int,
-    payload: std.vm.Bytes.Bytes,
-): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError] ->
+    payload: std.vm.Bytes,
+): Result[{std.vm.Bytes, std.vm.Bytes}, BinaryDecodeError] ->
     case fields {
         [] ->
             if {
@@ -1161,8 +1152,8 @@ pub binary_construct_error(reason: BinaryDecodeError): BinaryConstructError ->
  */
 pub decode_fixed_header(
     shape: ProtocolShape,
-    payload: std.vm.Bytes.Bytes,
-): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError] ->
+    payload: std.vm.Bytes,
+): Result[{std.vm.Bytes, std.vm.Bytes}, BinaryDecodeError] ->
     split_protocol_header(shape, payload).
 
 /**
@@ -1177,7 +1168,7 @@ pub decode_fixed_header(
  */
 pub decode_prefixed_body(
     shape: ProtocolShape,
-    payload: std.vm.Bytes.Bytes,
+    payload: std.vm.Bytes,
 ): Result[DecodedProtocol, BinaryDecodeError] ->
     case validate_protocol_shape(shape) {
         Err(reason) -> Err(reason);
@@ -1197,7 +1188,7 @@ pub decode_prefixed_body(
 pub decode_protocol_fields(
     fields: List[ProtocolField],
     endian: EndianPolicy,
-    payload: std.vm.Bytes.Bytes,
+    payload: std.vm.Bytes,
     bit_offset: Int,
     decoded: List[DecodedField],
 ): Result[DecodedProtocol, BinaryDecodeError] ->
@@ -1267,7 +1258,7 @@ pub decode_protocol_fields(
 pub decode_protocol_bits(
     next: List[ProtocolField],
     endian: EndianPolicy,
-    payload: std.vm.Bytes.Bytes,
+    payload: std.vm.Bytes,
     bit_offset: Int,
     decoded: List[DecodedField],
     name: String,
@@ -1288,7 +1279,7 @@ pub decode_protocol_bits(
 pub decode_protocol_integer(
     next: List[ProtocolField],
     endian: EndianPolicy,
-    payload: std.vm.Bytes.Bytes,
+    payload: std.vm.Bytes,
     bit_offset: Int,
     decoded: List[DecodedField],
     name: String,
@@ -1316,7 +1307,7 @@ pub decode_protocol_integer(
 pub decode_protocol_bytes(
     next: List[ProtocolField],
     endian: EndianPolicy,
-    payload: std.vm.Bytes.Bytes,
+    payload: std.vm.Bytes,
     bit_offset: Int,
     decoded: List[DecodedField],
     name: String,
@@ -1336,7 +1327,7 @@ pub decode_protocol_bytes(
  * Returns one byte-aligned suffix after fixed field decoding.
  */
 pub decode_protocol_tail(
-    payload: std.vm.Bytes.Bytes,
+    payload: std.vm.Bytes,
     bit_offset: Int,
     decoded: List[DecodedField],
 ): Result[DecodedProtocol, BinaryDecodeError] ->
@@ -1359,7 +1350,7 @@ pub decode_protocol_tail(
 pub encode_exact(
     shape: ProtocolShape,
     value: DecodedProtocol,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+): Result[std.vm.Bytes, BinaryConstructError] ->
     encode_protocol(shape, value, true).
 
 /**
@@ -1373,7 +1364,7 @@ pub encode_exact(
 pub encode_prefix(
     shape: ProtocolShape,
     value: DecodedProtocol,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+): Result[std.vm.Bytes, BinaryConstructError] ->
     encode_protocol(shape, value, false).
 
 /**
@@ -1383,7 +1374,7 @@ pub encode_protocol(
     shape: ProtocolShape,
     value: DecodedProtocol,
     include_rest: Bool,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+): Result[std.vm.Bytes, BinaryConstructError] ->
     case validate_protocol_shape(shape) {
         Err(reason) -> Err(binary_construct_error(reason));
         Ok(validated) ->
@@ -1398,9 +1389,9 @@ pub encode_protocol_fields(
     fields: List[ProtocolField],
     endian: EndianPolicy,
     decoded: DecodedProtocol,
-    encoded: std.vm.BitString.BitString,
+    encoded: std.vm.BitString,
     include_rest: Bool,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+): Result[std.vm.Bytes, BinaryConstructError] ->
     case fields {
         [] -> finish_protocol_encoding(encoded);
         [field | next] ->
@@ -1465,10 +1456,10 @@ pub encode_protocol_fields(
 pub encode_protocol_uint_value(
     endian: EndianPolicy,
     decoded: DecodedProtocol,
-    encoded: std.vm.BitString.BitString,
+    encoded: std.vm.BitString,
     name: String,
     width: Int,
-): Result[std.vm.BitString.BitString, BinaryConstructError] ->
+): Result[std.vm.BitString, BinaryConstructError] ->
     case decoded_protocol_int_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
@@ -1491,10 +1482,10 @@ pub encode_protocol_uint_value(
 pub encode_protocol_int_value(
     endian: EndianPolicy,
     decoded: DecodedProtocol,
-    encoded: std.vm.BitString.BitString,
+    encoded: std.vm.BitString,
     name: String,
     width: Int,
-): Result[std.vm.BitString.BitString, BinaryConstructError] ->
+): Result[std.vm.BitString, BinaryConstructError] ->
     case decoded_protocol_int_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
@@ -1518,10 +1509,10 @@ pub encode_protocol_int_value(
  */
 pub encode_protocol_bytes_value(
     decoded: DecodedProtocol,
-    encoded: std.vm.BitString.BitString,
+    encoded: std.vm.BitString,
     name: String,
     width: Int,
-): Result[std.vm.BitString.BitString, BinaryConstructError] ->
+): Result[std.vm.BitString, BinaryConstructError] ->
     case decoded_protocol_bytes_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
@@ -1537,10 +1528,10 @@ pub encode_protocol_bytes_value(
  */
 pub encode_protocol_bits_value(
     decoded: DecodedProtocol,
-    encoded: std.vm.BitString.BitString,
+    encoded: std.vm.BitString,
     name: String,
     width: Int,
-): Result[std.vm.BitString.BitString, BinaryConstructError] ->
+): Result[std.vm.BitString, BinaryConstructError] ->
     case decoded_protocol_bits_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
@@ -1557,11 +1548,11 @@ pub encode_protocol_uint(
     next: List[ProtocolField],
     endian: EndianPolicy,
     decoded: DecodedProtocol,
-    encoded: std.vm.BitString.BitString,
+    encoded: std.vm.BitString,
     include_rest: Bool,
     name: String,
     width: Int,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+): Result[std.vm.Bytes, BinaryConstructError] ->
     case decoded_protocol_int_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
@@ -1585,11 +1576,11 @@ pub encode_protocol_int(
     next: List[ProtocolField],
     endian: EndianPolicy,
     decoded: DecodedProtocol,
-    encoded: std.vm.BitString.BitString,
+    encoded: std.vm.BitString,
     include_rest: Bool,
     name: String,
     width: Int,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+): Result[std.vm.Bytes, BinaryConstructError] ->
     case decoded_protocol_int_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
@@ -1621,11 +1612,11 @@ pub encode_protocol_bytes(
     next: List[ProtocolField],
     endian: EndianPolicy,
     decoded: DecodedProtocol,
-    encoded: std.vm.BitString.BitString,
+    encoded: std.vm.BitString,
     include_rest: Bool,
     name: String,
     width: Int,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+): Result[std.vm.Bytes, BinaryConstructError] ->
     case decoded_protocol_bytes_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
@@ -1644,11 +1635,11 @@ pub encode_protocol_bits(
     next: List[ProtocolField],
     endian: EndianPolicy,
     decoded: DecodedProtocol,
-    encoded: std.vm.BitString.BitString,
+    encoded: std.vm.BitString,
     include_rest: Bool,
     name: String,
     width: Int,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+): Result[std.vm.Bytes, BinaryConstructError] ->
     case decoded_protocol_bits_value(decoded, name) {
         None -> Err(UnknownDescriptor);
         Some(value) ->
@@ -1663,9 +1654,9 @@ pub encode_protocol_bits(
  */
 pub encode_protocol_rest(
     decoded: DecodedProtocol,
-    encoded: std.vm.BitString.BitString,
+    encoded: std.vm.BitString,
     include_rest: Bool,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+): Result[std.vm.Bytes, BinaryConstructError] ->
     if {
         encoded.is_byte_aligned() == false -> Err(InvalidAlignment);
         include_rest -> Ok(Bytes.concat(encoded.to_bytes(), decoded_protocol_remaining_bytes(decoded)));
@@ -1675,9 +1666,7 @@ pub encode_protocol_rest(
 /**
  * Converts a completed byte-aligned bit accumulator to immutable bytes.
  */
-pub finish_protocol_encoding(
-    encoded: std.vm.BitString.BitString,
-): Result[std.vm.Bytes.Bytes, BinaryConstructError] ->
+pub finish_protocol_encoding(encoded: std.vm.BitString): Result[std.vm.Bytes, BinaryConstructError] ->
     if {
         encoded.is_byte_aligned() -> Ok(encoded.to_bytes());
         true -> Err(InvalidAlignment)

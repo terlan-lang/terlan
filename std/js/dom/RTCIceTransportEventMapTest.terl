@@ -12,8 +12,7 @@
  */
 module std.js.Dom.RTCIceTransportEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.RTCIceTransportEventMap.
+import type std.js.Dom.{Event, RTCIceTransportEventMap}.
 
 pub gatheringstatechange_typechecks(receiver: RTCIceTransportEventMap): Event ->
     receiver.gatheringstatechange().

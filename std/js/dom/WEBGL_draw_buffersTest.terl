@@ -16,6 +16,6 @@ import type std.js.Dom.WEBGL_draw_buffers.
 
 pub draw_buffers_webgl_typechecks(
     receiver: WEBGL_draw_buffers,
-    buffers: std.js.Array.Array[std.js.Dom.GLenum.GLenum],
-): std.core.Unit.Unit ->
+    buffers: std.js.Array[std.js.Dom.GLenum],
+): std.core.Unit ->
     receiver.draw_buffers_webgl(buffers).

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.GlobalEventHandlers.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 pub opaque type GlobalEventHandlers.
@@ -22,16 +21,16 @@ pub opaque type GlobalEventHandlers.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLElement/error_event)
  */
-pub (receiver: GlobalEventHandlers) onerror(): std.js.Dom.OnErrorEventHandler.OnErrorEventHandler.
+pub (receiver: GlobalEventHandlers) onerror(): std.js.Dom.OnErrorEventHandler.
 
 pub (receiver: GlobalEventHandlers) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: GlobalEventHandlers) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

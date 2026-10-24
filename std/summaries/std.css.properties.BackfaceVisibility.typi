@@ -8,7 +8,7 @@ module std.css.properties.BackfaceVisibility.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    backface_visibility: std.core.Option.Option[Value]
+    backface_visibility: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

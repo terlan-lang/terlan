@@ -12,22 +12,20 @@
  */
 module std.js.Int16ArrayConstructorTest.
 
-import type std.js.ArrayBuffer.{ArrayBuffer}.
-import type std.js.Int16Array.{Int16Array}.
-import type std.js.Int16ArrayConstructor.
 import type std.js.Number.{JsNumber}.
+import type std.js.{ArrayBuffer, Int16Array, Int16ArrayConstructor}.
 
 pub bytes_per_element_typechecks(receiver: Int16ArrayConstructor): JsNumber ->
     receiver.bytes_per_element().
 
 pub of_typechecks(
     receiver: Int16ArrayConstructor,
-    items: std.js.Array.Array[JsNumber],
+    items: std.js.Array[JsNumber],
 ): Int16Array[ArrayBuffer] ->
     receiver.of(items).
 
 pub from__typechecks(
     receiver: Int16ArrayConstructor,
-    array_like: std.js.ArrayLike.ArrayLike[JsNumber],
+    array_like: std.js.ArrayLike[JsNumber],
 ): Int16Array[ArrayBuffer] ->
     receiver.from_(array_like).

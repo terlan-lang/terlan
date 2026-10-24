@@ -27,7 +27,7 @@ pub opaque type ClipboardItem.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem/types)
  */
-pub (receiver: ClipboardItem) types(): std.js.Array.Array[JsString] ->
+pub (receiver: ClipboardItem) types(): std.js.Array[JsString] ->
     native.
 
 /**
@@ -35,5 +35,5 @@ pub (receiver: ClipboardItem) types(): std.js.Array.Array[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ClipboardItem/getType)
  */
-pub (receiver: ClipboardItem) get_type(type_: JsString): std.js.Promise.Promise[std.js.Dom.Blob.Blob] ->
+pub (receiver: ClipboardItem) get_type(type_: JsString): std.js.Promise[std.js.Dom.Blob] ->
     native.

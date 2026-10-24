@@ -16,7 +16,7 @@ import type std.js.Dom.FileSystemFileEntry.
 
 pub file__typechecks(
     receiver: FileSystemFileEntry,
-    success_callback: std.js.Dom.FileCallback.FileCallback,
-    error_callback: std.core.Option.Option[std.js.Dom.ErrorCallback.ErrorCallback],
-): std.core.Unit.Unit ->
+    success_callback: std.js.Dom.FileCallback,
+    error_callback: std.core.Option[std.js.Dom.ErrorCallback],
+): std.core.Unit ->
     receiver.file_(success_callback, error_callback).

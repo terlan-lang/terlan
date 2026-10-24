@@ -16,7 +16,7 @@ import type std.js.String.{JsString}.
 
 pub opaque type RegExpConstructor.
 
-pub (receiver: RegExpConstructor) prototype(): std.js.RegExp.RegExp.
+pub (receiver: RegExpConstructor) prototype(): std.js.RegExp.
 
 /**
  * @deprecated A legacy feature for browser compatibility

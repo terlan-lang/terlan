@@ -12,25 +12,22 @@
  */
 module std.js.Dom.RTCPeerConnectionEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.RTCPeerConnectionEventMap.
+import type std.js.Dom.{Event, RTCPeerConnectionEventMap}.
 
 pub connectionstatechange_typechecks(receiver: RTCPeerConnectionEventMap): Event ->
     receiver.connectionstatechange().
 
-pub datachannel_typechecks(
-    receiver: RTCPeerConnectionEventMap,
-): std.js.Dom.RTCDataChannelEvent.RTCDataChannelEvent ->
+pub datachannel_typechecks(receiver: RTCPeerConnectionEventMap): std.js.Dom.RTCDataChannelEvent ->
     receiver.datachannel().
 
 pub icecandidate_typechecks(
     receiver: RTCPeerConnectionEventMap,
-): std.js.Dom.RTCPeerConnectionIceEvent.RTCPeerConnectionIceEvent ->
+): std.js.Dom.RTCPeerConnectionIceEvent ->
     receiver.icecandidate().
 
 pub icecandidateerror_typechecks(
     receiver: RTCPeerConnectionEventMap,
-): std.js.Dom.RTCPeerConnectionIceErrorEvent.RTCPeerConnectionIceErrorEvent ->
+): std.js.Dom.RTCPeerConnectionIceErrorEvent ->
     receiver.icecandidateerror().
 
 pub iceconnectionstatechange_typechecks(receiver: RTCPeerConnectionEventMap): Event ->
@@ -45,5 +42,5 @@ pub negotiationneeded_typechecks(receiver: RTCPeerConnectionEventMap): Event ->
 pub signalingstatechange_typechecks(receiver: RTCPeerConnectionEventMap): Event ->
     receiver.signalingstatechange().
 
-pub track_typechecks(receiver: RTCPeerConnectionEventMap): std.js.Dom.RTCTrackEvent.RTCTrackEvent ->
+pub track_typechecks(receiver: RTCPeerConnectionEventMap): std.js.Dom.RTCTrackEvent ->
     receiver.track().

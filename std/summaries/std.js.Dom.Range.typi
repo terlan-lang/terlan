@@ -25,14 +25,14 @@ pub opaque type Range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/commonAncestorContainer)
  */
-pub (receiver: Range) common_ancestor_container(): std.js.Dom.Node.Node.
+pub (receiver: Range) common_ancestor_container(): std.js.Dom.Node.
 
 /**
  * The **`cloneContents()`** method of the Range interface copies the selected Node children of the range's Range/commonAncestorContainer and puts them in a new DocumentFragment object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/cloneContents)
  */
-pub (receiver: Range) clone_contents(): std.js.Dom.DocumentFragment.DocumentFragment.
+pub (receiver: Range) clone_contents(): std.js.Dom.DocumentFragment.
 
 /**
  * The **`Range.cloneRange()`** method returns a The returned clone is copied by value, not reference, so a change in either ```js-nolint cloneRange() ``` None.
@@ -46,7 +46,7 @@ pub (receiver: Range) clone_range(): Range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/collapse)
  */
-pub (receiver: Range) collapse(to_start: std.core.Option.Option[Bool]): std.core.Unit.Unit.
+pub (receiver: Range) collapse(to_start: std.core.Option[Bool]): std.core.Unit.
 
 /**
  * The **`compareBoundaryPoints()`** method of the Range interface compares the boundary points of the Range with those of another range.
@@ -60,132 +60,132 @@ pub (receiver: Range) compare_boundary_points(how: std.js.Number.JsNumber, sourc
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/comparePoint)
  */
-pub (receiver: Range) compare_point(node: std.js.Dom.Node.Node, offset: std.js.Number.JsNumber): std.js.Number.JsNumber.
+pub (receiver: Range) compare_point(node: std.js.Dom.Node, offset: std.js.Number.JsNumber): std.js.Number.JsNumber.
 
 /**
  * The **`Range.createContextualFragment()`** method returns a XML fragment parsing algorithm with the start of the range (the _parent_ of the selected node) as the context node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/createContextualFragment)
  */
-pub (receiver: Range) create_contextual_fragment(string: std.js.String.JsString): std.js.Dom.DocumentFragment.DocumentFragment.
+pub (receiver: Range) create_contextual_fragment(string: std.js.String.JsString): std.js.Dom.DocumentFragment.
 
 /**
  * The **`Range.deleteContents()`** method removes all completely-selected Node within this range from the document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/deleteContents)
  */
-pub (receiver: Range) delete_contents(): std.core.Unit.Unit.
+pub (receiver: Range) delete_contents(): std.core.Unit.
 
 /**
  * The **`Range.detach()`** method does nothing.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/detach)
  */
-pub (receiver: Range) detach(): std.core.Unit.Unit.
+pub (receiver: Range) detach(): std.core.Unit.
 
 /**
  * The **`extractContents()`** method of the Range interface is similar to a combination of Range.cloneContents() and Range.deleteContents().
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/extractContents)
  */
-pub (receiver: Range) extract_contents(): std.js.Dom.DocumentFragment.DocumentFragment.
+pub (receiver: Range) extract_contents(): std.js.Dom.DocumentFragment.
 
 /**
  * The **`Range.getBoundingClientRect()`** method returns a DOMRect object that bounds the contents of the range; this is a rectangle enclosing the union of the bounding rectangles for all the elements in the range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/getBoundingClientRect)
  */
-pub (receiver: Range) get_bounding_client_rect(): std.js.Dom.DOMRect.DOMRect.
+pub (receiver: Range) get_bounding_client_rect(): std.js.Dom.DOMRect.
 
 /**
  * The **`Range.getClientRects()`** method returns a list of DOMRect objects representing the area of the screen occupied by the range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/getClientRects)
  */
-pub (receiver: Range) get_client_rects(): std.js.Dom.DOMRectList.DOMRectList.
+pub (receiver: Range) get_client_rects(): std.js.Dom.DOMRectList.
 
 /**
  * The **`Range.insertNode()`** method inserts a node at the start of the Range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/insertNode)
  */
-pub (receiver: Range) insert_node(node: std.js.Dom.Node.Node): std.core.Unit.Unit.
+pub (receiver: Range) insert_node(node: std.js.Dom.Node): std.core.Unit.
 
 /**
  * The **`Range.intersectsNode()`** method returns a boolean indicating whether the given Node intersects the Range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/intersectsNode)
  */
-pub (receiver: Range) intersects_node(node: std.js.Dom.Node.Node): Bool.
+pub (receiver: Range) intersects_node(node: std.js.Dom.Node): Bool.
 
 /**
  * The **`isPointInRange()`** method of the Range interface determines whether a specified point is within the Range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/isPointInRange)
  */
-pub (receiver: Range) is_point_in_range(node: std.js.Dom.Node.Node, offset: std.js.Number.JsNumber): Bool.
+pub (receiver: Range) is_point_in_range(node: std.js.Dom.Node, offset: std.js.Number.JsNumber): Bool.
 
 /**
  * The **`Range.selectNode()`** method sets the the parent of the _referenceNode_.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/selectNode)
  */
-pub (receiver: Range) select_node(node: std.js.Dom.Node.Node): std.core.Unit.Unit.
+pub (receiver: Range) select_node(node: std.js.Dom.Node): std.core.Unit.
 
 /**
  * The **`Range.selectNodeContents()`** method sets the Range to contain the contents of a Node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/selectNodeContents)
  */
-pub (receiver: Range) select_node_contents(node: std.js.Dom.Node.Node): std.core.Unit.Unit.
+pub (receiver: Range) select_node_contents(node: std.js.Dom.Node): std.core.Unit.
 
 /**
  * The **`Range.setEnd()`** method sets the end position of a Range to be located at the given offset into the specified node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setEnd)
  */
-pub (receiver: Range) set_end(node: std.js.Dom.Node.Node, offset: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Range) set_end(node: std.js.Dom.Node, offset: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`Range.setEndAfter()`** method sets the end position of a `Node` of end of the `Range` will be the same as that for the `referenceNode`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setEndAfter)
  */
-pub (receiver: Range) set_end_after(node: std.js.Dom.Node.Node): std.core.Unit.Unit.
+pub (receiver: Range) set_end_after(node: std.js.Dom.Node): std.core.Unit.
 
 /**
  * The **`Range.setEndBefore()`** method sets the end position of a `Range` relative to another Node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setEndBefore)
  */
-pub (receiver: Range) set_end_before(node: std.js.Dom.Node.Node): std.core.Unit.Unit.
+pub (receiver: Range) set_end_before(node: std.js.Dom.Node): std.core.Unit.
 
 /**
  * The **`Range.setStart()`** method sets the start position of a If the `startNode` is a Node of type Text, the number of characters from the start of `startNode`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setStart)
  */
-pub (receiver: Range) set_start(node: std.js.Dom.Node.Node, offset: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Range) set_start(node: std.js.Dom.Node, offset: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`Range.setStartAfter()`** method sets the start position of a Range relative to a Node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setStartAfter)
  */
-pub (receiver: Range) set_start_after(node: std.js.Dom.Node.Node): std.core.Unit.Unit.
+pub (receiver: Range) set_start_after(node: std.js.Dom.Node): std.core.Unit.
 
 /**
  * The **`Range.setStartBefore()`** method sets the start position of a Range relative to another Node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/setStartBefore)
  */
-pub (receiver: Range) set_start_before(node: std.js.Dom.Node.Node): std.core.Unit.Unit.
+pub (receiver: Range) set_start_before(node: std.js.Dom.Node): std.core.Unit.
 
 /**
  * The **`surroundContents()`** method of the Range interface surrounds the selected content by a provided node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/surroundContents)
  */
-pub (receiver: Range) surround_contents(new_parent: std.js.Dom.Node.Node): std.core.Unit.Unit.
+pub (receiver: Range) surround_contents(new_parent: std.js.Dom.Node): std.core.Unit.
 
 pub (receiver: Range) to_string(): std.js.String.JsString.

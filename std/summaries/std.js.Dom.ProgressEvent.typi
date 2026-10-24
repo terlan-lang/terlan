@@ -34,7 +34,7 @@ pub (receiver: ProgressEvent[T]) length_computable(): Bool.
  */
 pub (receiver: ProgressEvent[T]) loaded(): std.js.Number.JsNumber.
 
-pub (receiver: ProgressEvent[T]) target_(): std.core.Option.Option[T].
+pub (receiver: ProgressEvent[T]) target_(): std.core.Option[T].
 
 /**
  * The **`ProgressEvent.total`** read-only property is a number indicating the total size of the data being transmitted or processed.

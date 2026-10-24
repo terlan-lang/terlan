@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AuthenticationExtensionsLargeBlobInputsJSONTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.AuthenticationExtensionsLargeBlobInputsJSON.
 
 pub read_typechecks(receiver: AuthenticationExtensionsLargeBlobInputsJSON): Option[Bool] ->
@@ -25,5 +25,5 @@ pub support_typechecks(
 
 pub write_typechecks(
     receiver: AuthenticationExtensionsLargeBlobInputsJSON,
-): Option[std.js.Dom.Base64URLString.Base64URLString] ->
+): Option[std.js.Dom.Base64URLString] ->
     receiver.write().

@@ -12,13 +12,12 @@
  */
 module std.js.Dom.TextTrackListEventMapTest.
 
-import type std.js.Dom.TextTrackListEventMap.
-import type std.js.Dom.TrackEvent.{TrackEvent}.
+import type std.js.Dom.{TextTrackListEventMap, TrackEvent}.
 
 pub addtrack_typechecks(receiver: TextTrackListEventMap): TrackEvent ->
     receiver.addtrack().
 
-pub change_typechecks(receiver: TextTrackListEventMap): std.js.Dom.Event.Event ->
+pub change_typechecks(receiver: TextTrackListEventMap): std.js.Dom.Event ->
     receiver.change().
 
 pub removetrack_typechecks(receiver: TextTrackListEventMap): TrackEvent ->

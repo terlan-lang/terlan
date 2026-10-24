@@ -12,7 +12,7 @@
  */
 module std.js.Dom.DOMQuad.
 
-import type std.js.Dom.DOMPoint.{DOMPoint}.
+import type std.js.Dom.{DOMPoint}.
 
 /**
  * A `DOMQuad` is a collection of four `DOMPoint`s defining the corners of an arbitrary quadrilateral.
@@ -58,5 +58,5 @@ pub (receiver: DOMQuad) p4(): DOMPoint ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMQuad/getBounds)
  */
-pub (receiver: DOMQuad) get_bounds(): std.js.Dom.DOMRect.DOMRect ->
+pub (receiver: DOMQuad) get_bounds(): std.js.Dom.DOMRect ->
     native.

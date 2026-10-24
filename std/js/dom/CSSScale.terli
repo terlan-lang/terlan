@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CSSScale.
 
-import type std.js.Dom.CSSNumberish.{CSSNumberish}.
+import type std.js.Dom.{CSSNumberish}.
 
 /**
  * The **`CSSScale`** interface of the CSS Typed Object Model API represents the scale() and scale3d() values of the individual transform property in CSS.

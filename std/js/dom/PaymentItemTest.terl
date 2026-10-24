@@ -14,11 +14,11 @@ module std.js.Dom.PaymentItemTest.
 
 import type std.js.Dom.PaymentItem.
 
-pub amount_typechecks(receiver: PaymentItem): std.js.Dom.PaymentCurrencyAmount.PaymentCurrencyAmount ->
+pub amount_typechecks(receiver: PaymentItem): std.js.Dom.PaymentCurrencyAmount ->
     receiver.amount().
 
 pub label_typechecks(receiver: PaymentItem): std.js.String.JsString ->
     receiver.label().
 
-pub pending_typechecks(receiver: PaymentItem): std.core.Option.Option[Bool] ->
+pub pending_typechecks(receiver: PaymentItem): std.core.Option[Bool] ->
     receiver.pending().

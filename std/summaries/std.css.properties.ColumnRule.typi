@@ -8,7 +8,7 @@ module std.css.properties.ColumnRule.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    column_rule: std.core.Option.Option[Value]
+    column_rule: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

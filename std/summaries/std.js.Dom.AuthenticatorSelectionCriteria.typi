@@ -15,4 +15,4 @@ module std.js.Dom.AuthenticatorSelectionCriteria.
 
 pub opaque type AuthenticatorSelectionCriteria.
 
-pub (receiver: AuthenticatorSelectionCriteria) require_resident_key(): std.core.Option.Option[Bool].
+pub (receiver: AuthenticatorSelectionCriteria) require_resident_key(): std.core.Option[Bool].

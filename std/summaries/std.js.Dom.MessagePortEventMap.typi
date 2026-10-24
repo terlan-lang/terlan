@@ -15,6 +15,6 @@ module std.js.Dom.MessagePortEventMap.
 
 pub opaque type MessagePortEventMap.
 
-pub (receiver: MessagePortEventMap) message(): std.js.Dom.MessageEvent.MessageEvent.
+pub (receiver: MessagePortEventMap) message(): std.js.Dom.MessageEvent.
 
-pub (receiver: MessagePortEventMap) messageerror(): std.js.Dom.MessageEvent.MessageEvent.
+pub (receiver: MessagePortEventMap) messageerror(): std.js.Dom.MessageEvent.

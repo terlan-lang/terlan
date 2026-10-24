@@ -12,10 +12,8 @@
  */
 module std.js.Dom.EventTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Event.
-import type std.js.Dom.EventTarget.{EventTarget}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Event, EventTarget}.
 import type std.js.String.{JsString}.
 
 pub bubbles_typechecks(receiver: Event): Bool ->
@@ -51,13 +49,13 @@ pub src_element_typechecks(receiver: Event): Option[EventTarget] ->
 pub target__typechecks(receiver: Event): Option[EventTarget] ->
     receiver.target_().
 
-pub time_stamp_typechecks(receiver: Event): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
+pub time_stamp_typechecks(receiver: Event): std.js.Dom.DOMHighResTimeStamp ->
     receiver.time_stamp().
 
 pub type__typechecks(receiver: Event): JsString ->
     receiver.type_().
 
-pub composed_path_typechecks(receiver: Event): std.js.Array.Array[EventTarget] ->
+pub composed_path_typechecks(receiver: Event): std.js.Array[EventTarget] ->
     receiver.composed_path().
 
 pub init_event_typechecks(

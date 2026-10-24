@@ -14,5 +14,5 @@ module std.js.Dom.WebAssembly.InstanceTest.
 
 import type std.js.Dom.WebAssembly.Instance.
 
-pub exports_typechecks(receiver: Instance): std.js.Dom.WebAssembly.Exports.Exports ->
+pub exports_typechecks(receiver: Instance): std.js.Dom.WebAssembly.Exports ->
     receiver.exports().

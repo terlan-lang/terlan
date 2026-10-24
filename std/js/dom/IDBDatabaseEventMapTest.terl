@@ -12,8 +12,7 @@
  */
 module std.js.Dom.IDBDatabaseEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.IDBDatabaseEventMap.
+import type std.js.Dom.{Event, IDBDatabaseEventMap}.
 
 pub abort_typechecks(receiver: IDBDatabaseEventMap): Event ->
     receiver.abort().
@@ -24,7 +23,5 @@ pub close_typechecks(receiver: IDBDatabaseEventMap): Event ->
 pub error_typechecks(receiver: IDBDatabaseEventMap): Event ->
     receiver.error().
 
-pub versionchange_typechecks(
-    receiver: IDBDatabaseEventMap,
-): std.js.Dom.IDBVersionChangeEvent.IDBVersionChangeEvent ->
+pub versionchange_typechecks(receiver: IDBDatabaseEventMap): std.js.Dom.IDBVersionChangeEvent ->
     receiver.versionchange().

@@ -39,60 +39,60 @@ pub (receiver: SVGTransformList) number_of_items(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/appendItem)
  */
-pub (receiver: SVGTransformList) append_item(new_item: std.js.Dom.SVGTransform.SVGTransform): std.js.Dom.SVGTransform.SVGTransform.
+pub (receiver: SVGTransformList) append_item(new_item: std.js.Dom.SVGTransform): std.js.Dom.SVGTransform.
 
 /**
  * The `clear()` method of the SVGTransformList interface clears all existing current items from the list, with the result being an empty list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/clear)
  */
-pub (receiver: SVGTransformList) clear(): std.core.Unit.Unit.
+pub (receiver: SVGTransformList) clear(): std.core.Unit.
 
 /**
  * The `consolidate()` method of the SVGTransformList interface consolidates the list of separate SVGTransform objects by multiplying the equivalent transformation matrices together to result in a list consisting of a single `SVGTransform` object of type `SVG_TRANSFORM_MATRIX`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/consolidate)
  */
-pub (receiver: SVGTransformList) consolidate(): std.core.Option.Option[std.js.Dom.SVGTransform.SVGTransform].
+pub (receiver: SVGTransformList) consolidate(): std.core.Option[std.js.Dom.SVGTransform].
 
 /**
  * The `createSVGTransformFromMatrix()` method of the SVGTransformList interface creates an SVGTransform object which is initialized to a transform of type `SVG_TRANSFORM_MATRIX` and whose values are the given matrix.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/createSVGTransformFromMatrix)
  */
-pub (receiver: SVGTransformList) create_svg_transform_from_matrix(matrix: std.core.Option.Option[std.js.Dom.DOMMatrix2DInit.DOMMatrix2DInit]): std.js.Dom.SVGTransform.SVGTransform.
+pub (receiver: SVGTransformList) create_svg_transform_from_matrix(matrix: std.core.Option[std.js.Dom.DOMMatrix2DInit]): std.js.Dom.SVGTransform.
 
 /**
  * The `getItem()` method of the SVGTransformList interface returns the specified item from the list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/getItem)
  */
-pub (receiver: SVGTransformList) get_item(index: std.js.Number.JsNumber): std.js.Dom.SVGTransform.SVGTransform.
+pub (receiver: SVGTransformList) get_item(index: std.js.Number.JsNumber): std.js.Dom.SVGTransform.
 
 /**
  * The `initialize()` method of the SVGTransformList interface clears all existing current items from the list and re-initializes the list to hold the single item specified by the parameter.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/initialize)
  */
-pub (receiver: SVGTransformList) initialize(new_item: std.js.Dom.SVGTransform.SVGTransform): std.js.Dom.SVGTransform.SVGTransform.
+pub (receiver: SVGTransformList) initialize(new_item: std.js.Dom.SVGTransform): std.js.Dom.SVGTransform.
 
 /**
  * The `insertItemBefore()` method of the SVGTransformList interface inserts a new item into the list at the specified position.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/insertItemBefore)
  */
-pub (receiver: SVGTransformList) insert_item_before(new_item: std.js.Dom.SVGTransform.SVGTransform, index: std.js.Number.JsNumber): std.js.Dom.SVGTransform.SVGTransform.
+pub (receiver: SVGTransformList) insert_item_before(new_item: std.js.Dom.SVGTransform, index: std.js.Number.JsNumber): std.js.Dom.SVGTransform.
 
 /**
  * The `removeItem()` method of the SVGTransformList interface removes an existing item from the list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/removeItem)
  */
-pub (receiver: SVGTransformList) remove_item(index: std.js.Number.JsNumber): std.js.Dom.SVGTransform.SVGTransform.
+pub (receiver: SVGTransformList) remove_item(index: std.js.Number.JsNumber): std.js.Dom.SVGTransform.
 
 /**
  * The `replaceItem()` method of the SVGTransformList interface replaces an existing item in the list with a new item.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGTransformList/replaceItem)
  */
-pub (receiver: SVGTransformList) replace_item(new_item: std.js.Dom.SVGTransform.SVGTransform, index: std.js.Number.JsNumber): std.js.Dom.SVGTransform.SVGTransform.
+pub (receiver: SVGTransformList) replace_item(new_item: std.js.Dom.SVGTransform, index: std.js.Number.JsNumber): std.js.Dom.SVGTransform.

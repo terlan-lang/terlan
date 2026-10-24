@@ -8,7 +8,7 @@ module std.css.properties.DynamicRangeLimit.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    dynamic_range_limit: std.core.Option.Option[Value]
+    dynamic_range_limit: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

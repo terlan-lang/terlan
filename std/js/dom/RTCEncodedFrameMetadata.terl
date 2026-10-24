@@ -12,12 +12,12 @@
  */
 module std.js.Dom.RTCEncodedFrameMetadata.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type RTCEncodedFrameMetadata.
 
-pub (receiver: RTCEncodedFrameMetadata) contributing_sources(): Option[std.js.Array.Array[JsNumber]] ->
+pub (receiver: RTCEncodedFrameMetadata) contributing_sources(): Option[std.js.Array[JsNumber]] ->
     native.
 
 pub (receiver: RTCEncodedFrameMetadata) mime_type(): Option[std.js.String.JsString] ->

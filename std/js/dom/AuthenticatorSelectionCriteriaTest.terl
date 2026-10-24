@@ -14,7 +14,5 @@ module std.js.Dom.AuthenticatorSelectionCriteriaTest.
 
 import type std.js.Dom.AuthenticatorSelectionCriteria.
 
-pub require_resident_key_typechecks(
-    receiver: AuthenticatorSelectionCriteria,
-): std.core.Option.Option[Bool] ->
+pub require_resident_key_typechecks(receiver: AuthenticatorSelectionCriteria): std.core.Option[Bool] ->
     receiver.require_resident_key().

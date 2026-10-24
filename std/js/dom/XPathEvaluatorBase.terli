@@ -12,7 +12,7 @@
  */
 module std.js.Dom.XPathEvaluatorBase.
 
-import type std.js.Dom.Node.{Node}.
+import type std.js.Dom.{Node}.
 
 pub opaque type XPathEvaluatorBase.
 

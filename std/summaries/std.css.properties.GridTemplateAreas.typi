@@ -8,7 +8,7 @@ module std.css.properties.GridTemplateAreas.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    grid_template_areas: std.core.Option.Option[Value]
+    grid_template_areas: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

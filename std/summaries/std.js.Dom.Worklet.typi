@@ -26,4 +26,4 @@ pub opaque type Worklet.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Worklet/addModule)
  */
-pub (receiver: Worklet) add_module(module_url: std.js.Dom.URL.URL | std.js.String.JsString, options: std.core.Option.Option[std.js.Dom.WorkletOptions.WorkletOptions]): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: Worklet) add_module(module_url: std.js.Dom.URL | std.js.String.JsString, options: std.core.Option[std.js.Dom.WorkletOptions]): std.js.Promise[std.core.Unit].

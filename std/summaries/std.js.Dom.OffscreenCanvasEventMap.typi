@@ -15,6 +15,6 @@ module std.js.Dom.OffscreenCanvasEventMap.
 
 pub opaque type OffscreenCanvasEventMap.
 
-pub (receiver: OffscreenCanvasEventMap) contextlost(): std.js.Dom.Event.Event.
+pub (receiver: OffscreenCanvasEventMap) contextlost(): std.js.Dom.Event.
 
-pub (receiver: OffscreenCanvasEventMap) contextrestored(): std.js.Dom.Event.Event.
+pub (receiver: OffscreenCanvasEventMap) contextrestored(): std.js.Dom.Event.

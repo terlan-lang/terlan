@@ -14,5 +14,5 @@ module std.js.Dom.CSSMathMinTest.
 
 import type std.js.Dom.CSSMathMin.
 
-pub values_typechecks(receiver: CSSMathMin): std.js.Dom.CSSNumericArray.CSSNumericArray ->
+pub values_typechecks(receiver: CSSMathMin): std.js.Dom.CSSNumericArray ->
     receiver.values().

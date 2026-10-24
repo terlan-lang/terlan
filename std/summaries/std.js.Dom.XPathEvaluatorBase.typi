@@ -20,4 +20,4 @@ pub opaque type XPathEvaluatorBase.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createNSResolver)
  */
-pub (receiver: XPathEvaluatorBase) create_ns_resolver(node_resolver: std.js.Dom.Node.Node): std.js.Dom.Node.Node.
+pub (receiver: XPathEvaluatorBase) create_ns_resolver(node_resolver: std.js.Dom.Node): std.js.Dom.Node.

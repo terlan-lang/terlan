@@ -12,12 +12,11 @@
  */
 module std.js.Dom.PaymentRequestEventMapTest.
 
-import type std.js.Dom.PaymentRequestEventMap.
-import type std.js.Dom.PaymentRequestUpdateEvent.{PaymentRequestUpdateEvent}.
+import type std.js.Dom.{PaymentRequestEventMap, PaymentRequestUpdateEvent}.
 
 pub paymentmethodchange_typechecks(
     receiver: PaymentRequestEventMap,
-): std.js.Dom.PaymentMethodChangeEvent.PaymentMethodChangeEvent ->
+): std.js.Dom.PaymentMethodChangeEvent ->
     receiver.paymentmethodchange().
 
 pub shippingaddresschange_typechecks(receiver: PaymentRequestEventMap): PaymentRequestUpdateEvent ->

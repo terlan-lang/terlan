@@ -3,7 +3,7 @@
 use super::*;
 
 pub(super) fn qualify(core: &mut CoreModule, resolved: &ResolvedModule) {
-    let names = resolved
+    let mut names = resolved
         .imported_types
         .iter()
         .filter_map(|(local, imported)| {
@@ -20,6 +20,21 @@ pub(super) fn qualify(core: &mut CoreModule, resolved: &ResolvedModule) {
             })
         })
         .collect::<HashMap<_, _>>();
+    for interface in resolved
+        .interface_map
+        .values()
+        .chain(std::iter::once(&resolved.interface))
+    {
+        let Some(name) = interface.module.rsplit('.').next() else {
+            continue;
+        };
+        if interface.public_types.contains(name) || interface.opaque_types.contains(name) {
+            names.insert(
+                interface.module.clone(),
+                format!("{}.{name}", interface.module),
+            );
+        }
+    }
     if names.is_empty() {
         return;
     }
@@ -46,13 +61,36 @@ pub(super) fn qualify(core: &mut CoreModule, resolved: &ResolvedModule) {
                 .chain(clause.body.core_expr.as_mut())
             {
                 crate::terlan_typeck::visit_core_expr_mut(expr, &mut |expr| {
-                    if let CoreExpr::Lam {
-                        parameter_types, ..
-                    } = expr
-                    {
-                        for ty in parameter_types.iter_mut().flatten() {
-                            qualify_type(ty, &names, &function.generic_params);
+                    let qualify =
+                        |ty: &mut CoreType| qualify_type(ty, &names, &function.generic_params);
+                    match expr {
+                        CoreExpr::Lam {
+                            parameter_types, ..
+                        } => parameter_types.iter_mut().flatten().for_each(qualify),
+                        CoreExpr::Call { type_args, .. }
+                        | CoreExpr::RemoteCall { type_args, .. }
+                        | CoreExpr::ConstructorCall { type_args, .. }
+                        | CoreExpr::ConstructorChain { type_args, .. } => {
+                            type_args.iter_mut().for_each(qualify)
                         }
+                        CoreExpr::Cast { target_type, .. } => qualify(target_type),
+                        CoreExpr::ListComprehension {
+                            lift: Some(lift), ..
+                        } => {
+                            if let Some(qualified) = names.get(lift) {
+                                *lift = qualified.clone();
+                            }
+                        }
+                        CoreExpr::Intrinsic(call) => {
+                            call.return_type.visit_names_mut(&mut |name| {
+                                if name.contains('.') {
+                                    if let Some(qualified) = names.get(name) {
+                                        *name = qualified.clone();
+                                    }
+                                }
+                            })
+                        }
+                        _ => {}
                     }
                 });
             }

@@ -14,7 +14,5 @@ module std.js.Dom.RTCDTMFToneChangeEventInitTest.
 
 import type std.js.Dom.RTCDTMFToneChangeEventInit.
 
-pub tone_typechecks(
-    receiver: RTCDTMFToneChangeEventInit,
-): std.core.Option.Option[std.js.String.JsString] ->
+pub tone_typechecks(receiver: RTCDTMFToneChangeEventInit): std.core.Option[std.js.String.JsString] ->
     receiver.tone().

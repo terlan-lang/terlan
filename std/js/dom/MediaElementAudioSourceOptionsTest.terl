@@ -14,7 +14,5 @@ module std.js.Dom.MediaElementAudioSourceOptionsTest.
 
 import type std.js.Dom.MediaElementAudioSourceOptions.
 
-pub media_element_typechecks(
-    receiver: MediaElementAudioSourceOptions,
-): std.js.Dom.HTMLMediaElement.HTMLMediaElement ->
+pub media_element_typechecks(receiver: MediaElementAudioSourceOptions): std.js.Dom.HTMLMediaElement ->
     receiver.media_element().

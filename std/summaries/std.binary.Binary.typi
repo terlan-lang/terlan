@@ -95,8 +95,8 @@ pub type DecodedBytesFieldTag =
 
 pub type DecodedField =
     {DecodedIntFieldTag, String, Int}
-  | {DecodedBitsFieldTag, String, std.vm.BitString.BitString}
-  | {DecodedBytesFieldTag, String, std.vm.Bytes.Bytes}.
+  | {DecodedBitsFieldTag, String, std.vm.BitString}
+  | {DecodedBytesFieldTag, String, std.vm.Bytes}.
 
 /// Runtime tags keep decoded field payloads representation-safe after they are
 /// placed in a heterogeneous list. The public value union remains transparent
@@ -109,14 +109,14 @@ pub type DecodedIntFieldTag =
 /// DecodedProtocol stores ordered scalar fields and the remaining byte body.
 
 pub type DecodedProtocol =
-    {List[DecodedField], std.vm.Bytes.Bytes}.
+    {List[DecodedField], std.vm.Bytes}.
 
 /// DecodedValue is the closed scalar result set supported by protocol decoding.
 
 pub type DecodedValue =
     Int
-  | std.vm.BitString.BitString
-  | std.vm.Bytes.Bytes.
+  | std.vm.BitString
+  | std.vm.Bytes.
 
 /// DescriptorKind is the closed set of canonical binary descriptor categories.
 
@@ -301,7 +301,7 @@ pub compact_frame_shape(): ProtocolShape.
 /// Transformation: copies inert descriptor metadata only; no payload is decoded
 /// or constructed at runtime.
 
-pub compose_header_body(header: ProtocolShape, body: ProtocolShape): std.core.Result.Result[ProtocolShape, BinaryConstructError].
+pub compose_header_body(header: ProtocolShape, body: ProtocolShape): std.core.Result[ProtocolShape, BinaryConstructError].
 
 /// Copies body fields and constructs the final shape in tail position.
 
@@ -313,7 +313,7 @@ pub compose_protocol_header_fields(header: List[ProtocolField], body: List[Proto
 
 /// Validates the body and enforces shape-composition invariants.
 
-pub compose_valid_header_body(header: ProtocolShape, body: ProtocolShape): std.core.Result.Result[ProtocolShape, BinaryConstructError].
+pub compose_valid_header_body(header: ProtocolShape, body: ProtocolShape): std.core.Result[ProtocolShape, BinaryConstructError].
 
 /// Builds one composed descriptor after both input shapes are validated.
 
@@ -326,7 +326,7 @@ pub composed_protocol_shape(header: ProtocolShape, body: ProtocolShape): Protoco
 /// Transformation: lets user code typecheck against the future construction API
 /// while preserving explicit unsupported-runtime behavior.
 
-pub construct(descriptor: BinaryDescriptor, value: T): std.core.Result.Result[T, BinaryConstructError].
+pub construct(descriptor: BinaryDescriptor, value: T): std.core.Result[T, BinaryConstructError].
 
 /// Copies protocol fields into a fresh ordered list.
 
@@ -339,7 +339,7 @@ pub copy_protocol_fields(fields: List[ProtocolField], output: List[ProtocolField
 /// Transformation: exposes the final typed Result shape without enabling binary
 /// execution or accepting raw host errors.
 
-pub decode_exact(descriptor: BinaryDescriptor, payload: T): std.core.Result.Result[T, BinaryDecodeError].
+pub decode_exact(descriptor: BinaryDescriptor, payload: T): std.core.Result[T, BinaryDecodeError].
 
 /// Decodes the fixed byte boundary of a protocol frame.
 ///
@@ -348,7 +348,7 @@ pub decode_exact(descriptor: BinaryDescriptor, payload: T): std.core.Result.Resu
 /// Transformation: delegates to the canonical protocol-header splitter when
 /// callers need the original encoded header rather than decoded field values.
 
-pub decode_fixed_header(shape: ProtocolShape, payload: std.vm.Bytes.Bytes): std.core.Result.Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError].
+pub decode_fixed_header(shape: ProtocolShape, payload: std.vm.Bytes): std.core.Result[{std.vm.Bytes, std.vm.Bytes}, BinaryDecodeError].
 
 /// Reserves prefix descriptor-directed binary decoding.
 ///
@@ -357,7 +357,7 @@ pub decode_fixed_header(shape: ProtocolShape, payload: std.vm.Bytes.Bytes): std.
 /// Transformation: keeps future partial-decode callers on the same typed error
 /// surface as exact decoding.
 
-pub decode_prefix(descriptor: BinaryDescriptor, payload: T): std.core.Result.Result[T, BinaryDecodeError].
+pub decode_prefix(descriptor: BinaryDescriptor, payload: T): std.core.Result[T, BinaryDecodeError].
 
 /// Decodes descriptor-directed scalar fields and returns the remaining body.
 ///
@@ -368,53 +368,53 @@ pub decode_prefix(descriptor: BinaryDescriptor, payload: T): std.core.Result.Res
 /// endian policy to integer descriptors, slices byte descriptors, and preserves
 /// a byte-aligned suffix without exposing backend binary syntax.
 
-pub decode_prefixed_body(shape: ProtocolShape, payload: std.vm.Bytes.Bytes): std.core.Result.Result[DecodedProtocol, BinaryDecodeError].
+pub decode_prefixed_body(shape: ProtocolShape, payload: std.vm.Bytes): std.core.Result[DecodedProtocol, BinaryDecodeError].
 
 /// Decodes one exact-width immutable bitstring field.
 
-pub decode_protocol_bits(next: List[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes.Bytes, bit_offset: Int, decoded: List[DecodedField], name: String, width: Int): std.core.Result.Result[DecodedProtocol, BinaryDecodeError].
+pub decode_protocol_bits(next: List[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes, bit_offset: Int, decoded: List[DecodedField], name: String, width: Int): std.core.Result[DecodedProtocol, BinaryDecodeError].
 
 /// Finds one tagged exact bitstring without accepting another managed kind.
 
-pub decode_protocol_bits_value(fields: List[DecodedField], name: String): std.core.Option.Option[std.vm.BitString.BitString].
+pub decode_protocol_bits_value(fields: List[DecodedField], name: String): std.core.Option[std.vm.BitString].
 
 /// Decodes one byte-aligned fixed byte field.
 
-pub decode_protocol_bytes(next: List[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes.Bytes, bit_offset: Int, decoded: List[DecodedField], name: String, width: Int): std.core.Result.Result[DecodedProtocol, BinaryDecodeError].
+pub decode_protocol_bytes(next: List[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes, bit_offset: Int, decoded: List[DecodedField], name: String, width: Int): std.core.Result[DecodedProtocol, BinaryDecodeError].
 
 /// Finds one tagged immutable byte field without accepting another managed kind.
 
-pub decode_protocol_bytes_value(fields: List[DecodedField], name: String): std.core.Option.Option[std.vm.Bytes.Bytes].
+pub decode_protocol_bytes_value(fields: List[DecodedField], name: String): std.core.Option[std.vm.Bytes].
 
 /// Decodes ordered protocol fields into one mutable construction accumulator.
 
-pub decode_protocol_fields(fields: List[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes.Bytes, bit_offset: Int, decoded: List[DecodedField]): std.core.Result.Result[DecodedProtocol, BinaryDecodeError].
+pub decode_protocol_fields(fields: List[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes, bit_offset: Int, decoded: List[DecodedField]): std.core.Result[DecodedProtocol, BinaryDecodeError].
 
 /// Finds one tagged integer without interpreting managed handles as scalars.
 
-pub decode_protocol_int_value(fields: List[DecodedField], name: String): std.core.Option.Option[Int].
+pub decode_protocol_int_value(fields: List[DecodedField], name: String): std.core.Option[Int].
 
 /// Decodes one checked signed or unsigned integer field.
 
-pub decode_protocol_integer(next: List[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes.Bytes, bit_offset: Int, decoded: List[DecodedField], name: String, width: Int, signed: Bool): std.core.Result.Result[DecodedProtocol, BinaryDecodeError].
+pub decode_protocol_integer(next: List[ProtocolField], endian: EndianPolicy, payload: std.vm.Bytes, bit_offset: Int, decoded: List[DecodedField], name: String, width: Int, signed: Bool): std.core.Result[DecodedProtocol, BinaryDecodeError].
 
 /// Returns one byte-aligned suffix after fixed field decoding.
 
-pub decode_protocol_tail(payload: std.vm.Bytes.Bytes, bit_offset: Int, decoded: List[DecodedField]): std.core.Result.Result[DecodedProtocol, BinaryDecodeError].
+pub decode_protocol_tail(payload: std.vm.Bytes, bit_offset: Int, decoded: List[DecodedField]): std.core.Result[DecodedProtocol, BinaryDecodeError].
 
 /// Finds one decoded value without discarding declaration order.
 
-pub decode_protocol_value(fields: List[DecodedField], name: String): std.core.Option.Option[DecodedValue].
+pub decode_protocol_value(fields: List[DecodedField], name: String): std.core.Option[DecodedValue].
 
 /// Constructs one exact bitstring decoded field.
 
 @pure
-pub decoded_bits_field(name: String, value: std.vm.BitString.BitString): DecodedField.
+pub decoded_bits_field(name: String, value: std.vm.BitString): DecodedField.
 
 /// Constructs one immutable byte decoded field.
 
 @pure
-pub decoded_bytes_field(name: String, value: std.vm.Bytes.Bytes): DecodedField.
+pub decoded_bytes_field(name: String, value: std.vm.Bytes): DecodedField.
 
 /// Constructs one integer decoded field.
 
@@ -424,15 +424,15 @@ pub decoded_int_field(name: String, value: Int): DecodedField.
 /// Constructs one decoded protocol result.
 
 @pure
-pub decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes.Bytes): DecodedProtocol.
+pub decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes): DecodedProtocol.
 
 /// Returns one named exact bitstring field when its runtime tag matches.
 
-pub decoded_protocol_bits_value(decoded: DecodedProtocol, name: String): std.core.Option.Option[std.vm.BitString.BitString].
+pub decoded_protocol_bits_value(decoded: DecodedProtocol, name: String): std.core.Option[std.vm.BitString].
 
 /// Returns one named immutable byte field when its runtime tag matches.
 
-pub decoded_protocol_bytes_value(decoded: DecodedProtocol, name: String): std.core.Option.Option[std.vm.Bytes.Bytes].
+pub decoded_protocol_bytes_value(decoded: DecodedProtocol, name: String): std.core.Option[std.vm.Bytes].
 
 /// Returns decoded protocol fields in declaration order.
 
@@ -441,16 +441,16 @@ pub decoded_protocol_fields(decoded: DecodedProtocol): List[DecodedField].
 
 /// Returns one named integer field when its runtime tag matches.
 
-pub decoded_protocol_int_value(decoded: DecodedProtocol, name: String): std.core.Option.Option[Int].
+pub decoded_protocol_int_value(decoded: DecodedProtocol, name: String): std.core.Option[Int].
 
 /// Returns the immutable byte suffix after decoded fields.
 
 @pure
-pub decoded_protocol_remaining_bytes(decoded: DecodedProtocol): std.vm.Bytes.Bytes.
+pub decoded_protocol_remaining_bytes(decoded: DecodedProtocol): std.vm.Bytes.
 
 /// Returns one named decoded value when present.
 
-pub decoded_protocol_value(decoded: DecodedProtocol, name: String): std.core.Option.Option[DecodedValue].
+pub decoded_protocol_value(decoded: DecodedProtocol, name: String): std.core.Option[DecodedValue].
 
 /// Encodes every fixed protocol field and the declared terminal body.
 ///
@@ -460,7 +460,7 @@ pub decoded_protocol_value(decoded: DecodedProtocol, name: String): std.core.Opt
 /// segments under the shape endian policy, preserves fixed bytes, and appends
 /// the body only when the shape declares terminal `Rest`.
 
-pub encode_exact(shape: ProtocolShape, value: DecodedProtocol): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub encode_exact(shape: ProtocolShape, value: DecodedProtocol): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Encodes only the fixed prefix of a protocol shape.
 ///
@@ -469,55 +469,55 @@ pub encode_exact(shape: ProtocolShape, value: DecodedProtocol): std.core.Result.
 /// Transformation: applies the same checked field packing as `encode_exact`
 /// while deliberately omitting the decoded protocol body.
 
-pub encode_prefix(shape: ProtocolShape, value: DecodedProtocol): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub encode_prefix(shape: ProtocolShape, value: DecodedProtocol): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Validates one shape and starts its owner-local bitstring accumulator.
 
-pub encode_protocol(shape: ProtocolShape, value: DecodedProtocol, include_rest: Bool): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub encode_protocol(shape: ProtocolShape, value: DecodedProtocol, include_rest: Bool): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Packs one exact-width bitstring field without inserting padding.
 
-pub encode_protocol_bits(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, include_rest: Bool, name: String, width: Int): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub encode_protocol_bits(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString, include_rest: Bool, name: String, width: Int): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Validates and appends one exact bit field without recursing over the shape.
 
-pub encode_protocol_bits_value(decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, name: String, width: Int): std.core.Result.Result[std.vm.BitString.BitString, BinaryConstructError].
+pub encode_protocol_bits_value(decoded: DecodedProtocol, encoded: std.vm.BitString, name: String, width: Int): std.core.Result[std.vm.BitString, BinaryConstructError].
 
 /// Packs one exact byte-aligned immutable byte field.
 
-pub encode_protocol_bytes(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, include_rest: Bool, name: String, width: Int): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub encode_protocol_bytes(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString, include_rest: Bool, name: String, width: Int): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Validates and appends one fixed byte field without recursing over the shape.
 
-pub encode_protocol_bytes_value(decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, name: String, width: Int): std.core.Result.Result[std.vm.BitString.BitString, BinaryConstructError].
+pub encode_protocol_bytes_value(decoded: DecodedProtocol, encoded: std.vm.BitString, name: String, width: Int): std.core.Result[std.vm.BitString, BinaryConstructError].
 
 /// Packs fields in declaration order into one exact-length bit accumulator.
 
-pub encode_protocol_fields(fields: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, include_rest: Bool): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub encode_protocol_fields(fields: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString, include_rest: Bool): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Packs one checked signed two's-complement integer field.
 
-pub encode_protocol_int(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, include_rest: Bool, name: String, width: Int): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub encode_protocol_int(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString, include_rest: Bool, name: String, width: Int): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Validates and appends one signed field without recursing over the shape.
 
-pub encode_protocol_int_value(endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, name: String, width: Int): std.core.Result.Result[std.vm.BitString.BitString, BinaryConstructError].
+pub encode_protocol_int_value(endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString, name: String, width: Int): std.core.Result[std.vm.BitString, BinaryConstructError].
 
 /// Appends the terminal body only for exact encoding.
 
-pub encode_protocol_rest(decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, include_rest: Bool): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub encode_protocol_rest(decoded: DecodedProtocol, encoded: std.vm.BitString, include_rest: Bool): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Packs one checked unsigned integer field.
 
-pub encode_protocol_uint(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, include_rest: Bool, name: String, width: Int): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub encode_protocol_uint(next: List[ProtocolField], endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString, include_rest: Bool, name: String, width: Int): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Validates and appends one unsigned field without recursing over the shape.
 
-pub encode_protocol_uint_value(endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString.BitString, name: String, width: Int): std.core.Result.Result[std.vm.BitString.BitString, BinaryConstructError].
+pub encode_protocol_uint_value(endian: EndianPolicy, decoded: DecodedProtocol, encoded: std.vm.BitString, name: String, width: Int): std.core.Result[std.vm.BitString, BinaryConstructError].
 
 /// Converts a completed byte-aligned bit accumulator to immutable bytes.
 
-pub finish_protocol_encoding(encoded: std.vm.BitString.BitString): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub finish_protocol_encoding(encoded: std.vm.BitString): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Creates a fixed bit descriptor value.
 
@@ -563,7 +563,7 @@ pub protocol_shape_fixed_bits(fields: List[ProtocolField], total: Int): Int.
 
 /// Creates and validates a reusable protocol shape set.
 
-pub protocol_shape_set(name: String, shapes: List[ProtocolShape], aliases: List[ProtocolShapeAlias]): std.core.Result.Result[ProtocolShapeSet, BinaryDecodeError].
+pub protocol_shape_set(name: String, shapes: List[ProtocolShape], aliases: List[ProtocolShapeAlias]): std.core.Result[ProtocolShapeSet, BinaryDecodeError].
 
 /// Decodes a frame through one direct or aliased shape-set name.
 ///
@@ -571,31 +571,31 @@ pub protocol_shape_set(name: String, shapes: List[ProtocolShape], aliases: List[
 /// canonical descriptor decoder. Unknown names remain typed `UnknownShape`
 /// failures rather than falling back to a prefix or default layout.
 
-pub protocol_shape_set_decode(set: ProtocolShapeSet, name: String, payload: std.vm.Bytes.Bytes): std.core.Result.Result[DecodedProtocol, BinaryDecodeError].
+pub protocol_shape_set_decode(set: ProtocolShapeSet, name: String, payload: std.vm.Bytes): std.core.Result[DecodedProtocol, BinaryDecodeError].
 
 /// Encodes a complete frame through one direct or aliased shape-set name.
 
-pub protocol_shape_set_encode_exact(set: ProtocolShapeSet, name: String, value: DecodedProtocol): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub protocol_shape_set_encode_exact(set: ProtocolShapeSet, name: String, value: DecodedProtocol): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Encodes only the fixed prefix through one direct or aliased shape-set name.
 
-pub protocol_shape_set_encode_prefix(set: ProtocolShapeSet, name: String, value: DecodedProtocol): std.core.Result.Result[std.vm.Bytes.Bytes, BinaryConstructError].
+pub protocol_shape_set_encode_prefix(set: ProtocolShapeSet, name: String, value: DecodedProtocol): std.core.Result[std.vm.Bytes, BinaryConstructError].
 
 /// Resolves one exact direct name or alias from a validated shape set.
 
-pub protocol_shape_set_resolve(set: ProtocolShapeSet, name: String): std.core.Result.Result[ProtocolShape, BinaryDecodeError].
+pub protocol_shape_set_resolve(set: ProtocolShapeSet, name: String): std.core.Result[ProtocolShape, BinaryDecodeError].
 
 /// Resolves direct names before consulting aliases.
 
-pub resolve_direct_protocol_shape(shapes: List[ProtocolShape], all_shapes: List[ProtocolShape], aliases: List[ProtocolShapeAlias], name: String): std.core.Result.Result[ProtocolShape, BinaryDecodeError].
+pub resolve_direct_protocol_shape(shapes: List[ProtocolShape], all_shapes: List[ProtocolShape], aliases: List[ProtocolShapeAlias], name: String): std.core.Result[ProtocolShape, BinaryDecodeError].
 
 /// Finds one validated direct shape without consulting aliases.
 
-pub resolve_named_protocol_shape(shapes: List[ProtocolShape], name: String): std.core.Result.Result[ProtocolShape, BinaryDecodeError].
+pub resolve_named_protocol_shape(shapes: List[ProtocolShape], name: String): std.core.Result[ProtocolShape, BinaryDecodeError].
 
 /// Resolves an exact alias and then looks up its direct target.
 
-pub resolve_protocol_shape_alias(aliases: List[ProtocolShapeAlias], shapes: List[ProtocolShape], name: String): std.core.Result.Result[ProtocolShape, BinaryDecodeError].
+pub resolve_protocol_shape_alias(aliases: List[ProtocolShapeAlias], shapes: List[ProtocolShape], name: String): std.core.Result[ProtocolShape, BinaryDecodeError].
 
 /// Splits a VM byte frame into a fixed header and remaining body.
 ///
@@ -605,7 +605,7 @@ pub resolve_protocol_shape_alias(aliases: List[ProtocolShapeAlias], shapes: List
 /// Transformation: validates the complete range before creating two immutable
 /// VM-owned byte slices, preserving every input byte exactly once and in order.
 
-pub split_header_body(payload: std.vm.Bytes.Bytes, header_length: Int): std.core.Result.Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError].
+pub split_header_body(payload: std.vm.Bytes, header_length: Int): std.core.Result[{std.vm.Bytes, std.vm.Bytes}, BinaryDecodeError].
 
 /// Splits the fixed prefix described by a protocol shape from its body.
 ///
@@ -616,11 +616,11 @@ pub split_header_body(payload: std.vm.Bytes.Bytes, header_length: Int): std.core
 /// terminal rest segment, requires byte alignment, and delegates slicing to the
 /// canonical checked byte splitter.
 
-pub split_protocol_header(shape: ProtocolShape, payload: std.vm.Bytes.Bytes): std.core.Result.Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError].
+pub split_protocol_header(shape: ProtocolShape, payload: std.vm.Bytes): std.core.Result[{std.vm.Bytes, std.vm.Bytes}, BinaryDecodeError].
 
 /// Advances fixed-prefix accounting as one tail-position continuation chain.
 
-pub split_protocol_header_fields(fields: List[ProtocolField], total: Int, payload: std.vm.Bytes.Bytes): std.core.Result.Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError].
+pub split_protocol_header_fields(fields: List[ProtocolField], total: Int, payload: std.vm.Bytes): std.core.Result[{std.vm.Bytes, std.vm.Bytes}, BinaryDecodeError].
 
 /// Returns a golden TCP-like fixed header shape.
 
@@ -634,19 +634,19 @@ pub tcp_header_shape(): ProtocolShape.
 /// Transformation: enforces the std.binary descriptor invariant before runtime
 /// binary construction and matching are implemented.
 
-pub validate_descriptor(descriptor: BinaryDescriptor): std.core.Result.Result[BinaryDescriptor, BinaryDecodeError].
+pub validate_descriptor(descriptor: BinaryDescriptor): std.core.Result[BinaryDescriptor, BinaryDecodeError].
 
 /// Validates one protocol field and continues traversal.
 
-pub validate_protocol_field(next: List[ProtocolField], field: ProtocolField, seen: Map[String, Bool], has_rest: Bool): std.core.Result.Result[Bool, BinaryDecodeError].
+pub validate_protocol_field(next: List[ProtocolField], field: ProtocolField, seen: Map[String, Bool], has_rest: Bool): std.core.Result[Bool, BinaryDecodeError].
 
 /// Validates one field descriptor after duplicate and rest-order checks.
 
-pub validate_protocol_field_descriptor(next: List[ProtocolField], name: String, descriptor: BinaryDescriptor, seen: Map[String, Bool]): std.core.Result.Result[Bool, BinaryDecodeError].
+pub validate_protocol_field_descriptor(next: List[ProtocolField], name: String, descriptor: BinaryDescriptor, seen: Map[String, Bool]): std.core.Result[Bool, BinaryDecodeError].
 
 /// Validates protocol fields in declaration order.
 
-pub validate_protocol_fields(fields: List[ProtocolField], seen: Map[String, Bool], has_rest: Bool): std.core.Result.Result[Bool, BinaryDecodeError].
+pub validate_protocol_fields(fields: List[ProtocolField], seen: Map[String, Bool], has_rest: Bool): std.core.Result[Bool, BinaryDecodeError].
 
 /// Validates one protocol shape.
 ///
@@ -656,23 +656,23 @@ pub validate_protocol_fields(fields: List[ProtocolField], seen: Map[String, Bool
 /// Transformation: scans fields in declaration order with explicit iterator
 /// state so the metadata contract stays backend-neutral.
 
-pub validate_protocol_shape(shape: ProtocolShape): std.core.Result.Result[ProtocolShape, BinaryDecodeError].
+pub validate_protocol_shape(shape: ProtocolShape): std.core.Result[ProtocolShape, BinaryDecodeError].
 
 /// Validates aliases against direct shape names.
 
-pub validate_protocol_shape_aliases(aliases: List[ProtocolShapeAlias], shape_names: Map[String, Bool], alias_names: Map[String, Bool]): std.core.Result.Result[Map[String, Bool], BinaryDecodeError].
+pub validate_protocol_shape_aliases(aliases: List[ProtocolShapeAlias], shape_names: Map[String, Bool], alias_names: Map[String, Bool]): std.core.Result[Map[String, Bool], BinaryDecodeError].
 
 /// Validates a protocol shape set and all exact aliases.
 
-pub validate_protocol_shape_set(set: ProtocolShapeSet): std.core.Result.Result[ProtocolShapeSet, BinaryDecodeError].
+pub validate_protocol_shape_set(set: ProtocolShapeSet): std.core.Result[ProtocolShapeSet, BinaryDecodeError].
 
 /// Validates direct shapes and records their exact names.
 
-pub validate_protocol_shapes(shapes: List[ProtocolShape], names: Map[String, Bool]): std.core.Result.Result[Map[String, Bool], BinaryDecodeError].
+pub validate_protocol_shapes(shapes: List[ProtocolShape], names: Map[String, Bool]): std.core.Result[Map[String, Bool], BinaryDecodeError].
 
 /// Records one validated field and resumes protocol field validation.
 
-pub validate_remaining_protocol_fields(next: List[ProtocolField], name: String, descriptor: BinaryDescriptor, seen: Map[String, Bool]): std.core.Result.Result[Bool, BinaryDecodeError].
+pub validate_remaining_protocol_fields(next: List[ProtocolField], name: String, descriptor: BinaryDescriptor, seen: Map[String, Bool]): std.core.Result[Bool, BinaryDecodeError].
 
 /// Constructs a binary descriptor from explicit fields.
 

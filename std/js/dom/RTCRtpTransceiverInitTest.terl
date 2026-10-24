@@ -12,16 +12,14 @@
  */
 module std.js.Dom.RTCRtpTransceiverInitTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
+import type std.core.{Option}.
 import type std.js.Dom.RTCRtpTransceiverInit.
+import type std.js.{Array}.
 
 pub send_encodings_typechecks(
     receiver: RTCRtpTransceiverInit,
-): Option[Array[std.js.Dom.RTCRtpEncodingParameters.RTCRtpEncodingParameters]] ->
+): Option[Array[std.js.Dom.RTCRtpEncodingParameters]] ->
     receiver.send_encodings().
 
-pub streams_typechecks(
-    receiver: RTCRtpTransceiverInit,
-): Option[Array[std.js.Dom.MediaStream.MediaStream]] ->
+pub streams_typechecks(receiver: RTCRtpTransceiverInit): Option[Array[std.js.Dom.MediaStream]] ->
     receiver.streams().

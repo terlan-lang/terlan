@@ -12,9 +12,8 @@
  */
 module std.js.Dom.OES_vertex_array_object.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.WebGLVertexArrayObjectOES.{WebGLVertexArrayObjectOES}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{WebGLVertexArrayObjectOES}.
 
 /**
  * The **OES_vertex_array_object** extension is part of the WebGL API and provides vertex array objects (VAOs) which encapsulate vertex array states.
@@ -52,7 +51,5 @@ pub (receiver: OES_vertex_array_object) delete_vertex_array_oes(array_object: Op
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_vertex_array_object/isVertexArrayOES)
  */
-pub (receiver: OES_vertex_array_object) is_vertex_array_oes(
-    array_object: Option[WebGLVertexArrayObjectOES],
-): std.js.Dom.GLboolean.GLboolean ->
+pub (receiver: OES_vertex_array_object) is_vertex_array_oes(array_object: Option[WebGLVertexArrayObjectOES]): std.js.Dom.GLboolean ->
     native.

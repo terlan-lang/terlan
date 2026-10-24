@@ -17,5 +17,5 @@ pub opaque type LinkStyle.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLinkElement/sheet)
  */
-pub (receiver: LinkStyle) sheet(): std.core.Option.Option[std.js.Dom.CSSStyleSheet.CSSStyleSheet] ->
+pub (receiver: LinkStyle) sheet(): std.core.Option[std.js.Dom.CSSStyleSheet] ->
     native.

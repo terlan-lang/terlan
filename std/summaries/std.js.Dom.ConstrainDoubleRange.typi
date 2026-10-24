@@ -15,6 +15,6 @@ module std.js.Dom.ConstrainDoubleRange.
 
 pub opaque type ConstrainDoubleRange.
 
-pub (receiver: ConstrainDoubleRange) exact(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ConstrainDoubleRange) exact(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: ConstrainDoubleRange) ideal(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ConstrainDoubleRange) ideal(): std.core.Option[std.js.Number.JsNumber].

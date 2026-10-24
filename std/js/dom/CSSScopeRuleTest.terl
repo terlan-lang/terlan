@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CSSScopeRuleTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.CSSScopeRule.
 import type std.js.String.{JsString}.
 

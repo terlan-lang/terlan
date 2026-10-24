@@ -18,13 +18,11 @@ import type std.js.Number.{JsNumber}.
 pub length_typechecks(receiver: ImageTrackList): JsNumber ->
     receiver.length().
 
-pub ready_typechecks(receiver: ImageTrackList): std.js.Promise.Promise[std.core.Unit.Unit] ->
+pub ready_typechecks(receiver: ImageTrackList): std.js.Promise[std.core.Unit] ->
     receiver.ready().
 
 pub selected_index_typechecks(receiver: ImageTrackList): JsNumber ->
     receiver.selected_index().
 
-pub selected_track_typechecks(
-    receiver: ImageTrackList,
-): std.core.Option.Option[std.js.Dom.ImageTrack.ImageTrack] ->
+pub selected_track_typechecks(receiver: ImageTrackList): std.core.Option[std.js.Dom.ImageTrack] ->
     receiver.selected_track().

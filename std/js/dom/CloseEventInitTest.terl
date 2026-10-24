@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CloseEventInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.CloseEventInit.
 
 pub code_typechecks(receiver: CloseEventInit): Option[std.js.Number.JsNumber] ->

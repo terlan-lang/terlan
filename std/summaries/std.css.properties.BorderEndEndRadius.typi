@@ -8,7 +8,7 @@ module std.css.properties.BorderEndEndRadius.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    border_end_end_radius: std.core.Option.Option[Value]
+    border_end_end_radius: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

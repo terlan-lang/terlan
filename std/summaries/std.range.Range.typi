@@ -72,7 +72,7 @@ pub is_empty(range: Range): Bool.
 /// Transformation: delegates through `to_list().iterator()` until the VM owns
 /// a direct range iterator lowering path.
 
-pub iterator(range: Range): std.collections.Iterator.Iterator[Int].
+pub iterator(range: Range): std.collections.Iterator[Int].
 
 /// Returns the number of values produced by a range.
 ///
@@ -91,12 +91,12 @@ pub length(range: Range): Int.
 /// Output: `Ok(range)` for valid steps or `Err(InvalidStep)` for zero.
 /// Transformation: validates the step before exposing a range value.
 
-pub stepped(start: Int, stop: Int, step: Int, inclusive: Bool): std.core.Result.Result[Range, RangeError].
+pub stepped(start: Int, stop: Int, step: Int, inclusive: Bool): std.core.Result[Range, RangeError].
 
 /// Converts a range to a list of integers in traversal order.
 ///
 /// Input: one range.
-/// Output: a `std.collections.List.List[Int]`.
+/// Output: a `std.collections.List[Int]`.
 /// Transformation: appends every generated value to a portable list.
 
 @pure

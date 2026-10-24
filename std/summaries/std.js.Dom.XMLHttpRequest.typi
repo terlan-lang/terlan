@@ -46,7 +46,7 @@ pub (receiver: XMLHttpRequest) response_url(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/responseXML)
  */
-pub (receiver: XMLHttpRequest) response_xml(): std.core.Option.Option[std.js.Dom.Document.Document].
+pub (receiver: XMLHttpRequest) response_xml(): std.core.Option[std.js.Dom.Document].
 
 /**
  * The read-only **`XMLHttpRequest.status`** property returns the numerical HTTP status code of the `XMLHttpRequest`'s response.
@@ -74,7 +74,7 @@ pub (receiver: XMLHttpRequest) timeout(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/upload)
  */
-pub (receiver: XMLHttpRequest) upload(): std.js.Dom.XMLHttpRequestUpload.XMLHttpRequestUpload.
+pub (receiver: XMLHttpRequest) upload(): std.js.Dom.XMLHttpRequestUpload.
 
 /**
  * The **`XMLHttpRequest.withCredentials`** property is a boolean value that indicates whether or not cross-site `Access-Control` requests should be made using credentials such as cookies, authentication headers or TLS client certificates.
@@ -88,7 +88,7 @@ pub (receiver: XMLHttpRequest) with_credentials(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/abort)
  */
-pub (receiver: XMLHttpRequest) abort(): std.core.Unit.Unit.
+pub (receiver: XMLHttpRequest) abort(): std.core.Unit.
 
 /**
  * The XMLHttpRequest method **`getAllResponseHeaders()`** returns all the response headers, separated by CRLF, as a string, or returns `null` if no response has been received.
@@ -102,38 +102,38 @@ pub (receiver: XMLHttpRequest) get_all_response_headers(): std.js.String.JsStrin
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/getResponseHeader)
  */
-pub (receiver: XMLHttpRequest) get_response_header(name: std.js.String.JsString): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: XMLHttpRequest) get_response_header(name: std.js.String.JsString): std.core.Option[std.js.String.JsString].
 
 /**
  * The XMLHttpRequest method **`open()`** initializes a newly-created request, or re-initializes an existing one.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/open)
  */
-pub (receiver: XMLHttpRequest) open(method: std.js.String.JsString, url: std.js.Dom.URL.URL | std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: XMLHttpRequest) open(method: std.js.String.JsString, url: std.js.Dom.URL | std.js.String.JsString): std.core.Unit.
 
-pub (receiver: XMLHttpRequest) open_overload_2(method: std.js.String.JsString, url: std.js.Dom.URL.URL | std.js.String.JsString, async: Bool, username: std.core.Option.Option[std.core.Option.Option[std.js.String.JsString]], password: std.core.Option.Option[std.core.Option.Option[std.js.String.JsString]]): std.core.Unit.Unit.
+pub (receiver: XMLHttpRequest) open_overload_2(method: std.js.String.JsString, url: std.js.Dom.URL | std.js.String.JsString, async: Bool, username: std.core.Option[std.core.Option[std.js.String.JsString]], password: std.core.Option[std.core.Option[std.js.String.JsString]]): std.core.Unit.
 
 /**
  * The XMLHttpRequest method **`overrideMimeType()`** specifies a MIME type other than the one provided by the server to be used instead when interpreting the data being transferred in a request.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/overrideMimeType)
  */
-pub (receiver: XMLHttpRequest) override_mime_type(mime: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: XMLHttpRequest) override_mime_type(mime: std.js.String.JsString): std.core.Unit.
 
 /**
  * The XMLHttpRequest method **`send()`** sends the request to the server.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/send)
  */
-pub (receiver: XMLHttpRequest) send(body: std.core.Option.Option[std.core.Option.Option[std.js.Dom.Document.Document | std.js.Dom.XMLHttpRequestBodyInit.XMLHttpRequestBodyInit]]): std.core.Unit.Unit.
+pub (receiver: XMLHttpRequest) send(body: std.core.Option[std.core.Option[std.js.Dom.Document | std.js.Dom.XMLHttpRequestBodyInit]]): std.core.Unit.
 
 /**
  * The XMLHttpRequest method **`setRequestHeader()`** sets the value of an HTTP request header.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/setRequestHeader)
  */
-pub (receiver: XMLHttpRequest) set_request_header(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: XMLHttpRequest) set_request_header(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
 
-pub (receiver: XMLHttpRequest) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: XMLHttpRequest) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: XMLHttpRequest) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: XMLHttpRequest) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

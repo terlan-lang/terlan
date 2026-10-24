@@ -17,7 +17,7 @@ import type std.js.Dom.CSSTransformComponent.
 pub is2_d_typechecks(receiver: CSSTransformComponent): Bool ->
     receiver.is2_d().
 
-pub to_matrix_typechecks(receiver: CSSTransformComponent): std.js.Dom.DOMMatrix.DOMMatrix ->
+pub to_matrix_typechecks(receiver: CSSTransformComponent): std.js.Dom.DOMMatrix ->
     receiver.to_matrix().
 
 pub to_string_typechecks(receiver: CSSTransformComponent): std.js.String.JsString ->

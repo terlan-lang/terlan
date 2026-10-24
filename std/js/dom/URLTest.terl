@@ -48,7 +48,7 @@ pub protocol_typechecks(receiver: URL): JsString ->
 pub search_typechecks(receiver: URL): JsString ->
     receiver.search().
 
-pub search_params_typechecks(receiver: URL): std.js.Dom.URLSearchParams.URLSearchParams ->
+pub search_params_typechecks(receiver: URL): std.js.Dom.URLSearchParams ->
     receiver.search_params().
 
 pub username_typechecks(receiver: URL): JsString ->

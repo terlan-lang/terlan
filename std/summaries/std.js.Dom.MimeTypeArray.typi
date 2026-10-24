@@ -29,9 +29,9 @@ pub (receiver: MimeTypeArray) length(): std.js.Number.JsNumber.
 /**
  * @deprecated
  */
-pub (receiver: MimeTypeArray) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.MimeType.MimeType].
+pub (receiver: MimeTypeArray) item(index: std.js.Number.JsNumber): std.core.Option[std.js.Dom.MimeType].
 
 /**
  * @deprecated
  */
-pub (receiver: MimeTypeArray) named_item(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.MimeType.MimeType].
+pub (receiver: MimeTypeArray) named_item(name: std.js.String.JsString): std.core.Option[std.js.Dom.MimeType].

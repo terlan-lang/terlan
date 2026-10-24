@@ -32,7 +32,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    flex_line_count: std.core.Option.Option[Value],
+    flex_line_count: std.core.Option[Value],
 }.
 
 /**

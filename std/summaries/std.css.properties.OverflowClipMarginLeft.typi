@@ -8,7 +8,7 @@ module std.css.properties.OverflowClipMarginLeft.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    overflow_clip_margin_left: std.core.Option.Option[Value]
+    overflow_clip_margin_left: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

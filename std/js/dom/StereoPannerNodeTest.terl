@@ -14,5 +14,5 @@ module std.js.Dom.StereoPannerNodeTest.
 
 import type std.js.Dom.StereoPannerNode.
 
-pub pan_typechecks(receiver: StereoPannerNode): std.js.Dom.AudioParam.AudioParam ->
+pub pan_typechecks(receiver: StereoPannerNode): std.js.Dom.AudioParam ->
     receiver.pan().

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.CSSStyleSheetInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type CSSStyleSheetInit.
@@ -21,4 +21,4 @@ pub (receiver: CSSStyleSheetInit) base_url(): Option[JsString].
 
 pub (receiver: CSSStyleSheetInit) disabled(): Option[Bool].
 
-pub (receiver: CSSStyleSheetInit) media(): Option[std.js.Dom.MediaList.MediaList | JsString].
+pub (receiver: CSSStyleSheetInit) media(): Option[std.js.Dom.MediaList | JsString].

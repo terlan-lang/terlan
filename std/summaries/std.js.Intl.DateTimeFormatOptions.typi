@@ -15,6 +15,6 @@ module std.js.Intl.DateTimeFormatOptions.
 
 pub opaque type DateTimeFormatOptions.
 
-pub (receiver: DateTimeFormatOptions) hour12(): std.core.Option.Option[Bool].
+pub (receiver: DateTimeFormatOptions) hour12(): std.core.Option[Bool].
 
-pub (receiver: DateTimeFormatOptions) time_zone(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: DateTimeFormatOptions) time_zone(): std.core.Option[std.js.String.JsString].

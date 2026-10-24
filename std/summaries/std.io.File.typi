@@ -16,7 +16,7 @@ pub struct CopyPlan {
 /// Portable file error returned by `std.io.File`.
 ///
 /// Input: includes the neutral `code` and `message` fields from
-/// `std.core.Error.Error` and adds the target-interpreted path.
+/// `std.core.Error` and adds the target-interpreted path.
 /// Output: a typed error value that can be used anywhere `Error`-including values
 /// are accepted.
 /// Transformation: keeps backend filesystem reasons behind a portable struct
@@ -141,7 +141,7 @@ pub is_executable(path: String): Result[Bool, FileError].
 /// Input: a symbolic file error code, human-readable message, and source path.
 /// Output: `FileError`.
 /// Transformation: stores the portable code and message included from
-/// `std.core.Error.Error` plus file-specific path context.
+/// `std.core.Error` plus file-specific path context.
 
 @pure
 pub new(code: Atom, message: String, path: String): FileError.

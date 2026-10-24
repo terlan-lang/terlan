@@ -14,4 +14,4 @@ module std.js.Dom.RTCDataChannelEventInit.
 
 pub opaque type RTCDataChannelEventInit.
 
-pub (receiver: RTCDataChannelEventInit) channel(): std.js.Dom.RTCDataChannel.RTCDataChannel.
+pub (receiver: RTCDataChannelEventInit) channel(): std.js.Dom.RTCDataChannel.

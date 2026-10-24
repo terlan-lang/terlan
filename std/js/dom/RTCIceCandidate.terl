@@ -12,7 +12,7 @@
  */
 module std.js.Dom.RTCIceCandidate.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -108,5 +108,5 @@ pub (receiver: RTCIceCandidate) username_fragment(): Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCIceCandidate/toJSON)
  */
-pub (receiver: RTCIceCandidate) to_json(): std.js.Dom.RTCIceCandidateInit.RTCIceCandidateInit ->
+pub (receiver: RTCIceCandidate) to_json(): std.js.Dom.RTCIceCandidateInit ->
     native.

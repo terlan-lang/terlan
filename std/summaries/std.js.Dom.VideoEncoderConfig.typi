@@ -15,22 +15,22 @@ module std.js.Dom.VideoEncoderConfig.
 
 pub opaque type VideoEncoderConfig.
 
-pub (receiver: VideoEncoderConfig) avc(): std.core.Option.Option[std.js.Dom.AvcEncoderConfig.AvcEncoderConfig].
+pub (receiver: VideoEncoderConfig) avc(): std.core.Option[std.js.Dom.AvcEncoderConfig].
 
-pub (receiver: VideoEncoderConfig) bitrate(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoEncoderConfig) bitrate(): std.core.Option[std.js.Number.JsNumber].
 
 pub (receiver: VideoEncoderConfig) codec(): std.js.String.JsString.
 
-pub (receiver: VideoEncoderConfig) content_hint(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: VideoEncoderConfig) content_hint(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: VideoEncoderConfig) display_height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoEncoderConfig) display_height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoEncoderConfig) display_width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoEncoderConfig) display_width(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: VideoEncoderConfig) framerate(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoEncoderConfig) framerate(): std.core.Option[std.js.Number.JsNumber].
 
 pub (receiver: VideoEncoderConfig) height(): std.js.Number.JsNumber.
 
-pub (receiver: VideoEncoderConfig) scalability_mode(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: VideoEncoderConfig) scalability_mode(): std.core.Option[std.js.String.JsString].
 
 pub (receiver: VideoEncoderConfig) width(): std.js.Number.JsNumber.

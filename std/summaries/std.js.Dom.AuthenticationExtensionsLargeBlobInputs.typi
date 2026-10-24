@@ -15,8 +15,8 @@ module std.js.Dom.AuthenticationExtensionsLargeBlobInputs.
 
 pub opaque type AuthenticationExtensionsLargeBlobInputs.
 
-pub (receiver: AuthenticationExtensionsLargeBlobInputs) read(): std.core.Option.Option[Bool].
+pub (receiver: AuthenticationExtensionsLargeBlobInputs) read(): std.core.Option[Bool].
 
-pub (receiver: AuthenticationExtensionsLargeBlobInputs) support(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: AuthenticationExtensionsLargeBlobInputs) support(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: AuthenticationExtensionsLargeBlobInputs) write(): std.core.Option.Option[std.js.Dom.BufferSource.BufferSource].
+pub (receiver: AuthenticationExtensionsLargeBlobInputs) write(): std.core.Option[std.js.Dom.BufferSource].

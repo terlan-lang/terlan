@@ -20,5 +20,5 @@ pub is2_d_typechecks(receiver: CSSTransformValue): Bool ->
 pub length_typechecks(receiver: CSSTransformValue): std.js.Number.JsNumber ->
     receiver.length().
 
-pub to_matrix_typechecks(receiver: CSSTransformValue): std.js.Dom.DOMMatrix.DOMMatrix ->
+pub to_matrix_typechecks(receiver: CSSTransformValue): std.js.Dom.DOMMatrix ->
     receiver.to_matrix().

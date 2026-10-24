@@ -8,7 +8,7 @@ module std.css.properties.MaxWidth.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    max_width: std.core.Option.Option[Value]
+    max_width: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

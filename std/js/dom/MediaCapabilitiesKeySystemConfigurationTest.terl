@@ -12,9 +12,8 @@
  */
 module std.js.Dom.MediaCapabilitiesKeySystemConfigurationTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.KeySystemTrackConfiguration.{KeySystemTrackConfiguration}.
-import type std.js.Dom.MediaCapabilitiesKeySystemConfiguration.
+import type std.core.{Option}.
+import type std.js.Dom.{KeySystemTrackConfiguration, MediaCapabilitiesKeySystemConfiguration}.
 import type std.js.String.{JsString}.
 
 pub audio_typechecks(
@@ -30,7 +29,7 @@ pub key_system_typechecks(receiver: MediaCapabilitiesKeySystemConfiguration): Js
 
 pub session_types_typechecks(
     receiver: MediaCapabilitiesKeySystemConfiguration,
-): Option[std.js.Array.Array[JsString]] ->
+): Option[std.js.Array[JsString]] ->
     receiver.session_types().
 
 pub video_typechecks(

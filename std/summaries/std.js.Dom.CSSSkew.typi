@@ -25,11 +25,11 @@ pub opaque type CSSSkew.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSSkew/ax)
  */
-pub (receiver: CSSSkew) ax(): std.js.Dom.CSSNumericValue.CSSNumericValue.
+pub (receiver: CSSSkew) ax(): std.js.Dom.CSSNumericValue.
 
 /**
  * The **`ay`** property of the along the y-axis (or ordinate).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSSkew/ay)
  */
-pub (receiver: CSSSkew) ay(): std.js.Dom.CSSNumericValue.CSSNumericValue.
+pub (receiver: CSSSkew) ay(): std.js.Dom.CSSNumericValue.

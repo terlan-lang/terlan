@@ -25,46 +25,46 @@ pub opaque type OES_draw_buffers_indexed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/blendEquationSeparateiOES)
  */
-pub (receiver: OES_draw_buffers_indexed) blend_equation_separatei_oes(buf: std.js.Dom.GLuint.GLuint, mode_rgb: std.js.Dom.GLenum.GLenum, mode_alpha: std.js.Dom.GLenum.GLenum): std.core.Unit.Unit.
+pub (receiver: OES_draw_buffers_indexed) blend_equation_separatei_oes(buf: std.js.Dom.GLuint, mode_rgb: std.js.Dom.GLenum, mode_alpha: std.js.Dom.GLenum): std.core.Unit.
 
 /**
  * The `blendEquationiOES()` method of the `OES_draw_buffers_indexed` WebGL extension sets both the RGB blend and alpha blend equations for a particular draw buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/blendEquationiOES)
  */
-pub (receiver: OES_draw_buffers_indexed) blend_equationi_oes(buf: std.js.Dom.GLuint.GLuint, mode: std.js.Dom.GLenum.GLenum): std.core.Unit.Unit.
+pub (receiver: OES_draw_buffers_indexed) blend_equationi_oes(buf: std.js.Dom.GLuint, mode: std.js.Dom.GLenum): std.core.Unit.
 
 /**
  * The `blendFuncSeparateiOES()` method of the OES_draw_buffers_indexed WebGL extension defines which function is used when blending pixels for RGB and alpha components separately for a particular draw buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/blendFuncSeparateiOES)
  */
-pub (receiver: OES_draw_buffers_indexed) blend_func_separatei_oes(buf: std.js.Dom.GLuint.GLuint, src_rgb: std.js.Dom.GLenum.GLenum, dst_rgb: std.js.Dom.GLenum.GLenum, src_alpha: std.js.Dom.GLenum.GLenum, dst_alpha: std.js.Dom.GLenum.GLenum): std.core.Unit.Unit.
+pub (receiver: OES_draw_buffers_indexed) blend_func_separatei_oes(buf: std.js.Dom.GLuint, src_rgb: std.js.Dom.GLenum, dst_rgb: std.js.Dom.GLenum, src_alpha: std.js.Dom.GLenum, dst_alpha: std.js.Dom.GLenum): std.core.Unit.
 
 /**
  * The `blendFunciOES()` method of the OES_draw_buffers_indexed WebGL extension defines which function is used when blending pixels for a particular draw buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/blendFunciOES)
  */
-pub (receiver: OES_draw_buffers_indexed) blend_funci_oes(buf: std.js.Dom.GLuint.GLuint, src: std.js.Dom.GLenum.GLenum, dst: std.js.Dom.GLenum.GLenum): std.core.Unit.Unit.
+pub (receiver: OES_draw_buffers_indexed) blend_funci_oes(buf: std.js.Dom.GLuint, src: std.js.Dom.GLenum, dst: std.js.Dom.GLenum): std.core.Unit.
 
 /**
  * The `colorMaskiOES()` method of the OES_draw_buffers_indexed WebGL extension sets which color components to enable or to disable when drawing or rendering for a particular draw buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/colorMaskiOES)
  */
-pub (receiver: OES_draw_buffers_indexed) color_maski_oes(buf: std.js.Dom.GLuint.GLuint, r: std.js.Dom.GLboolean.GLboolean, g: std.js.Dom.GLboolean.GLboolean, b: std.js.Dom.GLboolean.GLboolean, a: std.js.Dom.GLboolean.GLboolean): std.core.Unit.Unit.
+pub (receiver: OES_draw_buffers_indexed) color_maski_oes(buf: std.js.Dom.GLuint, r: std.js.Dom.GLboolean, g: std.js.Dom.GLboolean, b: std.js.Dom.GLboolean, a: std.js.Dom.GLboolean): std.core.Unit.
 
 /**
  * The `disableiOES()` method of the OES_draw_buffers_indexed WebGL extension enables blending for a particular draw buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/disableiOES)
  */
-pub (receiver: OES_draw_buffers_indexed) disablei_oes(target_: std.js.Dom.GLenum.GLenum, index: std.js.Dom.GLuint.GLuint): std.core.Unit.Unit.
+pub (receiver: OES_draw_buffers_indexed) disablei_oes(target_: std.js.Dom.GLenum, index: std.js.Dom.GLuint): std.core.Unit.
 
 /**
  * The `enableiOES()` method of the OES_draw_buffers_indexed WebGL extension enables blending for a particular draw buffer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/enableiOES)
  */
-pub (receiver: OES_draw_buffers_indexed) enablei_oes(target_: std.js.Dom.GLenum.GLenum, index: std.js.Dom.GLuint.GLuint): std.core.Unit.Unit.
+pub (receiver: OES_draw_buffers_indexed) enablei_oes(target_: std.js.Dom.GLenum, index: std.js.Dom.GLuint): std.core.Unit.

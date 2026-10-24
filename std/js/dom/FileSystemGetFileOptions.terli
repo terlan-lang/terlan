@@ -14,4 +14,4 @@ module std.js.Dom.FileSystemGetFileOptions.
 
 pub opaque type FileSystemGetFileOptions.
 
-pub (receiver: FileSystemGetFileOptions) create(): std.core.Option.Option[Bool].
+pub (receiver: FileSystemGetFileOptions) create(): std.core.Option[Bool].

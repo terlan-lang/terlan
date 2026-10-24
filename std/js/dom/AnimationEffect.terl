@@ -24,7 +24,7 @@ pub opaque type AnimationEffect.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationEffect/getComputedTiming)
  */
-pub (receiver: AnimationEffect) get_computed_timing(): std.js.Dom.ComputedEffectTiming.ComputedEffectTiming ->
+pub (receiver: AnimationEffect) get_computed_timing(): std.js.Dom.ComputedEffectTiming ->
     native.
 
 /**
@@ -32,7 +32,7 @@ pub (receiver: AnimationEffect) get_computed_timing(): std.js.Dom.ComputedEffect
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationEffect/getTiming)
  */
-pub (receiver: AnimationEffect) get_timing(): std.js.Dom.EffectTiming.EffectTiming ->
+pub (receiver: AnimationEffect) get_timing(): std.js.Dom.EffectTiming ->
     native.
 
 /**
@@ -40,7 +40,5 @@ pub (receiver: AnimationEffect) get_timing(): std.js.Dom.EffectTiming.EffectTimi
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AnimationEffect/updateTiming)
  */
-pub (receiver: AnimationEffect) update_timing(
-    timing: std.core.Option.Option[std.js.Dom.OptionalEffectTiming.OptionalEffectTiming],
-): std.core.Unit.Unit ->
+pub (receiver: AnimationEffect) update_timing(timing: std.core.Option[std.js.Dom.OptionalEffectTiming]): std.core.Unit ->
     native.

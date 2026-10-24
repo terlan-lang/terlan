@@ -25,7 +25,7 @@ pub opaque type CSSKeyframesRule.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSKeyframesRule/cssRules)
  */
-pub (receiver: CSSKeyframesRule) css_rules(): std.js.Dom.CSSRuleList.CSSRuleList.
+pub (receiver: CSSKeyframesRule) css_rules(): std.js.Dom.CSSRuleList.
 
 /**
  * The read-only **`length`** property of the CSSKeyframeRule interface returns the number of CSSKeyframeRule objects in its list.
@@ -46,18 +46,18 @@ pub (receiver: CSSKeyframesRule) name(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSKeyframesRule/appendRule)
  */
-pub (receiver: CSSKeyframesRule) append_rule(rule: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: CSSKeyframesRule) append_rule(rule: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`deleteRule()`** method of the CSSKeyframeRule interface deletes the CSSKeyFrameRule that matches the specified keyframe selector.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSKeyframesRule/deleteRule)
  */
-pub (receiver: CSSKeyframesRule) delete_rule(select: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: CSSKeyframesRule) delete_rule(select: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`findRule()`** method of the CSSKeyframeRule interface finds the CSSKeyFrameRule that matches the specified keyframe selector.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSKeyframesRule/findRule)
  */
-pub (receiver: CSSKeyframesRule) find_rule(select: std.js.String.JsString): std.core.Option.Option[std.js.Dom.CSSKeyframeRule.CSSKeyframeRule].
+pub (receiver: CSSKeyframesRule) find_rule(select: std.js.String.JsString): std.core.Option[std.js.Dom.CSSKeyframeRule].

@@ -14,5 +14,5 @@ module std.js.Dom.AudioEncoderEventMapTest.
 
 import type std.js.Dom.AudioEncoderEventMap.
 
-pub dequeue_typechecks(receiver: AudioEncoderEventMap): std.js.Dom.Event.Event ->
+pub dequeue_typechecks(receiver: AudioEncoderEventMap): std.js.Dom.Event ->
     receiver.dequeue().

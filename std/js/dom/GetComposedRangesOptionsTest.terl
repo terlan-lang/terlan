@@ -16,5 +16,5 @@ import type std.js.Dom.GetComposedRangesOptions.
 
 pub shadow_roots_typechecks(
     receiver: GetComposedRangesOptions,
-): std.core.Option.Option[std.js.Array.Array[std.js.Dom.ShadowRoot.ShadowRoot]] ->
+): std.core.Option[std.js.Array[std.js.Dom.ShadowRoot]] ->
     receiver.shadow_roots().

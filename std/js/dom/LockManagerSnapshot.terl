@@ -12,9 +12,9 @@
  */
 module std.js.Dom.LockManagerSnapshot.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.LockInfo.{LockInfo}.
+import type std.core.{Option}.
+import type std.js.Dom.{LockInfo}.
+import type std.js.{Array}.
 
 pub opaque type LockManagerSnapshot.
 

@@ -15,54 +15,54 @@ module std.js.Dom.RTCOutboundRtpStreamStats.
 
 pub opaque type RTCOutboundRtpStreamStats.
 
-pub (receiver: RTCOutboundRtpStreamStats) active(): std.core.Option.Option[Bool].
+pub (receiver: RTCOutboundRtpStreamStats) active(): std.core.Option[Bool].
 
-pub (receiver: RTCOutboundRtpStreamStats) fir_count(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) fir_count(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) frame_height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) frame_height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) frame_width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) frame_width(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) frames_encoded(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) frames_encoded(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) frames_per_second(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) frames_per_second(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) frames_sent(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) frames_sent(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) header_bytes_sent(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) header_bytes_sent(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) huge_frames_sent(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) huge_frames_sent(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) key_frames_encoded(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) key_frames_encoded(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) media_source_id(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCOutboundRtpStreamStats) media_source_id(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCOutboundRtpStreamStats) mid(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCOutboundRtpStreamStats) mid(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCOutboundRtpStreamStats) nack_count(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) nack_count(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) pli_count(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) pli_count(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) qp_sum(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) qp_sum(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) quality_limitation_resolution_changes(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) quality_limitation_resolution_changes(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) remote_id(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCOutboundRtpStreamStats) remote_id(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCOutboundRtpStreamStats) retransmitted_bytes_sent(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) retransmitted_bytes_sent(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) retransmitted_packets_sent(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) retransmitted_packets_sent(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) rid(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCOutboundRtpStreamStats) rid(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCOutboundRtpStreamStats) rtx_ssrc(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) rtx_ssrc(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) scalability_mode(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCOutboundRtpStreamStats) scalability_mode(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: RTCOutboundRtpStreamStats) target_bitrate(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) target_bitrate(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) total_encode_time(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) total_encode_time(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) total_encoded_bytes_target(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) total_encoded_bytes_target(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: RTCOutboundRtpStreamStats) total_packet_send_delay(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCOutboundRtpStreamStats) total_packet_send_delay(): std.core.Option[std.js.Number.JsNumber].

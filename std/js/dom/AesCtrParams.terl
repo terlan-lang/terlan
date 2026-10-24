@@ -14,7 +14,7 @@ module std.js.Dom.AesCtrParams.
 
 pub opaque type AesCtrParams.
 
-pub (receiver: AesCtrParams) counter(): std.js.Dom.BufferSource.BufferSource ->
+pub (receiver: AesCtrParams) counter(): std.js.Dom.BufferSource ->
     native.
 
 pub (receiver: AesCtrParams) length(): std.js.Number.JsNumber ->

@@ -14,5 +14,5 @@ module std.js.Dom.FileSystemGetFileOptionsTest.
 
 import type std.js.Dom.FileSystemGetFileOptions.
 
-pub create_typechecks(receiver: FileSystemGetFileOptions): std.core.Option.Option[Bool] ->
+pub create_typechecks(receiver: FileSystemGetFileOptions): std.core.Option[Bool] ->
     receiver.create().

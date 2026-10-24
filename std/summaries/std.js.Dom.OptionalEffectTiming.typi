@@ -15,16 +15,16 @@ module std.js.Dom.OptionalEffectTiming.
 
 pub opaque type OptionalEffectTiming.
 
-pub (receiver: OptionalEffectTiming) delay(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: OptionalEffectTiming) delay(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: OptionalEffectTiming) duration(): std.core.Option.Option[std.js.Number.JsNumber | std.js.String.JsString].
+pub (receiver: OptionalEffectTiming) duration(): std.core.Option[std.js.Number.JsNumber | std.js.String.JsString].
 
-pub (receiver: OptionalEffectTiming) easing(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: OptionalEffectTiming) easing(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: OptionalEffectTiming) end_delay(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: OptionalEffectTiming) end_delay(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: OptionalEffectTiming) iteration_start(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: OptionalEffectTiming) iteration_start(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: OptionalEffectTiming) iterations(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: OptionalEffectTiming) iterations(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: OptionalEffectTiming) playback_rate(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: OptionalEffectTiming) playback_rate(): std.core.Option[std.js.Number.JsNumber].

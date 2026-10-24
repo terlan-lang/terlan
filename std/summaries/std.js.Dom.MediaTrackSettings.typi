@@ -15,38 +15,38 @@ module std.js.Dom.MediaTrackSettings.
 
 pub opaque type MediaTrackSettings.
 
-pub (receiver: MediaTrackSettings) aspect_ratio(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaTrackSettings) aspect_ratio(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaTrackSettings) auto_gain_control(): std.core.Option.Option[Bool].
+pub (receiver: MediaTrackSettings) auto_gain_control(): std.core.Option[Bool].
 
-pub (receiver: MediaTrackSettings) background_blur(): std.core.Option.Option[Bool].
+pub (receiver: MediaTrackSettings) background_blur(): std.core.Option[Bool].
 
-pub (receiver: MediaTrackSettings) channel_count(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaTrackSettings) channel_count(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaTrackSettings) device_id(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MediaTrackSettings) device_id(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: MediaTrackSettings) display_surface(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MediaTrackSettings) display_surface(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: MediaTrackSettings) echo_cancellation(): std.core.Option.Option[Bool].
+pub (receiver: MediaTrackSettings) echo_cancellation(): std.core.Option[Bool].
 
-pub (receiver: MediaTrackSettings) facing_mode(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MediaTrackSettings) facing_mode(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: MediaTrackSettings) frame_rate(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaTrackSettings) frame_rate(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaTrackSettings) group_id(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MediaTrackSettings) group_id(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: MediaTrackSettings) height(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaTrackSettings) height(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaTrackSettings) noise_suppression(): std.core.Option.Option[Bool].
+pub (receiver: MediaTrackSettings) noise_suppression(): std.core.Option[Bool].
 
-pub (receiver: MediaTrackSettings) sample_rate(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaTrackSettings) sample_rate(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaTrackSettings) sample_size(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaTrackSettings) sample_size(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaTrackSettings) torch(): std.core.Option.Option[Bool].
+pub (receiver: MediaTrackSettings) torch(): std.core.Option[Bool].
 
-pub (receiver: MediaTrackSettings) white_balance_mode(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: MediaTrackSettings) white_balance_mode(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: MediaTrackSettings) width(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaTrackSettings) width(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: MediaTrackSettings) zoom(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: MediaTrackSettings) zoom(): std.core.Option[std.js.Number.JsNumber].

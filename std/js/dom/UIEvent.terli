@@ -12,8 +12,8 @@
  */
 module std.js.Dom.UIEvent.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.Window.{Window}.
+import type std.core.{Option}.
+import type std.js.Dom.{Window}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -57,4 +57,4 @@ pub (receiver: UIEvent) init_ui_event(
     cancelable_arg: Option[Bool],
     view_arg: Option[Option[Window]],
     detail_arg: Option[JsNumber],
-): std.core.Unit.Unit.
+): std.core.Unit.

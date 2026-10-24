@@ -12,7 +12,7 @@
  */
 module std.js.Intl.CollatorOptions.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type CollatorOptions.
 

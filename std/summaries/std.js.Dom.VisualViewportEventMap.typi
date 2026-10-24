@@ -15,6 +15,6 @@ module std.js.Dom.VisualViewportEventMap.
 
 pub opaque type VisualViewportEventMap.
 
-pub (receiver: VisualViewportEventMap) resize(): std.js.Dom.Event.Event.
+pub (receiver: VisualViewportEventMap) resize(): std.js.Dom.Event.
 
-pub (receiver: VisualViewportEventMap) scroll(): std.js.Dom.Event.Event.
+pub (receiver: VisualViewportEventMap) scroll(): std.js.Dom.Event.

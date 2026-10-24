@@ -14,5 +14,5 @@ module std.js.Dom.AudioScheduledSourceNodeEventMapTest.
 
 import type std.js.Dom.AudioScheduledSourceNodeEventMap.
 
-pub ended_typechecks(receiver: AudioScheduledSourceNodeEventMap): std.js.Dom.Event.Event ->
+pub ended_typechecks(receiver: AudioScheduledSourceNodeEventMap): std.js.Dom.Event ->
     receiver.ended().

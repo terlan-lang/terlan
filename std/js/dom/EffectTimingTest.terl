@@ -12,7 +12,7 @@
  */
 module std.js.Dom.EffectTimingTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.EffectTiming.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
@@ -22,7 +22,7 @@ pub delay_typechecks(receiver: EffectTiming): Option[JsNumber] ->
 
 pub duration_typechecks(
     receiver: EffectTiming,
-): Option[std.js.Dom.CSSNumericValue.CSSNumericValue | JsNumber | JsString] ->
+): Option[std.js.Dom.CSSNumericValue | JsNumber | JsString] ->
     receiver.duration().
 
 pub easing_typechecks(receiver: EffectTiming): Option[JsString] ->

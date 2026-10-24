@@ -12,7 +12,7 @@
  */
 module std.js.Dom.ReportingObserverOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.ReportingObserverOptions.
 
 pub buffered_typechecks(receiver: ReportingObserverOptions): Option[Bool] ->
@@ -20,5 +20,5 @@ pub buffered_typechecks(receiver: ReportingObserverOptions): Option[Bool] ->
 
 pub types_typechecks(
     receiver: ReportingObserverOptions,
-): Option[std.js.Array.Array[std.js.String.JsString]] ->
+): Option[std.js.Array[std.js.String.JsString]] ->
     receiver.types().

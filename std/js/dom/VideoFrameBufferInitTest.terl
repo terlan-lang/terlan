@@ -12,7 +12,7 @@
  */
 module std.js.Dom.VideoFrameBufferInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.VideoFrameBufferInit.
 import type std.js.Number.{JsNumber}.
 
@@ -22,9 +22,7 @@ pub coded_height_typechecks(receiver: VideoFrameBufferInit): JsNumber ->
 pub coded_width_typechecks(receiver: VideoFrameBufferInit): JsNumber ->
     receiver.coded_width().
 
-pub color_space_typechecks(
-    receiver: VideoFrameBufferInit,
-): Option[std.js.Dom.VideoColorSpaceInit.VideoColorSpaceInit] ->
+pub color_space_typechecks(receiver: VideoFrameBufferInit): Option[std.js.Dom.VideoColorSpaceInit] ->
     receiver.color_space().
 
 pub display_height_typechecks(receiver: VideoFrameBufferInit): Option[JsNumber] ->
@@ -36,15 +34,11 @@ pub display_width_typechecks(receiver: VideoFrameBufferInit): Option[JsNumber] -
 pub duration_typechecks(receiver: VideoFrameBufferInit): Option[JsNumber] ->
     receiver.duration().
 
-pub layout_typechecks(
-    receiver: VideoFrameBufferInit,
-): Option[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]] ->
+pub layout_typechecks(receiver: VideoFrameBufferInit): Option[std.js.Array[std.js.Dom.PlaneLayout]] ->
     receiver.layout().
 
 pub timestamp_typechecks(receiver: VideoFrameBufferInit): JsNumber ->
     receiver.timestamp().
 
-pub visible_rect_typechecks(
-    receiver: VideoFrameBufferInit,
-): Option[std.js.Dom.DOMRectInit.DOMRectInit] ->
+pub visible_rect_typechecks(receiver: VideoFrameBufferInit): Option[std.js.Dom.DOMRectInit] ->
     receiver.visible_rect().

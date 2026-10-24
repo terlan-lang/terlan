@@ -216,7 +216,7 @@ pub shrink_map_simplifies_nonempty_to_empty(): Bool ->
 @test
 pub shrink_map_stops_at_empty(): Bool ->
     assert_equal(
-        List.new[std.collections.Map.Map[String, Int]](),
+        List.new[std.collections.Map[String, Int]](),
         shrink_map(Map.new[String, Int](), Map.new[String, Int]()),
     ).
 

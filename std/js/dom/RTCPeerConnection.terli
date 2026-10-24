@@ -12,24 +12,10 @@
  */
 module std.js.Dom.RTCPeerConnection.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.MediaStreamTrack.{MediaStreamTrack}.
-import type std.js.Dom.RTCConfiguration.{RTCConfiguration}.
-import type std.js.Dom.RTCIceCandidateInit.{RTCIceCandidateInit}.
-import type std.js.Dom.RTCLocalSessionDescriptionInit.{RTCLocalSessionDescriptionInit}.
-import type std.js.Dom.RTCOfferOptions.{RTCOfferOptions}.
-import type std.js.Dom.RTCPeerConnectionErrorCallback.{RTCPeerConnectionErrorCallback}.
-import type std.js.Dom.RTCRtpSender.{RTCRtpSender}.
-import type std.js.Dom.RTCRtpTransceiver.{RTCRtpTransceiver}.
-import type std.js.Dom.RTCSessionDescription.{RTCSessionDescription}.
-import type std.js.Dom.RTCSessionDescriptionCallback.{RTCSessionDescriptionCallback}.
-import type std.js.Dom.RTCSessionDescriptionInit.{RTCSessionDescriptionInit}.
-import type std.js.Dom.VoidFunction.{VoidFunction}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, MediaStreamTrack, RTCConfiguration, RTCIceCandidateInit, RTCLocalSessionDescriptionInit, RTCOfferOptions, RTCPeerConnectionErrorCallback, RTCRtpSender, RTCRtpTransceiver, RTCSessionDescription, RTCSessionDescriptionCallback, RTCSessionDescriptionInit, VoidFunction}.
 import type std.js.String.{JsString}.
+import type std.js.{Array, Promise}.
 
 /**
  * The **`RTCPeerConnection`** interface represents a WebRTC connection between the local computer and a remote peer.
@@ -92,7 +78,7 @@ pub (receiver: RTCPeerConnection) remote_description(): Option[RTCSessionDescrip
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCPeerConnection/sctp)
  */
-pub (receiver: RTCPeerConnection) sctp(): Option[std.js.Dom.RTCSctpTransport.RTCSctpTransport].
+pub (receiver: RTCPeerConnection) sctp(): Option[std.js.Dom.RTCSctpTransport].
 
 /**
  * The **`addIceCandidate()`** method of the RTCPeerConnection interface adds a new remote candidate to the connection's remote description, which describes the state of the remote end of the connection.
@@ -115,10 +101,7 @@ pub (receiver: RTCPeerConnection) add_ice_candidate_overload_2(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCPeerConnection/addTrack)
  */
-pub (receiver: RTCPeerConnection) add_track(
-    track: MediaStreamTrack,
-    streams: Array[std.js.Dom.MediaStream.MediaStream],
-): RTCRtpSender.
+pub (receiver: RTCPeerConnection) add_track(track: MediaStreamTrack, streams: Array[std.js.Dom.MediaStream]): RTCRtpSender.
 
 /**
  * The **`addTransceiver()`** method of the RTCPeerConnection interface creates a new RTCRtpTransceiver and adds it to the set of transceivers associated with the `RTCPeerConnection`.
@@ -127,7 +110,7 @@ pub (receiver: RTCPeerConnection) add_track(
  */
 pub (receiver: RTCPeerConnection) add_transceiver(
     track_or_kind: MediaStreamTrack | JsString,
-    init: Option[std.js.Dom.RTCRtpTransceiverInit.RTCRtpTransceiverInit],
+    init: Option[std.js.Dom.RTCRtpTransceiverInit],
 ): RTCRtpTransceiver.
 
 /**
@@ -142,9 +125,7 @@ pub (receiver: RTCPeerConnection) close(): Unit.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCPeerConnection/createAnswer)
  */
-pub (receiver: RTCPeerConnection) create_answer(
-    options: Option[std.js.Dom.RTCAnswerOptions.RTCAnswerOptions],
-): Promise[RTCSessionDescriptionInit].
+pub (receiver: RTCPeerConnection) create_answer(options: Option[std.js.Dom.RTCAnswerOptions]): Promise[RTCSessionDescriptionInit].
 
 /**
  * @deprecated
@@ -161,8 +142,8 @@ pub (receiver: RTCPeerConnection) create_answer_overload_2(
  */
 pub (receiver: RTCPeerConnection) create_data_channel(
     label: JsString,
-    data_channel_dict: Option[std.js.Dom.RTCDataChannelInit.RTCDataChannelInit],
-): std.js.Dom.RTCDataChannel.RTCDataChannel.
+    data_channel_dict: Option[std.js.Dom.RTCDataChannelInit],
+): std.js.Dom.RTCDataChannel.
 
 /**
  * The **`createOffer()`** method of the RTCPeerConnection interface initiates the creation of an SDP offer for the purpose of starting a new WebRTC connection to a remote peer.
@@ -192,7 +173,7 @@ pub (receiver: RTCPeerConnection) get_configuration(): RTCConfiguration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCPeerConnection/getReceivers)
  */
-pub (receiver: RTCPeerConnection) get_receivers(): Array[std.js.Dom.RTCRtpReceiver.RTCRtpReceiver].
+pub (receiver: RTCPeerConnection) get_receivers(): Array[std.js.Dom.RTCRtpReceiver].
 
 /**
  * The **`getSenders()`** method of the RTCPeerConnection interface returns an array of RTCRtpSender objects, each of which represents the RTP sender responsible for transmitting one track's data.
@@ -206,9 +187,7 @@ pub (receiver: RTCPeerConnection) get_senders(): Array[RTCRtpSender].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCPeerConnection/getStats)
  */
-pub (receiver: RTCPeerConnection) get_stats(
-    selector: Option[Option[MediaStreamTrack]],
-): Promise[std.js.Dom.RTCStatsReport.RTCStatsReport].
+pub (receiver: RTCPeerConnection) get_stats(selector: Option[Option[MediaStreamTrack]]): Promise[std.js.Dom.RTCStatsReport].
 
 /**
  * The **`getTransceivers()`** method of the RTCPeerConnection interface returns a list of the RTCRtpTransceiver objects being used to send and receive data on the connection.
@@ -273,11 +252,11 @@ pub (receiver: RTCPeerConnection) set_remote_description_overload_2(
 pub (receiver: RTCPeerConnection) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: RTCPeerConnection) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

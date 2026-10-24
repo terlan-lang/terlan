@@ -15,6 +15,6 @@ module std.js.Dom.DelayOptions.
 
 pub opaque type DelayOptions.
 
-pub (receiver: DelayOptions) delay_time(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DelayOptions) delay_time(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DelayOptions) max_delay_time(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DelayOptions) max_delay_time(): std.core.Option[std.js.Number.JsNumber].

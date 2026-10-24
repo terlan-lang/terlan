@@ -39,46 +39,46 @@ pub (receiver: SVGPointList) number_of_items(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/appendItem)
  */
-pub (receiver: SVGPointList) append_item(new_item: std.js.Dom.DOMPoint.DOMPoint): std.js.Dom.DOMPoint.DOMPoint.
+pub (receiver: SVGPointList) append_item(new_item: std.js.Dom.DOMPoint): std.js.Dom.DOMPoint.
 
 /**
  * The **`clear()`** method of the SVGPointList interface removes all items from the list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/clear)
  */
-pub (receiver: SVGPointList) clear(): std.core.Unit.Unit.
+pub (receiver: SVGPointList) clear(): std.core.Unit.
 
 /**
  * The **`getItem()`** method of the SVGPointList interface gets one item from the list at the specified index.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/getItem)
  */
-pub (receiver: SVGPointList) get_item(index: std.js.Number.JsNumber): std.js.Dom.DOMPoint.DOMPoint.
+pub (receiver: SVGPointList) get_item(index: std.js.Number.JsNumber): std.js.Dom.DOMPoint.
 
 /**
  * The **`initialize()`** method of the SVGPointList interface clears the list then adds a single new DOMPoint object to the list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/initialize)
  */
-pub (receiver: SVGPointList) initialize(new_item: std.js.Dom.DOMPoint.DOMPoint): std.js.Dom.DOMPoint.DOMPoint.
+pub (receiver: SVGPointList) initialize(new_item: std.js.Dom.DOMPoint): std.js.Dom.DOMPoint.
 
 /**
  * The **`insertItemBefore()`** method of the SVGPointList interface inserts a DOMPoint before another item in the list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/insertItemBefore)
  */
-pub (receiver: SVGPointList) insert_item_before(new_item: std.js.Dom.DOMPoint.DOMPoint, index: std.js.Number.JsNumber): std.js.Dom.DOMPoint.DOMPoint.
+pub (receiver: SVGPointList) insert_item_before(new_item: std.js.Dom.DOMPoint, index: std.js.Number.JsNumber): std.js.Dom.DOMPoint.
 
 /**
  * The **`removeItem()`** method of the SVGPointList interface removes a DOMPoint from the list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/removeItem)
  */
-pub (receiver: SVGPointList) remove_item(index: std.js.Number.JsNumber): std.js.Dom.DOMPoint.DOMPoint.
+pub (receiver: SVGPointList) remove_item(index: std.js.Number.JsNumber): std.js.Dom.DOMPoint.
 
 /**
  * The **`replaceItem()`** method of the SVGPointList interface replaces a DOMPoint in the list.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPointList/replaceItem)
  */
-pub (receiver: SVGPointList) replace_item(new_item: std.js.Dom.DOMPoint.DOMPoint, index: std.js.Number.JsNumber): std.js.Dom.DOMPoint.DOMPoint.
+pub (receiver: SVGPointList) replace_item(new_item: std.js.Dom.DOMPoint, index: std.js.Number.JsNumber): std.js.Dom.DOMPoint.

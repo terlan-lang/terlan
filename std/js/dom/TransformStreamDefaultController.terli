@@ -12,8 +12,7 @@
  */
 module std.js.Dom.TransformStreamDefaultController.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
+import type std.core.{Option, Unit}.
 
 /**
  * The **`TransformStreamDefaultController`** interface of the Streams API provides methods to manipulate the associated ReadableStream and WritableStream.

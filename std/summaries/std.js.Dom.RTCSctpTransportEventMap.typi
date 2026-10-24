@@ -15,4 +15,4 @@ module std.js.Dom.RTCSctpTransportEventMap.
 
 pub opaque type RTCSctpTransportEventMap.
 
-pub (receiver: RTCSctpTransportEventMap) statechange(): std.js.Dom.Event.Event.
+pub (receiver: RTCSctpTransportEventMap) statechange(): std.js.Dom.Event.

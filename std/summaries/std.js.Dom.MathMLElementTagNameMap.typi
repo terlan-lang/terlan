@@ -15,62 +15,62 @@ module std.js.Dom.MathMLElementTagNameMap.
 
 pub opaque type MathMLElementTagNameMap.
 
-pub (receiver: MathMLElementTagNameMap) annotation_(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) annotation_(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) annotation_xml(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) annotation_xml(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) maction(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) maction(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) math(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) math(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) merror(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) merror(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mfrac(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mfrac(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mi(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mi(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mmultiscripts(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mmultiscripts(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mn(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mn(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mo(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mo(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mover(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mover(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mpadded(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mpadded(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mphantom(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mphantom(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mprescripts(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mprescripts(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mroot(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mroot(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mrow(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mrow(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) ms(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) ms(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mspace(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mspace(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) msqrt(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) msqrt(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mstyle(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mstyle(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) msub(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) msub(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) msubsup(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) msubsup(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) msup(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) msup(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mtable(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mtable(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mtd(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mtd(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mtext(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mtext(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) mtr(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) mtr(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) munder(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) munder(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) munderover(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) munderover(): std.js.Dom.MathMLElement.
 
-pub (receiver: MathMLElementTagNameMap) semantics(): std.js.Dom.MathMLElement.MathMLElement.
+pub (receiver: MathMLElementTagNameMap) semantics(): std.js.Dom.MathMLElement.

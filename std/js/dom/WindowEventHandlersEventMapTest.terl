@@ -12,12 +12,7 @@
  */
 module std.js.Dom.WindowEventHandlersEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.GamepadEvent.{GamepadEvent}.
-import type std.js.Dom.MessageEvent.{MessageEvent}.
-import type std.js.Dom.PageTransitionEvent.{PageTransitionEvent}.
-import type std.js.Dom.PromiseRejectionEvent.{PromiseRejectionEvent}.
-import type std.js.Dom.WindowEventHandlersEventMap.
+import type std.js.Dom.{Event, GamepadEvent, MessageEvent, PageTransitionEvent, PromiseRejectionEvent, WindowEventHandlersEventMap}.
 
 pub afterprint_typechecks(receiver: WindowEventHandlersEventMap): Event ->
     receiver.afterprint().
@@ -25,9 +20,7 @@ pub afterprint_typechecks(receiver: WindowEventHandlersEventMap): Event ->
 pub beforeprint_typechecks(receiver: WindowEventHandlersEventMap): Event ->
     receiver.beforeprint().
 
-pub beforeunload_typechecks(
-    receiver: WindowEventHandlersEventMap,
-): std.js.Dom.BeforeUnloadEvent.BeforeUnloadEvent ->
+pub beforeunload_typechecks(receiver: WindowEventHandlersEventMap): std.js.Dom.BeforeUnloadEvent ->
     receiver.beforeunload().
 
 pub gamepadconnected_typechecks(receiver: WindowEventHandlersEventMap): GamepadEvent ->
@@ -36,9 +29,7 @@ pub gamepadconnected_typechecks(receiver: WindowEventHandlersEventMap): GamepadE
 pub gamepaddisconnected_typechecks(receiver: WindowEventHandlersEventMap): GamepadEvent ->
     receiver.gamepaddisconnected().
 
-pub hashchange_typechecks(
-    receiver: WindowEventHandlersEventMap,
-): std.js.Dom.HashChangeEvent.HashChangeEvent ->
+pub hashchange_typechecks(receiver: WindowEventHandlersEventMap): std.js.Dom.HashChangeEvent ->
     receiver.hashchange().
 
 pub languagechange_typechecks(receiver: WindowEventHandlersEventMap): Event ->
@@ -59,28 +50,22 @@ pub online_typechecks(receiver: WindowEventHandlersEventMap): Event ->
 pub pagehide_typechecks(receiver: WindowEventHandlersEventMap): PageTransitionEvent ->
     receiver.pagehide().
 
-pub pagereveal_typechecks(
-    receiver: WindowEventHandlersEventMap,
-): std.js.Dom.PageRevealEvent.PageRevealEvent ->
+pub pagereveal_typechecks(receiver: WindowEventHandlersEventMap): std.js.Dom.PageRevealEvent ->
     receiver.pagereveal().
 
 pub pageshow_typechecks(receiver: WindowEventHandlersEventMap): PageTransitionEvent ->
     receiver.pageshow().
 
-pub pageswap_typechecks(
-    receiver: WindowEventHandlersEventMap,
-): std.js.Dom.PageSwapEvent.PageSwapEvent ->
+pub pageswap_typechecks(receiver: WindowEventHandlersEventMap): std.js.Dom.PageSwapEvent ->
     receiver.pageswap().
 
-pub popstate_typechecks(
-    receiver: WindowEventHandlersEventMap,
-): std.js.Dom.PopStateEvent.PopStateEvent ->
+pub popstate_typechecks(receiver: WindowEventHandlersEventMap): std.js.Dom.PopStateEvent ->
     receiver.popstate().
 
 pub rejectionhandled_typechecks(receiver: WindowEventHandlersEventMap): PromiseRejectionEvent ->
     receiver.rejectionhandled().
 
-pub storage_typechecks(receiver: WindowEventHandlersEventMap): std.js.Dom.StorageEvent.StorageEvent ->
+pub storage_typechecks(receiver: WindowEventHandlersEventMap): std.js.Dom.StorageEvent ->
     receiver.storage().
 
 pub unhandledrejection_typechecks(receiver: WindowEventHandlersEventMap): PromiseRejectionEvent ->

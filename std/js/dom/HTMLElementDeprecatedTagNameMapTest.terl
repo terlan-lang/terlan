@@ -12,10 +12,7 @@
  */
 module std.js.Dom.HTMLElementDeprecatedTagNameMapTest.
 
-import type std.js.Dom.HTMLElement.{HTMLElement}.
-import type std.js.Dom.HTMLElementDeprecatedTagNameMap.
-import type std.js.Dom.HTMLPreElement.{HTMLPreElement}.
-import type std.js.Dom.HTMLUnknownElement.{HTMLUnknownElement}.
+import type std.js.Dom.{HTMLElement, HTMLElementDeprecatedTagNameMap, HTMLPreElement, HTMLUnknownElement}.
 
 pub acronym_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
     receiver.acronym().
@@ -38,24 +35,16 @@ pub blink_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLUnknownElem
 pub center_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
     receiver.center().
 
-pub dir_typechecks(
-    receiver: HTMLElementDeprecatedTagNameMap,
-): std.js.Dom.HTMLDirectoryElement.HTMLDirectoryElement ->
+pub dir_typechecks(receiver: HTMLElementDeprecatedTagNameMap): std.js.Dom.HTMLDirectoryElement ->
     receiver.dir().
 
-pub font_typechecks(
-    receiver: HTMLElementDeprecatedTagNameMap,
-): std.js.Dom.HTMLFontElement.HTMLFontElement ->
+pub font_typechecks(receiver: HTMLElementDeprecatedTagNameMap): std.js.Dom.HTMLFontElement ->
     receiver.font().
 
-pub frame_typechecks(
-    receiver: HTMLElementDeprecatedTagNameMap,
-): std.js.Dom.HTMLFrameElement.HTMLFrameElement ->
+pub frame_typechecks(receiver: HTMLElementDeprecatedTagNameMap): std.js.Dom.HTMLFrameElement ->
     receiver.frame().
 
-pub frameset_typechecks(
-    receiver: HTMLElementDeprecatedTagNameMap,
-): std.js.Dom.HTMLFrameSetElement.HTMLFrameSetElement ->
+pub frameset_typechecks(receiver: HTMLElementDeprecatedTagNameMap): std.js.Dom.HTMLFrameSetElement ->
     receiver.frameset().
 
 pub isindex_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLUnknownElement ->
@@ -67,9 +56,7 @@ pub keygen_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLUnknownEle
 pub listing_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLPreElement ->
     receiver.listing().
 
-pub marquee_typechecks(
-    receiver: HTMLElementDeprecatedTagNameMap,
-): std.js.Dom.HTMLMarqueeElement.HTMLMarqueeElement ->
+pub marquee_typechecks(receiver: HTMLElementDeprecatedTagNameMap): std.js.Dom.HTMLMarqueeElement ->
     receiver.marquee().
 
 pub menuitem_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
@@ -90,9 +77,7 @@ pub noembed_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement -
 pub noframes_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->
     receiver.noframes().
 
-pub param_typechecks(
-    receiver: HTMLElementDeprecatedTagNameMap,
-): std.js.Dom.HTMLParamElement.HTMLParamElement ->
+pub param_typechecks(receiver: HTMLElementDeprecatedTagNameMap): std.js.Dom.HTMLParamElement ->
     receiver.param().
 
 pub plaintext_typechecks(receiver: HTMLElementDeprecatedTagNameMap): HTMLElement ->

@@ -154,7 +154,7 @@ pub leak(value: Secret): String -> render(value).\n",
 
     assert!(
         diagnostics.iter().any(|diagnostic| diagnostic.message
-            == "at `render` call site: trait bound `Show[std.core.Secret.Secret]` is explicitly denied"),
+            == "at `render` call site: trait bound `Show[std.core.Secret]` is explicitly denied"),
         "diagnostics: {:?}",
         diagnostics
     );

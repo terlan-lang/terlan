@@ -25,4 +25,4 @@ pub opaque type SubmitEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubmitEvent/submitter)
  */
-pub (receiver: SubmitEvent) submitter(): std.core.Option.Option[std.js.Dom.HTMLElement.HTMLElement].
+pub (receiver: SubmitEvent) submitter(): std.core.Option[std.js.Dom.HTMLElement].

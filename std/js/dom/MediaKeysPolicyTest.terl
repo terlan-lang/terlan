@@ -14,7 +14,5 @@ module std.js.Dom.MediaKeysPolicyTest.
 
 import type std.js.Dom.MediaKeysPolicy.
 
-pub min_hdcp_version_typechecks(
-    receiver: MediaKeysPolicy,
-): std.core.Option.Option[std.js.String.JsString] ->
+pub min_hdcp_version_typechecks(receiver: MediaKeysPolicy): std.core.Option[std.js.String.JsString] ->
     receiver.min_hdcp_version().

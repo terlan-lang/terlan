@@ -12,4 +12,4 @@
  */
 module std.js.Dom.FormDataEntryValue.
 
-pub type FormDataEntryValue = std.js.Dom.File.File | std.js.String.JsString.
+pub type FormDataEntryValue = std.js.Dom.File | std.js.String.JsString.

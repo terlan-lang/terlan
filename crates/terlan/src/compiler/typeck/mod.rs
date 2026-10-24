@@ -246,14 +246,14 @@ enum Variance {
 /// - Resolver import metadata for visible types.
 ///
 /// Output:
-/// - Provider module and source type name.
+/// - Optional provider module and source type name; local names have no provider.
 ///
 /// Transformation:
-/// - Gives diagnostics and constructor lookup a stable qualified identity for
-///   imported type references.
+/// - Preserves imported provider identities and current-module local scope
+///   while resolving public type paths.
 #[derive(Debug, Clone)]
 struct QualifiedTypeName {
-    module: String,
+    module: Option<String>,
     name: String,
 }
 

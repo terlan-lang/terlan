@@ -14,4 +14,4 @@ module std.js.Dom.RTCPeerConnectionIceEventInit.
 
 pub opaque type RTCPeerConnectionIceEventInit.
 
-pub (receiver: RTCPeerConnectionIceEventInit) candidate(): std.core.Option.Option[std.js.Dom.RTCIceCandidate.RTCIceCandidate].
+pub (receiver: RTCPeerConnectionIceEventInit) candidate(): std.core.Option[std.js.Dom.RTCIceCandidate].

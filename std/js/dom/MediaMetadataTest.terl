@@ -21,9 +21,7 @@ pub album_typechecks(receiver: MediaMetadata): JsString ->
 pub artist_typechecks(receiver: MediaMetadata): JsString ->
     receiver.artist().
 
-pub artwork_typechecks(
-    receiver: MediaMetadata,
-): std.js.Array.Array[std.js.Dom.MediaImage.MediaImage] ->
+pub artwork_typechecks(receiver: MediaMetadata): std.js.Array[std.js.Dom.MediaImage] ->
     receiver.artwork().
 
 pub title_typechecks(receiver: MediaMetadata): JsString ->

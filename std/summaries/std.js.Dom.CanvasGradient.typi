@@ -25,4 +25,4 @@ pub opaque type CanvasGradient.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasGradient/addColorStop)
  */
-pub (receiver: CanvasGradient) add_color_stop(offset: std.js.Number.JsNumber, color: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: CanvasGradient) add_color_stop(offset: std.js.Number.JsNumber, color: std.js.String.JsString): std.core.Unit.

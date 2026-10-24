@@ -12,4 +12,4 @@
  */
 module std.js.Dom.ClipboardItems.
 
-pub type ClipboardItems = std.js.Array.Array[std.js.Dom.ClipboardItem.ClipboardItem].
+pub type ClipboardItems = std.js.Array[std.js.Dom.ClipboardItem].

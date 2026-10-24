@@ -15,7 +15,7 @@ module std.js.DateConstructor.
 
 pub opaque type DateConstructor.
 
-pub (receiver: DateConstructor) prototype(): std.js.Date.Date.
+pub (receiver: DateConstructor) prototype(): std.js.Date.
 
 /**
  * Parses a string containing a date, and returns the number of milliseconds between that date and midnight, January 1, 1970.
@@ -33,7 +33,7 @@ pub (receiver: DateConstructor) parse(s: std.js.String.JsString): std.js.Number.
  * @param seconds Must be supplied if milliseconds is supplied. A number from 0 to 59 that specifies the seconds.
  * @param ms A number from 0 to 999 that specifies the milliseconds.
  */
-pub (receiver: DateConstructor) utc(year: std.js.Number.JsNumber, month_index: std.js.Number.JsNumber, date: std.core.Option.Option[std.js.Number.JsNumber], hours: std.core.Option.Option[std.js.Number.JsNumber], minutes: std.core.Option.Option[std.js.Number.JsNumber], seconds: std.core.Option.Option[std.js.Number.JsNumber], ms: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: DateConstructor) utc(year: std.js.Number.JsNumber, month_index: std.js.Number.JsNumber, date: std.core.Option[std.js.Number.JsNumber], hours: std.core.Option[std.js.Number.JsNumber], minutes: std.core.Option[std.js.Number.JsNumber], seconds: std.core.Option[std.js.Number.JsNumber], ms: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Returns the number of milliseconds elapsed since midnight, January 1, 1970 Universal Coordinated Time (UTC).

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.BiquadFilterNode.
 
-import type std.js.ArrayBuffer.{ArrayBuffer}.
-import type std.js.Dom.AudioParam.{AudioParam}.
-import type std.js.Float32Array.{Float32Array}.
+import type std.js.Dom.{AudioParam}.
+import type std.js.{ArrayBuffer, Float32Array}.
 
 /**
  * The `BiquadFilterNode` interface represents a simple low-order filter, and is created using the BaseAudioContext/createBiquadFilter method.
@@ -64,5 +63,5 @@ pub (receiver: BiquadFilterNode) get_frequency_response(
     frequency_hz: Float32Array[ArrayBuffer],
     mag_response: Float32Array[ArrayBuffer],
     phase_response: Float32Array[ArrayBuffer],
-): std.core.Unit.Unit ->
+): std.core.Unit ->
     native.

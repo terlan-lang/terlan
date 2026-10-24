@@ -14,5 +14,5 @@ module std.js.Dom.AbstractWorkerEventMapTest.
 
 import type std.js.Dom.AbstractWorkerEventMap.
 
-pub error_typechecks(receiver: AbstractWorkerEventMap): std.js.Dom.ErrorEvent.ErrorEvent ->
+pub error_typechecks(receiver: AbstractWorkerEventMap): std.js.Dom.ErrorEvent ->
     receiver.error().

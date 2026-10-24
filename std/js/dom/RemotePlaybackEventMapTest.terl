@@ -12,8 +12,7 @@
  */
 module std.js.Dom.RemotePlaybackEventMapTest.
 
-import type std.js.Dom.Event.{Event}.
-import type std.js.Dom.RemotePlaybackEventMap.
+import type std.js.Dom.{Event, RemotePlaybackEventMap}.
 
 pub connect_typechecks(receiver: RemotePlaybackEventMap): Event ->
     receiver.connect().

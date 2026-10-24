@@ -12,13 +12,11 @@
  */
 module std.js.Dom.KeyframeAnimationOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.KeyframeAnimationOptions.
 
 pub id_typechecks(receiver: KeyframeAnimationOptions): Option[std.js.String.JsString] ->
     receiver.id().
 
-pub timeline_typechecks(
-    receiver: KeyframeAnimationOptions,
-): Option[std.js.Dom.AnimationTimeline.AnimationTimeline] ->
+pub timeline_typechecks(receiver: KeyframeAnimationOptions): Option[std.js.Dom.AnimationTimeline] ->
     receiver.timeline().

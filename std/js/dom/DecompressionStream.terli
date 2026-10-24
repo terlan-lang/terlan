@@ -19,6 +19,6 @@ module std.js.Dom.DecompressionStream.
  */
 pub opaque type DecompressionStream.
 
-pub (receiver: DecompressionStream) readable(): std.js.Dom.ReadableStream.ReadableStream[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]].
+pub (receiver: DecompressionStream) readable(): std.js.Dom.ReadableStream[std.js.Uint8Array[std.js.ArrayBuffer]].
 
-pub (receiver: DecompressionStream) writable(): std.js.Dom.WritableStream.WritableStream[std.js.Dom.BufferSource.BufferSource].
+pub (receiver: DecompressionStream) writable(): std.js.Dom.WritableStream[std.js.Dom.BufferSource].

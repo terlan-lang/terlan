@@ -12,14 +12,14 @@
  */
 module std.js.Dom.MediaRecorderEventMap.
 
-import type std.js.Dom.Event.{Event}.
+import type std.js.Dom.{Event}.
 
 pub opaque type MediaRecorderEventMap.
 
-pub (receiver: MediaRecorderEventMap) dataavailable(): std.js.Dom.BlobEvent.BlobEvent ->
+pub (receiver: MediaRecorderEventMap) dataavailable(): std.js.Dom.BlobEvent ->
     native.
 
-pub (receiver: MediaRecorderEventMap) error(): std.js.Dom.ErrorEvent.ErrorEvent ->
+pub (receiver: MediaRecorderEventMap) error(): std.js.Dom.ErrorEvent ->
     native.
 
 pub (receiver: MediaRecorderEventMap) pause(): Event ->

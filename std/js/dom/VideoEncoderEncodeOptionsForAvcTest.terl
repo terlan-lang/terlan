@@ -16,5 +16,5 @@ import type std.js.Dom.VideoEncoderEncodeOptionsForAvc.
 
 pub quantizer_typechecks(
     receiver: VideoEncoderEncodeOptionsForAvc,
-): std.core.Option.Option[std.js.Number.JsNumber] ->
+): std.core.Option[std.js.Number.JsNumber] ->
     receiver.quantizer().

@@ -15,6 +15,6 @@ module std.js.Dom.MediaConfiguration.
 
 pub opaque type MediaConfiguration.
 
-pub (receiver: MediaConfiguration) audio(): std.core.Option.Option[std.js.Dom.AudioConfiguration.AudioConfiguration].
+pub (receiver: MediaConfiguration) audio(): std.core.Option[std.js.Dom.AudioConfiguration].
 
-pub (receiver: MediaConfiguration) video(): std.core.Option.Option[std.js.Dom.VideoConfiguration.VideoConfiguration].
+pub (receiver: MediaConfiguration) video(): std.core.Option[std.js.Dom.VideoConfiguration].

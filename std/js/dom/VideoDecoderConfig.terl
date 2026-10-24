@@ -12,7 +12,7 @@
  */
 module std.js.Dom.VideoDecoderConfig.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type VideoDecoderConfig.
@@ -26,10 +26,10 @@ pub (receiver: VideoDecoderConfig) coded_height(): Option[JsNumber] ->
 pub (receiver: VideoDecoderConfig) coded_width(): Option[JsNumber] ->
     native.
 
-pub (receiver: VideoDecoderConfig) color_space(): Option[std.js.Dom.VideoColorSpaceInit.VideoColorSpaceInit] ->
+pub (receiver: VideoDecoderConfig) color_space(): Option[std.js.Dom.VideoColorSpaceInit] ->
     native.
 
-pub (receiver: VideoDecoderConfig) description(): Option[std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource] ->
+pub (receiver: VideoDecoderConfig) description(): Option[std.js.Dom.AllowSharedBufferSource] ->
     native.
 
 pub (receiver: VideoDecoderConfig) display_aspect_height(): Option[JsNumber] ->

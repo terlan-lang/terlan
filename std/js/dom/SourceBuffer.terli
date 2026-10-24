@@ -12,9 +12,8 @@
  */
 module std.js.Dom.SourceBuffer.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -44,7 +43,7 @@ pub (receiver: SourceBuffer) append_window_start(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/buffered)
  */
-pub (receiver: SourceBuffer) buffered(): std.js.Dom.TimeRanges.TimeRanges.
+pub (receiver: SourceBuffer) buffered(): std.js.Dom.TimeRanges.
 
 /**
  * The **`timestampOffset`** property of the media segments that are appended to the `SourceBuffer`.
@@ -72,7 +71,7 @@ pub (receiver: SourceBuffer) abort(): Unit.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SourceBuffer/appendBuffer)
  */
-pub (receiver: SourceBuffer) append_buffer(data: std.js.Dom.BufferSource.BufferSource): Unit.
+pub (receiver: SourceBuffer) append_buffer(data: std.js.Dom.BufferSource): Unit.
 
 /**
  * The **`changeType()`** method of the data to conform to.
@@ -91,11 +90,11 @@ pub (receiver: SourceBuffer) remove(start: JsNumber, end: JsNumber): Unit.
 pub (receiver: SourceBuffer) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: SourceBuffer) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

@@ -12,14 +12,11 @@
  */
 module std.js.Dom.IDBObjectStore.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.IDBIndex.{IDBIndex}.
-import type std.js.Dom.IDBKeyRange.{IDBKeyRange}.
-import type std.js.Dom.IDBRequest.{IDBRequest}.
-import type std.js.Dom.IDBValidKey.{IDBValidKey}.
+import type std.core.{Option}.
+import type std.js.Dom.{IDBIndex, IDBKeyRange, IDBRequest, IDBValidKey}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 /**
  * The **`IDBObjectStore`** interface of the IndexedDB API represents an object store in a database.
@@ -40,7 +37,7 @@ pub (receiver: IDBObjectStore) auto_increment(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/indexNames)
  */
-pub (receiver: IDBObjectStore) index_names(): std.js.Dom.DOMStringList.DOMStringList.
+pub (receiver: IDBObjectStore) index_names(): std.js.Dom.DOMStringList.
 
 /**
  * The **`keyPath`** read-only property of the If this property is null, the application must provide a key for each modification operation.
@@ -61,7 +58,7 @@ pub (receiver: IDBObjectStore) name(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/transaction)
  */
-pub (receiver: IDBObjectStore) transaction(): std.js.Dom.IDBTransaction.IDBTransaction.
+pub (receiver: IDBObjectStore) transaction(): std.js.Dom.IDBTransaction.
 
 /**
  * The **`count()`** method of the IDBObjectStore interface returns an IDBRequest object, and, in a separate thread, returns the total number of records that match the provided key or of records in the store.
@@ -78,7 +75,7 @@ pub (receiver: IDBObjectStore) count(query: Option[IDBKeyRange | IDBValidKey]): 
 pub (receiver: IDBObjectStore) create_index(
     name: JsString,
     key_path: Array[JsString] | JsString,
-    options: Option[std.js.Dom.IDBIndexParameters.IDBIndexParameters],
+    options: Option[std.js.Dom.IDBIndexParameters],
 ): IDBIndex.
 
 /**
@@ -86,7 +83,7 @@ pub (receiver: IDBObjectStore) create_index(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/deleteIndex)
  */
-pub (receiver: IDBObjectStore) delete_index(name: JsString): std.core.Unit.Unit.
+pub (receiver: IDBObjectStore) delete_index(name: JsString): std.core.Unit.
 
 /**
  * The `getAllKeys()` method of the IDBObjectStore interface returns an IDBRequest object retrieves record keys for all objects in the object store matching the specified parameter or all objects in the store if no parameters are given.

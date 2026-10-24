@@ -39,29 +39,29 @@ pub (receiver: HTMLDialogElement) return_value(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/close)
  */
-pub (receiver: HTMLDialogElement) close(return_value: std.core.Option.Option[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: HTMLDialogElement) close(return_value: std.core.Option[std.js.String.JsString]): std.core.Unit.
 
 /**
  * The **`requestClose()`** method of the HTMLDialogElement interface requests to close the dialog.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/requestClose)
  */
-pub (receiver: HTMLDialogElement) request_close(return_value: std.core.Option.Option[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: HTMLDialogElement) request_close(return_value: std.core.Option[std.js.String.JsString]): std.core.Unit.
 
 /**
  * The **`show()`** method of the HTMLDialogElement interface displays the dialog modelessly, i.e., still allowing interaction with content outside of the dialog.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/show)
  */
-pub (receiver: HTMLDialogElement) show(): std.core.Unit.Unit.
+pub (receiver: HTMLDialogElement) show(): std.core.Unit.
 
 /**
  * The **`showModal()`** method of the of any other dialogs that might be present.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/showModal)
  */
-pub (receiver: HTMLDialogElement) show_modal(): std.core.Unit.Unit.
+pub (receiver: HTMLDialogElement) show_modal(): std.core.Unit.
 
-pub (receiver: HTMLDialogElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLDialogElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLDialogElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLDialogElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

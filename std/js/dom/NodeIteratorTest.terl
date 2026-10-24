@@ -12,9 +12,8 @@
  */
 module std.js.Dom.NodeIteratorTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.Node.{Node}.
-import type std.js.Dom.NodeIterator.
+import type std.core.{Option}.
+import type std.js.Dom.{Node, NodeIterator}.
 
 pub pointer_before_reference_node_typechecks(receiver: NodeIterator): Bool ->
     receiver.pointer_before_reference_node().
@@ -28,7 +27,7 @@ pub root_typechecks(receiver: NodeIterator): Node ->
 pub what_to_show_typechecks(receiver: NodeIterator): std.js.Number.JsNumber ->
     receiver.what_to_show().
 
-pub detach_typechecks(receiver: NodeIterator): std.core.Unit.Unit ->
+pub detach_typechecks(receiver: NodeIterator): std.core.Unit ->
     receiver.detach().
 
 pub next_node_typechecks(receiver: NodeIterator): Option[Node] ->

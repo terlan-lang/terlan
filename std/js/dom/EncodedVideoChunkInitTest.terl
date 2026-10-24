@@ -15,12 +15,10 @@ module std.js.Dom.EncodedVideoChunkInitTest.
 import type std.js.Dom.EncodedVideoChunkInit.
 import type std.js.Number.{JsNumber}.
 
-pub data_typechecks(
-    receiver: EncodedVideoChunkInit,
-): std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource ->
+pub data_typechecks(receiver: EncodedVideoChunkInit): std.js.Dom.AllowSharedBufferSource ->
     receiver.data().
 
-pub duration_typechecks(receiver: EncodedVideoChunkInit): std.core.Option.Option[JsNumber] ->
+pub duration_typechecks(receiver: EncodedVideoChunkInit): std.core.Option[JsNumber] ->
     receiver.duration().
 
 pub timestamp_typechecks(receiver: EncodedVideoChunkInit): JsNumber ->

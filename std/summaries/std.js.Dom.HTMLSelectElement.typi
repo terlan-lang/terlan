@@ -32,14 +32,14 @@ pub (receiver: HTMLSelectElement) disabled(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/form)
  */
-pub (receiver: HTMLSelectElement) form(): std.core.Option.Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: HTMLSelectElement) form(): std.core.Option[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`HTMLSelectElement.labels`** read-only property returns a A NodeList containing the `<label>` elements associated with the `<select>` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/labels)
  */
-pub (receiver: HTMLSelectElement) labels(): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement].
+pub (receiver: HTMLSelectElement) labels(): std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement].
 
 /**
  * The **`length`** property of the HTMLSelectElement interface specifies the number of option elements in the select element.
@@ -67,7 +67,7 @@ pub (receiver: HTMLSelectElement) name(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/options)
  */
-pub (receiver: HTMLSelectElement) options(): std.js.Dom.HTMLOptionsCollection.HTMLOptionsCollection.
+pub (receiver: HTMLSelectElement) options(): std.js.Dom.HTMLOptionsCollection.
 
 /**
  * The **`required`** property of the HTMLSelectElement interface specifies that the user must select an option with a non-empty string value before submitting a form.
@@ -88,7 +88,7 @@ pub (receiver: HTMLSelectElement) selected_index(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/selectedOptions)
  */
-pub (receiver: HTMLSelectElement) selected_options(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLOptionElement.HTMLOptionElement].
+pub (receiver: HTMLSelectElement) selected_options(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLOptionElement].
 
 /**
  * The **`size`** property of the HTMLSelectElement interface specifies the number of options, or rows, that should be visible at one time.
@@ -109,7 +109,7 @@ pub (receiver: HTMLSelectElement) validation_message(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/validity)
  */
-pub (receiver: HTMLSelectElement) validity(): std.js.Dom.ValidityState.ValidityState.
+pub (receiver: HTMLSelectElement) validity(): std.js.Dom.ValidityState.
 
 /**
  * The **`HTMLSelectElement.value`** property contains the value of the first selected option element associated with this select element.
@@ -130,7 +130,7 @@ pub (receiver: HTMLSelectElement) will_validate(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/add)
  */
-pub (receiver: HTMLSelectElement) add(element: std.js.Dom.HTMLOptGroupElement.HTMLOptGroupElement | std.js.Dom.HTMLOptionElement.HTMLOptionElement, before: std.core.Option.Option[std.core.Option.Option[std.js.Dom.HTMLElement.HTMLElement | std.js.Number.JsNumber]]): std.core.Unit.Unit.
+pub (receiver: HTMLSelectElement) add(element: std.js.Dom.HTMLOptGroupElement | std.js.Dom.HTMLOptionElement, before: std.core.Option[std.core.Option[std.js.Dom.HTMLElement | std.js.Number.JsNumber]]): std.core.Unit.
 
 /**
  * The **`checkValidity()`** method of the HTMLSelectElement interface returns a boolean value which indicates if the element meets any constraint validation rules applied to it.
@@ -144,23 +144,23 @@ pub (receiver: HTMLSelectElement) check_validity(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/item)
  */
-pub (receiver: HTMLSelectElement) item(index: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.HTMLOptionElement.HTMLOptionElement].
+pub (receiver: HTMLSelectElement) item(index: std.js.Number.JsNumber): std.core.Option[std.js.Dom.HTMLOptionElement].
 
 /**
  * The **`HTMLSelectElement.namedItem()`** method returns the whose `name` or `id` match the specified name, or `null` if no option matches.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/namedItem)
  */
-pub (receiver: HTMLSelectElement) named_item(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.HTMLOptionElement.HTMLOptionElement].
+pub (receiver: HTMLSelectElement) named_item(name: std.js.String.JsString): std.core.Option[std.js.Dom.HTMLOptionElement].
 
 /**
  * The **`HTMLSelectElement.remove()`** method removes the element at the specified index from the options collection for this select element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/remove)
  */
-pub (receiver: HTMLSelectElement) remove(): std.core.Unit.Unit.
+pub (receiver: HTMLSelectElement) remove(): std.core.Unit.
 
-pub (receiver: HTMLSelectElement) remove_overload_2(index: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: HTMLSelectElement) remove_overload_2(index: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`reportValidity()`** method of the HTMLSelectElement interface performs the same validity checking steps as the HTMLSelectElement.checkValidity method.
@@ -174,15 +174,15 @@ pub (receiver: HTMLSelectElement) report_validity(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/setCustomValidity)
  */
-pub (receiver: HTMLSelectElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: HTMLSelectElement) set_custom_validity(error: std.js.String.JsString): std.core.Unit.
 
 /**
  * The **`HTMLSelectElement.showPicker()`** method displays the browser picker for a `select` element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLSelectElement/showPicker)
  */
-pub (receiver: HTMLSelectElement) show_picker(): std.core.Unit.Unit.
+pub (receiver: HTMLSelectElement) show_picker(): std.core.Unit.
 
-pub (receiver: HTMLSelectElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLSelectElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLSelectElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLSelectElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

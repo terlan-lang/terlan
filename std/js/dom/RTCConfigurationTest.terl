@@ -12,19 +12,15 @@
  */
 module std.js.Dom.RTCConfigurationTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
+import type std.core.{Option}.
 import type std.js.Dom.RTCConfiguration.
+import type std.js.{Array}.
 
-pub certificates_typechecks(
-    receiver: RTCConfiguration,
-): Option[Array[std.js.Dom.RTCCertificate.RTCCertificate]] ->
+pub certificates_typechecks(receiver: RTCConfiguration): Option[Array[std.js.Dom.RTCCertificate]] ->
     receiver.certificates().
 
 pub ice_candidate_pool_size_typechecks(receiver: RTCConfiguration): Option[std.js.Number.JsNumber] ->
     receiver.ice_candidate_pool_size().
 
-pub ice_servers_typechecks(
-    receiver: RTCConfiguration,
-): Option[Array[std.js.Dom.RTCIceServer.RTCIceServer]] ->
+pub ice_servers_typechecks(receiver: RTCConfiguration): Option[Array[std.js.Dom.RTCIceServer]] ->
     receiver.ice_servers().

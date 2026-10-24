@@ -25,14 +25,14 @@ pub opaque type AudioBufferSourceNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBufferSourceNode/buffer)
  */
-pub (receiver: AudioBufferSourceNode) buffer(): std.core.Option.Option[std.js.Dom.AudioBuffer.AudioBuffer].
+pub (receiver: AudioBufferSourceNode) buffer(): std.core.Option[std.js.Dom.AudioBuffer].
 
 /**
  * The **`detune`** property of the representing detuning of oscillation in cents.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBufferSourceNode/detune)
  */
-pub (receiver: AudioBufferSourceNode) detune(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: AudioBufferSourceNode) detune(): std.js.Dom.AudioParam.
 
 /**
  * The `loop` property of the AudioBufferSourceNode interface is a Boolean indicating if the audio asset must be replayed when the end of the AudioBuffer is reached.
@@ -60,15 +60,15 @@ pub (receiver: AudioBufferSourceNode) loop_start(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBufferSourceNode/playbackRate)
  */
-pub (receiver: AudioBufferSourceNode) playback_rate(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: AudioBufferSourceNode) playback_rate(): std.js.Dom.AudioParam.
 
 /**
  * The `start()` method of the AudioBufferSourceNode Interface is used to schedule playback of the audio data contained in the buffer, or to begin playback immediately.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioBufferSourceNode/start)
  */
-pub (receiver: AudioBufferSourceNode) start(when_: std.core.Option.Option[std.js.Number.JsNumber], offset: std.core.Option.Option[std.js.Number.JsNumber], duration: std.core.Option.Option[std.js.Number.JsNumber]): std.core.Unit.Unit.
+pub (receiver: AudioBufferSourceNode) start(when_: std.core.Option[std.js.Number.JsNumber], offset: std.core.Option[std.js.Number.JsNumber], duration: std.core.Option[std.js.Number.JsNumber]): std.core.Unit.
 
-pub (receiver: AudioBufferSourceNode) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: AudioBufferSourceNode) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: AudioBufferSourceNode) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: AudioBufferSourceNode) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

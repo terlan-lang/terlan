@@ -25,64 +25,64 @@ pub opaque type SVGMarkerElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/markerHeight)
  */
-pub (receiver: SVGMarkerElement) marker_height(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGMarkerElement) marker_height(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`markerUnits`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedEnumeration object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/markerUnits)
  */
-pub (receiver: SVGMarkerElement) marker_units(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration.
+pub (receiver: SVGMarkerElement) marker_units(): std.js.Dom.SVGAnimatedEnumeration.
 
 /**
  * The **`markerWidth`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedLength object containing the width of the marker viewport as defined by the markerWidth attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/markerWidth)
  */
-pub (receiver: SVGMarkerElement) marker_width(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGMarkerElement) marker_width(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`orientAngle`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedAngle object containing the angle of the orient attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/orientAngle)
  */
-pub (receiver: SVGMarkerElement) orient_angle(): std.js.Dom.SVGAnimatedAngle.SVGAnimatedAngle.
+pub (receiver: SVGMarkerElement) orient_angle(): std.js.Dom.SVGAnimatedAngle.
 
 /**
  * The **`orientType`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedEnumeration object indicating whether the orient attribute is `auto`, an angle value, or something else.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/orientType)
  */
-pub (receiver: SVGMarkerElement) orient_type(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration.
+pub (receiver: SVGMarkerElement) orient_type(): std.js.Dom.SVGAnimatedEnumeration.
 
 /**
  * The **`refX`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedLength object containing the value of the refX attribute of the marker.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/refX)
  */
-pub (receiver: SVGMarkerElement) ref_x(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGMarkerElement) ref_x(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`refY`** read-only property of the SVGMarkerElement interface returns an SVGAnimatedLength object containing the value of the refY attribute of the marker.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/refY)
  */
-pub (receiver: SVGMarkerElement) ref_y(): std.js.Dom.SVGAnimatedLength.SVGAnimatedLength.
+pub (receiver: SVGMarkerElement) ref_y(): std.js.Dom.SVGAnimatedLength.
 
 /**
  * The **`setOrientToAngle()`** method of the SVGMarkerElement interface sets the value of the `orient` attribute to the value in the SVGAngle passed in.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/setOrientToAngle)
  */
-pub (receiver: SVGMarkerElement) set_orient_to_angle(angle: std.js.Dom.SVGAngle.SVGAngle): std.core.Unit.Unit.
+pub (receiver: SVGMarkerElement) set_orient_to_angle(angle: std.js.Dom.SVGAngle): std.core.Unit.
 
 /**
  * The **`setOrientToAuto()`** method of the SVGMarkerElement interface sets the value of the `orient` attribute to `auto`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGMarkerElement/setOrientToAuto)
  */
-pub (receiver: SVGMarkerElement) set_orient_to_auto(): std.core.Unit.Unit.
+pub (receiver: SVGMarkerElement) set_orient_to_auto(): std.core.Unit.
 
-pub (receiver: SVGMarkerElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: SVGMarkerElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: SVGMarkerElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: SVGMarkerElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

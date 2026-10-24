@@ -12,9 +12,8 @@
  */
 module std.js.Dom.StorageEventTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.Storage.{Storage}.
-import type std.js.Dom.StorageEvent.
+import type std.core.{Option}.
+import type std.js.Dom.{Storage, StorageEvent}.
 import type std.js.String.{JsString}.
 
 pub key_typechecks(receiver: StorageEvent): Option[JsString] ->
@@ -40,9 +39,9 @@ pub init_storage_event_typechecks(
     key: Option[Option[JsString]],
     old_value: Option[Option[JsString]],
     new_value: Option[Option[JsString]],
-    url: Option[std.js.Dom.URL.URL | JsString],
+    url: Option[std.js.Dom.URL | JsString],
     storage_area: Option[Option[Storage]],
-): std.core.Unit.Unit ->
+): std.core.Unit ->
     receiver
         .init_storage_event(
             type_,

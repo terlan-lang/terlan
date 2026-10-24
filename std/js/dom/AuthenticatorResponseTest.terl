@@ -14,5 +14,5 @@ module std.js.Dom.AuthenticatorResponseTest.
 
 import type std.js.Dom.AuthenticatorResponse.
 
-pub client_data_json_typechecks(receiver: AuthenticatorResponse): std.js.ArrayBuffer.ArrayBuffer ->
+pub client_data_json_typechecks(receiver: AuthenticatorResponse): std.js.ArrayBuffer ->
     receiver.client_data_json().

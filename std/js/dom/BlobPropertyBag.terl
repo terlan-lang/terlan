@@ -14,5 +14,5 @@ module std.js.Dom.BlobPropertyBag.
 
 pub opaque type BlobPropertyBag.
 
-pub (receiver: BlobPropertyBag) type_(): std.core.Option.Option[std.js.String.JsString] ->
+pub (receiver: BlobPropertyBag) type_(): std.core.Option[std.js.String.JsString] ->
     native.

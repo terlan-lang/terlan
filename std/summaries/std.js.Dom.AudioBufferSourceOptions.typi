@@ -15,14 +15,14 @@ module std.js.Dom.AudioBufferSourceOptions.
 
 pub opaque type AudioBufferSourceOptions.
 
-pub (receiver: AudioBufferSourceOptions) buffer(): std.core.Option.Option[std.js.Dom.AudioBuffer.AudioBuffer].
+pub (receiver: AudioBufferSourceOptions) buffer(): std.core.Option[std.js.Dom.AudioBuffer].
 
-pub (receiver: AudioBufferSourceOptions) detune(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AudioBufferSourceOptions) detune(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: AudioBufferSourceOptions) loop(): std.core.Option.Option[Bool].
+pub (receiver: AudioBufferSourceOptions) loop(): std.core.Option[Bool].
 
-pub (receiver: AudioBufferSourceOptions) loop_end(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AudioBufferSourceOptions) loop_end(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: AudioBufferSourceOptions) loop_start(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AudioBufferSourceOptions) loop_start(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: AudioBufferSourceOptions) playback_rate(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: AudioBufferSourceOptions) playback_rate(): std.core.Option[std.js.Number.JsNumber].

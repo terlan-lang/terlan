@@ -203,7 +203,7 @@ Both languages support integer range values, iteration, and interval matching,
 but their contracts differ. Raven follows the Rust convention: `a..b` excludes
 `b`, `a..=b` includes it, and either form may appear directly as a `match`
 pattern. Terlan makes `a .. b` inclusive and lowers it to the public
-`std.range.Range.Range` value. Terlan ranges choose an ascending or descending
+`std.range.Range` value. Terlan ranges choose an ascending or descending
 default step, expose checked explicit steps, and participate in membership
 guards, shape guards, comprehensions, and iterator traversal. An interval case
 is currently written as a guarded pattern such as

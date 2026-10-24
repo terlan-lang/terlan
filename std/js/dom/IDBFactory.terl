@@ -12,7 +12,7 @@
  */
 module std.js.Dom.IDBFactory.
 
-import type std.js.Dom.IDBOpenDBRequest.{IDBOpenDBRequest}.
+import type std.js.Dom.{IDBOpenDBRequest}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +27,7 @@ pub opaque type IDBFactory.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBFactory/databases)
  */
-pub (receiver: IDBFactory) databases(): std.js.Promise.Promise[std.js.Array.Array[std.js.Dom.IDBDatabaseInfo.IDBDatabaseInfo]] ->
+pub (receiver: IDBFactory) databases(): std.js.Promise[std.js.Array[std.js.Dom.IDBDatabaseInfo]] ->
     native.
 
 /**
@@ -43,5 +43,5 @@ pub (receiver: IDBFactory) delete_database(name: JsString): IDBOpenDBRequest ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBFactory/open)
  */
-pub (receiver: IDBFactory) open(name: JsString, version: std.core.Option.Option[std.js.Number.JsNumber]): IDBOpenDBRequest ->
+pub (receiver: IDBFactory) open(name: JsString, version: std.core.Option[std.js.Number.JsNumber]): IDBOpenDBRequest ->
     native.

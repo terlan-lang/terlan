@@ -12,24 +12,22 @@
  */
 module std.js.Dom.HTMLOutputElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLOutputElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLOutputElement}.
 import type std.js.String.{JsString}.
 
 pub default_value_typechecks(receiver: HTMLOutputElement): JsString ->
     receiver.default_value().
 
-pub form_typechecks(receiver: HTMLOutputElement): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
+pub form_typechecks(receiver: HTMLOutputElement): Option[std.js.Dom.HTMLFormElement] ->
     receiver.form().
 
-pub html_for_typechecks(receiver: HTMLOutputElement): std.js.Dom.DOMTokenList.DOMTokenList ->
+pub html_for_typechecks(receiver: HTMLOutputElement): std.js.Dom.DOMTokenList ->
     receiver.html_for().
 
 pub labels_typechecks(
     receiver: HTMLOutputElement,
-): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement] ->
+): std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement] ->
     receiver.labels().
 
 pub name_typechecks(receiver: HTMLOutputElement): JsString ->
@@ -41,7 +39,7 @@ pub type__typechecks(receiver: HTMLOutputElement): JsString ->
 pub validation_message_typechecks(receiver: HTMLOutputElement): JsString ->
     receiver.validation_message().
 
-pub validity_typechecks(receiver: HTMLOutputElement): std.js.Dom.ValidityState.ValidityState ->
+pub validity_typechecks(receiver: HTMLOutputElement): std.js.Dom.ValidityState ->
     receiver.validity().
 
 pub value_typechecks(receiver: HTMLOutputElement): JsString ->
@@ -63,7 +61,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLOutputElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -71,6 +69,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLOutputElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

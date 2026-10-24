@@ -8,7 +8,7 @@ module std.css.properties.Rotate.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    rotate: std.core.Option.Option[Value]
+    rotate: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -32,4 +32,4 @@ pub (receiver: FileSystemHandle) name(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemHandle/isSameEntry)
  */
-pub (receiver: FileSystemHandle) is_same_entry(other: FileSystemHandle): std.js.Promise.Promise[Bool].
+pub (receiver: FileSystemHandle) is_same_entry(other: FileSystemHandle): std.js.Promise[Bool].

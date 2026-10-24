@@ -12,8 +12,8 @@
  */
 module std.js.Dom.DOMMatrix.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.DOMMatrixInit.{DOMMatrixInit}.
+import type std.core.{Option}.
+import type std.js.Dom.{DOMMatrixInit}.
 import type std.js.Number.{JsNumber}.
 
 /**

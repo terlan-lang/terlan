@@ -12,11 +12,8 @@
  */
 module std.js.Dom.HTMLTableSectionElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLTableRowElement.{HTMLTableRowElement}.
-import type std.js.Dom.HTMLTableSectionElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLTableRowElement, HTMLTableSectionElement}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -31,7 +28,7 @@ pub ch_off_typechecks(receiver: HTMLTableSectionElement): JsString ->
 
 pub rows_typechecks(
     receiver: HTMLTableSectionElement,
-): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[HTMLTableRowElement] ->
+): std.js.Dom.HTMLCollectionOf[HTMLTableRowElement] ->
     receiver.rows().
 
 pub v_align_typechecks(receiver: HTMLTableSectionElement): JsString ->
@@ -50,7 +47,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLTableSectionElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -58,6 +55,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLTableSectionElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

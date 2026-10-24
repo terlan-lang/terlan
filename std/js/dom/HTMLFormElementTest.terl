@@ -12,10 +12,8 @@
  */
 module std.js.Dom.HTMLFormElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLFormElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLFormElement}.
 import type std.js.String.{JsString}.
 
 pub accept_charset_typechecks(receiver: HTMLFormElement): JsString ->
@@ -24,9 +22,7 @@ pub accept_charset_typechecks(receiver: HTMLFormElement): JsString ->
 pub action_typechecks(receiver: HTMLFormElement): JsString ->
     receiver.action().
 
-pub elements_typechecks(
-    receiver: HTMLFormElement,
-): std.js.Dom.HTMLFormControlsCollection.HTMLFormControlsCollection ->
+pub elements_typechecks(receiver: HTMLFormElement): std.js.Dom.HTMLFormControlsCollection ->
     receiver.elements().
 
 pub encoding_typechecks(receiver: HTMLFormElement): JsString ->
@@ -50,7 +46,7 @@ pub no_validate_typechecks(receiver: HTMLFormElement): Bool ->
 pub rel_typechecks(receiver: HTMLFormElement): JsString ->
     receiver.rel().
 
-pub rel_list_typechecks(receiver: HTMLFormElement): std.js.Dom.DOMTokenList.DOMTokenList ->
+pub rel_list_typechecks(receiver: HTMLFormElement): std.js.Dom.DOMTokenList ->
     receiver.rel_list().
 
 pub target__typechecks(receiver: HTMLFormElement): JsString ->
@@ -64,7 +60,7 @@ pub report_validity_typechecks(receiver: HTMLFormElement): Bool ->
 
 pub request_submit_typechecks(
     receiver: HTMLFormElement,
-    submitter: Option[Option[std.js.Dom.HTMLElement.HTMLElement]],
+    submitter: Option[Option[std.js.Dom.HTMLElement]],
 ): Unit ->
     receiver.request_submit(submitter).
 
@@ -78,7 +74,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLFormElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -86,6 +82,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLFormElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

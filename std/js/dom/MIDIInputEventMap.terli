@@ -14,4 +14,4 @@ module std.js.Dom.MIDIInputEventMap.
 
 pub opaque type MIDIInputEventMap.
 
-pub (receiver: MIDIInputEventMap) midimessage(): std.js.Dom.MIDIMessageEvent.MIDIMessageEvent.
+pub (receiver: MIDIInputEventMap) midimessage(): std.js.Dom.MIDIMessageEvent.

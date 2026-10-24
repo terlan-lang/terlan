@@ -12,9 +12,8 @@
  */
 module std.js.Dom.Range.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.DocumentFragment.{DocumentFragment}.
-import type std.js.Dom.Node.{Node}.
+import type std.core.{Unit}.
+import type std.js.Dom.{DocumentFragment, Node}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -51,7 +50,7 @@ pub (receiver: Range) clone_range(): Range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/collapse)
  */
-pub (receiver: Range) collapse(to_start: std.core.Option.Option[Bool]): Unit.
+pub (receiver: Range) collapse(to_start: std.core.Option[Bool]): Unit.
 
 /**
  * The **`compareBoundaryPoints()`** method of the Range interface compares the boundary points of the Range with those of another range.
@@ -100,14 +99,14 @@ pub (receiver: Range) extract_contents(): DocumentFragment.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/getBoundingClientRect)
  */
-pub (receiver: Range) get_bounding_client_rect(): std.js.Dom.DOMRect.DOMRect.
+pub (receiver: Range) get_bounding_client_rect(): std.js.Dom.DOMRect.
 
 /**
  * The **`Range.getClientRects()`** method returns a list of DOMRect objects representing the area of the screen occupied by the range.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Range/getClientRects)
  */
-pub (receiver: Range) get_client_rects(): std.js.Dom.DOMRectList.DOMRectList.
+pub (receiver: Range) get_client_rects(): std.js.Dom.DOMRectList.
 
 /**
  * The **`Range.insertNode()`** method inserts a node at the start of the Range.

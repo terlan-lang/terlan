@@ -12,9 +12,8 @@
  */
 module std.js.Dom.VideoFrameCallbackMetadataTest.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
-import type std.js.Dom.VideoFrameCallbackMetadata.
+import type std.core.{Option}.
+import type std.js.Dom.{DOMHighResTimeStamp, VideoFrameCallbackMetadata}.
 import type std.js.Number.{JsNumber}.
 
 pub capture_time_typechecks(receiver: VideoFrameCallbackMetadata): Option[DOMHighResTimeStamp] ->

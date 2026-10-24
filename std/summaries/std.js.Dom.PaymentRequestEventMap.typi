@@ -15,8 +15,8 @@ module std.js.Dom.PaymentRequestEventMap.
 
 pub opaque type PaymentRequestEventMap.
 
-pub (receiver: PaymentRequestEventMap) paymentmethodchange(): std.js.Dom.PaymentMethodChangeEvent.PaymentMethodChangeEvent.
+pub (receiver: PaymentRequestEventMap) paymentmethodchange(): std.js.Dom.PaymentMethodChangeEvent.
 
-pub (receiver: PaymentRequestEventMap) shippingaddresschange(): std.js.Dom.PaymentRequestUpdateEvent.PaymentRequestUpdateEvent.
+pub (receiver: PaymentRequestEventMap) shippingaddresschange(): std.js.Dom.PaymentRequestUpdateEvent.
 
-pub (receiver: PaymentRequestEventMap) shippingoptionchange(): std.js.Dom.PaymentRequestUpdateEvent.PaymentRequestUpdateEvent.
+pub (receiver: PaymentRequestEventMap) shippingoptionchange(): std.js.Dom.PaymentRequestUpdateEvent.

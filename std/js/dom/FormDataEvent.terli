@@ -24,4 +24,4 @@ pub opaque type FormDataEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormDataEvent/formData)
  */
-pub (receiver: FormDataEvent) form_data(): std.js.Dom.FormData.FormData.
+pub (receiver: FormDataEvent) form_data(): std.js.Dom.FormData.

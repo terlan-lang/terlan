@@ -21,9 +21,9 @@ pub opaque type External.
 /**
  * @deprecated
  */
-pub (receiver: External) add_search_provider(): std.core.Unit.Unit.
+pub (receiver: External) add_search_provider(): std.core.Unit.
 
 /**
  * @deprecated
  */
-pub (receiver: External) is_search_provider_installed(): std.core.Unit.Unit.
+pub (receiver: External) is_search_provider_installed(): std.core.Unit.

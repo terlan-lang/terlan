@@ -8,7 +8,7 @@ module std.css.properties.StrokeDasharray.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    stroke_dasharray: std.core.Option.Option[Value]
+    stroke_dasharray: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

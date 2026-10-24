@@ -166,14 +166,14 @@ pub (receiver: Date) set_utc_milliseconds(ms: std.js.Number.JsNumber): std.js.Nu
  * @param sec A numeric value equal to the seconds value.
  * @param ms A numeric value equal to the milliseconds value.
  */
-pub (receiver: Date) set_seconds(sec: std.js.Number.JsNumber, ms: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Date) set_seconds(sec: std.js.Number.JsNumber, ms: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Sets the seconds value in the Date object using Universal Coordinated Time (UTC).
  * @param sec A numeric value equal to the seconds value.
  * @param ms A numeric value equal to the milliseconds value.
  */
-pub (receiver: Date) set_utc_seconds(sec: std.js.Number.JsNumber, ms: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Date) set_utc_seconds(sec: std.js.Number.JsNumber, ms: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Sets the minutes value in the Date object using local time.
@@ -181,7 +181,7 @@ pub (receiver: Date) set_utc_seconds(sec: std.js.Number.JsNumber, ms: std.core.O
  * @param sec A numeric value equal to the seconds value.
  * @param ms A numeric value equal to the milliseconds value.
  */
-pub (receiver: Date) set_minutes(min: std.js.Number.JsNumber, sec: std.core.Option.Option[std.js.Number.JsNumber], ms: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Date) set_minutes(min: std.js.Number.JsNumber, sec: std.core.Option[std.js.Number.JsNumber], ms: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Sets the minutes value in the Date object using Universal Coordinated Time (UTC).
@@ -189,7 +189,7 @@ pub (receiver: Date) set_minutes(min: std.js.Number.JsNumber, sec: std.core.Opti
  * @param sec A numeric value equal to the seconds value.
  * @param ms A numeric value equal to the milliseconds value.
  */
-pub (receiver: Date) set_utc_minutes(min: std.js.Number.JsNumber, sec: std.core.Option.Option[std.js.Number.JsNumber], ms: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Date) set_utc_minutes(min: std.js.Number.JsNumber, sec: std.core.Option[std.js.Number.JsNumber], ms: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Sets the hour value in the Date object using local time.
@@ -198,7 +198,7 @@ pub (receiver: Date) set_utc_minutes(min: std.js.Number.JsNumber, sec: std.core.
  * @param sec A numeric value equal to the seconds value.
  * @param ms A numeric value equal to the milliseconds value.
  */
-pub (receiver: Date) set_hours(hours: std.js.Number.JsNumber, min: std.core.Option.Option[std.js.Number.JsNumber], sec: std.core.Option.Option[std.js.Number.JsNumber], ms: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Date) set_hours(hours: std.js.Number.JsNumber, min: std.core.Option[std.js.Number.JsNumber], sec: std.core.Option[std.js.Number.JsNumber], ms: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Sets the hours value in the Date object using Universal Coordinated Time (UTC).
@@ -207,7 +207,7 @@ pub (receiver: Date) set_hours(hours: std.js.Number.JsNumber, min: std.core.Opti
  * @param sec A numeric value equal to the seconds value.
  * @param ms A numeric value equal to the milliseconds value.
  */
-pub (receiver: Date) set_utc_hours(hours: std.js.Number.JsNumber, min: std.core.Option.Option[std.js.Number.JsNumber], sec: std.core.Option.Option[std.js.Number.JsNumber], ms: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Date) set_utc_hours(hours: std.js.Number.JsNumber, min: std.core.Option[std.js.Number.JsNumber], sec: std.core.Option[std.js.Number.JsNumber], ms: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Sets the numeric day-of-the-month value of the Date object using local time.
@@ -226,14 +226,14 @@ pub (receiver: Date) set_utc_date(date: std.js.Number.JsNumber): std.js.Number.J
  * @param month A numeric value equal to the month. The value for January is 0, and other month values follow consecutively.
  * @param date A numeric value representing the day of the month. If this value is not supplied, the value from a call to the getDate method is used.
  */
-pub (receiver: Date) set_month(month: std.js.Number.JsNumber, date: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Date) set_month(month: std.js.Number.JsNumber, date: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Sets the month value in the Date object using Universal Coordinated Time (UTC).
  * @param month A numeric value equal to the month. The value for January is 0, and other month values follow consecutively.
  * @param date A numeric value representing the day of the month. If it is not supplied, the value from a call to the getUTCDate method is used.
  */
-pub (receiver: Date) set_utc_month(month: std.js.Number.JsNumber, date: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Date) set_utc_month(month: std.js.Number.JsNumber, date: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Sets the year of the Date object using local time.
@@ -241,7 +241,7 @@ pub (receiver: Date) set_utc_month(month: std.js.Number.JsNumber, date: std.core
  * @param month A zero-based numeric value for the month (0 for January, 11 for December). Must be specified if numDate is specified.
  * @param date A numeric value equal for the day of the month.
  */
-pub (receiver: Date) set_full_year(year: std.js.Number.JsNumber, month: std.core.Option.Option[std.js.Number.JsNumber], date: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Date) set_full_year(year: std.js.Number.JsNumber, month: std.core.Option[std.js.Number.JsNumber], date: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Sets the year value in the Date object using Universal Coordinated Time (UTC).
@@ -249,7 +249,7 @@ pub (receiver: Date) set_full_year(year: std.js.Number.JsNumber, month: std.core
  * @param month A numeric value equal to the month. The value for January is 0, and other month values follow consecutively. Must be supplied if numDate is supplied.
  * @param date A numeric value equal to the day of the month.
  */
-pub (receiver: Date) set_utc_full_year(year: std.js.Number.JsNumber, month: std.core.Option.Option[std.js.Number.JsNumber], date: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
+pub (receiver: Date) set_utc_full_year(year: std.js.Number.JsNumber, month: std.core.Option[std.js.Number.JsNumber], date: std.core.Option[std.js.Number.JsNumber]): std.js.Number.JsNumber.
 
 /**
  * Returns a date converted to a string using Universal Coordinated Time (UTC).
@@ -266,18 +266,18 @@ pub (receiver: Date) to_iso_string(): std.js.String.JsString.
  * @param locales A locale string or array of locale strings that contain one or more language or locale tags. If you include more than one locale string, list them in descending order of priority so that the first entry is the preferred locale. If you omit this parameter, the default locale of the JavaScript runtime is used.
  * @param options An object that contains one or more properties that specify comparison options.
  */
-pub (receiver: Date) to_locale_string_overload_2(locales: std.core.Option.Option[std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString], options: std.core.Option.Option[Intl.DateTimeFormatOptions]): std.js.String.JsString.
+pub (receiver: Date) to_locale_string_overload_2(locales: std.core.Option[std.js.Array[std.js.String.JsString] | std.js.String.JsString], options: std.core.Option[Intl.DateTimeFormatOptions]): std.js.String.JsString.
 
 /**
  * Converts a date to a string by using the current or specified locale.
  * @param locales A locale string or array of locale strings that contain one or more language or locale tags. If you include more than one locale string, list them in descending order of priority so that the first entry is the preferred locale. If you omit this parameter, the default locale of the JavaScript runtime is used.
  * @param options An object that contains one or more properties that specify comparison options.
  */
-pub (receiver: Date) to_locale_date_string_overload_2(locales: std.core.Option.Option[std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString], options: std.core.Option.Option[Intl.DateTimeFormatOptions]): std.js.String.JsString.
+pub (receiver: Date) to_locale_date_string_overload_2(locales: std.core.Option[std.js.Array[std.js.String.JsString] | std.js.String.JsString], options: std.core.Option[Intl.DateTimeFormatOptions]): std.js.String.JsString.
 
 /**
  * Converts a time to a string by using the current or specified locale.
  * @param locales A locale string or array of locale strings that contain one or more language or locale tags. If you include more than one locale string, list them in descending order of priority so that the first entry is the preferred locale. If you omit this parameter, the default locale of the JavaScript runtime is used.
  * @param options An object that contains one or more properties that specify comparison options.
  */
-pub (receiver: Date) to_locale_time_string_overload_2(locales: std.core.Option.Option[std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString], options: std.core.Option.Option[Intl.DateTimeFormatOptions]): std.js.String.JsString.
+pub (receiver: Date) to_locale_time_string_overload_2(locales: std.core.Option[std.js.Array[std.js.String.JsString] | std.js.String.JsString], options: std.core.Option[Intl.DateTimeFormatOptions]): std.js.String.JsString.

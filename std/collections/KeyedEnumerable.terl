@@ -38,7 +38,7 @@ pub trait KeyedEnumerable[C[_, _]] {
  * Transformation: delegates traversal to `Map.iterator(collection)` so the map
  * representation and traversal order remain backend-owned.
  */
-pub impl KeyedEnumerable[std.collections.Map.Map] for std.collections.Map.Map {
+pub impl KeyedEnumerable[std.collections.Map] for std.collections.Map {
     each(collection: Map[K, V], cb: ({K, V}) -> Unit): Unit ->
         collection
         |> Map.iterator()

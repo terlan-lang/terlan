@@ -12,9 +12,8 @@
  */
 module std.js.Dom.HTMLTextAreaElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -62,7 +61,7 @@ pub (receiver: HTMLTextAreaElement) disabled(): Bool ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/form)
  */
-pub (receiver: HTMLTextAreaElement) form(): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
+pub (receiver: HTMLTextAreaElement) form(): Option[std.js.Dom.HTMLFormElement] ->
     native.
 
 /**
@@ -70,7 +69,7 @@ pub (receiver: HTMLTextAreaElement) form(): Option[std.js.Dom.HTMLFormElement.HT
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/labels)
  */
-pub (receiver: HTMLTextAreaElement) labels(): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement] ->
+pub (receiver: HTMLTextAreaElement) labels(): std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement] ->
     native.
 
 /**
@@ -174,7 +173,7 @@ pub (receiver: HTMLTextAreaElement) validation_message(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTextAreaElement/validity)
  */
-pub (receiver: HTMLTextAreaElement) validity(): std.js.Dom.ValidityState.ValidityState ->
+pub (receiver: HTMLTextAreaElement) validity(): std.js.Dom.ValidityState ->
     native.
 
 /**
@@ -244,13 +243,13 @@ pub (receiver: HTMLTextAreaElement) set_range_text(replacement: JsString): Unit 
 pub (receiver: HTMLTextAreaElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: HTMLTextAreaElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

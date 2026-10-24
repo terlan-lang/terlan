@@ -12,12 +12,8 @@
  */
 module std.js.Dom.SVGFEConvolveMatrixElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGAnimatedInteger.{SVGAnimatedInteger}.
-import type std.js.Dom.SVGAnimatedNumber.{SVGAnimatedNumber}.
-import type std.js.Dom.SVGFEConvolveMatrixElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, SVGAnimatedInteger, SVGAnimatedNumber, SVGFEConvolveMatrixElement}.
 import type std.js.String.{JsString}.
 
 pub bias_typechecks(receiver: SVGFEConvolveMatrixElement): SVGAnimatedNumber ->
@@ -26,19 +22,13 @@ pub bias_typechecks(receiver: SVGFEConvolveMatrixElement): SVGAnimatedNumber ->
 pub divisor_typechecks(receiver: SVGFEConvolveMatrixElement): SVGAnimatedNumber ->
     receiver.divisor().
 
-pub edge_mode_typechecks(
-    receiver: SVGFEConvolveMatrixElement,
-): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration ->
+pub edge_mode_typechecks(receiver: SVGFEConvolveMatrixElement): std.js.Dom.SVGAnimatedEnumeration ->
     receiver.edge_mode().
 
-pub in1_typechecks(
-    receiver: SVGFEConvolveMatrixElement,
-): std.js.Dom.SVGAnimatedString.SVGAnimatedString ->
+pub in1_typechecks(receiver: SVGFEConvolveMatrixElement): std.js.Dom.SVGAnimatedString ->
     receiver.in1().
 
-pub kernel_matrix_typechecks(
-    receiver: SVGFEConvolveMatrixElement,
-): std.js.Dom.SVGAnimatedNumberList.SVGAnimatedNumberList ->
+pub kernel_matrix_typechecks(receiver: SVGFEConvolveMatrixElement): std.js.Dom.SVGAnimatedNumberList ->
     receiver.kernel_matrix().
 
 pub kernel_unit_length_x_typechecks(receiver: SVGFEConvolveMatrixElement): SVGAnimatedNumber ->
@@ -53,9 +43,7 @@ pub order_x_typechecks(receiver: SVGFEConvolveMatrixElement): SVGAnimatedInteger
 pub order_y_typechecks(receiver: SVGFEConvolveMatrixElement): SVGAnimatedInteger ->
     receiver.order_y().
 
-pub preserve_alpha_typechecks(
-    receiver: SVGFEConvolveMatrixElement,
-): std.js.Dom.SVGAnimatedBoolean.SVGAnimatedBoolean ->
+pub preserve_alpha_typechecks(receiver: SVGFEConvolveMatrixElement): std.js.Dom.SVGAnimatedBoolean ->
     receiver.preserve_alpha().
 
 pub target_x_typechecks(receiver: SVGFEConvolveMatrixElement): SVGAnimatedInteger ->
@@ -68,7 +56,7 @@ pub add_event_listener_typechecks(
     receiver: SVGFEConvolveMatrixElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -76,6 +64,6 @@ pub remove_event_listener_typechecks(
     receiver: SVGFEConvolveMatrixElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

@@ -8,7 +8,7 @@ module std.css.properties.StrokeLinejoin.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    stroke_linejoin: std.core.Option.Option[Value]
+    stroke_linejoin: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

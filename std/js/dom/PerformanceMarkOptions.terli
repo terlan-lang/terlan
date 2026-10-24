@@ -14,4 +14,4 @@ module std.js.Dom.PerformanceMarkOptions.
 
 pub opaque type PerformanceMarkOptions.
 
-pub (receiver: PerformanceMarkOptions) start_time(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp].
+pub (receiver: PerformanceMarkOptions) start_time(): std.core.Option[std.js.Dom.DOMHighResTimeStamp].

@@ -14,10 +14,8 @@ module std.js.Dom.MediaKeySessionEventMapTest.
 
 import type std.js.Dom.MediaKeySessionEventMap.
 
-pub keystatuseschange_typechecks(receiver: MediaKeySessionEventMap): std.js.Dom.Event.Event ->
+pub keystatuseschange_typechecks(receiver: MediaKeySessionEventMap): std.js.Dom.Event ->
     receiver.keystatuseschange().
 
-pub message_typechecks(
-    receiver: MediaKeySessionEventMap,
-): std.js.Dom.MediaKeyMessageEvent.MediaKeyMessageEvent ->
+pub message_typechecks(receiver: MediaKeySessionEventMap): std.js.Dom.MediaKeyMessageEvent ->
     receiver.message().

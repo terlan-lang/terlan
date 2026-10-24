@@ -12,4 +12,4 @@
  */
 module std.js.Dom.WebAssembly.Exports.
 
-pub type Exports = Record[std.js.String.JsString, std.js.Dom.WebAssembly.ExportValue.ExportValue].
+pub type Exports = Record[std.js.String.JsString, std.js.Dom.WebAssembly.ExportValue].

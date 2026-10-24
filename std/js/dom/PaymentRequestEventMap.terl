@@ -12,11 +12,11 @@
  */
 module std.js.Dom.PaymentRequestEventMap.
 
-import type std.js.Dom.PaymentRequestUpdateEvent.{PaymentRequestUpdateEvent}.
+import type std.js.Dom.{PaymentRequestUpdateEvent}.
 
 pub opaque type PaymentRequestEventMap.
 
-pub (receiver: PaymentRequestEventMap) paymentmethodchange(): std.js.Dom.PaymentMethodChangeEvent.PaymentMethodChangeEvent ->
+pub (receiver: PaymentRequestEventMap) paymentmethodchange(): std.js.Dom.PaymentMethodChangeEvent ->
     native.
 
 pub (receiver: PaymentRequestEventMap) shippingaddresschange(): PaymentRequestUpdateEvent ->

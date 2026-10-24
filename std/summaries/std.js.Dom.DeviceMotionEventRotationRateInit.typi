@@ -15,8 +15,8 @@ module std.js.Dom.DeviceMotionEventRotationRateInit.
 
 pub opaque type DeviceMotionEventRotationRateInit.
 
-pub (receiver: DeviceMotionEventRotationRateInit) alpha(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventRotationRateInit) alpha(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DeviceMotionEventRotationRateInit) beta(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventRotationRateInit) beta(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: DeviceMotionEventRotationRateInit) gamma(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: DeviceMotionEventRotationRateInit) gamma(): std.core.Option[std.js.Number.JsNumber].

@@ -12,10 +12,8 @@
  */
 module std.js.Dom.SVGGradientElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.SVGAnimatedEnumeration.{SVGAnimatedEnumeration}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, SVGAnimatedEnumeration}.
 import type std.js.String.{JsString}.
 
 /**
@@ -30,7 +28,7 @@ pub opaque type SVGGradientElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGGradientElement/gradientTransform)
  */
-pub (receiver: SVGGradientElement) gradient_transform(): std.js.Dom.SVGAnimatedTransformList.SVGAnimatedTransformList ->
+pub (receiver: SVGGradientElement) gradient_transform(): std.js.Dom.SVGAnimatedTransformList ->
     native.
 
 /**
@@ -52,13 +50,13 @@ pub (receiver: SVGGradientElement) spread_method(): SVGAnimatedEnumeration ->
 pub (receiver: SVGGradientElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: SVGGradientElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

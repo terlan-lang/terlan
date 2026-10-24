@@ -58,7 +58,7 @@ pub (receiver: Screen) height(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/orientation)
  */
-pub (receiver: Screen) orientation(): std.js.Dom.ScreenOrientation.ScreenOrientation ->
+pub (receiver: Screen) orientation(): std.js.Dom.ScreenOrientation ->
     native.
 
 /**

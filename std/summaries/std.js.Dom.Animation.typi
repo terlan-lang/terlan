@@ -25,21 +25,21 @@ pub opaque type Animation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/currentTime)
  */
-pub (receiver: Animation) current_time(): std.core.Option.Option[std.js.Dom.CSSNumberish.CSSNumberish].
+pub (receiver: Animation) current_time(): std.core.Option[std.js.Dom.CSSNumberish].
 
 /**
  * The **`Animation.effect`** property of the Web Animations API gets and sets the target effect of an animation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/effect)
  */
-pub (receiver: Animation) effect(): std.core.Option.Option[std.js.Dom.AnimationEffect.AnimationEffect].
+pub (receiver: Animation) effect(): std.core.Option[std.js.Dom.AnimationEffect].
 
 /**
  * The **`Animation.finished`** read-only property of the Web Animations API returns a Promise which resolves once the animation has finished playing.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/finished)
  */
-pub (receiver: Animation) finished(): std.js.Promise.Promise[Animation].
+pub (receiver: Animation) finished(): std.js.Promise[Animation].
 
 /**
  * The **`Animation.id`** property of the Web Animations API returns or sets a string used to identify the animation.
@@ -67,78 +67,78 @@ pub (receiver: Animation) playback_rate(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/ready)
  */
-pub (receiver: Animation) ready(): std.js.Promise.Promise[Animation].
+pub (receiver: Animation) ready(): std.js.Promise[Animation].
 
 /**
  * The **`Animation.startTime`** property of the Animation interface is a double-precision floating-point value which indicates the scheduled time when an animation's playback should begin.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/startTime)
  */
-pub (receiver: Animation) start_time(): std.core.Option.Option[std.js.Dom.CSSNumberish.CSSNumberish].
+pub (receiver: Animation) start_time(): std.core.Option[std.js.Dom.CSSNumberish].
 
 /**
  * The **`Animation.timeline`** property of the Animation interface returns or sets the AnimationTimeline associated with this animation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/timeline)
  */
-pub (receiver: Animation) timeline(): std.core.Option.Option[std.js.Dom.AnimationTimeline.AnimationTimeline].
+pub (receiver: Animation) timeline(): std.core.Option[std.js.Dom.AnimationTimeline].
 
 /**
  * The Web Animations API's **`cancel()`** method of the Animation interface clears all KeyframeEffects caused by this animation and aborts its playback.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/cancel)
  */
-pub (receiver: Animation) cancel(): std.core.Unit.Unit.
+pub (receiver: Animation) cancel(): std.core.Unit.
 
 /**
  * The `commitStyles()` method of the Web Animations API's Animation interface writes the computed values of the animation's current styles into its target element's `style` attribute.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/commitStyles)
  */
-pub (receiver: Animation) commit_styles(): std.core.Unit.Unit.
+pub (receiver: Animation) commit_styles(): std.core.Unit.
 
 /**
  * The **`finish()`** method of the Web Animations API's Animation Interface sets the current playback time to the end of the animation corresponding to the current playback direction.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/finish)
  */
-pub (receiver: Animation) finish(): std.core.Unit.Unit.
+pub (receiver: Animation) finish(): std.core.Unit.
 
 /**
  * The **`pause()`** method of the Web Animations API's Animation interface suspends playback of the animation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/pause)
  */
-pub (receiver: Animation) pause(): std.core.Unit.Unit.
+pub (receiver: Animation) pause(): std.core.Unit.
 
 /**
  * The `persist()` method of the Web Animations API's Animation interface explicitly persists an animation, preventing it from being automatically removed when it is replaced by another animation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/persist)
  */
-pub (receiver: Animation) persist(): std.core.Unit.Unit.
+pub (receiver: Animation) persist(): std.core.Unit.
 
 /**
  * The **`play()`** method of the Web Animations API's Animation Interface starts or resumes playing of an animation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/play)
  */
-pub (receiver: Animation) play(): std.core.Unit.Unit.
+pub (receiver: Animation) play(): std.core.Unit.
 
 /**
  * The **`Animation.reverse()`** method of the Animation Interface reverses the playback direction, meaning the animation ends at its beginning.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/reverse)
  */
-pub (receiver: Animation) reverse(): std.core.Unit.Unit.
+pub (receiver: Animation) reverse(): std.core.Unit.
 
 /**
  * The **`updatePlaybackRate()`** method of the Web Animations API's synchronizing its playback position.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Animation/updatePlaybackRate)
  */
-pub (receiver: Animation) update_playback_rate(playback_rate: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: Animation) update_playback_rate(playback_rate: std.js.Number.JsNumber): std.core.Unit.
 
-pub (receiver: Animation) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: Animation) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: Animation) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: Animation) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

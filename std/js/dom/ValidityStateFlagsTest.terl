@@ -12,7 +12,7 @@
  */
 module std.js.Dom.ValidityStateFlagsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.ValidityStateFlags.
 
 pub bad_input_typechecks(receiver: ValidityStateFlags): Option[Bool] ->

@@ -15,8 +15,8 @@ module std.js.Dom.EventSourceEventMap.
 
 pub opaque type EventSourceEventMap.
 
-pub (receiver: EventSourceEventMap) error(): std.js.Dom.Event.Event.
+pub (receiver: EventSourceEventMap) error(): std.js.Dom.Event.
 
-pub (receiver: EventSourceEventMap) message(): std.js.Dom.MessageEvent.MessageEvent.
+pub (receiver: EventSourceEventMap) message(): std.js.Dom.MessageEvent.
 
-pub (receiver: EventSourceEventMap) open(): std.js.Dom.Event.Event.
+pub (receiver: EventSourceEventMap) open(): std.js.Dom.Event.

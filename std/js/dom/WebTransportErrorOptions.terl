@@ -14,5 +14,5 @@ module std.js.Dom.WebTransportErrorOptions.
 
 pub opaque type WebTransportErrorOptions.
 
-pub (receiver: WebTransportErrorOptions) stream_error_code(): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub (receiver: WebTransportErrorOptions) stream_error_code(): std.core.Option[std.js.Number.JsNumber] ->
     native.

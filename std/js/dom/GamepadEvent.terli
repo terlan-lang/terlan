@@ -24,4 +24,4 @@ pub opaque type GamepadEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GamepadEvent/gamepad)
  */
-pub (receiver: GamepadEvent) gamepad(): std.js.Dom.Gamepad.Gamepad.
+pub (receiver: GamepadEvent) gamepad(): std.js.Dom.Gamepad.

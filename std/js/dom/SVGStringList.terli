@@ -48,7 +48,7 @@ pub (receiver: SVGStringList) append_item(new_item: JsString): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGStringList/clear)
  */
-pub (receiver: SVGStringList) clear(): std.core.Unit.Unit.
+pub (receiver: SVGStringList) clear(): std.core.Unit.
 
 /**
  * The **`getItem()`** method of the SVGStringList interface returns the specified item from the list.

@@ -12,8 +12,7 @@
  */
 module std.js.Dom.SVGTestsTest.
 
-import type std.js.Dom.SVGStringList.{SVGStringList}.
-import type std.js.Dom.SVGTests.
+import type std.js.Dom.{SVGStringList, SVGTests}.
 
 pub required_extensions_typechecks(receiver: SVGTests): SVGStringList ->
     receiver.required_extensions().

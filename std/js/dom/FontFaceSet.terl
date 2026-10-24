@@ -12,11 +12,10 @@
  */
 module std.js.Dom.FontFaceSet.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 /**
  * The **`FontFaceSet`** interface of the CSS Font Loading API manages the loading of font-faces and querying of their download status.
@@ -46,22 +45,19 @@ pub (receiver: FontFaceSet) check(font: JsString, text: Option[JsString]): Bool 
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FontFaceSet/load)
  */
-pub (receiver: FontFaceSet) load(
-    font: JsString,
-    text: Option[JsString],
-): Promise[std.js.Array.Array[std.js.Dom.FontFace.FontFace]] ->
+pub (receiver: FontFaceSet) load(font: JsString, text: Option[JsString]): Promise[std.js.Array[std.js.Dom.FontFace]] ->
     native.
 
 pub (receiver: FontFaceSet) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: FontFaceSet) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

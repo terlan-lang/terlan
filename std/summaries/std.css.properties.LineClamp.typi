@@ -8,7 +8,7 @@ module std.css.properties.LineClamp.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    line_clamp: std.core.Option.Option[Value]
+    line_clamp: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -8,7 +8,7 @@ module std.css.properties.LineFitEdge.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    line_fit_edge: std.core.Option.Option[Value]
+    line_fit_edge: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

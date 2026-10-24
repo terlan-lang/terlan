@@ -15,8 +15,8 @@ module std.js.Dom.PaymentDetailsBase.
 
 pub opaque type PaymentDetailsBase.
 
-pub (receiver: PaymentDetailsBase) display_items(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.PaymentItem.PaymentItem]].
+pub (receiver: PaymentDetailsBase) display_items(): std.core.Option[std.js.Array[std.js.Dom.PaymentItem]].
 
-pub (receiver: PaymentDetailsBase) modifiers(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.PaymentDetailsModifier.PaymentDetailsModifier]].
+pub (receiver: PaymentDetailsBase) modifiers(): std.core.Option[std.js.Array[std.js.Dom.PaymentDetailsModifier]].
 
-pub (receiver: PaymentDetailsBase) shipping_options(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.PaymentShippingOption.PaymentShippingOption]].
+pub (receiver: PaymentDetailsBase) shipping_options(): std.core.Option[std.js.Array[std.js.Dom.PaymentShippingOption]].

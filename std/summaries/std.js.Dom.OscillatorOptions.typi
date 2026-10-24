@@ -15,8 +15,8 @@ module std.js.Dom.OscillatorOptions.
 
 pub opaque type OscillatorOptions.
 
-pub (receiver: OscillatorOptions) detune(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: OscillatorOptions) detune(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: OscillatorOptions) frequency(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: OscillatorOptions) frequency(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: OscillatorOptions) periodic_wave(): std.core.Option.Option[std.js.Dom.PeriodicWave.PeriodicWave].
+pub (receiver: OscillatorOptions) periodic_wave(): std.core.Option[std.js.Dom.PeriodicWave].

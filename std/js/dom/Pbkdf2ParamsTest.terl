@@ -14,13 +14,11 @@ module std.js.Dom.Pbkdf2ParamsTest.
 
 import type std.js.Dom.Pbkdf2Params.
 
-pub hash_typechecks(
-    receiver: Pbkdf2Params,
-): std.js.Dom.HashAlgorithmIdentifier.HashAlgorithmIdentifier ->
+pub hash_typechecks(receiver: Pbkdf2Params): std.js.Dom.HashAlgorithmIdentifier ->
     receiver.hash().
 
 pub iterations_typechecks(receiver: Pbkdf2Params): std.js.Number.JsNumber ->
     receiver.iterations().
 
-pub salt_typechecks(receiver: Pbkdf2Params): std.js.Dom.BufferSource.BufferSource ->
+pub salt_typechecks(receiver: Pbkdf2Params): std.js.Dom.BufferSource ->
     receiver.salt().

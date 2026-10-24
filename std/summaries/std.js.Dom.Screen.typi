@@ -53,7 +53,7 @@ pub (receiver: Screen) height(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/orientation)
  */
-pub (receiver: Screen) orientation(): std.js.Dom.ScreenOrientation.ScreenOrientation.
+pub (receiver: Screen) orientation(): std.js.Dom.ScreenOrientation.
 
 /**
  * Returns the bit depth of the screen.

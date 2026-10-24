@@ -32,7 +32,7 @@ pub (receiver: TouchEvent) alt_key(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchEvent/changedTouches)
  */
-pub (receiver: TouchEvent) changed_touches(): std.js.Dom.TouchList.TouchList.
+pub (receiver: TouchEvent) changed_touches(): std.js.Dom.TouchList.
 
 /**
  * The read-only **`ctrlKey`** property of the TouchEvent interface returns a boolean value indicating whether the <kbd>control</kbd> (Control) key is enabled when the touch event is created.
@@ -60,11 +60,11 @@ pub (receiver: TouchEvent) shift_key(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchEvent/targetTouches)
  */
-pub (receiver: TouchEvent) target_touches(): std.js.Dom.TouchList.TouchList.
+pub (receiver: TouchEvent) target_touches(): std.js.Dom.TouchList.
 
 /**
  * **`touches`** is a read-only TouchList listing all the Touch objects for touch points that are currently in contact with the touch surface, regardless of whether or not they've changed or what their target element was at Element/touchstart_event time.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchEvent/touches)
  */
-pub (receiver: TouchEvent) touches(): std.js.Dom.TouchList.TouchList.
+pub (receiver: TouchEvent) touches(): std.js.Dom.TouchList.

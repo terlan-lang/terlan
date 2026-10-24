@@ -60,7 +60,7 @@ pub (receiver: Notification) require_interaction(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/silent)
  */
-pub (receiver: Notification) silent(): std.core.Option.Option[Bool].
+pub (receiver: Notification) silent(): std.core.Option[Bool].
 
 /**
  * The **`tag`** read-only property of the as specified in the `tag` option of the The idea of notification tags is that more than one notification can share the same tag, linking them together.
@@ -81,8 +81,8 @@ pub (receiver: Notification) title(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/close)
  */
-pub (receiver: Notification) close(): std.core.Unit.Unit.
+pub (receiver: Notification) close(): std.core.Unit.
 
-pub (receiver: Notification) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: Notification) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: Notification) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: Notification) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

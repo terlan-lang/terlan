@@ -14,5 +14,5 @@ module std.js.Dom.ConstantSourceOptions.
 
 pub opaque type ConstantSourceOptions.
 
-pub (receiver: ConstantSourceOptions) offset(): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub (receiver: ConstantSourceOptions) offset(): std.core.Option[std.js.Number.JsNumber] ->
     native.

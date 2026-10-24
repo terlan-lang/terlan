@@ -15,6 +15,6 @@ module std.js.Dom.VideoFrameCopyToOptions.
 
 pub opaque type VideoFrameCopyToOptions.
 
-pub (receiver: VideoFrameCopyToOptions) layout(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]].
+pub (receiver: VideoFrameCopyToOptions) layout(): std.core.Option[std.js.Array[std.js.Dom.PlaneLayout]].
 
-pub (receiver: VideoFrameCopyToOptions) rect(): std.core.Option.Option[std.js.Dom.DOMRectInit.DOMRectInit].
+pub (receiver: VideoFrameCopyToOptions) rect(): std.core.Option[std.js.Dom.DOMRectInit].

@@ -24,12 +24,8 @@ pub last_event_id_typechecks(receiver: MessageEvent[T]): JsString ->
 pub origin_typechecks(receiver: MessageEvent[T]): JsString ->
     receiver.origin().
 
-pub ports_typechecks(
-    receiver: MessageEvent[T],
-): std.js.Array.Array[std.js.Dom.MessagePort.MessagePort] ->
+pub ports_typechecks(receiver: MessageEvent[T]): std.js.Array[std.js.Dom.MessagePort] ->
     receiver.ports().
 
-pub source_typechecks(
-    receiver: MessageEvent[T],
-): std.core.Option.Option[std.js.Dom.MessageEventSource.MessageEventSource] ->
+pub source_typechecks(receiver: MessageEvent[T]): std.core.Option[std.js.Dom.MessageEventSource] ->
     receiver.source().

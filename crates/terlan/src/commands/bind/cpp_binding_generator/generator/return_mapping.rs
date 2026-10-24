@@ -48,7 +48,9 @@ pub(super) fn validate_function_return_mapping(
                 "Float" => canonical == "double",
                 "Bool" => canonical == "bool",
                 "String" => returns.is_some_and(is_owned_string_type),
-                "std.vm.Bytes.Bytes" | "Bytes" => returns.is_some_and(is_owned_u8_vector_type),
+                "std.vm.Bytes" | "std.vm.Bytes.Bytes" | "Bytes" => {
+                    returns.is_some_and(is_owned_u8_vector_type)
+                }
                 "List[Int]" => returns.is_some_and(is_owned_i64_vector_type),
                 "List[Float]" => returns.is_some_and(is_owned_f64_vector_type),
                 // Bool lists use an owned byte vector at the CXX boundary;

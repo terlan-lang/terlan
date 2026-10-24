@@ -24,7 +24,7 @@ pub opaque type RTCCertificate.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCCertificate/expires)
  */
-pub (receiver: RTCCertificate) expires(): std.js.Dom.EpochTimeStamp.EpochTimeStamp ->
+pub (receiver: RTCCertificate) expires(): std.js.Dom.EpochTimeStamp ->
     native.
 
 /**
@@ -32,5 +32,5 @@ pub (receiver: RTCCertificate) expires(): std.js.Dom.EpochTimeStamp.EpochTimeSta
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCCertificate/getFingerprints)
  */
-pub (receiver: RTCCertificate) get_fingerprints(): std.js.Array.Array[std.js.Dom.RTCDtlsFingerprint.RTCDtlsFingerprint] ->
+pub (receiver: RTCCertificate) get_fingerprints(): std.js.Array[std.js.Dom.RTCDtlsFingerprint] ->
     native.

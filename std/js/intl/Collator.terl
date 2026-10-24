@@ -19,5 +19,5 @@ pub opaque type Collator.
 pub (receiver: Collator) compare(x: JsString, y: JsString): std.js.Number.JsNumber ->
     native.
 
-pub (receiver: Collator) resolved_options(): std.js.Intl.ResolvedCollatorOptions.ResolvedCollatorOptions ->
+pub (receiver: Collator) resolved_options(): std.js.Intl.ResolvedCollatorOptions ->
     native.

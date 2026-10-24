@@ -25,7 +25,7 @@ pub opaque type LargestContentfulPaint.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/element)
  */
-pub (receiver: LargestContentfulPaint) element(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: LargestContentfulPaint) element(): std.core.Option[std.js.Dom.Element].
 
 /**
  * The **`id`** read-only property of the LargestContentfulPaint interface returns the ID of the element that is the largest contentful paint.
@@ -39,12 +39,12 @@ pub (receiver: LargestContentfulPaint) id(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/loadTime)
  */
-pub (receiver: LargestContentfulPaint) load_time(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: LargestContentfulPaint) load_time(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/renderTime)
  */
-pub (receiver: LargestContentfulPaint) render_time(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp.
+pub (receiver: LargestContentfulPaint) render_time(): std.js.Dom.DOMHighResTimeStamp.
 
 /**
  * The **`size`** read-only property of the LargestContentfulPaint interface returns the intrinsic size of the element that is the largest contentful paint.

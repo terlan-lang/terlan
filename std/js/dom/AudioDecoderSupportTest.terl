@@ -12,12 +12,10 @@
  */
 module std.js.Dom.AudioDecoderSupportTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.AudioDecoderSupport.
 
-pub config_typechecks(
-    receiver: AudioDecoderSupport,
-): Option[std.js.Dom.AudioDecoderConfig.AudioDecoderConfig] ->
+pub config_typechecks(receiver: AudioDecoderSupport): Option[std.js.Dom.AudioDecoderConfig] ->
     receiver.config().
 
 pub supported_typechecks(receiver: AudioDecoderSupport): Option[Bool] ->

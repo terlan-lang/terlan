@@ -12,34 +12,17 @@
  */
 module std.js.Dom.WebGLRenderingContextBase.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.Float32List.{Float32List}.
-import type std.js.Dom.GLboolean.{GLboolean}.
-import type std.js.Dom.GLclampf.{GLclampf}.
-import type std.js.Dom.GLenum.{GLenum}.
-import type std.js.Dom.GLfloat.{GLfloat}.
-import type std.js.Dom.GLint.{GLint}.
-import type std.js.Dom.GLintptr.{GLintptr}.
-import type std.js.Dom.GLsizei.{GLsizei}.
-import type std.js.Dom.GLuint.{GLuint}.
-import type std.js.Dom.WebGLActiveInfo.{WebGLActiveInfo}.
-import type std.js.Dom.WebGLBuffer.{WebGLBuffer}.
-import type std.js.Dom.WebGLFramebuffer.{WebGLFramebuffer}.
-import type std.js.Dom.WebGLProgram.{WebGLProgram}.
-import type std.js.Dom.WebGLRenderbuffer.{WebGLRenderbuffer}.
-import type std.js.Dom.WebGLShader.{WebGLShader}.
-import type std.js.Dom.WebGLTexture.{WebGLTexture}.
-import type std.js.Dom.WebGLUniformLocation.{WebGLUniformLocation}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Float32List, GLboolean, GLclampf, GLenum, GLfloat, GLint, GLintptr, GLsizei, GLuint, WebGLActiveInfo, WebGLBuffer, WebGLFramebuffer, WebGLProgram, WebGLRenderbuffer, WebGLShader, WebGLTexture, WebGLUniformLocation}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 pub opaque type WebGLRenderingContextBase.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/canvas)
  */
-pub (receiver: WebGLRenderingContextBase) canvas(): std.js.Dom.HTMLCanvasElement.HTMLCanvasElement | std.js.Dom.OffscreenCanvas.OffscreenCanvas.
+pub (receiver: WebGLRenderingContextBase) canvas(): std.js.Dom.HTMLCanvasElement | std.js.Dom.OffscreenCanvas.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/drawingBufferHeight)
@@ -124,7 +107,7 @@ pub (receiver: WebGLRenderingContextBase) check_framebuffer_status(target_: GLen
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/clear)
  */
-pub (receiver: WebGLRenderingContextBase) clear(mask: std.js.Dom.GLbitfield.GLbitfield): Unit.
+pub (receiver: WebGLRenderingContextBase) clear(mask: std.js.Dom.GLbitfield): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/clearColor)
@@ -358,7 +341,7 @@ pub (receiver: WebGLRenderingContextBase) get_attrib_location(program: WebGLProg
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getContextAttributes)
  */
-pub (receiver: WebGLRenderingContextBase) get_context_attributes(): Option[std.js.Dom.WebGLContextAttributes.WebGLContextAttributes].
+pub (receiver: WebGLRenderingContextBase) get_context_attributes(): Option[std.js.Dom.WebGLContextAttributes].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getError)
@@ -381,7 +364,7 @@ pub (receiver: WebGLRenderingContextBase) get_shader_info_log(shader: WebGLShade
 pub (receiver: WebGLRenderingContextBase) get_shader_precision_format(
     shadertype: GLenum,
     precisiontype: GLenum,
-): Option[std.js.Dom.WebGLShaderPrecisionFormat.WebGLShaderPrecisionFormat].
+): Option[std.js.Dom.WebGLShaderPrecisionFormat].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/getShaderSource)

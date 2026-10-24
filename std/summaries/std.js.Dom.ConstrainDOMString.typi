@@ -14,4 +14,4 @@
 module std.js.Dom.ConstrainDOMString.
 
 pub type ConstrainDOMString =
-    std.js.Dom.ConstrainDOMStringParameters.ConstrainDOMStringParameters | std.js.Array.Array[std.js.String.JsString] | std.js.String.JsString.
+    std.js.Dom.ConstrainDOMStringParameters | std.js.Array[std.js.String.JsString] | std.js.String.JsString.

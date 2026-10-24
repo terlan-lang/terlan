@@ -12,16 +12,14 @@
  */
 module std.js.Dom.HTMLScriptElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLScriptElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLScriptElement}.
 import type std.js.String.{JsString}.
 
 pub async_typechecks(receiver: HTMLScriptElement): Bool ->
     receiver.async().
 
-pub blocking_typechecks(receiver: HTMLScriptElement): std.js.Dom.DOMTokenList.DOMTokenList ->
+pub blocking_typechecks(receiver: HTMLScriptElement): std.js.Dom.DOMTokenList ->
     receiver.blocking().
 
 pub charset_typechecks(receiver: HTMLScriptElement): JsString ->
@@ -61,7 +59,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLScriptElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -69,6 +67,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLScriptElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

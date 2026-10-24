@@ -16,5 +16,5 @@ import type std.js.Dom.WebTransportErrorOptions.
 
 pub stream_error_code_typechecks(
     receiver: WebTransportErrorOptions,
-): std.core.Option.Option[std.js.Number.JsNumber] ->
+): std.core.Option[std.js.Number.JsNumber] ->
     receiver.stream_error_code().

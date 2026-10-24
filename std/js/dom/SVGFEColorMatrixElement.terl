@@ -12,9 +12,8 @@
  */
 module std.js.Dom.SVGFEColorMatrixElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -29,7 +28,7 @@ pub opaque type SVGFEColorMatrixElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEColorMatrixElement/in1)
  */
-pub (receiver: SVGFEColorMatrixElement) in1(): std.js.Dom.SVGAnimatedString.SVGAnimatedString ->
+pub (receiver: SVGFEColorMatrixElement) in1(): std.js.Dom.SVGAnimatedString ->
     native.
 
 /**
@@ -37,7 +36,7 @@ pub (receiver: SVGFEColorMatrixElement) in1(): std.js.Dom.SVGAnimatedString.SVGA
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEColorMatrixElement/type)
  */
-pub (receiver: SVGFEColorMatrixElement) type_(): std.js.Dom.SVGAnimatedEnumeration.SVGAnimatedEnumeration ->
+pub (receiver: SVGFEColorMatrixElement) type_(): std.js.Dom.SVGAnimatedEnumeration ->
     native.
 
 /**
@@ -45,19 +44,19 @@ pub (receiver: SVGFEColorMatrixElement) type_(): std.js.Dom.SVGAnimatedEnumerati
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGFEColorMatrixElement/values)
  */
-pub (receiver: SVGFEColorMatrixElement) values(): std.js.Dom.SVGAnimatedNumberList.SVGAnimatedNumberList ->
+pub (receiver: SVGFEColorMatrixElement) values(): std.js.Dom.SVGAnimatedNumberList ->
     native.
 
 pub (receiver: SVGFEColorMatrixElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: SVGFEColorMatrixElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

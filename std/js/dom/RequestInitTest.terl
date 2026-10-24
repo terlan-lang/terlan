@@ -12,11 +12,11 @@
  */
 module std.js.Dom.RequestInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.RequestInit.
 import type std.js.String.{JsString}.
 
-pub body_typechecks(receiver: RequestInit): Option[std.js.Dom.BodyInit.BodyInit] ->
+pub body_typechecks(receiver: RequestInit): Option[std.js.Dom.BodyInit] ->
     receiver.body().
 
 pub integrity_typechecks(receiver: RequestInit): Option[JsString] ->
@@ -31,5 +31,5 @@ pub method_typechecks(receiver: RequestInit): Option[JsString] ->
 pub referrer_typechecks(receiver: RequestInit): Option[JsString] ->
     receiver.referrer().
 
-pub signal_typechecks(receiver: RequestInit): Option[std.js.Dom.AbortSignal.AbortSignal] ->
+pub signal_typechecks(receiver: RequestInit): Option[std.js.Dom.AbortSignal] ->
     receiver.signal().

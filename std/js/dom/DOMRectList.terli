@@ -33,4 +33,4 @@ pub (receiver: DOMRectList) length(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectList/item)
  */
-pub (receiver: DOMRectList) item(index: JsNumber): std.core.Option.Option[std.js.Dom.DOMRect.DOMRect].
+pub (receiver: DOMRectList) item(index: JsNumber): std.core.Option[std.js.Dom.DOMRect].

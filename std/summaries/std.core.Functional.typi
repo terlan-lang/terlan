@@ -66,26 +66,26 @@ pub trait ResultMonad[F[_, _]] extends ResultFunctor[F] {
     flat_map[A, B, E](value: F[A, E], f: (A) -> F[B, E]): F[B, E].
 }.
 
-pub impl Applicative[std.collections.List.List] for std.collections.List.List {
+pub impl Applicative[std.collections.List] for std.collections.List {
 }.
 
-pub impl Applicative[std.core.Option.Option] for std.core.Option.Option {
+pub impl Applicative[std.core.Option] for std.core.Option {
 }.
 
-pub impl Functor[std.collections.List.List] for std.collections.List.List {
+pub impl Functor[std.collections.List] for std.collections.List {
 }.
 
-pub impl Functor[std.core.Option.Option] for std.core.Option.Option {
+pub impl Functor[std.core.Option] for std.core.Option {
 }.
 
-pub impl Monad[std.collections.List.List] for std.collections.List.List {
+pub impl Monad[std.collections.List] for std.collections.List {
 }.
 
-pub impl Monad[std.core.Option.Option] for std.core.Option.Option {
+pub impl Monad[std.core.Option] for std.core.Option {
 }.
 
-pub impl ResultFunctor[std.core.Result.Result] for std.core.Result.Result {
+pub impl ResultFunctor[std.core.Result] for std.core.Result {
 }.
 
-pub impl ResultMonad[std.core.Result.Result] for std.core.Result.Result {
+pub impl ResultMonad[std.core.Result] for std.core.Result {
 }.

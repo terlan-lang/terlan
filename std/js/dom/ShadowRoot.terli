@@ -12,9 +12,8 @@
  */
 module std.js.Dom.ShadowRoot.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -43,7 +42,7 @@ pub (receiver: ShadowRoot) delegates_focus(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/host)
  */
-pub (receiver: ShadowRoot) host(): std.js.Dom.Element.Element.
+pub (receiver: ShadowRoot) host(): std.js.Dom.Element.
 
 /**
  * The **`innerHTML`** property of the ShadowRoot interface sets gets or sets the HTML markup to the DOM tree inside the `ShadowRoot`.
@@ -64,7 +63,7 @@ pub (receiver: ShadowRoot) serializable(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ShadowRoot/getHTML)
  */
-pub (receiver: ShadowRoot) get_html(options: Option[std.js.Dom.GetHTMLOptions.GetHTMLOptions]): JsString.
+pub (receiver: ShadowRoot) get_html(options: Option[std.js.Dom.GetHTMLOptions]): JsString.
 
 /**
  * The **`setHTMLUnsafe()`** method of the ShadowRoot interface can be used to parse a string of HTML into a DocumentFragment, optionally filtering out unwanted elements and attributes, and then use it to replace the existing tree in the Shadow DOM.
@@ -76,11 +75,11 @@ pub (receiver: ShadowRoot) set_html_unsafe(html_: JsString): Unit.
 pub (receiver: ShadowRoot) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: ShadowRoot) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

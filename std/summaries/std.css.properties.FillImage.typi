@@ -8,7 +8,7 @@ module std.css.properties.FillImage.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    fill_image: std.core.Option.Option[Value]
+    fill_image: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -23,22 +23,22 @@ pub (receiver: ResolvedDateTimeFormatOptions) numbering_system(): std.js.String.
 
 pub (receiver: ResolvedDateTimeFormatOptions) time_zone(): std.js.String.JsString.
 
-pub (receiver: ResolvedDateTimeFormatOptions) hour12(): std.core.Option.Option[Bool].
+pub (receiver: ResolvedDateTimeFormatOptions) hour12(): std.core.Option[Bool].
 
-pub (receiver: ResolvedDateTimeFormatOptions) weekday(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ResolvedDateTimeFormatOptions) weekday(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: ResolvedDateTimeFormatOptions) era(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ResolvedDateTimeFormatOptions) era(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: ResolvedDateTimeFormatOptions) year(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ResolvedDateTimeFormatOptions) year(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: ResolvedDateTimeFormatOptions) month(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ResolvedDateTimeFormatOptions) month(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: ResolvedDateTimeFormatOptions) day(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ResolvedDateTimeFormatOptions) day(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: ResolvedDateTimeFormatOptions) hour(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ResolvedDateTimeFormatOptions) hour(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: ResolvedDateTimeFormatOptions) minute(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ResolvedDateTimeFormatOptions) minute(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: ResolvedDateTimeFormatOptions) second(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ResolvedDateTimeFormatOptions) second(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: ResolvedDateTimeFormatOptions) time_zone_name(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: ResolvedDateTimeFormatOptions) time_zone_name(): std.core.Option[std.js.String.JsString].

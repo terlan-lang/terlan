@@ -14,12 +14,8 @@ module std.js.Dom.WebAssembly.WebAssemblyInstantiatedSourceTest.
 
 import type std.js.Dom.WebAssembly.WebAssemblyInstantiatedSource.
 
-pub instance_typechecks(
-    receiver: WebAssemblyInstantiatedSource,
-): std.js.Dom.WebAssembly.Instance.Instance ->
+pub instance_typechecks(receiver: WebAssemblyInstantiatedSource): std.js.Dom.WebAssembly.Instance ->
     receiver.instance().
 
-pub module__typechecks(
-    receiver: WebAssemblyInstantiatedSource,
-): std.js.Dom.WebAssembly.Module.Module ->
+pub module__typechecks(receiver: WebAssemblyInstantiatedSource): std.js.Dom.WebAssembly.Module ->
     receiver.module_().

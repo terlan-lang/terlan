@@ -540,7 +540,10 @@ pub(super) fn imported_type_text_refs(
         .map(|(local_name, qualified)| {
             (
                 local_name.clone(),
-                format!("{}.{}", qualified.module, qualified.name),
+                qualified.module.as_ref().map_or_else(
+                    || qualified.name.clone(),
+                    |module| crate::terlan_hir::public_type_path(module, &qualified.name),
+                ),
             )
         })
         .collect()

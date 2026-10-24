@@ -12,13 +12,11 @@
  */
 module std.js.Dom.IDBIndex.
 
-import type std.core.Option.{Option}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.IDBKeyRange.{IDBKeyRange}.
-import type std.js.Dom.IDBRequest.{IDBRequest}.
-import type std.js.Dom.IDBValidKey.{IDBValidKey}.
+import type std.core.{Option}.
+import type std.js.Dom.{IDBKeyRange, IDBRequest, IDBValidKey}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 /**
  * `IDBIndex` interface of the IndexedDB API provides asynchronous access to an index in a database.
@@ -53,7 +51,7 @@ pub (receiver: IDBIndex) name(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/objectStore)
  */
-pub (receiver: IDBIndex) object_store(): std.js.Dom.IDBObjectStore.IDBObjectStore.
+pub (receiver: IDBIndex) object_store(): std.js.Dom.IDBObjectStore.
 
 /**
  * The **`unique`** read-only property returns a boolean that states whether the index allows duplicate keys.

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.MIDIAccess.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -30,14 +29,14 @@ pub opaque type MIDIAccess.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIAccess/inputs)
  */
-pub (receiver: MIDIAccess) inputs(): std.js.Dom.MIDIInputMap.MIDIInputMap.
+pub (receiver: MIDIAccess) inputs(): std.js.Dom.MIDIInputMap.
 
 /**
  * The **`outputs`** read-only property of the MIDIAccess interface provides access to any available MIDI output ports.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MIDIAccess/outputs)
  */
-pub (receiver: MIDIAccess) outputs(): std.js.Dom.MIDIOutputMap.MIDIOutputMap.
+pub (receiver: MIDIAccess) outputs(): std.js.Dom.MIDIOutputMap.
 
 /**
  * The **`sysexEnabled`** read-only property of the MIDIAccess interface indicates whether system exclusive support is enabled on the current MIDIAccess instance.
@@ -49,11 +48,11 @@ pub (receiver: MIDIAccess) sysex_enabled(): Bool.
 pub (receiver: MIDIAccess) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: MIDIAccess) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

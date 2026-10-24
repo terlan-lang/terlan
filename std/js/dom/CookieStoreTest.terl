@@ -12,22 +12,17 @@
  */
 module std.js.Dom.CookieStoreTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.CookieList.{CookieList}.
-import type std.js.Dom.CookieListItem.{CookieListItem}.
-import type std.js.Dom.CookieStore.
-import type std.js.Dom.CookieStoreGetOptions.{CookieStoreGetOptions}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{CookieList, CookieListItem, CookieStore, CookieStoreGetOptions, EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 pub delete_typechecks(receiver: CookieStore, name: JsString): Promise[Unit] ->
     receiver.delete(name).
 
 pub delete_overload_2_typechecks(
     receiver: CookieStore,
-    options: std.js.Dom.CookieStoreDeleteOptions.CookieStoreDeleteOptions,
+    options: std.js.Dom.CookieStoreDeleteOptions,
 ): Promise[Unit] ->
     receiver.delete_overload_2(options).
 
@@ -52,17 +47,14 @@ pub get_all_overload_2_typechecks(
 pub set_typechecks(receiver: CookieStore, name: JsString, value: JsString): Promise[Unit] ->
     receiver.set(name, value).
 
-pub set_overload_2_typechecks(
-    receiver: CookieStore,
-    options: std.js.Dom.CookieInit.CookieInit,
-): Promise[Unit] ->
+pub set_overload_2_typechecks(receiver: CookieStore, options: std.js.Dom.CookieInit): Promise[Unit] ->
     receiver.set_overload_2(options).
 
 pub add_event_listener_typechecks(
     receiver: CookieStore,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -70,6 +62,6 @@ pub remove_event_listener_typechecks(
     receiver: CookieStore,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

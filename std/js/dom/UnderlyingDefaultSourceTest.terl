@@ -16,5 +16,5 @@ import type std.js.Dom.UnderlyingDefaultSource.
 
 pub cancel_typechecks(
     receiver: UnderlyingDefaultSource[R],
-): std.core.Option.Option[std.js.Dom.UnderlyingSourceCancelCallback.UnderlyingSourceCancelCallback] ->
+): std.core.Option[std.js.Dom.UnderlyingSourceCancelCallback] ->
     receiver.cancel().

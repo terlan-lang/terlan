@@ -288,10 +288,14 @@ fn adapter(operation: &str, arity: usize) -> Result<(usize, String), BindingErro
         }
     };
     let result = if member.return_type.starts_with("Option[")
+        || member.return_type.starts_with("std.core.Option[")
         || member.return_type.starts_with("std.core.Option.Option[")
     {
         format!("((value) => value == null ? 'none' : ['some', value])({result})")
-    } else if matches!(member.return_type.as_str(), "Unit" | "std.core.Unit.Unit") {
+    } else if matches!(
+        member.return_type.as_str(),
+        "Unit" | "std.core.Unit" | "std.core.Unit.Unit"
+    ) {
         format!("({result}, 'unit')")
     } else {
         result
@@ -302,6 +306,7 @@ fn adapter(operation: &str, arity: usize) -> Result<(usize, String), BindingErro
 fn decode_nullable_argument(argument: &str, ty: &str) -> String {
     let inner = ty
         .strip_prefix("Option[")
+        .or_else(|| ty.strip_prefix("std.core.Option["))
         .or_else(|| ty.strip_prefix("std.core.Option.Option["))
         .and_then(|inner| inner.strip_suffix(']'));
     if let Some(inner) = inner {

@@ -15,8 +15,8 @@ module std.js.Dom.ProgressEventInit.
 
 pub opaque type ProgressEventInit.
 
-pub (receiver: ProgressEventInit) length_computable(): std.core.Option.Option[Bool].
+pub (receiver: ProgressEventInit) length_computable(): std.core.Option[Bool].
 
-pub (receiver: ProgressEventInit) loaded(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ProgressEventInit) loaded(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: ProgressEventInit) total(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: ProgressEventInit) total(): std.core.Option[std.js.Number.JsNumber].

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.SVGAnimationElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -30,7 +29,7 @@ pub opaque type SVGAnimationElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimationElement/targetElement)
  */
-pub (receiver: SVGAnimationElement) target_element(): Option[std.js.Dom.SVGElement.SVGElement].
+pub (receiver: SVGAnimationElement) target_element(): Option[std.js.Dom.SVGElement].
 
 /**
  * The SVGAnimationElement method `beginElement()` creates a begin instance time for the current time.
@@ -84,11 +83,11 @@ pub (receiver: SVGAnimationElement) get_start_time(): JsNumber.
 pub (receiver: SVGAnimationElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: SVGAnimationElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

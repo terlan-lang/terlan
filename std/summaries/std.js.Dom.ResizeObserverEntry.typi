@@ -25,32 +25,32 @@ pub opaque type ResizeObserverEntry.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/borderBoxSize)
  */
-pub (receiver: ResizeObserverEntry) border_box_size(): std.js.Array.Array[std.js.Dom.ResizeObserverSize.ResizeObserverSize].
+pub (receiver: ResizeObserverEntry) border_box_size(): std.js.Array[std.js.Dom.ResizeObserverSize].
 
 /**
  * The **`contentBoxSize`** read-only property of the ResizeObserverEntry interface returns an array containing the new content box size of the observed element when the callback is run.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/contentBoxSize)
  */
-pub (receiver: ResizeObserverEntry) content_box_size(): std.js.Array.Array[std.js.Dom.ResizeObserverSize.ResizeObserverSize].
+pub (receiver: ResizeObserverEntry) content_box_size(): std.js.Array[std.js.Dom.ResizeObserverSize].
 
 /**
  * The `contentRect` read-only property of the object containing the new size of the observed element when the callback is run.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/contentRect)
  */
-pub (receiver: ResizeObserverEntry) content_rect(): std.js.Dom.DOMRectReadOnly.DOMRectReadOnly.
+pub (receiver: ResizeObserverEntry) content_rect(): std.js.Dom.DOMRectReadOnly.
 
 /**
  * The **`devicePixelContentBoxSize`** read-only property of the ResizeObserverEntry interface returns an array containing the size in device pixels of the observed element when the callback is run.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/devicePixelContentBoxSize)
  */
-pub (receiver: ResizeObserverEntry) device_pixel_content_box_size(): std.js.Array.Array[std.js.Dom.ResizeObserverSize.ResizeObserverSize].
+pub (receiver: ResizeObserverEntry) device_pixel_content_box_size(): std.js.Array[std.js.Dom.ResizeObserverSize].
 
 /**
  * The **`target`** read-only property of the An Element or SVGElement representing the element being observed.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ResizeObserverEntry/target)
  */
-pub (receiver: ResizeObserverEntry) target_(): std.js.Dom.Element.Element.
+pub (receiver: ResizeObserverEntry) target_(): std.js.Dom.Element.

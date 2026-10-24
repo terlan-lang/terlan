@@ -12,9 +12,8 @@
  */
 module std.js.Dom.SpeechSynthesis.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -57,7 +56,7 @@ pub (receiver: SpeechSynthesis) cancel(): Unit.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/getVoices)
  */
-pub (receiver: SpeechSynthesis) get_voices(): std.js.Array.Array[std.js.Dom.SpeechSynthesisVoice.SpeechSynthesisVoice].
+pub (receiver: SpeechSynthesis) get_voices(): std.js.Array[std.js.Dom.SpeechSynthesisVoice].
 
 /**
  * The **`pause()`** method of the SpeechSynthesis interface puts the `SpeechSynthesis` object into a paused state.
@@ -78,16 +77,16 @@ pub (receiver: SpeechSynthesis) resume(): Unit.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis/speak)
  */
-pub (receiver: SpeechSynthesis) speak(utterance: std.js.Dom.SpeechSynthesisUtterance.SpeechSynthesisUtterance): Unit.
+pub (receiver: SpeechSynthesis) speak(utterance: std.js.Dom.SpeechSynthesisUtterance): Unit.
 
 pub (receiver: SpeechSynthesis) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: SpeechSynthesis) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

@@ -518,11 +518,11 @@ fn qualify_default_module_type_text(
     let Some(mut parsed) = parse_trait_instance_from_text(text) else {
         return text.to_string();
     };
-    if let Some(interface) = interfaces.get(&parsed.name) {
-        if let Some(default_name) = parsed.name.rsplit('.').next().filter(|name| {
-            interface.public_types.contains(*name) || interface.opaque_types.contains(*name)
+    if let Some((module, name)) = parsed.name.rsplit_once('.') {
+        if interfaces.get(module).is_some_and(|interface| {
+            interface.public_types.contains(name) || interface.opaque_types.contains(name)
         }) {
-            parsed.name = format!("{}.{}", parsed.name, default_name);
+            parsed.name = crate::terlan_hir::public_type_path(module, name);
         }
     }
     parsed.type_args = parsed

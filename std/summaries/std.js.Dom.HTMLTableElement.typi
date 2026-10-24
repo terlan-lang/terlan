@@ -49,7 +49,7 @@ pub (receiver: HTMLTableElement) border(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/caption)
  */
-pub (receiver: HTMLTableElement) caption(): std.core.Option.Option[std.js.Dom.HTMLTableCaptionElement.HTMLTableCaptionElement].
+pub (receiver: HTMLTableElement) caption(): std.core.Option[std.js.Dom.HTMLTableCaptionElement].
 
 /**
  * The **`HTMLTableElement.cellPadding`** property represents the padding around the individual cells of the table.
@@ -80,7 +80,7 @@ pub (receiver: HTMLTableElement) frame(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/rows)
  */
-pub (receiver: HTMLTableElement) rows(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLTableRowElement.HTMLTableRowElement].
+pub (receiver: HTMLTableElement) rows(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLTableRowElement].
 
 /**
  * The **`HTMLTableElement.rules`** property indicates which cell borders to render in the table.
@@ -103,21 +103,21 @@ pub (receiver: HTMLTableElement) summary(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/tBodies)
  */
-pub (receiver: HTMLTableElement) t_bodies(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLTableSectionElement.HTMLTableSectionElement].
+pub (receiver: HTMLTableElement) t_bodies(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLTableSectionElement].
 
 /**
  * The **`HTMLTableElement.tFoot`** property represents the `null` if there is no such element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/tFoot)
  */
-pub (receiver: HTMLTableElement) t_foot(): std.core.Option.Option[std.js.Dom.HTMLTableSectionElement.HTMLTableSectionElement].
+pub (receiver: HTMLTableElement) t_foot(): std.core.Option[std.js.Dom.HTMLTableSectionElement].
 
 /**
  * The **`HTMLTableElement.tHead`** represents the `null` if there is no such element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/tHead)
  */
-pub (receiver: HTMLTableElement) t_head(): std.core.Option.Option[std.js.Dom.HTMLTableSectionElement.HTMLTableSectionElement].
+pub (receiver: HTMLTableElement) t_head(): std.core.Option[std.js.Dom.HTMLTableSectionElement].
 
 /**
  * The **`HTMLTableElement.width`** property represents the desired width of the table.
@@ -132,64 +132,64 @@ pub (receiver: HTMLTableElement) width(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createCaption)
  */
-pub (receiver: HTMLTableElement) create_caption(): std.js.Dom.HTMLTableCaptionElement.HTMLTableCaptionElement.
+pub (receiver: HTMLTableElement) create_caption(): std.js.Dom.HTMLTableCaptionElement.
 
 /**
  * The **`createTBody()`** method of ```js-nolint createTBody() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createTBody)
  */
-pub (receiver: HTMLTableElement) create_t_body(): std.js.Dom.HTMLTableSectionElement.HTMLTableSectionElement.
+pub (receiver: HTMLTableElement) create_t_body(): std.js.Dom.HTMLTableSectionElement.
 
 /**
  * The **`createTFoot()`** method of associated with a given table.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createTFoot)
  */
-pub (receiver: HTMLTableElement) create_t_foot(): std.js.Dom.HTMLTableSectionElement.HTMLTableSectionElement.
+pub (receiver: HTMLTableElement) create_t_foot(): std.js.Dom.HTMLTableSectionElement.
 
 /**
  * The **`createTHead()`** method of associated with a given table.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/createTHead)
  */
-pub (receiver: HTMLTableElement) create_t_head(): std.js.Dom.HTMLTableSectionElement.HTMLTableSectionElement.
+pub (receiver: HTMLTableElement) create_t_head(): std.js.Dom.HTMLTableSectionElement.
 
 /**
  * The **`HTMLTableElement.deleteCaption()`** method removes the `<caption>` element associated with the table, this method does nothing.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteCaption)
  */
-pub (receiver: HTMLTableElement) delete_caption(): std.core.Unit.Unit.
+pub (receiver: HTMLTableElement) delete_caption(): std.core.Unit.
 
 /**
  * The **`HTMLTableElement.deleteRow()`** method removes a specific row (tr) from a given table.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteRow)
  */
-pub (receiver: HTMLTableElement) delete_row(index: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: HTMLTableElement) delete_row(index: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`HTMLTableElement.deleteTFoot()`** method removes the ```js-nolint deleteTFoot() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteTFoot)
  */
-pub (receiver: HTMLTableElement) delete_t_foot(): std.core.Unit.Unit.
+pub (receiver: HTMLTableElement) delete_t_foot(): std.core.Unit.
 
 /**
  * The **`HTMLTableElement.deleteTHead()`** removes the ```js-nolint deleteTHead() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/deleteTHead)
  */
-pub (receiver: HTMLTableElement) delete_t_head(): std.core.Unit.Unit.
+pub (receiver: HTMLTableElement) delete_t_head(): std.core.Unit.
 
 /**
  * The **`insertRow()`** method of the HTMLTableElement interface inserts a new row (tr) in a given table, and returns a reference to the new row.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLTableElement/insertRow)
  */
-pub (receiver: HTMLTableElement) insert_row(index: std.core.Option.Option[std.js.Number.JsNumber]): std.js.Dom.HTMLTableRowElement.HTMLTableRowElement.
+pub (receiver: HTMLTableElement) insert_row(index: std.core.Option[std.js.Number.JsNumber]): std.js.Dom.HTMLTableRowElement.
 
-pub (receiver: HTMLTableElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLTableElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLTableElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLTableElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

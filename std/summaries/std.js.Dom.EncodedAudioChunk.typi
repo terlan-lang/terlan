@@ -32,7 +32,7 @@ pub (receiver: EncodedAudioChunk) byte_length(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedAudioChunk/duration)
  */
-pub (receiver: EncodedAudioChunk) duration(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: EncodedAudioChunk) duration(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The **`timestamp`** read-only property of the EncodedAudioChunk interface returns an integer indicating the timestamp of the audio in microseconds.
@@ -46,4 +46,4 @@ pub (receiver: EncodedAudioChunk) timestamp(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedAudioChunk/copyTo)
  */
-pub (receiver: EncodedAudioChunk) copy_to(destination: std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource): std.core.Unit.Unit.
+pub (receiver: EncodedAudioChunk) copy_to(destination: std.js.Dom.AllowSharedBufferSource): std.core.Unit.

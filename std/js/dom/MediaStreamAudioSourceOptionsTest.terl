@@ -14,7 +14,5 @@ module std.js.Dom.MediaStreamAudioSourceOptionsTest.
 
 import type std.js.Dom.MediaStreamAudioSourceOptions.
 
-pub media_stream_typechecks(
-    receiver: MediaStreamAudioSourceOptions,
-): std.js.Dom.MediaStream.MediaStream ->
+pub media_stream_typechecks(receiver: MediaStreamAudioSourceOptions): std.js.Dom.MediaStream ->
     receiver.media_stream().

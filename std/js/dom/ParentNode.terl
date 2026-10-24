@@ -12,12 +12,10 @@
  */
 module std.js.Dom.ParentNode.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.Element.{Element}.
-import type std.js.Dom.Node.{Node}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Element, Node}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 pub opaque type ParentNode.
 
@@ -32,7 +30,7 @@ pub (receiver: ParentNode) child_element_count(): std.js.Number.JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/children)
  */
-pub (receiver: ParentNode) children(): std.js.Dom.HTMLCollection.HTMLCollection ->
+pub (receiver: ParentNode) children(): std.js.Dom.HTMLCollection ->
     native.
 
 /**

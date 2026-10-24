@@ -15,7 +15,7 @@ module std.js.Dom.AudioDataInitTest.
 import type std.js.Dom.AudioDataInit.
 import type std.js.Number.{JsNumber}.
 
-pub data_typechecks(receiver: AudioDataInit): std.js.Dom.BufferSource.BufferSource ->
+pub data_typechecks(receiver: AudioDataInit): std.js.Dom.BufferSource ->
     receiver.data().
 
 pub number_of_channels_typechecks(receiver: AudioDataInit): JsNumber ->
@@ -30,7 +30,5 @@ pub sample_rate_typechecks(receiver: AudioDataInit): JsNumber ->
 pub timestamp_typechecks(receiver: AudioDataInit): JsNumber ->
     receiver.timestamp().
 
-pub transfer_typechecks(
-    receiver: AudioDataInit,
-): std.core.Option.Option[std.js.Array.Array[std.js.ArrayBuffer.ArrayBuffer]] ->
+pub transfer_typechecks(receiver: AudioDataInit): std.core.Option[std.js.Array[std.js.ArrayBuffer]] ->
     receiver.transfer().

@@ -13,5 +13,5 @@
 module std.js.Dom.ReadableStreamController.
 
 pub type ReadableStreamController[T] =
-      std.js.Dom.ReadableByteStreamController.ReadableByteStreamController
-    | std.js.Dom.ReadableStreamDefaultController.ReadableStreamDefaultController[T].
+      std.js.Dom.ReadableByteStreamController
+    | std.js.Dom.ReadableStreamDefaultController[T].

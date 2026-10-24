@@ -14,7 +14,5 @@ module std.js.Dom.MediaQueryListEventMapTest.
 
 import type std.js.Dom.MediaQueryListEventMap.
 
-pub change_typechecks(
-    receiver: MediaQueryListEventMap,
-): std.js.Dom.MediaQueryListEvent.MediaQueryListEvent ->
+pub change_typechecks(receiver: MediaQueryListEventMap): std.js.Dom.MediaQueryListEvent ->
     receiver.change().

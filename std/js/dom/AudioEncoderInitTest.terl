@@ -14,12 +14,8 @@ module std.js.Dom.AudioEncoderInitTest.
 
 import type std.js.Dom.AudioEncoderInit.
 
-pub error_typechecks(
-    receiver: AudioEncoderInit,
-): std.js.Dom.WebCodecsErrorCallback.WebCodecsErrorCallback ->
+pub error_typechecks(receiver: AudioEncoderInit): std.js.Dom.WebCodecsErrorCallback ->
     receiver.error().
 
-pub output_typechecks(
-    receiver: AudioEncoderInit,
-): std.js.Dom.EncodedAudioChunkOutputCallback.EncodedAudioChunkOutputCallback ->
+pub output_typechecks(receiver: AudioEncoderInit): std.js.Dom.EncodedAudioChunkOutputCallback ->
     receiver.output().

@@ -13,7 +13,7 @@ import type std.core.Error.
  * HttpError is the portable error returned by HTTP helpers.
  *
  * Input: includes the neutral `code` and `message` fields from
- * `std.core.Error.Error` and adds the HTTP status code most closely associated
+ * `std.core.Error` and adds the HTTP status code most closely associated
  * with the failure.
  * Output: a typed error value usable anywhere `Error`-including values are
  * accepted.
@@ -34,7 +34,7 @@ pub struct HttpError includes Error {
  * status code.
  * Output: `HttpError`.
  * Transformation: stores the portable code and message included from
- * `std.core.Error.Error` plus HTTP-specific status context.
+ * `std.core.Error` plus HTTP-specific status context.
  */
 pub new(code: Atom, message: String, status: Int): HttpError ->
     HttpError(code = code, message = message, status = status).

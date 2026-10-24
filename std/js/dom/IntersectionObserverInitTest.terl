@@ -12,13 +12,13 @@
  */
 module std.js.Dom.IntersectionObserverInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.IntersectionObserverInit.
 import type std.js.Number.{JsNumber}.
 
 pub root_typechecks(
     receiver: IntersectionObserverInit,
-): Option[std.js.Dom.Document.Document | std.js.Dom.Element.Element] ->
+): Option[std.js.Dom.Document | std.js.Dom.Element] ->
     receiver.root().
 
 pub root_margin_typechecks(receiver: IntersectionObserverInit): Option[std.js.String.JsString] ->
@@ -26,5 +26,5 @@ pub root_margin_typechecks(receiver: IntersectionObserverInit): Option[std.js.St
 
 pub threshold_typechecks(
     receiver: IntersectionObserverInit,
-): Option[std.js.Array.Array[JsNumber] | JsNumber] ->
+): Option[std.js.Array[JsNumber] | JsNumber] ->
     receiver.threshold().

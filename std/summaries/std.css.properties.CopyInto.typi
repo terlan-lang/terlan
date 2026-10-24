@@ -8,7 +8,7 @@ module std.css.properties.CopyInto.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    copy_into: std.core.Option.Option[Value]
+    copy_into: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

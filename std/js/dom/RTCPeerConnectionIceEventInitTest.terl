@@ -16,5 +16,5 @@ import type std.js.Dom.RTCPeerConnectionIceEventInit.
 
 pub candidate_typechecks(
     receiver: RTCPeerConnectionIceEventInit,
-): std.core.Option.Option[std.js.Dom.RTCIceCandidate.RTCIceCandidate] ->
+): std.core.Option[std.js.Dom.RTCIceCandidate] ->
     receiver.candidate().

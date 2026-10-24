@@ -12,22 +12,11 @@
  */
 module std.js.Dom.DocumentTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Array.{Array}.
-import type std.js.Dom.Attr.{Attr}.
-import type std.js.Dom.Document.
-import type std.js.Dom.Element.{Element}.
-import type std.js.Dom.ElementCreationOptions.{ElementCreationOptions}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLAnchorElement.{HTMLAnchorElement}.
-import type std.js.Dom.HTMLCollectionOf.{HTMLCollectionOf}.
-import type std.js.Dom.HTMLElement.{HTMLElement}.
-import type std.js.Dom.HTMLEmbedElement.{HTMLEmbedElement}.
-import type std.js.Dom.Range.{Range}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Attr, Document, Element, ElementCreationOptions, EventListenerOrEventListenerObject, HTMLAnchorElement, HTMLCollectionOf, HTMLElement, HTMLEmbedElement, Range}.
 import type std.js.Number.{JsNumber}.
-import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
+import type std.js.{Array, Promise}.
 
 pub url_typechecks(receiver: Document): JsString ->
     receiver.url().
@@ -35,13 +24,13 @@ pub url_typechecks(receiver: Document): JsString ->
 pub alink_color_typechecks(receiver: Document): JsString ->
     receiver.alink_color().
 
-pub all_typechecks(receiver: Document): std.js.Dom.HTMLAllCollection.HTMLAllCollection ->
+pub all_typechecks(receiver: Document): std.js.Dom.HTMLAllCollection ->
     receiver.all().
 
 pub anchors_typechecks(receiver: Document): HTMLCollectionOf[HTMLAnchorElement] ->
     receiver.anchors().
 
-pub applets_typechecks(receiver: Document): std.js.Dom.HTMLCollection.HTMLCollection ->
+pub applets_typechecks(receiver: Document): std.js.Dom.HTMLCollection ->
     receiver.applets().
 
 pub bg_color_typechecks(receiver: Document): JsString ->
@@ -65,9 +54,7 @@ pub content_type_typechecks(receiver: Document): JsString ->
 pub cookie_typechecks(receiver: Document): JsString ->
     receiver.cookie().
 
-pub current_script_typechecks(
-    receiver: Document,
-): Option[std.js.Dom.HTMLOrSVGScriptElement.HTMLOrSVGScriptElement] ->
+pub current_script_typechecks(receiver: Document): Option[std.js.Dom.HTMLOrSVGScriptElement] ->
     receiver.current_script().
 
 pub design_mode_typechecks(receiver: Document): JsString ->
@@ -76,7 +63,7 @@ pub design_mode_typechecks(receiver: Document): JsString ->
 pub dir_typechecks(receiver: Document): JsString ->
     receiver.dir().
 
-pub doctype_typechecks(receiver: Document): Option[std.js.Dom.DocumentType.DocumentType] ->
+pub doctype_typechecks(receiver: Document): Option[std.js.Dom.DocumentType] ->
     receiver.doctype().
 
 pub document_element_typechecks(receiver: Document): HTMLElement ->
@@ -94,14 +81,10 @@ pub embeds_typechecks(receiver: Document): HTMLCollectionOf[HTMLEmbedElement] ->
 pub fg_color_typechecks(receiver: Document): JsString ->
     receiver.fg_color().
 
-pub forms_typechecks(
-    receiver: Document,
-): HTMLCollectionOf[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
+pub forms_typechecks(receiver: Document): HTMLCollectionOf[std.js.Dom.HTMLFormElement] ->
     receiver.forms().
 
-pub fragment_directive_typechecks(
-    receiver: Document,
-): std.js.Dom.FragmentDirective.FragmentDirective ->
+pub fragment_directive_typechecks(receiver: Document): std.js.Dom.FragmentDirective ->
     receiver.fragment_directive().
 
 pub fullscreen_typechecks(receiver: Document): Bool ->
@@ -110,18 +93,16 @@ pub fullscreen_typechecks(receiver: Document): Bool ->
 pub fullscreen_enabled_typechecks(receiver: Document): Bool ->
     receiver.fullscreen_enabled().
 
-pub head_typechecks(receiver: Document): std.js.Dom.HTMLHeadElement.HTMLHeadElement ->
+pub head_typechecks(receiver: Document): std.js.Dom.HTMLHeadElement ->
     receiver.head().
 
 pub hidden_typechecks(receiver: Document): Bool ->
     receiver.hidden().
 
-pub images_typechecks(
-    receiver: Document,
-): HTMLCollectionOf[std.js.Dom.HTMLImageElement.HTMLImageElement] ->
+pub images_typechecks(receiver: Document): HTMLCollectionOf[std.js.Dom.HTMLImageElement] ->
     receiver.images().
 
-pub implementation_typechecks(receiver: Document): std.js.Dom.DOMImplementation.DOMImplementation ->
+pub implementation_typechecks(receiver: Document): std.js.Dom.DOMImplementation ->
     receiver.implementation().
 
 pub input_encoding_typechecks(receiver: Document): JsString ->
@@ -135,10 +116,10 @@ pub link_color_typechecks(receiver: Document): JsString ->
 
 pub links_typechecks(
     receiver: Document,
-): HTMLCollectionOf[HTMLAnchorElement | std.js.Dom.HTMLAreaElement.HTMLAreaElement] ->
+): HTMLCollectionOf[HTMLAnchorElement | std.js.Dom.HTMLAreaElement] ->
     receiver.links().
 
-pub location_typechecks(receiver: Document): std.js.Dom.Location.Location ->
+pub location_typechecks(receiver: Document): std.js.Dom.Location ->
     receiver.location().
 
 pub picture_in_picture_enabled_typechecks(receiver: Document): Bool ->
@@ -150,18 +131,16 @@ pub plugins_typechecks(receiver: Document): HTMLCollectionOf[HTMLEmbedElement] -
 pub referrer_typechecks(receiver: Document): JsString ->
     receiver.referrer().
 
-pub root_element_typechecks(receiver: Document): Option[std.js.Dom.SVGSVGElement.SVGSVGElement] ->
+pub root_element_typechecks(receiver: Document): Option[std.js.Dom.SVGSVGElement] ->
     receiver.root_element().
 
-pub scripts_typechecks(
-    receiver: Document,
-): HTMLCollectionOf[std.js.Dom.HTMLScriptElement.HTMLScriptElement] ->
+pub scripts_typechecks(receiver: Document): HTMLCollectionOf[std.js.Dom.HTMLScriptElement] ->
     receiver.scripts().
 
 pub scrolling_element_typechecks(receiver: Document): Option[Element] ->
     receiver.scrolling_element().
 
-pub timeline_typechecks(receiver: Document): std.js.Dom.DocumentTimeline.DocumentTimeline ->
+pub timeline_typechecks(receiver: Document): std.js.Dom.DocumentTimeline ->
     receiver.timeline().
 
 pub title_typechecks(receiver: Document): JsString ->
@@ -177,8 +156,8 @@ pub caret_position_from_point_typechecks(
     receiver: Document,
     x: JsNumber,
     y: JsNumber,
-    options: Option[std.js.Dom.CaretPositionFromPointOptions.CaretPositionFromPointOptions],
-): Option[std.js.Dom.CaretPosition.CaretPosition] ->
+    options: Option[std.js.Dom.CaretPositionFromPointOptions],
+): Option[std.js.Dom.CaretPosition] ->
     receiver.caret_position_from_point(x, y, options).
 
 pub caret_range_from_point_typechecks(receiver: Document, x: JsNumber, y: JsNumber): Option[Range] ->
@@ -200,18 +179,13 @@ pub create_attribute_ns_typechecks(
 ): Attr ->
     receiver.create_attribute_ns(namespace, qualified_name).
 
-pub create_cdata_section_typechecks(
-    receiver: Document,
-    data: JsString,
-): std.js.Dom.CDATASection.CDATASection ->
+pub create_cdata_section_typechecks(receiver: Document, data: JsString): std.js.Dom.CDATASection ->
     receiver.create_cdata_section(data).
 
-pub create_comment_typechecks(receiver: Document, data: JsString): std.js.Dom.Comment.Comment ->
+pub create_comment_typechecks(receiver: Document, data: JsString): std.js.Dom.Comment ->
     receiver.create_comment(data).
 
-pub create_document_fragment_typechecks(
-    receiver: Document,
-): std.js.Dom.DocumentFragment.DocumentFragment ->
+pub create_document_fragment_typechecks(receiver: Document): std.js.Dom.DocumentFragment ->
     receiver.create_document_fragment().
 
 pub create_element_typechecks(
@@ -237,20 +211,20 @@ pub create_element_ns_overload_2_typechecks(
 ): Element ->
     receiver.create_element_ns_overload_2(namespace, qualified_name, options).
 
-pub create_event_typechecks(receiver: Document, event_interface: JsString): std.js.Dom.Event.Event ->
+pub create_event_typechecks(receiver: Document, event_interface: JsString): std.js.Dom.Event ->
     receiver.create_event(event_interface).
 
 pub create_processing_instruction_typechecks(
     receiver: Document,
     target_: JsString,
     data: JsString,
-): std.js.Dom.ProcessingInstruction.ProcessingInstruction ->
+): std.js.Dom.ProcessingInstruction ->
     receiver.create_processing_instruction(target_, data).
 
 pub create_range_typechecks(receiver: Document): Range ->
     receiver.create_range().
 
-pub create_text_node_typechecks(receiver: Document, data: JsString): std.js.Dom.Text.Text ->
+pub create_text_node_typechecks(receiver: Document, data: JsString): std.js.Dom.Text ->
     receiver.create_text_node(data).
 
 pub exec_command_typechecks(
@@ -282,7 +256,7 @@ pub get_elements_by_class_name_typechecks(
 pub get_elements_by_name_typechecks(
     receiver: Document,
     element_name: JsString,
-): std.js.Dom.NodeListOf.NodeListOf[HTMLElement] ->
+): std.js.Dom.NodeListOf[HTMLElement] ->
     receiver.get_elements_by_name(element_name).
 
 pub get_elements_by_tag_name_typechecks(
@@ -298,7 +272,7 @@ pub get_elements_by_tag_name_ns_typechecks(
 ): HTMLCollectionOf[Element] ->
     receiver.get_elements_by_tag_name_ns(namespace, local_name).
 
-pub get_selection_typechecks(receiver: Document): Option[std.js.Dom.Selection.Selection] ->
+pub get_selection_typechecks(receiver: Document): Option[std.js.Dom.Selection] ->
     receiver.get_selection().
 
 pub has_focus_typechecks(receiver: Document): Bool ->
@@ -316,10 +290,10 @@ pub open_typechecks(
 
 pub open_overload_2_typechecks(
     receiver: Document,
-    url: std.js.Dom.URL.URL | JsString,
+    url: std.js.Dom.URL | JsString,
     name: JsString,
     features: JsString,
-): Option[std.js.Dom.WindowProxy.WindowProxy] ->
+): Option[std.js.Dom.WindowProxy] ->
     receiver.open_overload_2(url, name, features).
 
 pub query_command_enabled_typechecks(receiver: Document, command_id: JsString): Bool ->
@@ -345,8 +319,8 @@ pub request_storage_access_typechecks(receiver: Document): Promise[Unit] ->
 
 pub start_view_transition_typechecks(
     receiver: Document,
-    callback_options: Option[std.js.Dom.StartViewTransitionOptions.StartViewTransitionOptions | std.js.Dom.ViewTransitionUpdateCallback.ViewTransitionUpdateCallback],
-): std.js.Dom.ViewTransition.ViewTransition ->
+    callback_options: Option[std.js.Dom.StartViewTransitionOptions | std.js.Dom.ViewTransitionUpdateCallback],
+): std.js.Dom.ViewTransition ->
     receiver.start_view_transition(callback_options).
 
 pub write_typechecks(receiver: Document, text: Array[JsString]): Unit ->
@@ -359,7 +333,7 @@ pub add_event_listener_typechecks(
     receiver: Document,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -367,6 +341,6 @@ pub remove_event_listener_typechecks(
     receiver: Document,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

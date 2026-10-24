@@ -14,5 +14,5 @@ module std.js.Dom.ReadableStreamBYOBReaderTest.
 
 import type std.js.Dom.ReadableStreamBYOBReader.
 
-pub release_lock_typechecks(receiver: ReadableStreamBYOBReader): std.core.Unit.Unit ->
+pub release_lock_typechecks(receiver: ReadableStreamBYOBReader): std.core.Unit ->
     receiver.release_lock().

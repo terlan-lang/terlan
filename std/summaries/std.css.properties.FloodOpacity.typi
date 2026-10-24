@@ -8,7 +8,7 @@ module std.css.properties.FloodOpacity.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    flood_opacity: std.core.Option.Option[Value]
+    flood_opacity: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

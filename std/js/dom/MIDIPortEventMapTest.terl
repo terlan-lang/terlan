@@ -14,7 +14,5 @@ module std.js.Dom.MIDIPortEventMapTest.
 
 import type std.js.Dom.MIDIPortEventMap.
 
-pub statechange_typechecks(
-    receiver: MIDIPortEventMap,
-): std.js.Dom.MIDIConnectionEvent.MIDIConnectionEvent ->
+pub statechange_typechecks(receiver: MIDIPortEventMap): std.js.Dom.MIDIConnectionEvent ->
     receiver.statechange().

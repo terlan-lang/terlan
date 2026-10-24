@@ -15,8 +15,8 @@ module std.js.Dom.AudioProcessingEventInit.
 
 pub opaque type AudioProcessingEventInit.
 
-pub (receiver: AudioProcessingEventInit) input_buffer(): std.js.Dom.AudioBuffer.AudioBuffer.
+pub (receiver: AudioProcessingEventInit) input_buffer(): std.js.Dom.AudioBuffer.
 
-pub (receiver: AudioProcessingEventInit) output_buffer(): std.js.Dom.AudioBuffer.AudioBuffer.
+pub (receiver: AudioProcessingEventInit) output_buffer(): std.js.Dom.AudioBuffer.
 
 pub (receiver: AudioProcessingEventInit) playback_time(): std.js.Number.JsNumber.

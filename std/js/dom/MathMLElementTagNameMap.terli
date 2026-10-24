@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MathMLElementTagNameMap.
 
-import type std.js.Dom.MathMLElement.{MathMLElement}.
+import type std.js.Dom.{MathMLElement}.
 
 pub opaque type MathMLElementTagNameMap.
 

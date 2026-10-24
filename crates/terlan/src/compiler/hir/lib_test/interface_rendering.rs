@@ -16,14 +16,14 @@ pub echo(value: Alias): Box -> value.
     let interface = syntax_module_output_to_interface(&syntax);
     assert_trait_conformance(
         &interface,
-        "Mark[sample.Box.Box]",
-        "sample.Box.Box",
+        "Mark[sample.Box]",
+        "sample.Box",
         TraitConformanceSource::ExplicitImpl,
         false,
     );
     let signature = &interface.functions[&("echo".to_string(), 1)];
-    assert_eq!(signature.return_type, "sample.Box.Box");
-    assert_eq!(signature.params[0].annotation, "sample.Box.Box");
+    assert_eq!(signature.return_type, "sample.Box");
+    assert_eq!(signature.params[0].annotation, "sample.Box");
     let rendered = interface.to_terlan_interface_text();
     let reparsed = parse_interface_module_as_syntax_output(&rendered).expect("parse summary");
     assert_eq!(
@@ -873,4 +873,27 @@ pub trait Functor[F[_]] {
     assert!(interface
         .to_terlan_interface_text()
         .contains("map[A, B](value: F[A], f: (A) -> B): F[B]."));
+}
+
+/// Public summaries shorten type heads while preserving literal strings.
+#[test]
+fn primary_type_summary_preserves_secondary_types_and_literals() {
+    let syntax = parse_interface_module_as_syntax_output(
+        r#"
+module sample.Api.
+pub echo(value: sample.Box.Box[sample.Json.Json]): sample.Json.Error.
+pub literal(value: Atom["sample.Box.Box"]): Atom["sample.Box.Box"].
+"#,
+    )
+    .expect("parse public type paths");
+    let interface = syntax_module_output_to_interface(&syntax);
+    let rendered = interface.to_terlan_interface_text();
+    assert!(rendered.contains("sample.Box[sample.Json]"), "{rendered}");
+    assert!(rendered.contains("sample.Json.Error"), "{rendered}");
+    assert!(rendered.contains(r#"Atom["sample.Box.Box"]"#), "{rendered}");
+    let reparsed = parse_interface_module_as_syntax_output(&rendered).expect("parse short summary");
+    assert_eq!(
+        syntax_module_output_to_interface(&reparsed).to_terlan_interface_text(),
+        rendered
+    );
 }

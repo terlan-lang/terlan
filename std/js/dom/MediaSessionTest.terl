@@ -12,12 +12,11 @@
  */
 module std.js.Dom.MediaSessionTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
+import type std.core.{Option, Unit}.
 import type std.js.Dom.MediaSession.
-import type std.js.Promise.{Promise}.
+import type std.js.{Promise}.
 
-pub metadata_typechecks(receiver: MediaSession): Option[std.js.Dom.MediaMetadata.MediaMetadata] ->
+pub metadata_typechecks(receiver: MediaSession): Option[std.js.Dom.MediaMetadata] ->
     receiver.metadata().
 
 pub set_camera_active_typechecks(receiver: MediaSession, active: Bool): Promise[Unit] ->
@@ -28,6 +27,6 @@ pub set_microphone_active_typechecks(receiver: MediaSession, active: Bool): Prom
 
 pub set_position_state_typechecks(
     receiver: MediaSession,
-    state: Option[std.js.Dom.MediaPositionState.MediaPositionState],
+    state: Option[std.js.Dom.MediaPositionState],
 ): Unit ->
     receiver.set_position_state(state).

@@ -8,7 +8,7 @@ module std.css.properties.TriggerScope.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    trigger_scope: std.core.Option.Option[Value]
+    trigger_scope: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

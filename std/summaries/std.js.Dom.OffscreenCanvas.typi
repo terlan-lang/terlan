@@ -39,15 +39,15 @@ pub (receiver: OffscreenCanvas) width(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/convertToBlob)
  */
-pub (receiver: OffscreenCanvas) convert_to_blob(options: std.core.Option.Option[std.js.Dom.ImageEncodeOptions.ImageEncodeOptions]): std.js.Promise.Promise[std.js.Dom.Blob.Blob].
+pub (receiver: OffscreenCanvas) convert_to_blob(options: std.core.Option[std.js.Dom.ImageEncodeOptions]): std.js.Promise[std.js.Dom.Blob].
 
 /**
  * The **`OffscreenCanvas.transferToImageBitmap()`** method creates an ImageBitmap object from the most recently rendered image of the `OffscreenCanvas`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/transferToImageBitmap)
  */
-pub (receiver: OffscreenCanvas) transfer_to_image_bitmap(): std.js.Dom.ImageBitmap.ImageBitmap.
+pub (receiver: OffscreenCanvas) transfer_to_image_bitmap(): std.js.Dom.ImageBitmap.
 
-pub (receiver: OffscreenCanvas) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: OffscreenCanvas) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: OffscreenCanvas) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: OffscreenCanvas) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

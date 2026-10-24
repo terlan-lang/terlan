@@ -12,7 +12,7 @@
  */
 module std.js.Dom.PaymentDetailsUpdateTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.PaymentDetailsUpdate.
 
 pub error_typechecks(receiver: PaymentDetailsUpdate): Option[std.js.String.JsString] ->
@@ -20,8 +20,8 @@ pub error_typechecks(receiver: PaymentDetailsUpdate): Option[std.js.String.JsStr
 
 pub shipping_address_errors_typechecks(
     receiver: PaymentDetailsUpdate,
-): Option[std.js.Dom.AddressErrors.AddressErrors] ->
+): Option[std.js.Dom.AddressErrors] ->
     receiver.shipping_address_errors().
 
-pub total_typechecks(receiver: PaymentDetailsUpdate): Option[std.js.Dom.PaymentItem.PaymentItem] ->
+pub total_typechecks(receiver: PaymentDetailsUpdate): Option[std.js.Dom.PaymentItem] ->
     receiver.total().

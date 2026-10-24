@@ -15,6 +15,6 @@ module std.js.Dom.BroadcastChannelEventMap.
 
 pub opaque type BroadcastChannelEventMap.
 
-pub (receiver: BroadcastChannelEventMap) message(): std.js.Dom.MessageEvent.MessageEvent.
+pub (receiver: BroadcastChannelEventMap) message(): std.js.Dom.MessageEvent.
 
-pub (receiver: BroadcastChannelEventMap) messageerror(): std.js.Dom.MessageEvent.MessageEvent.
+pub (receiver: BroadcastChannelEventMap) messageerror(): std.js.Dom.MessageEvent.

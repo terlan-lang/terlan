@@ -12,7 +12,7 @@
  */
 module std.js.Dom.SVGTests.
 
-import type std.js.Dom.SVGStringList.{SVGStringList}.
+import type std.js.Dom.{SVGStringList}.
 
 pub opaque type SVGTests.
 

@@ -6,7 +6,7 @@ Rules:
 
 - Ranges are public standard-library values, not private compiler-only runtime
   shapes.
-- `Int..Int` syntax lowers to the public concrete `std.range.Range.Range`
+- `Int..Int` syntax lowers to the public concrete `std.range.Range`
   value.
 - Invalid step values return typed errors; they must not become unchecked
   runtime crashes.

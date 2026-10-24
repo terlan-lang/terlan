@@ -25,28 +25,28 @@ pub opaque type DataTransfer.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/files)
  */
-pub (receiver: DataTransfer) files(): std.js.Dom.FileList.FileList.
+pub (receiver: DataTransfer) files(): std.js.Dom.FileList.
 
 /**
  * The read-only `items` property of the DataTransfer interface is a A DataTransferItemList object containing DataTransferItem objects representing the items being dragged in a drag operation, one list item for each object being dragged.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/items)
  */
-pub (receiver: DataTransfer) items(): std.js.Dom.DataTransferItemList.DataTransferItemList.
+pub (receiver: DataTransfer) items(): std.js.Dom.DataTransferItemList.
 
 /**
  * The **`DataTransfer.types`** read-only property returns the available types that exist in the DataTransfer.items.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/types)
  */
-pub (receiver: DataTransfer) types(): std.js.Array.Array[std.js.String.JsString].
+pub (receiver: DataTransfer) types(): std.js.Array[std.js.String.JsString].
 
 /**
  * The **`DataTransfer.clearData()`** method removes the drag operation's drag data for the given type.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/clearData)
  */
-pub (receiver: DataTransfer) clear_data(format: std.core.Option.Option[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: DataTransfer) clear_data(format: std.core.Option[std.js.String.JsString]): std.core.Unit.
 
 /**
  * The **`DataTransfer.getData()`** method retrieves drag data (as a string) for the specified type.
@@ -60,11 +60,11 @@ pub (receiver: DataTransfer) get_data(format: std.js.String.JsString): std.js.St
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/setData)
  */
-pub (receiver: DataTransfer) set_data(format: std.js.String.JsString, data: std.js.String.JsString): std.core.Unit.Unit.
+pub (receiver: DataTransfer) set_data(format: std.js.String.JsString, data: std.js.String.JsString): std.core.Unit.
 
 /**
  * When a drag occurs, a translucent image is generated from the drag target (the element the HTMLElement/dragstart_event event is fired at), and follows the mouse pointer during the drag.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/setDragImage)
  */
-pub (receiver: DataTransfer) set_drag_image(image: std.js.Dom.Element.Element, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: DataTransfer) set_drag_image(image: std.js.Dom.Element, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Unit.

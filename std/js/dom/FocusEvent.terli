@@ -24,4 +24,4 @@ pub opaque type FocusEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FocusEvent/relatedTarget)
  */
-pub (receiver: FocusEvent) related_target(): std.core.Option.Option[std.js.Dom.EventTarget.EventTarget].
+pub (receiver: FocusEvent) related_target(): std.core.Option[std.js.Dom.EventTarget].

@@ -15,4 +15,4 @@ module std.js.Dom.RTCRtpCodingParameters.
 
 pub opaque type RTCRtpCodingParameters.
 
-pub (receiver: RTCRtpCodingParameters) rid(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: RTCRtpCodingParameters) rid(): std.core.Option[std.js.String.JsString].

@@ -12,14 +12,14 @@
  */
 module std.js.Dom.UIEventInitTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.UIEventInit.
 import type std.js.Number.{JsNumber}.
 
 pub detail_typechecks(receiver: UIEventInit): Option[JsNumber] ->
     receiver.detail().
 
-pub view_typechecks(receiver: UIEventInit): Option[std.js.Dom.Window.Window] ->
+pub view_typechecks(receiver: UIEventInit): Option[std.js.Dom.Window] ->
     receiver.view().
 
 pub which_typechecks(receiver: UIEventInit): Option[JsNumber] ->

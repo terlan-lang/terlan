@@ -25,4 +25,4 @@ pub opaque type AbortController.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortController/signal)
  */
-pub (receiver: AbortController) signal(): std.js.Dom.AbortSignal.AbortSignal.
+pub (receiver: AbortController) signal(): std.js.Dom.AbortSignal.

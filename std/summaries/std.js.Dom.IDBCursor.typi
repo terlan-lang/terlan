@@ -25,46 +25,46 @@ pub opaque type IDBCursor.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/key)
  */
-pub (receiver: IDBCursor) key(): std.js.Dom.IDBValidKey.IDBValidKey.
+pub (receiver: IDBCursor) key(): std.js.Dom.IDBValidKey.
 
 /**
  * The **`primaryKey`** read-only property of the cursor is currently being iterated or has iterated outside its range, this is set to undefined.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/primaryKey)
  */
-pub (receiver: IDBCursor) primary_key(): std.js.Dom.IDBValidKey.IDBValidKey.
+pub (receiver: IDBCursor) primary_key(): std.js.Dom.IDBValidKey.
 
 /**
  * The **`request`** read-only property of the IDBCursor interface returns the IDBRequest used to obtain the cursor.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/request)
  */
-pub (receiver: IDBCursor) request(): std.js.Dom.IDBRequest.IDBRequest.
+pub (receiver: IDBCursor) request(): std.js.Dom.IDBRequest.
 
 /**
  * The **`source`** read-only property of the null or throws an exception, even if the cursor is currently being iterated, has iterated past its end, or its transaction is not active.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/source)
  */
-pub (receiver: IDBCursor) source(): std.js.Dom.IDBIndex.IDBIndex | std.js.Dom.IDBObjectStore.IDBObjectStore.
+pub (receiver: IDBCursor) source(): std.js.Dom.IDBIndex | std.js.Dom.IDBObjectStore.
 
 /**
  * The **`advance()`** method of the IDBCursor interface sets the number of times a cursor should move its position forward.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/advance)
  */
-pub (receiver: IDBCursor) advance(count: std.js.Number.JsNumber): std.core.Unit.Unit.
+pub (receiver: IDBCursor) advance(count: std.js.Number.JsNumber): std.core.Unit.
 
 /**
  * The **`continue()`** method of the IDBCursor interface advances the cursor to the next position along its direction, to the item whose key matches the optional key parameter.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/continue)
  */
-pub (receiver: IDBCursor) continue(key: std.core.Option.Option[std.js.Dom.IDBValidKey.IDBValidKey]): std.core.Unit.Unit.
+pub (receiver: IDBCursor) continue(key: std.core.Option[std.js.Dom.IDBValidKey]): std.core.Unit.
 
 /**
  * The **`continuePrimaryKey()`** method of the matches the key parameter as well as whose primary key matches the primary key parameter.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBCursor/continuePrimaryKey)
  */
-pub (receiver: IDBCursor) continue_primary_key(key: std.js.Dom.IDBValidKey.IDBValidKey, primary_key: std.js.Dom.IDBValidKey.IDBValidKey): std.core.Unit.Unit.
+pub (receiver: IDBCursor) continue_primary_key(key: std.js.Dom.IDBValidKey, primary_key: std.js.Dom.IDBValidKey): std.core.Unit.

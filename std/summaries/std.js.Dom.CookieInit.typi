@@ -15,14 +15,14 @@ module std.js.Dom.CookieInit.
 
 pub opaque type CookieInit.
 
-pub (receiver: CookieInit) domain(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: CookieInit) domain(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: CookieInit) expires(): std.core.Option.Option[std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp].
+pub (receiver: CookieInit) expires(): std.core.Option[std.js.Dom.DOMHighResTimeStamp].
 
 pub (receiver: CookieInit) name(): std.js.String.JsString.
 
-pub (receiver: CookieInit) partitioned(): std.core.Option.Option[Bool].
+pub (receiver: CookieInit) partitioned(): std.core.Option[Bool].
 
-pub (receiver: CookieInit) path(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: CookieInit) path(): std.core.Option[std.js.String.JsString].
 
 pub (receiver: CookieInit) value(): std.js.String.JsString.

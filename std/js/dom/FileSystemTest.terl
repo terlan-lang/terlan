@@ -17,7 +17,5 @@ import type std.js.Dom.FileSystem.
 pub name_typechecks(receiver: FileSystem): std.js.String.JsString ->
     receiver.name().
 
-pub root_typechecks(
-    receiver: FileSystem,
-): std.js.Dom.FileSystemDirectoryEntry.FileSystemDirectoryEntry ->
+pub root_typechecks(receiver: FileSystem): std.js.Dom.FileSystemDirectoryEntry ->
     receiver.root().

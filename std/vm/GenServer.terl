@@ -44,19 +44,14 @@ pub type GenServerCommand[Value] =
           Atom["gen_server_command"],
           kind: GenServerCommandKind,
           request_id: Int,
-          reply_to: std.vm.Process.Process[GenServerReply[Value]],
+          reply_to: std.vm.Process[GenServerReply[Value]],
           value: Value
       }.
 
 /**
  * Typed process handle plus a concrete AOT mailbox witness.
  */
-pub type ServerRef[Value] =
-      {
-          Atom["gen_server"],
-          process: std.vm.Process.Process[GenServerCommand[Value]],
-          witness: Value
-      }.
+pub type ServerRef[Value] = {Atom["gen_server"], process: std.vm.Process[GenServerCommand[Value]], witness: Value}.
 
 /**
  * Builds a source-owned service handle after initialization succeeds.
@@ -65,10 +60,7 @@ pub type ServerRef[Value] =
  * function owns only GenServer policy and never invokes framework magic.
  */
 @target.vm {process_mailbox: true}
-pub start[Value](
-    process: std.vm.Process.Process[GenServerCommand[Value]],
-    witness: Value,
-): ServerRef[Value] ->
+pub start[Value](process: std.vm.Process[GenServerCommand[Value]], witness: Value): ServerRef[Value] ->
     make_ref[Value](process, witness).
 
 /**
@@ -78,7 +70,7 @@ pub init_succeeded(init_ok: Bool): Bool ->
     init_ok.
 
 pub make_ref[Value](
-    process: std.vm.Process.Process[GenServerCommand[Value]],
+    process: std.vm.Process[GenServerCommand[Value]],
     witness: Value,
 ): ServerRef[Value] ->
     ServerRef(process, witness).
@@ -196,7 +188,7 @@ pub serve_state[Value](state: Value): Unit ->
     }.
 
 pub send_reply[Value](
-    reply_to: std.vm.Process.Process[GenServerReply[Value]],
+    reply_to: std.vm.Process[GenServerReply[Value]],
     request_id: Int,
     reply: Value,
 ): Unit ->

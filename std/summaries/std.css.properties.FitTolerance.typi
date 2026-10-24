@@ -8,7 +8,7 @@ module std.css.properties.FitTolerance.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    fit_tolerance: std.core.Option.Option[Value]
+    fit_tolerance: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

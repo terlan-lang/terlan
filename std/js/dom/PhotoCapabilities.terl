@@ -12,8 +12,8 @@
  */
 module std.js.Dom.PhotoCapabilities.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.MediaSettingsRange.{MediaSettingsRange}.
+import type std.core.{Option}.
+import type std.js.Dom.{MediaSettingsRange}.
 
 pub opaque type PhotoCapabilities.
 

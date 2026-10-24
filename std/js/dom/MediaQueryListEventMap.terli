@@ -14,4 +14,4 @@ module std.js.Dom.MediaQueryListEventMap.
 
 pub opaque type MediaQueryListEventMap.
 
-pub (receiver: MediaQueryListEventMap) change(): std.js.Dom.MediaQueryListEvent.MediaQueryListEvent.
+pub (receiver: MediaQueryListEventMap) change(): std.js.Dom.MediaQueryListEvent.

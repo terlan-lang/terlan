@@ -16,5 +16,5 @@ import type std.js.Dom.MIDIMessageEventInit.
 
 pub data_typechecks(
     receiver: MIDIMessageEventInit,
-): std.core.Option.Option[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]] ->
+): std.core.Option[std.js.Uint8Array[std.js.ArrayBuffer]] ->
     receiver.data().

@@ -15,4 +15,4 @@ module std.js.Dom.VideoDecoderEventMap.
 
 pub opaque type VideoDecoderEventMap.
 
-pub (receiver: VideoDecoderEventMap) dequeue(): std.js.Dom.Event.Event.
+pub (receiver: VideoDecoderEventMap) dequeue(): std.js.Dom.Event.

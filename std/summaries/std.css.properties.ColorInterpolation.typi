@@ -8,7 +8,7 @@ module std.css.properties.ColorInterpolation.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    color_interpolation: std.core.Option.Option[Value]
+    color_interpolation: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

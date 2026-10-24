@@ -12,6 +12,4 @@
  */
 module std.js.Dom.CSSUnparsedSegment.
 
-pub type CSSUnparsedSegment =
-      std.js.Dom.CSSVariableReferenceValue.CSSVariableReferenceValue
-    | std.js.String.JsString.
+pub type CSSUnparsedSegment = std.js.Dom.CSSVariableReferenceValue | std.js.String.JsString.

@@ -12,10 +12,8 @@
  */
 module std.js.Dom.HTMLMeterElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLMeterElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLMeterElement}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -24,7 +22,7 @@ pub high_typechecks(receiver: HTMLMeterElement): JsNumber ->
 
 pub labels_typechecks(
     receiver: HTMLMeterElement,
-): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement] ->
+): std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement] ->
     receiver.labels().
 
 pub low_typechecks(receiver: HTMLMeterElement): JsNumber ->
@@ -46,7 +44,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLMeterElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -54,6 +52,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLMeterElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

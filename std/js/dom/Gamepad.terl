@@ -12,8 +12,8 @@
  */
 module std.js.Dom.Gamepad.
 
-import type std.js.Array.{Array}.
 import type std.js.Number.{JsNumber}.
+import type std.js.{Array}.
 
 /**
  * The **`Gamepad`** interface of the Gamepad API defines an individual gamepad or other controller, allowing access to information such as button presses, axis positions, and id.
@@ -35,7 +35,7 @@ pub (receiver: Gamepad) axes(): Array[JsNumber] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/buttons)
  */
-pub (receiver: Gamepad) buttons(): Array[std.js.Dom.GamepadButton.GamepadButton] ->
+pub (receiver: Gamepad) buttons(): Array[std.js.Dom.GamepadButton] ->
     native.
 
 /**
@@ -67,7 +67,7 @@ pub (receiver: Gamepad) index(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/timestamp)
  */
-pub (receiver: Gamepad) timestamp(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTimeStamp ->
+pub (receiver: Gamepad) timestamp(): std.js.Dom.DOMHighResTimeStamp ->
     native.
 
 /**
@@ -75,5 +75,5 @@ pub (receiver: Gamepad) timestamp(): std.js.Dom.DOMHighResTimeStamp.DOMHighResTi
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Gamepad/vibrationActuator)
  */
-pub (receiver: Gamepad) vibration_actuator(): std.js.Dom.GamepadHapticActuator.GamepadHapticActuator ->
+pub (receiver: Gamepad) vibration_actuator(): std.js.Dom.GamepadHapticActuator ->
     native.

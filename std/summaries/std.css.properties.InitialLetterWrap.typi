@@ -8,7 +8,7 @@ module std.css.properties.InitialLetterWrap.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    initial_letter_wrap: std.core.Option.Option[Value]
+    initial_letter_wrap: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

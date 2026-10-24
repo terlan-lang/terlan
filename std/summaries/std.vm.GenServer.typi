@@ -20,7 +20,7 @@ pub type GenServerCast =
 /// has exactly one stable AOT mailbox layout.
 
 pub type GenServerCommand[Value] =
-    {Atom["gen_server_command"], kind: GenServerCommandKind, request_id: Int, reply_to: std.vm.Process.Process[GenServerReply[Value]], value: Value}.
+    {Atom["gen_server_command"], kind: GenServerCommandKind, request_id: Int, reply_to: std.vm.Process[GenServerReply[Value]], value: Value}.
 
 pub type GenServerCommandKind =
     GenServerCall
@@ -47,7 +47,7 @@ pub type GenServerTag =
 /// Typed process handle plus a concrete AOT mailbox witness.
 
 pub type ServerRef[Value] =
-    {Atom["gen_server"], process: std.vm.Process.Process[GenServerCommand[Value]], witness: Value}.
+    {Atom["gen_server"], process: std.vm.Process[GenServerCommand[Value]], witness: Value}.
 
 pub await_reply[Value](request_id: Int, witness: Value): Value.
 
@@ -68,7 +68,7 @@ pub cast[Value](server: ServerRef[Value], event: Value): Unit.
 @pure
 pub init_succeeded(init_ok: Bool): Bool.
 
-pub make_ref[Value](process: std.vm.Process.Process[GenServerCommand[Value]], witness: Value): ServerRef[Value].
+pub make_ref[Value](process: std.vm.Process[GenServerCommand[Value]], witness: Value): ServerRef[Value].
 
 /// Establishes a VM-owned failure monitor; DOWN delivery remains VM policy.
 
@@ -78,7 +78,7 @@ pub monitor[Value](server: ServerRef[Value]): Unit.
 
 pub relate_peer[Value](server: ServerRef[Value]): Unit.
 
-pub send_reply[Value](reply_to: std.vm.Process.Process[GenServerReply[Value]], request_id: Int, reply: Value): Unit.
+pub send_reply[Value](reply_to: std.vm.Process[GenServerReply[Value]], request_id: Int, reply: Value): Unit.
 
 /// Runs a replacement-policy server loop.
 ///
@@ -96,7 +96,7 @@ pub serve_state[Value](state: Value): Unit.
 /// The caller creates the statically known entry with `Process.spawn`; this
 /// function owns only GenServer policy and never invokes framework magic.
 
-pub start[Value](process: std.vm.Process.Process[GenServerCommand[Value]], witness: Value): ServerRef[Value].
+pub start[Value](process: std.vm.Process[GenServerCommand[Value]], witness: Value): ServerRef[Value].
 
 /// Stops the loop and returns the value produced by its terminate callback.
 

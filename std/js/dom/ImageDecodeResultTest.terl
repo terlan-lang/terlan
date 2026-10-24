@@ -17,5 +17,5 @@ import type std.js.Dom.ImageDecodeResult.
 pub complete_typechecks(receiver: ImageDecodeResult): Bool ->
     receiver.complete().
 
-pub image_typechecks(receiver: ImageDecodeResult): std.js.Dom.VideoFrame.VideoFrame ->
+pub image_typechecks(receiver: ImageDecodeResult): std.js.Dom.VideoFrame ->
     receiver.image().

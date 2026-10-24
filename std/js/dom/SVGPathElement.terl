@@ -12,9 +12,8 @@
  */
 module std.js.Dom.SVGPathElement.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -30,7 +29,7 @@ pub opaque type SVGPathElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPathElement/pathLength)
  */
-pub (receiver: SVGPathElement) path_length(): std.js.Dom.SVGAnimatedNumber.SVGAnimatedNumber ->
+pub (receiver: SVGPathElement) path_length(): std.js.Dom.SVGAnimatedNumber ->
     native.
 
 /**
@@ -38,7 +37,7 @@ pub (receiver: SVGPathElement) path_length(): std.js.Dom.SVGAnimatedNumber.SVGAn
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGPathElement/getPointAtLength)
  */
-pub (receiver: SVGPathElement) get_point_at_length(distance: JsNumber): std.js.Dom.DOMPoint.DOMPoint ->
+pub (receiver: SVGPathElement) get_point_at_length(distance: JsNumber): std.js.Dom.DOMPoint ->
     native.
 
 /**
@@ -52,13 +51,13 @@ pub (receiver: SVGPathElement) get_total_length(): JsNumber ->
 pub (receiver: SVGPathElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     native.
 
 pub (receiver: SVGPathElement) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     native.

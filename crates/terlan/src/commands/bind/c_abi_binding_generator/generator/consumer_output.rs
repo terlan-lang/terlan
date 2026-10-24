@@ -366,8 +366,17 @@ pub(super) fn role_name(role: CAbiFunctionRole) -> &'static str {
 pub(super) fn render_args(args: &[CAbiBindingArg]) -> String {
     args.iter()
         .map(|argument| match &argument.default {
-            Some(default) => format!("{}: {} = {}", argument.name, argument.ty, default),
-            None => format!("{}: {}", argument.name, argument.ty),
+            Some(default) => format!(
+                "{}: {} = {}",
+                argument.name,
+                crate::terlan_hir::public_type_text(&argument.ty),
+                default
+            ),
+            None => format!(
+                "{}: {}",
+                argument.name,
+                crate::terlan_hir::public_type_text(&argument.ty)
+            ),
         })
         .collect::<Vec<_>>()
         .join(", ")

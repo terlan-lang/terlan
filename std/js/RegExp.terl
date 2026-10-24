@@ -20,7 +20,7 @@ pub opaque type RegExp.
  * Executes a search on a string using a regular expression pattern, and returns an array containing the results of that search.
  * @param string The String object or string literal on which to perform the search.
  */
-pub (receiver: RegExp) exec(string: JsString): std.core.Option.Option[std.js.RegExpExecArray.RegExpExecArray] ->
+pub (receiver: RegExp) exec(string: JsString): std.core.Option[std.js.RegExpExecArray] ->
     native.
 
 /**

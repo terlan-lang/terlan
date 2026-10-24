@@ -109,7 +109,7 @@ pub (receiver: URL) search(): JsString ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/searchParams)
  */
-pub (receiver: URL) search_params(): std.js.Dom.URLSearchParams.URLSearchParams ->
+pub (receiver: URL) search_params(): std.js.Dom.URLSearchParams ->
     native.
 
 /**

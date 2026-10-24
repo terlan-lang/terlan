@@ -25,4 +25,4 @@ pub opaque type GainNode.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/GainNode/gain)
  */
-pub (receiver: GainNode) gain(): std.js.Dom.AudioParam.AudioParam.
+pub (receiver: GainNode) gain(): std.js.Dom.AudioParam.

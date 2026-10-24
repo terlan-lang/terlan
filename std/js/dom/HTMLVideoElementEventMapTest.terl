@@ -12,8 +12,7 @@
  */
 module std.js.Dom.HTMLVideoElementEventMapTest.
 
-import type std.js.Dom.HTMLVideoElementEventMap.
-import type std.js.Dom.PictureInPictureEvent.{PictureInPictureEvent}.
+import type std.js.Dom.{HTMLVideoElementEventMap, PictureInPictureEvent}.
 
 pub enterpictureinpicture_typechecks(receiver: HTMLVideoElementEventMap): PictureInPictureEvent ->
     receiver.enterpictureinpicture().

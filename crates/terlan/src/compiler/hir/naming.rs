@@ -1,3 +1,13 @@
+/// Returns the public path of a nominal type without repeating its module leaf.
+/// Secondary types retain their declared name after the owning module path.
+pub(crate) fn public_type_path(module: &str, name: &str) -> String {
+    if module.rsplit('.').next() == Some(name) {
+        module.to_string()
+    } else {
+        format!("{module}.{name}")
+    }
+}
+
 /// Derives the NativeBoundary backend module from a Terlan module path.
 ///
 /// Inputs:
@@ -207,4 +217,41 @@ fn is_terlan_keyword(name: &str) -> bool {
             | "where"
             | "with"
     )
+}
+
+/// Shortens repeated primary type heads in type text, preserving quoted values.
+pub(crate) fn public_type_text(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    let mut chars = input.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '"' || ch == '\'' {
+            out.push(ch);
+            while let Some(next) = chars.next() {
+                out.push(next);
+                if next == '\\' {
+                    if let Some(escaped) = chars.next() {
+                        out.push(escaped);
+                    }
+                } else if next == ch {
+                    break;
+                }
+            }
+        } else if ch.is_ascii_alphabetic() || ch == '_' {
+            let mut head = String::from(ch);
+            while chars
+                .peek()
+                .is_some_and(|next| next.is_ascii_alphanumeric() || *next == '_' || *next == '.')
+            {
+                head.push(chars.next().expect("peeked type head"));
+            }
+            if let Some((module, name)) = head.rsplit_once('.') {
+                out.push_str(&public_type_path(module, name));
+            } else {
+                out.push_str(&head);
+            }
+        } else {
+            out.push(ch);
+        }
+    }
+    out
 }

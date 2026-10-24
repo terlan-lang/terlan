@@ -15,6 +15,6 @@ module std.js.Dom.NavigationPreloadState.
 
 pub opaque type NavigationPreloadState.
 
-pub (receiver: NavigationPreloadState) enabled(): std.core.Option.Option[Bool].
+pub (receiver: NavigationPreloadState) enabled(): std.core.Option[Bool].
 
-pub (receiver: NavigationPreloadState) header_value(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: NavigationPreloadState) header_value(): std.core.Option[std.js.String.JsString].

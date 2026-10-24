@@ -12,7 +12,7 @@
  */
 module std.js.Dom.LargestContentfulPaint.
 
-import type std.js.Dom.DOMHighResTimeStamp.{DOMHighResTimeStamp}.
+import type std.js.Dom.{DOMHighResTimeStamp}.
 import type std.js.String.{JsString}.
 
 /**
@@ -27,7 +27,7 @@ pub opaque type LargestContentfulPaint.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LargestContentfulPaint/element)
  */
-pub (receiver: LargestContentfulPaint) element(): std.core.Option.Option[std.js.Dom.Element.Element] ->
+pub (receiver: LargestContentfulPaint) element(): std.core.Option[std.js.Dom.Element] ->
     native.
 
 /**

@@ -8,7 +8,7 @@ module std.css.properties.EventTriggerSource.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    event_trigger_source: std.core.Option.Option[Value]
+    event_trigger_source: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

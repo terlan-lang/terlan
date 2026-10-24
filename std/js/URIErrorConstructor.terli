@@ -14,4 +14,4 @@ module std.js.URIErrorConstructor.
 
 pub opaque type URIErrorConstructor.
 
-pub (receiver: URIErrorConstructor) prototype(): std.js.URIError.URIError.
+pub (receiver: URIErrorConstructor) prototype(): std.js.URIError.

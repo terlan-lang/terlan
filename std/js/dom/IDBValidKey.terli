@@ -13,8 +13,8 @@
 module std.js.Dom.IDBValidKey.
 
 pub type IDBValidKey =
-      std.js.Dom.BufferSource.BufferSource
-    | std.js.Date.Date
-    | std.js.Array.Array[IDBValidKey]
+      std.js.Dom.BufferSource
+    | std.js.Date
+    | std.js.Array[IDBValidKey]
     | std.js.Number.JsNumber
     | std.js.String.JsString.

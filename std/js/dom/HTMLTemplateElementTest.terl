@@ -12,13 +12,11 @@
  */
 module std.js.Dom.HTMLTemplateElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLTemplateElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLTemplateElement}.
 import type std.js.String.{JsString}.
 
-pub content_typechecks(receiver: HTMLTemplateElement): std.js.Dom.DocumentFragment.DocumentFragment ->
+pub content_typechecks(receiver: HTMLTemplateElement): std.js.Dom.DocumentFragment ->
     receiver.content().
 
 pub shadow_root_clonable_typechecks(receiver: HTMLTemplateElement): Bool ->
@@ -37,7 +35,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLTemplateElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -45,6 +43,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLTemplateElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

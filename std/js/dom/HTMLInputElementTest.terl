@@ -12,10 +12,8 @@
  */
 module std.js.Dom.HTMLInputElementTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLInputElement.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, HTMLInputElement}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -46,10 +44,10 @@ pub dir_name_typechecks(receiver: HTMLInputElement): JsString ->
 pub disabled_typechecks(receiver: HTMLInputElement): Bool ->
     receiver.disabled().
 
-pub files_typechecks(receiver: HTMLInputElement): Option[std.js.Dom.FileList.FileList] ->
+pub files_typechecks(receiver: HTMLInputElement): Option[std.js.Dom.FileList] ->
     receiver.files().
 
-pub form_typechecks(receiver: HTMLInputElement): Option[std.js.Dom.HTMLFormElement.HTMLFormElement] ->
+pub form_typechecks(receiver: HTMLInputElement): Option[std.js.Dom.HTMLFormElement] ->
     receiver.form().
 
 pub form_action_typechecks(receiver: HTMLInputElement): JsString ->
@@ -75,12 +73,10 @@ pub indeterminate_typechecks(receiver: HTMLInputElement): Bool ->
 
 pub labels_typechecks(
     receiver: HTMLInputElement,
-): Option[std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLLabelElement.HTMLLabelElement]] ->
+): Option[std.js.Dom.NodeListOf[std.js.Dom.HTMLLabelElement]] ->
     receiver.labels().
 
-pub list_typechecks(
-    receiver: HTMLInputElement,
-): Option[std.js.Dom.HTMLDataListElement.HTMLDataListElement] ->
+pub list_typechecks(receiver: HTMLInputElement): Option[std.js.Dom.HTMLDataListElement] ->
     receiver.list().
 
 pub max_typechecks(receiver: HTMLInputElement): JsString ->
@@ -137,21 +133,19 @@ pub use_map_typechecks(receiver: HTMLInputElement): JsString ->
 pub validation_message_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.validation_message().
 
-pub validity_typechecks(receiver: HTMLInputElement): std.js.Dom.ValidityState.ValidityState ->
+pub validity_typechecks(receiver: HTMLInputElement): std.js.Dom.ValidityState ->
     receiver.validity().
 
 pub value_typechecks(receiver: HTMLInputElement): JsString ->
     receiver.value().
 
-pub value_as_date_typechecks(receiver: HTMLInputElement): Option[std.js.Date.Date] ->
+pub value_as_date_typechecks(receiver: HTMLInputElement): Option[std.js.Date] ->
     receiver.value_as_date().
 
 pub value_as_number_typechecks(receiver: HTMLInputElement): JsNumber ->
     receiver.value_as_number().
 
-pub webkit_entries_typechecks(
-    receiver: HTMLInputElement,
-): std.js.Array.Array[std.js.Dom.FileSystemEntry.FileSystemEntry] ->
+pub webkit_entries_typechecks(receiver: HTMLInputElement): std.js.Array[std.js.Dom.FileSystemEntry] ->
     receiver.webkit_entries().
 
 pub webkitdirectory_typechecks(receiver: HTMLInputElement): Bool ->
@@ -191,7 +185,7 @@ pub add_event_listener_typechecks(
     receiver: HTMLInputElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
@@ -199,6 +193,6 @@ pub remove_event_listener_typechecks(
     receiver: HTMLInputElement,
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit ->
     receiver.remove_event_listener(type_, listener, options).

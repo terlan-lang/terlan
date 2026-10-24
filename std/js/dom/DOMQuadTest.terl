@@ -12,8 +12,7 @@
  */
 module std.js.Dom.DOMQuadTest.
 
-import type std.js.Dom.DOMPoint.{DOMPoint}.
-import type std.js.Dom.DOMQuad.
+import type std.js.Dom.{DOMPoint, DOMQuad}.
 
 pub p1_typechecks(receiver: DOMQuad): DOMPoint ->
     receiver.p1().
@@ -27,5 +26,5 @@ pub p3_typechecks(receiver: DOMQuad): DOMPoint ->
 pub p4_typechecks(receiver: DOMQuad): DOMPoint ->
     receiver.p4().
 
-pub get_bounds_typechecks(receiver: DOMQuad): std.js.Dom.DOMRect.DOMRect ->
+pub get_bounds_typechecks(receiver: DOMQuad): std.js.Dom.DOMRect ->
     receiver.get_bounds().

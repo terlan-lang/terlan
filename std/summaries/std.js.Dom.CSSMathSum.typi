@@ -25,4 +25,4 @@ pub opaque type CSSMathSum.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathSum/values)
  */
-pub (receiver: CSSMathSum) values(): std.js.Dom.CSSNumericArray.CSSNumericArray.
+pub (receiver: CSSMathSum) values(): std.js.Dom.CSSNumericArray.

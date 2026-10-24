@@ -12,7 +12,7 @@
  */
 module std.js.Dom.Headers.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.String.{JsString}.
 
 /**
@@ -41,14 +41,14 @@ pub (receiver: Headers) delete(name: JsString): Unit.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/get)
  */
-pub (receiver: Headers) get(name: JsString): std.core.Option.Option[JsString].
+pub (receiver: Headers) get(name: JsString): std.core.Option[JsString].
 
 /**
  * The **`getSetCookie()`** method of the Headers interface returns an array containing the values of all Set-Cookie headers associated with a response.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/getSetCookie)
  */
-pub (receiver: Headers) get_set_cookie(): std.js.Array.Array[JsString].
+pub (receiver: Headers) get_set_cookie(): std.js.Array[JsString].
 
 /**
  * The **`has()`** method of the Headers interface returns a boolean stating whether a `Headers` object contains a certain header.

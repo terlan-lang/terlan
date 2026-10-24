@@ -18,90 +18,90 @@ pub opaque type WebGL2RenderingContextOverloads.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/bufferData)
  */
-pub (receiver: WebGL2RenderingContextOverloads) buffer_data(target_: std.js.Dom.GLenum.GLenum, size: std.js.Dom.GLsizeiptr.GLsizeiptr, usage: std.js.Dom.GLenum.GLenum): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) buffer_data(target_: std.js.Dom.GLenum, size: std.js.Dom.GLsizeiptr, usage: std.js.Dom.GLenum): std.core.Unit.
 
-pub (receiver: WebGL2RenderingContextOverloads) buffer_data_overload_2(target_: std.js.Dom.GLenum.GLenum, src_data: std.core.Option.Option[std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource], usage: std.js.Dom.GLenum.GLenum): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) buffer_data_overload_2(target_: std.js.Dom.GLenum, src_data: std.core.Option[std.js.Dom.AllowSharedBufferSource], usage: std.js.Dom.GLenum): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/bufferSubData)
  */
-pub (receiver: WebGL2RenderingContextOverloads) buffer_sub_data(target_: std.js.Dom.GLenum.GLenum, dst_byte_offset: std.js.Dom.GLintptr.GLintptr, src_data: std.js.Dom.AllowSharedBufferSource.AllowSharedBufferSource): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) buffer_sub_data(target_: std.js.Dom.GLenum, dst_byte_offset: std.js.Dom.GLintptr, src_data: std.js.Dom.AllowSharedBufferSource): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/compressedTexImage2D)
  */
-pub (receiver: WebGL2RenderingContextOverloads) compressed_tex_image2_d(target_: std.js.Dom.GLenum.GLenum, level: std.js.Dom.GLint.GLint, internalformat: std.js.Dom.GLenum.GLenum, width: std.js.Dom.GLsizei.GLsizei, height: std.js.Dom.GLsizei.GLsizei, border: std.js.Dom.GLint.GLint, image_size: std.js.Dom.GLsizei.GLsizei, offset: std.js.Dom.GLintptr.GLintptr): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) compressed_tex_image2_d(target_: std.js.Dom.GLenum, level: std.js.Dom.GLint, internalformat: std.js.Dom.GLenum, width: std.js.Dom.GLsizei, height: std.js.Dom.GLsizei, border: std.js.Dom.GLint, image_size: std.js.Dom.GLsizei, offset: std.js.Dom.GLintptr): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/compressedTexSubImage2D)
  */
-pub (receiver: WebGL2RenderingContextOverloads) compressed_tex_sub_image2_d(target_: std.js.Dom.GLenum.GLenum, level: std.js.Dom.GLint.GLint, xoffset: std.js.Dom.GLint.GLint, yoffset: std.js.Dom.GLint.GLint, width: std.js.Dom.GLsizei.GLsizei, height: std.js.Dom.GLsizei.GLsizei, format: std.js.Dom.GLenum.GLenum, image_size: std.js.Dom.GLsizei.GLsizei, offset: std.js.Dom.GLintptr.GLintptr): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) compressed_tex_sub_image2_d(target_: std.js.Dom.GLenum, level: std.js.Dom.GLint, xoffset: std.js.Dom.GLint, yoffset: std.js.Dom.GLint, width: std.js.Dom.GLsizei, height: std.js.Dom.GLsizei, format: std.js.Dom.GLenum, image_size: std.js.Dom.GLsizei, offset: std.js.Dom.GLintptr): std.core.Unit.
 
-pub (receiver: WebGL2RenderingContextOverloads) read_pixels(x: std.js.Dom.GLint.GLint, y: std.js.Dom.GLint.GLint, width: std.js.Dom.GLsizei.GLsizei, height: std.js.Dom.GLsizei.GLsizei, format: std.js.Dom.GLenum.GLenum, type_: std.js.Dom.GLenum.GLenum, offset: std.js.Dom.GLintptr.GLintptr): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) read_pixels(x: std.js.Dom.GLint, y: std.js.Dom.GLint, width: std.js.Dom.GLsizei, height: std.js.Dom.GLsizei, format: std.js.Dom.GLenum, type_: std.js.Dom.GLenum, offset: std.js.Dom.GLintptr): std.core.Unit.
 
-pub (receiver: WebGL2RenderingContextOverloads) tex_image2_d(target_: std.js.Dom.GLenum.GLenum, level: std.js.Dom.GLint.GLint, internalformat: std.js.Dom.GLint.GLint, format: std.js.Dom.GLenum.GLenum, type_: std.js.Dom.GLenum.GLenum, source: std.js.Dom.TexImageSource.TexImageSource): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) tex_image2_d(target_: std.js.Dom.GLenum, level: std.js.Dom.GLint, internalformat: std.js.Dom.GLint, format: std.js.Dom.GLenum, type_: std.js.Dom.GLenum, source: std.js.Dom.TexImageSource): std.core.Unit.
 
-pub (receiver: WebGL2RenderingContextOverloads) tex_image2_d_overload_2(target_: std.js.Dom.GLenum.GLenum, level: std.js.Dom.GLint.GLint, internalformat: std.js.Dom.GLint.GLint, width: std.js.Dom.GLsizei.GLsizei, height: std.js.Dom.GLsizei.GLsizei, border: std.js.Dom.GLint.GLint, format: std.js.Dom.GLenum.GLenum, type_: std.js.Dom.GLenum.GLenum, pbo_offset: std.js.Dom.GLintptr.GLintptr): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) tex_image2_d_overload_2(target_: std.js.Dom.GLenum, level: std.js.Dom.GLint, internalformat: std.js.Dom.GLint, width: std.js.Dom.GLsizei, height: std.js.Dom.GLsizei, border: std.js.Dom.GLint, format: std.js.Dom.GLenum, type_: std.js.Dom.GLenum, pbo_offset: std.js.Dom.GLintptr): std.core.Unit.
 
-pub (receiver: WebGL2RenderingContextOverloads) tex_image2_d_overload_3(target_: std.js.Dom.GLenum.GLenum, level: std.js.Dom.GLint.GLint, internalformat: std.js.Dom.GLint.GLint, width: std.js.Dom.GLsizei.GLsizei, height: std.js.Dom.GLsizei.GLsizei, border: std.js.Dom.GLint.GLint, format: std.js.Dom.GLenum.GLenum, type_: std.js.Dom.GLenum.GLenum, source: std.js.Dom.TexImageSource.TexImageSource): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) tex_image2_d_overload_3(target_: std.js.Dom.GLenum, level: std.js.Dom.GLint, internalformat: std.js.Dom.GLint, width: std.js.Dom.GLsizei, height: std.js.Dom.GLsizei, border: std.js.Dom.GLint, format: std.js.Dom.GLenum, type_: std.js.Dom.GLenum, source: std.js.Dom.TexImageSource): std.core.Unit.
 
-pub (receiver: WebGL2RenderingContextOverloads) tex_sub_image2_d(target_: std.js.Dom.GLenum.GLenum, level: std.js.Dom.GLint.GLint, xoffset: std.js.Dom.GLint.GLint, yoffset: std.js.Dom.GLint.GLint, format: std.js.Dom.GLenum.GLenum, type_: std.js.Dom.GLenum.GLenum, source: std.js.Dom.TexImageSource.TexImageSource): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) tex_sub_image2_d(target_: std.js.Dom.GLenum, level: std.js.Dom.GLint, xoffset: std.js.Dom.GLint, yoffset: std.js.Dom.GLint, format: std.js.Dom.GLenum, type_: std.js.Dom.GLenum, source: std.js.Dom.TexImageSource): std.core.Unit.
 
-pub (receiver: WebGL2RenderingContextOverloads) tex_sub_image2_d_overload_2(target_: std.js.Dom.GLenum.GLenum, level: std.js.Dom.GLint.GLint, xoffset: std.js.Dom.GLint.GLint, yoffset: std.js.Dom.GLint.GLint, width: std.js.Dom.GLsizei.GLsizei, height: std.js.Dom.GLsizei.GLsizei, format: std.js.Dom.GLenum.GLenum, type_: std.js.Dom.GLenum.GLenum, pbo_offset: std.js.Dom.GLintptr.GLintptr): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) tex_sub_image2_d_overload_2(target_: std.js.Dom.GLenum, level: std.js.Dom.GLint, xoffset: std.js.Dom.GLint, yoffset: std.js.Dom.GLint, width: std.js.Dom.GLsizei, height: std.js.Dom.GLsizei, format: std.js.Dom.GLenum, type_: std.js.Dom.GLenum, pbo_offset: std.js.Dom.GLintptr): std.core.Unit.
 
-pub (receiver: WebGL2RenderingContextOverloads) tex_sub_image2_d_overload_3(target_: std.js.Dom.GLenum.GLenum, level: std.js.Dom.GLint.GLint, xoffset: std.js.Dom.GLint.GLint, yoffset: std.js.Dom.GLint.GLint, width: std.js.Dom.GLsizei.GLsizei, height: std.js.Dom.GLsizei.GLsizei, format: std.js.Dom.GLenum.GLenum, type_: std.js.Dom.GLenum.GLenum, source: std.js.Dom.TexImageSource.TexImageSource): std.core.Unit.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform1fv(location: std.core.Option.Option[std.js.Dom.WebGLUniformLocation.WebGLUniformLocation], data: std.js.Dom.Float32List.Float32List, src_offset: std.core.Option.Option[std.js.Number.JsNumber], src_length: std.core.Option.Option[std.js.Dom.GLuint.GLuint]): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) tex_sub_image2_d_overload_3(target_: std.js.Dom.GLenum, level: std.js.Dom.GLint, xoffset: std.js.Dom.GLint, yoffset: std.js.Dom.GLint, width: std.js.Dom.GLsizei, height: std.js.Dom.GLsizei, format: std.js.Dom.GLenum, type_: std.js.Dom.GLenum, source: std.js.Dom.TexImageSource): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (receiver: WebGL2RenderingContextOverloads) uniform1iv(location: std.core.Option.Option[std.js.Dom.WebGLUniformLocation.WebGLUniformLocation], data: std.js.Dom.Int32List.Int32List, src_offset: std.core.Option.Option[std.js.Number.JsNumber], src_length: std.core.Option.Option[std.js.Dom.GLuint.GLuint]): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) uniform1fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (receiver: WebGL2RenderingContextOverloads) uniform2fv(location: std.core.Option.Option[std.js.Dom.WebGLUniformLocation.WebGLUniformLocation], data: std.js.Dom.Float32List.Float32List, src_offset: std.core.Option.Option[std.js.Number.JsNumber], src_length: std.core.Option.Option[std.js.Dom.GLuint.GLuint]): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) uniform1iv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Int32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (receiver: WebGL2RenderingContextOverloads) uniform2iv(location: std.core.Option.Option[std.js.Dom.WebGLUniformLocation.WebGLUniformLocation], data: std.js.Dom.Int32List.Int32List, src_offset: std.core.Option.Option[std.js.Number.JsNumber], src_length: std.core.Option.Option[std.js.Dom.GLuint.GLuint]): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) uniform2fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (receiver: WebGL2RenderingContextOverloads) uniform3fv(location: std.core.Option.Option[std.js.Dom.WebGLUniformLocation.WebGLUniformLocation], data: std.js.Dom.Float32List.Float32List, src_offset: std.core.Option.Option[std.js.Number.JsNumber], src_length: std.core.Option.Option[std.js.Dom.GLuint.GLuint]): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) uniform2iv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Int32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (receiver: WebGL2RenderingContextOverloads) uniform3iv(location: std.core.Option.Option[std.js.Dom.WebGLUniformLocation.WebGLUniformLocation], data: std.js.Dom.Int32List.Int32List, src_offset: std.core.Option.Option[std.js.Number.JsNumber], src_length: std.core.Option.Option[std.js.Dom.GLuint.GLuint]): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) uniform3fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (receiver: WebGL2RenderingContextOverloads) uniform4fv(location: std.core.Option.Option[std.js.Dom.WebGLUniformLocation.WebGLUniformLocation], data: std.js.Dom.Float32List.Float32List, src_offset: std.core.Option.Option[std.js.Number.JsNumber], src_length: std.core.Option.Option[std.js.Dom.GLuint.GLuint]): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) uniform3iv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Int32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
  */
-pub (receiver: WebGL2RenderingContextOverloads) uniform4iv(location: std.core.Option.Option[std.js.Dom.WebGLUniformLocation.WebGLUniformLocation], data: std.js.Dom.Int32List.Int32List, src_offset: std.core.Option.Option[std.js.Number.JsNumber], src_length: std.core.Option.Option[std.js.Dom.GLuint.GLuint]): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) uniform4fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
+ */
+pub (receiver: WebGL2RenderingContextOverloads) uniform4iv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Int32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
  */
-pub (receiver: WebGL2RenderingContextOverloads) uniform_matrix2fv(location: std.core.Option.Option[std.js.Dom.WebGLUniformLocation.WebGLUniformLocation], transpose: std.js.Dom.GLboolean.GLboolean, data: std.js.Dom.Float32List.Float32List, src_offset: std.core.Option.Option[std.js.Number.JsNumber], src_length: std.core.Option.Option[std.js.Dom.GLuint.GLuint]): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) uniform_matrix2fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], transpose: std.js.Dom.GLboolean, data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix)
  */
-pub (receiver: WebGL2RenderingContextOverloads) uniform_matrix3fv(location: std.core.Option.Option[std.js.Dom.WebGLUniformLocation.WebGLUniformLocation], transpose: std.js.Dom.GLboolean.GLboolean, data: std.js.Dom.Float32List.Float32List, src_offset: std.core.Option.Option[std.js.Number.JsNumber], src_length: std.core.Option.Option[std.js.Dom.GLuint.GLuint]): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) uniform_matrix3fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], transpose: std.js.Dom.GLboolean, data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix)
  */
-pub (receiver: WebGL2RenderingContextOverloads) uniform_matrix4fv(location: std.core.Option.Option[std.js.Dom.WebGLUniformLocation.WebGLUniformLocation], transpose: std.js.Dom.GLboolean.GLboolean, data: std.js.Dom.Float32List.Float32List, src_offset: std.core.Option.Option[std.js.Number.JsNumber], src_length: std.core.Option.Option[std.js.Dom.GLuint.GLuint]): std.core.Unit.Unit.
+pub (receiver: WebGL2RenderingContextOverloads) uniform_matrix4fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], transpose: std.js.Dom.GLboolean, data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.

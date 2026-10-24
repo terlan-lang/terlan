@@ -15,8 +15,8 @@ module std.js.Dom.FontFaceSetEventMap.
 
 pub opaque type FontFaceSetEventMap.
 
-pub (receiver: FontFaceSetEventMap) loading(): std.js.Dom.FontFaceSetLoadEvent.FontFaceSetLoadEvent.
+pub (receiver: FontFaceSetEventMap) loading(): std.js.Dom.FontFaceSetLoadEvent.
 
-pub (receiver: FontFaceSetEventMap) loadingdone(): std.js.Dom.FontFaceSetLoadEvent.FontFaceSetLoadEvent.
+pub (receiver: FontFaceSetEventMap) loadingdone(): std.js.Dom.FontFaceSetLoadEvent.
 
-pub (receiver: FontFaceSetEventMap) loadingerror(): std.js.Dom.FontFaceSetLoadEvent.FontFaceSetLoadEvent.
+pub (receiver: FontFaceSetEventMap) loadingerror(): std.js.Dom.FontFaceSetLoadEvent.

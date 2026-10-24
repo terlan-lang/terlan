@@ -12,17 +12,11 @@
  */
 module std.js.Dom.Element.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.Attr.{Attr}.
-import type std.js.Dom.DOMTokenList.{DOMTokenList}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.HTMLCollectionOf.{HTMLCollectionOf}.
-import type std.js.Dom.ScrollToOptions.{ScrollToOptions}.
-import type std.js.Dom.ShadowRoot.{ShadowRoot}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Attr, DOMTokenList, EventListenerOrEventListenerObject, HTMLCollectionOf, ScrollToOptions, ShadowRoot}.
 import type std.js.Number.{JsNumber}.
-import type std.js.Promise.{Promise}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 /**
  * **`Element`** is the most general base class from which all element objects (i.e., objects that represent elements) in a Document inherit.
@@ -36,7 +30,7 @@ pub opaque type Element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/attributes)
  */
-pub (receiver: Element) attributes(): std.js.Dom.NamedNodeMap.NamedNodeMap.
+pub (receiver: Element) attributes(): std.js.Dom.NamedNodeMap.
 
 /**
  * The **`Element.classList`** is a read-only property that returns a live DOMTokenList collection of the `class` attributes of the element.
@@ -122,7 +116,7 @@ pub (receiver: Element) namespace_uri(): Option[JsString].
  */
 pub (receiver: Element) outer_html(): JsString.
 
-pub (receiver: Element) owner_document(): std.js.Dom.Document.Document.
+pub (receiver: Element) owner_document(): std.js.Dom.Document.
 
 /**
  * The **`part`** property of the Element interface represents the part identifier(s) of the element (i.e., set using the `part` attribute), returned as a DOMTokenList.
@@ -192,23 +186,21 @@ pub (receiver: Element) tag_name(): JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/attachShadow)
  */
-pub (receiver: Element) attach_shadow(init: std.js.Dom.ShadowRootInit.ShadowRootInit): ShadowRoot.
+pub (receiver: Element) attach_shadow(init: std.js.Dom.ShadowRootInit): ShadowRoot.
 
 /**
  * The **`checkVisibility()`** method of the Element interface checks whether the element is visible.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/checkVisibility)
  */
-pub (receiver: Element) check_visibility(
-    options: Option[std.js.Dom.CheckVisibilityOptions.CheckVisibilityOptions],
-): Bool.
+pub (receiver: Element) check_visibility(options: Option[std.js.Dom.CheckVisibilityOptions]): Bool.
 
 /**
  * The **`computedStyleMap()`** method of the Element interface returns a StylePropertyMapReadOnly interface which provides a read-only representation of a CSS declaration block that is an alternative to CSSStyleDeclaration.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/computedStyleMap)
  */
-pub (receiver: Element) computed_style_map(): std.js.Dom.StylePropertyMapReadOnly.StylePropertyMapReadOnly.
+pub (receiver: Element) computed_style_map(): std.js.Dom.StylePropertyMapReadOnly.
 
 /**
  * The **`getAttribute()`** method of the element.
@@ -229,7 +221,7 @@ pub (receiver: Element) get_attribute_ns(namespace: Option[JsString], local_name
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getAttributeNames)
  */
-pub (receiver: Element) get_attribute_names(): std.js.Array.Array[JsString].
+pub (receiver: Element) get_attribute_names(): std.js.Array[JsString].
 
 /**
  * Returns the specified attribute of the specified element, as an Attr node.
@@ -250,14 +242,14 @@ pub (receiver: Element) get_attribute_node_ns(namespace: Option[JsString], local
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getBoundingClientRect)
  */
-pub (receiver: Element) get_bounding_client_rect(): std.js.Dom.DOMRect.DOMRect.
+pub (receiver: Element) get_bounding_client_rect(): std.js.Dom.DOMRect.
 
 /**
  * The **`getClientRects()`** method of the Element interface returns a collection of DOMRect objects that indicate the bounding rectangles for each CSS border box in a client.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getClientRects)
  */
-pub (receiver: Element) get_client_rects(): std.js.Dom.DOMRectList.DOMRectList.
+pub (receiver: Element) get_client_rects(): std.js.Dom.DOMRectList.
 
 /**
  * The Element method **`getElementsByClassName()`** returns a live specified class name or names.
@@ -278,7 +270,7 @@ pub (receiver: Element) get_elements_by_tag_name_ns(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/getHTML)
  */
-pub (receiver: Element) get_html(options: Option[std.js.Dom.GetHTMLOptions.GetHTMLOptions]): JsString.
+pub (receiver: Element) get_html(options: Option[std.js.Dom.GetHTMLOptions]): JsString.
 
 /**
  * The **`Element.hasAttribute()`** method returns a **Boolean** value indicating whether the specified element has the specified attribute or not.
@@ -348,18 +340,14 @@ pub (receiver: Element) remove_attribute_node(attr: Attr): Attr.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/requestFullscreen)
  */
-pub (receiver: Element) request_fullscreen(
-    options: Option[std.js.Dom.FullscreenOptions.FullscreenOptions],
-): Promise[Unit].
+pub (receiver: Element) request_fullscreen(options: Option[std.js.Dom.FullscreenOptions]): Promise[Unit].
 
 /**
  * The **`requestPointerLock()`** method of the Element interface lets you asynchronously ask for the pointer to be locked on the given element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/requestPointerLock)
  */
-pub (receiver: Element) request_pointer_lock(
-    options: Option[std.js.Dom.PointerLockOptions.PointerLockOptions],
-): Promise[Unit].
+pub (receiver: Element) request_pointer_lock(options: Option[std.js.Dom.PointerLockOptions]): Promise[Unit].
 
 /**
  * The **`scroll()`** method of the Element interface scrolls the element to a particular set of coordinates inside a given element.
@@ -384,9 +372,7 @@ pub (receiver: Element) scroll_by_overload_2(x: JsNumber, y: JsNumber): Unit.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Element/scrollIntoView)
  */
-pub (receiver: Element) scroll_into_view(
-    arg: Option[Bool | std.js.Dom.ScrollIntoViewOptions.ScrollIntoViewOptions],
-): Unit.
+pub (receiver: Element) scroll_into_view(arg: Option[Bool | std.js.Dom.ScrollIntoViewOptions]): Unit.
 
 /**
  * The **`scrollTo()`** method of the Element interface scrolls to a particular set of coordinates inside a given element.
@@ -461,11 +447,11 @@ pub (receiver: Element) text_content(): JsString.
 pub (receiver: Element) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: Element) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

@@ -37,7 +37,7 @@ pub (receiver: ProgressEvent[T]) length_computable(): Bool ->
 pub (receiver: ProgressEvent[T]) loaded(): JsNumber ->
     native.
 
-pub (receiver: ProgressEvent[T]) target_(): std.core.Option.Option[T] ->
+pub (receiver: ProgressEvent[T]) target_(): std.core.Option[T] ->
     native.
 
 /**

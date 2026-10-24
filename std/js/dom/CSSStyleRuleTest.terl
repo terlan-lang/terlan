@@ -17,8 +17,8 @@ import type std.js.Dom.CSSStyleRule.
 pub selector_text_typechecks(receiver: CSSStyleRule): std.js.String.JsString ->
     receiver.selector_text().
 
-pub style_typechecks(receiver: CSSStyleRule): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration ->
+pub style_typechecks(receiver: CSSStyleRule): std.js.Dom.CSSStyleDeclaration ->
     receiver.style().
 
-pub style_map_typechecks(receiver: CSSStyleRule): std.js.Dom.StylePropertyMap.StylePropertyMap ->
+pub style_map_typechecks(receiver: CSSStyleRule): std.js.Dom.StylePropertyMap ->
     receiver.style_map().

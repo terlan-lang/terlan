@@ -14,5 +14,5 @@ module std.js.Dom.WindowLocalStorageTest.
 
 import type std.js.Dom.WindowLocalStorage.
 
-pub local_storage_typechecks(receiver: WindowLocalStorage): std.js.Dom.Storage.Storage ->
+pub local_storage_typechecks(receiver: WindowLocalStorage): std.js.Dom.Storage ->
     receiver.local_storage().

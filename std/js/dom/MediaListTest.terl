@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MediaListTest.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Dom.MediaList.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
@@ -32,5 +32,5 @@ pub append_medium_typechecks(receiver: MediaList, medium: JsString): Unit ->
 pub delete_medium_typechecks(receiver: MediaList, medium: JsString): Unit ->
     receiver.delete_medium(medium).
 
-pub item_typechecks(receiver: MediaList, index: JsNumber): std.core.Option.Option[JsString] ->
+pub item_typechecks(receiver: MediaList, index: JsNumber): std.core.Option[JsString] ->
     receiver.item(index).

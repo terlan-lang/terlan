@@ -41,7 +41,7 @@ pub (receiver: Document) alink_color(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/all)
  */
-pub (receiver: Document) all(): std.js.Dom.HTMLAllCollection.HTMLAllCollection.
+pub (receiver: Document) all(): std.js.Dom.HTMLAllCollection.
 
 /**
  * The **`anchors`** read-only property of the An HTMLCollection.
@@ -49,7 +49,7 @@ pub (receiver: Document) all(): std.js.Dom.HTMLAllCollection.HTMLAllCollection.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/anchors)
  */
-pub (receiver: Document) anchors(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLAnchorElement.HTMLAnchorElement].
+pub (receiver: Document) anchors(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLAnchorElement].
 
 /**
  * The **`applets`** property of the Document returns an empty HTMLCollection.
@@ -57,7 +57,7 @@ pub (receiver: Document) anchors(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/applets)
  */
-pub (receiver: Document) applets(): std.js.Dom.HTMLCollection.HTMLCollection.
+pub (receiver: Document) applets(): std.js.Dom.HTMLCollection.
 
 /**
  * The deprecated `bgColor` property gets or sets the background color of the current document.
@@ -72,7 +72,7 @@ pub (receiver: Document) bg_color(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/body)
  */
-pub (receiver: Document) body(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: Document) body(): std.js.Dom.HTMLElement.
 
 /**
  * The **`Document.characterSet`** read-only property returns the character encoding of the document that it's currently rendered with.
@@ -114,7 +114,7 @@ pub (receiver: Document) cookie(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/currentScript)
  */
-pub (receiver: Document) current_script(): std.core.Option.Option[std.js.Dom.HTMLOrSVGScriptElement.HTMLOrSVGScriptElement].
+pub (receiver: Document) current_script(): std.core.Option[std.js.Dom.HTMLOrSVGScriptElement].
 
 /**
  * **`document.designMode`** controls whether the entire document is editable.
@@ -135,14 +135,14 @@ pub (receiver: Document) dir(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/doctype)
  */
-pub (receiver: Document) doctype(): std.core.Option.Option[std.js.Dom.DocumentType.DocumentType].
+pub (receiver: Document) doctype(): std.core.Option[std.js.Dom.DocumentType].
 
 /**
  * The **`documentElement`** read-only property of the Document interface returns the example, the html element for HTML documents).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/documentElement)
  */
-pub (receiver: Document) document_element(): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: Document) document_element(): std.js.Dom.HTMLElement.
 
 /**
  * The **`documentURI`** read-only property of the A string.
@@ -164,7 +164,7 @@ pub (receiver: Document) domain(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/embeds)
  */
-pub (receiver: Document) embeds(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLEmbedElement.HTMLEmbedElement].
+pub (receiver: Document) embeds(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLEmbedElement].
 
 /**
  * **`fgColor`** gets/sets the foreground color, or text color, of the current document.
@@ -179,14 +179,14 @@ pub (receiver: Document) fg_color(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/forms)
  */
-pub (receiver: Document) forms(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: Document) forms(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`fragmentDirective`** read-only property of the Document interface returns the FragmentDirective for the current document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/fragmentDirective)
  */
-pub (receiver: Document) fragment_directive(): std.js.Dom.FragmentDirective.FragmentDirective.
+pub (receiver: Document) fragment_directive(): std.js.Dom.FragmentDirective.
 
 /**
  * The obsolete Document interface's **`fullscreen`** read-only property reports whether or not the document is currently displaying content in fullscreen mode.
@@ -208,7 +208,7 @@ pub (receiver: Document) fullscreen_enabled(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/head)
  */
-pub (receiver: Document) head(): std.js.Dom.HTMLHeadElement.HTMLHeadElement.
+pub (receiver: Document) head(): std.js.Dom.HTMLHeadElement.
 
 /**
  * The **`Document.hidden`** read-only property returns a Boolean value indicating if the page is considered hidden or not.
@@ -222,14 +222,14 @@ pub (receiver: Document) hidden(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/images)
  */
-pub (receiver: Document) images(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLImageElement.HTMLImageElement].
+pub (receiver: Document) images(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLImageElement].
 
 /**
  * The **`Document.implementation`** property returns a A DOMImplementation object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/implementation)
  */
-pub (receiver: Document) implementation(): std.js.Dom.DOMImplementation.DOMImplementation.
+pub (receiver: Document) implementation(): std.js.Dom.DOMImplementation.
 
 /**
  * @deprecated This is a legacy alias of `characterSet`.
@@ -258,14 +258,14 @@ pub (receiver: Document) link_color(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/links)
  */
-pub (receiver: Document) links(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLAnchorElement.HTMLAnchorElement | std.js.Dom.HTMLAreaElement.HTMLAreaElement].
+pub (receiver: Document) links(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLAnchorElement | std.js.Dom.HTMLAreaElement].
 
 /**
  * The **`Document.location`** read-only property returns a and provides methods for changing that URL and loading another URL.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/location)
  */
-pub (receiver: Document) location(): std.js.Dom.Location.Location.
+pub (receiver: Document) location(): std.js.Dom.Location.
 
 /**
  * The read-only **`pictureInPictureEnabled`** property of the available.
@@ -279,7 +279,7 @@ pub (receiver: Document) picture_in_picture_enabled(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/plugins)
  */
-pub (receiver: Document) plugins(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLEmbedElement.HTMLEmbedElement].
+pub (receiver: Document) plugins(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLEmbedElement].
 
 /**
  * The **`Document.referrer`** property returns the URI of the page that linked to this page.
@@ -294,28 +294,28 @@ pub (receiver: Document) referrer(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/rootElement)
  */
-pub (receiver: Document) root_element(): std.core.Option.Option[std.js.Dom.SVGSVGElement.SVGSVGElement].
+pub (receiver: Document) root_element(): std.core.Option[std.js.Dom.SVGSVGElement].
 
 /**
  * The **`scripts`** property of the Document interface returns a list of the script elements in the document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/scripts)
  */
-pub (receiver: Document) scripts(): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.HTMLScriptElement.HTMLScriptElement].
+pub (receiver: Document) scripts(): std.js.Dom.HTMLCollectionOf[std.js.Dom.HTMLScriptElement].
 
 /**
  * The **`scrollingElement`** read-only property of the scrolls the document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/scrollingElement)
  */
-pub (receiver: Document) scrolling_element(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: Document) scrolling_element(): std.core.Option[std.js.Dom.Element].
 
 /**
  * The `timeline` readonly property of the Document interface represents the default timeline of the current document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/timeline)
  */
-pub (receiver: Document) timeline(): std.js.Dom.DocumentTimeline.DocumentTimeline.
+pub (receiver: Document) timeline(): std.js.Dom.DocumentTimeline.
 
 /**
  * The **`document.title`** property gets or sets the current title of the document.
@@ -335,19 +335,19 @@ pub (receiver: Document) vlink_color(): std.js.String.JsString.
 /**
  * @deprecated
  */
-pub (receiver: Document) capture_events(): std.core.Unit.Unit.
+pub (receiver: Document) capture_events(): std.core.Unit.
 
 /**
  * The **`caretPositionFromPoint()`** method of the Document interface returns a CaretPosition object, containing the DOM node, along with the caret and caret's character offset within that node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/caretPositionFromPoint)
  */
-pub (receiver: Document) caret_position_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, options: std.core.Option.Option[std.js.Dom.CaretPositionFromPointOptions.CaretPositionFromPointOptions]): std.core.Option.Option[std.js.Dom.CaretPosition.CaretPosition].
+pub (receiver: Document) caret_position_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber, options: std.core.Option[std.js.Dom.CaretPositionFromPointOptions]): std.core.Option[std.js.Dom.CaretPosition].
 
 /**
  * @deprecated
  */
-pub (receiver: Document) caret_range_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Option.Option[std.js.Dom.Range.Range].
+pub (receiver: Document) caret_range_from_point(x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.core.Option[std.js.Dom.Range].
 
 /**
  * The **`Document.clear()`** method does nothing, but doesn't raise any error.
@@ -355,78 +355,78 @@ pub (receiver: Document) caret_range_from_point(x: std.js.Number.JsNumber, y: st
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/clear)
  */
-pub (receiver: Document) clear(): std.core.Unit.Unit.
+pub (receiver: Document) clear(): std.core.Unit.
 
 /**
  * The **`Document.close()`** method finishes writing to a document, opened with Document.open().
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/close)
  */
-pub (receiver: Document) close(): std.core.Unit.Unit.
+pub (receiver: Document) close(): std.core.Unit.
 
 /**
  * The **`Document.createAttribute()`** method creates a new attribute node, and returns it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createAttribute)
  */
-pub (receiver: Document) create_attribute(local_name: std.js.String.JsString): std.js.Dom.Attr.Attr.
+pub (receiver: Document) create_attribute(local_name: std.js.String.JsString): std.js.Dom.Attr.
 
 /**
  * The **`Document.createAttributeNS()`** method creates a new attribute node with the specified namespace URI and qualified name, and returns it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createAttributeNS)
  */
-pub (receiver: Document) create_attribute_ns(namespace: std.core.Option.Option[std.js.String.JsString], qualified_name: std.js.String.JsString): std.js.Dom.Attr.Attr.
+pub (receiver: Document) create_attribute_ns(namespace: std.core.Option[std.js.String.JsString], qualified_name: std.js.String.JsString): std.js.Dom.Attr.
 
 /**
  * **`createCDATASection()`** creates a new CDATA section node, and returns it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createCDATASection)
  */
-pub (receiver: Document) create_cdata_section(data: std.js.String.JsString): std.js.Dom.CDATASection.CDATASection.
+pub (receiver: Document) create_cdata_section(data: std.js.String.JsString): std.js.Dom.CDATASection.
 
 /**
  * **`createComment()`** creates a new comment node, and returns it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createComment)
  */
-pub (receiver: Document) create_comment(data: std.js.String.JsString): std.js.Dom.Comment.Comment.
+pub (receiver: Document) create_comment(data: std.js.String.JsString): std.js.Dom.Comment.
 
 /**
  * Creates a new empty DocumentFragment into which DOM nodes can be added to build an offscreen DOM tree.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createDocumentFragment)
  */
-pub (receiver: Document) create_document_fragment(): std.js.Dom.DocumentFragment.DocumentFragment.
+pub (receiver: Document) create_document_fragment(): std.js.Dom.DocumentFragment.
 
-pub (receiver: Document) create_element(tag_name: std.js.String.JsString, options: std.core.Option.Option[std.js.Dom.ElementCreationOptions.ElementCreationOptions]): std.js.Dom.HTMLElement.HTMLElement.
+pub (receiver: Document) create_element(tag_name: std.js.String.JsString, options: std.core.Option[std.js.Dom.ElementCreationOptions]): std.js.Dom.HTMLElement.
 
-pub (receiver: Document) create_element_ns(namespace_uri: std.core.Option.Option[std.js.String.JsString], qualified_name: std.js.String.JsString, options: std.core.Option.Option[std.js.Dom.ElementCreationOptions.ElementCreationOptions]): std.js.Dom.Element.Element.
+pub (receiver: Document) create_element_ns(namespace_uri: std.core.Option[std.js.String.JsString], qualified_name: std.js.String.JsString, options: std.core.Option[std.js.Dom.ElementCreationOptions]): std.js.Dom.Element.
 
-pub (receiver: Document) create_element_ns_overload_2(namespace: std.core.Option.Option[std.js.String.JsString], qualified_name: std.js.String.JsString, options: std.core.Option.Option[std.js.Dom.ElementCreationOptions.ElementCreationOptions | std.js.String.JsString]): std.js.Dom.Element.Element.
+pub (receiver: Document) create_element_ns_overload_2(namespace: std.core.Option[std.js.String.JsString], qualified_name: std.js.String.JsString, options: std.core.Option[std.js.Dom.ElementCreationOptions | std.js.String.JsString]): std.js.Dom.Element.
 
-pub (receiver: Document) create_event(event_interface: std.js.String.JsString): std.js.Dom.Event.Event.
+pub (receiver: Document) create_event(event_interface: std.js.String.JsString): std.js.Dom.Event.
 
 /**
  * `createProcessingInstruction()` generates a new processing instruction node and returns it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createProcessingInstruction)
  */
-pub (receiver: Document) create_processing_instruction(target_: std.js.String.JsString, data: std.js.String.JsString): std.js.Dom.ProcessingInstruction.ProcessingInstruction.
+pub (receiver: Document) create_processing_instruction(target_: std.js.String.JsString, data: std.js.String.JsString): std.js.Dom.ProcessingInstruction.
 
 /**
  * The **`Document.createRange()`** method returns a new ```js-nolint createRange() ``` None.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createRange)
  */
-pub (receiver: Document) create_range(): std.js.Dom.Range.Range.
+pub (receiver: Document) create_range(): std.js.Dom.Range.
 
 /**
  * Creates a new Text node.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createTextNode)
  */
-pub (receiver: Document) create_text_node(data: std.js.String.JsString): std.js.Dom.Text.Text.
+pub (receiver: Document) create_text_node(data: std.js.String.JsString): std.js.Dom.Text.
 
 /**
  * The **`execCommand`** method implements multiple different commands.
@@ -434,55 +434,55 @@ pub (receiver: Document) create_text_node(data: std.js.String.JsString): std.js.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/execCommand)
  */
-pub (receiver: Document) exec_command(command_id: std.js.String.JsString, show_ui: std.core.Option.Option[Bool], value: std.core.Option.Option[std.js.String.JsString]): Bool.
+pub (receiver: Document) exec_command(command_id: std.js.String.JsString, show_ui: std.core.Option[Bool], value: std.core.Option[std.js.String.JsString]): Bool.
 
 /**
  * The Document method **`exitFullscreen()`** requests that the element on this document which is currently being presented in fullscreen mode be taken out of fullscreen mode, restoring the previous state of the screen.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/exitFullscreen)
  */
-pub (receiver: Document) exit_fullscreen(): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: Document) exit_fullscreen(): std.js.Promise[std.core.Unit].
 
 /**
  * The **`exitPictureInPicture()`** method of the Document interface requests that a video contained in this document, which is currently floating, be taken out of picture-in-picture mode, restoring the previous state of the screen.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/exitPictureInPicture)
  */
-pub (receiver: Document) exit_picture_in_picture(): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: Document) exit_picture_in_picture(): std.js.Promise[std.core.Unit].
 
 /**
  * The **`exitPointerLock()`** method of the Document interface asynchronously releases a pointer lock previously requested through Element.requestPointerLock.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/exitPointerLock)
  */
-pub (receiver: Document) exit_pointer_lock(): std.core.Unit.Unit.
+pub (receiver: Document) exit_pointer_lock(): std.core.Unit.
 
-pub (receiver: Document) get_element_by_id(element_id: std.js.String.JsString): std.core.Option.Option[std.js.Dom.HTMLElement.HTMLElement].
+pub (receiver: Document) get_element_by_id(element_id: std.js.String.JsString): std.core.Option[std.js.Dom.HTMLElement].
 
 /**
  * The **`getElementsByClassName`** method of of all child elements which have all of the given class name(s).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getElementsByClassName)
  */
-pub (receiver: Document) get_elements_by_class_name(class_names: std.js.String.JsString): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.Element.Element].
+pub (receiver: Document) get_elements_by_class_name(class_names: std.js.String.JsString): std.js.Dom.HTMLCollectionOf[std.js.Dom.Element].
 
 /**
  * The **`getElementsByName()`** method of the Document object returns a NodeList Collection of elements with a given `name` attribute in the document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getElementsByName)
  */
-pub (receiver: Document) get_elements_by_name(element_name: std.js.String.JsString): std.js.Dom.NodeListOf.NodeListOf[std.js.Dom.HTMLElement.HTMLElement].
+pub (receiver: Document) get_elements_by_name(element_name: std.js.String.JsString): std.js.Dom.NodeListOf[std.js.Dom.HTMLElement].
 
-pub (receiver: Document) get_elements_by_tag_name(qualified_name: std.js.String.JsString): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.Element.Element].
+pub (receiver: Document) get_elements_by_tag_name(qualified_name: std.js.String.JsString): std.js.Dom.HTMLCollectionOf[std.js.Dom.Element].
 
-pub (receiver: Document) get_elements_by_tag_name_ns(namespace: std.core.Option.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.js.Dom.HTMLCollectionOf.HTMLCollectionOf[std.js.Dom.Element.Element].
+pub (receiver: Document) get_elements_by_tag_name_ns(namespace: std.core.Option[std.js.String.JsString], local_name: std.js.String.JsString): std.js.Dom.HTMLCollectionOf[std.js.Dom.Element].
 
 /**
  * The **`getSelection()`** method of the Document interface returns the Selection object associated with this document, representing the range of text selected by the user, or the current position of the caret.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/getSelection)
  */
-pub (receiver: Document) get_selection(): std.core.Option.Option[std.js.Dom.Selection.Selection].
+pub (receiver: Document) get_selection(): std.core.Option[std.js.Dom.Selection].
 
 /**
  * The **`hasFocus()`** method of the Document interface returns a boolean value indicating whether the document or any element inside the document has focus.
@@ -496,16 +496,16 @@ pub (receiver: Document) has_focus(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/hasStorageAccess)
  */
-pub (receiver: Document) has_storage_access(): std.js.Promise.Promise[Bool].
+pub (receiver: Document) has_storage_access(): std.js.Promise[Bool].
 
 /**
  * The **`Document.open()`** method opens a document for This does come with some side effects.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/open)
  */
-pub (receiver: Document) open(unused1: std.core.Option.Option[std.js.String.JsString], unused2: std.core.Option.Option[std.js.String.JsString]): Document.
+pub (receiver: Document) open(unused1: std.core.Option[std.js.String.JsString], unused2: std.core.Option[std.js.String.JsString]): Document.
 
-pub (receiver: Document) open_overload_2(url: std.js.Dom.URL.URL | std.js.String.JsString, name: std.js.String.JsString, features: std.js.String.JsString): std.core.Option.Option[std.js.Dom.WindowProxy.WindowProxy].
+pub (receiver: Document) open_overload_2(url: std.js.Dom.URL | std.js.String.JsString, name: std.js.String.JsString, features: std.js.String.JsString): std.core.Option[std.js.Dom.WindowProxy].
 
 /**
  * The **`Document.queryCommandEnabled()`** method reports whether or not the specified editor command is enabled by the browser.
@@ -544,21 +544,21 @@ pub (receiver: Document) query_command_value(command_id: std.js.String.JsString)
 /**
  * @deprecated
  */
-pub (receiver: Document) release_events(): std.core.Unit.Unit.
+pub (receiver: Document) release_events(): std.core.Unit.
 
 /**
  * The **`requestStorageAccess()`** method of the Document interface allows content loaded in a third-party context (i.e., embedded in an iframe) to request access to third-party cookies and unpartitioned state.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/requestStorageAccess)
  */
-pub (receiver: Document) request_storage_access(): std.js.Promise.Promise[std.core.Unit.Unit].
+pub (receiver: Document) request_storage_access(): std.js.Promise[std.core.Unit].
 
 /**
  * The **`startViewTransition()`** method of the Document interface starts a new same-document (SPA) view transition and returns a ViewTransition object to represent it.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/startViewTransition)
  */
-pub (receiver: Document) start_view_transition(callback_options: std.core.Option.Option[std.js.Dom.StartViewTransitionOptions.StartViewTransitionOptions | std.js.Dom.ViewTransitionUpdateCallback.ViewTransitionUpdateCallback]): std.js.Dom.ViewTransition.ViewTransition.
+pub (receiver: Document) start_view_transition(callback_options: std.core.Option[std.js.Dom.StartViewTransitionOptions | std.js.Dom.ViewTransitionUpdateCallback]): std.js.Dom.ViewTransition.
 
 /**
  * The **`write()`** method of the Document interface writes text in one or more TrustedHTML or string parameters to a document stream opened by document.open().
@@ -566,15 +566,15 @@ pub (receiver: Document) start_view_transition(callback_options: std.core.Option
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/write)
  */
-pub (receiver: Document) write(text: std.js.Array.Array[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: Document) write(text: std.js.Array[std.js.String.JsString]): std.core.Unit.
 
 /**
  * The **`writeln()`** method of the Document interface writes text in one or more TrustedHTML or string parameters to a document stream opened by document.open(), followed by a newline character.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/writeln)
  */
-pub (receiver: Document) writeln(text: std.js.Array.Array[std.js.String.JsString]): std.core.Unit.Unit.
+pub (receiver: Document) writeln(text: std.js.Array[std.js.String.JsString]): std.core.Unit.
 
-pub (receiver: Document) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: Document) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: Document) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: Document) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

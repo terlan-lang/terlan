@@ -8,7 +8,7 @@ module std.css.properties.PointerTimelineAxis.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    pointer_timeline_axis: std.core.Option.Option[Value]
+    pointer_timeline_axis: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

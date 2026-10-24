@@ -12,7 +12,7 @@
  */
 module std.js.Dom.AudioProcessingEvent.
 
-import type std.js.Dom.AudioBuffer.{AudioBuffer}.
+import type std.js.Dom.{AudioBuffer}.
 
 /**
  * The `AudioProcessingEvent` interface of the Web Audio API represents events that occur when a ScriptProcessorNode input buffer is ready to be processed.

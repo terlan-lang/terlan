@@ -15,8 +15,8 @@ module std.js.Dom.LockOptions.
 
 pub opaque type LockOptions.
 
-pub (receiver: LockOptions) if_available(): std.core.Option.Option[Bool].
+pub (receiver: LockOptions) if_available(): std.core.Option[Bool].
 
-pub (receiver: LockOptions) signal(): std.core.Option.Option[std.js.Dom.AbortSignal.AbortSignal].
+pub (receiver: LockOptions) signal(): std.core.Option[std.js.Dom.AbortSignal].
 
-pub (receiver: LockOptions) steal(): std.core.Option.Option[Bool].
+pub (receiver: LockOptions) steal(): std.core.Option[Bool].

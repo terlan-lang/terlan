@@ -15,8 +15,8 @@ module std.js.Dom.WriteParams.
 
 pub opaque type WriteParams.
 
-pub (receiver: WriteParams) data(): std.core.Option.Option[std.js.Dom.Blob.Blob | std.js.Dom.BufferSource.BufferSource | std.js.String.JsString].
+pub (receiver: WriteParams) data(): std.core.Option[std.js.Dom.Blob | std.js.Dom.BufferSource | std.js.String.JsString].
 
-pub (receiver: WriteParams) position(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: WriteParams) position(): std.core.Option[std.js.Number.JsNumber].
 
-pub (receiver: WriteParams) size(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: WriteParams) size(): std.core.Option[std.js.Number.JsNumber].

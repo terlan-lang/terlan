@@ -25,18 +25,18 @@ pub opaque type PerformanceObserverEntryList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceObserverEntryList/getEntries)
  */
-pub (receiver: PerformanceObserverEntryList) get_entries(): std.js.Dom.PerformanceEntryList.PerformanceEntryList.
+pub (receiver: PerformanceObserverEntryList) get_entries(): std.js.Dom.PerformanceEntryList.
 
 /**
  * The **`getEntriesByName()`** method of the PerformanceObserverEntryList interface returns a list of explicitly observed PerformanceEntry objects for a given PerformanceEntry.name and PerformanceEntry.entryType.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceObserverEntryList/getEntriesByName)
  */
-pub (receiver: PerformanceObserverEntryList) get_entries_by_name(name: std.js.String.JsString, type_: std.core.Option.Option[std.js.String.JsString]): std.js.Dom.PerformanceEntryList.PerformanceEntryList.
+pub (receiver: PerformanceObserverEntryList) get_entries_by_name(name: std.js.String.JsString, type_: std.core.Option[std.js.String.JsString]): std.js.Dom.PerformanceEntryList.
 
 /**
  * The **`getEntriesByType()`** method of the PerformanceObserverEntryList returns a list of explicitly _observed_ PerformanceEntry objects for a given PerformanceEntry.entryType.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceObserverEntryList/getEntriesByType)
  */
-pub (receiver: PerformanceObserverEntryList) get_entries_by_type(type_: std.js.String.JsString): std.js.Dom.PerformanceEntryList.PerformanceEntryList.
+pub (receiver: PerformanceObserverEntryList) get_entries_by_type(type_: std.js.String.JsString): std.js.Dom.PerformanceEntryList.

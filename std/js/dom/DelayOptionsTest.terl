@@ -12,7 +12,7 @@
  */
 module std.js.Dom.DelayOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.DelayOptions.
 import type std.js.Number.{JsNumber}.
 

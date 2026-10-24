@@ -25,4 +25,4 @@ pub opaque type LockManager.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LockManager/query)
  */
-pub (receiver: LockManager) query(): std.js.Promise.Promise[std.js.Dom.LockManagerSnapshot.LockManagerSnapshot].
+pub (receiver: LockManager) query(): std.js.Promise[std.js.Dom.LockManagerSnapshot].

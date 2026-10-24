@@ -8,7 +8,7 @@ module std.css.properties.FlexShrink.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    flex_shrink: std.core.Option.Option[Value]
+    flex_shrink: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

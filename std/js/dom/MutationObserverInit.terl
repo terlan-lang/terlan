@@ -12,14 +12,14 @@
  */
 module std.js.Dom.MutationObserverInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 
 pub opaque type MutationObserverInit.
 
 /**
  * Set to a list of attribute local names (without namespace) if not all attribute mutations need to be observed and attributes is true or omitted.
  */
-pub (receiver: MutationObserverInit) attribute_filter(): Option[std.js.Array.Array[std.js.String.JsString]] ->
+pub (receiver: MutationObserverInit) attribute_filter(): Option[std.js.Array[std.js.String.JsString]] ->
     native.
 
 /**

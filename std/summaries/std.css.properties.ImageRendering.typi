@@ -8,7 +8,7 @@ module std.css.properties.ImageRendering.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    image_rendering: std.core.Option.Option[Value]
+    image_rendering: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

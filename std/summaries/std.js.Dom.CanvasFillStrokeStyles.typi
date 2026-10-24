@@ -18,29 +18,29 @@ pub opaque type CanvasFillStrokeStyles.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillStyle)
  */
-pub (receiver: CanvasFillStrokeStyles) fill_style(): std.js.Dom.CanvasGradient.CanvasGradient | std.js.Dom.CanvasPattern.CanvasPattern | std.js.String.JsString.
+pub (receiver: CanvasFillStrokeStyles) fill_style(): std.js.Dom.CanvasGradient | std.js.Dom.CanvasPattern | std.js.String.JsString.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeStyle)
  */
-pub (receiver: CanvasFillStrokeStyles) stroke_style(): std.js.Dom.CanvasGradient.CanvasGradient | std.js.Dom.CanvasPattern.CanvasPattern | std.js.String.JsString.
+pub (receiver: CanvasFillStrokeStyles) stroke_style(): std.js.Dom.CanvasGradient | std.js.Dom.CanvasPattern | std.js.String.JsString.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createConicGradient)
  */
-pub (receiver: CanvasFillStrokeStyles) create_conic_gradient(start_angle: std.js.Number.JsNumber, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.js.Dom.CanvasGradient.CanvasGradient.
+pub (receiver: CanvasFillStrokeStyles) create_conic_gradient(start_angle: std.js.Number.JsNumber, x: std.js.Number.JsNumber, y: std.js.Number.JsNumber): std.js.Dom.CanvasGradient.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createLinearGradient)
  */
-pub (receiver: CanvasFillStrokeStyles) create_linear_gradient(x0: std.js.Number.JsNumber, y0: std.js.Number.JsNumber, x1: std.js.Number.JsNumber, y1: std.js.Number.JsNumber): std.js.Dom.CanvasGradient.CanvasGradient.
+pub (receiver: CanvasFillStrokeStyles) create_linear_gradient(x0: std.js.Number.JsNumber, y0: std.js.Number.JsNumber, x1: std.js.Number.JsNumber, y1: std.js.Number.JsNumber): std.js.Dom.CanvasGradient.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createPattern)
  */
-pub (receiver: CanvasFillStrokeStyles) create_pattern(image: std.js.Dom.CanvasImageSource.CanvasImageSource, repetition: std.core.Option.Option[std.js.String.JsString]): std.core.Option.Option[std.js.Dom.CanvasPattern.CanvasPattern].
+pub (receiver: CanvasFillStrokeStyles) create_pattern(image: std.js.Dom.CanvasImageSource, repetition: std.core.Option[std.js.String.JsString]): std.core.Option[std.js.Dom.CanvasPattern].
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/createRadialGradient)
  */
-pub (receiver: CanvasFillStrokeStyles) create_radial_gradient(x0: std.js.Number.JsNumber, y0: std.js.Number.JsNumber, r0: std.js.Number.JsNumber, x1: std.js.Number.JsNumber, y1: std.js.Number.JsNumber, r1: std.js.Number.JsNumber): std.js.Dom.CanvasGradient.CanvasGradient.
+pub (receiver: CanvasFillStrokeStyles) create_radial_gradient(x0: std.js.Number.JsNumber, y0: std.js.Number.JsNumber, r0: std.js.Number.JsNumber, x1: std.js.Number.JsNumber, y1: std.js.Number.JsNumber, r1: std.js.Number.JsNumber): std.js.Dom.CanvasGradient.

@@ -8,7 +8,7 @@ module std.css.properties.OffsetDistance.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    offset_distance: std.core.Option.Option[Value]
+    offset_distance: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

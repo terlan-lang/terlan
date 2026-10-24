@@ -114,5 +114,5 @@ pub (receiver: Touch) screen_y(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/target)
  */
-pub (receiver: Touch) target_(): std.js.Dom.EventTarget.EventTarget ->
+pub (receiver: Touch) target_(): std.js.Dom.EventTarget ->
     native.

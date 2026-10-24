@@ -15,8 +15,8 @@ module std.js.Dom.CSSStyleSheetInit.
 
 pub opaque type CSSStyleSheetInit.
 
-pub (receiver: CSSStyleSheetInit) base_url(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: CSSStyleSheetInit) base_url(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: CSSStyleSheetInit) disabled(): std.core.Option.Option[Bool].
+pub (receiver: CSSStyleSheetInit) disabled(): std.core.Option[Bool].
 
-pub (receiver: CSSStyleSheetInit) media(): std.core.Option.Option[std.js.Dom.MediaList.MediaList | std.js.String.JsString].
+pub (receiver: CSSStyleSheetInit) media(): std.core.Option[std.js.Dom.MediaList | std.js.String.JsString].

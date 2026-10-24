@@ -17,5 +17,5 @@ pub opaque type WindowSessionStorage.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/sessionStorage)
  */
-pub (receiver: WindowSessionStorage) session_storage(): std.js.Dom.Storage.Storage ->
+pub (receiver: WindowSessionStorage) session_storage(): std.js.Dom.Storage ->
     native.

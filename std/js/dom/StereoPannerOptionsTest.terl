@@ -14,5 +14,5 @@ module std.js.Dom.StereoPannerOptionsTest.
 
 import type std.js.Dom.StereoPannerOptions.
 
-pub pan_typechecks(receiver: StereoPannerOptions): std.core.Option.Option[std.js.Number.JsNumber] ->
+pub pan_typechecks(receiver: StereoPannerOptions): std.core.Option[std.js.Number.JsNumber] ->
     receiver.pan().

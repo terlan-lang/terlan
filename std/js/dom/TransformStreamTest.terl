@@ -14,12 +14,8 @@ module std.js.Dom.TransformStreamTest.
 
 import type std.js.Dom.TransformStream.
 
-pub readable_typechecks(
-    receiver: TransformStream[I, O],
-): std.js.Dom.ReadableStream.ReadableStream[O] ->
+pub readable_typechecks(receiver: TransformStream[I, O]): std.js.Dom.ReadableStream[O] ->
     receiver.readable().
 
-pub writable_typechecks(
-    receiver: TransformStream[I, O],
-): std.js.Dom.WritableStream.WritableStream[I] ->
+pub writable_typechecks(receiver: TransformStream[I, O]): std.js.Dom.WritableStream[I] ->
     receiver.writable().

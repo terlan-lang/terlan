@@ -58,7 +58,7 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
         Some(CoreType::Named(name))
             if matches!(
                 name.as_str(),
-                "Bytes" | "std.binary.Bytes" | "std.vm.Bytes.Bytes"
+                "Bytes" | "std.binary.Bytes" | "std.vm.Bytes" | "std.vm.Bytes.Bytes"
             ) =>
         {
             Some(NativeType::BytesRef)
@@ -119,7 +119,11 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
         None if text == "Bool" => Some(NativeType::Bool),
         None if text == "Atom" => Some(NativeType::Atom),
         None if text == "String" => Some(NativeType::StringRef),
-        None if matches!(text, "Bytes" | "std.binary.Bytes" | "std.vm.Bytes.Bytes") => {
+        None if matches!(
+            text,
+            "Bytes" | "std.binary.Bytes" | "std.vm.Bytes" | "std.vm.Bytes.Bytes"
+        ) =>
+        {
             Some(NativeType::BytesRef)
         }
         None if matches!(text, "Binary" | "BitString" | "std.binary.Binary") => {

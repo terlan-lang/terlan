@@ -25,14 +25,14 @@ pub opaque type HTMLLabelElement.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLabelElement/control)
  */
-pub (receiver: HTMLLabelElement) control(): std.core.Option.Option[std.js.Dom.HTMLElement.HTMLElement].
+pub (receiver: HTMLLabelElement) control(): std.core.Option[std.js.Dom.HTMLElement].
 
 /**
  * The **`form`** read-only property of the HTMLLabelElement interface returns an HTMLFormElement object that owns the HTMLLabelElement.control associated with this label, or `null` if this label is not associated with a control owned by a form.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLLabelElement/form)
  */
-pub (receiver: HTMLLabelElement) form(): std.core.Option.Option[std.js.Dom.HTMLFormElement.HTMLFormElement].
+pub (receiver: HTMLLabelElement) form(): std.core.Option[std.js.Dom.HTMLFormElement].
 
 /**
  * The **`HTMLLabelElement.htmlFor`** property reflects the value of the `for` content property.
@@ -41,6 +41,6 @@ pub (receiver: HTMLLabelElement) form(): std.core.Option.Option[std.js.Dom.HTMLF
  */
 pub (receiver: HTMLLabelElement) html_for(): std.js.String.JsString.
 
-pub (receiver: HTMLLabelElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool]): std.core.Unit.Unit.
+pub (receiver: HTMLLabelElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
-pub (receiver: HTMLLabelElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject.EventListenerOrEventListenerObject, options: std.core.Option.Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions]): std.core.Unit.Unit.
+pub (receiver: HTMLLabelElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

@@ -749,7 +749,7 @@ fn render_params(params: &[DomParamPlan]) -> String {
 /// Optional JavaScript arguments have an explicit absence value in Terlan.
 fn render_param_type(param: &DomParamPlan) -> String {
     if param.optional {
-        format!("std.core.Option.Option[{}]", param.terlan_type)
+        format!("std.core.Option[{}]", param.terlan_type)
     } else {
         param.terlan_type.clone()
     }

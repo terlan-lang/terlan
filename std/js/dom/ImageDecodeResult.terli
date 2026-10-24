@@ -16,4 +16,4 @@ pub opaque type ImageDecodeResult.
 
 pub (receiver: ImageDecodeResult) complete(): Bool.
 
-pub (receiver: ImageDecodeResult) image(): std.js.Dom.VideoFrame.VideoFrame.
+pub (receiver: ImageDecodeResult) image(): std.js.Dom.VideoFrame.

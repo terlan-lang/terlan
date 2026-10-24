@@ -8,7 +8,7 @@ module std.css.properties.MarkerStart.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    marker_start: std.core.Option.Option[Value]
+    marker_start: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

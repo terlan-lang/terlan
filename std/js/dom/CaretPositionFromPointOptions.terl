@@ -14,5 +14,5 @@ module std.js.Dom.CaretPositionFromPointOptions.
 
 pub opaque type CaretPositionFromPointOptions.
 
-pub (receiver: CaretPositionFromPointOptions) shadow_roots(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.ShadowRoot.ShadowRoot]] ->
+pub (receiver: CaretPositionFromPointOptions) shadow_roots(): std.core.Option[std.js.Array[std.js.Dom.ShadowRoot]] ->
     native.

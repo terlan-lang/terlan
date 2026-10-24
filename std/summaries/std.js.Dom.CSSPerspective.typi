@@ -25,4 +25,4 @@ pub opaque type CSSPerspective.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSPerspective/length)
  */
-pub (receiver: CSSPerspective) length(): std.js.Dom.CSSPerspectiveValue.CSSPerspectiveValue.
+pub (receiver: CSSPerspective) length(): std.js.Dom.CSSPerspectiveValue.

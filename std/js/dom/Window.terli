@@ -12,14 +12,8 @@
  */
 module std.js.Dom.Window.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.BarProp.{BarProp}.
-import type std.js.Dom.Element.{Element}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
-import type std.js.Dom.Navigator.{Navigator}.
-import type std.js.Dom.ScrollToOptions.{ScrollToOptions}.
-import type std.js.Dom.WindowProxy.{WindowProxy}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{BarProp, Element, EventListenerOrEventListenerObject, Navigator, ScrollToOptions, WindowProxy}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -49,14 +43,14 @@ pub (receiver: Window) closed(): Bool.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/cookieStore)
  */
-pub (receiver: Window) cookie_store(): std.js.Dom.CookieStore.CookieStore.
+pub (receiver: Window) cookie_store(): std.js.Dom.CookieStore.
 
 /**
  * The **`customElements`** read-only property of the Window interface returns a reference to the CustomElementRegistry object, which can be used to register new custom elements and get information about previously registered custom elements.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/customElements)
  */
-pub (receiver: Window) custom_elements(): std.js.Dom.CustomElementRegistry.CustomElementRegistry.
+pub (receiver: Window) custom_elements(): std.js.Dom.CustomElementRegistry.
 
 /**
  * The **`devicePixelRatio`** of Window interface returns the ratio of the resolution in _physical pixels_ to the resolution in _CSS pixels_ for the current display device.
@@ -70,7 +64,7 @@ pub (receiver: Window) device_pixel_ratio(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/document)
  */
-pub (receiver: Window) document(): std.js.Dom.Document.Document.
+pub (receiver: Window) document(): std.js.Dom.Document.
 
 /**
  * The read-only Window property **`event`** returns the Event which is currently being handled by the site's code.
@@ -78,7 +72,7 @@ pub (receiver: Window) document(): std.js.Dom.Document.Document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/event)
  */
-pub (receiver: Window) event(): Option[std.js.Dom.Event.Event].
+pub (receiver: Window) event(): Option[std.js.Dom.Event].
 
 /**
  * The `external` property of the Window API returns an instance of the `External` interface, which was intended to contain functions related to adding external search providers to the browser.
@@ -86,7 +80,7 @@ pub (receiver: Window) event(): Option[std.js.Dom.Event.Event].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/external)
  */
-pub (receiver: Window) external(): std.js.Dom.External.External.
+pub (receiver: Window) external(): std.js.Dom.External.
 
 /**
  * The **`Window.frameElement`** property returns the element (such as iframe or object) in which the window is embedded.
@@ -107,7 +101,7 @@ pub (receiver: Window) frames(): WindowProxy.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/history)
  */
-pub (receiver: Window) history(): std.js.Dom.History.History.
+pub (receiver: Window) history(): std.js.Dom.History.
 
 /**
  * The read-only **`innerHeight`** property of the including the height of the horizontal scroll bar, if present.
@@ -135,7 +129,7 @@ pub (receiver: Window) length(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/location)
  */
-pub (receiver: Window) location(): std.js.Dom.Location.Location.
+pub (receiver: Window) location(): std.js.Dom.Location.
 
 /**
  * Returns the `locationbar` object.
@@ -223,7 +217,7 @@ pub (receiver: Window) personalbar(): BarProp.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screen)
  */
-pub (receiver: Window) screen(): std.js.Dom.Screen.Screen.
+pub (receiver: Window) screen(): std.js.Dom.Screen.
 
 /**
  * The **`Window.screenLeft`** read-only property returns the horizontal distance, in CSS pixels, from the left border of the user's browser viewport to the left side of the screen.
@@ -279,7 +273,7 @@ pub (receiver: Window) scrollbars(): BarProp.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/speechSynthesis)
  */
-pub (receiver: Window) speech_synthesis(): std.js.Dom.SpeechSynthesis.SpeechSynthesis.
+pub (receiver: Window) speech_synthesis(): std.js.Dom.SpeechSynthesis.
 
 /**
  * The **`status`** property of the bar at the bottom of the browser window.
@@ -315,7 +309,7 @@ pub (receiver: Window) top(): Option[WindowProxy].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/visualViewport)
  */
-pub (receiver: Window) visual_viewport(): Option[std.js.Dom.VisualViewport.VisualViewport].
+pub (receiver: Window) visual_viewport(): Option[std.js.Dom.VisualViewport].
 
 /**
  * The **`Window.blur()`** method does nothing.
@@ -369,21 +363,21 @@ pub (receiver: Window) focus(): Unit.
 pub (receiver: Window) get_computed_style(
     elt: Element,
     pseudo_elt: Option[Option[JsString]],
-): std.js.Dom.CSSStyleDeclaration.CSSStyleDeclaration.
+): std.js.Dom.CSSStyleDeclaration.
 
 /**
  * The **`getSelection()`** method of the Window interface returns the Selection object associated with the window's document, representing the range of text selected by the user or the current position of the caret.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/getSelection)
  */
-pub (receiver: Window) get_selection(): Option[std.js.Dom.Selection.Selection].
+pub (receiver: Window) get_selection(): Option[std.js.Dom.Selection].
 
 /**
  * The Window interface's **`matchMedia()`** method returns a new MediaQueryList object that can then be used to determine if the document matches the media query string, as well as to monitor the document to detect when it matches (or stops matching) that media query.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/matchMedia)
  */
-pub (receiver: Window) match_media(query: JsString): std.js.Dom.MediaQueryList.MediaQueryList.
+pub (receiver: Window) match_media(query: JsString): std.js.Dom.MediaQueryList.
 
 /**
  * The **`moveBy()`** method of the Window interface moves the current window by a specified amount.
@@ -405,7 +399,7 @@ pub (receiver: Window) move_to(x: JsNumber, y: JsNumber): Unit.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/open)
  */
 pub (receiver: Window) open(
-    url: Option[std.js.Dom.URL.URL | JsString],
+    url: Option[std.js.Dom.URL | JsString],
     target_: Option[JsString],
     features: Option[JsString],
 ): Option[WindowProxy].
@@ -438,8 +432,8 @@ pub (receiver: Window) release_events(): Unit.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/requestIdleCallback)
  */
 pub (receiver: Window) request_idle_callback(
-    callback: std.js.Dom.IdleRequestCallback.IdleRequestCallback,
-    options: Option[std.js.Dom.IdleRequestOptions.IdleRequestOptions],
+    callback: std.js.Dom.IdleRequestCallback,
+    options: Option[std.js.Dom.IdleRequestOptions],
 ): JsNumber.
 
 /**
@@ -493,11 +487,11 @@ pub (receiver: Window) stop(): Unit.
 pub (receiver: Window) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: Window) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

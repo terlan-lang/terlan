@@ -8,7 +8,7 @@ module std.css.properties.ShapeOutside.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    shape_outside: std.core.Option.Option[Value]
+    shape_outside: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

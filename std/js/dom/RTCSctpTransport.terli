@@ -12,9 +12,8 @@
  */
 module std.js.Dom.RTCSctpTransport.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.EventListenerOrEventListenerObject.{EventListenerOrEventListenerObject}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
@@ -44,16 +43,16 @@ pub (receiver: RTCSctpTransport) max_message_size(): JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCSctpTransport/transport)
  */
-pub (receiver: RTCSctpTransport) transport(): std.js.Dom.RTCDtlsTransport.RTCDtlsTransport.
+pub (receiver: RTCSctpTransport) transport(): std.js.Dom.RTCDtlsTransport.
 
 pub (receiver: RTCSctpTransport) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[std.js.Dom.AddEventListenerOptions.AddEventListenerOptions | Bool],
+    options: Option[std.js.Dom.AddEventListenerOptions | Bool],
 ): Unit.
 
 pub (receiver: RTCSctpTransport) remove_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
-    options: Option[Bool | std.js.Dom.EventListenerOptions.EventListenerOptions],
+    options: Option[Bool | std.js.Dom.EventListenerOptions],
 ): Unit.

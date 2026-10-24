@@ -25,11 +25,11 @@ pub opaque type NavigationActivation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationActivation/entry)
  */
-pub (receiver: NavigationActivation) entry(): std.js.Dom.NavigationHistoryEntry.NavigationHistoryEntry.
+pub (receiver: NavigationActivation) entry(): std.js.Dom.NavigationHistoryEntry.
 
 /**
  * The **`from`** read-only property of the NavigationActivation interface contains a NavigationHistoryEntry object representing the history entry for the outgoing ('from') document in the navigation.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationActivation/from)
  */
-pub (receiver: NavigationActivation) from_(): std.core.Option.Option[std.js.Dom.NavigationHistoryEntry.NavigationHistoryEntry].
+pub (receiver: NavigationActivation) from_(): std.core.Option[std.js.Dom.NavigationHistoryEntry].

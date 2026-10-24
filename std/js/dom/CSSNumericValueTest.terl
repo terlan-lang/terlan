@@ -12,10 +12,9 @@
  */
 module std.js.Dom.CSSNumericValueTest.
 
-import type std.js.Array.{Array}.
-import type std.js.Dom.CSSNumberish.{CSSNumberish}.
-import type std.js.Dom.CSSNumericValue.
+import type std.js.Dom.{CSSNumberish, CSSNumericValue}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 pub add_typechecks(receiver: CSSNumericValue, values: Array[CSSNumberish]): CSSNumericValue ->
     receiver.add(values).
@@ -38,14 +37,11 @@ pub mul_typechecks(receiver: CSSNumericValue, values: Array[CSSNumberish]): CSSN
 pub sub_typechecks(receiver: CSSNumericValue, values: Array[CSSNumberish]): CSSNumericValue ->
     receiver.sub(values).
 
-pub to_typechecks(receiver: CSSNumericValue, unit: JsString): std.js.Dom.CSSUnitValue.CSSUnitValue ->
+pub to_typechecks(receiver: CSSNumericValue, unit: JsString): std.js.Dom.CSSUnitValue ->
     receiver.to(unit).
 
-pub to_sum_typechecks(
-    receiver: CSSNumericValue,
-    units: Array[JsString],
-): std.js.Dom.CSSMathSum.CSSMathSum ->
+pub to_sum_typechecks(receiver: CSSNumericValue, units: Array[JsString]): std.js.Dom.CSSMathSum ->
     receiver.to_sum(units).
 
-pub type__typechecks(receiver: CSSNumericValue): std.js.Dom.CSSNumericType.CSSNumericType ->
+pub type__typechecks(receiver: CSSNumericValue): std.js.Dom.CSSNumericType ->
     receiver.type_().

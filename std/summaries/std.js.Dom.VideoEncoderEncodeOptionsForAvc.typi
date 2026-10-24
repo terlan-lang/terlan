@@ -15,4 +15,4 @@ module std.js.Dom.VideoEncoderEncodeOptionsForAvc.
 
 pub opaque type VideoEncoderEncodeOptionsForAvc.
 
-pub (receiver: VideoEncoderEncodeOptionsForAvc) quantizer(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: VideoEncoderEncodeOptionsForAvc) quantizer(): std.core.Option[std.js.Number.JsNumber].

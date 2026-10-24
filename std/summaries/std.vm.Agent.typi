@@ -3,10 +3,10 @@
 module std.vm.Agent.
 
 pub type Agent[T] =
-    {Atom["agent"], process: std.vm.Process.Process[AgentCommand[T]], placeholder: T}.
+    {Atom["agent"], process: std.vm.Process[AgentCommand[T]], placeholder: T}.
 
 pub type AgentCommand[T] =
-    {Atom["agent_command"], kind: AgentCommandKind, request_id: Int, reply_to: std.vm.Process.Process[AgentReply[T]], value: T}.
+    {Atom["agent_command"], kind: AgentCommandKind, request_id: Int, reply_to: std.vm.Process[AgentReply[T]], value: T}.
 
 pub type AgentCommandKind =
     AgentInit
@@ -47,17 +47,17 @@ pub get[T](agent: Agent[T], request_id: Int): T.
 
 pub get_and_update[T](agent: Agent[T], request_id: Int, value: T): T.
 
-pub make_agent[T](process: std.vm.Process.Process[AgentCommand[T]], initial: T): Agent[T].
+pub make_agent[T](process: std.vm.Process[AgentCommand[T]], initial: T): Agent[T].
 
-pub request_get[T](agent: Agent[T], request_id: Int, reply_to: std.vm.Process.Process[AgentReply[T]]): Unit.
+pub request_get[T](agent: Agent[T], request_id: Int, reply_to: std.vm.Process[AgentReply[T]]): Unit.
 
-pub send_reply[T](reply_to: std.vm.Process.Process[AgentReply[T]], request_id: Int, value: T): Unit.
+pub send_reply[T](reply_to: std.vm.Process[AgentReply[T]], request_id: Int, value: T): Unit.
 
 pub serve[T](witness: T): Unit.
 
 pub serve_state[T](state: T): Unit.
 
-pub start[T](process: std.vm.Process.Process[AgentCommand[T]], initial: T): Agent[T].
+pub start[T](process: std.vm.Process[AgentCommand[T]], initial: T): Agent[T].
 
 pub stop[T](agent: Agent[T], request_id: Int): Unit.
 

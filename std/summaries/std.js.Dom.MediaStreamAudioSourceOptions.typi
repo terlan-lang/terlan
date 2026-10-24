@@ -15,4 +15,4 @@ module std.js.Dom.MediaStreamAudioSourceOptions.
 
 pub opaque type MediaStreamAudioSourceOptions.
 
-pub (receiver: MediaStreamAudioSourceOptions) media_stream(): std.js.Dom.MediaStream.MediaStream.
+pub (receiver: MediaStreamAudioSourceOptions) media_stream(): std.js.Dom.MediaStream.

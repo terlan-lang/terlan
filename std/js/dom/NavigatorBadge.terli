@@ -12,8 +12,8 @@
  */
 module std.js.Dom.NavigatorBadge.
 
-import type std.core.Unit.{Unit}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Unit}.
+import type std.js.{Promise}.
 
 /**
  * Available only in secure contexts.
@@ -28,4 +28,4 @@ pub (receiver: NavigatorBadge) clear_app_badge(): Promise[Unit].
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/setAppBadge)
  */
-pub (receiver: NavigatorBadge) set_app_badge(contents: std.core.Option.Option[std.js.Number.JsNumber]): Promise[Unit].
+pub (receiver: NavigatorBadge) set_app_badge(contents: std.core.Option[std.js.Number.JsNumber]): Promise[Unit].

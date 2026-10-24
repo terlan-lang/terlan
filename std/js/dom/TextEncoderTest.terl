@@ -16,6 +16,6 @@ import type std.js.Dom.TextEncoder.
 
 pub encode_typechecks(
     receiver: TextEncoder,
-    input: std.core.Option.Option[std.js.String.JsString],
-): std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer] ->
+    input: std.core.Option[std.js.String.JsString],
+): std.js.Uint8Array[std.js.ArrayBuffer] ->
     receiver.encode(input).

@@ -8,7 +8,7 @@ module std.css.properties.PathLength.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    path_length: std.core.Option.Option[Value]
+    path_length: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

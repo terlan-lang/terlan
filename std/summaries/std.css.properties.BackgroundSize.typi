@@ -8,7 +8,7 @@ module std.css.properties.BackgroundSize.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    background_size: std.core.Option.Option[Value]
+    background_size: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

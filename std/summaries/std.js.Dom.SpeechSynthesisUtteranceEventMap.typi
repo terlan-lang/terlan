@@ -15,16 +15,16 @@ module std.js.Dom.SpeechSynthesisUtteranceEventMap.
 
 pub opaque type SpeechSynthesisUtteranceEventMap.
 
-pub (receiver: SpeechSynthesisUtteranceEventMap) boundary(): std.js.Dom.SpeechSynthesisEvent.SpeechSynthesisEvent.
+pub (receiver: SpeechSynthesisUtteranceEventMap) boundary(): std.js.Dom.SpeechSynthesisEvent.
 
-pub (receiver: SpeechSynthesisUtteranceEventMap) end(): std.js.Dom.SpeechSynthesisEvent.SpeechSynthesisEvent.
+pub (receiver: SpeechSynthesisUtteranceEventMap) end(): std.js.Dom.SpeechSynthesisEvent.
 
-pub (receiver: SpeechSynthesisUtteranceEventMap) error(): std.js.Dom.SpeechSynthesisErrorEvent.SpeechSynthesisErrorEvent.
+pub (receiver: SpeechSynthesisUtteranceEventMap) error(): std.js.Dom.SpeechSynthesisErrorEvent.
 
-pub (receiver: SpeechSynthesisUtteranceEventMap) mark(): std.js.Dom.SpeechSynthesisEvent.SpeechSynthesisEvent.
+pub (receiver: SpeechSynthesisUtteranceEventMap) mark(): std.js.Dom.SpeechSynthesisEvent.
 
-pub (receiver: SpeechSynthesisUtteranceEventMap) pause(): std.js.Dom.SpeechSynthesisEvent.SpeechSynthesisEvent.
+pub (receiver: SpeechSynthesisUtteranceEventMap) pause(): std.js.Dom.SpeechSynthesisEvent.
 
-pub (receiver: SpeechSynthesisUtteranceEventMap) resume(): std.js.Dom.SpeechSynthesisEvent.SpeechSynthesisEvent.
+pub (receiver: SpeechSynthesisUtteranceEventMap) resume(): std.js.Dom.SpeechSynthesisEvent.
 
-pub (receiver: SpeechSynthesisUtteranceEventMap) start(): std.js.Dom.SpeechSynthesisEvent.SpeechSynthesisEvent.
+pub (receiver: SpeechSynthesisUtteranceEventMap) start(): std.js.Dom.SpeechSynthesisEvent.

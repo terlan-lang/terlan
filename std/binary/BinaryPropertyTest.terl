@@ -18,7 +18,7 @@ import std.vm.{BitString, Bytes}.
 pub property_decoded_int_field(name: String, value: Int): DecodedField ->
     decoded_int_field(name, value).
 
-pub property_decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes.Bytes): DecodedProtocol ->
+pub property_decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes): DecodedProtocol ->
     {fields, body}.
 
 /**

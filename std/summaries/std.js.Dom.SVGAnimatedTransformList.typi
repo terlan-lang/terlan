@@ -25,11 +25,11 @@ pub opaque type SVGAnimatedTransformList.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedTransformList/animVal)
  */
-pub (receiver: SVGAnimatedTransformList) anim_val(): std.js.Dom.SVGTransformList.SVGTransformList.
+pub (receiver: SVGAnimatedTransformList) anim_val(): std.js.Dom.SVGTransformList.
 
 /**
  * The **`baseVal`** read-only property of the SVGAnimatedTransformList interface represents the non-animated value of the `transform` attribute of an SVG element.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/SVGAnimatedTransformList/baseVal)
  */
-pub (receiver: SVGAnimatedTransformList) base_val(): std.js.Dom.SVGTransformList.SVGTransformList.
+pub (receiver: SVGAnimatedTransformList) base_val(): std.js.Dom.SVGTransformList.

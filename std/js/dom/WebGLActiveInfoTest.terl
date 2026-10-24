@@ -17,8 +17,8 @@ import type std.js.Dom.WebGLActiveInfo.
 pub name_typechecks(receiver: WebGLActiveInfo): std.js.String.JsString ->
     receiver.name().
 
-pub size_typechecks(receiver: WebGLActiveInfo): std.js.Dom.GLint.GLint ->
+pub size_typechecks(receiver: WebGLActiveInfo): std.js.Dom.GLint ->
     receiver.size().
 
-pub type__typechecks(receiver: WebGLActiveInfo): std.js.Dom.GLenum.GLenum ->
+pub type__typechecks(receiver: WebGLActiveInfo): std.js.Dom.GLenum ->
     receiver.type_().

@@ -33,4 +33,4 @@ pub (receiver: CustomEvent[T]) detail(): T.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomEvent/initCustomEvent)
  */
-pub (receiver: CustomEvent[T]) init_custom_event(type_: std.js.String.JsString, bubbles: std.core.Option.Option[Bool], cancelable: std.core.Option.Option[Bool], detail: std.core.Option.Option[T]): std.core.Unit.Unit.
+pub (receiver: CustomEvent[T]) init_custom_event(type_: std.js.String.JsString, bubbles: std.core.Option[Bool], cancelable: std.core.Option[Bool], detail: std.core.Option[T]): std.core.Unit.

@@ -26,4 +26,4 @@ pub opaque type MediaKeyMessageEvent.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeyMessageEvent/message)
  */
-pub (receiver: MediaKeyMessageEvent) message(): std.js.ArrayBuffer.ArrayBuffer.
+pub (receiver: MediaKeyMessageEvent) message(): std.js.ArrayBuffer.

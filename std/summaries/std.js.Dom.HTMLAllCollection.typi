@@ -32,11 +32,11 @@ pub (receiver: HTMLAllCollection) length(): std.js.Number.JsNumber.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAllCollection/item)
  */
-pub (receiver: HTMLAllCollection) item(name_or_index: std.core.Option.Option[std.js.String.JsString]): std.core.Option.Option[std.js.Dom.Element.Element | std.js.Dom.HTMLCollection.HTMLCollection].
+pub (receiver: HTMLAllCollection) item(name_or_index: std.core.Option[std.js.String.JsString]): std.core.Option[std.js.Dom.Element | std.js.Dom.HTMLCollection].
 
 /**
  * The **`namedItem()`** method of the HTMLAllCollection interface returns the first Element in the collection whose `id` or `name` attribute matches the specified name, or `null` if no element matches.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLAllCollection/namedItem)
  */
-pub (receiver: HTMLAllCollection) named_item(name: std.js.String.JsString): std.core.Option.Option[std.js.Dom.Element.Element | std.js.Dom.HTMLCollection.HTMLCollection].
+pub (receiver: HTMLAllCollection) named_item(name: std.js.String.JsString): std.core.Option[std.js.Dom.Element | std.js.Dom.HTMLCollection].

@@ -39,32 +39,32 @@ pub (receiver: Blob) type_(): std.js.String.JsString.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/arrayBuffer)
  */
-pub (receiver: Blob) array_buffer(): std.js.Promise.Promise[std.js.ArrayBuffer.ArrayBuffer].
+pub (receiver: Blob) array_buffer(): std.js.Promise[std.js.ArrayBuffer].
 
 /**
  * The **`bytes()`** method of the Blob interface returns a Promise that resolves with a Uint8Array containing the contents of the blob as an array of bytes.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/bytes)
  */
-pub (receiver: Blob) bytes(): std.js.Promise.Promise[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]].
+pub (receiver: Blob) bytes(): std.js.Promise[std.js.Uint8Array[std.js.ArrayBuffer]].
 
 /**
  * The **`slice()`** method of the Blob interface creates and returns a new `Blob` object which contains data from a subset of the blob on which it's called.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/slice)
  */
-pub (receiver: Blob) slice(start: std.core.Option.Option[std.js.Number.JsNumber], end: std.core.Option.Option[std.js.Number.JsNumber], content_type: std.core.Option.Option[std.js.String.JsString]): Blob.
+pub (receiver: Blob) slice(start: std.core.Option[std.js.Number.JsNumber], end: std.core.Option[std.js.Number.JsNumber], content_type: std.core.Option[std.js.String.JsString]): Blob.
 
 /**
  * The **`stream()`** method of the Blob interface returns a ReadableStream which upon reading returns the data contained within the `Blob`.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/stream)
  */
-pub (receiver: Blob) stream(): std.js.Dom.ReadableStream.ReadableStream[std.js.Uint8Array.Uint8Array[std.js.ArrayBuffer.ArrayBuffer]].
+pub (receiver: Blob) stream(): std.js.Dom.ReadableStream[std.js.Uint8Array[std.js.ArrayBuffer]].
 
 /**
  * The **`text()`** method of the string containing the contents of the blob, interpreted as UTF-8.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/text)
  */
-pub (receiver: Blob) text(): std.js.Promise.Promise[std.js.String.JsString].
+pub (receiver: Blob) text(): std.js.Promise[std.js.String.JsString].

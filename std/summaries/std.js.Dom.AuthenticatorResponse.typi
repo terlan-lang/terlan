@@ -26,4 +26,4 @@ pub opaque type AuthenticatorResponse.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AuthenticatorResponse/clientDataJSON)
  */
-pub (receiver: AuthenticatorResponse) client_data_json(): std.js.ArrayBuffer.ArrayBuffer.
+pub (receiver: AuthenticatorResponse) client_data_json(): std.js.ArrayBuffer.

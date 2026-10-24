@@ -15,4 +15,4 @@ module std.js.Dom.VideoColorSpaceInit.
 
 pub opaque type VideoColorSpaceInit.
 
-pub (receiver: VideoColorSpaceInit) full_range(): std.core.Option.Option[Bool].
+pub (receiver: VideoColorSpaceInit) full_range(): std.core.Option[Bool].

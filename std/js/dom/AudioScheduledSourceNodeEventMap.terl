@@ -14,5 +14,5 @@ module std.js.Dom.AudioScheduledSourceNodeEventMap.
 
 pub opaque type AudioScheduledSourceNodeEventMap.
 
-pub (receiver: AudioScheduledSourceNodeEventMap) ended(): std.js.Dom.Event.Event ->
+pub (receiver: AudioScheduledSourceNodeEventMap) ended(): std.js.Dom.Event ->
     native.

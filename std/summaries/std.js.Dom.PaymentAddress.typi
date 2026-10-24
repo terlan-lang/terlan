@@ -25,7 +25,7 @@ pub opaque type PaymentAddress.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ContactAddress/addressLine)
  */
-pub (receiver: PaymentAddress) address_line(): std.js.Array.Array[std.js.String.JsString].
+pub (receiver: PaymentAddress) address_line(): std.js.Array[std.js.String.JsString].
 
 /**
  * The **`city`** read-only property of the ContactAddress interface returns a string containing the city or town portion of the address.

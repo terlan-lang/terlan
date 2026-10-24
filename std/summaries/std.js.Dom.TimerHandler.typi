@@ -14,4 +14,4 @@
 module std.js.Dom.TimerHandler.
 
 pub type TimerHandler =
-    std.js.Function.Function | std.js.String.JsString.
+    std.js.Function | std.js.String.JsString.

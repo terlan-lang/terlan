@@ -12,7 +12,7 @@
  */
 module std.js.Dom.MouseEventInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type MouseEventInit.
@@ -29,7 +29,7 @@ pub (receiver: MouseEventInit) movement_x(): Option[JsNumber].
 
 pub (receiver: MouseEventInit) movement_y(): Option[JsNumber].
 
-pub (receiver: MouseEventInit) related_target(): Option[std.js.Dom.EventTarget.EventTarget].
+pub (receiver: MouseEventInit) related_target(): Option[std.js.Dom.EventTarget].
 
 pub (receiver: MouseEventInit) screen_x(): Option[JsNumber].
 

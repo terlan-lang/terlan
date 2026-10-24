@@ -12,25 +12,17 @@
  */
 module std.js.Dom.UnderlyingSinkTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.UnderlyingSink.
 
-pub abort_typechecks(
-    receiver: UnderlyingSink[W],
-): Option[std.js.Dom.UnderlyingSinkAbortCallback.UnderlyingSinkAbortCallback] ->
+pub abort_typechecks(receiver: UnderlyingSink[W]): Option[std.js.Dom.UnderlyingSinkAbortCallback] ->
     receiver.abort().
 
-pub close_typechecks(
-    receiver: UnderlyingSink[W],
-): Option[std.js.Dom.UnderlyingSinkCloseCallback.UnderlyingSinkCloseCallback] ->
+pub close_typechecks(receiver: UnderlyingSink[W]): Option[std.js.Dom.UnderlyingSinkCloseCallback] ->
     receiver.close().
 
-pub start_typechecks(
-    receiver: UnderlyingSink[W],
-): Option[std.js.Dom.UnderlyingSinkStartCallback.UnderlyingSinkStartCallback] ->
+pub start_typechecks(receiver: UnderlyingSink[W]): Option[std.js.Dom.UnderlyingSinkStartCallback] ->
     receiver.start().
 
-pub write_typechecks(
-    receiver: UnderlyingSink[W],
-): Option[std.js.Dom.UnderlyingSinkWriteCallback.UnderlyingSinkWriteCallback[W]] ->
+pub write_typechecks(receiver: UnderlyingSink[W]): Option[std.js.Dom.UnderlyingSinkWriteCallback[W]] ->
     receiver.write().

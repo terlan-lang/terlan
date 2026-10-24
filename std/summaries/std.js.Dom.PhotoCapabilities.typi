@@ -15,6 +15,6 @@ module std.js.Dom.PhotoCapabilities.
 
 pub opaque type PhotoCapabilities.
 
-pub (receiver: PhotoCapabilities) image_height(): std.core.Option.Option[std.js.Dom.MediaSettingsRange.MediaSettingsRange].
+pub (receiver: PhotoCapabilities) image_height(): std.core.Option[std.js.Dom.MediaSettingsRange].
 
-pub (receiver: PhotoCapabilities) image_width(): std.core.Option.Option[std.js.Dom.MediaSettingsRange.MediaSettingsRange].
+pub (receiver: PhotoCapabilities) image_width(): std.core.Option[std.js.Dom.MediaSettingsRange].

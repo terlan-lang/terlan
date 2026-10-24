@@ -12,20 +12,14 @@
  */
 module std.js.Dom.WebTransportTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
-import type std.js.Dom.ReadableStream.{ReadableStream}.
-import type std.js.Dom.WebTransport.
-import type std.js.Dom.WebTransportCloseInfo.{WebTransportCloseInfo}.
-import type std.js.Dom.WebTransportSendStreamOptions.{WebTransportSendStreamOptions}.
-import type std.js.Promise.{Promise}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{ReadableStream, WebTransport, WebTransportCloseInfo, WebTransportSendStreamOptions}.
+import type std.js.{Promise}.
 
 pub closed_typechecks(receiver: WebTransport): Promise[WebTransportCloseInfo] ->
     receiver.closed().
 
-pub datagrams_typechecks(
-    receiver: WebTransport,
-): std.js.Dom.WebTransportDatagramDuplexStream.WebTransportDatagramDuplexStream ->
+pub datagrams_typechecks(receiver: WebTransport): std.js.Dom.WebTransportDatagramDuplexStream ->
     receiver.datagrams().
 
 pub incoming_bidirectional_streams_typechecks(receiver: WebTransport): ReadableStream ->
@@ -43,11 +37,11 @@ pub close_typechecks(receiver: WebTransport, close_info: Option[WebTransportClos
 pub create_bidirectional_stream_typechecks(
     receiver: WebTransport,
     options: Option[WebTransportSendStreamOptions],
-): Promise[std.js.Dom.WebTransportBidirectionalStream.WebTransportBidirectionalStream] ->
+): Promise[std.js.Dom.WebTransportBidirectionalStream] ->
     receiver.create_bidirectional_stream(options).
 
 pub create_unidirectional_stream_typechecks(
     receiver: WebTransport,
     options: Option[WebTransportSendStreamOptions],
-): Promise[std.js.Dom.WritableStream.WritableStream] ->
+): Promise[std.js.Dom.WritableStream] ->
     receiver.create_unidirectional_stream(options).

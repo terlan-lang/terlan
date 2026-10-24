@@ -25,25 +25,25 @@ pub opaque type RTCError.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCError/receivedAlert)
  */
-pub (receiver: RTCError) received_alert(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCError) received_alert(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The read-only **`sctpCauseCode`** property in an why the SCTP negotiation failed, if the `RTCError` represents an SCTP error.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCError/sctpCauseCode)
  */
-pub (receiver: RTCError) sctp_cause_code(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCError) sctp_cause_code(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The RTCError interface's read-only property **`sdpLineNumber`** specifies the line number within the An unsigned integer value indicating the line within the SDP at which the syntax error described by the `RTCError` object occurred.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCError/sdpLineNumber)
  */
-pub (receiver: RTCError) sdp_line_number(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCError) sdp_line_number(): std.core.Option[std.js.Number.JsNumber].
 
 /**
  * The read-only **`sentAlert`** property in an while sending data to the remote peer, if the error represents an outbound DTLS error.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCError/sentAlert)
  */
-pub (receiver: RTCError) sent_alert(): std.core.Option.Option[std.js.Number.JsNumber].
+pub (receiver: RTCError) sent_alert(): std.core.Option[std.js.Number.JsNumber].

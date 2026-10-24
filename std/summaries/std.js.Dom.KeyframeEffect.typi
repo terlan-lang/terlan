@@ -25,25 +25,25 @@ pub opaque type KeyframeEffect.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/pseudoElement)
  */
-pub (receiver: KeyframeEffect) pseudo_element(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: KeyframeEffect) pseudo_element(): std.core.Option[std.js.String.JsString].
 
 /**
  * The **`target`** property of a KeyframeEffect interface represents the element or pseudo-element being animated.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/target)
  */
-pub (receiver: KeyframeEffect) target_(): std.core.Option.Option[std.js.Dom.Element.Element].
+pub (receiver: KeyframeEffect) target_(): std.core.Option[std.js.Dom.Element].
 
 /**
  * The **`getKeyframes()`** method of a KeyframeEffect returns an Array of the computed keyframes that make up this animation along with their computed offsets.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/getKeyframes)
  */
-pub (receiver: KeyframeEffect) get_keyframes(): std.js.Array.Array[std.js.Dom.ComputedKeyframe.ComputedKeyframe].
+pub (receiver: KeyframeEffect) get_keyframes(): std.js.Array[std.js.Dom.ComputedKeyframe].
 
 /**
  * The **`setKeyframes()`** method of the KeyframeEffect interface replaces the keyframes that make up the affected `KeyframeEffect` with a new set of keyframes.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/KeyframeEffect/setKeyframes)
  */
-pub (receiver: KeyframeEffect) set_keyframes(keyframes: std.core.Option.Option[std.js.Dom.PropertyIndexedKeyframes.PropertyIndexedKeyframes | std.js.Array.Array[std.js.Dom.Keyframe.Keyframe]]): std.core.Unit.Unit.
+pub (receiver: KeyframeEffect) set_keyframes(keyframes: std.core.Option[std.js.Dom.PropertyIndexedKeyframes | std.js.Array[std.js.Dom.Keyframe]]): std.core.Unit.

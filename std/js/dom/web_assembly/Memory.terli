@@ -22,7 +22,7 @@ pub opaque type Memory.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/WebAssembly/Reference/JavaScript_interface/Memory/buffer)
  */
-pub (receiver: Memory) buffer(): std.js.ArrayBuffer.ArrayBuffer.
+pub (receiver: Memory) buffer(): std.js.ArrayBuffer.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/WebAssembly/Reference/JavaScript_interface/Memory/grow)

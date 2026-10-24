@@ -12,8 +12,7 @@
  */
 module std.js.Dom.SVGAnimatedPointsTest.
 
-import type std.js.Dom.SVGAnimatedPoints.
-import type std.js.Dom.SVGPointList.{SVGPointList}.
+import type std.js.Dom.{SVGAnimatedPoints, SVGPointList}.
 
 pub animated_points_typechecks(receiver: SVGAnimatedPoints): SVGPointList ->
     receiver.animated_points().

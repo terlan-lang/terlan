@@ -16,10 +16,10 @@ import type std.js.String.{JsString}.
 
 pub opaque type PaymentShippingOption.
 
-pub (receiver: PaymentShippingOption) amount(): std.js.Dom.PaymentCurrencyAmount.PaymentCurrencyAmount.
+pub (receiver: PaymentShippingOption) amount(): std.js.Dom.PaymentCurrencyAmount.
 
 pub (receiver: PaymentShippingOption) id(): JsString.
 
 pub (receiver: PaymentShippingOption) label(): JsString.
 
-pub (receiver: PaymentShippingOption) selected(): std.core.Option.Option[Bool].
+pub (receiver: PaymentShippingOption) selected(): std.core.Option[Bool].

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.RTCRtpTransceiver.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 
 /**
  * The WebRTC interface **`RTCRtpTransceiver`** describes a permanent pairing of an RTCRtpSender and an RTCRtpReceiver, along with some shared state.
@@ -26,7 +26,7 @@ pub opaque type RTCRtpTransceiver.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/mid)
  */
-pub (receiver: RTCRtpTransceiver) mid(): std.core.Option.Option[std.js.String.JsString] ->
+pub (receiver: RTCRtpTransceiver) mid(): std.core.Option[std.js.String.JsString] ->
     native.
 
 /**
@@ -34,7 +34,7 @@ pub (receiver: RTCRtpTransceiver) mid(): std.core.Option.Option[std.js.String.Js
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/receiver)
  */
-pub (receiver: RTCRtpTransceiver) receiver(): std.js.Dom.RTCRtpReceiver.RTCRtpReceiver ->
+pub (receiver: RTCRtpTransceiver) receiver(): std.js.Dom.RTCRtpReceiver ->
     native.
 
 /**
@@ -42,7 +42,7 @@ pub (receiver: RTCRtpTransceiver) receiver(): std.js.Dom.RTCRtpReceiver.RTCRtpRe
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/sender)
  */
-pub (receiver: RTCRtpTransceiver) sender(): std.js.Dom.RTCRtpSender.RTCRtpSender ->
+pub (receiver: RTCRtpTransceiver) sender(): std.js.Dom.RTCRtpSender ->
     native.
 
 /**
@@ -50,7 +50,7 @@ pub (receiver: RTCRtpTransceiver) sender(): std.js.Dom.RTCRtpSender.RTCRtpSender
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver/setCodecPreferences)
  */
-pub (receiver: RTCRtpTransceiver) set_codec_preferences(codecs: std.js.Array.Array[std.js.Dom.RTCRtpCodec.RTCRtpCodec]): Unit ->
+pub (receiver: RTCRtpTransceiver) set_codec_preferences(codecs: std.js.Array[std.js.Dom.RTCRtpCodec]): Unit ->
     native.
 
 /**

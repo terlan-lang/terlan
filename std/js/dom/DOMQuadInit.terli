@@ -12,8 +12,8 @@
  */
 module std.js.Dom.DOMQuadInit.
 
-import type std.core.Option.{Option}.
-import type std.js.Dom.DOMPointInit.{DOMPointInit}.
+import type std.core.{Option}.
+import type std.js.Dom.{DOMPointInit}.
 
 pub opaque type DOMQuadInit.
 

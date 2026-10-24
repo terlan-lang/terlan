@@ -14,5 +14,5 @@ module std.js.Dom.AbortSignalEventMap.
 
 pub opaque type AbortSignalEventMap.
 
-pub (receiver: AbortSignalEventMap) abort(): std.js.Dom.Event.Event ->
+pub (receiver: AbortSignalEventMap) abort(): std.js.Dom.Event ->
     native.

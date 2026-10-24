@@ -12,8 +12,8 @@
  */
 module std.js.Dom.CanvasPathDrawingStyles.
 
-import type std.js.Array.{Array}.
 import type std.js.Number.{JsNumber}.
+import type std.js.{Array}.
 
 pub opaque type CanvasPathDrawingStyles.
 
@@ -44,5 +44,5 @@ pub (receiver: CanvasPathDrawingStyles) get_line_dash(): Array[JsNumber] ->
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/setLineDash)
  */
-pub (receiver: CanvasPathDrawingStyles) set_line_dash(segments: Array[JsNumber]): std.core.Unit.Unit ->
+pub (receiver: CanvasPathDrawingStyles) set_line_dash(segments: Array[JsNumber]): std.core.Unit ->
     native.

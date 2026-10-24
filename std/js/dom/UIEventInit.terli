@@ -12,14 +12,14 @@
  */
 module std.js.Dom.UIEventInit.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type UIEventInit.
 
 pub (receiver: UIEventInit) detail(): Option[JsNumber].
 
-pub (receiver: UIEventInit) view(): Option[std.js.Dom.Window.Window].
+pub (receiver: UIEventInit) view(): Option[std.js.Dom.Window].
 
 /**
  * @deprecated

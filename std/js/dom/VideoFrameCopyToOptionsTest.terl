@@ -12,13 +12,13 @@
  */
 module std.js.Dom.VideoFrameCopyToOptionsTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.Dom.VideoFrameCopyToOptions.
 
 pub layout_typechecks(
     receiver: VideoFrameCopyToOptions,
-): Option[std.js.Array.Array[std.js.Dom.PlaneLayout.PlaneLayout]] ->
+): Option[std.js.Array[std.js.Dom.PlaneLayout]] ->
     receiver.layout().
 
-pub rect_typechecks(receiver: VideoFrameCopyToOptions): Option[std.js.Dom.DOMRectInit.DOMRectInit] ->
+pub rect_typechecks(receiver: VideoFrameCopyToOptions): Option[std.js.Dom.DOMRectInit] ->
     receiver.rect().

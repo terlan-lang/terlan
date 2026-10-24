@@ -15,38 +15,38 @@ module std.js.Dom.JsonWebKey.
 
 pub opaque type JsonWebKey.
 
-pub (receiver: JsonWebKey) alg(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) alg(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) crv(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) crv(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) d(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) d(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) dp(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) dp(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) dq(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) dq(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) e(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) e(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) ext(): std.core.Option.Option[Bool].
+pub (receiver: JsonWebKey) ext(): std.core.Option[Bool].
 
-pub (receiver: JsonWebKey) k(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) k(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) key_ops(): std.core.Option.Option[std.js.Array.Array[std.js.String.JsString]].
+pub (receiver: JsonWebKey) key_ops(): std.core.Option[std.js.Array[std.js.String.JsString]].
 
-pub (receiver: JsonWebKey) kty(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) kty(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) n(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) n(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) oth(): std.core.Option.Option[std.js.Array.Array[std.js.Dom.RsaOtherPrimesInfo.RsaOtherPrimesInfo]].
+pub (receiver: JsonWebKey) oth(): std.core.Option[std.js.Array[std.js.Dom.RsaOtherPrimesInfo]].
 
-pub (receiver: JsonWebKey) p(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) p(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) q(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) q(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) qi(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) qi(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) use(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) use(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) x(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) x(): std.core.Option[std.js.String.JsString].
 
-pub (receiver: JsonWebKey) y(): std.core.Option.Option[std.js.String.JsString].
+pub (receiver: JsonWebKey) y(): std.core.Option[std.js.String.JsString].

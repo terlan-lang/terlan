@@ -14,7 +14,5 @@ module std.js.Dom.RTCSessionDescriptionInitTest.
 
 import type std.js.Dom.RTCSessionDescriptionInit.
 
-pub sdp_typechecks(
-    receiver: RTCSessionDescriptionInit,
-): std.core.Option.Option[std.js.String.JsString] ->
+pub sdp_typechecks(receiver: RTCSessionDescriptionInit): std.core.Option[std.js.String.JsString] ->
     receiver.sdp().

@@ -596,20 +596,23 @@ fn parse_interface_type_aliases(interface: &ModuleInterface) -> HashMap<String, 
 pub(crate) fn interface_qualified_type_names(
     interface: &ModuleInterface,
 ) -> HashMap<String, QualifiedTypeName> {
-    interface
+    let mut names = HashMap::new();
+    for name in interface
         .public_types
         .iter()
         .chain(interface.opaque_types.iter())
-        .map(|name| {
-            (
-                name.clone(),
-                QualifiedTypeName {
-                    module: interface.module.clone(),
-                    name: name.clone(),
-                },
-            )
-        })
-        .collect()
+    {
+        let qualified = QualifiedTypeName {
+            module: Some(interface.module.clone()),
+            name: name.clone(),
+        };
+        names.insert(name.clone(), qualified.clone());
+        names.insert(
+            crate::terlan_hir::public_type_path(&interface.module, name),
+            qualified,
+        );
+    }
+    names
 }
 
 /// Qualifies local named types using an interface-owned type map.
@@ -640,7 +643,7 @@ pub(crate) fn qualify_type_names(
                 .collect();
             if let Some(qualified) = qualified_names.get(name) {
                 Type::Named {
-                    module: Some(qualified.module.clone()),
+                    module: qualified.module.clone(),
                     name: qualified.name.clone(),
                     args,
                 }
@@ -652,14 +655,21 @@ pub(crate) fn qualify_type_names(
                 }
             }
         }
-        Type::Named { module, name, args } => Type::Named {
-            module: module.clone(),
-            name: name.clone(),
-            args: args
-                .iter()
-                .map(|arg| qualify_type_names(arg, qualified_names))
-                .collect(),
-        },
+        Type::Named {
+            module: Some(module),
+            name,
+            args,
+        } => {
+            let qualified = qualified_names.get(&format!("{module}.{name}"));
+            Type::Named {
+                module: qualified.map_or_else(|| Some(module.clone()), |ty| ty.module.clone()),
+                name: qualified.map_or(name, |ty| &ty.name).clone(),
+                args: args
+                    .iter()
+                    .map(|arg| qualify_type_names(arg, qualified_names))
+                    .collect(),
+            }
+        }
         Type::List(inner) => Type::List(Box::new(qualify_type_names(inner, qualified_names))),
         Type::Tuple(items) => Type::Tuple(
             items

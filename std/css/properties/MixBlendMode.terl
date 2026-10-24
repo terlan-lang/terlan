@@ -29,7 +29,7 @@ pub struct Property {
  * Include an optional declaration in a shared style block.
  */
 pub struct OptionalProperty {
-    mix_blend_mode: std.core.Option.Option[Value],
+    mix_blend_mode: std.core.Option[Value],
 }.
 
 /**

@@ -8,7 +8,7 @@ module std.css.properties.Cursor.
 /// Include an optional declaration in a shared style block.
 
 pub struct OptionalProperty {
-    cursor: std.core.Option.Option[Value]
+    cursor: std.core.Option[Value]
 }.
 
 /// Include this property in an application style struct.

@@ -12,7 +12,7 @@
  */
 module std.js.Dom.PerformanceObserverTest.
 
-import type std.core.Unit.{Unit}.
+import type std.core.{Unit}.
 import type std.js.Dom.PerformanceObserver.
 
 pub disconnect_typechecks(receiver: PerformanceObserver): Unit ->
@@ -20,11 +20,9 @@ pub disconnect_typechecks(receiver: PerformanceObserver): Unit ->
 
 pub observe_typechecks(
     receiver: PerformanceObserver,
-    options: std.core.Option.Option[std.js.Dom.PerformanceObserverInit.PerformanceObserverInit],
+    options: std.core.Option[std.js.Dom.PerformanceObserverInit],
 ): Unit ->
     receiver.observe(options).
 
-pub take_records_typechecks(
-    receiver: PerformanceObserver,
-): std.js.Dom.PerformanceEntryList.PerformanceEntryList ->
+pub take_records_typechecks(receiver: PerformanceObserver): std.js.Dom.PerformanceEntryList ->
     receiver.take_records().
