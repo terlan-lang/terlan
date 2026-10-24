@@ -1,72 +1,86 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `border-image` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property draws an image around a given element. It replaces the element's regular
+//! [border](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border).
+//!
+//! Initial: border-image-source: none; border-image-slice: 100%; border-image-width: 1;
+//! border-image-outset: 0; border-image-repeat: stretch. Inherited: no.
+//! Percentages: border-image-slice: refer to the size of the border image; border-image-width: refer
+//! to the width or height of the border image area.
+//!
+//! Grammar: <'border-image-source'> || <'border-image-slice'> [ / <'border-image-width'> | /
+//! <'border-image-width'>? / <'border-image-outset'> ]? || <'border-image-repeat'>
+//!
 //! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-image
-//! Grammar: <'border-image-source'> || <'border-image-slice'> [ / <'border-image-width'> | / <'border-image-width'>? / <'border-image-outset'> ]? || <'border-image-repeat'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-image
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderImage.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | Stretch
+  | Repeat
+  | Round
+  | Space
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Use the border styles.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     border_image: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     border_image: Value
 }.
 
-/// A nominal, specification-constrained border-image value.
+/// The image is tiled (repeated) to fill the area.
+
+pub type Repeat =
+    Atom["repeat"].
+
+/// The image is tiled (repeated) to fill the area. If it does not fill the area with a whole number
+/// of tiles, the image is rescaled so that it does.
+
+pub type Round =
+    Atom["round"].
+
+/// The image is tiled (repeated) to fill the area. If it does not fill the area with a whole number
+/// of tiles, the extra space is distributed around the tiles.
+
+pub type Space =
+    Atom["space"].
+
+/// The image is stretched to fill the area.
+
+pub type Stretch =
+    Atom["stretch"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Checks the specification range and constructs a border-image value.
+/// Sets border-image from a typed number. Returns Some for amount >= 0; otherwise returns None.
 
 pub number(value: Float): Option[Value].
 
-/// Checks the specification range and constructs a border-image value.
+/// Sets border-image from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
 
 pub percentage(value: std.css.Values.Percentage): Option[Value].
 
-/// Returns the CSS keyword repeat.
+/// Selects a keyword for border-image. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub repeat(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword round.
-
-pub round(): Value.
-
-/// Returns the CSS keyword space.
-
-pub space(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

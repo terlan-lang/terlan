@@ -1,84 +1,114 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex
+//! The `flex` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets how a `flex item` will grow or shrink to fit the space available in its flex
+//! container.
+//!
+//! Initial: flex-grow: 0; flex-shrink: 1; flex-basis: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Flex.
 
-/// Include an optional declaration in a shared style block.
+/// Retrieves the value of the main size property as the used 'flex-basis'.
+
+pub type Auto =
+    Atom["auto"].
+
+/// Indicates automatic sizing, based on the flex item's content.
+
+pub type Content =
+    Atom["content"].
+
+pub type Css =
+    None
+  | Content
+  | Auto
+  | Stretch
+  | MinContent
+  | MaxContent
+  | FitContent
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Use the fit-content inline size or fit-content block size, as appropriate to the writing mode.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/width
+
+pub type FitContent =
+    Atom["fit-content"].
+
+/// Use the max-content inline size or max-content block size, as appropriate to the writing mode.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/width
+
+pub type MaxContent =
+    Atom["max-content"].
+
+/// Use the min-content inline size or min-content block size, as appropriate to the writing mode.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/width
+
+pub type MinContent =
+    Atom["min-content"].
+
+/// The item is sized according to its `width` and `height` properties. It is fully inflexible: it
+/// neither shrinks nor grows in relation to the flex container. This is equivalent to setting `flex:
+/// 0 0 auto`.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     flex: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     flex: Value
 }.
 
-/// A nominal, specification-constrained flex value.
+/// Sets the width of the element's [margin
+/// box](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics/Box_model#parts_of_a_box)
+/// to the width of its [containing
+/// block](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Display/Containing_block#identifying_the_containing_block).
+/// It attempts to make the margin box fill the available space in the containing block, so in a way
+/// behaving similar to `100%` but applying the resulting size to the margin box rather than the box
+/// determined by
+/// [box-sizing](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/box-sizing).
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/width
+
+pub type Stretch =
+    Atom["stretch"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword content.
-
-pub content(): Value.
-
-/// Returns the CSS keyword fit-content.
-
-pub fit_content(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a flex value.
+/// Sets flex from a typed length. Returns Some for amount >= 0; otherwise returns None.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Returns the CSS keyword max-content.
-
-pub max_content(): Value.
-
-/// Returns the CSS keyword min-content.
-
-pub min_content(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Checks the specification range and constructs a flex value.
+/// Sets flex from a typed number. Returns Some for amount >= 0; otherwise returns None.
 
 pub number(value: Float): Option[Value].
 
-/// Checks the specification range and constructs a flex value.
+/// Sets flex from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
 
 pub percentage(value: std.css.Values.Percentage): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for flex. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

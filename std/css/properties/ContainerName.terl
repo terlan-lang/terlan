@@ -1,69 +1,52 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-conditional-5/#propdef-container-name
+ * The container-name [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies a
+ * list of query container names used by the
+ * [@container](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@container)
+ * at-rule in a [container
+ * query](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Container_queries).
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: none | <custom-ident>+
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-conditional-5/#propdef-container-name
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/container-name
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ContainerName.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained container-name value.
+ * The default value. The query container has no name.
  */
-pub opaque type Value = Token.
+pub type None.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = None | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     container_name: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     container_name: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for container-name. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "container-name", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "container-name", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "container-name", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "container-name", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "container-name", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "container-name", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("container-name", Atom.to_string(css))).

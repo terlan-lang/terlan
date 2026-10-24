@@ -1,60 +1,57 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-spacing-trim
+//! The `text-spacing-trim` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property controls
+//! the internal spacing set on Chinese/Japanese/Korean (CJK) punctuation characters between adjacent
+//! characters (kerning) and at the start or end of text lines.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: <spacing-trim> | auto
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-spacing-trim
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-spacing-trim
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextSpacingTrim.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    SpaceAll
+  | Normal
+  | SpaceFirst
+  | TrimStart
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     text_spacing_trim: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     text_spacing_trim: Value
 }.
 
-/// A nominal, specification-constrained text-spacing-trim value.
+pub type SpaceAll =
+    Atom["space-all"].
+
+pub type SpaceFirst =
+    Atom["space-first"].
+
+pub type TrimStart =
+    Atom["trim-start"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for text-spacing-trim. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword space-all.
-
-pub space_all(): Value.
-
-/// Returns the CSS keyword space-first.
-
-pub space_first(): Value.
-
-/// Returns the CSS keyword trim-start.
-
-pub trim_start(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

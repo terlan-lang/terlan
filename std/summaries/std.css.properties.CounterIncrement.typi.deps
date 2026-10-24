@@ -1,9 +1,11 @@
 module=std.css.properties.CounterIncrement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6070199452947661646
-interface_hash=14501225545716867916
-interface_doc_hash=5810835367172385273
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=6027048068924066939
+interface_hash=17470788257322090218
+interface_doc_hash=218738609624360646
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

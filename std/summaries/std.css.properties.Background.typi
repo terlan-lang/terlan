@@ -1,44 +1,47 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background
+//! The `background` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets all background style properties at once, such as color, image, origin, size, and
+//! repeat method.
+//!
+//! Initial: background-image: none; background-position: 0% 0%; background-size: auto auto;
+//! background-repeat: repeat; background-origin: padding-box; background-clip: border-box;
+//! background-attachment: scroll; background-color: transparent. Inherited: no.
+//! Percentages: background-position: refer to the size of the background positioning area minus size
+//! of background image; size refers to the width for horizontal offsets and to the height for
+//! vertical offsets; background-size: relative to the background positioning area.
+//!
 //! Grammar: <bg-layer>#? , <final-bg-layer>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/background
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Background.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     background: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     background: Value
 }.
 
-/// A nominal, specification-constrained background value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for background. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

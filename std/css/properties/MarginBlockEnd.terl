@@ -1,84 +1,66 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-block-end
+ * The `margin-block-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+ * the logical block end margin of an element, which maps to a physical margin depending on the
+ * element's writing mode, directionality, and text orientation.
+ *
+ * Initial: 0. Inherited: no.
+ * Percentages: depends on layout model.
+ *
  * Grammar: <'margin-top'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-block-end
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-block-end
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MarginBlockEnd.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained margin-block-end value.
+ * The browser selects a suitable value to use. See `margin`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-top
  */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     margin_block_end: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     margin_block_end: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for margin-block-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "margin-block-end", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("margin-block-end", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "margin-block-end", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "margin-block-end", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "margin-block-end", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "margin-block-end", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "margin-block-end", css: "unset"}).
-
-/**
- * Constructs a margin-block-end value from a typed length.
+ * Sets margin-block-end from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+ * choose the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "margin-block-end", css: std.css.Values.length_css(value)}).
+    Value(serialize("margin-block-end", length_css(value))).
 
 /**
- * Constructs a margin-block-end value from a typed percentage.
+ * Sets margin-block-end from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "margin-block-end", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("margin-block-end", percentage_css(value))).

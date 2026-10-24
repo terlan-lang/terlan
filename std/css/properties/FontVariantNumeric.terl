@@ -1,117 +1,108 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `font-variant-numeric` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * controls the usage of alternate glyphs for numbers, fractions, and ordinal markers.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Grammar: normal | [ <numeric-figure-values> || <numeric-spacing-values> ||
+ * <numeric-fraction-values> || ordinal || slashed-zero ]
+ *
  * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-numeric
- * Grammar: normal | [ <numeric-figure-values> || <numeric-spacing-values> || <numeric-fraction-values> || ordinal || slashed-zero ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-variant-numeric
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontVariantNumeric.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained font-variant-numeric value.
+ * Enables display of lining diagonal fractions.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type DiagonalFractions = Atom["diagonal-fractions"].
 
 /**
- * Include this property in an application style struct.
+ * Enables display of lining numerals.
  */
+pub type LiningNums = Atom["lining-nums"].
+
+/**
+ * This keyword leads to the deactivation of the use of such alternate glyphs.
+ */
+pub type Normal.
+
+/**
+ * Enables display of old-style numerals.
+ */
+pub type OldstyleNums = Atom["oldstyle-nums"].
+
+/**
+ * This keyword forces the use of special glyphs for the ordinal markers, like 1st, 2nd, 3rd, 4th in
+ * English or a 1a in Italian. It corresponds to the OpenType values `ordn`.
+ */
+pub type Ordinal.
+
+/**
+ * Enables display of proportional numerals.
+ */
+pub type ProportionalNums = Atom["proportional-nums"].
+
+/**
+ * This keyword forces the use of a 0 with a slash; this is useful when a clear distinction between
+ * O and 0 is needed. It corresponds to the OpenType values `zero`.
+ */
+pub type SlashedZero = Atom["slashed-zero"].
+
+/**
+ * Enables display of lining stacked fractions.
+ */
+pub type StackedFractions = Atom["stacked-fractions"].
+
+/**
+ * Enables display of tabular numerals.
+ */
+pub type TabularNums = Atom["tabular-nums"].
+
+pub type Css =
+      Normal
+    | LiningNums
+    | OldstyleNums
+    | ProportionalNums
+    | TabularNums
+    | DiagonalFractions
+    | StackedFractions
+    | Ordinal
+    | SlashedZero
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     font_variant_numeric: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     font_variant_numeric: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword diagonal-fractions.
+ * Selects a keyword for font-variant-numeric. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub diagonal_fractions(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "diagonal-fractions"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "initial"}).
-
-/**
- * Returns the CSS keyword lining-nums.
- */
-pub lining_nums(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "lining-nums"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "normal"}).
-
-/**
- * Returns the CSS keyword oldstyle-nums.
- */
-pub oldstyle_nums(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "oldstyle-nums"}).
-
-/**
- * Returns the CSS keyword ordinal.
- */
-pub ordinal(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "ordinal"}).
-
-/**
- * Returns the CSS keyword proportional-nums.
- */
-pub proportional_nums(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "proportional-nums"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword slashed-zero.
- */
-pub slashed_zero(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "slashed-zero"}).
-
-/**
- * Returns the CSS keyword stacked-fractions.
- */
-pub stacked_fractions(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "stacked-fractions"}).
-
-/**
- * Returns the CSS keyword tabular-nums.
- */
-pub tabular_nums(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "tabular-nums"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-variant-numeric", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("font-variant-numeric", Atom.to_string(css))).

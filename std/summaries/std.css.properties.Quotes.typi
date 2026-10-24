@@ -1,52 +1,56 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-content-3/#propdef-quotes
+//! The [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) `quotes` property sets how the
+//! browser should render quotation marks that are automatically added to the HTML `q` element or
+//! added using the `open-quotes` or `close-quotes` (or omitted using the `no-open-quote` and
+//! `no-close-quote`) values of the of the CSS `content` property.
+//!
+//! Initial: dependsOnUserAgent. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | none | bikeshed-this | [ <string> <string> ]+
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-content-3/#propdef-quotes
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/quotes
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Quotes.
 
-/// Include an optional declaration in a shared style block.
+/// Quotation marks that are typographically appropriate for the inherited language (i.e., via the
+/// [`lang`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/lang)
+/// attribute set on the parent or other ancestor).
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The `open-quote` and `close-quote` values of the `content` property produce no quotation marks,
+/// as if `no-open-quote` and `no-close-quote` were set, respectively.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     quotes: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     quotes: Value
 }.
 
-/// A nominal, specification-constrained quotes value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for quotes. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

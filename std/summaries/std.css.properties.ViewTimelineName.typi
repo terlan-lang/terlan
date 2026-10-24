@@ -1,48 +1,48 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-view-timeline-name
+//! The `view-timeline-name` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies the names of one or more [named view progress
+//! timelines](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations/Timelines#named_view_progress_timeline)
+//! associated with the element.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: [ none | <dashed-ident> ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-view-timeline-name
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/view-timeline-name
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ViewTimelineName.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Indicates that the timeline has no name. This is the default value.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     view_timeline_name: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     view_timeline_name: Value
 }.
 
-/// A nominal, specification-constrained view-timeline-name value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for view-timeline-name. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

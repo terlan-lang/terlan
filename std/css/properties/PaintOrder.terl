@@ -1,87 +1,55 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#PaintOrderProperty
+ * The `paint-order` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property lets you
+ * control the order in which the fill and stroke (and painting markers) of text content and shapes
+ * are drawn.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: normal | [ fill || stroke || markers ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#PaintOrderProperty
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/paint-order
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PaintOrder.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+
+pub type Fill.
+
+pub type Markers.
 
 /**
- * A nominal, specification-constrained paint-order value.
+ * Paint the different items in normal paint order.
  */
-pub opaque type Value = Token.
+pub type Normal.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Stroke.
 
-/**
- * Include this property in an application style struct.
- */
+pub type Css = Normal | Fill | Stroke | Markers | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     paint_order: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     paint_order: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword fill.
+ * Selects a keyword for paint-order. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub fill(): Value ->
-    Value(Token {property: "paint-order", css: "fill"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "paint-order", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "paint-order", css: "initial"}).
-
-/**
- * Returns the CSS keyword markers.
- */
-pub markers(): Value ->
-    Value(Token {property: "paint-order", css: "markers"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "paint-order", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "paint-order", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "paint-order", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword stroke.
- */
-pub stroke(): Value ->
-    Value(Token {property: "paint-order", css: "stroke"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "paint-order", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("paint-order", Atom.to_string(css))).

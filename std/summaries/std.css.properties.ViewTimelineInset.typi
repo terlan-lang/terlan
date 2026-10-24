@@ -1,56 +1,60 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-view-timeline-inset
+//! The `view-timeline-inset` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property is
+//! used to specify one or two values representing an adjustment to the position of the scrollport
+//! (see `Scroll container` for more details) in which the subject element of a _named view progress
+//! timeline_ animation is deemed to be visible. Put another way, this allows you to specify start
+//! and/or end inset (or outset) values that offset the position of the timeline.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: Relative to the corresponding dimension of the relevant scrollport.
+//!
 //! Grammar: [ [ auto | <length-percentage> ]{1,2} ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-view-timeline-inset
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/view-timeline-inset
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ViewTimelineInset.
 
-/// Include an optional declaration in a shared style block.
+/// If set, the corresponding `scroll-padding` (or equivalent longhand value) for that edge of the
+/// scrollport is used. If this is not set (or set to `auto`), the value will usually be 0, although
+/// some user agents may use heuristics to determine a different default value if appropriate.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     view_timeline_inset: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     view_timeline_inset: Value
 }.
 
-/// A nominal, specification-constrained view-timeline-inset value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a view-timeline-inset value from a typed length.
+/// Sets view-timeline-inset from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+/// choose the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Constructs a view-timeline-inset value from a typed percentage.
+/// Sets view-timeline-inset from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for view-timeline-inset. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,72 +1,52 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-transitions-1/#propdef-transition-duration
+ * The `transition-duration` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * the length of time a transition animation should take to complete. By default, the value is `0s`,
+ * meaning that no animation will occur.
+ *
+ * Initial: 0s. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <time [0s,∞]>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-transitions-1/#propdef-transition-duration
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transition-duration
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TransitionDuration.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{serialize, time_css}.
 
 import type std.core.Option.
-import type std.css.Values.{Time}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
 
-/**
- * A nominal, specification-constrained transition-duration value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     transition_duration: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     transition_duration: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for transition-duration. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "transition-duration", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("transition-duration", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "transition-duration", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "transition-duration", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "transition-duration", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "transition-duration", css: "unset"}).
-
-/**
- * Constructs a transition-duration value from a typed time.
+ * Sets transition-duration from a typed time.
  */
 pub time(value: Time): Value ->
-    Value(Token {property: "transition-duration", css: std.css.Values.time_css(value)}).
+    Value(serialize("transition-duration", time_css(value))).

@@ -1,93 +1,83 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-4/#propdef-hanging-punctuation
+ * The `hanging-punctuation` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies whether a punctuation mark should hang at the start or end of a line of text. Hanging
+ * punctuation may be placed outside the line box.
+ *
+ * Initial: none. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: none | [ first || [ force-end | allow-end ] || last ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-hanging-punctuation
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/hanging-punctuation
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.HangingPunctuation.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained hanging-punctuation value.
+ * A stop or comma at the end of a line hangs if it does not otherwise fit prior to justification.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type AllowEnd = Atom["allow-end"].
 
 /**
- * Include this property in an application style struct.
+ * An opening bracket or quote at the start of the first formatted line of an element hangs. This
+ * applies to: - all characters in the Unicode categories [Ps](https://unicodeplus.com/category/Ps),
+ * [Pf](https://unicodeplus.com/category/Pf), [Pi](https://unicodeplus.com/category/Pi) - the quote
+ * marks `U+0027` APOSTROPHE (`'`) and `U+0022` QUOTATION MARK (`"`).
  */
+pub type First.
+
+pub type ForceEnd = Atom["force-end"].
+
+/**
+ * A closing bracket or quote at the end of the last formatted line of an element hangs. This
+ * applies to: - all characters in the Unicode categories [Pe](https://unicodeplus.com/category/Pe),
+ * [Pf](https://unicodeplus.com/category/Pf), [Pi](https://unicodeplus.com/category/Pi) - the quote
+ * marks `U+0027` APOSTROPHE (`'`) and `U+0022` QUOTATION MARK (`"`).
+ */
+pub type Last.
+
+/**
+ * No character hangs.
+ */
+pub type None.
+
+pub type Css =
+      None
+    | First
+    | ForceEnd
+    | AllowEnd
+    | Last
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     hanging_punctuation: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     hanging_punctuation: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword allow-end.
+ * Selects a keyword for hanging-punctuation. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub allow_end(): Value ->
-    Value(Token {property: "hanging-punctuation", css: "allow-end"}).
-
-/**
- * Returns the CSS keyword first.
- */
-pub first(): Value ->
-    Value(Token {property: "hanging-punctuation", css: "first"}).
-
-/**
- * Returns the CSS keyword force-end.
- */
-pub force_end(): Value ->
-    Value(Token {property: "hanging-punctuation", css: "force-end"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "hanging-punctuation", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "hanging-punctuation", css: "initial"}).
-
-/**
- * Returns the CSS keyword last.
- */
-pub last(): Value ->
-    Value(Token {property: "hanging-punctuation", css: "last"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "hanging-punctuation", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "hanging-punctuation", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "hanging-punctuation", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "hanging-punctuation", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("hanging-punctuation", Atom.to_string(css))).

@@ -1,9 +1,11 @@
 module=std.css.properties.ScrollbarGutter
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=11086787036618065368
-interface_hash=5981177791662306178
-interface_doc_hash=13568202405266310391
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=10414001125772676551
+interface_hash=10953233769960056985
+interface_doc_hash=3681153356950415668
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

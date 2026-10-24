@@ -1,68 +1,71 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-autospace
+//! The `text-autospace` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows you
+//! to specify the space applied between Chinese/Japanese/Korean (CJK) and non-CJK characters.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | <autospace> | auto
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-autospace
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-autospace
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextAutospace.
 
-/// Include an optional declaration in a shared style block.
+/// Lets the browser choose typographically appropriate spacing. The spacing may vary across browsers
+/// and platforms.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Normal
+  | NoAutospace
+  | IdeographAlpha
+  | IdeographNumeric
+  | Insert
+  | Auto
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type IdeographAlpha =
+    Atom["ideograph-alpha"].
+
+pub type IdeographNumeric =
+    Atom["ideograph-numeric"].
+
+pub type Insert =
+    Atom["insert"].
+
+pub type NoAutospace =
+    Atom["no-autospace"].
+
+/// Creates the default behavior to automatically apply spacing between CJK and non-CJK characters
+/// and around punctuation. This value has the same effect as applying both
+/// [`ideograph-alpha`](#ideograph-alpha) and [`ideograph-numeric`](#ideograph-numeric).
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     text_autospace: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     text_autospace: Value
 }.
 
-/// A nominal, specification-constrained text-autospace value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for text-autospace. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword ideograph-alpha.
-
-pub ideograph_alpha(): Value.
-
-/// Returns the CSS keyword ideograph-numeric.
-
-pub ideograph_numeric(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword insert.
-
-pub insert(): Value.
-
-/// Returns the CSS keyword no-autospace.
-
-pub no_autospace(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

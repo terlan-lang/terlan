@@ -1,56 +1,62 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-color-hdr-1/#propdef-dynamic-range-limit
+//! The `dynamic-range-limit` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies the maximum luminance allowed for High Dynamic Range (HDR) content.
+//!
+//! Initial: no-limit. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: standard | no-limit | constrained | <dynamic-range-limit-mix()>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-color-hdr-1/#propdef-dynamic-range-limit
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/dynamic-range-limit
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.DynamicRangeLimit.
 
-/// Include an optional declaration in a shared style block.
+/// Specifies the maximum luminance as somewhat greater than that of HDR reference white, such that a
+/// mix of Standard Dynamic Range (SDR) and HDR content can be comfortably viewed together. The
+/// precise level is not specified.
+
+pub type Constrained =
+    Atom["constrained"].
+
+pub type Css =
+    Standard
+  | NoLimit
+  | Constrained
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Specifies the maximum luminance as much greater than that of HDR reference white. The precise
+/// level is not specified. This is the initial value.
+
+pub type NoLimit =
+    Atom["no-limit"].
 
 pub struct OptionalProperty {
     dynamic_range_limit: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     dynamic_range_limit: Value
 }.
 
-/// A nominal, specification-constrained dynamic-range-limit value.
+/// Specifies the maximum luminance as High Dynamic Range (HDR) reference white, which is the CSS
+/// color `white`.
+
+pub type Standard =
+    Atom["standard"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword constrained.
+/// Selects a keyword for dynamic-range-limit. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub constrained(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword no-limit.
-
-pub no_limit(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword standard.
-
-pub standard(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

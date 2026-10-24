@@ -1,87 +1,68 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-shape
+ * The `caret-shape` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the shape
+ * of the insertion caret, the visible marker that appears in editable elements to indicate where
+ * the next character will be inserted or deleted.
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | bar | block | underscore
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-shape
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/caret-shape
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.CaretShape.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained caret-shape value.
+ * The default value. The browser determines the caret shape. This typically follows platform
+ * conventions and may change based on context.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Auto.
 
 /**
- * Include this property in an application style struct.
+ * The caret appears as a thin vertical line at the insertion point, positioned between characters
+ * rather than over them.
  */
+pub type Bar.
+
+/**
+ * The caret appears as a rectangle that overlaps the next character after the insertion point. If
+ * no character follows, it appears after the last character.
+ */
+pub type Block.
+
+/**
+ * The caret appears as a thin horizontal line underneath the next character after the insertion
+ * point. If no character follows, it appears after the last character.
+ */
+pub type Underscore.
+
+pub type Css = Auto | Bar | Block | Underscore | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     caret_shape: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     caret_shape: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for caret-shape. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "caret-shape", css: "auto"}).
-
-/**
- * Returns the CSS keyword bar.
- */
-pub bar(): Value ->
-    Value(Token {property: "caret-shape", css: "bar"}).
-
-/**
- * Returns the CSS keyword block.
- */
-pub block(): Value ->
-    Value(Token {property: "caret-shape", css: "block"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "caret-shape", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "caret-shape", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "caret-shape", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "caret-shape", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword underscore.
- */
-pub underscore(): Value ->
-    Value(Token {property: "caret-shape", css: "underscore"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "caret-shape", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("caret-shape", Atom.to_string(css))).

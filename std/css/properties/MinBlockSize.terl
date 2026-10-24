@@ -1,119 +1,87 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-sizing-3/#propdef-min-block-size
+ * The `min-block-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+ * minimum horizontal or vertical size of an element's block, depending on its writing mode. It
+ * corresponds to either the `min-width` or the `min-height` property, depending on the value of
+ * `writing-mode`.
+ *
+ * Initial: 0. Inherited: no.
+ * Percentages: block-size of containing block.
+ *
  * Grammar: auto | <box-size> | <anchor-size()>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-sizing-3/#propdef-min-block-size
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/min-block-size
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MinBlockSize.
 
-import std.core.Option.{None, Some}.
+import std.core.Atom.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained min-block-size value.
- */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type FitContent = Atom["fit-content"].
 
-/**
- * Include this property in an application style struct.
- */
+pub type MaxContent = Atom["max-content"].
+
+pub type MinContent = Atom["min-content"].
+
+pub type Stretch.
+
+pub type Css =
+      Auto
+    | Stretch
+    | MinContent
+    | MaxContent
+    | FitContent
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     min_block_size: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     min_block_size: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for min-block-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "min-block-size", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("min-block-size", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword fit-content.
- */
-pub fit_content(): Value ->
-    Value(Token {property: "min-block-size", css: "fit-content"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "min-block-size", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "min-block-size", css: "initial"}).
-
-/**
- * Returns the CSS keyword max-content.
- */
-pub max_content(): Value ->
-    Value(Token {property: "min-block-size", css: "max-content"}).
-
-/**
- * Returns the CSS keyword min-content.
- */
-pub min_content(): Value ->
-    Value(Token {property: "min-block-size", css: "min-content"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "min-block-size", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "min-block-size", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword stretch.
- */
-pub stretch(): Value ->
-    Value(Token {property: "min-block-size", css: "stretch"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "min-block-size", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a min-block-size value.
+ * Sets min-block-size from a typed length. Returns Some for amount >= 0; otherwise returns None.
  */
 pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "min-block-size", css: std.css.Values.length_css(value)}));
-        false -> None
+    case length_amount(value) >= 0 {
+        true -> Some(Value(serialize("min-block-size", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a min-block-size value.
+ * Sets min-block-size from a typed percentage. Returns Some for amount >= 0; otherwise returns
+ * None.
  */
 pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(Token {property: "min-block-size", css: std.css.Values.percentage_css(value)}),
-            );
-        false -> None
+    case percentage_amount(value) >= 0 {
+        true -> Some(Value(serialize("min-block-size", percentage_css(value))));
+        false -> Absent
     }.

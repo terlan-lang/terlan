@@ -1,52 +1,52 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-animations-2/#propdef-animation-timeline
+//! The `animation-timeline` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies the timeline used to control the progress of a CSS animation.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <single-animation-timeline>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-animations-2/#propdef-animation-timeline
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-timeline
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.AnimationTimeline.
 
-/// Include an optional declaration in a shared style block.
+/// The animation's timeline is the document's default `DocumentTimeline`. This is the default value.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The animation is not associated with a timeline, and no animation occurs.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     animation_timeline: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     animation_timeline: Value
 }.
 
-/// A nominal, specification-constrained animation-timeline value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for animation-timeline. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,9 +1,11 @@
 module=std.css.properties.HangingPunctuation
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=12342591087737578208
-interface_hash=16582477789848375267
-interface_doc_hash=5061243933410589471
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=13275366808473875883
+interface_hash=14282307647154163058
+interface_doc_hash=2790284728114492859
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

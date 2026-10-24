@@ -1,10 +1,11 @@
 module=std.css.properties.TransformOrigin
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=10588216024040412561
-interface_hash=2785496711315394102
-interface_doc_hash=12873376052553264531
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=6128876114580204492
+interface_hash=961326780483845709
+interface_doc_hash=158345997528173997
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

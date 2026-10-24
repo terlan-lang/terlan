@@ -1,56 +1,64 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/filter-effects-1/#propdef-color-interpolation-filters
+//! The `color-interpolation-filters` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! property specifies the color space for imaging operations performed via SVG filter effects. If
+//! explicitly declared, the value of the CSS property overrides any value given in the element's
+//! `color-interpolation-filters` attribute.
+//!
+//! Initial: linearRGB. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | sRGB | linearRGB
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/filter-effects-1/#propdef-color-interpolation-filters
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/color-interpolation-filters
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ColorInterpolationFilters.
 
-/// Include an optional declaration in a shared style block.
+/// Indicates that the user agent can choose either the `sRGB` or `linearRGB` spaces for color
+/// interpolation. This option indicates that the author doesn't require that color interpolation
+/// occur in a particular color space.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | SRGB
+  | LinearRGB
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Indicates that color interpolation should occur in the linearized RGB color space as described in
+/// [the sRGB specification](https://webstore.iec.ch/en/publication/6169). This is the default
+/// property value.
+
+pub type LinearRGB =
+    Atom["linearRGB"].
 
 pub struct OptionalProperty {
     color_interpolation_filters: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     color_interpolation_filters: Value
 }.
 
-/// A nominal, specification-constrained color-interpolation-filters value.
+/// Indicates that color interpolation should occur in the gamma-encoded sRGB color space.
+
+pub type SRGB =
+    Atom["sRGB"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for color-interpolation-filters. CSS-wide choices Inherit, Initial, Unset,
+/// Revert, and RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword linearRGB.
-
-pub linearRGB(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword sRGB.
-
-pub sRGB(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

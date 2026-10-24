@@ -1,87 +1,79 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#TextRenderingProperty
+ * The `text-rendering` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property provides
+ * information to the rendering engine about what to optimize for when rendering text.
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | optimizeSpeed | optimizeLegibility | geometricPrecision
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#TextRenderingProperty
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-rendering
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextRendering.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained text-rendering value.
+ * The browser makes educated guesses about when to optimize for speed, legibility, and geometric
+ * precision while drawing text. For differences in how this value is interpreted by the browser,
+ * see the compatibility table.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Auto.
 
 /**
- * Include this property in an application style struct.
+ * The browser emphasizes geometric precision over rendering speed and legibility. Certain aspects
+ * of fonts — such as kerning — don't scale linearly. So this value can make text using those fonts
+ * look good.
  */
+pub type GeometricPrecision = Atom["geometricPrecision"].
+
+/**
+ * The browser emphasizes legibility over rendering speed and geometric precision. This enables
+ * kerning and optional ligatures.
+ */
+pub type OptimizeLegibility = Atom["optimizeLegibility"].
+
+/**
+ * The browser emphasizes rendering speed over legibility and geometric precision when drawing text.
+ * It disables kerning and ligatures.
+ */
+pub type OptimizeSpeed = Atom["optimizeSpeed"].
+
+pub type Css =
+      Auto
+    | OptimizeSpeed
+    | OptimizeLegibility
+    | GeometricPrecision
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     text_rendering: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     text_rendering: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for text-rendering. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "text-rendering", css: "auto"}).
-
-/**
- * Returns the CSS keyword geometricPrecision.
- */
-pub geometricPrecision(): Value ->
-    Value(Token {property: "text-rendering", css: "geometricPrecision"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-rendering", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-rendering", css: "initial"}).
-
-/**
- * Returns the CSS keyword optimizeLegibility.
- */
-pub optimizeLegibility(): Value ->
-    Value(Token {property: "text-rendering", css: "optimizeLegibility"}).
-
-/**
- * Returns the CSS keyword optimizeSpeed.
- */
-pub optimizeSpeed(): Value ->
-    Value(Token {property: "text-rendering", css: "optimizeSpeed"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-rendering", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-rendering", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-rendering", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("text-rendering", Atom.to_string(css))).

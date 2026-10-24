@@ -1,9 +1,11 @@
 module=std.css.properties.TimelineTriggerName
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=9005741168929551870
-interface_hash=13568775605649243440
-interface_doc_hash=1410297832310304655
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=12672724195321057992
+interface_hash=8281019811221391353
+interface_doc_hash=4324550936399230100
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

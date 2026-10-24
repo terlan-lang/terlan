@@ -1,91 +1,80 @@
 /**
+ * The `timeline-trigger-activation-range` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand
+ * property](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * specifies the start and end of a [scroll-triggered
+ * animation](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animation_triggers/Using_scroll-triggered_animations)
+ * trigger's activation range.
+ *
+ * Initial: timeline-trigger-activation-range-start: normal; timeline-trigger-activation-range-end:
+ * normal. Inherited: no.
+ * Percentages: timeline-trigger-activation-range-start: Relative to the specified named timeline
+ * range if specified, otherwise relative to the entire timeline;
+ * timeline-trigger-activation-range-end: Relative to the specified named timeline range if
+ * specified, otherwise relative to the entire timeline.
+ *
+ * Grammar: [ <'timeline-trigger-activation-range-start'> <'timeline-trigger-activation-range-end'>?
+ * ]#
+ *
+ * Specification:
+ * https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-activation-range
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/timeline-trigger-activation-range
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
  * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-activation-range
- * Grammar: [ <'timeline-trigger-activation-range-start'> <'timeline-trigger-activation-range-end'>? ]#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
  */
 module std.css.properties.TimelineTriggerActivationRange.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained timeline-trigger-activation-range value.
+ * A `<length>` or `<percentage>` value specifies an offset from the beginning of the `normal`
+ * timeline, which again defaults to
+ * [`cover`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/timeline-range-name#cover)
+ * for a `view()` progress timeline source, and
+ * [`scroll`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/timeline-range-name#scroll)
+ * for a `scroll()` progress timeline source. Negative values outset the start and end, resulting in
+ * a longer activation range. Positive values inset the start and end of the activation range,
+ * shortening it.
  */
-pub opaque type Value = Token.
+pub type Normal.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Normal | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     timeline_trigger_activation_range: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     timeline_trigger_activation_range: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for timeline-trigger-activation-range. CSS-wide choices Inherit, Initial,
+ * Unset, Revert, and RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("timeline-trigger-activation-range", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "timeline-trigger-activation-range", css: "unset"}).
-
-/**
- * Constructs a timeline-trigger-activation-range value from a typed length.
+ * Sets timeline-trigger-activation-range from a typed length. Use std.css.Values.px, root_em, em,
+ * vw, or vh to choose the unit.
  */
 pub length(value: Length): Value ->
-    Value(
-        Token {property: "timeline-trigger-activation-range", css: std.css.Values.length_css(value)},
-    ).
+    Value(serialize("timeline-trigger-activation-range", length_css(value))).
 
 /**
- * Constructs a timeline-trigger-activation-range value from a typed percentage.
+ * Sets timeline-trigger-activation-range from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(
-        Token {
-            property: "timeline-trigger-activation-range",
-            css: std.css.Values.percentage_css(value),
-        },
-    ).
+    Value(serialize("timeline-trigger-activation-range", percentage_css(value))).

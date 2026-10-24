@@ -1,9 +1,10 @@
 module typed_css.NestedShorthand.
 
 import std.css.properties.Margin.
+import std.css.properties.Margin.{Auto as MarginAuto}.
 
 pub invalid(): Margin.Value ->
     Margin.pair(
-        Margin.pair(Margin.component_auto(), Margin.component_auto()),
-        Margin.component_auto(),
+        Margin.pair(Margin.component(MarginAuto), Margin.component(MarginAuto)),
+        Margin.component(MarginAuto),
     ).

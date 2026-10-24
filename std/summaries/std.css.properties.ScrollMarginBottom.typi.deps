@@ -1,10 +1,11 @@
 module=std.css.properties.ScrollMarginBottom
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16324875308764895725
-interface_hash=7198348170174915559
-interface_doc_hash=15450427825061026627
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9989695015853296097
+interface_hash=1539816879039637931
+interface_doc_hash=8854328496045715352
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

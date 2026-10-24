@@ -1,10 +1,11 @@
 module=std.css.properties.ImageOrientation
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=3373465249774766475
-interface_hash=16284085261411542438
-interface_doc_hash=7501563496981665395
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=14910044107297841781
+interface_hash=10332809886876855512
+interface_doc_hash=10699997328172757962
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

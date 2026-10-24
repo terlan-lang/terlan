@@ -1,75 +1,55 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-transitions-2/#propdef-transition-behavior
+ * The `transition-behavior` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies whether transitions will be started for properties whose animation behavior is
+ * [discrete](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animations/Animatable_properties#discrete).
+ *
+ * Initial: normal. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <transition-behavior-value>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-transitions-2/#propdef-transition-behavior
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transition-behavior
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TransitionBehavior.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained transition-behavior value.
+ * Transitions will be started on the element for discrete animated properties.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type AllowDiscrete = Atom["allow-discrete"].
 
 /**
- * Include this property in an application style struct.
+ * Transitions will _not_ be started on the element for discrete animated properties.
  */
+pub type Normal.
+
+pub type Css = Normal | AllowDiscrete | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     transition_behavior: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     transition_behavior: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword allow-discrete.
+ * Selects a keyword for transition-behavior. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub allow_discrete(): Value ->
-    Value(Token {property: "transition-behavior", css: "allow-discrete"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "transition-behavior", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "transition-behavior", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "transition-behavior", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "transition-behavior", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "transition-behavior", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "transition-behavior", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("transition-behavior", Atom.to_string(css))).

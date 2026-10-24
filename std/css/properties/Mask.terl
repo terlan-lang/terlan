@@ -1,264 +1,302 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask
+ * The `mask` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property hides an element (partially or fully) by masking or clipping a specified area of the
+ * image. It is a shorthand for all the [`mask-*`](#constituent_properties) properties. The property
+ * accepts one or more comma-separated values, where each value corresponds to a
+ * [`<mask-layer>`](#mask-layer).
+ *
+ * Initial: mask-image: none; mask-mode: match-source; mask-repeat: repeat; mask-position: 0% 0%;
+ * mask-clip: border-box; mask-origin: border-box; mask-size: auto; mask-composite: add. Inherited:
+ * no.
+ * Percentages: mask-position: refer to size of mask painting area minus size of mask layer image
+ * (see the text for `background-position`).
+ *
  * Grammar: <mask-layer>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Mask.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained mask value.
+ * The associated mask image is placed over all mask layers below it (with the corresponding
+ * compositing operators applied). This is the default value.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-composite
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Add.
 
 /**
- * Include this property in an application style struct.
+ * Indicates that the alpha (transparency) values of the mask image should be used.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-mode
  */
+pub type Alpha.
+
+/**
+ * The painted content is clipped to the border box.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-clip
+ */
+pub type BorderBox = Atom["border-box"].
+
+pub type Bottom.
+
+pub type Center.
+
+/**
+ * The painted content is clipped to the content box.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-clip
+ */
+pub type ContentBox = Atom["content-box"].
+
+/**
+ * The non-overlapping regions of the associated mask image and the mask layers below it, with their
+ * corresponding compositing operators applied, are combined.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-composite
+ */
+pub type Exclude.
+
+/**
+ * The painted content is clipped to the object bounding box.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-clip
+ */
+pub type FillBox = Atom["fill-box"].
+
+/**
+ * The parts of the associated mask image that overlap all composited mask layers below it replace
+ * those previously composited layers.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-composite
+ */
+pub type Intersect.
+
+pub type Left.
+
+/**
+ * Indicates that the [luminance (brightness)](#understanding_luminance) values of the mask image
+ * should be used.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-mode
+ */
+pub type Luminance.
+
+pub type MarginBox = Atom["margin-box"].
+
+/**
+ * Indicates that the type of mask is determined by the source. This is the default property value.
+ * - If the `mask-image` references an SVG `mask`, its `mask-type` property value is used, or its
+ * `mask-type` attribute, if present. If neither is explicitly set, this value defaults to
+ * `luminance`. - If the mask image source is an `image` or a `gradient`, the `alpha` values of the
+ * mask image are used.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-mode
+ */
+pub type MatchSource = Atom["match-source"].
+
+/**
+ * The painted content is not clipped.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-clip
+ */
+pub type NoClip = Atom["no-clip"].
+
+/**
+ * The mask image is not repeated (and hence the mask painting area will not necessarily be entirely
+ * covered). The position of the non-repeated mask image is defined by the `mask-position` CSS
+ * property.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-repeat
+ */
+pub type NoRepeat = Atom["no-repeat"].
+
+/**
+ * This keyword is interpreted as a transparent black image layer.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-image
+ */
+pub type None.
+
+/**
+ * The painted content is clipped to the padding box.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-clip
+ */
+pub type PaddingBox = Atom["padding-box"].
+
+/**
+ * The image is repeated as much as needed to cover the whole mask painting area. Mask images along
+ * the edges are clipped when the size of the [mask origin
+ * box](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-origin) is not an
+ * exact multiple of the mask image's size.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-repeat
+ */
+pub type Repeat.
+
+/**
+ * The equivalent of `repeat no-repeat`. The image is repeated in the horizontal direction as many
+ * times as needed to cover the width of the mask painting area. Mask images along the right or left
+ * edges, or both depending on the `mask-position` value, will be clipped if the width of the mask
+ * origin box is not an exact multiple of the mask image's width.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-repeat
+ */
+pub type RepeatX = Atom["repeat-x"].
+
+/**
+ * The equivalent of `no-repeat repeat`. The image is repeated in the vertical direction as many
+ * times as needed to cover the height of the mask painting area. Mask images along the top or
+ * bottom edges, or both depending on the `mask-position` value, will be clipped if the height of
+ * the mask origin box is not an exact multiple of the mask image's height.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-repeat
+ */
+pub type RepeatY = Atom["repeat-y"].
+
+pub type Right.
+
+/**
+ * The mask image is repeated as many times as possible in its original dimensions. If the size of
+ * the mask origin box is not an exact multiple of the mask image's size, all mask images will be
+ * rescaled, [shrinking or stretching](#rounded_repetitions) to ensure no repetitions are clipped.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-repeat
+ */
+pub type Round.
+
+/**
+ * The mask image is repeated as many times as possible without clipping. If the element's origin
+ * size is at least twice the size as the mask image's size in the associated dimension, the
+ * `mask-position` property is ignored and the first and last images are positioned at the edges of
+ * the mask origin container. If the mask origin box is not an exact multiple of the mask image's
+ * size, whitespace is distributed evenly between the repeated mask images.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-repeat
+ */
+pub type Space.
+
+/**
+ * The painted content is clipped to the stroke bounding box.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-clip
+ */
+pub type StrokeBox = Atom["stroke-box"].
+
+/**
+ * The associated mask image is placed, where it falls outside of all mask layers below it (with the
+ * corresponding compositing operators applied).
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-composite
+ */
+pub type Subtract.
+
+pub type Top.
+
+/**
+ * Uses the nearest SVG viewport as reference box. If a
+ * [`viewBox`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/viewBox)
+ * attribute is specified for the element creating the SVG viewport, the reference box is positioned
+ * at the origin of the coordinate system established by the `viewBox` attribute and the dimension
+ * of the reference box is set to the width and height values of the `viewBox` attribute.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-clip
+ */
+pub type ViewBox = Atom["view-box"].
+
+pub type XEnd = Atom["x-end"].
+
+pub type XStart = Atom["x-start"].
+
+pub type YEnd = Atom["y-end"].
+
+pub type YStart = Atom["y-start"].
+
+pub type Css =
+      None
+    | Left
+    | Center
+    | Right
+    | Top
+    | Bottom
+    | XStart
+    | XEnd
+    | YStart
+    | YEnd
+    | RepeatX
+    | RepeatY
+    | Repeat
+    | Space
+    | Round
+    | NoRepeat
+    | ContentBox
+    | PaddingBox
+    | BorderBox
+    | MarginBox
+    | FillBox
+    | StrokeBox
+    | ViewBox
+    | NoClip
+    | Add
+    | Subtract
+    | Intersect
+    | Exclude
+    | Alpha
+    | Luminance
+    | MatchSource
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     mask: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     mask: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword add.
+ * Selects a keyword for mask. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+ * apply to the entire declaration.
  */
-pub add(): Value ->
-    Value(Token {property: "mask", css: "add"}).
+pub value(css: Css): Value ->
+    Value(serialize("mask", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword alpha.
- */
-pub alpha(): Value ->
-    Value(Token {property: "mask", css: "alpha"}).
-
-/**
- * Returns the CSS keyword border-box.
- */
-pub border_box(): Value ->
-    Value(Token {property: "mask", css: "border-box"}).
-
-/**
- * Returns the CSS keyword bottom.
- */
-pub bottom(): Value ->
-    Value(Token {property: "mask", css: "bottom"}).
-
-/**
- * Returns the CSS keyword center.
- */
-pub center(): Value ->
-    Value(Token {property: "mask", css: "center"}).
-
-/**
- * Returns the CSS keyword content-box.
- */
-pub content_box(): Value ->
-    Value(Token {property: "mask", css: "content-box"}).
-
-/**
- * Returns the CSS keyword exclude.
- */
-pub exclude(): Value ->
-    Value(Token {property: "mask", css: "exclude"}).
-
-/**
- * Returns the CSS keyword fill-box.
- */
-pub fill_box(): Value ->
-    Value(Token {property: "mask", css: "fill-box"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "mask", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask", css: "initial"}).
-
-/**
- * Returns the CSS keyword intersect.
- */
-pub intersect(): Value ->
-    Value(Token {property: "mask", css: "intersect"}).
-
-/**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "mask", css: "left"}).
-
-/**
- * Returns the CSS keyword luminance.
- */
-pub luminance(): Value ->
-    Value(Token {property: "mask", css: "luminance"}).
-
-/**
- * Returns the CSS keyword margin-box.
- */
-pub margin_box(): Value ->
-    Value(Token {property: "mask", css: "margin-box"}).
-
-/**
- * Returns the CSS keyword match-source.
- */
-pub match_source(): Value ->
-    Value(Token {property: "mask", css: "match-source"}).
-
-/**
- * Returns the CSS keyword no-clip.
- */
-pub no_clip(): Value ->
-    Value(Token {property: "mask", css: "no-clip"}).
-
-/**
- * Returns the CSS keyword no-repeat.
- */
-pub no_repeat(): Value ->
-    Value(Token {property: "mask", css: "no-repeat"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "mask", css: "none"}).
-
-/**
- * Returns the CSS keyword padding-box.
- */
-pub padding_box(): Value ->
-    Value(Token {property: "mask", css: "padding-box"}).
-
-/**
- * Returns the CSS keyword repeat.
- */
-pub repeat(): Value ->
-    Value(Token {property: "mask", css: "repeat"}).
-
-/**
- * Returns the CSS keyword repeat-x.
- */
-pub repeat_x(): Value ->
-    Value(Token {property: "mask", css: "repeat-x"}).
-
-/**
- * Returns the CSS keyword repeat-y.
- */
-pub repeat_y(): Value ->
-    Value(Token {property: "mask", css: "repeat-y"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "mask", css: "right"}).
-
-/**
- * Returns the CSS keyword round.
- */
-pub round(): Value ->
-    Value(Token {property: "mask", css: "round"}).
-
-/**
- * Returns the CSS keyword space.
- */
-pub space(): Value ->
-    Value(Token {property: "mask", css: "space"}).
-
-/**
- * Returns the CSS keyword stroke-box.
- */
-pub stroke_box(): Value ->
-    Value(Token {property: "mask", css: "stroke-box"}).
-
-/**
- * Returns the CSS keyword subtract.
- */
-pub subtract(): Value ->
-    Value(Token {property: "mask", css: "subtract"}).
-
-/**
- * Returns the CSS keyword top.
- */
-pub top(): Value ->
-    Value(Token {property: "mask", css: "top"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask", css: "unset"}).
-
-/**
- * Returns the CSS keyword view-box.
- */
-pub view_box(): Value ->
-    Value(Token {property: "mask", css: "view-box"}).
-
-/**
- * Returns the CSS keyword x-end.
- */
-pub x_end(): Value ->
-    Value(Token {property: "mask", css: "x-end"}).
-
-/**
- * Returns the CSS keyword x-start.
- */
-pub x_start(): Value ->
-    Value(Token {property: "mask", css: "x-start"}).
-
-/**
- * Returns the CSS keyword y-end.
- */
-pub y_end(): Value ->
-    Value(Token {property: "mask", css: "y-end"}).
-
-/**
- * Returns the CSS keyword y-start.
- */
-pub y_start(): Value ->
-    Value(Token {property: "mask", css: "y-start"}).
-
-/**
- * Constructs a mask value from a typed length.
+ * Sets mask from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "mask", css: std.css.Values.length_css(value)}).
+    Value(serialize("mask", length_css(value))).
 
 /**
- * Constructs a mask value from a typed percentage.
+ * Sets mask from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "mask", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("mask", percentage_css(value))).

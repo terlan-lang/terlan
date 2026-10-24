@@ -1,60 +1,71 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-justify
+//! The `text-justify` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets what
+//! type of justification should be applied to text when `text-align: justify;` is set on an element.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: [ auto | none | inter-word | inter-character | ruby ] || no-compress
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-justify
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-justify
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextJustify.
 
-/// Include an optional declaration in a shared style block.
+/// The browser chooses the best type of justification for the current situation based on a balance
+/// between performance and quality, but also on what is most appropriate for the language of the
+/// text (e.g., English, CJK languages, etc.). This is the default justification used if
+/// `text-justify` is not set at all.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | None
+  | InterWord
+  | InterCharacter
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The text is justified by adding space between characters (effectively varying `letter-spacing`),
+/// which is most appropriate for languages like Japanese.
+
+pub type InterCharacter =
+    Atom["inter-character"].
+
+/// The text is justified by adding space between words (effectively varying `word-spacing`), which
+/// is most appropriate for languages that separate words using spaces, like English or Korean.
+
+pub type InterWord =
+    Atom["inter-word"].
+
+/// The text justification is turned off. This has the same effect as not setting `text-align` at
+/// all, although it is useful if you need to turn justification on and off for some reason.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     text_justify: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     text_justify: Value
 }.
 
-/// A nominal, specification-constrained text-justify value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for text-justify. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inter-character.
-
-pub inter_character(): Value.
-
-/// Returns the CSS keyword inter-word.
-
-pub inter_word(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

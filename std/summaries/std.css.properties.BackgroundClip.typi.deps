@@ -1,9 +1,11 @@
 module=std.css.properties.BackgroundClip
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17390316932096196110
-interface_hash=16962727186640214143
-interface_doc_hash=3265059050795362869
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=6605577230516463829
+interface_hash=5252176764644213027
+interface_doc_hash=10812861030023757938
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

@@ -1,10 +1,11 @@
 module=std.css.properties.VerticalAlign
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=207602298204196514
-interface_hash=7339201299053447288
-interface_doc_hash=7380263353307567885
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=14795416244306260811
+interface_hash=13689583458923926103
+interface_doc_hash=4754728570207854482
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

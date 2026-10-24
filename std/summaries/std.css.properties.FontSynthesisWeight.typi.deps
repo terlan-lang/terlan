@@ -1,9 +1,11 @@
 module=std.css.properties.FontSynthesisWeight
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6664966946483234148
-interface_hash=15131665577481313643
-interface_doc_hash=9063770190047057048
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9049920022959970026
+interface_hash=11725679816308372424
+interface_doc_hash=11871497382748963096
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

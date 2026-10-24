@@ -1,81 +1,66 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-mode
+ * The `mask-mode` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property is set on the
+ * element being masked. It sets whether the mask reference defined by the `mask-image` is treated
+ * as a luminance or alpha mask.
+ *
+ * Initial: match-source. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <masking-mode>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-mode
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-mode
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskMode.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained mask-mode value.
+ * Indicates that the alpha (transparency) values of the mask image should be used.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Alpha.
 
 /**
- * Include this property in an application style struct.
+ * Indicates that the [luminance (brightness)](#understanding_luminance) values of the mask image
+ * should be used.
  */
+pub type Luminance.
+
+/**
+ * Indicates that the type of mask is determined by the source. This is the default property value.
+ * - If the `mask-image` references an SVG `mask`, its `mask-type` property value is used, or its
+ * `mask-type` attribute, if present. If neither is explicitly set, this value defaults to
+ * `luminance`. - If the mask image source is an `image` or a `gradient`, the `alpha` values of the
+ * mask image are used.
+ */
+pub type MatchSource = Atom["match-source"].
+
+pub type Css = Alpha | Luminance | MatchSource | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     mask_mode: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     mask_mode: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword alpha.
+ * Selects a keyword for mask-mode. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub alpha(): Value ->
-    Value(Token {property: "mask-mode", css: "alpha"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "mask-mode", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask-mode", css: "initial"}).
-
-/**
- * Returns the CSS keyword luminance.
- */
-pub luminance(): Value ->
-    Value(Token {property: "mask-mode", css: "luminance"}).
-
-/**
- * Returns the CSS keyword match-source.
- */
-pub match_source(): Value ->
-    Value(Token {property: "mask-mode", css: "match-source"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-mode", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-mode", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-mode", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("mask-mode", Atom.to_string(css))).

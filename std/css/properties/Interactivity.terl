@@ -1,75 +1,56 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ui-4/#propdef-interactivity
+ * The `interactivity` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+ * whether an element and its descendant nodes are set to be
+ * [inert](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inert).
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | inert
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-interactivity
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/interactivity
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Interactivity.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained interactivity value.
+ * Selected elements are in their default state in terms of inertness. This usually means that they
+ * are interactive, but this is [not always the case](#default_inertness). This is the default
+ * value.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Auto.
 
 /**
- * Include this property in an application style struct.
+ * Selected elements and their descendants are inert.
  */
+pub type Inert.
+
+pub type Css = Auto | Inert | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     interactivity: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     interactivity: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for interactivity. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "interactivity", css: "auto"}).
-
-/**
- * Returns the CSS keyword inert.
- */
-pub inert(): Value ->
-    Value(Token {property: "interactivity", css: "inert"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "interactivity", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "interactivity", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "interactivity", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "interactivity", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "interactivity", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("interactivity", Atom.to_string(css))).

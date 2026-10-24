@@ -1,93 +1,84 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `float` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property places an element on
+ * the left or right side of its container, allowing text and inline elements to wrap around it. The
+ * element is removed from the normal flow of the page, though still remaining a part of the flow
+ * (in contrast to [absolute
+ * positioning](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position#absolute_positioning)).
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Grammar: block-start | block-end | inline-start | inline-end | snap-block | <snap-block()> |
+ * snap-inline | <snap-inline()> | left | right | top | bottom | none | footnote
+ *
  * Specification: https://drafts.csswg.org/css-page-floats-3/#propdef-float
- * Grammar: block-start | block-end | inline-start | inline-end | snap-block | <snap-block()> | snap-inline | <snap-inline()> | left | right | top | bottom | none | footnote
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/float
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Float.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained float value.
+ * The element must float on the end side of its containing block. That is the right side with `ltr`
+ * scripts, and the left side with `rtl` scripts.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type InlineEnd = Atom["inline-end"].
 
 /**
- * Include this property in an application style struct.
+ * The element must float on the start side of its containing block. That is the left side with
+ * `ltr` scripts, and the right side with `rtl` scripts.
  */
+pub type InlineStart = Atom["inline-start"].
+
+/**
+ * The element must float on the left side of its containing block.
+ */
+pub type Left.
+
+/**
+ * The element must not float.
+ */
+pub type None.
+
+/**
+ * The element must float on the right side of its containing block.
+ */
+pub type Right.
+
+pub type Css =
+      InlineStart
+    | InlineEnd
+    | Left
+    | Right
+    | None
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     float: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     float: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for float. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+ * apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "float", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "float", css: "initial"}).
-
-/**
- * Returns the CSS keyword inline-end.
- */
-pub inline_end(): Value ->
-    Value(Token {property: "float", css: "inline-end"}).
-
-/**
- * Returns the CSS keyword inline-start.
- */
-pub inline_start(): Value ->
-    Value(Token {property: "float", css: "inline-start"}).
-
-/**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "float", css: "left"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "float", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "float", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "float", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "float", css: "right"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "float", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("float", Atom.to_string(css))).

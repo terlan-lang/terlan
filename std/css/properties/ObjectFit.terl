@@ -1,93 +1,87 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-images-4/#propdef-object-fit
+ * The `object-fit` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how the
+ * content of a , such as an `img` or `video`, should be resized to fit its container.
+ *
+ * Initial: fill. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: fill | none | [contain | cover] || scale-down
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-images-4/#propdef-object-fit
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/object-fit
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ObjectFit.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained object-fit value.
+ * The replaced content is scaled to maintain its `aspect ratio` while fitting within the element's
+ * content box. The entire object is made to fill the box, while preserving its aspect ratio, so the
+ * object will be ["letterboxed"](<https://en.wikipedia.org/wiki/Letterboxing_(filming)>) or
+ * ["pillarboxed"](https://en.wikipedia.org/wiki/Pillarbox) if its aspect ratio does not match the
+ * aspect ratio of the box.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Contain.
 
 /**
- * Include this property in an application style struct.
+ * The replaced content is sized to maintain its aspect ratio while filling the element's entire
+ * content box. If the object's aspect ratio does not match the aspect ratio of its box, then the
+ * object will be clipped to fit.
  */
+pub type Cover.
+
+/**
+ * The replaced content is sized to fill the element's content box. This is the `initial` value. The
+ * entire object will completely fill the box. If the object's `aspect ratio` does not match the
+ * aspect ratio of its box, then the object will be stretched to fit.
+ */
+pub type Fill.
+
+/**
+ * The replaced content is not resized.
+ */
+pub type None.
+
+/**
+ * The content is sized as if `none` or `contain` were specified, whichever would result in a
+ * smaller concrete object size.
+ */
+pub type ScaleDown = Atom["scale-down"].
+
+pub type Css =
+      Fill
+    | None
+    | Contain
+    | Cover
+    | ScaleDown
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     object_fit: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     object_fit: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword contain.
+ * Selects a keyword for object-fit. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub contain(): Value ->
-    Value(Token {property: "object-fit", css: "contain"}).
-
-/**
- * Returns the CSS keyword cover.
- */
-pub cover(): Value ->
-    Value(Token {property: "object-fit", css: "cover"}).
-
-/**
- * Returns the CSS keyword fill.
- */
-pub fill(): Value ->
-    Value(Token {property: "object-fit", css: "fill"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "object-fit", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "object-fit", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "object-fit", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "object-fit", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "object-fit", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword scale-down.
- */
-pub scale_down(): Value ->
-    Value(Token {property: "object-fit", css: "scale-down"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "object-fit", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("object-fit", Atom.to_string(css))).

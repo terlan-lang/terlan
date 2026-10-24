@@ -45,11 +45,28 @@ test('outer ranges cannot weaken a referenced type constraint', () => {
 test('property bindings preserve nominal identity, property spelling, and range checks', () => {
   const { source } = generateProperty({name: 'margin-left', syntax: '<length [0,100]> | auto', href: 'spec'}, new Map());
   assert.match(source, /module std\.css\.properties\.MarginLeft/);
-  assert.match(source, /pub opaque type Value = Token/);
+  assert.match(source, /pub opaque type Value = SerializedValue/);
   assert.match(source, /margin_left: Value/);
   assert.match(source, /length_amount\(value\) >= 0 and std\.css\.Values\.length_amount\(value\) <= 100/);
   assert.match(source, /Option\[Value\]/);
   assert.doesNotMatch(source, /from_string|trusted/);
+});
+
+test('keyword enums replace zero-argument wrappers in values, components, and grouped parts', () => {
+  const definitions = new Map([
+    ['Type:line-width', parse('thin | <length [0,100]>')],
+    ['Type:line-style', parse('none | solid')],
+  ]);
+  for (const syntax of ['auto | contain', 'auto | <length [0,100]>', '[auto | <length>]{1,4}', '<line-width> || <line-style> || <color>']) {
+    const { source } = generateProperty({ name: 'example', syntax, href: 'spec' }, definitions);
+    assert.match(source, /pub type Css = /);
+    assert.match(source, /pub value\(css: Css\): Value/);
+    assert.doesNotMatch(source, /pub\s+[a-z][a-z_]*\(\):/);
+    assert.doesNotMatch(source, /struct (Token|SerializedValue)/);
+  }
+  const names = ['length', 'value', 'some', 'text', 'binary', 'number', 'term', 'dynamic', 'never', 'atom', 'bool', 'unit'];
+  const { source } = generateProperty({ name: 'example', syntax: names.join(' | ') + ' | <length>', href: 'spec' }, new Map());
+  for (const name of names) assert.ok(source.includes(`pub type ${name[0].toUpperCase() + name.slice(1)}Keyword = Atom[`));
 });
 
 test('bounded space-separated repetitions generate exactly the permitted arities', () => {
@@ -57,8 +74,9 @@ test('bounded space-separated repetitions generate exactly the permitted arities
   const {source, repeated} = generateProperty(property, new Map());
   assert.equal(repeated.min, 2);
   assert.equal(repeated.max, 3);
-  assert.match(source, /pub opaque type Component = Token/);
-  assert.match(source, /pub component_auto\(\): Component/);
+  assert.match(source, /pub opaque type Component = SerializedValue/);
+  assert.match(source, /pub type ComponentCss = Auto/);
+  assert.match(source, /pub component\(css: ComponentCss\): Component/);
   assert.match(source, /pub component_length\(value: Length\): Component/);
   assert.match(source, /pub pair\(first: Component, second: Component\): Value/);
   assert.match(source, /pub triple\(first: Component, second: Component, third: Component\): Value/);
@@ -97,12 +115,13 @@ test('named unordered groups produce distinct part types and a complete composit
     const {source, grouped} = generateProperty({name: 'example', syntax: `<line-width> ${combinator} <line-style> ${combinator} <color>`, href: 'spec'}, definitions);
     assert.equal(grouped.combinator, combinator);
     assert.match(source, /pub opaque type LineWidthPart = String/);
-    assert.match(source, /pub opaque type LineStylePart = String/);
+    assert.match(source, /pub type LineStylePart = None \| Solid/);
     assert.match(source, /pub line_width_length\(value: Length\): Option\[LineWidthPart\]/);
     assert.match(source, /length_amount\(value\) >= 0 and std.css.Values.length_amount\(value\) <= 100/);
-    assert.match(source, /pub line_style_solid\(\): LineStylePart/);
+    assert.match(source, /pub type Solid = Atom\["solid"\]/);
+    assert.doesNotMatch(source, /pub line_style_solid\(/);
     assert.match(source, /pub compose\(line_width: LineWidthPart, line_style: LineStylePart, color: Color\): Value/);
-    assert.match(source, /line_width_css\(line_width\) \+ " " \+ line_style_css\(line_style\) \+ " " \+ std.css.Values.color_css\(color\)/);
+    assert.match(source, /line_width_css\(line_width\) \+ " " \+ Atom.to_string\(line_style\) \+ " " \+ std.css.Values.color_css\(color\)/);
     assert.doesNotMatch(source, /pub (line_width|line_style)_(inherit|initial|unset|revert)/);
   }
 });

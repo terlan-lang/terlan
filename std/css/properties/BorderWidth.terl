@@ -1,171 +1,142 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-width
+ * The `border-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets the width of an element's border.
+ *
+ * Initial: border-top-width: medium; border-right-width: medium; border-bottom-width: medium;
+ * border-left-width: medium. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <'border-top-width'>{1,4}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-width
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-width
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BorderWidth.
 
-import std.core.Option.{None, Some}.
+import std.core.Atom.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
-import std.css.Values.{length_amount, length_css}.
+import std.css.Values.{length_amount, length_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained border-width value.
+ * Same as `3px`.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-top-width
  */
-pub opaque type Value = Token.
+pub type Medium.
 
 /**
- * A single non-global border-width shorthand component.
+ * Same as `5px`.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-top-width
  */
-pub opaque type Component = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Thick.
 
 /**
- * Include this property in an application style struct.
+ * Same as `1px`.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-top-width
  */
+pub type Thin.
+
+pub type Css = Thin | Medium | Thick | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub type ComponentCss = Thin | Medium | Thick.
+
+pub opaque type Value = SerializedValue.
+
+pub opaque type Component = SerializedValue.
+
 pub struct Property {
     border_width: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     border_width: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for border-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "border-width", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("border-width", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "border-width", css: "initial"}).
-
-/**
- * Returns the CSS keyword medium.
- */
-pub medium(): Value ->
-    Value(Token {property: "border-width", css: "medium"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "border-width", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "border-width", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword thick.
- */
-pub thick(): Value ->
-    Value(Token {property: "border-width", css: "thick"}).
-
-/**
- * Returns the CSS keyword thin.
- */
-pub thin(): Value ->
-    Value(Token {property: "border-width", css: "thin"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "border-width", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a border-width value.
+ * Sets border-width from a typed length. Returns Some for amount >= 0; otherwise returns None.
  */
 pub length(value: Length): Option[Value] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "border-width", css: length_css(value)}));
-        false -> None
+        true -> Some(Value(serialize("border-width", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Constructs one border-width shorthand component.
+ * Chooses one border-width shorthand component. CSS-wide keywords are accepted only by value(css)
+ * for the whole declaration.
  */
-pub component_medium(): Component ->
-    Component(Token {property: "border-width", css: "medium"}).
+pub component(css: ComponentCss): Component ->
+    Component(serialize("border-width", Atom.to_string(css))).
 
 /**
- * Constructs one border-width shorthand component.
- */
-pub component_thick(): Component ->
-    Component(Token {property: "border-width", css: "thick"}).
-
-/**
- * Constructs one border-width shorthand component.
- */
-pub component_thin(): Component ->
-    Component(Token {property: "border-width", css: "thin"}).
-
-/**
- * Checks the specification range and constructs a border-width value.
+ * Sets border-width shorthand component from a typed length. Returns Some for amount >= 0;
+ * otherwise returns None.
  */
 pub component_length(value: Length): Option[Component] ->
     case length_amount(value) >= 0 {
-        true -> Some(Component(Token {property: "border-width", css: length_css(value)}));
-        false -> None
+        true -> Some(Component(serialize("border-width", length_css(value))));
+        false -> Absent
     }.
 
-/**
- * Serializes a library-owned shorthand component.
- */
 component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
+    let serialized = component_value(value);
+    serialized.css.
 
-component_token(value: Component): Token ->
+component_value(value: Component): SerializedValue ->
     value.
 
 /**
- * Combines 1 typed components in specification order.
+ * Applies to all four sides.
  */
 pub single(first: Component): Value ->
-    Value(Token {property: "border-width", css: component_css(first)}).
+    Value(serialize("border-width", component_css(first))).
 
 /**
- * Combines 2 typed components in specification order.
+ * First sets top/bottom; second sets left/right.
  */
 pub pair(first: Component, second: Component): Value ->
-    Value(Token {property: "border-width", css: component_css(first) + " " + component_css(second)}).
+    Value(serialize("border-width", component_css(first) + " " + component_css(second))).
 
 /**
- * Combines 3 typed components in specification order.
+ * First sets top; second sets left/right; third sets bottom.
  */
 pub triple(first: Component, second: Component, third: Component): Value ->
     Value(
-        Token {
-            property: "border-width",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third),
-        },
+        serialize(
+            "border-width",
+            component_css(first) + " " + component_css(second) + " " + component_css(third),
+        ),
     ).
 
 /**
- * Combines 4 typed components in specification order.
+ * Sets top, right, bottom, and left in that order.
  */
 pub quad(first: Component, second: Component, third: Component, fourth: Component): Value ->
     Value(
-        Token {
-            property: "border-width",
-            css: component_css(first) + " " + component_css(second) + " " + component_css(third) + " " + component_css(fourth),
-        },
+        serialize(
+            "border-width",
+            component_css(first) + " " + component_css(second) + " " + component_css(third) + " " + component_css(fourth),
+        ),
     ).

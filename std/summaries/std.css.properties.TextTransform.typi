@@ -1,72 +1,94 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-transform
+//! The `text-transform` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+//! how to capitalize an element's text. It can be used to make text appear in all-uppercase or
+//! all-lowercase, or with each word capitalized. It also can help improve legibility for ruby.
+//!
+//! Initial: none. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | [capitalize | uppercase | lowercase ] || full-width || full-size-kana | math-auto
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-transform
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-transform
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextTransform.
 
-/// Include an optional declaration in a shared style block.
+/// Is a keyword that converts the first _letter_ of each word to uppercase. Other characters remain
+/// unchanged (they retain their original case as written in the element's text). A letter is defined
+/// as a character that is part of Unicode's Letter or Number general categories; thus, any
+/// punctuation marks or symbols at the beginning of a word are ignored.
+
+pub type Capitalize =
+    Atom["capitalize"].
+
+pub type Css =
+    None
+  | Capitalize
+  | Uppercase
+  | Lowercase
+  | FullWidth
+  | FullSizeKana
+  | MathAuto
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Generally used for `ruby` annotation text, the keyword converts all small Kana characters to the
+/// equivalent full-size Kana, to compensate for legibility issues at the small font sizes typically
+/// used in ruby.
+
+pub type FullSizeKana =
+    Atom["full-size-kana"].
+
+/// Is a keyword that forces the writing of a character — mainly ideograms and Latin scripts — inside
+/// a square, allowing them to be aligned in the usual East Asian scripts (like Chinese or Japanese).
+
+pub type FullWidth =
+    Atom["full-width"].
+
+/// Is a keyword that converts all characters to lowercase.
+
+pub type Lowercase =
+    Atom["lowercase"].
+
+/// Used to automatically render text in math italic where appropriate. It transforms Latin and Greek
+/// letters, and a few other math-related symbols, to [italic mathematical
+/// symbols](https://www.unicode.org/charts/PDF/U1D400.pdf) but only if it's applied on a text node
+/// containing a single character. For example, "x" will become "𝑥" (U+1D465), but "exp" will stay
+/// as "exp". It is primarily used to specify the behavior of elements in MathML. You should
+/// generally use MathML markup which automatically applies the right styling.
+
+pub type MathAuto =
+    Atom["math-auto"].
+
+/// Is a keyword that prevents the case of all characters from being changed.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     text_transform: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     text_transform: Value
 }.
 
-/// A nominal, specification-constrained text-transform value.
+/// Is a keyword that converts all characters to uppercase.
+
+pub type Uppercase =
+    Atom["uppercase"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword capitalize.
+/// Selects a keyword for text-transform. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub capitalize(): Value.
-
-/// Returns the CSS keyword full-size-kana.
-
-pub full_size_kana(): Value.
-
-/// Returns the CSS keyword full-width.
-
-pub full_width(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword lowercase.
-
-pub lowercase(): Value.
-
-/// Returns the CSS keyword math-auto.
-
-pub math_auto(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword uppercase.
-
-pub uppercase(): Value.
-
-export type Token.
+pub value(css: Css): Value.

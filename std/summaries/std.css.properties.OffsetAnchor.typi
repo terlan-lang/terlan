@@ -1,92 +1,92 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/motion-1/#propdef-offset-anchor
+//! The `offset-anchor` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+//! the point inside the box of an element traveling along an `offset-path` that is actually moving
+//! along the path.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: relative to the width and the height of the element's reference box.
+//!
 //! Grammar: auto | <position>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/motion-1/#propdef-offset-anchor
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-anchor
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OffsetAnchor.
 
-/// Include an optional declaration in a shared style block.
+/// `offset-anchor` is given the same value as the element's `transform-origin`, unless `offset-path`
+/// is `none`, in which case it takes its value from `offset-position`.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Bottom =
+    Atom["bottom"].
+
+pub type Center =
+    Atom["center"].
+
+pub type Css =
+    Auto
+  | Left
+  | Center
+  | Right
+  | Top
+  | Bottom
+  | XStart
+  | XEnd
+  | YStart
+  | YEnd
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type Left =
+    Atom["left"].
 
 pub struct OptionalProperty {
     offset_anchor: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     offset_anchor: Value
 }.
 
-/// A nominal, specification-constrained offset-anchor value.
+pub type Right =
+    Atom["right"].
+
+pub type Top =
+    Atom["top"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+pub type XEnd =
+    Atom["x-end"].
 
-pub auto(): Value.
+pub type XStart =
+    Atom["x-start"].
 
-/// Returns the CSS keyword bottom.
+pub type YEnd =
+    Atom["y-end"].
 
-pub bottom(): Value.
+pub type YStart =
+    Atom["y-start"].
 
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Constructs a offset-anchor value from a typed length.
+/// Sets offset-anchor from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
+/// the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Constructs a offset-anchor value from a typed percentage.
+/// Sets offset-anchor from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for offset-anchor. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword top.
-
-pub top(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword x-end.
-
-pub x_end(): Value.
-
-/// Returns the CSS keyword x-start.
-
-pub x_start(): Value.
-
-/// Returns the CSS keyword y-end.
-
-pub y_end(): Value.
-
-/// Returns the CSS keyword y-start.
-
-pub y_start(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,9 +1,11 @@
 module=std.css.properties.WillChange
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=1068074764488259608
-interface_hash=14256533944649823087
-interface_doc_hash=11053163779486039555
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3529299488406314381
+interface_hash=17128875921890211939
+interface_doc_hash=526287769795064130
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

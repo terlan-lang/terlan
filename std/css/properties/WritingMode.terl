@@ -1,93 +1,89 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-writing-mode
+ * The `writing-mode` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether
+ * lines of text are laid out horizontally or vertically, as well as the direction in which text
+ * flows.
+ *
+ * Initial: horizontal-tb. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: horizontal-tb | vertical-rl | vertical-lr | sideways-rl | sideways-lr
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-writing-mode
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/writing-mode
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.WritingMode.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained writing-mode value.
+ * For `ltr` scripts, content flows horizontally from left to right. For `rtl` scripts, content
+ * flows horizontally from right to left. The next horizontal line is positioned below the previous
+ * line.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type HorizontalTb = Atom["horizontal-tb"].
 
 /**
- * Include this property in an application style struct.
+ * For `ltr` scripts, content flows vertically from bottom to top. For `rtl` scripts, content flows
+ * vertically from top to bottom. All the glyphs, even those in vertical scripts, are set sideways
+ * toward the left.
  */
+pub type SidewaysLr = Atom["sideways-lr"].
+
+/**
+ * For `ltr` scripts, content flows vertically from top to bottom. For `rtl` scripts, content flows
+ * vertically from bottom to top. All the glyphs, even those in vertical scripts, are set sideways
+ * toward the right.
+ */
+pub type SidewaysRl = Atom["sideways-rl"].
+
+/**
+ * For `ltr` scripts, content flows vertically from top to bottom, and the next vertical line is
+ * positioned to the right of the previous line. For `rtl` scripts, content flows vertically from
+ * bottom to top, and the next vertical line is positioned to the right of the previous line.
+ */
+pub type VerticalLr = Atom["vertical-lr"].
+
+/**
+ * For `ltr` scripts, content flows vertically from top to bottom, and the next vertical line is
+ * positioned to the left of the previous line. For `rtl` scripts, content flows vertically from
+ * bottom to top, and the next vertical line is positioned to the left of the previous line.
+ */
+pub type VerticalRl = Atom["vertical-rl"].
+
+pub type Css =
+      HorizontalTb
+    | VerticalRl
+    | VerticalLr
+    | SidewaysRl
+    | SidewaysLr
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     writing_mode: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     writing_mode: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword horizontal-tb.
+ * Selects a keyword for writing-mode. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub horizontal_tb(): Value ->
-    Value(Token {property: "writing-mode", css: "horizontal-tb"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "writing-mode", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "writing-mode", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "writing-mode", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "writing-mode", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword sideways-lr.
- */
-pub sideways_lr(): Value ->
-    Value(Token {property: "writing-mode", css: "sideways-lr"}).
-
-/**
- * Returns the CSS keyword sideways-rl.
- */
-pub sideways_rl(): Value ->
-    Value(Token {property: "writing-mode", css: "sideways-rl"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "writing-mode", css: "unset"}).
-
-/**
- * Returns the CSS keyword vertical-lr.
- */
-pub vertical_lr(): Value ->
-    Value(Token {property: "writing-mode", css: "vertical-lr"}).
-
-/**
- * Returns the CSS keyword vertical-rl.
- */
-pub vertical_rl(): Value ->
-    Value(Token {property: "writing-mode", css: "vertical-rl"}).
+pub value(css: Css): Value ->
+    Value(serialize("writing-mode", Atom.to_string(css))).

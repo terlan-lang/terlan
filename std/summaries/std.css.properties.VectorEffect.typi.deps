@@ -1,9 +1,11 @@
 module=std.css.properties.VectorEffect
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17339700131190169587
-interface_hash=1057466115334737500
-interface_doc_hash=8314673263525450367
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=12562726536772296866
+interface_hash=13068236687643948821
+interface_doc_hash=15868455791231544490
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

@@ -1,130 +1,109 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-block
+ * The `margin-block` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property defines the logical block start and end margins of an element, which maps to physical
+ * margins depending on the element's writing mode, directionality, and text orientation.
+ *
+ * Initial: margin-block-start: 0; margin-block-end: 0. Inherited: no.
+ * Percentages: depends on layout model.
+ *
  * Grammar: <'margin-top'>{1,2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-block
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-block
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MarginBlock.
 
+import std.core.Atom.
 import std.css.Values.
-import std.css.Values.{length_css, percentage_css}.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained margin-block value.
+ * The browser selects a suitable value to use. See `margin`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-top
  */
-pub opaque type Value = Token.
+pub type Auto.
 
-/**
- * A single non-global margin-block shorthand component.
- */
-pub opaque type Component = Token.
+pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type ComponentCss = Auto.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
+pub opaque type Component = SerializedValue.
+
 pub struct Property {
     margin_block: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     margin_block: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for margin-block. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "margin-block", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("margin-block", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "margin-block", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "margin-block", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "margin-block", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "margin-block", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "margin-block", css: "unset"}).
-
-/**
- * Constructs a margin-block value from a typed length.
+ * Sets margin-block from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
+ * the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "margin-block", css: length_css(value)}).
+    Value(serialize("margin-block", length_css(value))).
 
 /**
- * Constructs a margin-block value from a typed percentage.
+ * Sets margin-block from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "margin-block", css: percentage_css(value)}).
+    Value(serialize("margin-block", percentage_css(value))).
 
 /**
- * Constructs one margin-block shorthand component.
+ * Chooses one margin-block shorthand component. CSS-wide keywords are accepted only by value(css)
+ * for the whole declaration.
  */
-pub component_auto(): Component ->
-    Component(Token {property: "margin-block", css: "auto"}).
+pub component(css: ComponentCss): Component ->
+    Component(serialize("margin-block", Atom.to_string(css))).
 
 /**
- * Constructs a margin-block value from a typed length.
+ * Sets margin-block shorthand component from a typed length. Use std.css.Values.px, root_em, em,
+ * vw, or vh to choose the unit.
  */
 pub component_length(value: Length): Component ->
-    Component(Token {property: "margin-block", css: length_css(value)}).
+    Component(serialize("margin-block", length_css(value))).
 
 /**
- * Constructs a margin-block value from a typed percentage.
+ * Sets margin-block shorthand component from a typed percentage.
  */
 pub component_percentage(value: Percentage): Component ->
-    Component(Token {property: "margin-block", css: percentage_css(value)}).
+    Component(serialize("margin-block", percentage_css(value))).
 
-/**
- * Serializes a library-owned shorthand component.
- */
 component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
+    let serialized = component_value(value);
+    serialized.css.
 
-component_token(value: Component): Token ->
+component_value(value: Component): SerializedValue ->
     value.
 
 /**
- * Combines 1 typed components in specification order.
+ * Supplies 1 components in the grammar order shown above.
  */
 pub single(first: Component): Value ->
-    Value(Token {property: "margin-block", css: component_css(first)}).
+    Value(serialize("margin-block", component_css(first))).
 
 /**
- * Combines 2 typed components in specification order.
+ * Supplies 2 components in the grammar order shown above.
  */
 pub pair(first: Component, second: Component): Value ->
-    Value(Token {property: "margin-block", css: component_css(first) + " " + component_css(second)}).
+    Value(serialize("margin-block", component_css(first) + " " + component_css(second))).

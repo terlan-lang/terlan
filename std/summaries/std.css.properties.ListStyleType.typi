@@ -1,48 +1,48 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-lists-3/#propdef-list-style-type
+//! The `list-style-type` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! marker (such as a disc, character, or custom counter style) of a list item element.
+//!
+//! Initial: disc. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: <counter-style> | <string> | none
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-lists-3/#propdef-list-style-type
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/list-style-type
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ListStyleType.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// No item marker is shown.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     list_style_type: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     list_style_type: Value
 }.
 
-/// A nominal, specification-constrained list-style-type value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for list-style-type. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

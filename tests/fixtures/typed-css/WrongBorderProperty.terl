@@ -1,7 +1,9 @@
 module typed_css.WrongBorderProperty.
 
-import std.css.Values.{transparent}.
+import std.css.Values.{Transparent, color}.
+import std.css.properties.Border.{Solid, Thin}.
+import std.css.properties.BorderTop.{Thin as TopThin}.
 import std.css.properties.{Border, BorderTop}.
 
 pub invalid(): Border.Value ->
-    Border.compose(BorderTop.line_width_thin(), Border.line_style_solid(), transparent()).
+    Border.compose(BorderTop.line_width(TopThin), Solid, color(Transparent)).

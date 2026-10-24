@@ -1,9 +1,11 @@
 module=std.css.properties.AnimationTrigger
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=4970796634455931818
-interface_hash=11705111730633707252
-interface_doc_hash=7517851899391718746
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3757730433016569033
+interface_hash=8795255886970090015
+interface_doc_hash=16708945777849257737
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

@@ -1,52 +1,55 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/mathml-core/#propdef-math-shift
+//! The `math-shift` property indicates whether superscripts inside MathML formulas should be raised
+//! by a normal or compact shift.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | compact
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/mathml-core/#propdef-math-shift
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/math-shift
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MathShift.
 
-/// Include an optional declaration in a shared style block.
+/// Indicates compact rendering. Superscripts in MathML formulas use the
+/// [superscriptShiftUpCramped](https://w3c.github.io/mathml-core/#dfn-superscriptshiftupcramped)
+/// parameter from the OpenType MATH table, which is generally smaller.
+
+pub type Compact =
+    Atom["compact"].
+
+pub type Css =
+    Normal
+  | Compact
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The initial value, indicates normal rendering. Superscripts in MathML formulas use the
+/// [superscriptShiftUp](https://w3c.github.io/mathml-core/#dfn-superscriptshiftup) parameter from
+/// the OpenType MATH table.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     math_shift: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     math_shift: Value
 }.
 
-/// A nominal, specification-constrained math-shift value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword compact.
+/// Selects a keyword for math-shift. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub compact(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

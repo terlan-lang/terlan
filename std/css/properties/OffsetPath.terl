@@ -1,105 +1,78 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/motion-1/#propdef-offset-path
+ * The `offset-path` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies a
+ * path for an element to follow and determines the element's positioning within the path's parent
+ * container or the SVG coordinate system. The path is a line, a curve, or a geometrical shape along
+ * which the element gets positioned or moves.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: none | <offset-path> || <coord-box>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/motion-1/#propdef-offset-path
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-path
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.OffsetPath.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+
+pub type BorderBox = Atom["border-box"].
+
+pub type ContentBox = Atom["content-box"].
+
+pub type FillBox = Atom["fill-box"].
 
 /**
- * A nominal, specification-constrained offset-path value.
+ * Specifies that the element does not follow any offset path. The `none` value is equivalent to the
+ * element not having any [offset
+ * transform](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset). The
+ * element's movement in this case is determined by its default position properties, such as `top`
+ * and `left`, instead of an offset path. This is the default value.
  */
-pub opaque type Value = Token.
+pub type None.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type PaddingBox = Atom["padding-box"].
 
-/**
- * Include this property in an application style struct.
- */
+pub type StrokeBox = Atom["stroke-box"].
+
+pub type ViewBox = Atom["view-box"].
+
+pub type Css =
+      None
+    | ContentBox
+    | PaddingBox
+    | BorderBox
+    | FillBox
+    | StrokeBox
+    | ViewBox
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     offset_path: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     offset_path: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword border-box.
+ * Selects a keyword for offset-path. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub border_box(): Value ->
-    Value(Token {property: "offset-path", css: "border-box"}).
-
-/**
- * Returns the CSS keyword content-box.
- */
-pub content_box(): Value ->
-    Value(Token {property: "offset-path", css: "content-box"}).
-
-/**
- * Returns the CSS keyword fill-box.
- */
-pub fill_box(): Value ->
-    Value(Token {property: "offset-path", css: "fill-box"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "offset-path", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "offset-path", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "offset-path", css: "none"}).
-
-/**
- * Returns the CSS keyword padding-box.
- */
-pub padding_box(): Value ->
-    Value(Token {property: "offset-path", css: "padding-box"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "offset-path", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "offset-path", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword stroke-box.
- */
-pub stroke_box(): Value ->
-    Value(Token {property: "offset-path", css: "stroke-box"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "offset-path", css: "unset"}).
-
-/**
- * Returns the CSS keyword view-box.
- */
-pub view_box(): Value ->
-    Value(Token {property: "offset-path", css: "view-box"}).
+pub value(css: Css): Value ->
+    Value(serialize("offset-path", Atom.to_string(css))).

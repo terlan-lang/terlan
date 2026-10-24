@@ -1,93 +1,80 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-break-4/#propdef-break-inside
+ * The `break-inside` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how
+ * page, column, or region breaks should behave inside a generated box. If there is no generated
+ * box, the property is ignored.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | avoid | avoid-page | avoid-column | avoid-region
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-break-4/#propdef-break-inside
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/break-inside
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BreakInside.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained break-inside value.
+ * Allows, but does not force, any break (page, column, or region) to be inserted within the
+ * principal box.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Auto.
 
 /**
- * Include this property in an application style struct.
+ * Avoids any break (page, column, or region) from being inserted within the principal box.
  */
+pub type Avoid.
+
+/**
+ * Avoids any column break within the principal box.
+ */
+pub type AvoidColumn = Atom["avoid-column"].
+
+/**
+ * Avoids any page break within the principal box.
+ */
+pub type AvoidPage = Atom["avoid-page"].
+
+/**
+ * Avoids any region break within the principal box.
+ */
+pub type AvoidRegion = Atom["avoid-region"].
+
+pub type Css =
+      Auto
+    | Avoid
+    | AvoidPage
+    | AvoidColumn
+    | AvoidRegion
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     break_inside: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     break_inside: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for break-inside. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "break-inside", css: "auto"}).
-
-/**
- * Returns the CSS keyword avoid.
- */
-pub avoid(): Value ->
-    Value(Token {property: "break-inside", css: "avoid"}).
-
-/**
- * Returns the CSS keyword avoid-column.
- */
-pub avoid_column(): Value ->
-    Value(Token {property: "break-inside", css: "avoid-column"}).
-
-/**
- * Returns the CSS keyword avoid-page.
- */
-pub avoid_page(): Value ->
-    Value(Token {property: "break-inside", css: "avoid-page"}).
-
-/**
- * Returns the CSS keyword avoid-region.
- */
-pub avoid_region(): Value ->
-    Value(Token {property: "break-inside", css: "avoid-region"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "break-inside", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "break-inside", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "break-inside", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "break-inside", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "break-inside", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("break-inside", Atom.to_string(css))).

@@ -1,84 +1,120 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-align-3/#propdef-align-items
+//! The [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) `align-items` property sets the
+//! `align-self` value on all direct children as a group. In flexbox, it controls the alignment of
+//! items on the `cross axis`. In grid layout, it controls the alignment of items on the block axis
+//! within their `grid areas`.
+//!
+//! Initial: normal. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | stretch | <baseline-position> | <overflow-position>? <self-position>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-align-3/#propdef-align-items
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.AlignItems.
 
-/// Include an optional declaration in a shared style block.
+/// All flex items are aligned such that their [flex container
+/// baselines](https://drafts.csswg.org/css-flexbox-1/#flex-baselines) align. The item with the
+/// largest distance between its cross-start margin edge and its baseline is flushed with the
+/// cross-start edge of the line.
+
+pub type Baseline =
+    Atom["baseline"].
+
+/// The flex items' margin boxes are centered within the line on the cross-axis. If the cross-size of
+/// an item is larger than the flex container, it will overflow equally in both directions.
+
+pub type Center =
+    Atom["center"].
+
+pub type Css =
+    Normal
+  | Stretch
+  | Baseline
+  | Center
+  | Start
+  | End
+  | SelfStart
+  | SelfEnd
+  | FlexStart
+  | FlexEnd
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The items are packed flush to each other toward the end edge of the alignment container in the
+/// appropriate axis.
+
+pub type End =
+    Atom["end"].
+
+/// Used in flex layout only, aligns the flex items flush against the flex container's main-end or
+/// cross-end side. When used outside of a flex formatting context, this value behaves as `end`.
+
+pub type FlexEnd =
+    Atom["flex-end"].
+
+/// Used in flex layout only, aligns the flex items flush against the flex container's main-start or
+/// cross-start side. When used outside of a flex formatting context, this value behaves as `start`.
+
+pub type FlexStart =
+    Atom["flex-start"].
+
+/// The effect of this keyword is dependent of the layout mode we are in: - In absolutely-positioned
+/// layouts, the keyword behaves like `start` on _replaced_ absolutely-positioned boxes, and as
+/// `stretch` on _all other_ absolutely-positioned boxes. - In static position of
+/// absolutely-positioned layouts, the keyword behaves as `stretch`. - For flex items, the keyword
+/// behaves as `stretch`. - For grid items, this keyword leads to a behavior similar to the one of
+/// `stretch`, except for boxes with an `aspect ratio` or an intrinsic size where it behaves like
+/// `start`. - The property doesn't apply to block-level boxes, and to table cells.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     align_items: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     align_items: Value
 }.
 
-/// A nominal, specification-constrained align-items value.
+/// The items are packed flush to the edge of the alignment container's end side of the item, in the
+/// appropriate axis.
+
+pub type SelfEnd =
+    Atom["self-end"].
+
+/// The items are packed flush to the edge of the alignment container's start side of the item, in
+/// the appropriate axis.
+
+pub type SelfStart =
+    Atom["self-start"].
+
+/// The items are packed flush to each other toward the start edge of the alignment container in the
+/// appropriate axis.
+
+pub type Start =
+    Atom["start"].
+
+/// If the item's cross-size is `auto`, the used size is set to the length necessary to be as close
+/// to filling the container as possible, respecting the item's width and height limits. If the item
+/// is not auto-sized, this value falls back to `flex-start`, and to `self-start` or `self-end` if
+/// the container's `align-content` is `first baseline` (or `baseline`) or `last baseline`.
+
+pub type Stretch =
+    Atom["stretch"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword baseline.
+/// Selects a keyword for align-items. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub baseline(): Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword end.
-
-pub end_value(): Value.
-
-/// Returns the CSS keyword flex-end.
-
-pub flex_end(): Value.
-
-/// Returns the CSS keyword flex-start.
-
-pub flex_start(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword self-end.
-
-pub self_end(): Value.
-
-/// Returns the CSS keyword self-start.
-
-pub self_start(): Value.
-
-/// Returns the CSS keyword start.
-
-pub start(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

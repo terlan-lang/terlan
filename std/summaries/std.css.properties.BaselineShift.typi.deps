@@ -1,10 +1,11 @@
 module=std.css.properties.BaselineShift
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14659645390503753583
-interface_hash=1614839191019440923
-interface_doc_hash=10140085207180444775
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=11835903943914963615
+interface_hash=9014710549219131413
+interface_doc_hash=283692007878144194
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

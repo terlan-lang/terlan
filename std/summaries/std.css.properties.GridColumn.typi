@@ -1,44 +1,44 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-column
+//! The `grid-column` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property specifies a grid item's size and location within a `grid column` by contributing a line,
+//! a span, or nothing (automatic) to its grid placement, thereby specifying the inline-start and
+//! inline-end edge of its `grid area`.
+//!
+//! Initial: grid-column-start: auto; grid-column-end: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <grid-line> [ / <grid-line> ]?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-column
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/grid-column
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.GridColumn.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     grid_column: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     grid_column: Value
 }.
 
-/// A nominal, specification-constrained grid-column value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for grid-column. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

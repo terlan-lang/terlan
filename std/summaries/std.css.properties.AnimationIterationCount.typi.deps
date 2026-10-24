@@ -1,10 +1,12 @@
 module=std.css.properties.AnimationIterationCount
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=508564675388902274
-interface_hash=12229930664065953233
-interface_doc_hash=17004125692146621060
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1308069643303544855
+interface_hash=15881643534285669997
+interface_doc_hash=9375659683234847460
+deps=4
+std.core.Atom=12311707212014243410
 std.core.Float=3784534907681217377
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

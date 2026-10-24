@@ -1,86 +1,65 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-box-4/#propdef-padding-top
+ * The `padding-top` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * height of the [padding
+ * area](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Box_model/Introduction#padding_area)
+ * on the top of an element.
+ *
+ * Initial: 0. Inherited: no.
+ * Percentages: refer to the width of the containing block.
+ *
  * Grammar: <length-percentage [0,∞]>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-box-4/#propdef-padding-top
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/padding-top
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PaddingTop.
 
-import std.core.Option.{None, Some}.
+import std.core.Atom.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained padding-top value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     padding_top: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     padding_top: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for padding-top. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "padding-top", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("padding-top", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "padding-top", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "padding-top", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "padding-top", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "padding-top", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a padding-top value.
+ * Sets padding-top from a typed length. Returns Some for amount >= 0; otherwise returns None.
  */
 pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "padding-top", css: std.css.Values.length_css(value)}));
-        false -> None
+    case length_amount(value) >= 0 {
+        true -> Some(Value(serialize("padding-top", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a padding-top value.
+ * Sets padding-top from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
  */
 pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "padding-top", css: std.css.Values.percentage_css(value)}));
-        false -> None
+    case percentage_amount(value) >= 0 {
+        true -> Some(Value(serialize("padding-top", percentage_css(value))));
+        false -> Absent
     }.

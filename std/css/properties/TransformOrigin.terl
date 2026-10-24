@@ -1,108 +1,80 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `transform-origin` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * origin for an element's transformations.
+ *
+ * Initial: 50% 50% 0. Inherited: no.
+ * Percentages: refer to the size of bounding box.
+ *
+ * Grammar: [ left | center | right | top | bottom | <length-percentage> ] | [ left | center | right
+ * | <length-percentage> ] [ top | center | bottom | <length-percentage> ] <length>? | [ [ center |
+ * left | right ] && [ center | top | bottom ] ] <length>?
+ *
  * Specification: https://drafts.csswg.org/css-transforms-1/#propdef-transform-origin
- * Grammar: [ left | center | right | top | bottom | <length-percentage> ] | [ left | center | right | <length-percentage> ] [ top | center | bottom | <length-percentage> ] <length>? | [ [ center | left | right ] && [ center | top | bottom ] ] <length>?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transform-origin
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TransformOrigin.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained transform-origin value.
- */
-pub opaque type Value = Token.
+pub type Bottom.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Center.
 
-/**
- * Include this property in an application style struct.
- */
+pub type Left.
+
+pub type Right.
+
+pub type Top.
+
+pub type Css =
+      Left
+    | Center
+    | Right
+    | Top
+    | Bottom
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     transform_origin: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     transform_origin: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword bottom.
+ * Selects a keyword for transform-origin. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub bottom(): Value ->
-    Value(Token {property: "transform-origin", css: "bottom"}).
+pub value(css: Css): Value ->
+    Value(serialize("transform-origin", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword center.
- */
-pub center(): Value ->
-    Value(Token {property: "transform-origin", css: "center"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "transform-origin", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "transform-origin", css: "initial"}).
-
-/**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "transform-origin", css: "left"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "transform-origin", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "transform-origin", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "transform-origin", css: "right"}).
-
-/**
- * Returns the CSS keyword top.
- */
-pub top(): Value ->
-    Value(Token {property: "transform-origin", css: "top"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "transform-origin", css: "unset"}).
-
-/**
- * Constructs a transform-origin value from a typed length.
+ * Sets transform-origin from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+ * choose the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "transform-origin", css: std.css.Values.length_css(value)}).
+    Value(serialize("transform-origin", length_css(value))).
 
 /**
- * Constructs a transform-origin value from a typed percentage.
+ * Sets transform-origin from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "transform-origin", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("transform-origin", percentage_css(value))).

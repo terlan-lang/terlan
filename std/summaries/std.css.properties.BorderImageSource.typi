@@ -1,48 +1,47 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-image-source
+//! The `border-image-source` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! the source image used to create an element's [border
+//! image](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-image).
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | <image>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-image-source
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-image-source
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderImageSource.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// No border image is used. The appearance defined by `border-style` is displayed instead.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     border_image_source: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     border_image_source: Value
 }.
 
-/// A nominal, specification-constrained border-image-source value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for border-image-source. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

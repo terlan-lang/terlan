@@ -1,87 +1,76 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-align
+ * The `ruby-align` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+ * distribution of the different ruby elements over the base.
+ *
+ * Initial: space-around. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: start | center | space-between | space-around
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-align
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/ruby-align
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.RubyAlign.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained ruby-align value.
+ * Is a keyword indicating that the ruby will be aligned at the middle of the base text.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Center.
 
 /**
- * Include this property in an application style struct.
+ * Is a keyword indicating that the extra space will be distributed between the elements of the
+ * ruby, and around it.
  */
+pub type SpaceAround = Atom["space-around"].
+
+/**
+ * Is a keyword indicating that the extra space will be distributed between the elements of the
+ * ruby.
+ */
+pub type SpaceBetween = Atom["space-between"].
+
+/**
+ * Is a keyword indicating that the ruby will be aligned with the start of the base text.
+ */
+pub type Start.
+
+pub type Css =
+      Start
+    | Center
+    | SpaceBetween
+    | SpaceAround
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     ruby_align: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     ruby_align: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword center.
+ * Selects a keyword for ruby-align. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub center(): Value ->
-    Value(Token {property: "ruby-align", css: "center"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "ruby-align", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "ruby-align", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "ruby-align", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "ruby-align", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword space-around.
- */
-pub space_around(): Value ->
-    Value(Token {property: "ruby-align", css: "space-around"}).
-
-/**
- * Returns the CSS keyword space-between.
- */
-pub space_between(): Value ->
-    Value(Token {property: "ruby-align", css: "space-between"}).
-
-/**
- * Returns the CSS keyword start.
- */
-pub start(): Value ->
-    Value(Token {property: "ruby-align", css: "start"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "ruby-align", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("ruby-align", Atom.to_string(css))).

@@ -1,10 +1,11 @@
 module=std.css.properties.BorderEndEndRadius
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=339506333541046793
-interface_hash=12637782680275261953
-interface_doc_hash=17994313760630204569
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=7829795480242739477
+interface_hash=9091182154083159635
+interface_doc_hash=3587298059961920107
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

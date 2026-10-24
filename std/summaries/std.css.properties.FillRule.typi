@@ -1,52 +1,58 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-fill-rule
+//! The `fill-rule` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the rule
+//! used to determine which parts of the SVG shape's canvas are included inside a shape to be filled.
+//! If present, it overrides the element's `fill-rule` attribute.
+//!
+//! Initial: nonzero. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: nonzero | evenodd
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-fill-rule
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/fill-rule
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FillRule.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Nonzero
+  | Evenodd
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// For every point in the fill rule's box, a ray is drawn in a random direction. The number of path
+/// segments from the given shape that the ray crosses are counted. If this number is odd, the point
+/// is inside; if even, the point is outside. Zero is taken to be even.
+
+pub type Evenodd =
+    Atom["evenodd"].
+
+/// For every point in the shape, a ray is drawn in a random direction to beyond the shape's outer
+/// edges. Each ray is examined to determine the places where the ray crosses the shape. Starting
+/// with a count of zero, add one each time a path segment crosses the ray from left to right and
+/// subtract one each time a path segment crosses the ray from right to left. After counting the
+/// crossings, if the result is zero then the point is outside the path. Otherwise, it is inside.
+
+pub type Nonzero =
+    Atom["nonzero"].
 
 pub struct OptionalProperty {
     fill_rule: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     fill_rule: Value
 }.
 
-/// A nominal, specification-constrained fill-rule value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword evenodd.
+/// Selects a keyword for fill-rule. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub evenodd(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword nonzero.
-
-pub nonzero(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -63,8 +63,8 @@ test('unimplemented value proposals are excluded from otherwise implemented prop
 test('generation excludes proposed keywords from both complete values and grouped parts', () => {
   const grammar = [{ kind: 'keyword', name: 'auto' }, { kind: 'primitive', name: 'length' }];
   const width = generateProperty({ name: 'width', syntax: 'auto | contain | <length>', href: 'spec' }, new Map(), grammar);
-  assert.match(width.source, /pub auto\(/);
-  assert.doesNotMatch(width.source, /pub contain\(/);
+  assert.match(width.source, /pub type Css = Auto \|/);
+  assert.doesNotMatch(width.source, /pub type Contain =/);
   const definitions = new Map([
     ['Type:line-width', definitionSyntax.parse('hairline | thin | <length>')],
     ['Type:line-style', definitionSyntax.parse('solid')],
@@ -72,7 +72,7 @@ test('generation excludes proposed keywords from both complete values and groupe
   const border = generateProperty({ name: 'border', syntax: '<line-width> || <line-style> || <color>', href: 'spec' }, definitions,
     [{ kind: 'keyword', name: 'thin' }, { kind: 'keyword', name: 'solid' }, { kind: 'primitive', name: 'length' }, { kind: 'primitive', name: 'color' }]);
   assert.match(border.source, /pub compose\(/);
-  assert.doesNotMatch(border.source, /pub (line_width_)?hairline\(/);
+  assert.doesNotMatch(border.source, /pub type Hairline =/);
 });
 
 test('pruning removes obsolete generated sources and interfaces while check mode is read-only', async () => {

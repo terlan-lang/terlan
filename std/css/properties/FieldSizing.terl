@@ -1,75 +1,55 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-forms-1/#propdef-field-sizing
+ * The `field-sizing` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property enables you
+ * to control the sizing behavior of elements that are given a default preferred size, such as form
+ * control elements. This property enables you to override the default sizing behavior, allowing
+ * form controls to adjust in size to fit their contents.
+ *
+ * Initial: fixed. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: fixed | content
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-forms-1/#propdef-field-sizing
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/field-sizing
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FieldSizing.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained field-sizing value.
+ * Allows the element to adjust its size to fit its contents.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Content.
 
 /**
- * Include this property in an application style struct.
+ * Sets a fixed size for the element. This is the default value.
  */
+pub type Fixed.
+
+pub type Css = Fixed | Content | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     field_sizing: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     field_sizing: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword content.
+ * Selects a keyword for field-sizing. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub content(): Value ->
-    Value(Token {property: "field-sizing", css: "content"}).
-
-/**
- * Returns the CSS keyword fixed.
- */
-pub fixed(): Value ->
-    Value(Token {property: "field-sizing", css: "fixed"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "field-sizing", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "field-sizing", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "field-sizing", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "field-sizing", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "field-sizing", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("field-sizing", Atom.to_string(css))).

@@ -1,9 +1,11 @@
 module=std.css.properties.GridAutoFlow
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17072732148450488048
-interface_hash=16420498076295250640
-interface_doc_hash=720823239125185294
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=6617325216768765843
+interface_hash=12157268188555224751
+interface_doc_hash=6630099448088541842
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

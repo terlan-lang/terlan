@@ -1,75 +1,60 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-tables-3/#propdef-table-layout
+ * The `table-layout` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * algorithm used to lay out `table` cells, rows, and columns.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | fixed
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-tables-3/#propdef-table-layout
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/table-layout
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TableLayout.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained table-layout value.
+ * The automatic table layout algorithm is used. The widths of the table and its cells are adjusted
+ * to fit the content. Most browsers use this algorithm by default.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Auto.
 
 /**
- * Include this property in an application style struct.
+ * The fixed table layout algorithm is used. When using this keyword, the table's width _needs to be
+ * specified explicitly_ using the `width` property. If the value of the `width` property is set to
+ * `auto` or is not specified, the browser uses the automatic table layout algorithm, in which case
+ * the `fixed` value has no effect.\ The fixed table layout algorithm is faster than the automatic
+ * layout algorithm because the horizontal layout of the table depends only on the table's width,
+ * the width of the columns, and borders or cell spacing. The horizontal layout doesn't depend on
+ * the contents of the cells because it depends only on explicitly set widths.
  */
+pub type Fixed.
+
+pub type Css = Auto | Fixed | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     table_layout: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     table_layout: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for table-layout. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "table-layout", css: "auto"}).
-
-/**
- * Returns the CSS keyword fixed.
- */
-pub fixed(): Value ->
-    Value(Token {property: "table-layout", css: "fixed"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "table-layout", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "table-layout", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "table-layout", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "table-layout", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "table-layout", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("table-layout", Atom.to_string(css))).

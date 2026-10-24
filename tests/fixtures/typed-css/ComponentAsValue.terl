@@ -1,6 +1,7 @@
 module typed_css.ComponentAsValue.
 
 import std.css.properties.Margin.
+import std.css.properties.Margin.{Auto as MarginAuto}.
 
 pub invalid(): Margin.Value ->
-    Margin.component_auto().
+    Margin.component(MarginAuto).

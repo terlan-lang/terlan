@@ -1,52 +1,48 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-color-4/#propdef-opacity
+//! The `opacity` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the opacity
+//! of an element. Opacity is the degree to which content behind an element is hidden, and is the
+//! opposite of transparency.
+//!
+//! Initial: 1. Inherited: no.
+//! Percentages: map to the range [0,1].
+//!
 //! Grammar: <opacity-value>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-color-4/#propdef-opacity
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/opacity
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Opacity.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     opacity: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     opacity: Value
 }.
 
-/// A nominal, specification-constrained opacity value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a opacity value from a typed number.
+/// Sets opacity from a typed number.
 
 pub number(value: Float): Value.
 
-/// Constructs a opacity value from a typed percentage.
+/// Sets opacity from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for opacity. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

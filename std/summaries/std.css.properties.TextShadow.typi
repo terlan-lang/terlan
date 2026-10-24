@@ -1,48 +1,49 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-shadow
+//! The `text-shadow` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property adds shadows
+//! to text. It accepts a comma-separated list of shadows to be applied to the text and any of its
+//! `text-decoration`. Each shadow is described by some combination of X and Y offsets from the
+//! element, blur radius, and color.
+//!
+//! Initial: none. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | <shadow>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-shadow
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-shadow
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextShadow.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// No shadow.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     text_shadow: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     text_shadow: Value
 }.
 
-/// A nominal, specification-constrained text-shadow value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for text-shadow. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

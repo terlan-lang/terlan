@@ -1,188 +1,271 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-cursor
+//! The `cursor` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the mouse
+//! cursor, if any, to show when the mouse pointer is over an element.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: [<cursor-image>,]* <cursor-predefined>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-cursor
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/cursor
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Cursor.
 
-/// Include an optional declaration in a shared style block.
+/// Indicates an alias of/shortcut to something is to be created. Often rendered as an arrow with a
+/// small curved arrow next to it.
+
+pub type Alias =
+    Atom["alias"].
+
+/// Indicates that the something can be scrolled in any direction. Often rendered as arrows pointing
+/// up, down, left, and right with a dot in the middle.
+
+pub type AllScroll =
+    Atom["all-scroll"].
+
+/// The UA determines the cursor to display based on the current context.
+
+pub type Auto =
+    Atom["auto"].
+
+/// Indicates that a cell or set of cells may be selected. Often rendered as a thick plus-sign with a
+/// dot in the middle.
+
+pub type Cell =
+    Atom["cell"].
+
+/// Indicates that the item/column can be resized horizontally. Often rendered as arrows pointing
+/// left and right with a vertical bar separating them.
+
+pub type ColResize =
+    Atom["col-resize"].
+
+/// A context menu is available for the object under the cursor. Often rendered as an arrow with a
+/// small menu-like graphic next to it.
+
+pub type ContextMenu =
+    Atom["context-menu"].
+
+/// Indicates something is to be copied. Often rendered as an arrow with a small plus sign next to
+/// it.
+
+pub type Copy =
+    Atom["copy"].
+
+/// A simple crosshair (e.g., short line segments resembling a '+' sign). Often used to indicate a
+/// two dimensional bitmap selection mode.
+
+pub type Crosshair =
+    Atom["crosshair"].
+
+pub type Css =
+    Auto
+  | Default
+  | None
+  | ContextMenu
+  | Help
+  | Pointer
+  | Progress
+  | Wait
+  | Cell
+  | Crosshair
+  | TextKeyword
+  | VerticalText
+  | Alias
+  | Copy
+  | Move
+  | NoDrop
+  | NotAllowed
+  | Grab
+  | Grabbing
+  | EResize
+  | NResize
+  | NeResize
+  | NwResize
+  | SResize
+  | SeResize
+  | SwResize
+  | WResize
+  | EwResize
+  | NsResize
+  | NeswResize
+  | NwseResize
+  | ColResize
+  | RowResize
+  | AllScroll
+  | ZoomIn
+  | ZoomOut
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The platform-dependent default cursor. Often rendered as an arrow.
+
+pub type Default =
+    Atom["default"].
+
+/// Indicates that east edge is to be moved.
+
+pub type EResize =
+    Atom["e-resize"].
+
+/// Indicates a bidirectional east-west resize cursor.
+
+pub type EwResize =
+    Atom["ew-resize"].
+
+/// Indicates that something can be grabbed.
+
+pub type Grab =
+    Atom["grab"].
+
+/// Indicates that something is being grabbed.
+
+pub type Grabbing =
+    Atom["grabbing"].
+
+/// Help is available for the object under the cursor. Often rendered as a question mark or a
+/// balloon.
+
+pub type Help =
+    Atom["help"].
+
+/// Indicates something is to be moved.
+
+pub type Move =
+    Atom["move"].
+
+/// Indicates that north edge is to be moved.
+
+pub type NResize =
+    Atom["n-resize"].
+
+/// Indicates that movement starts from north-east corner.
+
+pub type NeResize =
+    Atom["ne-resize"].
+
+/// Indicates a bidirectional north-east/south-west cursor.
+
+pub type NeswResize =
+    Atom["nesw-resize"].
+
+/// Indicates that the dragged item cannot be dropped at the current cursor location. Often rendered
+/// as a hand or pointer with a small circle with a line through it.
+
+pub type NoDrop =
+    Atom["no-drop"].
+
+/// No cursor is rendered for the element.
+
+pub type None =
+    Atom["none"].
+
+/// Indicates that the requested action will not be carried out. Often rendered as a circle with a
+/// line through it.
+
+pub type NotAllowed =
+    Atom["not-allowed"].
+
+/// Indicates a bidirectional north-south cursor.
+
+pub type NsResize =
+    Atom["ns-resize"].
+
+/// Indicates that movement starts from north-west corner.
+
+pub type NwResize =
+    Atom["nw-resize"].
+
+/// Indicates a bidirectional north-west/south-east cursor.
+
+pub type NwseResize =
+    Atom["nwse-resize"].
 
 pub struct OptionalProperty {
     cursor: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+/// The cursor is a pointer that indicates a link.
+
+pub type Pointer =
+    Atom["pointer"].
+
+/// A progress indicator. The program is performing some processing, but is different from 'wait' in
+/// that the user may still interact with the program. Often rendered as a spinning beach ball, or an
+/// arrow with a watch or hourglass.
+
+pub type Progress =
+    Atom["progress"].
 
 pub struct Property {
     cursor: Value
 }.
 
-/// A nominal, specification-constrained cursor value.
+/// Indicates that the item/row can be resized vertically. Often rendered as arrows pointing up and
+/// down with a horizontal bar separating them.
+
+pub type RowResize =
+    Atom["row-resize"].
+
+/// Indicates that south edge is to be moved.
+
+pub type SResize =
+    Atom["s-resize"].
+
+/// Indicates that movement starts from south-east corner.
+
+pub type SeResize =
+    Atom["se-resize"].
+
+/// Indicates that movement starts from south-west corner.
+
+pub type SwResize =
+    Atom["sw-resize"].
+
+/// Indicates text that may be selected. Often rendered as a vertical I-beam.
+
+pub type TextKeyword =
+    Atom["text"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword alias.
+/// Indicates vertical-text that may be selected. Often rendered as a horizontal I-beam.
 
-pub alias(): Value.
+pub type VerticalText =
+    Atom["vertical-text"].
 
-/// Returns the CSS keyword all-scroll.
+/// Indicates that west edge is to be moved.
 
-pub all_scroll(): Value.
+pub type WResize =
+    Atom["w-resize"].
 
-/// Returns the CSS keyword auto.
+/// Indicates that the program is busy and the user should wait. Often rendered as a watch or
+/// hourglass.
 
-pub auto(): Value.
+pub type Wait =
+    Atom["wait"].
 
-/// Returns the CSS keyword cell.
+/// Indicates that something can be zoomed (magnified) in.
 
-pub cell(): Value.
+pub type ZoomIn =
+    Atom["zoom-in"].
 
-/// Returns the CSS keyword col-resize.
+/// Indicates that something can be zoomed (magnified) out.
 
-pub col_resize(): Value.
+pub type ZoomOut =
+    Atom["zoom-out"].
 
-/// Returns the CSS keyword context-menu.
+/// Selects a keyword for cursor. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub context_menu(): Value.
-
-/// Returns the CSS keyword copy.
-
-pub copy(): Value.
-
-/// Returns the CSS keyword crosshair.
-
-pub crosshair(): Value.
-
-/// Returns the CSS keyword default.
-
-pub default(): Value.
-
-/// Returns the CSS keyword e-resize.
-
-pub e_resize(): Value.
-
-/// Returns the CSS keyword ew-resize.
-
-pub ew_resize(): Value.
-
-/// Returns the CSS keyword grab.
-
-pub grab(): Value.
-
-/// Returns the CSS keyword grabbing.
-
-pub grabbing(): Value.
-
-/// Returns the CSS keyword help.
-
-pub help(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword move.
-
-pub move(): Value.
-
-/// Returns the CSS keyword n-resize.
-
-pub n_resize(): Value.
-
-/// Returns the CSS keyword ne-resize.
-
-pub ne_resize(): Value.
-
-/// Returns the CSS keyword nesw-resize.
-
-pub nesw_resize(): Value.
-
-/// Returns the CSS keyword no-drop.
-
-pub no_drop(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword not-allowed.
-
-pub not_allowed(): Value.
-
-/// Returns the CSS keyword ns-resize.
-
-pub ns_resize(): Value.
-
-/// Returns the CSS keyword nw-resize.
-
-pub nw_resize(): Value.
-
-/// Returns the CSS keyword nwse-resize.
-
-pub nwse_resize(): Value.
-
-/// Returns the CSS keyword pointer.
-
-pub pointer(): Value.
-
-/// Returns the CSS keyword progress.
-
-pub progress(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword row-resize.
-
-pub row_resize(): Value.
-
-/// Returns the CSS keyword s-resize.
-
-pub s_resize(): Value.
-
-/// Returns the CSS keyword se-resize.
-
-pub se_resize(): Value.
-
-/// Returns the CSS keyword sw-resize.
-
-pub sw_resize(): Value.
-
-/// Returns the CSS keyword text.
-
-pub text(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword vertical-text.
-
-pub vertical_text(): Value.
-
-/// Returns the CSS keyword w-resize.
-
-pub w_resize(): Value.
-
-/// Returns the CSS keyword wait.
-
-pub wait(): Value.
-
-/// Returns the CSS keyword zoom-in.
-
-pub zoom_in(): Value.
-
-/// Returns the CSS keyword zoom-out.
-
-pub zoom_out(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,9 +1,11 @@
 module=std.css.properties.FontVariantEastAsian
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14080454516905331717
-interface_hash=1603434585050750500
-interface_doc_hash=6012863406599136228
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=10727394364340500636
+interface_hash=6380959319455197709
+interface_doc_hash=17952352701872830619
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

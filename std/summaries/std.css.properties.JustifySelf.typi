@@ -1,100 +1,148 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) `justify-self` property sets the way
+//! a box is justified inside its alignment container along the appropriate axis.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Grammar: auto | <overflow-position>? [ normal | <self-position> | left | right ] | stretch |
+//! <baseline-position> | anchor-center
+//!
 //! Specification: https://drafts.csswg.org/css-align-3/#propdef-justify-self
-//! Grammar: auto | <overflow-position>? [ normal | <self-position> | left | right ] | stretch | <baseline-position> | anchor-center
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/justify-self
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.JustifySelf.
 
-/// Include an optional declaration in a shared style block.
+/// In the case of
+/// [anchor-positioned](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Anchor_positioning)
+/// elements, aligns the item to the center of the associated anchor element in the inline direction.
+/// See [Centering on the anchor using
+/// `anchor-center`](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Anchor_positioning/Using#centering_on_the_anchor_using_anchor-center).
+
+pub type AnchorCenter =
+    Atom["anchor-center"].
+
+/// The value used is the value of the `justify-items` property of the parents box, unless the box
+/// has no parent, or is absolutely positioned, in these cases, `auto` represents `normal`.
+
+pub type Auto =
+    Atom["auto"].
+
+/// Specifies participation in first- or last-baseline alignment: aligns the alignment baseline of
+/// the box's first or last baseline set with the corresponding baseline in the shared first or last
+/// baseline set of all the boxes in its baseline-sharing group. The fallback alignment for `first
+/// baseline` is `start`, the one for `last baseline` is `end`.
+
+pub type Baseline =
+    Atom["baseline"].
+
+/// The items are packed flush to each other toward the center of the alignment container.
+
+pub type Center =
+    Atom["center"].
+
+pub type Css =
+    Auto
+  | Normal
+  | Center
+  | Start
+  | End
+  | SelfStart
+  | SelfEnd
+  | FlexStart
+  | FlexEnd
+  | Left
+  | Right
+  | Stretch
+  | Baseline
+  | AnchorCenter
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The item is packed flush to each other toward the end edge of the alignment container in the
+/// appropriate axis.
+
+pub type End =
+    Atom["end"].
+
+/// For items that are not children of a flex container, this value is treated like `end`.
+
+pub type FlexEnd =
+    Atom["flex-end"].
+
+/// For items that are not children of a flex container, this value is treated like `start`.
+
+pub type FlexStart =
+    Atom["flex-start"].
+
+/// The items are packed flush to each other toward the left edge of the alignment container. If the
+/// property's axis is not parallel with the inline axis, this value behaves like `start`.
+
+pub type Left =
+    Atom["left"].
+
+/// The effect of this keyword is dependent of the layout mode we are in: - In block-level layouts,
+/// the keyword is a synonym of `start`. - In absolutely-positioned layouts, the keyword behaves like
+/// `start` on _replaced_ absolutely-positioned boxes, and as `stretch` on _all other_
+/// absolutely-positioned boxes. - In table cell layouts, this keyword has no meaning as this
+/// property is _ignored_. - In flexbox layouts, this keyword has no meaning as this property is
+/// _ignored._ - In grid layouts, this keyword leads to a behavior similar to the one of `stretch`,
+/// except for boxes with an aspect ratio or an intrinsic size where it behaves like `start`.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     justify_self: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     justify_self: Value
 }.
 
-/// A nominal, specification-constrained justify-self value.
+/// The items are packed flush to each other toward the right edge of the alignment container in the
+/// appropriate axis. If the property's axis is not parallel with the inline axis, this value behaves
+/// like `start`.
+
+pub type Right =
+    Atom["right"].
+
+/// The item is packed flush to the edge of the alignment container of the end side of the item, in
+/// the appropriate axis.
+
+pub type SelfEnd =
+    Atom["self-end"].
+
+/// The item is packed flush to the edge of the alignment container of the start side of the item, in
+/// the appropriate axis.
+
+pub type SelfStart =
+    Atom["self-start"].
+
+/// The item is packed flush to each other toward the start edge of the alignment container in the
+/// appropriate axis.
+
+pub type Start =
+    Atom["start"].
+
+/// If the combined size of the items is less than the size of the alignment container, any
+/// `auto`-sized items have their size increased equally (not proportionally), while still respecting
+/// the constraints imposed by `max-height`/`max-width` (or equivalent functionality), so that the
+/// combined size exactly fills the alignment container.
+
+pub type Stretch =
+    Atom["stretch"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword anchor-center.
+/// Selects a keyword for justify-self. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub anchor_center(): Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword baseline.
-
-pub baseline(): Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword end.
-
-pub end_value(): Value.
-
-/// Returns the CSS keyword flex-end.
-
-pub flex_end(): Value.
-
-/// Returns the CSS keyword flex-start.
-
-pub flex_start(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword self-end.
-
-pub self_end(): Value.
-
-/// Returns the CSS keyword self-start.
-
-pub self_start(): Value.
-
-/// Returns the CSS keyword start.
-
-pub start(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

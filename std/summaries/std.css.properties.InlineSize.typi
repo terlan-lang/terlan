@@ -1,72 +1,74 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-sizing-3/#propdef-inline-size
+//! The `inline-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! size of an element's block along the [inline
+//! axis](https://developer.mozilla.org/en-US/docs/Glossary/Grid_Axis). If the `writing-mode` is
+//! horizontal, it corresponds to the `width`; if the writing mode is vertical, it corresponds to the
+//! `height`. A related property is `block-size`, which defines the other dimension of the element.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: inline-size of containing block.
+//!
 //! Grammar: auto | <box-size> | <anchor-size()>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-sizing-3/#propdef-inline-size
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/inline-size
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.InlineSize.
 
-/// Include an optional declaration in a shared style block.
+/// Depends on the values of other properties.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | Stretch
+  | MinContent
+  | MaxContent
+  | FitContent
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type FitContent =
+    Atom["fit-content"].
+
+pub type MaxContent =
+    Atom["max-content"].
+
+pub type MinContent =
+    Atom["min-content"].
 
 pub struct OptionalProperty {
     inline_size: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     inline_size: Value
 }.
 
-/// A nominal, specification-constrained inline-size value.
+pub type Stretch =
+    Atom["stretch"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword fit-content.
-
-pub fit_content(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a inline-size value.
+/// Sets inline-size from a typed length. Returns Some for amount >= 0; otherwise returns None.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Returns the CSS keyword max-content.
-
-pub max_content(): Value.
-
-/// Returns the CSS keyword min-content.
-
-pub min_content(): Value.
-
-/// Checks the specification range and constructs a inline-size value.
+/// Sets inline-size from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
 
 pub percentage(value: std.css.Values.Percentage): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for inline-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

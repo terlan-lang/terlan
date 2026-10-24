@@ -1,52 +1,52 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-image-slice
+//! The `border-image-slice` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property divides
+//! the image specified by `border-image-source` into regions. These regions form the components of
+//! an element's [border
+//! image](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-image).
+//!
+//! Initial: 100%. Inherited: no.
+//! Percentages: refer to the size of the border image.
+//!
 //! Grammar: [<number [0,∞]> | <percentage [0,∞]>]{1,4} && fill?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-image-slice
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-image-slice
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderImageSlice.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     border_image_slice: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     border_image_slice: Value
 }.
 
-/// A nominal, specification-constrained border-image-slice value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a border-image-slice value.
+/// Sets border-image-slice from a typed number. Returns Some for amount >= 0; otherwise returns
+/// None.
 
 pub number(value: Float): Option[Value].
 
-/// Checks the specification range and constructs a border-image-slice value.
+/// Sets border-image-slice from a typed percentage. Returns Some for amount >= 0; otherwise returns
+/// None.
 
 pub percentage(value: std.css.Values.Percentage): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for border-image-slice. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

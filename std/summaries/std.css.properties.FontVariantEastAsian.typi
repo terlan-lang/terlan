@@ -1,84 +1,104 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-east-asian
+//! The `font-variant-east-asian` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! controls the use of alternate glyphs for East Asian scripts, like Japanese and Chinese.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | [ <east-asian-variant-values> || <east-asian-width-values> || ruby ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-east-asian
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-variant-east-asian
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantEastAsian.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Normal
+  | Jis78
+  | Jis83
+  | Jis90
+  | Jis04
+  | Simplified
+  | Traditional
+  | FullWidth
+  | ProportionalWidth
+  | Ruby
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Enables rendering of full-width variants.
+
+pub type FullWidth =
+    Atom["full-width"].
+
+/// Enables rendering of JIS04 forms.
+
+pub type Jis04 =
+    Atom["jis04"].
+
+/// Enables rendering of JIS78 forms.
+
+pub type Jis78 =
+    Atom["jis78"].
+
+/// Enables rendering of JIS83 forms.
+
+pub type Jis83 =
+    Atom["jis83"].
+
+/// Enables rendering of JIS90 forms.
+
+pub type Jis90 =
+    Atom["jis90"].
+
+/// This keyword leads to the deactivation of the use of such alternate glyphs.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     font_variant_east_asian: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     font_variant_east_asian: Value
 }.
 
-/// A nominal, specification-constrained font-variant-east-asian value.
+/// Enables rendering of proportionally-spaced variants.
+
+pub type ProportionalWidth =
+    Atom["proportional-width"].
+
+/// This keyword forces the use of special glyphs for ruby characters. As these are usually smaller,
+/// font creators often designs specific forms, usually slightly bolder to improve the contrast. This
+/// keyword corresponds to the OpenType values `ruby`.
+
+pub type Ruby =
+    Atom["ruby"].
+
+/// Enables rendering of simplified forms.
+
+pub type Simplified =
+    Atom["simplified"].
+
+/// Enables rendering of traditional forms.
+
+pub type Traditional =
+    Atom["traditional"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword full-width.
+/// Selects a keyword for font-variant-east-asian. CSS-wide choices Inherit, Initial, Unset, Revert,
+/// and RevertLayer apply to the entire declaration.
 
-pub full_width(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword jis04.
-
-pub jis04(): Value.
-
-/// Returns the CSS keyword jis78.
-
-pub jis78(): Value.
-
-/// Returns the CSS keyword jis83.
-
-pub jis83(): Value.
-
-/// Returns the CSS keyword jis90.
-
-pub jis90(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword proportional-width.
-
-pub proportional_width(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword ruby.
-
-pub ruby(): Value.
-
-/// Returns the CSS keyword simplified.
-
-pub simplified(): Value.
-
-/// Returns the CSS keyword traditional.
-
-pub traditional(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,48 +1,51 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-lists-3/#propdef-counter-increment
+//! The `counter-increment` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property can be
+//! used to increase or decrease the value of the named [CSS
+//! counters](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Counter_styles/Using_counters)
+//! by the specified values, or to prevent all counters or an individual counter's value from being
+//! changed.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: [ <counter-name> <integer>? ]+ | none
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-lists-3/#propdef-counter-increment
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/counter-increment
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.CounterIncrement.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Indicates that no counter must be increased or decreased. This value can also be used to cancel
+/// all counters from being increased or decreased in more specific rules. This is the default value
+/// of the property.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     counter_increment: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     counter_increment: Value
 }.
 
-/// A nominal, specification-constrained counter-increment value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for counter-increment. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

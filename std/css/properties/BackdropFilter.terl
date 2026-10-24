@@ -1,69 +1,51 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/filter-effects-2/#propdef-backdrop-filter
+ * The `backdrop-filter` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property lets you
+ * apply graphical effects such as blurring or color shifting to the area behind an element. Because
+ * it applies to everything _behind_ the element, to see the effect the element or its background
+ * needs to be transparent or partially transparent.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: none | <filter-value-list>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/filter-effects-2/#propdef-backdrop-filter
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/backdrop-filter
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BackdropFilter.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained backdrop-filter value.
+ * No filter is applied to the backdrop.
  */
-pub opaque type Value = Token.
+pub type None.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = None | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     backdrop_filter: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     backdrop_filter: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for backdrop-filter. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "backdrop-filter", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "backdrop-filter", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "backdrop-filter", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "backdrop-filter", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "backdrop-filter", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "backdrop-filter", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("backdrop-filter", Atom.to_string(css))).

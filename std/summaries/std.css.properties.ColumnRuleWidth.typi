@@ -1,60 +1,68 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-width
+//! The `column-rule-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+//! the widths of the lines drawn between columns in multi-column grid, flex, and multi-col layouts.
+//!
+//! Initial: medium. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <line-width-list> | <auto-line-width-list>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-width
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-width
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ColumnRuleWidth.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Thin
+  | Medium
+  | Thick
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Same as `3px`.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+
+pub type Medium =
+    Atom["medium"].
 
 pub struct OptionalProperty {
     column_rule_width: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     column_rule_width: Value
 }.
 
-/// A nominal, specification-constrained column-rule-width value.
+/// Same as `5px`.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+
+pub type Thick =
+    Atom["thick"].
+
+/// Same as `1px`.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+
+pub type Thin =
+    Atom["thin"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a column-rule-width value.
+/// Sets column-rule-width from a typed length. Returns Some for amount >= 0; otherwise returns None.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Returns the CSS keyword medium.
+/// Selects a keyword for column-rule-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub medium(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword thick.
-
-pub thick(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

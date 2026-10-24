@@ -1,117 +1,116 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-inline-3/#propdef-alignment-baseline
+ * The `alignment-baseline` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies the specific
+ * [baseline](https://developer.mozilla.org/en-US/docs/Glossary/Baseline/Typography) used to align
+ * the box's text and inline-level contents. Baseline alignment is the relationship among the
+ * baselines of multiple alignment subjects within an alignment context. When performing baseline
+ * alignment, the `alignment-baseline` property value specifies which baseline of the box is aligned
+ * to the corresponding baseline of its alignment context.
+ *
+ * Initial: baseline. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: baseline | <baseline-metric>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-inline-3/#propdef-alignment-baseline
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/alignment-baseline
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.AlignmentBaseline.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained alignment-baseline value.
+ * Used in writing Latin, Cyrillic, Greek, and many other scripts; matches the box's alphabetic
+ * baseline to that of its parent, corresponding to the bottom of most, but not all characters.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Alphabetic.
 
 /**
- * Include this property in an application style struct.
+ * Use the `dominant-baseline` value of the parent.
  */
+pub type Baseline.
+
+/**
+ * Matches the box's central baseline to the central baseline of its parent, corresponding to the
+ * ideographic central baseline, halfway between the ideographic-under and ideographic-over
+ * baselines.
+ */
+pub type Central.
+
+pub type Hanging.
+
+/**
+ * Matches the box's ideographic character face under-side baseline to that of its parent, with the
+ * derived baseline-table constructed using the ideographic baseline-table in the font.
+ */
+pub type Ideographic.
+
+/**
+ * Matches the box's mathematical baseline to that of its parent, corresponding to the center
+ * baseline around which mathematical characters are designed.
+ */
+pub type Mathematical.
+
+/**
+ * Aligns the vertical midpoint of the box with the baseline of the parent box plus half the
+ * x-height of the parent. Uses the x-middle baselines; except under [`text-orientation:
+ * upright;`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-orientation)
+ * (where the alphabetic and x-height baselines are essentially meaningless), in which case it uses
+ * the `central` baseline instead.
+ */
+pub type Middle.
+
+/**
+ * Matches the bottom of the box to the top of the parent's content area, using the line-under edge
+ * of an inline's content box.
+ */
+pub type TextBottom = Atom["text-bottom"].
+
+/**
+ * Matches the top of the box to the top of the parent's content area; the line-over edge of an
+ * inline's content box.
+ */
+pub type TextTop = Atom["text-top"].
+
+pub type Css =
+      Baseline
+    | TextBottom
+    | Alphabetic
+    | Ideographic
+    | Middle
+    | Central
+    | Mathematical
+    | Hanging
+    | TextTop
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     alignment_baseline: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     alignment_baseline: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword alphabetic.
+ * Selects a keyword for alignment-baseline. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub alphabetic(): Value ->
-    Value(Token {property: "alignment-baseline", css: "alphabetic"}).
-
-/**
- * Returns the CSS keyword baseline.
- */
-pub baseline(): Value ->
-    Value(Token {property: "alignment-baseline", css: "baseline"}).
-
-/**
- * Returns the CSS keyword central.
- */
-pub central(): Value ->
-    Value(Token {property: "alignment-baseline", css: "central"}).
-
-/**
- * Returns the CSS keyword hanging.
- */
-pub hanging(): Value ->
-    Value(Token {property: "alignment-baseline", css: "hanging"}).
-
-/**
- * Returns the CSS keyword ideographic.
- */
-pub ideographic(): Value ->
-    Value(Token {property: "alignment-baseline", css: "ideographic"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "alignment-baseline", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "alignment-baseline", css: "initial"}).
-
-/**
- * Returns the CSS keyword mathematical.
- */
-pub mathematical(): Value ->
-    Value(Token {property: "alignment-baseline", css: "mathematical"}).
-
-/**
- * Returns the CSS keyword middle.
- */
-pub middle(): Value ->
-    Value(Token {property: "alignment-baseline", css: "middle"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "alignment-baseline", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "alignment-baseline", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword text-bottom.
- */
-pub text_bottom(): Value ->
-    Value(Token {property: "alignment-baseline", css: "text-bottom"}).
-
-/**
- * Returns the CSS keyword text-top.
- */
-pub text_top(): Value ->
-    Value(Token {property: "alignment-baseline", css: "text-top"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "alignment-baseline", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("alignment-baseline", Atom.to_string(css))).

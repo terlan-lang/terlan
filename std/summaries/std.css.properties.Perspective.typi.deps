@@ -1,10 +1,11 @@
 module=std.css.properties.Perspective
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7631984123952539431
-interface_hash=2980309484671694673
-interface_doc_hash=10476402319152228624
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9211066925480115533
+interface_hash=1441062905195037549
+interface_doc_hash=906672163352835000
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

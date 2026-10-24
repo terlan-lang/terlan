@@ -1,52 +1,55 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-multicol-2/#propdef-column-fill
+//! The `column-fill` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property controls how
+//! an element's contents are balanced when broken into columns.
+//!
+//! Initial: balance. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | balance | balance-all
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-multicol-2/#propdef-column-fill
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-fill
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ColumnFill.
 
-/// Include an optional declaration in a shared style block.
+/// Columns are filled sequentially. Content takes up only the room it needs, possibly resulting in
+/// some columns remaining empty.
+
+pub type Auto =
+    Atom["auto"].
+
+/// Content is equally divided between columns. In fragmented contexts, such as [paged
+/// media](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Paged_media), only the last
+/// fragment is balanced. Therefore in paged media, only the last page would be balanced. This is the
+/// default value.
+
+pub type Balance =
+    Atom["balance"].
+
+pub type Css =
+    Auto
+  | Balance
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     column_fill: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     column_fill: Value
 }.
 
-/// A nominal, specification-constrained column-fill value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for column-fill. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword balance.
-
-pub balance(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

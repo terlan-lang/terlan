@@ -1,56 +1,69 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/svgwg/svg2-draft/text.html#TextAnchorProperty
+//! The `text-anchor` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property aligns a box
+//! containing a string of text where the wrapping area is determined from the `inline-size`
+//! property, and the text is then placed relative to the anchor point of the element, which is
+//! defined using the `x` and `y` (or `dx` and `dy`) attributes. If present, the value of the CSS
+//! property overrides any value of the element's `text-anchor` attribute.
+//!
+//! Initial: start. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: start | middle | end
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/text.html#TextAnchorProperty
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-anchor
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextAnchor.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Start
+  | Middle
+  | End
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Aligns the text such that the inline end of the text string is aligned with the anchor point.
+/// This alignment is relative to the writing direction of the text; thus, for example, in
+/// right-to-left top-to-bottom writing, the text will be placed to the right of the anchor point. If
+/// the text's inline direction is vertical, as with many Asian languages, the bottom edge of the
+/// text is aligned with the anchor point.
+
+pub type End =
+    Atom["end"].
+
+/// Aligns the text such that the center (middle) of the text string's inline box is aligned with the
+/// anchor point.
+
+pub type Middle =
+    Atom["middle"].
 
 pub struct OptionalProperty {
     text_anchor: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     text_anchor: Value
 }.
 
-/// A nominal, specification-constrained text-anchor value.
+/// Aligns the text such that the inline start of the text string is aligned with the anchor point.
+/// This alignment is relative to the writing direction of the text; thus, for example, in
+/// right-to-left top-to-bottom writing, the text will be placed to the left of the anchor point. If
+/// the text's inline direction is vertical, as with many Asian languages, the top edge of the text
+/// is aligned with the anchor point.
+
+pub type Start =
+    Atom["start"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword end.
+/// Selects a keyword for text-anchor. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub end_value(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword middle.
-
-pub middle(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword start.
-
-pub start(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

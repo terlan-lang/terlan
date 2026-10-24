@@ -1,87 +1,69 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-visibility
+ * The `position-visibility` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * enables conditionally hiding an anchor-positioned element depending on, for example, whether it
+ * is overflowing its containing element or the viewport.
+ *
+ * Initial: anchors-visible. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: always | [ anchor-valid || anchor-visible || no-overflow ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-visibility
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position-visibility
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PositionVisibility.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained position-visibility value.
+ * The positioned element is always displayed.
  */
-pub opaque type Value = Token.
+pub type Always.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type AnchorValid = Atom["anchor-valid"].
+
+pub type AnchorVisible = Atom["anchor-visible"].
 
 /**
- * Include this property in an application style struct.
+ * If the positioned element starts to overflow its containing element or the viewport, it will be
+ * strongly hidden.
  */
+pub type NoOverflow = Atom["no-overflow"].
+
+pub type Css =
+      Always
+    | AnchorValid
+    | AnchorVisible
+    | NoOverflow
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     position_visibility: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     position_visibility: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword always.
+ * Selects a keyword for position-visibility. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub always(): Value ->
-    Value(Token {property: "position-visibility", css: "always"}).
-
-/**
- * Returns the CSS keyword anchor-valid.
- */
-pub anchor_valid(): Value ->
-    Value(Token {property: "position-visibility", css: "anchor-valid"}).
-
-/**
- * Returns the CSS keyword anchor-visible.
- */
-pub anchor_visible(): Value ->
-    Value(Token {property: "position-visibility", css: "anchor-visible"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "position-visibility", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "position-visibility", css: "initial"}).
-
-/**
- * Returns the CSS keyword no-overflow.
- */
-pub no_overflow(): Value ->
-    Value(Token {property: "position-visibility", css: "no-overflow"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "position-visibility", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "position-visibility", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "position-visibility", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("position-visibility", Atom.to_string(css))).

@@ -1,84 +1,64 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-transforms-2/#propdef-translate
+ * The `translate` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows you to
+ * specify translation transforms individually and independently of the `transform` property. This
+ * maps better to typical user interface usage, and saves having to remember the exact order of
+ * transform functions to specify in the `transform` value.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: refer to the size of bounding box.
+ *
  * Grammar: none | <length-percentage> [ <length-percentage> <length>? ]?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-transforms-2/#propdef-translate
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/translate
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Translate.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained translate value.
+ * Specifies that no translation should be applied.
  */
-pub opaque type Value = Token.
+pub type None.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = None | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     translate: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     translate: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for translate. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "translate", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("translate", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "translate", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "translate", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "translate", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "translate", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "translate", css: "unset"}).
-
-/**
- * Constructs a translate value from a typed length.
+ * Sets translate from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose the
+ * unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "translate", css: std.css.Values.length_css(value)}).
+    Value(serialize("translate", length_css(value))).
 
 /**
- * Constructs a translate value from a typed percentage.
+ * Sets translate from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "translate", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("translate", percentage_css(value))).

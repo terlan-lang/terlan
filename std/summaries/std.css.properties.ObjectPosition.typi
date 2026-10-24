@@ -1,88 +1,86 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-images-3/#propdef-object-position
+//! The `object-position` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+//! the alignment of the selected 's contents within the element's box. Areas of the box which aren't
+//! covered by the replaced element's object will show the element's background.
+//!
+//! Initial: 50% 50%. Inherited: no.
+//! Percentages: refer to width and height of element itself.
+//!
 //! Grammar: <position>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-images-3/#propdef-object-position
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/object-position
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ObjectPosition.
 
-/// Include an optional declaration in a shared style block.
+pub type Bottom =
+    Atom["bottom"].
+
+pub type Center =
+    Atom["center"].
+
+pub type Css =
+    Left
+  | Center
+  | Right
+  | Top
+  | Bottom
+  | XStart
+  | XEnd
+  | YStart
+  | YEnd
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type Left =
+    Atom["left"].
 
 pub struct OptionalProperty {
     object_position: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     object_position: Value
 }.
 
-/// A nominal, specification-constrained object-position value.
+pub type Right =
+    Atom["right"].
+
+pub type Top =
+    Atom["top"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword bottom.
+pub type XEnd =
+    Atom["x-end"].
 
-pub bottom(): Value.
+pub type XStart =
+    Atom["x-start"].
 
-/// Returns the CSS keyword center.
+pub type YEnd =
+    Atom["y-end"].
 
-pub center(): Value.
+pub type YStart =
+    Atom["y-start"].
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Constructs a object-position value from a typed length.
+/// Sets object-position from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
+/// the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Constructs a object-position value from a typed percentage.
+/// Sets object-position from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for object-position. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword top.
-
-pub top(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword x-end.
-
-pub x_end(): Value.
-
-/// Returns the CSS keyword x-start.
-
-pub x_start(): Value.
-
-/// Returns the CSS keyword y-end.
-
-pub y_end(): Value.
-
-/// Returns the CSS keyword y-start.
-
-pub y_start(): Value.
-
-export type Token.
+pub value(css: Css): Value.

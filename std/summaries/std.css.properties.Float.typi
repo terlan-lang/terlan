@@ -1,64 +1,75 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `float` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property places an element on
+//! the left or right side of its container, allowing text and inline elements to wrap around it. The
+//! element is removed from the normal flow of the page, though still remaining a part of the flow
+//! (in contrast to [absolute
+//! positioning](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position#absolute_positioning)).
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Grammar: block-start | block-end | inline-start | inline-end | snap-block | <snap-block()> |
+//! snap-inline | <snap-inline()> | left | right | top | bottom | none | footnote
+//!
 //! Specification: https://drafts.csswg.org/css-page-floats-3/#propdef-float
-//! Grammar: block-start | block-end | inline-start | inline-end | snap-block | <snap-block()> | snap-inline | <snap-inline()> | left | right | top | bottom | none | footnote
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/float
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Float.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    InlineStart
+  | InlineEnd
+  | Left
+  | Right
+  | None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The element must float on the end side of its containing block. That is the right side with `ltr`
+/// scripts, and the left side with `rtl` scripts.
+
+pub type InlineEnd =
+    Atom["inline-end"].
+
+/// The element must float on the start side of its containing block. That is the left side with
+/// `ltr` scripts, and the right side with `rtl` scripts.
+
+pub type InlineStart =
+    Atom["inline-start"].
+
+/// The element must float on the left side of its containing block.
+
+pub type Left =
+    Atom["left"].
+
+/// The element must not float.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     float: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     float: Value
 }.
 
-/// A nominal, specification-constrained float value.
+/// The element must float on the right side of its containing block.
+
+pub type Right =
+    Atom["right"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for float. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inline-end.
-
-pub inline_end(): Value.
-
-/// Returns the CSS keyword inline-start.
-
-pub inline_start(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,56 +1,72 @@
+//! The `timeline-trigger-activation-range` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand
+//! property](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! specifies the start and end of a [scroll-triggered
+//! animation](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animation_triggers/Using_scroll-triggered_animations)
+//! trigger's activation range.
+//!
+//! Initial: timeline-trigger-activation-range-start: normal; timeline-trigger-activation-range-end:
+//! normal. Inherited: no.
+//! Percentages: timeline-trigger-activation-range-start: Relative to the specified named timeline
+//! range if specified, otherwise relative to the entire timeline;
+//! timeline-trigger-activation-range-end: Relative to the specified named timeline range if
+//! specified, otherwise relative to the entire timeline.
+//!
+//! Grammar: [ <'timeline-trigger-activation-range-start'> <'timeline-trigger-activation-range-end'>?
+//! ]#
+//!
+//! Specification:
+//! https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-activation-range
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/timeline-trigger-activation-range
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
 //! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-activation-range
-//! Grammar: [ <'timeline-trigger-activation-range-start'> <'timeline-trigger-activation-range-end'>? ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
 
 module std.css.properties.TimelineTriggerActivationRange.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Normal
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// A `<length>` or `<percentage>` value specifies an offset from the beginning of the `normal`
+/// timeline, which again defaults to
+/// [`cover`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/timeline-range-name#cover)
+/// for a `view()` progress timeline source, and
+/// [`scroll`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/timeline-range-name#scroll)
+/// for a `scroll()` progress timeline source. Negative values outset the start and end, resulting in
+/// a longer activation range. Positive values inset the start and end of the activation range,
+/// shortening it.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     timeline_trigger_activation_range: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     timeline_trigger_activation_range: Value
 }.
 
-/// A nominal, specification-constrained timeline-trigger-activation-range value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a timeline-trigger-activation-range value from a typed length.
+/// Sets timeline-trigger-activation-range from a typed length. Use std.css.Values.px, root_em, em,
+/// vw, or vh to choose the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Constructs a timeline-trigger-activation-range value from a typed percentage.
+/// Sets timeline-trigger-activation-range from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for timeline-trigger-activation-range. CSS-wide choices Inherit, Initial,
+/// Unset, Revert, and RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,56 +1,59 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-box-4/#propdef-margin-left
+//! The `margin-left` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! [margin
+//! area](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Box_model/Introduction#margin_area)
+//! on the left side of an element. A positive value places it farther from its neighbors, while a
+//! negative value places it closer.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: refer to the width of the containing block.
+//!
 //! Grammar: <length-percentage> | auto | <anchor-size()>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-box-4/#propdef-margin-left
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-left
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MarginLeft.
 
-/// Include an optional declaration in a shared style block.
+/// The left margin receives a share of the unused horizontal space, as determined mainly by the
+/// layout mode that is used. If the values of `margin-left` and `margin-right` are both `auto`, the
+/// calculated space is evenly distributed. This table summarizes the different cases:
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     margin_left: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     margin_left: Value
 }.
 
-/// A nominal, specification-constrained margin-left value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a margin-left value from a typed length.
+/// Sets margin-left from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose the
+/// unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Constructs a margin-left value from a typed percentage.
+/// Sets margin-left from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for margin-left. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

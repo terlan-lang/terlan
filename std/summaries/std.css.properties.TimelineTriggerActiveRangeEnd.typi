@@ -1,60 +1,69 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-active-range-end
+//! The `timeline-trigger-active-range-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! property specifies the end of a [scroll-triggered
+//! animation](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animation_triggers/Using_scroll-triggered_animations)
+//! trigger's active range.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: Relative to the specified named timeline range if specified, otherwise relative to
+//! the entire timeline.
+//!
 //! Grammar: [ auto | normal | <length-percentage> | <timeline-range-name> <length-percentage>? ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification:
+//! https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-active-range-end
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/timeline-trigger-active-range-end
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TimelineTriggerActiveRangeEnd.
 
-/// Include an optional declaration in a shared style block.
+/// Specifies the value of the `timeline-trigger-activation-range-end` property. This is the default
+/// value.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | Normal
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// A `<length>` or `<percentage>` value specifies an offset from the beginning of the `normal`
+/// timeline, which again defaults to either `cover` or `scroll`. Negative values outset the end,
+/// resulting in a longer active range. Positive values inset the end of the active range, making it
+/// shorter.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     timeline_trigger_active_range_end: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     timeline_trigger_active_range_end: Value
 }.
 
-/// A nominal, specification-constrained timeline-trigger-active-range-end value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a timeline-trigger-active-range-end value from a typed length.
+/// Sets timeline-trigger-active-range-end from a typed length. Use std.css.Values.px, root_em, em,
+/// vw, or vh to choose the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Constructs a timeline-trigger-active-range-end value from a typed percentage.
+/// Sets timeline-trigger-active-range-end from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for timeline-trigger-active-range-end. CSS-wide choices Inherit, Initial,
+/// Unset, Revert, and RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -2,6 +2,7 @@ module std.css.ValuesTest.
 
 import std.core.Option.{None, Some}.
 import std.css.Values.
+import std.css.Values.{CurrentColor, Transparent}.
 import std.test.Test.{assert_equal}.
 
 @test
@@ -34,5 +35,5 @@ pub invalid_rgb_channels_cannot_construct_a_color(): Bool ->
 
 @test
 pub colors_include_transparent_and_current_color(): Bool ->
-    assert_equal("transparent", Values.color_css(Values.transparent()))
-        and assert_equal("currentColor", Values.color_css(Values.current_color())).
+    assert_equal("transparent", Values.color_css(Values.color(Transparent)))
+        and assert_equal("currentColor", Values.color_css(Values.color(CurrentColor))).

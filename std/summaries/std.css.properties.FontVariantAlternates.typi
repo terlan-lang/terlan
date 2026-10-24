@@ -1,52 +1,59 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `font-variant-alternates` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! controls the usage of alternate glyphs. These alternate glyphs may be referenced by alternative
+//! names defined in `@font-feature-values`.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Grammar: normal | [ stylistic(<font-feature-value-name>) || historical-forms ||
+//! styleset(<font-feature-value-name>#) || character-variant(<font-feature-value-name>#) ||
+//! swash(<font-feature-value-name>) || ornaments(<font-feature-value-name>) ||
+//! annotation(<font-feature-value-name>) ]
+//!
 //! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-alternates
-//! Grammar: normal | [ stylistic(<font-feature-value-name>) || historical-forms || styleset(<font-feature-value-name>#) || character-variant(<font-feature-value-name>#) || swash(<font-feature-value-name>) || ornaments(<font-feature-value-name>) || annotation(<font-feature-value-name>) ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-variant-alternates
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantAlternates.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Normal
+  | HistoricalForms
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// This keyword enables historical forms — glyphs that were common in the past but not today. It
+/// corresponds to the OpenType value `hist`.
+
+pub type HistoricalForms =
+    Atom["historical-forms"].
+
+/// This keyword deactivates alternate glyphs.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     font_variant_alternates: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     font_variant_alternates: Value
 }.
 
-/// A nominal, specification-constrained font-variant-alternates value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword historical-forms.
+/// Selects a keyword for font-variant-alternates. CSS-wide choices Inherit, Initial, Unset, Revert,
+/// and RevertLayer apply to the entire declaration.
 
-pub historical_forms(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,60 +1,67 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-emoji
+//! The `font-variant-emoji` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies the default presentation style for displaying emojis.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | text | emoji | unicode
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-emoji
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-variant-emoji
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantEmoji.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Normal
+  | TextKeyword
+  | Emoji
+  | Unicode
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Renders the emoji as if it were using the unicode emoji variation selector (`U+FE0F`).
+
+pub type Emoji =
+    Atom["emoji"].
+
+/// Allows a browser to choose how to display the emoji. This often follows the operating system
+/// setting.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     font_variant_emoji: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     font_variant_emoji: Value
 }.
 
-/// A nominal, specification-constrained font-variant-emoji value.
+/// Renders the emoji as if it were using the unicode text variation selector (`U+FE0E`).
+
+pub type TextKeyword =
+    Atom["text"].
+
+/// Renders the emoji in accordance with the [Emoji presentation
+/// properties](https://www.unicode.org/reports/tr51/tr51-23.html#Emoji_Presentation). If the
+/// `U+FE0E` or `U+FE0F` variation selector is present, then it will override this value setting.
+
+pub type Unicode =
+    Atom["unicode"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword emoji.
+/// Selects a keyword for font-variant-emoji. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub emoji(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword text.
-
-pub text(): Value.
-
-/// Returns the CSS keyword unicode.
-
-pub unicode(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,48 +1,48 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-right
+//! The `scroll-margin-right` property defines the right margin of the scroll snap area that is used
+//! for snapping this box to the
+//! [snapport](https://developer.mozilla.org/en-US/docs/Glossary/Scroll_snap#snapport). The scroll
+//! snap area is determined by taking the transformed border box, finding its rectangular bounding
+//! box (axis-aligned in the scroll container's coordinate space), then adding the specified outsets.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <length>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-right
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-margin-right
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollMarginRight.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     scroll_margin_right: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     scroll_margin_right: Value
 }.
 
-/// A nominal, specification-constrained scroll-margin-right value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a scroll-margin-right value from a typed length.
+/// Sets scroll-margin-right from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+/// choose the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for scroll-margin-right. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

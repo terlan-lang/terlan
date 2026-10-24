@@ -1,88 +1,112 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-family
+//! The `font-family` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies a
+//! prioritized list of one or more font family names and/or generic family names for the selected
+//! element.
+//!
+//! Initial: dependsOnUserAgent. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: [ <font-family-name> | <generic-font-family> ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-family
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-family
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontFamily.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Serif
+  | SansSerif
+  | SystemUi
+  | Cursive
+  | Fantasy
+  | Math
+  | Monospace
+  | UiSerif
+  | UiSansSerif
+  | UiMonospace
+  | UiRounded
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Glyphs in cursive fonts generally have either joining strokes or other cursive characteristics
+/// beyond those of italic typefaces. The glyphs are partially or completely connected, and the
+/// result looks more like handwritten pen or brush writing than printed letter work.
+
+pub type Cursive =
+    Atom["cursive"].
+
+/// Fantasy fonts are primarily decorative fonts that contain playful representations of characters.
+
+pub type Fantasy =
+    Atom["fantasy"].
+
+pub type Math =
+    Atom["math"].
+
+/// All glyphs have the same fixed width.
+
+pub type Monospace =
+    Atom["monospace"].
 
 pub struct OptionalProperty {
     font_family: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     font_family: Value
 }.
 
-/// A nominal, specification-constrained font-family value.
+/// Glyphs have stroke endings that are plain.
+
+pub type SansSerif =
+    Atom["sans-serif"].
+
+pub type Serif =
+    Atom["serif"].
+
+/// Glyphs are taken from the default user interface font on a given platform. Because typographic
+/// traditions vary widely across the world, this generic is provided for typefaces that don't map
+/// cleanly into the other generics. > [!NOTE] > As the name implies, `system-ui` is intended to make
+/// UI elements look like native apps, and not for typesetting large paragraphs of text. It may cause
+/// the displayed typeface to be undesirable for some users—for example, the default Windows CJK font
+/// may render Latin scripts poorly, and the `lang` attribute may not affect the displayed font. Some
+/// operating systems do not allow customizing `system-ui`, while browsers generally allow
+/// customizing the `sans-serif` font family. For large paragraphs, use `sans-serif` or some other
+/// non-UI font family instead. - `ui-serif` - : The default user interface serif font. -
+/// `ui-sans-serif` - : The default user interface sans-serif font. - `ui-monospace` - : The default
+/// user interface monospace font. - `ui-rounded` - : The default user interface font that has
+/// rounded features. - `math` - : Font that addresses the particular stylistic concerns of
+/// representing mathematics: superscript and subscript, brackets that cross several lines, nesting
+/// expressions, and double struck glyphs with distinct meanings. UA stylesheets may set `math {
+/// font-family: math }` so that the element uses appropriate fonts by default. - `fangsong` - : A
+/// particular style of Chinese characters that are between serif-style Song and cursive-style Kai
+/// forms. This style is often used for government documents.
+
+pub type SystemUi =
+    Atom["system-ui"].
+
+pub type UiMonospace =
+    Atom["ui-monospace"].
+
+pub type UiRounded =
+    Atom["ui-rounded"].
+
+pub type UiSansSerif =
+    Atom["ui-sans-serif"].
+
+pub type UiSerif =
+    Atom["ui-serif"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword cursive.
+/// Selects a keyword for font-family. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub cursive(): Value.
-
-/// Returns the CSS keyword fantasy.
-
-pub fantasy(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword math.
-
-pub math(): Value.
-
-/// Returns the CSS keyword monospace.
-
-pub monospace(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword sans-serif.
-
-pub sans_serif(): Value.
-
-/// Returns the CSS keyword serif.
-
-pub serif(): Value.
-
-/// Returns the CSS keyword system-ui.
-
-pub system_ui(): Value.
-
-/// Returns the CSS keyword ui-monospace.
-
-pub ui_monospace(): Value.
-
-/// Returns the CSS keyword ui-rounded.
-
-pub ui_rounded(): Value.
-
-/// Returns the CSS keyword ui-sans-serif.
-
-pub ui_sans_serif(): Value.
-
-/// Returns the CSS keyword ui-serif.
-
-pub ui_serif(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,60 +1,84 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-conditional-5/#propdef-container-type
+//! The container-type [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies the
+//! type of container context used in a container query.
+//!
+//! Initial: normal. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | [ [ size | inline-size ] || scroll-state ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-conditional-5/#propdef-container-type
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/container-type
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ContainerType.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Normal
+  | Size
+  | InlineSize
+  | ScrollState
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Establishes a query container for dimensional queries on the [inline
+/// axis](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Logical_properties_and_values/Basic_concepts#block_and_inline_dimensions)
+/// of the container. Applies
+/// [style](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/contain#style) and
+/// [inline-size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/contain#inline-size)
+/// containment to the element. The inline size of the element can be [computed in
+/// isolation](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Using#size_containment),
+/// ignoring the child elements (see [Using CSS
+/// containment](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Using)).
+
+pub type InlineSize =
+    Atom["inline-size"].
+
+/// Default value. The element is not a query container for any container size, scroll-state, or
+/// anchored queries, but can be used as a query container for [container style
+/// queries](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@container#container_style_queries)
+/// and [name-only container
+/// queries](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Container_queries#name-only_container_queries).
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     container_type: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     container_type: Value
 }.
 
-/// A nominal, specification-constrained container-type value.
+/// Establishes a query container for scroll-state queries on the container. In this case, the size
+/// of the element is not computed in isolation; no containment is applied.
+
+pub type ScrollState =
+    Atom["scroll-state"].
+
+/// Establishes a query container for container size queries in both the [inline and
+/// block](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Logical_properties_and_values/Basic_concepts#block_and_inline_dimensions)
+/// dimensions. Applies
+/// [style](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/contain#style) and
+/// [size](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/contain#size)
+/// containment to the element. Size containment is applied to the element in both the inline and
+/// block directions. The size of the element can be computed in isolation, ignoring the child
+/// elements.
+
+pub type Size =
+    Atom["size"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for container-type. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inline-size.
-
-pub inline_size(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword scroll-state.
-
-pub scroll_state(): Value.
-
-/// Returns the CSS keyword size.
-
-pub size(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

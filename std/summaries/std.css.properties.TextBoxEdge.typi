@@ -1,60 +1,64 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box-edge
+//! The `text-box-edge` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies an
+//! amount of space to trim from a text element's block container.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | <text-edge>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box-edge
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-edge
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextBoxEdge.
 
-/// Include an optional declaration in a shared style block.
+/// The default value. Equivalent to the `text-edge` value `text`.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | TextKeyword
+  | Ideographic
+  | IdeographicInk
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type Ideographic =
+    Atom["ideographic"].
+
+pub type IdeographicInk =
+    Atom["ideographic-ink"].
 
 pub struct OptionalProperty {
     text_box_edge: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     text_box_edge: Value
 }.
 
-/// A nominal, specification-constrained text-box-edge value.
+/// The font's over edge is its text-over baseline (includes the font's ascenders but excludes the
+/// over edge half-leading), or its under edge is its text-under baseline (includes the font's
+/// descenders but excludes the under edge half-leading), depending on which edge the value is set
+/// for.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/text-edge
+
+pub type TextKeyword =
+    Atom["text"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for text-box-edge. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword ideographic.
-
-pub ideographic(): Value.
-
-/// Returns the CSS keyword ideographic-ink.
-
-pub ideographic_ink(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword text.
-
-pub text(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

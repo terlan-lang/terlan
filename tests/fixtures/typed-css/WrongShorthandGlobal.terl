@@ -1,6 +1,8 @@
 module typed_css.WrongShorthandGlobal.
 
+import std.css.Values.{Inherit}.
 import std.css.properties.Margin.
+import std.css.properties.Margin.{Auto as MarginAuto}.
 
 pub invalid(): Margin.Value ->
-    Margin.pair(Margin.inherit(), Margin.component_auto()).
+    Margin.pair(Margin.value(Inherit), Margin.component(MarginAuto)).

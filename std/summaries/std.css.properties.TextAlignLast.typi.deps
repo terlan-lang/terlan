@@ -1,9 +1,11 @@
 module=std.css.properties.TextAlignLast
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=11279944404122893541
-interface_hash=2298106941629087411
-interface_doc_hash=18054069489559812224
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=10867154855218529590
+interface_hash=980199988276274518
+interface_doc_hash=721143418520851302
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

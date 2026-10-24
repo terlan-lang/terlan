@@ -1,52 +1,53 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-timeline-scope
+//! The `timeline-scope` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property modifies
+//! the scope of a named animation timeline.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | all | <dashed-ident>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-timeline-scope
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/timeline-scope
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TimelineScope.
 
-/// Include an optional declaration in a shared style block.
+/// Sets the scope so that any timeline names set on the element or in its subtree are matched only
+/// by elements within the same subtree.
+
+pub type All =
+    Atom["all"].
+
+pub type Css =
+    None
+  | All
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Applies no change to the timeline scope. This is the default.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     timeline_scope: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     timeline_scope: Value
 }.
 
-/// A nominal, specification-constrained timeline-scope value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword all.
+/// Selects a keyword for timeline-scope. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub all(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

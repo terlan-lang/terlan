@@ -1,10 +1,12 @@
 module=std.css.properties.ReadingOrder
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=645299094878239521
-interface_hash=16057521821332903330
-interface_doc_hash=18209644994434404212
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3330948486100674274
+interface_hash=1703875613146452097
+interface_doc_hash=8325658922221098492
+deps=4
+std.core.Atom=12311707212014243410
 std.core.Int=6981787512204747997
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

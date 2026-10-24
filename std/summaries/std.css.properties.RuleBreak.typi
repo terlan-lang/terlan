@@ -1,56 +1,59 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-break
+//! The `rule-break` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets the behavior for breaking column and row rules into segments where rows and column
+//! gaps intersect, setting `column-rule-break` and `row-rule-break` to the same value.
+//!
 //! Grammar: <'column-rule-break'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-break
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/rule-break
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RuleBreak.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | Normal
+  | Intersection
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Rules always break when they intersect a gap, with rule segments starting and ending at container
+/// and gap edges.
+
+pub type Intersection =
+    Atom["intersection"].
+
+/// There are no breaks where row and column rules intersect; rather, a single continuous decoration
+/// is painted from one end of each gap to the other.
+
+pub type None =
+    Atom["none"].
+
+/// In flex and grid containers, behaves as `none`. In multi-col, `column-rule-break` behaves as
+/// `intersection` and `row-rule-break` behaves as `none`. This is the default value.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     rule_break: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     rule_break: Value
 }.
 
-/// A nominal, specification-constrained rule-break value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for rule-break. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword intersection.
-
-pub intersection(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,60 +1,58 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-width
+//! The `stroke-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! width of a stroke applied to the [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) shape.
+//! If present, it overrides the element's `stroke-width` attribute.
+//!
+//! Initial: 1px. Inherited: yes.
+//! Percentages: refer to the normalized diagonal measure of the current SVG viewport's applied
+//! `viewBox`, or of the viewport itself if no viewBox is specified.
+//!
 //! Grammar: [ <length-percentage> | <line-width> | <number> ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-width
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-width
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.StrokeWidth.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     stroke_width: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     stroke_width: Value
 }.
 
-/// A nominal, specification-constrained stroke-width value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a stroke-width value from a typed length.
+/// Sets stroke-width from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
+/// the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Checks the specification range and constructs a stroke-width value.
+/// Sets stroke-width from a typed length. Returns Some for amount >= 0; otherwise returns None.
 
 pub length_2(value: std.css.Values.Length): Option[Value].
 
-/// Constructs a stroke-width value from a typed number.
+/// Sets stroke-width from a typed number.
 
 pub number(value: Float): Value.
 
-/// Constructs a stroke-width value from a typed percentage.
+/// Sets stroke-width from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for stroke-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

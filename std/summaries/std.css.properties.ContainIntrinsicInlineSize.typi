@@ -1,52 +1,55 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-sizing-4/#propdef-contain-intrinsic-inline-size
+//! The `contain-intrinsic-inline-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [logical
+//! property](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Logical_properties_and_values)
+//! defines the inline-size of an element that a browser can use for layout when the element is
+//! subject to [size
+//! containment](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Using#size_containment).
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto? [ none | <length [0,∞]> ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-sizing-4/#propdef-contain-intrinsic-inline-size
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/contain-intrinsic-inline-size
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ContainIntrinsicInlineSize.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The element has no intrinsic inline-size.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     contain_intrinsic_inline_size: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     contain_intrinsic_inline_size: Value
 }.
 
-/// A nominal, specification-constrained contain-intrinsic-inline-size value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a contain-intrinsic-inline-size value.
+/// Sets contain-intrinsic-inline-size from a typed length. Returns Some for amount >= 0; otherwise
+/// returns None.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Returns the CSS keyword none.
+/// Selects a keyword for contain-intrinsic-inline-size. CSS-wide choices Inherit, Initial, Unset,
+/// Revert, and RevertLayer apply to the entire declaration.
 
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

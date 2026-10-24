@@ -1,275 +1,236 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-left
+ * The `border-left` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets all the properties of an element's left
+ * [border](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border).
+ *
+ * Initial: border-left-width: medium; border-left-style: none; border-left-color: currentcolor.
+ * Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <line-width> || <line-style> || <color>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-left
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-left
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BorderLeft.
 
-import std.core.Option.{None, Some}.
+import std.core.Atom.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
-import std.css.Values.{color_css, length_amount, length_css}.
+import std.css.Values.{color_css, length_amount, length_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Color, Length}.
+import type std.css.Values.{Color, Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained border-left value.
+ * Displays a series of short square-ended dashes or line segments. The exact size and length of the
+ * segments are not defined by the specification and are implementation-specific.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-style
  */
-pub opaque type Value = Token.
+pub type Dashed.
 
 /**
- * A non-global line-width component of border-left.
+ * Displays a series of round dots. The radius of the dots is half the computed value of the line's
+ * width. The spacing of the dots is not defined by the specification and is
+ * implementation-specific.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-style
  */
+pub type Dotted.
+
+/**
+ * Displays two straight lines with some space between them. The length of the lines adds up to the
+ * pixel size defined by the line's width.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-style
+ */
+pub type Double.
+
+/**
+ * Displays a border with a carved appearance. This value is the opposite of `ridge`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-style
+ */
+pub type Groove.
+
+/**
+ * Displays no line. The [used
+ * value](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Property_value_processing#used_value)
+ * of the line width is `0` even if a width value is specified. In the case of table cell and border
+ * collapsing, the `hidden` value has the _highest_ priority. If any other conflicting border is
+ * set, it won't be displayed. The `hidden` value is similar to `none`, but `hidden` is not a valid
+ * value for outline styles.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-style
+ */
+pub type Hidden.
+
+/**
+ * Displays a border that makes the element appear embedded. This value is the opposite of `outset`.
+ * When applied to a table cell border and `border-collapse` is set to `collapsed`, this value
+ * behaves like `groove`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-style
+ */
+pub type Inset.
+
+/**
+ * Same as `3px`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+ */
+pub type Medium.
+
+/**
+ * Displays no line. The [used
+ * value](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Property_value_processing#used_value)
+ * of the line width is `0` even if a width value is specified. In the case of table cell and border
+ * collapsing, the `none` value has the _lowest_ priority. If any other conflicting border is set,
+ * it will be displayed. The `none` value is similar to `hidden`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-style
+ */
+pub type None.
+
+/**
+ * Displays a border that makes the element appear embossed. This value is the opposite of `inset`.
+ * When applied to a table cell with `border-collapse` set to `collapsed`, this value behaves like
+ * `ridge`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-style
+ */
+pub type Outset.
+
+/**
+ * Displays a border with an extruded appearance. This value is the opposite of `groove`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-style
+ */
+pub type Ridge.
+
+/**
+ * Displays a single, straight solid line.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-style
+ */
+pub type Solid.
+
+/**
+ * Same as `5px`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+ */
+pub type Thick.
+
+/**
+ * Same as `1px`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+ */
+pub type Thin.
+
+pub type Css =
+      Thin
+    | Medium
+    | Thick
+    | None
+    | Hidden
+    | Dotted
+    | Dashed
+    | Solid
+    | Double
+    | Groove
+    | Ridge
+    | Inset
+    | Outset
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
 pub opaque type LineWidthPart = String.
 
-/**
- * A non-global line-style component of border-left.
- */
-pub opaque type LineStylePart = String.
+pub type LineWidthCss = Thin | Medium | Thick.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type LineStylePart =
+      None
+    | Hidden
+    | Dotted
+    | Dashed
+    | Solid
+    | Double
+    | Groove
+    | Ridge
+    | Inset
+    | Outset.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     border_left: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     border_left: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword dashed.
+ * Selects a keyword for border-left. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub dashed(): Value ->
-    Value(Token {property: "border-left", css: "dashed"}).
+pub value(css: Css): Value ->
+    Value(serialize("border-left", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword dotted.
- */
-pub dotted(): Value ->
-    Value(Token {property: "border-left", css: "dotted"}).
-
-/**
- * Returns the CSS keyword double.
- */
-pub double(): Value ->
-    Value(Token {property: "border-left", css: "double"}).
-
-/**
- * Returns the CSS keyword groove.
- */
-pub groove(): Value ->
-    Value(Token {property: "border-left", css: "groove"}).
-
-/**
- * Returns the CSS keyword hidden.
- */
-pub hidden(): Value ->
-    Value(Token {property: "border-left", css: "hidden"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "border-left", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "border-left", css: "initial"}).
-
-/**
- * Returns the CSS keyword inset.
- */
-pub inset(): Value ->
-    Value(Token {property: "border-left", css: "inset"}).
-
-/**
- * Returns the CSS keyword medium.
- */
-pub medium(): Value ->
-    Value(Token {property: "border-left", css: "medium"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "border-left", css: "none"}).
-
-/**
- * Returns the CSS keyword outset.
- */
-pub outset(): Value ->
-    Value(Token {property: "border-left", css: "outset"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "border-left", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "border-left", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword ridge.
- */
-pub ridge(): Value ->
-    Value(Token {property: "border-left", css: "ridge"}).
-
-/**
- * Returns the CSS keyword solid.
- */
-pub solid(): Value ->
-    Value(Token {property: "border-left", css: "solid"}).
-
-/**
- * Returns the CSS keyword thick.
- */
-pub thick(): Value ->
-    Value(Token {property: "border-left", css: "thick"}).
-
-/**
- * Returns the CSS keyword thin.
- */
-pub thin(): Value ->
-    Value(Token {property: "border-left", css: "thin"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "border-left", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a border-left value.
+ * Sets border-left from a typed length. Returns Some for amount >= 0; otherwise returns None.
  */
 pub length(value: Length): Option[Value] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "border-left", css: length_css(value)}));
-        false -> None
+        true -> Some(Value(serialize("border-left", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Constructs a border-left value from a typed color.
+ * Sets border-left from a typed color. Use std.css.Values.rgb or color to choose the paint.
  */
 pub color(value: Color): Value ->
-    Value(Token {property: "border-left", css: color_css(value)}).
+    Value(serialize("border-left", color_css(value))).
 
 /**
- * Constructs the line-width keyword medium.
+ * Chooses the line-width part for compose. See the keyword types for their visual behavior.
  */
-pub line_width_medium(): LineWidthPart ->
-    LineWidthPart("medium").
+pub line_width(css: LineWidthCss): LineWidthPart ->
+    LineWidthPart(Atom.to_string(css)).
 
 /**
- * Constructs the line-width keyword thick.
- */
-pub line_width_thick(): LineWidthPart ->
-    LineWidthPart("thick").
-
-/**
- * Constructs the line-width keyword thin.
- */
-pub line_width_thin(): LineWidthPart ->
-    LineWidthPart("thin").
-
-/**
- * Checks the specification range and constructs a border-left value.
+ * Sets border-left LineWidthPart part from a typed length. Returns Some for amount >= 0; otherwise
+ * returns None.
  */
 pub line_width_length(value: Length): Option[LineWidthPart] ->
     case length_amount(value) >= 0 {
         true -> Some(LineWidthPart(length_css(value)));
-        false -> None
+        false -> Absent
     }.
 
 line_width_css(value: LineWidthPart): String ->
     value.
 
 /**
- * Constructs the line-style keyword dashed.
- */
-pub line_style_dashed(): LineStylePart ->
-    LineStylePart("dashed").
-
-/**
- * Constructs the line-style keyword dotted.
- */
-pub line_style_dotted(): LineStylePart ->
-    LineStylePart("dotted").
-
-/**
- * Constructs the line-style keyword double.
- */
-pub line_style_double(): LineStylePart ->
-    LineStylePart("double").
-
-/**
- * Constructs the line-style keyword groove.
- */
-pub line_style_groove(): LineStylePart ->
-    LineStylePart("groove").
-
-/**
- * Constructs the line-style keyword hidden.
- */
-pub line_style_hidden(): LineStylePart ->
-    LineStylePart("hidden").
-
-/**
- * Constructs the line-style keyword inset.
- */
-pub line_style_inset(): LineStylePart ->
-    LineStylePart("inset").
-
-/**
- * Constructs the line-style keyword none.
- */
-pub line_style_none(): LineStylePart ->
-    LineStylePart("none").
-
-/**
- * Constructs the line-style keyword outset.
- */
-pub line_style_outset(): LineStylePart ->
-    LineStylePart("outset").
-
-/**
- * Constructs the line-style keyword ridge.
- */
-pub line_style_ridge(): LineStylePart ->
-    LineStylePart("ridge").
-
-/**
- * Constructs the line-style keyword solid.
- */
-pub line_style_solid(): LineStylePart ->
-    LineStylePart("solid").
-
-line_style_css(value: LineStylePart): String ->
-    value.
-
-/**
- * Combines every named specification group in canonical order.
+ * Sets border-left by combining line-width, line-style, color in grammar order. Each argument
+ * describes a distinct part of the declaration.
  */
 pub compose(line_width: LineWidthPart, line_style: LineStylePart, color: Color): Value ->
     Value(
-        Token {
-            property: "border-left",
-            css: line_width_css(line_width) + " " + line_style_css(line_style) + " " + color_css(color),
-        },
+        serialize(
+            "border-left",
+            line_width_css(line_width) + " " + Atom.to_string(line_style) + " " + color_css(color),
+        ),
     ).

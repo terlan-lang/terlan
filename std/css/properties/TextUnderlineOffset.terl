@@ -1,84 +1,64 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-underline-offset
+ * The `text-underline-offset` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * the offset distance of an underline text decoration line (applied using `text-decoration`) from
+ * its original position.
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: refer to the font size of the element itself.
+ *
  * Grammar: auto | <length-percentage>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-underline-offset
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-underline-offset
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextUnderlineOffset.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained text-underline-offset value.
+ * The browser chooses the appropriate offset for underlines.
  */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     text_underline_offset: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     text_underline_offset: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for text-underline-offset. CSS-wide choices Inherit, Initial, Unset, Revert,
+ * and RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "text-underline-offset", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("text-underline-offset", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-underline-offset", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-underline-offset", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-underline-offset", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-underline-offset", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-underline-offset", css: "unset"}).
-
-/**
- * Constructs a text-underline-offset value from a typed length.
+ * Sets text-underline-offset from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+ * choose the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "text-underline-offset", css: std.css.Values.length_css(value)}).
+    Value(serialize("text-underline-offset", length_css(value))).
 
 /**
- * Constructs a text-underline-offset value from a typed percentage.
+ * Sets text-underline-offset from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "text-underline-offset", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("text-underline-offset", percentage_css(value))).

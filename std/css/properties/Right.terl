@@ -1,84 +1,68 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-position-3/#propdef-right
+ * The `right` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property participates in
+ * specifying the horizontal position of a [positioned
+ * element](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position). This
+ * `inset property` has no effect on non-positioned elements.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: refer to the width of the containing block.
+ *
  * Grammar: auto | <length-percentage> | <anchor()> | <anchor-size()>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-position-3/#propdef-right
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/right
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Right.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained right value.
+ * Specifies that: - for _absolutely positioned elements_, the position of the element is based on
+ * the `left` property, while `width: auto` is treated as a width based on the content; or if `left`
+ * is also `auto`, the element is positioned where it should horizontally be positioned if it were a
+ * static element. - for _relatively positioned elements_, the distance of the element from its
+ * normal position is based on the `left` property; or if `left` is also `auto`, the element is not
+ * moved horizontally at all.
  */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     right: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     right: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for right. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+ * apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "right", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("right", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "right", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "right", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "right", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "right", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "right", css: "unset"}).
-
-/**
- * Constructs a right value from a typed length.
+ * Sets right from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "right", css: std.css.Values.length_css(value)}).
+    Value(serialize("right", length_css(value))).
 
 /**
- * Constructs a right value from a typed percentage.
+ * Sets right from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "right", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("right", percentage_css(value))).

@@ -1,9 +1,11 @@
 module=std.css.properties.TextFit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=13815793011325930312
-interface_hash=12300766100605819946
-interface_doc_hash=15039278795605642916
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3336180128898009142
+interface_hash=8412529685881873700
+interface_doc_hash=11463281139528319845
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

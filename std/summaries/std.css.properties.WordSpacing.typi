@@ -1,52 +1,50 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-word-spacing
+//! The `word-spacing` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! spacing between words and between tags.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: refer to the width of the affected glyph.
+//!
 //! Grammar: normal | <length-percentage>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-word-spacing
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/word-spacing
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WordSpacing.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Normal
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The normal inter-word spacing, as defined by the current font and/or the browser.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     word_spacing: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     word_spacing: Value
 }.
 
-/// A nominal, specification-constrained word-spacing value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a word-spacing value from a typed length.
+/// Sets word-spacing from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
+/// the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Returns the CSS keyword normal.
+/// Selects a keyword for word-spacing. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

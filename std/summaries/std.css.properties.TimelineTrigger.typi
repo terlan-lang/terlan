@@ -1,48 +1,55 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `timeline-trigger` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) [shorthand
+//! property](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! defines a [scroll-triggered
+//! animation](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animation_triggers/Using_scroll-triggered_animations)
+//! trigger on an element.
+//!
+//! Initial: timeline-trigger-name: none; timeline-trigger-source: auto;
+//! timeline-trigger-activation-range:
+//! timeline-trigger-activation-range-start,timeline-trigger-activation-range-end;
+//! timeline-trigger-active-range:
+//! timeline-trigger-active-range-start,timeline-trigger-active-range-end. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Grammar: none | [ <'timeline-trigger-name'> <'timeline-trigger-source'> [
+//! <'timeline-trigger-range'> ]? ]#
+//!
 //! Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger
-//! Grammar: none | [ <'timeline-trigger-name'> <'timeline-trigger-source'> [ <'timeline-trigger-range'> ]? ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/timeline-trigger
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TimelineTrigger.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Specifies that the element does not create a trigger, resetting all four longhand properties to
+/// their default values.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     timeline_trigger: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     timeline_trigger: Value
 }.
 
-/// A nominal, specification-constrained timeline-trigger value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for timeline-trigger. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

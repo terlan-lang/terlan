@@ -1,72 +1,74 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-sizing-3/#propdef-max-block-size
+//! The `max-block-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+//! the maximum size of an element in the direction opposite that of the writing direction as
+//! specified by `writing-mode`. That is, if the writing direction is horizontal, then
+//! `max-block-size` is equivalent to `max-height`; if the writing direction is vertical,
+//! `max-block-size` is the same as `max-width`.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: block-size of containing block.
+//!
 //! Grammar: none | <box-size> | <anchor-size()>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-sizing-3/#propdef-max-block-size
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/max-block-size
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MaxBlockSize.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | Stretch
+  | MinContent
+  | MaxContent
+  | FitContent
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type FitContent =
+    Atom["fit-content"].
+
+pub type MaxContent =
+    Atom["max-content"].
+
+pub type MinContent =
+    Atom["min-content"].
+
+/// No limit on the size of the box.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     max_block_size: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     max_block_size: Value
 }.
 
-/// A nominal, specification-constrained max-block-size value.
+pub type Stretch =
+    Atom["stretch"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword fit-content.
-
-pub fit_content(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a max-block-size value.
+/// Sets max-block-size from a typed length. Returns Some for amount >= 0; otherwise returns None.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Returns the CSS keyword max-content.
-
-pub max_content(): Value.
-
-/// Returns the CSS keyword min-content.
-
-pub min_content(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Checks the specification range and constructs a max-block-size value.
+/// Sets max-block-size from a typed percentage. Returns Some for amount >= 0; otherwise returns
+/// None.
 
 pub percentage(value: std.css.Values.Percentage): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for max-block-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

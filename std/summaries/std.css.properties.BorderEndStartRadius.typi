@@ -1,52 +1,54 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-end-start-radius
+//! The `border-end-start-radius` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! defines a logical border radius on an element, which maps to a physical border radius depending
+//! on the element's `writing-mode`, `direction`, and `text-orientation`. This is useful when
+//! building styles to work regardless of the [text
+//! orientation](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-orientation)
+//! and [writing mode](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Writing_modes).
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: refer to the corresponding dimension of the border box.
+//!
 //! Grammar: <border-radius>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-end-start-radius
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-end-start-radius
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderEndStartRadius.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     border_end_start_radius: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     border_end_start_radius: Value
 }.
 
-/// A nominal, specification-constrained border-end-start-radius value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a border-end-start-radius value.
+/// Sets border-end-start-radius from a typed length. Returns Some for amount >= 0; otherwise returns
+/// None.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Checks the specification range and constructs a border-end-start-radius value.
+/// Sets border-end-start-radius from a typed percentage. Returns Some for amount >= 0; otherwise
+/// returns None.
 
 pub percentage(value: std.css.Values.Percentage): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for border-end-start-radius. CSS-wide choices Inherit, Initial, Unset, Revert,
+/// and RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

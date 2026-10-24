@@ -1,48 +1,50 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-animation-trigger
+//! The `animation-trigger` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies whether [CSS
+//! animations](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animations) declared on an
+//! element are triggered animations (or not) and, if so, what their triggers are and how they should
+//! behave when the trigger becomes active or inactive. This is used to create [scroll-triggered
+//! animations](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animation_triggers/Using_scroll-triggered_animations).
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: [ none | [ <dashed-ident> <animation-action>+ ]+ ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-animation-trigger
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-trigger
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.AnimationTrigger.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The associated animation is not a triggered animation.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     animation_trigger: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     animation_trigger: Value
 }.
 
-/// A nominal, specification-constrained animation-trigger value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for animation-trigger. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

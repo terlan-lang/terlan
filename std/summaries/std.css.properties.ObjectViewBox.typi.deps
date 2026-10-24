@@ -1,9 +1,11 @@
 module=std.css.properties.ObjectViewBox
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=1974439422449373368
-interface_hash=9994089792850779195
-interface_doc_hash=4606285347274604907
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15610311689418828319
+interface_hash=18298573972152984834
+interface_doc_hash=8053384754854573064
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

@@ -1,75 +1,58 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-content-3/#propdef-quotes
+ * The [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) `quotes` property sets how the
+ * browser should render quotation marks that are automatically added to the HTML `q` element or
+ * added using the `open-quotes` or `close-quotes` (or omitted using the `no-open-quote` and
+ * `no-close-quote`) values of the of the CSS `content` property.
+ *
+ * Initial: dependsOnUserAgent. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | none | bikeshed-this | [ <string> <string> ]+
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-content-3/#propdef-quotes
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/quotes
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Quotes.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained quotes value.
+ * Quotation marks that are typographically appropriate for the inherited language (i.e., via the
+ * [`lang`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/lang)
+ * attribute set on the parent or other ancestor).
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Auto.
 
 /**
- * Include this property in an application style struct.
+ * The `open-quote` and `close-quote` values of the `content` property produce no quotation marks,
+ * as if `no-open-quote` and `no-close-quote` were set, respectively.
  */
+pub type None.
+
+pub type Css = Auto | None | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     quotes: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     quotes: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for quotes. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+ * apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "quotes", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "quotes", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "quotes", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "quotes", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "quotes", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "quotes", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "quotes", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("quotes", Atom.to_string(css))).

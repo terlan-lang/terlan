@@ -1,132 +1,91 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-images-3/#propdef-object-position
+ * The `object-position` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+ * the alignment of the selected 's contents within the element's box. Areas of the box which aren't
+ * covered by the replaced element's object will show the element's background.
+ *
+ * Initial: 50% 50%. Inherited: no.
+ * Percentages: refer to width and height of element itself.
+ *
  * Grammar: <position>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-images-3/#propdef-object-position
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/object-position
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ObjectPosition.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained object-position value.
- */
-pub opaque type Value = Token.
+pub type Bottom.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Center.
 
-/**
- * Include this property in an application style struct.
- */
+pub type Left.
+
+pub type Right.
+
+pub type Top.
+
+pub type XEnd = Atom["x-end"].
+
+pub type XStart = Atom["x-start"].
+
+pub type YEnd = Atom["y-end"].
+
+pub type YStart = Atom["y-start"].
+
+pub type Css =
+      Left
+    | Center
+    | Right
+    | Top
+    | Bottom
+    | XStart
+    | XEnd
+    | YStart
+    | YEnd
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     object_position: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     object_position: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword bottom.
+ * Selects a keyword for object-position. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub bottom(): Value ->
-    Value(Token {property: "object-position", css: "bottom"}).
+pub value(css: Css): Value ->
+    Value(serialize("object-position", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword center.
- */
-pub center(): Value ->
-    Value(Token {property: "object-position", css: "center"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "object-position", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "object-position", css: "initial"}).
-
-/**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "object-position", css: "left"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "object-position", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "object-position", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "object-position", css: "right"}).
-
-/**
- * Returns the CSS keyword top.
- */
-pub top(): Value ->
-    Value(Token {property: "object-position", css: "top"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "object-position", css: "unset"}).
-
-/**
- * Returns the CSS keyword x-end.
- */
-pub x_end(): Value ->
-    Value(Token {property: "object-position", css: "x-end"}).
-
-/**
- * Returns the CSS keyword x-start.
- */
-pub x_start(): Value ->
-    Value(Token {property: "object-position", css: "x-start"}).
-
-/**
- * Returns the CSS keyword y-end.
- */
-pub y_end(): Value ->
-    Value(Token {property: "object-position", css: "y-end"}).
-
-/**
- * Returns the CSS keyword y-start.
- */
-pub y_start(): Value ->
-    Value(Token {property: "object-position", css: "y-start"}).
-
-/**
- * Constructs a object-position value from a typed length.
+ * Sets object-position from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
+ * the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "object-position", css: std.css.Values.length_css(value)}).
+    Value(serialize("object-position", length_css(value))).
 
 /**
- * Constructs a object-position value from a typed percentage.
+ * Sets object-position from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "object-position", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("object-position", percentage_css(value))).

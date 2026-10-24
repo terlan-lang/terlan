@@ -1,84 +1,101 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-outline-style
+//! The `outline-style` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! style of an element's outline. An outline is a line that is drawn around an element, outside the
+//! `border`.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | <outline-line-style>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-outline-style
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/outline-style
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OutlineStyle.
 
-/// Include an optional declaration in a shared style block.
+/// Permits the user agent to render a custom outline style.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | None
+  | Dotted
+  | Dashed
+  | Solid
+  | Double
+  | Groove
+  | Ridge
+  | Inset
+  | Outset
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The outline is a series of short line segments.
+
+pub type Dashed =
+    Atom["dashed"].
+
+/// The outline is a series of dots.
+
+pub type Dotted =
+    Atom["dotted"].
+
+/// The outline is two single lines. The `outline-width` is the sum of the two lines and the space
+/// between them.
+
+pub type Double =
+    Atom["double"].
+
+/// The outline looks as though it were carved into the page.
+
+pub type Groove =
+    Atom["groove"].
+
+/// The outline makes the box look as though it were embedded in the page.
+
+pub type Inset =
+    Atom["inset"].
+
+/// No outline is used.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     outline_style: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+/// The opposite of `inset`: the outline makes the box look as though it were coming out of the page.
+
+pub type Outset =
+    Atom["outset"].
 
 pub struct Property {
     outline_style: Value
 }.
 
-/// A nominal, specification-constrained outline-style value.
+/// The opposite of `groove`: the outline looks as though it were extruded from the page.
+
+pub type Ridge =
+    Atom["ridge"].
+
+/// The outline is a single line.
+
+pub type Solid =
+    Atom["solid"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for outline-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword dashed.
-
-pub dashed(): Value.
-
-/// Returns the CSS keyword dotted.
-
-pub dotted(): Value.
-
-/// Returns the CSS keyword double.
-
-pub double(): Value.
-
-/// Returns the CSS keyword groove.
-
-pub groove(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inset.
-
-pub inset(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword outset.
-
-pub outset(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword ridge.
-
-pub ridge(): Value.
-
-/// Returns the CSS keyword solid.
-
-pub solid(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

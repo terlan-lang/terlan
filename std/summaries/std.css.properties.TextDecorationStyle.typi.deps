@@ -1,9 +1,11 @@
 module=std.css.properties.TextDecorationStyle
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7009658941151786037
-interface_hash=1597086982071278052
-interface_doc_hash=16423909612826926614
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15804669478012071559
+interface_hash=15677372693747629667
+interface_doc_hash=18215045109621470306
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

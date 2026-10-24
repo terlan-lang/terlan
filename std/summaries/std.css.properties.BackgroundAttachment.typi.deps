@@ -1,9 +1,11 @@
 module=std.css.properties.BackgroundAttachment
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=3077044880676117780
-interface_hash=13924528781627633109
-interface_doc_hash=11465069395873867704
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4090244891147530654
+interface_hash=5574975891314196250
+interface_doc_hash=17966687495695496731
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

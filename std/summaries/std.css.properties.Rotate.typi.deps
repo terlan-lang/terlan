@@ -1,10 +1,11 @@
 module=std.css.properties.Rotate
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16962402294494913891
-interface_hash=1221695202571729186
-interface_doc_hash=9500025595255615975
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=13459175386610869897
+interface_hash=914586926384639325
+interface_doc_hash=8059321069956800207
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

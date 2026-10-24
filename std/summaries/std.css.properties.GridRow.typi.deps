@@ -1,9 +1,11 @@
 module=std.css.properties.GridRow
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=11593031227071443130
-interface_hash=4969785835032925645
-interface_doc_hash=14479337621770108892
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3095914623533822461
+interface_hash=13059320274931803598
+interface_doc_hash=2361742965198354502
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

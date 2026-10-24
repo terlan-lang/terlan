@@ -1,9 +1,11 @@
 module=std.css.properties.BorderBlockStyle
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=13006335502582960610
-interface_hash=1738596328400259750
-interface_doc_hash=6893183071216517265
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=14513596013301688520
+interface_hash=6772626198858156276
+interface_doc_hash=8080100804550614155
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

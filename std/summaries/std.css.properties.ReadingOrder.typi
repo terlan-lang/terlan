@@ -1,48 +1,45 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-display-4/#propdef-reading-order
+//! The `reading-order` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property enables
+//! changing the order in which a child of a [reading flow
+//! container](https://developer.mozilla.org/en-US/docs/Glossary/Reading_order#reading_flow_container)
+//! is read relative to its element siblings.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <integer>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-display-4/#propdef-reading-order
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/reading-order
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ReadingOrder.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     reading_order: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     reading_order: Value
 }.
 
-/// A nominal, specification-constrained reading-order value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a reading-order value from a typed integer.
+/// Sets reading-order from a typed integer.
 
 pub integer(value: Int): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for reading-order. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,56 +1,59 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scrollbars-1/#propdef-scrollbar-width
+//! The `scrollbar-width` property allows the author to set the desired thickness of an element's
+//! scrollbars when they are shown.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | thin | none
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scrollbars-1/#propdef-scrollbar-width
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scrollbar-width
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollbarWidth.
 
-/// Include an optional declaration in a shared style block.
+/// The default scrollbar width for the platform.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | Thin
+  | None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// No scrollbar shown, however the element will still be scrollable.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     scrollbar_width: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     scrollbar_width: Value
 }.
 
-/// A nominal, specification-constrained scrollbar-width value.
+/// A thin scrollbar width variant on platforms that provide that option, or a thinner scrollbar than
+/// the default platform scrollbar width.
+
+pub type Thin =
+    Atom["thin"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for scrollbar-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

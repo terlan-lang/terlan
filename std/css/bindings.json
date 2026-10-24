@@ -746,6 +746,19 @@
       }
     ]
   },
+  "documentation": {
+    "mdn": {
+      "repository": "https://github.com/mdn/content",
+      "revision": "c6a89971a820ca6b76479a7ffc1b32c09aae2415",
+      "license": "CC-BY-SA-2.5"
+    },
+    "microsoft": {
+      "package": "@vscode/web-custom-data",
+      "version": "0.6.3",
+      "license": "MIT"
+    },
+    "sha256": "eac4994fc2ded7e4f83b05800ebc42119773ad57db2ec2b7429763ee200224a6"
+  },
   "scope": "CSS-wide keywords, complete atomic alternatives, bounded space-separated repetitions of up to four components, and all-term composition of named &&/|| groups; other compound values and CSS functions are not yet generated",
   "properties": [
     {

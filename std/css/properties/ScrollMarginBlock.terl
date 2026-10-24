@@ -1,111 +1,81 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-block
+ * The `scroll-margin-block` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets the scroll margins of an element in the block dimension.
+ *
+ * Initial: scroll-margin-block-start: 0; scroll-margin-block-end: 0. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <length>{1,2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-block
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-margin-block
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollMarginBlock.
 
+import std.core.Atom.
 import std.css.Values.
-import std.css.Values.{length_css}.
+import std.css.Values.{length_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained scroll-margin-block value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * A single non-global scroll-margin-block shorthand component.
- */
-pub opaque type Component = Token.
+pub opaque type Value = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Component = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     scroll_margin_block: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     scroll_margin_block: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for scroll-margin-block. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "scroll-margin-block", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("scroll-margin-block", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scroll-margin-block", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scroll-margin-block", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scroll-margin-block", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scroll-margin-block", css: "unset"}).
-
-/**
- * Constructs a scroll-margin-block value from a typed length.
+ * Sets scroll-margin-block from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+ * choose the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "scroll-margin-block", css: length_css(value)}).
+    Value(serialize("scroll-margin-block", length_css(value))).
 
 /**
- * Constructs a scroll-margin-block value from a typed length.
+ * Sets scroll-margin-block shorthand component from a typed length. Use std.css.Values.px, root_em,
+ * em, vw, or vh to choose the unit.
  */
 pub component_length(value: Length): Component ->
-    Component(Token {property: "scroll-margin-block", css: length_css(value)}).
+    Component(serialize("scroll-margin-block", length_css(value))).
 
-/**
- * Serializes a library-owned shorthand component.
- */
 component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
+    let serialized = component_value(value);
+    serialized.css.
 
-component_token(value: Component): Token ->
+component_value(value: Component): SerializedValue ->
     value.
 
 /**
- * Combines 1 typed components in specification order.
+ * Supplies 1 components in the grammar order shown above.
  */
 pub single(first: Component): Value ->
-    Value(Token {property: "scroll-margin-block", css: component_css(first)}).
+    Value(serialize("scroll-margin-block", component_css(first))).
 
 /**
- * Combines 2 typed components in specification order.
+ * Supplies 2 components in the grammar order shown above.
  */
 pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {
-            property: "scroll-margin-block",
-            css: component_css(first) + " " + component_css(second),
-        },
-    ).
+    Value(serialize("scroll-margin-block", component_css(first) + " " + component_css(second))).

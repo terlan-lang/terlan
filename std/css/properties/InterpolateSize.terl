@@ -1,75 +1,57 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-values-5/#propdef-interpolate-size
+ * The `interpolate-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows
+ * you to enable [animations](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animations)
+ * and [transitions](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Transitions) between a
+ * `<length-percentage>` value and an `intrinsic size`, `fit-content`, or `max-content`.
+ *
+ * Initial: numeric-only. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: numeric-only | allow-keywords
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-values-5/#propdef-interpolate-size
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/interpolate-size
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.InterpolateSize.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained interpolate-size value.
+ * Enables [interpolation](https://developer.mozilla.org/en-US/docs/Glossary/Interpolation) between
+ * a `length-percentage` value and an intrinsic size value, to allow animation between the two.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type AllowKeywords = Atom["allow-keywords"].
 
 /**
- * Include this property in an application style struct.
+ * The default behavior — intrinsic size values cannot be interpolated.
  */
+pub type NumericOnly = Atom["numeric-only"].
+
+pub type Css = NumericOnly | AllowKeywords | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     interpolate_size: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     interpolate_size: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword allow-keywords.
+ * Selects a keyword for interpolate-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub allow_keywords(): Value ->
-    Value(Token {property: "interpolate-size", css: "allow-keywords"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "interpolate-size", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "interpolate-size", css: "initial"}).
-
-/**
- * Returns the CSS keyword numeric-only.
- */
-pub numeric_only(): Value ->
-    Value(Token {property: "interpolate-size", css: "numeric-only"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "interpolate-size", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "interpolate-size", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "interpolate-size", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("interpolate-size", Atom.to_string(css))).

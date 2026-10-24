@@ -1,69 +1,54 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeProperty
+ * The `stroke` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the color
+ * or SVG paint server used to draw an element's stroke. As such, `stroke` only has an effect on
+ * elements that can be given a stroke (for example, `rect` or `ellipse`); see the page on the SVG
+ * `stroke` attribute for a complete list. When declared, the CSS value overrides any value of the
+ * element's `stroke` SVG attribute.
+ *
+ * Initial: stroke-dasharray: none; stroke-dashoffset: 0; stroke-linecap: butt; stroke-linejoin:
+ * miter; stroke-miterlimit: 4; stroke-opacity: 1; stroke-width: 1px. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: <paint>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeProperty
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Stroke.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained stroke value.
+ * No paint is applied in this layer.
  */
-pub opaque type Value = Token.
+pub type None.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = None | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     stroke: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     stroke: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for stroke. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+ * apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "stroke", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "stroke", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "stroke", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "stroke", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "stroke", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "stroke", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("stroke", Atom.to_string(css))).

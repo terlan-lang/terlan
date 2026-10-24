@@ -1,10 +1,12 @@
 module=std.css.properties.FlexLineCount
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17007005133017933066
-interface_hash=8496577506723559838
-interface_doc_hash=11536978638860641574
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4408827609928825842
+interface_hash=3202994401644637230
+interface_doc_hash=7771899086084874155
+deps=4
+std.core.Atom=12311707212014243410
 std.core.Int=6981787512204747997
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

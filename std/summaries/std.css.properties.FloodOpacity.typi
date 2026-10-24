@@ -1,52 +1,48 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/filter-effects-1/#propdef-flood-opacity
+//! The `flood-opacity` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! opacity of the current filter primitive subregion in `feFlood` and `feDropShadow` elements within
+//! a `filter`. If present, it overrides the element's `flood-opacity` attribute.
+//!
+//! Initial: black. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <'opacity'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/filter-effects-1/#propdef-flood-opacity
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flood-opacity
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FloodOpacity.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     flood_opacity: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     flood_opacity: Value
 }.
 
-/// A nominal, specification-constrained flood-opacity value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a flood-opacity value from a typed number.
+/// Sets flood-opacity from a typed number.
 
 pub number(value: Float): Value.
 
-/// Constructs a flood-opacity value from a typed percentage.
+/// Sets flood-opacity from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for flood-opacity. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

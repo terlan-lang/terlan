@@ -1,120 +1,95 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ui-4/#propdef-interest-delay
+ * The `interest-delay` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+ * the delay between the user showing interest in an [interest
+ * invoker](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using_interest_invokers)
+ * element and the `interest` event firing, and the delay between the user losing interest and the
+ * `loseinterest` event firing.
+ *
+ * Initial: interest-delay-start: normal; interest-delay-end: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: <'interest-delay-start'>{1,2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-interest-delay
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/interest-delay
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.InterestDelay.
 
+import std.core.Atom.
 import std.css.Values.
-import std.css.Values.{time_css}.
+import std.css.Values.{serialize, time_css}.
 
 import type std.core.Option.
-import type std.css.Values.{Time}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
 
 /**
- * A nominal, specification-constrained interest-delay value.
+ * Sets the delay to the browser's default delay. This is the initial value.
  */
-pub opaque type Value = Token.
+pub type Normal.
 
-/**
- * A single non-global interest-delay shorthand component.
- */
-pub opaque type Component = Token.
+pub type Css = Normal | Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type ComponentCss = Normal.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
+pub opaque type Component = SerializedValue.
+
 pub struct Property {
     interest_delay: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     interest_delay: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for interest-delay. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "interest-delay", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("interest-delay", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "interest-delay", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "interest-delay", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "interest-delay", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "interest-delay", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "interest-delay", css: "unset"}).
-
-/**
- * Constructs a interest-delay value from a typed time.
+ * Sets interest-delay from a typed time.
  */
 pub time(value: Time): Value ->
-    Value(Token {property: "interest-delay", css: time_css(value)}).
+    Value(serialize("interest-delay", time_css(value))).
 
 /**
- * Constructs one interest-delay shorthand component.
+ * Chooses one interest-delay shorthand component. CSS-wide keywords are accepted only by value(css)
+ * for the whole declaration.
  */
-pub component_normal(): Component ->
-    Component(Token {property: "interest-delay", css: "normal"}).
+pub component(css: ComponentCss): Component ->
+    Component(serialize("interest-delay", Atom.to_string(css))).
 
 /**
- * Constructs a interest-delay value from a typed time.
+ * Sets interest-delay shorthand component from a typed time.
  */
 pub component_time(value: Time): Component ->
-    Component(Token {property: "interest-delay", css: time_css(value)}).
+    Component(serialize("interest-delay", time_css(value))).
 
-/**
- * Serializes a library-owned shorthand component.
- */
 component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
+    let serialized = component_value(value);
+    serialized.css.
 
-component_token(value: Component): Token ->
+component_value(value: Component): SerializedValue ->
     value.
 
 /**
- * Combines 1 typed components in specification order.
+ * Supplies 1 components in the grammar order shown above.
  */
 pub single(first: Component): Value ->
-    Value(Token {property: "interest-delay", css: component_css(first)}).
+    Value(serialize("interest-delay", component_css(first))).
 
 /**
- * Combines 2 typed components in specification order.
+ * Supplies 2 components in the grammar order shown above.
  */
 pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {property: "interest-delay", css: component_css(first) + " " + component_css(second)},
-    ).
+    Value(serialize("interest-delay", component_css(first) + " " + component_css(second))).

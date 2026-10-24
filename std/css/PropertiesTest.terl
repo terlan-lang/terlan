@@ -2,6 +2,9 @@ module std.css.PropertiesTest.
 
 import std.core.Option.{None, Some}.
 import std.css.Values.
+import std.css.Values.{Inherit}.
+import std.css.properties.Margin.{Auto as MarginAuto}.
+import std.css.properties.Width.{Auto as WidthAuto}.
 import std.css.properties.{Border, Gap, Height, Margin, MarginLeft, Padding, Width}.
 import std.test.Test.{assert_equal}.
 
@@ -38,7 +41,7 @@ pub a_single_component_preserves_the_existing_property_value(): Bool ->
     Margin.single(Margin.component_length(Values.px(-10.0))),
     Margin.length(Values.px(-10.0)),
 )
-        and assert_equal(Margin.single(Margin.component_auto()), Margin.auto()).
+        and assert_equal(Margin.single(Margin.component(MarginAuto)), Margin.value(MarginAuto)).
 
 @test
 pub border_width_parts_reject_negative_lengths(): Bool ->
@@ -47,3 +50,7 @@ pub border_width_parts_reject_negative_lengths(): Bool ->
     Some(_) -> true;
     None -> false
 }.
+
+@test
+pub keyword_enums_accept_property_and_css_wide_choices(): Bool ->
+    Width.value(WidthAuto) != Width.value(Inherit).

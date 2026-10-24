@@ -1,93 +1,85 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-4/#propdef-white-space-collapse
+ * The `white-space-collapse` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * controls how `white space` inside an element is collapsed.
+ *
+ * Initial: collapse. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: collapse | discard | preserve | preserve-breaks | preserve-spaces | break-spaces
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-white-space-collapse
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space-collapse
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.WhiteSpaceCollapse.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained white-space-collapse value.
+ * The behavior is identical to `preserve`, except that: - Any sequence of preserved white space
+ * always takes up space, including at the end of the line. - A line-breaking opportunity exists
+ * after every preserved white space character, including between white space characters. -
+ * Preserved spaces take up space and do not hang, thus affecting the box's intrinsic sizes
+ * (`min-content` size and `max-content` size).
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type BreakSpaces = Atom["break-spaces"].
 
 /**
- * Include this property in an application style struct.
+ * White space sequences are
+ * [collapsed](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#collapsing_and_transformation).
  */
+pub type Collapse.
+
+/**
+ * White space sequences and segment break characters are preserved.
+ */
+pub type Preserve.
+
+/**
+ * White space sequences are collapsed, while segment break characters are preserved.
+ */
+pub type PreserveBreaks = Atom["preserve-breaks"].
+
+/**
+ * White space sequences are preserved, while tabs and segment break characters are converted to
+ * spaces.
+ */
+pub type PreserveSpaces = Atom["preserve-spaces"].
+
+pub type Css =
+      Collapse
+    | Preserve
+    | PreserveBreaks
+    | PreserveSpaces
+    | BreakSpaces
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     white_space_collapse: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     white_space_collapse: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword break-spaces.
+ * Selects a keyword for white-space-collapse. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub break_spaces(): Value ->
-    Value(Token {property: "white-space-collapse", css: "break-spaces"}).
-
-/**
- * Returns the CSS keyword collapse.
- */
-pub collapse(): Value ->
-    Value(Token {property: "white-space-collapse", css: "collapse"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "white-space-collapse", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "white-space-collapse", css: "initial"}).
-
-/**
- * Returns the CSS keyword preserve.
- */
-pub preserve(): Value ->
-    Value(Token {property: "white-space-collapse", css: "preserve"}).
-
-/**
- * Returns the CSS keyword preserve-breaks.
- */
-pub preserve_breaks(): Value ->
-    Value(Token {property: "white-space-collapse", css: "preserve-breaks"}).
-
-/**
- * Returns the CSS keyword preserve-spaces.
- */
-pub preserve_spaces(): Value ->
-    Value(Token {property: "white-space-collapse", css: "preserve-spaces"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "white-space-collapse", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "white-space-collapse", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "white-space-collapse", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("white-space-collapse", Atom.to_string(css))).

@@ -1,56 +1,63 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-hyphens
+//! The `hyphens` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies how
+//! words should be hyphenated when text wraps across multiple lines.
+//!
+//! Initial: manual. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | manual | auto
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-hyphens
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/hyphens
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Hyphens.
 
-/// Include an optional declaration in a shared style block.
+/// The browser is free to automatically break words at appropriate hyphenation points, following
+/// whatever rules it chooses. However, suggested line break opportunities (see [Suggesting line
+/// break opportunities](#suggesting_line_break_opportunities) below) will override automatic break
+/// point selection when present.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    None
+  | Manual
+  | Auto
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Default value. Words are broken for line-wrapping only where characters inside the word suggest
+/// line break opportunities. See [Suggesting line break
+/// opportunities](#suggesting_line_break_opportunities) below for details.
+
+pub type Manual =
+    Atom["manual"].
+
+/// Words are not broken at line breaks, even if characters inside the words suggest line break
+/// points. Lines will only wrap at whitespace.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     hyphens: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     hyphens: Value
 }.
 
-/// A nominal, specification-constrained hyphens value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for hyphens. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword manual.
-
-pub manual(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

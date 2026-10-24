@@ -1,52 +1,52 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css2/#propdef-z-index
+//! The `z-index` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the z-order
+//! of a [positioned](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position)
+//! element and its descendants or flex and grid items. Overlapping elements with a larger z-index
+//! cover those with a smaller one.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | <integer> | inherit
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css2/#propdef-z-index
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/z-index
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ZIndex.
 
-/// Include an optional declaration in a shared style block.
+/// The box does not establish a new local stacking context. The stack level of the generated box in
+/// the current stacking context is `0`.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     z_index: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     z_index: Value
 }.
 
-/// A nominal, specification-constrained z-index value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a z-index value from a typed integer.
+/// Sets z-index from a typed integer.
 
 pub integer(value: Int): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for z-index. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

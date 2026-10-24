@@ -1,63 +1,45 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-shapes-1/#propdef-shape-image-threshold
+ * The `shape-image-threshold` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * the alpha channel threshold used to extract the shape using an image as the value for
+ * `shape-outside`.
+ *
+ * Initial: 0.0. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <opacity-value>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-shapes-1/#propdef-shape-image-threshold
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/shape-image-threshold
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ShapeImageThreshold.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained shape-image-threshold value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     shape_image_threshold: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     shape_image_threshold: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for shape-image-threshold. CSS-wide choices Inherit, Initial, Unset, Revert,
+ * and RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "shape-image-threshold", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "shape-image-threshold", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "shape-image-threshold", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "shape-image-threshold", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "shape-image-threshold", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("shape-image-threshold", Atom.to_string(css))).

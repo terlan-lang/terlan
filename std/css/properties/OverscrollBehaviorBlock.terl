@@ -1,87 +1,68 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior-block
+ * The `overscroll-behavior-block` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * sets the browser's behavior when the block direction boundary of a scrolling area is reached.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: contain | none | auto | chain
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior-block
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overscroll-behavior-block
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.OverscrollBehaviorBlock.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained overscroll-behavior-block value.
+ * Allows the default behavior at a scroll boundary. Scrolling may continue in another scroll
+ * container.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Auto.
 
 /**
- * Include this property in an application style struct.
+ * Allows scrolling to continue outside the scroll container, but prevents overscroll "bounce"
+ * effects.
  */
+pub type Chain.
+
+/**
+ * Prevents scrolling from continuing outside the scroll container. "Bounce" effects may still
+ * occur.
+ */
+pub type Contain.
+
+/**
+ * Prevents scrolling from continuing outside the scroll container and also prevents overscroll
+ * "bounce" effects.
+ */
+pub type None.
+
+pub type Css = Contain | None | Auto | Chain | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     overscroll_behavior_block: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     overscroll_behavior_block: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for overscroll-behavior-block. CSS-wide choices Inherit, Initial, Unset,
+ * Revert, and RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "overscroll-behavior-block", css: "auto"}).
-
-/**
- * Returns the CSS keyword chain.
- */
-pub chain(): Value ->
-    Value(Token {property: "overscroll-behavior-block", css: "chain"}).
-
-/**
- * Returns the CSS keyword contain.
- */
-pub contain(): Value ->
-    Value(Token {property: "overscroll-behavior-block", css: "contain"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "overscroll-behavior-block", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "overscroll-behavior-block", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "overscroll-behavior-block", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "overscroll-behavior-block", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "overscroll-behavior-block", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "overscroll-behavior-block", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("overscroll-behavior-block", Atom.to_string(css))).

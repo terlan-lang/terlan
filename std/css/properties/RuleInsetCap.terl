@@ -1,69 +1,49 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-inset-cap
+ * The `rule-inset-cap` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property can be used to offset the column and row rule segment [cap
+ * endpoints](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-inset-cap#understanding_cap_endpoints)
+ * to the same value.
+ *
  * Grammar: <'column-rule-inset-cap'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-inset-cap
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/rule-inset-cap
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.RuleInsetCap.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained rule-inset-cap value.
+ * Resolves to `0`.
  */
-pub opaque type Value = Token.
+pub type OverlapJoin = Atom["overlap-join"].
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = OverlapJoin | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     rule_inset_cap: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     rule_inset_cap: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for rule-inset-cap. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "rule-inset-cap", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "rule-inset-cap", css: "initial"}).
-
-/**
- * Returns the CSS keyword overlap-join.
- */
-pub overlap_join(): Value ->
-    Value(Token {property: "rule-inset-cap", css: "overlap-join"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "rule-inset-cap", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "rule-inset-cap", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "rule-inset-cap", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("rule-inset-cap", Atom.to_string(css))).

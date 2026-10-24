@@ -1,135 +1,145 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `align-self` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property overrides a
+ * grid or flex item's `align-items` value. In grid, it aligns the item inside the `grid area`. In
+ * flexbox, it aligns the item on the `cross axis`.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Grammar: auto | <overflow-position>? [ normal | <self-position> ]| stretch | <baseline-position>
+ * | anchor-center
+ *
  * Specification: https://drafts.csswg.org/css-align-3/#propdef-align-self
- * Grammar: auto | <overflow-position>? [ normal | <self-position> ]| stretch | <baseline-position> | anchor-center
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-self
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.AlignSelf.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained align-self value.
+ * In the case of
+ * [anchor-positioned](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Anchor_positioning)
+ * elements, aligns the item to the center of the associated anchor element in the block direction.
+ * See [Centering on the anchor using
+ * `anchor-center`](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Anchor_positioning/Using#centering_on_the_anchor_using_anchor-center).
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type AnchorCenter = Atom["anchor-center"].
 
 /**
- * Include this property in an application style struct.
+ * Computes to the parent's `align-items` value.
  */
+pub type Auto.
+
+/**
+ * Specifies participation in first- or last-baseline alignment: aligns the alignment baseline of
+ * the box's first or last baseline set with the corresponding baseline in the shared first or last
+ * baseline set of all the boxes in its baseline-sharing group. The fallback alignment for `first
+ * baseline` is `start`, the one for `last baseline` is `end`.
+ */
+pub type Baseline.
+
+/**
+ * The flex item's margin box is centered within the line on the cross-axis. If the cross-size of
+ * the item is larger than the flex container, it will overflow equally in both directions.
+ */
+pub type Center.
+
+/**
+ * Aligns the alignment subject flush with the alignment container's end edge.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/self-position
+ */
+pub type End.
+
+/**
+ * The cross-end margin edge of the flex item is flushed with the cross-end edge of the line.
+ */
+pub type FlexEnd = Atom["flex-end"].
+
+/**
+ * The cross-start margin edge of the flex item is flushed with the cross-start edge of the line.
+ */
+pub type FlexStart = Atom["flex-start"].
+
+/**
+ * The effect of this keyword is dependent of the layout mode we are in: - In absolutely-positioned
+ * layouts, the keyword behaves like `start` on _replaced_ absolutely-positioned boxes, and as
+ * `stretch` on _all other_ absolutely-positioned boxes. - In static position of
+ * absolutely-positioned layouts, the keyword behaves as `stretch`. - For flex items, the keyword
+ * behaves as `stretch`. - For grid items, this keyword leads to a behavior similar to the one of
+ * `stretch`, except for boxes with an `aspect ratio` or an intrinsic size where it behaves like
+ * `start`. - The property doesn't apply to block-level boxes, and to table cells.
+ */
+pub type Normal.
+
+/**
+ * Aligns the items to be flush with the edge of the alignment container corresponding to the item's
+ * end side in the cross axis.
+ */
+pub type SelfEnd = Atom["self-end"].
+
+/**
+ * Aligns the items to be flush with the edge of the alignment container corresponding to the item's
+ * start side in the cross axis.
+ */
+pub type SelfStart = Atom["self-start"].
+
+/**
+ * Aligns the alignment subject flush with the alignment container's start edge.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/self-position
+ */
+pub type Start.
+
+/**
+ * If the item's cross-size is `auto`, the used size is set to the length necessary to be as close
+ * to filling the container as possible, respecting the item's width and height limits. If the item
+ * is not auto-sized, this value falls back to `flex-start`, and to `self-start` or `self-end` if
+ * the container's `align-content` is `first baseline` (or `baseline`) or `last baseline`.
+ */
+pub type Stretch.
+
+pub type Css =
+      Auto
+    | Normal
+    | Center
+    | Start
+    | End
+    | SelfStart
+    | SelfEnd
+    | FlexStart
+    | FlexEnd
+    | Stretch
+    | Baseline
+    | AnchorCenter
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     align_self: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     align_self: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword anchor-center.
+ * Selects a keyword for align-self. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub anchor_center(): Value ->
-    Value(Token {property: "align-self", css: "anchor-center"}).
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "align-self", css: "auto"}).
-
-/**
- * Returns the CSS keyword baseline.
- */
-pub baseline(): Value ->
-    Value(Token {property: "align-self", css: "baseline"}).
-
-/**
- * Returns the CSS keyword center.
- */
-pub center(): Value ->
-    Value(Token {property: "align-self", css: "center"}).
-
-/**
- * Returns the CSS keyword end.
- */
-pub end_value(): Value ->
-    Value(Token {property: "align-self", css: "end"}).
-
-/**
- * Returns the CSS keyword flex-end.
- */
-pub flex_end(): Value ->
-    Value(Token {property: "align-self", css: "flex-end"}).
-
-/**
- * Returns the CSS keyword flex-start.
- */
-pub flex_start(): Value ->
-    Value(Token {property: "align-self", css: "flex-start"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "align-self", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "align-self", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "align-self", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "align-self", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "align-self", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword self-end.
- */
-pub self_end(): Value ->
-    Value(Token {property: "align-self", css: "self-end"}).
-
-/**
- * Returns the CSS keyword self-start.
- */
-pub self_start(): Value ->
-    Value(Token {property: "align-self", css: "self-start"}).
-
-/**
- * Returns the CSS keyword start.
- */
-pub start(): Value ->
-    Value(Token {property: "align-self", css: "start"}).
-
-/**
- * Returns the CSS keyword stretch.
- */
-pub stretch(): Value ->
-    Value(Token {property: "align-self", css: "stretch"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "align-self", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("align-self", Atom.to_string(css))).

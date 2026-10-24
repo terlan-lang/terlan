@@ -1,9 +1,11 @@
 module=std.css.properties.MarginTrim
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=9711256310335767270
-interface_hash=2589126650322960598
-interface_doc_hash=5964724236748600883
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=180930576956849096
+interface_hash=14053636637220564642
+interface_doc_hash=17304323641454446129
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

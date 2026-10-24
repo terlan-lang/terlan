@@ -1,64 +1,74 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css2/#propdef-page-break-before
+//! The `page-break-before` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property adjusts
+//! page breaks _before_ the current element.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | always | avoid | left | right | inherit
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css2/#propdef-page-break-before
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/page-break-before
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PageBreakBefore.
 
-/// Include an optional declaration in a shared style block.
+/// Always force page breaks before the element.
+
+pub type Always =
+    Atom["always"].
+
+/// Initial value. Automatic page breaks (neither forced nor forbidden).
+
+pub type Auto =
+    Atom["auto"].
+
+/// Avoid page breaks before the element.
+
+pub type Avoid =
+    Atom["avoid"].
+
+pub type Css =
+    Auto
+  | Always
+  | Avoid
+  | Left
+  | Right
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Force page breaks before the element so that the next page is formatted as a left page. It's the
+/// page placed on the left side of the spine of the book or the back side of the page in duplex
+/// printing.
+
+pub type Left =
+    Atom["left"].
 
 pub struct OptionalProperty {
     page_break_before: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     page_break_before: Value
 }.
 
-/// A nominal, specification-constrained page-break-before value.
+/// Force page breaks before the element so that the next page is formatted as a right page. It's the
+/// page placed on the right side of the spine of the book or the front side of the page in duplex
+/// printing.
+
+pub type Right =
+    Atom["right"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword always.
+/// Selects a keyword for page-break-before. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub always(): Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword avoid.
-
-pub avoid(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

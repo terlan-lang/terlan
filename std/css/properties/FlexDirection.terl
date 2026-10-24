@@ -1,87 +1,77 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-direction
+ * The `flex-direction` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how
+ * flex items are placed in the flex container defining the main axis and the direction (normal or
+ * reversed).
+ *
+ * Initial: row. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: row | row-reverse | column | column-reverse
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-direction
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-direction
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FlexDirection.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained flex-direction value.
+ * Specifies the flex container's main-axis to be the same as the block-axis.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Column.
 
 /**
- * Include this property in an application style struct.
+ * Behaves the same as `column` but specifies the content direction to be inverted, with the first
+ * item placed at the block-end edge.
  */
+pub type ColumnReverse = Atom["column-reverse"].
+
+/**
+ * Specifies the flex container's main-axis to be the same as the text direction. This is the
+ * default value.
+ */
+pub type Row.
+
+/**
+ * Behaves the same as `row` but specifies the content direction to be inverted, with the first item
+ * placed at the inline-end edge.
+ */
+pub type RowReverse = Atom["row-reverse"].
+
+pub type Css =
+      Row
+    | RowReverse
+    | Column
+    | ColumnReverse
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     flex_direction: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     flex_direction: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword column.
+ * Selects a keyword for flex-direction. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub column(): Value ->
-    Value(Token {property: "flex-direction", css: "column"}).
-
-/**
- * Returns the CSS keyword column-reverse.
- */
-pub column_reverse(): Value ->
-    Value(Token {property: "flex-direction", css: "column-reverse"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "flex-direction", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "flex-direction", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "flex-direction", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "flex-direction", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword row.
- */
-pub row(): Value ->
-    Value(Token {property: "flex-direction", css: "row"}).
-
-/**
- * Returns the CSS keyword row-reverse.
- */
-pub row_reverse(): Value ->
-    Value(Token {property: "flex-direction", css: "row-reverse"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "flex-direction", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("flex-direction", Atom.to_string(css))).

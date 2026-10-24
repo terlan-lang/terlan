@@ -1,56 +1,64 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-palette
+//! The `font-palette` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows
+//! specifying one of the many palettes contained in a [color font](https://www.colorfonts.wtf/) that
+//! a user agent may use for the font. Users can also override the values in a palette or create a
+//! new palette by using the `@font-palette-values` at-rule.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | light | dark | <palette-identifier> | <palette-mix()>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-palette
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-palette
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontPalette.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Normal
+  | Light
+  | Dark
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Specifies the first palette in the font that matches 'dark' to be used for the font. Some fonts
+/// contain metadata that identify a palette as applicable for a dark (close to black) background. If
+/// a font does not have this metadata, the value behaves as `normal`.
+
+pub type Dark =
+    Atom["dark"].
+
+/// Specifies the first palette in the font that matches 'light' to be used for the font. Some fonts
+/// contain metadata that identify a palette as applicable for a light (close to white) background.
+/// If a font does not have this metadata, the `light` value behaves as `normal`.
+
+pub type Light =
+    Atom["light"].
+
+/// Specifies the default color palette or the default glyph colorization (set by the font maker) to
+/// be used for the font. With this setting, the palette in the font at index 0 is rendered.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     font_palette: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     font_palette: Value
 }.
 
-/// A nominal, specification-constrained font-palette value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword dark.
+/// Selects a keyword for font-palette. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub dark(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword light.
-
-pub light(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

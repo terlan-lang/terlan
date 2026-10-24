@@ -1,52 +1,51 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/mathml-core/#propdef-math-style
+//! The `math-style` property indicates whether MathML equations should render with normal or compact
+//! height.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | compact
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/mathml-core/#propdef-math-style
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/math-style
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MathStyle.
 
-/// Include an optional declaration in a shared style block.
+/// The math layout on descendants tries to minimize the logical height.
+
+pub type Compact =
+    Atom["compact"].
+
+pub type Css =
+    Normal
+  | Compact
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The initial value, indicates normal rendering.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     math_style: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     math_style: Value
 }.
 
-/// A nominal, specification-constrained math-style value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword compact.
+/// Selects a keyword for math-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub compact(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

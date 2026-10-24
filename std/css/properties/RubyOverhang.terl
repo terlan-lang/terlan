@@ -1,75 +1,54 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-overhang
+ * The `ruby-overhang` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+ * whether or not a `ruby` annotation overhangs any surrounding text.
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | spaces
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-overhang
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/ruby-overhang
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.RubyOverhang.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained ruby-overhang value.
+ * When a ruby annotation container is longer than its corresponding base container, the annotation
+ * may partially overlap adjacent text. Whether, and how much to overhang are determined by the user
+ * agent.
  */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Spaces.
 
-/**
- * Include this property in an application style struct.
- */
+pub type Css = Auto | Spaces | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     ruby_overhang: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     ruby_overhang: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for ruby-overhang. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "ruby-overhang", css: "auto"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "ruby-overhang", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "ruby-overhang", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "ruby-overhang", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "ruby-overhang", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword spaces.
- */
-pub spaces(): Value ->
-    Value(Token {property: "ruby-overhang", css: "spaces"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "ruby-overhang", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("ruby-overhang", Atom.to_string(css))).

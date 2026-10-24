@@ -1,83 +1,59 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-sizing-3/#column-sizing
+ * The `column-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * ideal column width in a multi-column layout.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | <box-size> | auto | <box-size>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-sizing-3/#column-sizing
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-width
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ColumnWidth.
 
-import std.core.Option.{None, Some}.
+import std.core.Atom.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained column-width value.
+ * The width of the column is determined by other CSS properties, such as `column-count`.
  */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     column_width: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     column_width: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for column-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "column-width", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("column-width", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "column-width", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "column-width", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "column-width", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "column-width", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "column-width", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a column-width value.
+ * Sets column-width from a typed length. Returns Some for amount >= 0; otherwise returns None.
  */
 pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "column-width", css: std.css.Values.length_css(value)}));
-        false -> None
+    case length_amount(value) >= 0 {
+        true -> Some(Value(serialize("column-width", length_css(value))));
+        false -> Absent
     }.

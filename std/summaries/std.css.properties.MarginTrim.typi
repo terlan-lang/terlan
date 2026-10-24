@@ -1,60 +1,64 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-box-4/#propdef-margin-trim
+//! The `margin-trim` property allows the container to trim the margins of its children where they
+//! adjoin the container's edges.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | block | [ block-start || block-end ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-box-4/#propdef-margin-trim
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-trim
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MarginTrim.
 
-/// Include an optional declaration in a shared style block.
+/// Margins provided to the block children where they adjoin the container's edges are trimmed to
+/// zero without affecting the margins provided to the container.
+
+pub type Block =
+    Atom["block"].
+
+/// Margin of last block child with the container's edge is trimmed to zero.
+
+pub type BlockEnd =
+    Atom["block-end"].
+
+/// Margin of the first block child with the container's edge is trimmed to zero.
+
+pub type BlockStart =
+    Atom["block-start"].
+
+pub type Css =
+    None
+  | Block
+  | BlockStart
+  | BlockEnd
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Margins are not trimmed by the container.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     margin_trim: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     margin_trim: Value
 }.
 
-/// A nominal, specification-constrained margin-trim value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword block.
+/// Selects a keyword for margin-trim. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub block(): Value.
-
-/// Returns the CSS keyword block-end.
-
-pub block_end(): Value.
-
-/// Returns the CSS keyword block-start.
-
-pub block_start(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

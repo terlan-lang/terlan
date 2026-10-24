@@ -1,99 +1,81 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
+ * The `font-weight` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * weight (or boldness) of the font. The weights available depend on the `font-family` that is
+ * currently set.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: <font-weight-absolute> | bolder | lighter
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-weight
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontWeight.
 
-import std.core.Float.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
+import std.core.{Atom, Float}.
+import std.css.Values.{serialize}.
 
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained font-weight value.
+ * Bold font weight. Same as `700`.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Bold.
 
 /**
- * Include this property in an application style struct.
+ * One relative font weight heavier than the parent element. Note that only four font weights are
+ * considered for relative weight calculation; see the [Meaning of relative
+ * weights](#meaning_of_relative_weights) section below.
  */
+pub type Bolder.
+
+/**
+ * One relative font weight lighter than the parent element. Note that only four font weights are
+ * considered for relative weight calculation; see the [Meaning of relative
+ * weights](#meaning_of_relative_weights) section below.
+ */
+pub type Lighter.
+
+/**
+ * Normal font weight. Same as `400`.
+ */
+pub type Normal.
+
+pub type Css = Normal | Bold | Bolder | Lighter | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     font_weight: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     font_weight: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword bold.
+ * Selects a keyword for font-weight. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub bold(): Value ->
-    Value(Token {property: "font-weight", css: "bold"}).
+pub value(css: Css): Value ->
+    Value(serialize("font-weight", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword bolder.
- */
-pub bolder(): Value ->
-    Value(Token {property: "font-weight", css: "bolder"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-weight", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-weight", css: "initial"}).
-
-/**
- * Returns the CSS keyword lighter.
- */
-pub lighter(): Value ->
-    Value(Token {property: "font-weight", css: "lighter"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "font-weight", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-weight", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-weight", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-weight", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a font-weight value.
+ * Sets font-weight from a typed number. Returns Some for amount >= 1 and amount <= 1000; otherwise
+ * returns None.
  */
 pub number(value: Float): Option[Value] ->
     case value >= 1 and value <= 1000 {
-        true -> Some(Value(Token {property: "font-weight", css: std.core.Float.to_string(value)}));
-        false -> None
+        true -> Some(Value(serialize("font-weight", std.core.Float.to_string(value))));
+        false -> Absent
     }.

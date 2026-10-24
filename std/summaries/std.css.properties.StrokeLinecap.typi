@@ -1,56 +1,66 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-linecap
+//! The `stroke-linecap` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! shape to be used at the end of open subpaths of
+//! [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) elements' unclosed strokes. If present,
+//! it overrides the element's `stroke-linecap` attribute.
+//!
+//! Initial: butt. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: butt | round | square
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-linecap
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-linecap
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.StrokeLinecap.
 
-/// Include an optional declaration in a shared style block.
+/// Indicates that the stroke for each subpath does not extend beyond its two endpoints. On a
+/// zero-length subpath, the path will not be rendered at all. This is the default value.
+
+pub type Butt =
+    Atom["butt"].
+
+pub type Css =
+    Butt
+  | Round
+  | Square
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     stroke_linecap: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     stroke_linecap: Value
 }.
 
-/// A nominal, specification-constrained stroke-linecap value.
+/// Indicates that at the end of each subpath the stroke will be extended by a half circle with a
+/// diameter equal to the stroke width. On a zero-length subpath, the stroke consists of a full
+/// circle centered at the subpath's point.
+
+pub type Round =
+    Atom["round"].
+
+/// Indicates that at the end of each subpath the stroke will be extended by a rectangle with a width
+/// equal to half the width of the stroke and a height equal to the width of the stroke. On a
+/// zero-length subpath, the stroke consists of a square with its width equal to the stroke width,
+/// centered at the subpath's point.
+
+pub type Square =
+    Atom["square"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword butt.
+/// Selects a keyword for stroke-linecap. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub butt(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword round.
-
-pub round(): Value.
-
-/// Returns the CSS keyword square.
-
-pub square(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

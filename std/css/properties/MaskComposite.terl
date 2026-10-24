@@ -1,87 +1,77 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-composite
+ * The `mask-composite` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property represents
+ * a compositing operation used on the current mask layer with the mask layers below it.
+ *
+ * Initial: add. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <compositing-operator>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-composite
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-composite
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskComposite.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained mask-composite value.
+ * The associated mask image is placed over all mask layers below it (with the corresponding
+ * compositing operators applied). This is the default value.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Add.
 
 /**
- * Include this property in an application style struct.
+ * The non-overlapping regions of the associated mask image and the mask layers below it, with their
+ * corresponding compositing operators applied, are combined.
  */
+pub type Exclude.
+
+/**
+ * The parts of the associated mask image that overlap all composited mask layers below it replace
+ * those previously composited layers.
+ */
+pub type Intersect.
+
+/**
+ * The associated mask image is placed, where it falls outside of all mask layers below it (with the
+ * corresponding compositing operators applied).
+ */
+pub type Subtract.
+
+pub type Css =
+      Add
+    | Subtract
+    | Intersect
+    | Exclude
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     mask_composite: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     mask_composite: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword add.
+ * Selects a keyword for mask-composite. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub add(): Value ->
-    Value(Token {property: "mask-composite", css: "add"}).
-
-/**
- * Returns the CSS keyword exclude.
- */
-pub exclude(): Value ->
-    Value(Token {property: "mask-composite", css: "exclude"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "mask-composite", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask-composite", css: "initial"}).
-
-/**
- * Returns the CSS keyword intersect.
- */
-pub intersect(): Value ->
-    Value(Token {property: "mask-composite", css: "intersect"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-composite", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-composite", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword subtract.
- */
-pub subtract(): Value ->
-    Value(Token {property: "mask-composite", css: "subtract"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-composite", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("mask-composite", Atom.to_string(css))).

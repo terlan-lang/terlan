@@ -1,10 +1,11 @@
 module=std.css.properties.MarginRight
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14485660115886830709
-interface_hash=18202464094008315550
-interface_doc_hash=7156262593364356321
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1911831904277382434
+interface_hash=15444206494907986685
+interface_doc_hash=2618881100190974380
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

@@ -1,64 +1,73 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-word-break
+//! The `word-break` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether
+//! line breaks appear wherever the text would otherwise overflow its content box.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | break-all | keep-all | manual | auto-phrase | break-word
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-word-break
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/word-break
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WordBreak.
 
-/// Include an optional declaration in a shared style block.
+/// Has the same effect as `word-break: normal` except that language-specific analysis is performed
+/// to improve word breaks by not placing them in the middle of natural phrases.
+
+pub type AutoPhrase =
+    Atom["auto-phrase"].
+
+/// To prevent overflow, word breaks should be inserted between any two characters (excluding
+/// Chinese/Japanese/Korean text).
+
+pub type BreakAll =
+    Atom["break-all"].
+
+/// Has the same effect as `overflow-wrap: anywhere` combined with `word-break: normal`, regardless
+/// of the actual value of the `overflow-wrap` property.
+
+pub type BreakWord =
+    Atom["break-word"].
+
+pub type Css =
+    Normal
+  | BreakAll
+  | KeepAll
+  | AutoPhrase
+  | BreakWord
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Word breaks should not be used for Chinese/Japanese/Korean (CJK) text. Non-CJK text behavior is
+/// the same as for `normal`.
+
+pub type KeepAll =
+    Atom["keep-all"].
+
+/// Use the default line break rule.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     word_break: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     word_break: Value
 }.
 
-/// A nominal, specification-constrained word-break value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto-phrase.
+/// Selects a keyword for word-break. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto_phrase(): Value.
-
-/// Returns the CSS keyword break-all.
-
-pub break_all(): Value.
-
-/// Returns the CSS keyword break-word.
-
-pub break_word(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword keep-all.
-
-pub keep_all(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

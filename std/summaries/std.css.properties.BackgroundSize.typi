@@ -1,64 +1,74 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-size
+//! The `background-size` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+//! size of the element's background image. The image can be left to its natural size, stretched, or
+//! constrained to fit the available space.
+//!
+//! Initial: auto auto. Inherited: no.
+//! Percentages: relative to the background positioning area.
+//!
 //! Grammar: <bg-size>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-size
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/background-size
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BackgroundSize.
 
-/// Include an optional declaration in a shared style block.
+/// Scales the background image in the corresponding direction such that its intrinsic proportions
+/// are maintained.
+
+pub type Auto =
+    Atom["auto"].
+
+/// Scales the image as large as possible within its container without cropping or stretching the
+/// image. If the container is larger than the image, this will result in image tiling, unless the
+/// `background-repeat` property is set to `no-repeat`.
+
+pub type Contain =
+    Atom["contain"].
+
+/// Scales the image (while preserving its ratio) to the smallest possible size to fill the container
+/// (that is: both its height and width completely _cover_ the container), leaving no empty space. If
+/// the proportions of the background differ from the element, the image is cropped either vertically
+/// or horizontally.
+
+pub type Cover =
+    Atom["cover"].
+
+pub type Css =
+    Auto
+  | Cover
+  | Contain
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     background_size: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     background_size: Value
 }.
 
-/// A nominal, specification-constrained background-size value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword contain.
-
-pub contain(): Value.
-
-/// Returns the CSS keyword cover.
-
-pub cover(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a background-size value.
+/// Sets background-size from a typed length. Returns Some for amount >= 0; otherwise returns None.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Checks the specification range and constructs a background-size value.
+/// Sets background-size from a typed percentage. Returns Some for amount >= 0; otherwise returns
+/// None.
 
 pub percentage(value: std.css.Values.Percentage): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for background-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

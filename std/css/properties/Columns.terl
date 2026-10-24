@@ -1,92 +1,72 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-multicol-2/#propdef-columns
+ * The `columns` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets the maximum number of columns to use when drawing an element's contents, along with
+ * the minimum width and maximum height of the element's columns.
+ *
+ * Initial: column-width: auto; column-count: auto; column-height: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: [ <'column-width'> || <'column-count'> ] [ / <'column-height'> ]?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-multicol-2/#propdef-columns
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/columns
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Columns.
 
-import std.core.Int.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
+import std.core.{Atom, Int}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained columns value.
+ * The width depends on the values of other properties.
  */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     columns: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     columns: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for columns. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+ * apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "columns", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("columns", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "columns", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "columns", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "columns", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "columns", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "columns", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a columns value.
+ * Sets columns from a typed length. Returns Some for amount >= 0; otherwise returns None.
  */
 pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "columns", css: std.css.Values.length_css(value)}));
-        false -> None
+    case length_amount(value) >= 0 {
+        true -> Some(Value(serialize("columns", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a columns value.
+ * Sets columns from a typed integer. Returns Some for amount >= 1; otherwise returns None.
  */
 pub integer(value: Int): Option[Value] ->
     case value >= 1 {
-        true -> Some(Value(Token {property: "columns", css: std.core.Int.to_string(value)}));
-        false -> None
+        true -> Some(Value(serialize("columns", std.core.Int.to_string(value))));
+        false -> Absent
     }.

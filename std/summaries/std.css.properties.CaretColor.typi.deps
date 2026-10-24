@@ -1,10 +1,11 @@
 module=std.css.properties.CaretColor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16544268863667758251
-interface_hash=3186976826058785068
-interface_doc_hash=16093887227955913802
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=12740680765140526881
+interface_hash=4312403284376392846
+interface_doc_hash=1827300156629617503
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

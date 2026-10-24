@@ -1,129 +1,115 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-family
+ * The `font-family` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies a
+ * prioritized list of one or more font family names and/or generic family names for the selected
+ * element.
+ *
+ * Initial: dependsOnUserAgent. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: [ <font-family-name> | <generic-font-family> ]#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-family
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-family
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontFamily.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained font-family value.
+ * Glyphs in cursive fonts generally have either joining strokes or other cursive characteristics
+ * beyond those of italic typefaces. The glyphs are partially or completely connected, and the
+ * result looks more like handwritten pen or brush writing than printed letter work.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Cursive.
 
 /**
- * Include this property in an application style struct.
+ * Fantasy fonts are primarily decorative fonts that contain playful representations of characters.
  */
+pub type Fantasy.
+
+pub type Math.
+
+/**
+ * All glyphs have the same fixed width.
+ */
+pub type Monospace.
+
+/**
+ * Glyphs have stroke endings that are plain.
+ */
+pub type SansSerif = Atom["sans-serif"].
+
+pub type Serif.
+
+/**
+ * Glyphs are taken from the default user interface font on a given platform. Because typographic
+ * traditions vary widely across the world, this generic is provided for typefaces that don't map
+ * cleanly into the other generics. > [!NOTE] > As the name implies, `system-ui` is intended to make
+ * UI elements look like native apps, and not for typesetting large paragraphs of text. It may cause
+ * the displayed typeface to be undesirable for some users—for example, the default Windows CJK font
+ * may render Latin scripts poorly, and the `lang` attribute may not affect the displayed font. Some
+ * operating systems do not allow customizing `system-ui`, while browsers generally allow
+ * customizing the `sans-serif` font family. For large paragraphs, use `sans-serif` or some other
+ * non-UI font family instead. - `ui-serif` - : The default user interface serif font. -
+ * `ui-sans-serif` - : The default user interface sans-serif font. - `ui-monospace` - : The default
+ * user interface monospace font. - `ui-rounded` - : The default user interface font that has
+ * rounded features. - `math` - : Font that addresses the particular stylistic concerns of
+ * representing mathematics: superscript and subscript, brackets that cross several lines, nesting
+ * expressions, and double struck glyphs with distinct meanings. UA stylesheets may set `math {
+ * font-family: math }` so that the element uses appropriate fonts by default. - `fangsong` - : A
+ * particular style of Chinese characters that are between serif-style Song and cursive-style Kai
+ * forms. This style is often used for government documents.
+ */
+pub type SystemUi = Atom["system-ui"].
+
+pub type UiMonospace = Atom["ui-monospace"].
+
+pub type UiRounded = Atom["ui-rounded"].
+
+pub type UiSansSerif = Atom["ui-sans-serif"].
+
+pub type UiSerif = Atom["ui-serif"].
+
+pub type Css =
+      Serif
+    | SansSerif
+    | SystemUi
+    | Cursive
+    | Fantasy
+    | Math
+    | Monospace
+    | UiSerif
+    | UiSansSerif
+    | UiMonospace
+    | UiRounded
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     font_family: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     font_family: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword cursive.
+ * Selects a keyword for font-family. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub cursive(): Value ->
-    Value(Token {property: "font-family", css: "cursive"}).
-
-/**
- * Returns the CSS keyword fantasy.
- */
-pub fantasy(): Value ->
-    Value(Token {property: "font-family", css: "fantasy"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-family", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-family", css: "initial"}).
-
-/**
- * Returns the CSS keyword math.
- */
-pub math(): Value ->
-    Value(Token {property: "font-family", css: "math"}).
-
-/**
- * Returns the CSS keyword monospace.
- */
-pub monospace(): Value ->
-    Value(Token {property: "font-family", css: "monospace"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-family", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-family", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword sans-serif.
- */
-pub sans_serif(): Value ->
-    Value(Token {property: "font-family", css: "sans-serif"}).
-
-/**
- * Returns the CSS keyword serif.
- */
-pub serif(): Value ->
-    Value(Token {property: "font-family", css: "serif"}).
-
-/**
- * Returns the CSS keyword system-ui.
- */
-pub system_ui(): Value ->
-    Value(Token {property: "font-family", css: "system-ui"}).
-
-/**
- * Returns the CSS keyword ui-monospace.
- */
-pub ui_monospace(): Value ->
-    Value(Token {property: "font-family", css: "ui-monospace"}).
-
-/**
- * Returns the CSS keyword ui-rounded.
- */
-pub ui_rounded(): Value ->
-    Value(Token {property: "font-family", css: "ui-rounded"}).
-
-/**
- * Returns the CSS keyword ui-sans-serif.
- */
-pub ui_sans_serif(): Value ->
-    Value(Token {property: "font-family", css: "ui-sans-serif"}).
-
-/**
- * Returns the CSS keyword ui-serif.
- */
-pub ui_serif(): Value ->
-    Value(Token {property: "font-family", css: "ui-serif"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-family", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("font-family", Atom.to_string(css))).

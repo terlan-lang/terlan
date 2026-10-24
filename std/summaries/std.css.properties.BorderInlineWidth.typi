@@ -1,88 +1,98 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-inline-width
+//! The `border-inline-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! defines the width of the logical inline borders of an element, which maps to a physical border
+//! width depending on the element's writing mode, directionality, and text orientation. It
+//! corresponds to the `border-top-width` and `border-bottom-width`, or `border-left-width`, and
+//! `border-right-width` property depending on the values defined for `writing-mode`, `direction`,
+//! and `text-orientation`.
+//!
+//! Initial: border-inline-start-width: medium; border-inline-end-width: medium. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <'border-top-width'>{1,2}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-inline-width
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-inline-width
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderInlineWidth.
 
-/// A single non-global border-inline-width shorthand component.
-
 pub opaque type Component.
 
-/// Include an optional declaration in a shared style block.
+pub type ComponentCss =
+    Thin
+  | Medium
+  | Thick.
+
+pub type Css =
+    Thin
+  | Medium
+  | Thick
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Same as `3px`.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+
+pub type Medium =
+    Atom["medium"].
 
 pub struct OptionalProperty {
     border_inline_width: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     border_inline_width: Value
 }.
 
-/// A nominal, specification-constrained border-inline-width value.
+/// Same as `5px`.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+
+pub type Thick =
+    Atom["thick"].
+
+/// Same as `1px`.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+
+pub type Thin =
+    Atom["thin"].
 
 pub opaque type Value.
 
-/// Checks the specification range and constructs a border-inline-width value.
+/// Chooses one border-inline-width shorthand component. CSS-wide keywords are accepted only by
+/// value(css) for the whole declaration.
+
+pub component(css: ComponentCss): Component.
+
+/// Sets border-inline-width shorthand component from a typed length. Returns Some for amount >= 0;
+/// otherwise returns None.
 
 pub component_length(value: std.css.Values.Length): Option[Component].
 
-/// Constructs one border-inline-width shorthand component.
-
-pub component_medium(): Component.
-
-/// Constructs one border-inline-width shorthand component.
-
-pub component_thick(): Component.
-
-/// Constructs one border-inline-width shorthand component.
-
-pub component_thin(): Component.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a border-inline-width value.
+/// Sets border-inline-width from a typed length. Returns Some for amount >= 0; otherwise returns
+/// None.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Returns the CSS keyword medium.
-
-pub medium(): Value.
-
-/// Combines 2 typed components in specification order.
+/// Supplies 2 components in the grammar order shown above.
 
 pub pair(first: Component, second: Component): Value.
 
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
+/// Supplies 1 components in the grammar order shown above.
 
 pub single(first: Component): Value.
 
-/// Returns the CSS keyword thick.
+/// Selects a keyword for border-inline-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub thick(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

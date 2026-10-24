@@ -1,100 +1,138 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `break-before` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how
+//! page, column, or region breaks should behave before a generated box. If there is no generated
+//! box, the property is ignored.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
+//! Grammar: auto | avoid | always | all | avoid-page | page | left | right | recto | verso |
+//! avoid-column | column | avoid-region | region
+//!
 //! Specification: https://drafts.csswg.org/css-break-4/#propdef-break-before
-//! Grammar: auto | avoid | always | all | avoid-page | page | left | right | recto | verso | avoid-column | column | avoid-region | region
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/break-before
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BreakBefore.
 
-/// Include an optional declaration in a shared style block.
+/// Forces a page break right before the principal box. Breaking through all possible fragmentation
+/// contexts. So a break inside a multicol container, which was inside a page container would force a
+/// column and page break.
+
+pub type All =
+    Atom["all"].
+
+/// Forces a page break right before the principal box. The type of this break is that of the
+/// immediately-containing fragmentation context. If we are inside a multicol container then it would
+/// force a column break, inside paged media (but not inside a multicol container) a page break.
+
+pub type Always =
+    Atom["always"].
+
+/// Allows, but does not force, any break (page, column, or region) to be inserted right before the
+/// principal box.
+
+pub type Auto =
+    Atom["auto"].
+
+/// Avoids any break (page, column, or region) from being inserted right before the principal box.
+
+pub type Avoid =
+    Atom["avoid"].
+
+/// Avoids any column break right before the principal box.
+
+pub type AvoidColumn =
+    Atom["avoid-column"].
+
+/// Avoids any page break right before the principal box.
+
+pub type AvoidPage =
+    Atom["avoid-page"].
+
+/// Avoids any region break right before the principal box.
+
+pub type AvoidRegion =
+    Atom["avoid-region"].
+
+/// Forces a column break right before the principal box.
+
+pub type Column =
+    Atom["column"].
+
+pub type Css =
+    Auto
+  | Avoid
+  | Always
+  | All
+  | AvoidPage
+  | Page
+  | Left
+  | Right
+  | Recto
+  | Verso
+  | AvoidColumn
+  | Column
+  | AvoidRegion
+  | Region
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Forces one or two page breaks right before the principal box, whichever will make the next page
+/// into a left page. It's the page placed on the left side of the spine of the book or the back side
+/// of the page in duplex printing.
+
+pub type Left =
+    Atom["left"].
 
 pub struct OptionalProperty {
     break_before: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+/// Forces a page break right before the principal box.
+
+pub type Page =
+    Atom["page"].
 
 pub struct Property {
     break_before: Value
 }.
 
-/// A nominal, specification-constrained break-before value.
+/// Forces one or two page breaks right before the principal box, whichever will make the next page
+/// into a recto page. (A recto page is a right page in a left-to-right spread or a left page in a
+/// right-to-left spread.)
+
+pub type Recto =
+    Atom["recto"].
+
+/// Forces a region break right before the principal box.
+
+pub type Region =
+    Atom["region"].
+
+/// Forces one or two page breaks right before the principal box, whichever will make the next page
+/// into a right page. It's the page placed on the right side of the spine of the book or the front
+/// side of the page in duplex printing.
+
+pub type Right =
+    Atom["right"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword all.
+/// Forces one or two page breaks right before the principal box, whichever will make the next page
+/// into a verso page. (A verso page is a left page in a left-to-right spread or a right page in a
+/// right-to-left spread.)
 
-pub all(): Value.
+pub type Verso =
+    Atom["verso"].
 
-/// Returns the CSS keyword always.
+/// Selects a keyword for break-before. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub always(): Value.
-
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword avoid.
-
-pub avoid(): Value.
-
-/// Returns the CSS keyword avoid-column.
-
-pub avoid_column(): Value.
-
-/// Returns the CSS keyword avoid-page.
-
-pub avoid_page(): Value.
-
-/// Returns the CSS keyword avoid-region.
-
-pub avoid_region(): Value.
-
-/// Returns the CSS keyword column.
-
-pub column(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Returns the CSS keyword page.
-
-pub page(): Value.
-
-/// Returns the CSS keyword recto.
-
-pub recto(): Value.
-
-/// Returns the CSS keyword region.
-
-pub region(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword verso.
-
-pub verso(): Value.
-
-export type Token.
+pub value(css: Css): Value.

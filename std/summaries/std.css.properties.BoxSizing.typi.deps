@@ -1,9 +1,11 @@
 module=std.css.properties.BoxSizing
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=1865535404815027984
-interface_hash=5528088146694794571
-interface_doc_hash=7894620414222535609
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15964956073040976952
+interface_hash=9845416583164799830
+interface_doc_hash=8665835024467559664
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

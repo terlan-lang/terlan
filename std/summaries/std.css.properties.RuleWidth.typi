@@ -1,56 +1,65 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-width
+//! The `rule-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property defines the widths of any lines drawn in the gutters of multi-row grid, flex, and
+//! multi-col layouts, setting the widths of the column and row rules to the same value.
+//!
 //! Grammar: <'column-rule-width'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-width
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/rule-width
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RuleWidth.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Thin
+  | Medium
+  | Thick
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Same as `3px`.
+///
+/// Author guide:
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-width
+
+pub type Medium =
+    Atom["medium"].
 
 pub struct OptionalProperty {
     rule_width: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     rule_width: Value
 }.
 
-/// A nominal, specification-constrained rule-width value.
+/// Same as `5px`.
+///
+/// Author guide:
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-width
+
+pub type Thick =
+    Atom["thick"].
+
+/// Same as `1px`.
+///
+/// Author guide:
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-width
+
+pub type Thin =
+    Atom["thin"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for rule-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword medium.
-
-pub medium(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword thick.
-
-pub thick(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

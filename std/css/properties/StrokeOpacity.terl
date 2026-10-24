@@ -1,79 +1,59 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-opacity
+ * The `stroke-opacity` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+ * opacity of an [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) shape's stroke. The effect
+ * is identical to that of `opacity`, except it is applied only to the stroke, not to the entire
+ * element. If present, it overrides the element's `stroke-opacity` attribute.
+ *
+ * Initial: 1. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: <'opacity'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-opacity
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-opacity
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.StrokeOpacity.
 
-import std.core.Float.
+import std.core.{Atom, Float}.
 import std.css.Values.
+import std.css.Values.{percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Percentage}.
+import type std.css.Values.{Inherit, Initial, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained stroke-opacity value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     stroke_opacity: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     stroke_opacity: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for stroke-opacity. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "stroke-opacity", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("stroke-opacity", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "stroke-opacity", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "stroke-opacity", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "stroke-opacity", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "stroke-opacity", css: "unset"}).
-
-/**
- * Constructs a stroke-opacity value from a typed number.
+ * Sets stroke-opacity from a typed number.
  */
 pub number(value: Float): Value ->
-    Value(Token {property: "stroke-opacity", css: std.core.Float.to_string(value)}).
+    Value(serialize("stroke-opacity", std.core.Float.to_string(value))).
 
 /**
- * Constructs a stroke-opacity value from a typed percentage.
+ * Sets stroke-opacity from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "stroke-opacity", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("stroke-opacity", percentage_css(value))).

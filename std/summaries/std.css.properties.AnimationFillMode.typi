@@ -1,60 +1,72 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-fill-mode
+//! The `animation-fill-mode` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! how a CSS animation applies styles to its target before and after its execution.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <single-animation-fill-mode>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-fill-mode
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-fill-mode
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.AnimationFillMode.
 
-/// Include an optional declaration in a shared style block.
+/// The animation will apply the values defined in the first relevant
+/// [keyframe](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@keyframes) as
+/// soon as it is applied to the target, and retain this during the `animation-delay` period. The
+/// first relevant keyframe depends on the value of `animation-direction`:
+
+pub type Backwards =
+    Atom["backwards"].
+
+/// The animation will follow the rules for both forwards and backwards, thus extending the animation
+/// properties in both directions.
+
+pub type Both =
+    Atom["both"].
+
+pub type Css =
+    None
+  | Forwards
+  | Backwards
+  | Both
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The target will retain the computed values set by the last
+/// [keyframe](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@keyframes)
+/// encountered during execution. The last keyframe depends on the value of `animation-direction` and
+/// `animation-iteration-count`:
+
+pub type Forwards =
+    Atom["forwards"].
+
+/// The animation will not apply any styles to the target when it's not executing. The element will
+/// instead be displayed using any other CSS rules applied to it. This is the default value.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     animation_fill_mode: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     animation_fill_mode: Value
 }.
 
-/// A nominal, specification-constrained animation-fill-mode value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword backwards.
+/// Selects a keyword for animation-fill-mode. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub backwards(): Value.
-
-/// Returns the CSS keyword both.
-
-pub both(): Value.
-
-/// Returns the CSS keyword forwards.
-
-pub forwards(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

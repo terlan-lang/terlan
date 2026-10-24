@@ -1,129 +1,126 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `mask-border` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property lets you create a mask along the edge of an element's border.
+ *
+ * Initial: mask-border-mode: alpha; mask-border-outset: 0; mask-border-repeat: stretch;
+ * mask-border-slice: 0; mask-border-source: none; mask-border-width: auto. Inherited: no.
+ * Percentages: mask-border-slice: refer to size of the mask border image; mask-border-width:
+ * relative to width/height of the mask border image area.
+ *
+ * Grammar: <'mask-border-source'> || <'mask-border-slice'> [ / <'mask-border-width'>? [ /
+ * <'mask-border-outset'> ]? ]? || <'mask-border-repeat'> || <'mask-border-mode'>
+ *
  * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border
- * Grammar: <'mask-border-source'> || <'mask-border-slice'> [ / <'mask-border-width'>? [ / <'mask-border-outset'> ]? ]? || <'mask-border-repeat'> || <'mask-border-mode'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskBorder.
 
-import std.core.Float.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
+import std.core.{Atom, Float}.
 import std.css.Values.
+import std.css.Values.{percentage_amount, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Percentage}.
+import type std.css.Values.{Inherit, Initial, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+
+pub type Alpha.
+
+pub type Luminance.
 
 /**
- * A nominal, specification-constrained mask-border value.
+ * No mask border is used.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-source
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type None.
 
 /**
- * Include this property in an application style struct.
+ * The source image's edge regions are tiled (repeated) to fill the gap between each border. Tiles
+ * may be clipped to achieve the proper fit.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-repeat
  */
+pub type Repeat.
+
+/**
+ * The source image's edge regions are tiled (repeated) to fill the gap between each border. Tiles
+ * may be stretched to achieve the proper fit.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-repeat
+ */
+pub type Round.
+
+/**
+ * The source image's edge regions are tiled (repeated) to fill the gap between each border. Extra
+ * space will be distributed in between tiles to achieve the proper fit.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-repeat
+ */
+pub type Space.
+
+/**
+ * The source image's edge regions are stretched to fill the gap between each border.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-repeat
+ */
+pub type Stretch.
+
+pub type Css =
+      None
+    | Stretch
+    | Repeat
+    | Round
+    | Space
+    | Luminance
+    | Alpha
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     mask_border: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     mask_border: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword alpha.
+ * Selects a keyword for mask-border. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub alpha(): Value ->
-    Value(Token {property: "mask-border", css: "alpha"}).
+pub value(css: Css): Value ->
+    Value(serialize("mask-border", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "mask-border", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask-border", css: "initial"}).
-
-/**
- * Returns the CSS keyword luminance.
- */
-pub luminance(): Value ->
-    Value(Token {property: "mask-border", css: "luminance"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "mask-border", css: "none"}).
-
-/**
- * Returns the CSS keyword repeat.
- */
-pub repeat(): Value ->
-    Value(Token {property: "mask-border", css: "repeat"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-border", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-border", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword round.
- */
-pub round(): Value ->
-    Value(Token {property: "mask-border", css: "round"}).
-
-/**
- * Returns the CSS keyword space.
- */
-pub space(): Value ->
-    Value(Token {property: "mask-border", css: "space"}).
-
-/**
- * Returns the CSS keyword stretch.
- */
-pub stretch(): Value ->
-    Value(Token {property: "mask-border", css: "stretch"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-border", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a mask-border value.
+ * Sets mask-border from a typed number. Returns Some for amount >= 0; otherwise returns None.
  */
 pub number(value: Float): Option[Value] ->
     case value >= 0 {
-        true -> Some(Value(Token {property: "mask-border", css: std.core.Float.to_string(value)}));
-        false -> None
+        true -> Some(Value(serialize("mask-border", std.core.Float.to_string(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a mask-border value.
+ * Sets mask-border from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
  */
 pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "mask-border", css: std.css.Values.percentage_css(value)}));
-        false -> None
+    case percentage_amount(value) >= 0 {
+        true -> Some(Value(serialize("mask-border", percentage_css(value))));
+        false -> Absent
     }.

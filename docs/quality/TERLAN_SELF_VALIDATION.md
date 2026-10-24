@@ -161,7 +161,7 @@ replacement, and the Python sources have been deleted.
   record modes produce byte-identical inventory and budget artifacts.
 - No Python programs or executable Python hooks remain in the checked-out
   repository. The inventory and Make-recipe gates reject source or command
-  regressions, and the former Battleship external-VM contract executes through
+  regressions, and the external-VM contract executes through
   the typed direct-AOT path.
 - Host timing provenance uses `std.system.Platform.current_metrics()`.
   Linux `/proc` and sysfs parsing is a VM implementation detail. Release

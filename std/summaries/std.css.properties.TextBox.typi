@@ -1,80 +1,105 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box
+//! The `text-box` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property corresponds to the `text-box-trim` and `text-box-edge` properties, which together
+//! specify the amount of space to trim from the block-start edge and block-end edge of a text
+//! element's block container.
+//!
+//! Initial: normal. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | <'text-box-trim'> || <'text-box-edge'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextBox.
 
-/// Include an optional declaration in a shared style block.
+/// The default value. Equivalent to the `text-edge` value `text`.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-edge
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Normal
+  | None
+  | TrimStart
+  | TrimEnd
+  | TrimBoth
+  | Auto
+  | TextKeyword
+  | Ideographic
+  | IdeographicInk
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type Ideographic =
+    Atom["ideographic"].
+
+pub type IdeographicInk =
+    Atom["ideographic-ink"].
+
+/// The default value. No space is trimmed from the text.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-trim
+
+pub type None =
+    Atom["none"].
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     text_box: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     text_box: Value
 }.
 
-/// A nominal, specification-constrained text-box value.
+/// The font's over edge is its text-over baseline (includes the font's ascenders but excludes the
+/// over edge half-leading), or its under edge is its text-under baseline (includes the font's
+/// descenders but excludes the under edge half-leading), depending on which edge the value is set
+/// for.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/text-edge
+
+pub type TextKeyword =
+    Atom["text"].
+
+/// The start (over) and end (under) edges are both trimmed.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-trim
+
+pub type TrimBoth =
+    Atom["trim-both"].
+
+/// The end (under) edge is trimmed.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-trim
+
+pub type TrimEnd =
+    Atom["trim-end"].
+
+/// The start (over) edge is trimmed.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-trim
+
+pub type TrimStart =
+    Atom["trim-start"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for text-box. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword ideographic.
-
-pub ideographic(): Value.
-
-/// Returns the CSS keyword ideographic-ink.
-
-pub ideographic_ink(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword text.
-
-pub text(): Value.
-
-/// Returns the CSS keyword trim-both.
-
-pub trim_both(): Value.
-
-/// Returns the CSS keyword trim-end.
-
-pub trim_end(): Value.
-
-/// Returns the CSS keyword trim-start.
-
-pub trim_start(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

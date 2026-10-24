@@ -1,69 +1,51 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-y
+ * The `background-position-y` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * the initial vertical position for each background image. The position is relative to the position
+ * layer set by `background-origin`.
+ *
+ * Initial: 0%. Inherited: no.
+ * Percentages: refer to height of background positioning area minus height of background image.
+ *
  * Grammar: [ center | [ [ top | bottom | y-start | y-end ]? <length-percentage>? ]! ]#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-y
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/background-position-y
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BackgroundPositionY.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained background-position-y value.
+ * Aligns the vertical center of the background image with the vertical center of the background
+ * position layer.
  */
-pub opaque type Value = Token.
+pub type Center.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Center | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     background_position_y: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     background_position_y: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword center.
+ * Selects a keyword for background-position-y. CSS-wide choices Inherit, Initial, Unset, Revert,
+ * and RevertLayer apply to the entire declaration.
  */
-pub center(): Value ->
-    Value(Token {property: "background-position-y", css: "center"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "background-position-y", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "background-position-y", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "background-position-y", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "background-position-y", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "background-position-y", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("background-position-y", Atom.to_string(css))).

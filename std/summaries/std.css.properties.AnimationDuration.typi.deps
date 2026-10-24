@@ -1,10 +1,11 @@
 module=std.css.properties.AnimationDuration
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=10664338601665263274
-interface_hash=36259760948677097
-interface_doc_hash=4887734826691237609
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=11601336665050810258
+interface_hash=5047264475555649896
+interface_doc_hash=11766692242868874573
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

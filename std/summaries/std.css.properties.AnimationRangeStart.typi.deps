@@ -1,10 +1,11 @@
 module=std.css.properties.AnimationRangeStart
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14793047551256613907
-interface_hash=6235915155444385776
-interface_doc_hash=12351547844864116338
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=12275874372239693352
+interface_hash=13701991908978747371
+interface_doc_hash=8362680441981314834
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

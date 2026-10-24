@@ -1,48 +1,50 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#MarkerProperty
+//! The `marker` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property points to a marker
+//! that will be drawn on the first, middle, and last vertices of the element's path; that is, at all
+//! of its vertices. The marker must have been defined using an SVG `marker` element, and can only be
+//! referenced with a `<url>` value. The value of the CSS property overrides any values of the
+//! `marker-start`, `marker`, and `marker-end` attributes in the SVG.
+//!
+//! Initial: marker-start: none; marker-mid: none; marker-end: none. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | <marker-ref>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#MarkerProperty
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/marker
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Marker.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// This means no marker will be drawn at each vertex of the element's path.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     marker: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     marker: Value
 }.
 
-/// A nominal, specification-constrained marker value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for marker. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

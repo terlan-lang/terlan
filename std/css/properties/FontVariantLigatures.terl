@@ -1,123 +1,115 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `font-variant-ligatures` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * controls which `ligatures` and contextual forms are used in the textual content of the elements
+ * it applies to. This leads to more harmonized forms in the resulting text.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Grammar: normal | none | [ <common-lig-values> || <discretionary-lig-values> ||
+ * <historical-lig-values> || <contextual-alt-values> ]
+ *
  * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-ligatures
- * Grammar: normal | none | [ <common-lig-values> || <discretionary-lig-values> || <historical-lig-values> || <contextual-alt-values> ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-variant-ligatures
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontVariantLigatures.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained font-variant-ligatures value.
+ * Enables display of common ligatures.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type CommonLigatures = Atom["common-ligatures"].
 
 /**
- * Include this property in an application style struct.
+ * Enables display of contextual alternates.
  */
+pub type Contextual.
+
+/**
+ * Enables display of discretionary ligatures.
+ */
+pub type DiscretionaryLigatures = Atom["discretionary-ligatures"].
+
+/**
+ * Enables display of historical ligatures.
+ */
+pub type HistoricalLigatures = Atom["historical-ligatures"].
+
+/**
+ * Disables display of common ligatures.
+ */
+pub type NoCommonLigatures = Atom["no-common-ligatures"].
+
+/**
+ * Disables display of contextual alternates.
+ */
+pub type NoContextual = Atom["no-contextual"].
+
+/**
+ * Disables display of discretionary ligatures.
+ */
+pub type NoDiscretionaryLigatures = Atom["no-discretionary-ligatures"].
+
+/**
+ * Disables display of historical ligatures.
+ */
+pub type NoHistoricalLigatures = Atom["no-historical-ligatures"].
+
+/**
+ * This keyword specifies that all ligatures and contextual forms are disabled, even common ones.
+ */
+pub type None.
+
+/**
+ * This keyword activates the usual ligatures and contextual forms needed for correct rendering. The
+ * ligatures and forms activated depend on the font, language, and kind of script. This is the
+ * default value.
+ */
+pub type Normal.
+
+pub type Css =
+      Normal
+    | None
+    | CommonLigatures
+    | NoCommonLigatures
+    | DiscretionaryLigatures
+    | NoDiscretionaryLigatures
+    | HistoricalLigatures
+    | NoHistoricalLigatures
+    | Contextual
+    | NoContextual
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     font_variant_ligatures: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     font_variant_ligatures: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword common-ligatures.
+ * Selects a keyword for font-variant-ligatures. CSS-wide choices Inherit, Initial, Unset, Revert,
+ * and RevertLayer apply to the entire declaration.
  */
-pub common_ligatures(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "common-ligatures"}).
-
-/**
- * Returns the CSS keyword contextual.
- */
-pub contextual(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "contextual"}).
-
-/**
- * Returns the CSS keyword discretionary-ligatures.
- */
-pub discretionary_ligatures(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "discretionary-ligatures"}).
-
-/**
- * Returns the CSS keyword historical-ligatures.
- */
-pub historical_ligatures(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "historical-ligatures"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "initial"}).
-
-/**
- * Returns the CSS keyword no-common-ligatures.
- */
-pub no_common_ligatures(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "no-common-ligatures"}).
-
-/**
- * Returns the CSS keyword no-contextual.
- */
-pub no_contextual(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "no-contextual"}).
-
-/**
- * Returns the CSS keyword no-discretionary-ligatures.
- */
-pub no_discretionary_ligatures(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "no-discretionary-ligatures"}).
-
-/**
- * Returns the CSS keyword no-historical-ligatures.
- */
-pub no_historical_ligatures(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "no-historical-ligatures"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "none"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-variant-ligatures", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("font-variant-ligatures", Atom.to_string(css))).

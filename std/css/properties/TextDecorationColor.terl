@@ -1,72 +1,52 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-color
+ * The `text-decoration-color` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * the color of decorations added to text by .
+ *
+ * Initial: currentcolor. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <color>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-color
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-color
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextDecorationColor.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{color_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Color}.
+import type std.css.Values.{Color, Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained text-decoration-color value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     text_decoration_color: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     text_decoration_color: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for text-decoration-color. CSS-wide choices Inherit, Initial, Unset, Revert,
+ * and RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "text-decoration-color", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("text-decoration-color", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-decoration-color", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-decoration-color", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-decoration-color", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-decoration-color", css: "unset"}).
-
-/**
- * Constructs a text-decoration-color value from a typed color.
+ * Sets text-decoration-color from a typed color. Use std.css.Values.rgb or color to choose the
+ * paint.
  */
 pub color(value: Color): Value ->
-    Value(Token {property: "text-decoration-color", css: std.css.Values.color_css(value)}).
+    Value(serialize("text-decoration-color", color_css(value))).

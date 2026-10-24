@@ -1,0 +1,6 @@
+module typed_css.InvalidColorEnum.
+
+import std.css.Values.
+
+pub invalid(): Values.Color ->
+    Values.color(Atom["not-a-color-keyword"]).

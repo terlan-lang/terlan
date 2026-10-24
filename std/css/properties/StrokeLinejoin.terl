@@ -1,87 +1,73 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-linejoin
+ * The `stroke-linejoin` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+ * the shape to be used at the corners of an [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG)
+ * element's stroked paths. If present, it overrides the element's `stroke-linejoin` attribute.
+ *
+ * Initial: miter. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: [ crop | arcs | miter ] || [ bevel | round | fallback ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-linejoin
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-linejoin
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.StrokeLinejoin.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained stroke-linejoin value.
+ * _(Unsupported.)_ Indicates that an _arcs corner_ is to be used to join path segments. The arc's
+ * shape is formed by extending the outer edges of the stroke at the join point with arcs that have
+ * the same curvature as the outer edges at the join point.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Arcs.
 
 /**
- * Include this property in an application style struct.
+ * Indicates that a beveled corner is to be used to join path segments. The bevel is formed by
+ * truncating the corner by a line perpendicular to a line that bisects the difference in the
+ * subpath angles where they meet the join point.
  */
+pub type Bevel.
+
+/**
+ * Indicates that a sharp corner is to be used to join path segments. The corner is formed by
+ * extending the outer edges of the stroke at the tangents of the path segments until they
+ * intersect. This is the default value.
+ */
+pub type Miter.
+
+/**
+ * Indicates that a round corner is to be used to join path segments. This is accomplished by
+ * cropping the join as per `bevel`, and then appending a filled arc tangent in order to round the
+ * corner.
+ */
+pub type Round.
+
+pub type Css = Arcs | Miter | Bevel | Round | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     stroke_linejoin: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     stroke_linejoin: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword arcs.
+ * Selects a keyword for stroke-linejoin. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub arcs(): Value ->
-    Value(Token {property: "stroke-linejoin", css: "arcs"}).
-
-/**
- * Returns the CSS keyword bevel.
- */
-pub bevel(): Value ->
-    Value(Token {property: "stroke-linejoin", css: "bevel"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "stroke-linejoin", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "stroke-linejoin", css: "initial"}).
-
-/**
- * Returns the CSS keyword miter.
- */
-pub miter(): Value ->
-    Value(Token {property: "stroke-linejoin", css: "miter"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "stroke-linejoin", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "stroke-linejoin", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword round.
- */
-pub round(): Value ->
-    Value(Token {property: "stroke-linejoin", css: "round"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "stroke-linejoin", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("stroke-linejoin", Atom.to_string(css))).

@@ -1,60 +1,71 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-direction
+//! The `animation-direction` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! whether an animation should play forward, backward, or alternate back and forth between playing
+//! the sequence forward and backward.
+//!
+//! Initial: normal. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <single-animation-direction>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-direction
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-direction
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.AnimationDirection.
 
-/// Include an optional declaration in a shared style block.
+/// The animation reverses direction each cycle, with the first iteration being played _forwards_.
+/// The count to determine if a cycle is even or odd starts at one.
+
+pub type Alternate =
+    Atom["alternate"].
+
+/// The animation reverses direction each cycle, with the first iteration being played _backwards_.
+/// The count to determine if a cycle is even or odd starts at one.
+
+pub type AlternateReverse =
+    Atom["alternate-reverse"].
+
+pub type Css =
+    Normal
+  | Reverse
+  | Alternate
+  | AlternateReverse
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The animation plays _forwards_ each cycle. In other words, each time the animation cycles, the
+/// animation will reset to the beginning state and start over again. This is the default value.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     animation_direction: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     animation_direction: Value
 }.
 
-/// A nominal, specification-constrained animation-direction value.
+/// The animation plays _backwards_ each cycle. In other words, each time the animation cycles, the
+/// animation will reset to the end state and start over again. Animation steps are performed
+/// backwards, and easing functions are also reversed. For example, an `ease-in` easing function
+/// becomes `ease-out`.
+
+pub type Reverse =
+    Atom["reverse"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword alternate.
+/// Selects a keyword for animation-direction. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub alternate(): Value.
-
-/// Returns the CSS keyword alternate-reverse.
-
-pub alternate_reverse(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword reverse.
-
-pub reverse(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

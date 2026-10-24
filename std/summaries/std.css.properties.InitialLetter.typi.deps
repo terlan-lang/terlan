@@ -1,10 +1,12 @@
 module=std.css.properties.InitialLetter
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=13608184076181756077
-interface_hash=8993750087326163391
-interface_doc_hash=5431151279457587150
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1296316526685116506
+interface_hash=11846270215278073402
+interface_doc_hash=8450421996962716069
+deps=4
+std.core.Atom=12311707212014243410
 std.core.Float=3784534907681217377
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

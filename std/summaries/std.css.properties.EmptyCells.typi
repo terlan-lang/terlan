@@ -1,52 +1,51 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-tables-3/#propdef-empty-cells
+//! The `empty-cells` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether
+//! borders and backgrounds appear around `table` cells that have no visible content.
+//!
+//! Initial: show. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: show | hide
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-tables-3/#propdef-empty-cells
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/empty-cells
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.EmptyCells.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Show
+  | Hide
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// No borders or backgrounds are drawn.
+
+pub type Hide =
+    Atom["hide"].
 
 pub struct OptionalProperty {
     empty_cells: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     empty_cells: Value
 }.
 
-/// A nominal, specification-constrained empty-cells value.
+/// Borders and backgrounds are drawn like in normal cells.
+
+pub type Show =
+    Atom["show"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword hide.
+/// Selects a keyword for empty-cells. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub hide(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword show.
-
-pub show(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

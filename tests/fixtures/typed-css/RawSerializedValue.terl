@@ -1,0 +1,8 @@
+module typed_css.RawSerializedValue.
+
+import std.css.Values.{serialize}.
+
+import type std.css.properties.Width.{Value}.
+
+pub invalid(): Value ->
+    serialize("width", "auto").

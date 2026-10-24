@@ -1,10 +1,11 @@
 module=std.css.properties.BorderRadius
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=172949179136907560
-interface_hash=8730836749178034891
-interface_doc_hash=8540421328268739803
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=320997603806960830
+interface_hash=7817115886382009226
+interface_doc_hash=9247362061022676738
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

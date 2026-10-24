@@ -1,200 +1,257 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `font-variant` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property allows you to set all the font variants for a font.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Grammar: normal | none | [ [ <common-lig-values> || <discretionary-lig-values> ||
+//! <historical-lig-values> || <contextual-alt-values> ] || [ small-caps | all-small-caps |
+//! petite-caps | all-petite-caps | unicase | titling-caps ] || [
+//! stylistic(<font-feature-value-name>) || historical-forms || styleset(<font-feature-value-name>#)
+//! || character-variant(<font-feature-value-name>#) || swash(<font-feature-value-name>) ||
+//! ornaments(<font-feature-value-name>) || annotation(<font-feature-value-name>) ] || [
+//! <numeric-figure-values> || <numeric-spacing-values> || <numeric-fraction-values> || ordinal ||
+//! slashed-zero ] || [ <east-asian-variant-values> || <east-asian-width-values> || ruby ] || [ sub |
+//! super ] || [ text | emoji | unicode ] ]
+//!
 //! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant
-//! Grammar: normal | none | [ [ <common-lig-values> || <discretionary-lig-values> || <historical-lig-values> || <contextual-alt-values> ] || [ small-caps | all-small-caps | petite-caps | all-petite-caps | unicase | titling-caps ] || [ stylistic(<font-feature-value-name>) || historical-forms || styleset(<font-feature-value-name>#) || character-variant(<font-feature-value-name>#) || swash(<font-feature-value-name>) || ornaments(<font-feature-value-name>) || annotation(<font-feature-value-name>) ] || [ <numeric-figure-values> || <numeric-spacing-values> || <numeric-fraction-values> || ordinal || slashed-zero ] || [ <east-asian-variant-values> || <east-asian-width-values> || ruby ] || [ sub | super ] || [ text | emoji | unicode ] ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-variant
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariant.
 
-/// Include an optional declaration in a shared style block.
+/// Specifies the keywords and functions related to the `font-variant-caps` longhand property. The
+/// `small-caps` value is the only non-`normal` font variant valid within the `font` shorthand
+/// property.
+
+pub type AllPetiteCaps =
+    Atom["all-petite-caps"].
+
+/// Specifies the keywords and functions related to the `font-variant-caps` longhand property. The
+/// `small-caps` value is the only non-`normal` font variant valid within the `font` shorthand
+/// property.
+
+pub type AllSmallCaps =
+    Atom["all-small-caps"].
+
+pub type CommonLigatures =
+    Atom["common-ligatures"].
+
+pub type Contextual =
+    Atom["contextual"].
+
+pub type Css =
+    Normal
+  | None
+  | CommonLigatures
+  | NoCommonLigatures
+  | DiscretionaryLigatures
+  | NoDiscretionaryLigatures
+  | HistoricalLigatures
+  | NoHistoricalLigatures
+  | Contextual
+  | NoContextual
+  | SmallCaps
+  | AllSmallCaps
+  | PetiteCaps
+  | AllPetiteCaps
+  | Unicase
+  | TitlingCaps
+  | HistoricalForms
+  | LiningNums
+  | OldstyleNums
+  | ProportionalNums
+  | TabularNums
+  | DiagonalFractions
+  | StackedFractions
+  | Ordinal
+  | SlashedZero
+  | Jis78
+  | Jis83
+  | Jis90
+  | Jis04
+  | Simplified
+  | Traditional
+  | FullWidth
+  | ProportionalWidth
+  | Ruby
+  | Sub
+  | Super
+  | TextKeyword
+  | Emoji
+  | Unicode
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type DiagonalFractions =
+    Atom["diagonal-fractions"].
+
+pub type DiscretionaryLigatures =
+    Atom["discretionary-ligatures"].
+
+/// Specifies the keywords and functions related to the `font-variant-emoji` longhand property.
+
+pub type Emoji =
+    Atom["emoji"].
+
+pub type FullWidth =
+    Atom["full-width"].
+
+/// Specifies the keywords and functions related to the `font-variant-ligatures` longhand property.
+
+pub type HistoricalForms =
+    Atom["historical-forms"].
+
+pub type HistoricalLigatures =
+    Atom["historical-ligatures"].
+
+pub type Jis04 =
+    Atom["jis04"].
+
+pub type Jis78 =
+    Atom["jis78"].
+
+pub type Jis83 =
+    Atom["jis83"].
+
+pub type Jis90 =
+    Atom["jis90"].
+
+pub type LiningNums =
+    Atom["lining-nums"].
+
+pub type NoCommonLigatures =
+    Atom["no-common-ligatures"].
+
+pub type NoContextual =
+    Atom["no-contextual"].
+
+pub type NoDiscretionaryLigatures =
+    Atom["no-discretionary-ligatures"].
+
+pub type NoHistoricalLigatures =
+    Atom["no-historical-ligatures"].
+
+/// Sets the value of the `font-variant-ligatures` as `none` and the values of the other longhand
+/// properties as `normal`, their initial value.
+
+pub type None =
+    Atom["none"].
+
+/// Specifies a normal font face. Each longhand property has an initial value of `normal`.
+
+pub type Normal =
+    Atom["normal"].
+
+pub type OldstyleNums =
+    Atom["oldstyle-nums"].
 
 pub struct OptionalProperty {
     font_variant: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+/// Specifies the keywords related to the `font-variant-numeric` longhand property. The possible
+/// values are `lining-nums`, `oldstyle-nums`, `proportional-nums`, `tabular-nums`,
+/// `diagonal-fractions`, `stacked-fractions`, `ordinal`, and `slashed-zero`.
+
+pub type Ordinal =
+    Atom["ordinal"].
+
+/// Specifies the keywords and functions related to the `font-variant-caps` longhand property. The
+/// `small-caps` value is the only non-`normal` font variant valid within the `font` shorthand
+/// property.
+
+pub type PetiteCaps =
+    Atom["petite-caps"].
 
 pub struct Property {
     font_variant: Value
 }.
 
-/// A nominal, specification-constrained font-variant value.
+pub type ProportionalNums =
+    Atom["proportional-nums"].
+
+pub type ProportionalWidth =
+    Atom["proportional-width"].
+
+/// Specifies the keywords related to the `font-variant-east-asian` longhand property. The possible
+/// values are `jis78`, `jis83`, `jis90`, `jis04`, `simplified`, `traditional`, `full-width`,
+/// `proportional-width`, and `ruby`.
+
+pub type Ruby =
+    Atom["ruby"].
+
+pub type Simplified =
+    Atom["simplified"].
+
+/// Specifies the keywords related to the `font-variant-numeric` longhand property. The possible
+/// values are `lining-nums`, `oldstyle-nums`, `proportional-nums`, `tabular-nums`,
+/// `diagonal-fractions`, `stacked-fractions`, `ordinal`, and `slashed-zero`.
+
+pub type SlashedZero =
+    Atom["slashed-zero"].
+
+/// Specifies the keywords and functions related to the `font-variant-caps` longhand property. The
+/// `small-caps` value is the only non-`normal` font variant valid within the `font` shorthand
+/// property.
+
+pub type SmallCaps =
+    Atom["small-caps"].
+
+pub type StackedFractions =
+    Atom["stacked-fractions"].
+
+/// Specifies the keywords and functions related to the `font-variant-position` longhand property.
+
+pub type Sub =
+    Atom["sub"].
+
+/// Specifies the keywords and functions related to the `font-variant-position` longhand property.
+
+pub type Super =
+    Atom["super"].
+
+pub type TabularNums =
+    Atom["tabular-nums"].
+
+/// Specifies the keywords and functions related to the `font-variant-emoji` longhand property.
+
+pub type TextKeyword =
+    Atom["text"].
+
+/// Specifies the keywords and functions related to the `font-variant-caps` longhand property. The
+/// `small-caps` value is the only non-`normal` font variant valid within the `font` shorthand
+/// property.
+
+pub type TitlingCaps =
+    Atom["titling-caps"].
+
+pub type Traditional =
+    Atom["traditional"].
+
+/// Specifies the keywords and functions related to the `font-variant-caps` longhand property. The
+/// `small-caps` value is the only non-`normal` font variant valid within the `font` shorthand
+/// property.
+
+pub type Unicase =
+    Atom["unicase"].
+
+/// Specifies the keywords and functions related to the `font-variant-emoji` longhand property.
+
+pub type Unicode =
+    Atom["unicode"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword all-petite-caps.
+/// Selects a keyword for font-variant. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub all_petite_caps(): Value.
-
-/// Returns the CSS keyword all-small-caps.
-
-pub all_small_caps(): Value.
-
-/// Returns the CSS keyword common-ligatures.
-
-pub common_ligatures(): Value.
-
-/// Returns the CSS keyword contextual.
-
-pub contextual(): Value.
-
-/// Returns the CSS keyword diagonal-fractions.
-
-pub diagonal_fractions(): Value.
-
-/// Returns the CSS keyword discretionary-ligatures.
-
-pub discretionary_ligatures(): Value.
-
-/// Returns the CSS keyword emoji.
-
-pub emoji(): Value.
-
-/// Returns the CSS keyword full-width.
-
-pub full_width(): Value.
-
-/// Returns the CSS keyword historical-forms.
-
-pub historical_forms(): Value.
-
-/// Returns the CSS keyword historical-ligatures.
-
-pub historical_ligatures(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword jis04.
-
-pub jis04(): Value.
-
-/// Returns the CSS keyword jis78.
-
-pub jis78(): Value.
-
-/// Returns the CSS keyword jis83.
-
-pub jis83(): Value.
-
-/// Returns the CSS keyword jis90.
-
-pub jis90(): Value.
-
-/// Returns the CSS keyword lining-nums.
-
-pub lining_nums(): Value.
-
-/// Returns the CSS keyword no-common-ligatures.
-
-pub no_common_ligatures(): Value.
-
-/// Returns the CSS keyword no-contextual.
-
-pub no_contextual(): Value.
-
-/// Returns the CSS keyword no-discretionary-ligatures.
-
-pub no_discretionary_ligatures(): Value.
-
-/// Returns the CSS keyword no-historical-ligatures.
-
-pub no_historical_ligatures(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword oldstyle-nums.
-
-pub oldstyle_nums(): Value.
-
-/// Returns the CSS keyword ordinal.
-
-pub ordinal(): Value.
-
-/// Returns the CSS keyword petite-caps.
-
-pub petite_caps(): Value.
-
-/// Returns the CSS keyword proportional-nums.
-
-pub proportional_nums(): Value.
-
-/// Returns the CSS keyword proportional-width.
-
-pub proportional_width(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword ruby.
-
-pub ruby(): Value.
-
-/// Returns the CSS keyword simplified.
-
-pub simplified(): Value.
-
-/// Returns the CSS keyword slashed-zero.
-
-pub slashed_zero(): Value.
-
-/// Returns the CSS keyword small-caps.
-
-pub small_caps(): Value.
-
-/// Returns the CSS keyword stacked-fractions.
-
-pub stacked_fractions(): Value.
-
-/// Returns the CSS keyword sub.
-
-pub sub(): Value.
-
-/// Returns the CSS keyword super.
-
-pub super(): Value.
-
-/// Returns the CSS keyword tabular-nums.
-
-pub tabular_nums(): Value.
-
-/// Returns the CSS keyword text.
-
-pub text(): Value.
-
-/// Returns the CSS keyword titling-caps.
-
-pub titling_caps(): Value.
-
-/// Returns the CSS keyword traditional.
-
-pub traditional(): Value.
-
-/// Returns the CSS keyword unicase.
-
-pub unicase(): Value.
-
-/// Returns the CSS keyword unicode.
-
-pub unicode(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,131 +1,118 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `font-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property selects a
+ * normal, condensed, or expanded face from a font.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Grammar: normal | <percentage [0,∞]> | ultra-condensed | extra-condensed | condensed |
+ * semi-condensed | semi-expanded | expanded | extra-expanded | ultra-expanded
+ *
  * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-width
- * Grammar: normal | <percentage [0,∞]> | ultra-condensed | extra-condensed | condensed | semi-condensed | semi-expanded | expanded | extra-expanded | ultra-expanded
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-width
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FontWidth.
 
-import std.core.Option.{None, Some}.
+import std.core.Atom.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{percentage_amount, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Percentage}.
+import type std.css.Values.{Inherit, Initial, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained font-width value.
+ * Specifies a more condensed font face than normal, with `ultra-condensed` being the most
+ * condensed.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Condensed.
 
 /**
- * Include this property in an application style struct.
+ * Specifies a more expanded font face than normal, with `ultra-expanded` being the most expanded.
  */
+pub type Expanded.
+
+/**
+ * Specifies a more condensed font face than normal, with `ultra-condensed` being the most
+ * condensed.
+ */
+pub type ExtraCondensed = Atom["extra-condensed"].
+
+/**
+ * Specifies a more expanded font face than normal, with `ultra-expanded` being the most expanded.
+ */
+pub type ExtraExpanded = Atom["extra-expanded"].
+
+/**
+ * Specifies a normally condensed font face.
+ */
+pub type Normal.
+
+/**
+ * Specifies a more condensed font face than normal, with `ultra-condensed` being the most
+ * condensed.
+ */
+pub type SemiCondensed = Atom["semi-condensed"].
+
+/**
+ * Specifies a more expanded font face than normal, with `ultra-expanded` being the most expanded.
+ */
+pub type SemiExpanded = Atom["semi-expanded"].
+
+/**
+ * Specifies a more condensed font face than normal, with `ultra-condensed` being the most
+ * condensed.
+ */
+pub type UltraCondensed = Atom["ultra-condensed"].
+
+/**
+ * Specifies a more expanded font face than normal, with `ultra-expanded` being the most expanded.
+ */
+pub type UltraExpanded = Atom["ultra-expanded"].
+
+pub type Css =
+      Normal
+    | UltraCondensed
+    | ExtraCondensed
+    | Condensed
+    | SemiCondensed
+    | SemiExpanded
+    | Expanded
+    | ExtraExpanded
+    | UltraExpanded
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     font_width: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     font_width: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword condensed.
+ * Selects a keyword for font-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub condensed(): Value ->
-    Value(Token {property: "font-width", css: "condensed"}).
+pub value(css: Css): Value ->
+    Value(serialize("font-width", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword expanded.
- */
-pub expanded(): Value ->
-    Value(Token {property: "font-width", css: "expanded"}).
-
-/**
- * Returns the CSS keyword extra-condensed.
- */
-pub extra_condensed(): Value ->
-    Value(Token {property: "font-width", css: "extra-condensed"}).
-
-/**
- * Returns the CSS keyword extra-expanded.
- */
-pub extra_expanded(): Value ->
-    Value(Token {property: "font-width", css: "extra-expanded"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "font-width", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "font-width", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "font-width", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "font-width", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "font-width", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword semi-condensed.
- */
-pub semi_condensed(): Value ->
-    Value(Token {property: "font-width", css: "semi-condensed"}).
-
-/**
- * Returns the CSS keyword semi-expanded.
- */
-pub semi_expanded(): Value ->
-    Value(Token {property: "font-width", css: "semi-expanded"}).
-
-/**
- * Returns the CSS keyword ultra-condensed.
- */
-pub ultra_condensed(): Value ->
-    Value(Token {property: "font-width", css: "ultra-condensed"}).
-
-/**
- * Returns the CSS keyword ultra-expanded.
- */
-pub ultra_expanded(): Value ->
-    Value(Token {property: "font-width", css: "ultra-expanded"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "font-width", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a font-width value.
+ * Sets font-width from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
  */
 pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "font-width", css: std.css.Values.percentage_css(value)}));
-        false -> None
+    case percentage_amount(value) >= 0 {
+        true -> Some(Value(serialize("font-width", percentage_css(value))));
+        false -> Absent
     }.

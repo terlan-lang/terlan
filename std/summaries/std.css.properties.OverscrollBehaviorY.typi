@@ -1,60 +1,68 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior-y
+//! The `overscroll-behavior-y` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! the browser's behavior when the vertical boundary of a scrolling area is reached.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: contain | none | auto | chain
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior-y
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overscroll-behavior-y
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OverscrollBehaviorY.
 
-/// Include an optional declaration in a shared style block.
+/// Allows the default behavior at a scroll boundary. Scrolling may continue in another scroll
+/// container.
+
+pub type Auto =
+    Atom["auto"].
+
+/// Allows scrolling to continue outside the scroll container, but prevents overscroll "bounce"
+/// effects.
+
+pub type Chain =
+    Atom["chain"].
+
+/// Prevents scrolling from continuing outside the scroll container. "Bounce" effects may still
+/// occur.
+
+pub type Contain =
+    Atom["contain"].
+
+pub type Css =
+    Contain
+  | None
+  | Auto
+  | Chain
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Prevents scrolling from continuing outside the scroll container and also prevents overscroll
+/// "bounce" effects.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     overscroll_behavior_y: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     overscroll_behavior_y: Value
 }.
 
-/// A nominal, specification-constrained overscroll-behavior-y value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for overscroll-behavior-y. CSS-wide choices Inherit, Initial, Unset, Revert,
+/// and RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword chain.
-
-pub chain(): Value.
-
-/// Returns the CSS keyword contain.
-
-pub contain(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,48 +1,53 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `grid-template` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property specifies the `grid columns`, `grid rows`, and `grid areas`.
+//!
+//! Initial: grid-template-columns: none; grid-template-rows: none; grid-template-areas: none.
+//! Inherited: no.
+//! Percentages: grid-template-columns: refer to corresponding dimension of the content area;
+//! grid-template-rows: refer to corresponding dimension of the content area.
+//!
+//! Grammar: none | [ <'grid-template-rows'> / <'grid-template-columns'> ] | [ <line-names>? <string>
+//! <track-size>? <line-names>? ]+ [ / <explicit-track-list> ]?
+//!
 //! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-template
-//! Grammar: none | [ <'grid-template-rows'> / <'grid-template-columns'> ] | [ <line-names>? <string> <track-size>? <line-names>? ]+ [ / <explicit-track-list> ]?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/grid-template
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.GridTemplate.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Sets all three longhand properties to `none`, meaning there is no explicit grid. There are no
+/// named grid areas. Rows and columns will be implicitly generated; their size will be determined by
+/// the `grid-auto-rows` and `grid-auto-columns` properties. This is the default value.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     grid_template: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     grid_template: Value
 }.
 
-/// A nominal, specification-constrained grid-template value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for grid-template. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

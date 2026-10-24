@@ -1,10 +1,12 @@
 module=std.css.properties.GridColumnStart
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=1995566536093615891
-interface_hash=3547230515484739452
-interface_doc_hash=15079374742396489384
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=6879319295950387556
+interface_hash=8047524095613003989
+interface_doc_hash=1798493125988884701
+deps=4
+std.core.Atom=12311707212014243410
 std.core.Int=6981787512204747997
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

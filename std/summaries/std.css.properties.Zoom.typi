@@ -1,52 +1,48 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-viewport/#propdef-zoom
+//! The `zoom` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property can be used to
+//! control the magnification level of an element. `transform: scale()` can be used as an alternative
+//! to this property.
+//!
+//! Initial: 1. Inherited: no.
+//! Percentages: Converted to `<number>`.
+//!
 //! Grammar: <number [0,∞]> | <percentage [0,∞]>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-viewport/#propdef-zoom
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/zoom
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Zoom.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     zoom: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     zoom: Value
 }.
 
-/// A nominal, specification-constrained zoom value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a zoom value.
+/// Sets zoom from a typed number. Returns Some for amount >= 0; otherwise returns None.
 
 pub number(value: Float): Option[Value].
 
-/// Checks the specification range and constructs a zoom value.
+/// Sets zoom from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
 
 pub percentage(value: std.css.Values.Percentage): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for zoom. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

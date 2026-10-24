@@ -1,56 +1,61 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-column-start
+//! The `grid-column-start` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies a grid item's start position within the grid column by contributing a line, a span, or
+//! nothing (automatic) to its grid placement. This start position defines the block-start edge of
+//! the `grid area`.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <grid-line>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-column-start
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/grid-column-start
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.GridColumnStart.
 
-/// Include an optional declaration in a shared style block.
+/// A keyword indicating that the property contributes nothing to the grid item's placement,
+/// indicating auto-placement, an automatic span, or a default span of `1`.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     grid_column_start: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     grid_column_start: Value
 }.
 
-/// A nominal, specification-constrained grid-column-start value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a grid-column-start value.
+/// Sets grid-column-start from a typed integer. Returns Some for amount <= -1; otherwise returns
+/// None.
 
 pub integer(value: Int): Option[Value].
 
-/// Checks the specification range and constructs a grid-column-start value.
+/// Sets grid-column-start from a typed integer. Returns Some for amount >= 1; otherwise returns
+/// None.
 
 pub integer_1(value: Int): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for grid-column-start. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

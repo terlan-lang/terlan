@@ -1,9 +1,11 @@
 module=std.css.properties.BackgroundImage
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=12613655510119431199
-interface_hash=5016246284779835585
-interface_doc_hash=3255184103595219354
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=8419781043496335144
+interface_hash=6434132603766821382
+interface_doc_hash=13423888510732159211
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

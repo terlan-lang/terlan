@@ -1,87 +1,55 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-scroll-timeline-axis
+ * The `scroll-timeline-axis` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property is
+ * used to specify the scrollbar direction that will be used to provide the [timeline for a scroll
+ * driven
+ * animation](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations/Timelines),
+ * which is progressed through by scrolling a scrollable element (_scroller_).
+ *
+ * Initial: block. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: [ block | inline | x | y ]#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-scroll-timeline-axis
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-timeline-axis
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollTimelineAxis.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained scroll-timeline-axis value.
- */
-pub opaque type Value = Token.
+pub type Block.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Inline.
 
-/**
- * Include this property in an application style struct.
- */
+pub type X.
+
+pub type Y.
+
+pub type Css = Block | Inline | X | Y | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     scroll_timeline_axis: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     scroll_timeline_axis: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword block.
+ * Selects a keyword for scroll-timeline-axis. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub block(): Value ->
-    Value(Token {property: "scroll-timeline-axis", css: "block"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "scroll-timeline-axis", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scroll-timeline-axis", css: "initial"}).
-
-/**
- * Returns the CSS keyword inline.
- */
-pub inline(): Value ->
-    Value(Token {property: "scroll-timeline-axis", css: "inline"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scroll-timeline-axis", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scroll-timeline-axis", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scroll-timeline-axis", css: "unset"}).
-
-/**
- * Returns the CSS keyword x.
- */
-pub x(): Value ->
-    Value(Token {property: "scroll-timeline-axis", css: "x"}).
-
-/**
- * Returns the CSS keyword y.
- */
-pub y(): Value ->
-    Value(Token {property: "scroll-timeline-axis", css: "y"}).
+pub value(css: Css): Value ->
+    Value(serialize("scroll-timeline-axis", Atom.to_string(css))).

@@ -1,81 +1,64 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-will-change-1/#propdef-will-change
+ * The `will-change` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property enables
+ * optimizing animations by providing a rendering hint to a browser about how an element is expected
+ * to change.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | <animateable-feature>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-will-change-1/#propdef-will-change
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.WillChange.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained will-change value.
+ * Indicates that the browser applies whatever heuristics and optimizations it normally does. This
+ * is the default value.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Auto.
 
 /**
- * Include this property in an application style struct.
+ * Specifies that the element's contents, including all the elements in its subtree, are expected to
+ * change in the near future, indicating the browser can cache the element less aggressively.
  */
+pub type Contents.
+
+/**
+ * Indicates that the author expects to animate or change the scroll position of the element in the
+ * near future.
+ */
+pub type ScrollPosition = Atom["scroll-position"].
+
+pub type Css = Auto | ScrollPosition | Contents | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     will_change: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     will_change: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for will-change. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "will-change", css: "auto"}).
-
-/**
- * Returns the CSS keyword contents.
- */
-pub contents(): Value ->
-    Value(Token {property: "will-change", css: "contents"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "will-change", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "will-change", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "will-change", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "will-change", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword scroll-position.
- */
-pub scroll_position(): Value ->
-    Value(Token {property: "will-change", css: "scroll-position"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "will-change", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("will-change", Atom.to_string(css))).

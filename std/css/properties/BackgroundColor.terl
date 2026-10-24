@@ -1,72 +1,51 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-color
+ * The `background-color` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * background color of an element.
+ *
+ * Initial: transparent. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <color>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-color
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/background-color
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BackgroundColor.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{color_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Color}.
+import type std.css.Values.{Color, Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained background-color value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     background_color: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     background_color: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for background-color. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "background-color", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("background-color", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "background-color", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "background-color", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "background-color", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "background-color", css: "unset"}).
-
-/**
- * Constructs a background-color value from a typed color.
+ * Sets background-color from a typed color. Use std.css.Values.rgb or color to choose the paint.
  */
 pub color(value: Color): Value ->
-    Value(Token {property: "background-color", css: std.css.Values.color_css(value)}).
+    Value(serialize("background-color", color_css(value))).

@@ -6,16 +6,88 @@ module std.css.Values.
 import std.core.Float.{to_string as float_text}.
 import std.core.Int.{to_string as int_text}.
 import std.core.Option.{None, Some}.
-import std.core.{Float, Int}.
+import std.core.{Atom, Float, Int}.
 
 import type std.core.Option.
 
 /**
- * A length with a finite magnitude and a library-owned CSS unit.
+ * Uses the parent element's computed value for this property.
+ */
+pub type Inherit.
+
+/**
+ * Uses the initial value defined by the property's specification.
+ */
+pub type Initial.
+
+/**
+ * Inherits inherited properties and resets other properties to their initial value.
+ */
+pub type Unset.
+
+/**
+ * Rolls back declarations from the current cascade origin.
+ */
+pub type Revert.
+
+/**
+ * Rolls back declarations from the current cascade layer.
+ */
+pub type RevertLayer = Atom["revert-layer"].
+
+/**
+ * CSS-wide choices accepted by every generated property's Css enum.
+ */
+pub type CssWide = Inherit | Initial | Unset | Revert | RevertLayer.
+
+/**
+ * Serialized stylesheet declaration consumed by the compiler's existing CSS
+ * pipeline. Property modules accept enums or typed inputs, validate them, and
+ * produce this representation behind their property-specific opaque Value.
+ */
+pub struct SerializedValue {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Constructs the wire representation used inside generated property modules.
+ */
+pub serialize(property: String, css: String): SerializedValue ->
+    SerializedValue {property: property, css: css}.
+
+pub type Px.
+
+pub type Rem.
+
+pub type Em.
+
+pub type Vw.
+
+pub type Vh.
+
+pub type LengthUnit = Px | Rem | Em | Vw | Vh.
+
+pub type Degree = Atom["deg"].
+
+pub type Millisecond = Atom["ms"].
+
+pub type Second = Atom["s"].
+
+pub type TimeUnit = Millisecond | Second.
+
+pub type Transparent.
+
+pub type CurrentColor = Atom["currentColor"].
+
+pub type ColorCss = Transparent | CurrentColor.
+
+/**
+ * A length and its CSS unit. Property constructors enforce permitted ranges.
  */
 pub struct Length {
     #amount: Float,
-    #unit: String,
+    #unit: LengthUnit,
 }.
 
 /**
@@ -30,7 +102,7 @@ pub struct Percentage {
  */
 pub struct Angle {
     #amount: Float,
-    #unit: String,
+    #unit: Degree,
 }.
 
 /**
@@ -38,7 +110,7 @@ pub struct Angle {
  */
 pub struct Time {
     #amount: Float,
-    #unit: String,
+    #unit: TimeUnit,
 }.
 
 /**
@@ -50,31 +122,31 @@ pub opaque type Color = String.
  * Constructs a pixel length.
  */
 pub px(value: Float): Length ->
-    Length {#amount: value, #unit: "px"}.
+    Length {#amount: value, #unit: Px}.
 
 /**
  * Constructs a root-font-relative length.
  */
 pub root_em(value: Float): Length ->
-    Length {#amount: value, #unit: "rem"}.
+    Length {#amount: value, #unit: Rem}.
 
 /**
  * Constructs a font-relative length.
  */
 pub em(value: Float): Length ->
-    Length {#amount: value, #unit: "em"}.
+    Length {#amount: value, #unit: Em}.
 
 /**
  * Constructs a viewport-width-relative length.
  */
 pub vw(value: Float): Length ->
-    Length {#amount: value, #unit: "vw"}.
+    Length {#amount: value, #unit: Vw}.
 
 /**
  * Constructs a viewport-height-relative length.
  */
 pub vh(value: Float): Length ->
-    Length {#amount: value, #unit: "vh"}.
+    Length {#amount: value, #unit: Vh}.
 
 /**
  * Constructs a percentage.
@@ -86,19 +158,19 @@ pub percent(value: Float): Percentage ->
  * Constructs an angle in degrees.
  */
 pub deg(value: Float): Angle ->
-    Angle {#amount: value, #unit: "deg"}.
+    Angle {#amount: value, #unit: Degree}.
 
 /**
  * Constructs a time in milliseconds.
  */
 pub ms(value: Float): Time ->
-    Time {#amount: value, #unit: "ms"}.
+    Time {#amount: value, #unit: Millisecond}.
 
 /**
  * Constructs a time in seconds.
  */
 pub seconds(value: Float): Time ->
-    Time {#amount: value, #unit: "s"}.
+    Time {#amount: value, #unit: Second}.
 
 /**
  * Validates RGB channels in the inclusive range 0 through 255.
@@ -113,22 +185,16 @@ pub rgb(red: Int, green: Int, blue: Int): Option[Color] ->
     }.
 
 /**
- * Returns a fully transparent color.
+ * Constructs a validated color from a closed color-keyword enum.
  */
-pub transparent(): Color ->
-    Color("transparent").
-
-/**
- * Returns the current foreground color.
- */
-pub current_color(): Color ->
-    Color("currentColor").
+pub color(css: ColorCss): Color ->
+    Color(Atom.to_string(css)).
 
 /**
  * Serializes a length without accepting arbitrary CSS text.
  */
 pub length_css(value: Length): String ->
-    float_text(value.#amount) + value.#unit.
+    float_text(value.#amount) + Atom.to_string(value.#unit).
 
 /**
  * Reads a length's magnitude for generated range checks.
@@ -158,7 +224,7 @@ pub color_css(value: Color): String ->
  * Serializes an angle.
  */
 pub angle_css(value: Angle): String ->
-    float_text(value.#amount) + value.#unit.
+    float_text(value.#amount) + Atom.to_string(value.#unit).
 
 /**
  * Reads an angle's magnitude for generated range checks.
@@ -170,7 +236,7 @@ pub angle_amount(value: Angle): Float ->
  * Serializes a time.
  */
 pub time_css(value: Time): String ->
-    float_text(value.#amount) + value.#unit.
+    float_text(value.#amount) + Atom.to_string(value.#unit).
 
 /**
  * Reads a time's magnitude for generated range checks.

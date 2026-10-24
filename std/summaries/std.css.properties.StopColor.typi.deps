@@ -1,10 +1,11 @@
 module=std.css.properties.StopColor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16184069876136457184
-interface_hash=13036808838009205156
-interface_doc_hash=15485495095624943522
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=12085316991729609754
+interface_hash=4255426124253611983
+interface_doc_hash=10646698307108432990
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

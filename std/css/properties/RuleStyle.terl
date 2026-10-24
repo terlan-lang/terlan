@@ -1,123 +1,154 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-style
+ * The `rule-style` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property defines the line style of the lines drawn between columns and rows in multi-column grid,
+ * flex, and multi-col layouts, setting the styles of the column and row rules to the same value.
+ *
  * Grammar: <'column-rule-style'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-style
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/rule-style
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.RuleStyle.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained rule-style value.
+ * Displays a series of short square-ended dashes or line segments. The exact size and length of the
+ * segments are not defined by the specification and are implementation-specific.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-style
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Dashed.
 
 /**
- * Include this property in an application style struct.
+ * Displays a series of round dots. The radius of the dots is half the computed value of the line's
+ * width. The spacing of the dots is not defined by the specification and is
+ * implementation-specific.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-style
  */
+pub type Dotted.
+
+/**
+ * Displays two straight lines with some space between them. The length of the lines adds up to the
+ * pixel size defined by the line's width.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-style
+ */
+pub type Double.
+
+/**
+ * Displays a border with a carved appearance. This value is the opposite of `ridge`.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-style
+ */
+pub type Groove.
+
+/**
+ * Displays no line. The [used
+ * value](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Property_value_processing#used_value)
+ * of the line width is `0` even if a width value is specified. In the case of table cell and border
+ * collapsing, the `hidden` value has the _highest_ priority. If any other conflicting border is
+ * set, it won't be displayed. The `hidden` value is similar to `none`, but `hidden` is not a valid
+ * value for outline styles.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-style
+ */
+pub type Hidden.
+
+/**
+ * Displays a border that makes the element appear embedded. This value is the opposite of `outset`.
+ * When applied to a table cell border and `border-collapse` is set to `collapsed`, this value
+ * behaves like `groove`.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-style
+ */
+pub type Inset.
+
+/**
+ * Displays no line. The [used
+ * value](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Property_value_processing#used_value)
+ * of the line width is `0` even if a width value is specified. In the case of table cell and border
+ * collapsing, the `none` value has the _lowest_ priority. If any other conflicting border is set,
+ * it will be displayed. The `none` value is similar to `hidden`.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-style
+ */
+pub type None.
+
+/**
+ * Displays a border that makes the element appear embossed. This value is the opposite of `inset`.
+ * When applied to a table cell with `border-collapse` set to `collapsed`, this value behaves like
+ * `ridge`.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-style
+ */
+pub type Outset.
+
+/**
+ * Displays a border with an extruded appearance. This value is the opposite of `groove`.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-style
+ */
+pub type Ridge.
+
+/**
+ * Displays a single, straight solid line.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-style
+ */
+pub type Solid.
+
+pub type Css =
+      None
+    | Hidden
+    | Dotted
+    | Dashed
+    | Solid
+    | Double
+    | Groove
+    | Ridge
+    | Inset
+    | Outset
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     rule_style: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     rule_style: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword dashed.
+ * Selects a keyword for rule-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub dashed(): Value ->
-    Value(Token {property: "rule-style", css: "dashed"}).
-
-/**
- * Returns the CSS keyword dotted.
- */
-pub dotted(): Value ->
-    Value(Token {property: "rule-style", css: "dotted"}).
-
-/**
- * Returns the CSS keyword double.
- */
-pub double(): Value ->
-    Value(Token {property: "rule-style", css: "double"}).
-
-/**
- * Returns the CSS keyword groove.
- */
-pub groove(): Value ->
-    Value(Token {property: "rule-style", css: "groove"}).
-
-/**
- * Returns the CSS keyword hidden.
- */
-pub hidden(): Value ->
-    Value(Token {property: "rule-style", css: "hidden"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "rule-style", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "rule-style", css: "initial"}).
-
-/**
- * Returns the CSS keyword inset.
- */
-pub inset(): Value ->
-    Value(Token {property: "rule-style", css: "inset"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "rule-style", css: "none"}).
-
-/**
- * Returns the CSS keyword outset.
- */
-pub outset(): Value ->
-    Value(Token {property: "rule-style", css: "outset"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "rule-style", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "rule-style", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword ridge.
- */
-pub ridge(): Value ->
-    Value(Token {property: "rule-style", css: "ridge"}).
-
-/**
- * Returns the CSS keyword solid.
- */
-pub solid(): Value ->
-    Value(Token {property: "rule-style", css: "solid"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "rule-style", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("rule-style", Atom.to_string(css))).

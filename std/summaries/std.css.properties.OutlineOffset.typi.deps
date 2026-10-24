@@ -1,10 +1,11 @@
 module=std.css.properties.OutlineOffset
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=4472535909253470608
-interface_hash=9489876980547829016
-interface_doc_hash=17139552932814593662
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=18375712700597009771
+interface_hash=10096987128200022789
+interface_doc_hash=7934140568373953869
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

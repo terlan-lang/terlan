@@ -1,52 +1,53 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-animation
+//! The `caret-animation` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property is used to
+//! enable or disable the blinking behavior of the insertion caret, the visible marker that appears
+//! in editable elements to indicate where the next character will be inserted or deleted.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | manual
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-animation
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/caret-animation
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.CaretAnimation.
 
-/// Include an optional declaration in a shared style block.
+/// The caret blinks on and off. This is the default (initial) value.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | Manual
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The caret does not blink on and off.
+
+pub type Manual =
+    Atom["manual"].
 
 pub struct OptionalProperty {
     caret_animation: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     caret_animation: Value
 }.
 
-/// A nominal, specification-constrained caret-animation value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for caret-animation. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword manual.
-
-pub manual(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

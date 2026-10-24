@@ -1,60 +1,73 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-linejoin
+//! The `stroke-linejoin` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+//! the shape to be used at the corners of an [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG)
+//! element's stroked paths. If present, it overrides the element's `stroke-linejoin` attribute.
+//!
+//! Initial: miter. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: [ crop | arcs | miter ] || [ bevel | round | fallback ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-linejoin
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-linejoin
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.StrokeLinejoin.
 
-/// Include an optional declaration in a shared style block.
+/// _(Unsupported.)_ Indicates that an _arcs corner_ is to be used to join path segments. The arc's
+/// shape is formed by extending the outer edges of the stroke at the join point with arcs that have
+/// the same curvature as the outer edges at the join point.
+
+pub type Arcs =
+    Atom["arcs"].
+
+/// Indicates that a beveled corner is to be used to join path segments. The bevel is formed by
+/// truncating the corner by a line perpendicular to a line that bisects the difference in the
+/// subpath angles where they meet the join point.
+
+pub type Bevel =
+    Atom["bevel"].
+
+pub type Css =
+    Arcs
+  | Miter
+  | Bevel
+  | Round
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Indicates that a sharp corner is to be used to join path segments. The corner is formed by
+/// extending the outer edges of the stroke at the tangents of the path segments until they
+/// intersect. This is the default value.
+
+pub type Miter =
+    Atom["miter"].
 
 pub struct OptionalProperty {
     stroke_linejoin: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     stroke_linejoin: Value
 }.
 
-/// A nominal, specification-constrained stroke-linejoin value.
+/// Indicates that a round corner is to be used to join path segments. This is accomplished by
+/// cropping the join as per `bevel`, and then appending a filled arc tangent in order to round the
+/// corner.
+
+pub type Round =
+    Atom["round"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword arcs.
+/// Selects a keyword for stroke-linejoin. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub arcs(): Value.
-
-/// Returns the CSS keyword bevel.
-
-pub bevel(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword miter.
-
-pub miter(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword round.
-
-pub round(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

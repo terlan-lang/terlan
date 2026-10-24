@@ -1,314 +1,247 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `text-decoration` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets the appearance of decorative lines on text. It is a shorthand for
+ * `text-decoration-line`, `text-decoration-color`, `text-decoration-style`, and the newer
+ * `text-decoration-thickness` property.
+ *
+ * Initial: text-decoration-color: currentcolor; text-decoration-style: solid; text-decoration-line:
+ * none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Grammar: <'text-decoration-line'> || <'text-decoration-thickness'> || <'text-decoration-style'>
+ * || <'text-decoration-color'>
+ *
  * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration
- * Grammar: <'text-decoration-line'> || <'text-decoration-thickness'> || <'text-decoration-style'> || <'text-decoration-color'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextDecoration.
 
-import std.core.Option.{None, Some}.
+import std.core.Atom.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
-import std.css.Values.{color_css, length_amount, length_css, percentage_css}.
+import std.css.Values.{color_css, length_amount, length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Color, Length, Percentage}.
+import type std.css.Values.{Color, Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained text-decoration value.
+ * The browser chooses an appropriate width for the text decoration line.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-thickness
  */
-pub opaque type Value = Token.
+pub type Auto.
 
 /**
- * A non-global text-decoration-line component of text-decoration.
+ * The text blinks (alternates between visible and invisible). Conforming user agents may not blink
+ * the text. This value is deprecated in favor of [CSS
+ * animations](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation).
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-line
  */
-pub opaque type TextDecorationLinePart = String.
+pub type Blink.
 
 /**
- * A non-global text-decoration-thickness component of text-decoration.
+ * Produces a dashed line style.
  */
+pub type Dashed.
+
+/**
+ * Produces a dotted line.
+ */
+pub type Dotted.
+
+/**
+ * Produces a double line.
+ */
+pub type Double.
+
+/**
+ * If the font file includes information about a preferred thickness, use that value. If the font
+ * file doesn't include this information, behave as if `auto` was set, with the browser choosing an
+ * appropriate thickness.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-thickness
+ */
+pub type FromFont = Atom["from-font"].
+
+/**
+ * Each line of text uses the user agents' method of highlighting grammar mistakes, which is a
+ * dotted green line in most browsers.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-line
+ */
+pub type GrammarError = Atom["grammar-error"].
+
+/**
+ * Each line of text has a line through the middle.
+ */
+pub type LineThrough = Atom["line-through"].
+
+/**
+ * Produces no line.
+ */
+pub type None.
+
+/**
+ * Each line of text has a line above it.
+ */
+pub type Overline.
+
+/**
+ * Produces a solid line.
+ */
+pub type Solid.
+
+/**
+ * Each line of text uses the user agents' method of highlighting spelling mistakes, which is a
+ * dotted red line in most browsers.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-line
+ */
+pub type SpellingError = Atom["spelling-error"].
+
+/**
+ * Each line of text is underlined.
+ */
+pub type Underline.
+
+/**
+ * Produces a wavy line.
+ */
+pub type Wavy.
+
+pub type Css =
+      None
+    | Underline
+    | Overline
+    | LineThrough
+    | Blink
+    | SpellingError
+    | GrammarError
+    | Auto
+    | FromFont
+    | Solid
+    | Double
+    | Dotted
+    | Dashed
+    | Wavy
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub type TextDecorationLinePart =
+      None
+    | Underline
+    | Overline
+    | LineThrough
+    | Blink
+    | SpellingError
+    | GrammarError.
+
 pub opaque type TextDecorationThicknessPart = String.
 
-/**
- * A non-global text-decoration-style component of text-decoration.
- */
-pub opaque type TextDecorationStylePart = String.
+pub type TextDecorationThicknessCss = Auto | FromFont.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type TextDecorationStylePart = Solid | Double | Dotted | Dashed | Wavy.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     text_decoration: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     text_decoration: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for text-decoration. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "text-decoration", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("text-decoration", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword blink.
- */
-pub blink(): Value ->
-    Value(Token {property: "text-decoration", css: "blink"}).
-
-/**
- * Returns the CSS keyword dashed.
- */
-pub dashed(): Value ->
-    Value(Token {property: "text-decoration", css: "dashed"}).
-
-/**
- * Returns the CSS keyword dotted.
- */
-pub dotted(): Value ->
-    Value(Token {property: "text-decoration", css: "dotted"}).
-
-/**
- * Returns the CSS keyword double.
- */
-pub double(): Value ->
-    Value(Token {property: "text-decoration", css: "double"}).
-
-/**
- * Returns the CSS keyword from-font.
- */
-pub from_font(): Value ->
-    Value(Token {property: "text-decoration", css: "from-font"}).
-
-/**
- * Returns the CSS keyword grammar-error.
- */
-pub grammar_error(): Value ->
-    Value(Token {property: "text-decoration", css: "grammar-error"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-decoration", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-decoration", css: "initial"}).
-
-/**
- * Returns the CSS keyword line-through.
- */
-pub line_through(): Value ->
-    Value(Token {property: "text-decoration", css: "line-through"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "text-decoration", css: "none"}).
-
-/**
- * Returns the CSS keyword overline.
- */
-pub overline(): Value ->
-    Value(Token {property: "text-decoration", css: "overline"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-decoration", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-decoration", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword solid.
- */
-pub solid(): Value ->
-    Value(Token {property: "text-decoration", css: "solid"}).
-
-/**
- * Returns the CSS keyword spelling-error.
- */
-pub spelling_error(): Value ->
-    Value(Token {property: "text-decoration", css: "spelling-error"}).
-
-/**
- * Returns the CSS keyword underline.
- */
-pub underline(): Value ->
-    Value(Token {property: "text-decoration", css: "underline"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-decoration", css: "unset"}).
-
-/**
- * Returns the CSS keyword wavy.
- */
-pub wavy(): Value ->
-    Value(Token {property: "text-decoration", css: "wavy"}).
-
-/**
- * Constructs a text-decoration value from a typed length.
+ * Sets text-decoration from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
+ * the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "text-decoration", css: length_css(value)}).
+    Value(serialize("text-decoration", length_css(value))).
 
 /**
- * Constructs a text-decoration value from a typed percentage.
+ * Sets text-decoration from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "text-decoration", css: percentage_css(value)}).
+    Value(serialize("text-decoration", percentage_css(value))).
 
 /**
- * Checks the specification range and constructs a text-decoration value.
+ * Sets text-decoration from a typed length. Returns Some for amount >= 0; otherwise returns None.
  */
 pub length_2(value: Length): Option[Value] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "text-decoration", css: length_css(value)}));
-        false -> None
+        true -> Some(Value(serialize("text-decoration", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Constructs a text-decoration value from a typed color.
+ * Sets text-decoration from a typed color. Use std.css.Values.rgb or color to choose the paint.
  */
 pub color(value: Color): Value ->
-    Value(Token {property: "text-decoration", css: color_css(value)}).
+    Value(serialize("text-decoration", color_css(value))).
 
 /**
- * Constructs the text-decoration-line keyword blink.
+ * Chooses the text-decoration-thickness part for compose. See the keyword types for their visual
+ * behavior.
  */
-pub text_decoration_line_blink(): TextDecorationLinePart ->
-    TextDecorationLinePart("blink").
+pub text_decoration_thickness(css: TextDecorationThicknessCss): TextDecorationThicknessPart ->
+    TextDecorationThicknessPart(Atom.to_string(css)).
 
 /**
- * Constructs the text-decoration-line keyword grammar-error.
- */
-pub text_decoration_line_grammar_error(): TextDecorationLinePart ->
-    TextDecorationLinePart("grammar-error").
-
-/**
- * Constructs the text-decoration-line keyword line-through.
- */
-pub text_decoration_line_line_through(): TextDecorationLinePart ->
-    TextDecorationLinePart("line-through").
-
-/**
- * Constructs the text-decoration-line keyword none.
- */
-pub text_decoration_line_none(): TextDecorationLinePart ->
-    TextDecorationLinePart("none").
-
-/**
- * Constructs the text-decoration-line keyword overline.
- */
-pub text_decoration_line_overline(): TextDecorationLinePart ->
-    TextDecorationLinePart("overline").
-
-/**
- * Constructs the text-decoration-line keyword spelling-error.
- */
-pub text_decoration_line_spelling_error(): TextDecorationLinePart ->
-    TextDecorationLinePart("spelling-error").
-
-/**
- * Constructs the text-decoration-line keyword underline.
- */
-pub text_decoration_line_underline(): TextDecorationLinePart ->
-    TextDecorationLinePart("underline").
-
-text_decoration_line_css(value: TextDecorationLinePart): String ->
-    value.
-
-/**
- * Constructs the text-decoration-thickness keyword auto.
- */
-pub text_decoration_thickness_auto(): TextDecorationThicknessPart ->
-    TextDecorationThicknessPart("auto").
-
-/**
- * Constructs the text-decoration-thickness keyword from-font.
- */
-pub text_decoration_thickness_from_font(): TextDecorationThicknessPart ->
-    TextDecorationThicknessPart("from-font").
-
-/**
- * Constructs a text-decoration value from a typed length.
+ * Sets text-decoration TextDecorationThicknessPart part from a typed length. Use std.css.Values.px,
+ * root_em, em, vw, or vh to choose the unit.
  */
 pub text_decoration_thickness_length(value: Length): TextDecorationThicknessPart ->
     TextDecorationThicknessPart(length_css(value)).
 
 /**
- * Constructs a text-decoration value from a typed percentage.
+ * Sets text-decoration TextDecorationThicknessPart part from a typed percentage.
  */
 pub text_decoration_thickness_percentage(value: Percentage): TextDecorationThicknessPart ->
     TextDecorationThicknessPart(percentage_css(value)).
 
 /**
- * Checks the specification range and constructs a text-decoration value.
+ * Sets text-decoration TextDecorationThicknessPart part from a typed length. Returns Some for
+ * amount >= 0; otherwise returns None.
  */
 pub text_decoration_thickness_length_2(value: Length): Option[TextDecorationThicknessPart] ->
     case length_amount(value) >= 0 {
         true -> Some(TextDecorationThicknessPart(length_css(value)));
-        false -> None
+        false -> Absent
     }.
 
 text_decoration_thickness_css(value: TextDecorationThicknessPart): String ->
     value.
 
 /**
- * Constructs the text-decoration-style keyword dashed.
- */
-pub text_decoration_style_dashed(): TextDecorationStylePart ->
-    TextDecorationStylePart("dashed").
-
-/**
- * Constructs the text-decoration-style keyword dotted.
- */
-pub text_decoration_style_dotted(): TextDecorationStylePart ->
-    TextDecorationStylePart("dotted").
-
-/**
- * Constructs the text-decoration-style keyword double.
- */
-pub text_decoration_style_double(): TextDecorationStylePart ->
-    TextDecorationStylePart("double").
-
-/**
- * Constructs the text-decoration-style keyword solid.
- */
-pub text_decoration_style_solid(): TextDecorationStylePart ->
-    TextDecorationStylePart("solid").
-
-/**
- * Constructs the text-decoration-style keyword wavy.
- */
-pub text_decoration_style_wavy(): TextDecorationStylePart ->
-    TextDecorationStylePart("wavy").
-
-text_decoration_style_css(value: TextDecorationStylePart): String ->
-    value.
-
-/**
- * Combines every named specification group in canonical order.
+ * Sets text-decoration by combining text-decoration-line, text-decoration-thickness,
+ * text-decoration-style, text-decoration-color in grammar order. Each argument describes a distinct
+ * part of the declaration.
  */
 pub compose(
     text_decoration_line: TextDecorationLinePart,
@@ -317,8 +250,8 @@ pub compose(
     text_decoration_color: Color,
 ): Value ->
     Value(
-        Token {
-            property: "text-decoration",
-            css: text_decoration_line_css(text_decoration_line) + " " + text_decoration_thickness_css(text_decoration_thickness) + " " + text_decoration_style_css(text_decoration_style) + " " + color_css(text_decoration_color),
-        },
+        serialize(
+            "text-decoration",
+            Atom.to_string(text_decoration_line) + " " + text_decoration_thickness_css(text_decoration_thickness) + " " + Atom.to_string(text_decoration_style) + " " + color_css(text_decoration_color),
+        ),
     ).

@@ -14,7 +14,7 @@ be assigned to height properties; raw strings cannot become property values.
 Use `OptionalProperty` to compose partial style blocks. Its field has type
 `Option[Value]`: initialize absent declarations with `None` and present ones
 with `Some(value)`. A shared empty style value can be specialized with ordinary
-record updates, as demonstrated by Battleship.
+record updates.
 
 Compose application styles with ordinary struct inclusion:
 
@@ -26,22 +26,40 @@ pub struct Dimensions includes WidthProperty, HeightProperty {}.
 pub struct TileStyle includes Dimensions {}.
 ```
 
+Keyword inputs are closed enums. Import keyword types from the property module
+and select them with `value`, rather than calling a function for every keyword:
+
+```terlan
+import std.css.properties.BoxSizing.
+import type std.css.properties.BoxSizing.{BorderBox}.
+
+pub sizing(): BoxSizing.Value ->
+    BoxSizing.value(BorderBox).
+```
+
+Every property also accepts `Inherit`, `Initial`, `Unset`, `Revert`, and
+`RevertLayer` from `std.css.Values`. The property-specific opaque `Value`
+preserves property identity while sharing one serialized representation.
+
 `std.css.Values` supplies typed lengths, percentages, colors, angles, and times.
+Use `color(Transparent)` or `color(CurrentColor)` for shared color keywords;
+length and time structs constrain their units with enums.
 Property constructors enforce numeric ranges from the grammar. For example,
 `Width.length(px(30.0))` returns `Some(value)`, while a negative width returns
 `None`. Negative margins remain valid. RGB construction checks channel bounds.
 
 Bounded space-separated shorthands expose a separate nominal `Component` type.
 Use `component_length`, `component_percentage`, or supported keyword constructors
-such as `component_auto`, then combine them with `single`, `pair`, `triple`, or
+such as `component(Auto)`, then combine them with `single`, `pair`, `triple`, or
 `quad` as permitted by the specification's repetition bounds:
 
 ```terlan
 import std.css.Values.{px, root_em}.
 import std.css.properties.Margin.
+import type std.css.properties.Margin.{Auto}.
 
 pub centered(): Margin.Value ->
-    Margin.pair(Margin.component_length(px(0.0)), Margin.component_auto()).
+    Margin.pair(Margin.component_length(px(0.0)), Margin.component(Auto)).
 
 pub spacing(): Margin.Value ->
     Margin.quad(
@@ -61,19 +79,21 @@ The generator currently finds supported repetitions in 48 property definitions.
 
 Named `&&` and `||` groups expose `compose`, which supplies every group in
 specification order. Each group with keywords, alternatives, or range checks
-has its own opaque part type and prefixed constructors. A group containing one
+uses a closed enum for keyword choices. Mixed numeric and keyword groups
+have an opaque part type with typed constructors. A group containing one
 unconstrained primitive accepts that shared type directly, such as `Color`:
 
 ```terlan
 import std.core.Option.{None, Some}.
 import std.css.Values.{px, rgb}.
 import std.css.properties.Border.
+import type std.css.properties.Border.{Solid}.
 import type std.core.Option.
 
 pub unit_border(): Option[Border.Value] ->
     case {Border.line_width_length(px(2.0)), rgb(127, 136, 26)} {
         {Some(width), Some(color)} ->
-            Some(Border.compose(width, Border.line_style_solid(), color));
+            Some(Border.compose(width, Solid, color));
         _ -> None
     }.
 ```
@@ -139,7 +159,30 @@ released browser implements the property; support across every browser is not
 required.
 
 The compiler fixture at `tests/fixtures/typed-css` exercises a CSS-only build.
-The sibling Battleship application demonstrates the mixed path: its typed
-`battleship.Styles` module owns board dimensions, tile sizing, setup controls,
-disabled-state styles, placeholder spacing, automatic page centering, and
-unit-state borders alongside its existing handwritten stylesheets.
+It supplies a self-contained stylesheet with typed dimensions, spacing,
+and borders alongside a handwritten CSS entry.
+
+## Generated author documentation
+
+Each generated module describes the property's purpose, its initial value,
+inheritance and percentage behavior when available, and links to the specification
+and author guide. Keyword type comments explain the effect of each documented
+choice. Numeric constructors document accepted ranges and failure results;
+shorthand functions document component order and four-side expansion.
+
+Generation reads the checked-in `tools/css/documentation-data.json` snapshot.
+It combines MDN contributor prose at the recorded content commit with Microsoft
+CSS value descriptions and a small set of authored specification summaries in
+`documentation-overrides.json`. To refresh MDN content explicitly, check out the
+recorded `mdn/content` revision and run:
+
+```sh
+node tools/css/collect-documentation.mjs /path/to/mdn/content
+npm run generate --prefix tools/css
+```
+
+MDN-derived purpose and value descriptions are adapted under
+[CC-BY-SA 2.5](../../tools/css/LICENSE-MDN.md), with source links in each module.
+Additional Microsoft value descriptions retain their
+[MIT notice](../../tools/css/LICENSE-Microsoft.md). These notices apply to the
+attributed documentation; generated Terlan code retains the repository license.

@@ -1,64 +1,73 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-synthesis
+//! The `font-synthesis` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property lets you specify whether or not the browser may synthesize the bold, italic, small-caps,
+//! and/or subscript and superscript typefaces when they are missing in the specified font-family.
+//!
+//! Initial: weight style small-caps position . Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | [ weight || style || small-caps || position]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-synthesis
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-synthesis
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontSynthesis.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | Weight
+  | Style
+  | SmallCaps
+  | Position
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Indicates that no bold, italic, or small-caps typeface may be synthesized by the browser.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     font_synthesis: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+/// Indicates that the subscript and superscript typeface may be synthesized by the browser, if
+/// needed, when using `font-variant-position`.
+
+pub type Position =
+    Atom["position"].
 
 pub struct Property {
     font_synthesis: Value
 }.
 
-/// A nominal, specification-constrained font-synthesis value.
+/// Indicates that the small-caps typeface may be synthesized by the browser if needed.
+
+pub type SmallCaps =
+    Atom["small-caps"].
+
+/// Indicates that the italic typeface may be synthesized by the browser if needed.
+
+pub type Style =
+    Atom["style"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Indicates that the missing bold typeface may be synthesized by the browser if needed.
 
-pub inherit(): Value.
+pub type Weight =
+    Atom["weight"].
 
-/// Returns the CSS keyword initial.
+/// Selects a keyword for font-synthesis. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword position.
-
-pub position(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword small-caps.
-
-pub small_caps(): Value.
-
-/// Returns the CSS keyword style.
-
-pub style(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword weight.
-
-pub weight(): Value.
-
-export type Token.
+pub value(css: Css): Value.

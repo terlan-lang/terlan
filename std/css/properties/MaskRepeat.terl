@@ -1,99 +1,102 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-repeat
+ * The `mask-repeat` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how mask
+ * images are repeated. A mask image can be repeated along the horizontal axis, the vertical axis,
+ * both axes, or not repeated at all.
+ *
+ * Initial: repeat. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <repeat-style>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-repeat
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-repeat
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskRepeat.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained mask-repeat value.
+ * The mask image is not repeated (and hence the mask painting area will not necessarily be entirely
+ * covered). The position of the non-repeated mask image is defined by the `mask-position` CSS
+ * property.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type NoRepeat = Atom["no-repeat"].
 
 /**
- * Include this property in an application style struct.
+ * The image is repeated as much as needed to cover the whole mask painting area. Mask images along
+ * the edges are clipped when the size of the [mask origin
+ * box](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-origin) is not an
+ * exact multiple of the mask image's size.
  */
+pub type Repeat.
+
+/**
+ * The equivalent of `repeat no-repeat`. The image is repeated in the horizontal direction as many
+ * times as needed to cover the width of the mask painting area. Mask images along the right or left
+ * edges, or both depending on the `mask-position` value, will be clipped if the width of the mask
+ * origin box is not an exact multiple of the mask image's width.
+ */
+pub type RepeatX = Atom["repeat-x"].
+
+/**
+ * The equivalent of `no-repeat repeat`. The image is repeated in the vertical direction as many
+ * times as needed to cover the height of the mask painting area. Mask images along the top or
+ * bottom edges, or both depending on the `mask-position` value, will be clipped if the height of
+ * the mask origin box is not an exact multiple of the mask image's height.
+ */
+pub type RepeatY = Atom["repeat-y"].
+
+/**
+ * The mask image is repeated as many times as possible in its original dimensions. If the size of
+ * the mask origin box is not an exact multiple of the mask image's size, all mask images will be
+ * rescaled, [shrinking or stretching](#rounded_repetitions) to ensure no repetitions are clipped.
+ */
+pub type Round.
+
+/**
+ * The mask image is repeated as many times as possible without clipping. If the element's origin
+ * size is at least twice the size as the mask image's size in the associated dimension, the
+ * `mask-position` property is ignored and the first and last images are positioned at the edges of
+ * the mask origin container. If the mask origin box is not an exact multiple of the mask image's
+ * size, whitespace is distributed evenly between the repeated mask images.
+ */
+pub type Space.
+
+pub type Css =
+      RepeatX
+    | RepeatY
+    | Repeat
+    | Space
+    | Round
+    | NoRepeat
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     mask_repeat: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     mask_repeat: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for mask-repeat. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "mask-repeat", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "mask-repeat", css: "initial"}).
-
-/**
- * Returns the CSS keyword no-repeat.
- */
-pub no_repeat(): Value ->
-    Value(Token {property: "mask-repeat", css: "no-repeat"}).
-
-/**
- * Returns the CSS keyword repeat.
- */
-pub repeat(): Value ->
-    Value(Token {property: "mask-repeat", css: "repeat"}).
-
-/**
- * Returns the CSS keyword repeat-x.
- */
-pub repeat_x(): Value ->
-    Value(Token {property: "mask-repeat", css: "repeat-x"}).
-
-/**
- * Returns the CSS keyword repeat-y.
- */
-pub repeat_y(): Value ->
-    Value(Token {property: "mask-repeat", css: "repeat-y"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-repeat", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-repeat", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword round.
- */
-pub round(): Value ->
-    Value(Token {property: "mask-repeat", css: "round"}).
-
-/**
- * Returns the CSS keyword space.
- */
-pub space(): Value ->
-    Value(Token {property: "mask-repeat", css: "space"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-repeat", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("mask-repeat", Atom.to_string(css))).

@@ -1,105 +1,96 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `text-decoration-line` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * the kind of decoration that is used on text in an element, such as an underline or overline.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Grammar: none | [ underline || overline || line-through || blink ] | spelling-error |
+ * grammar-error
+ *
  * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-line
- * Grammar: none | [ underline || overline || line-through || blink ] | spelling-error | grammar-error
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-line
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextDecorationLine.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained text-decoration-line value.
+ * The text blinks (alternates between visible and invisible). Conforming user agents may not blink
+ * the text. This value is deprecated in favor of [CSS
+ * animations](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation).
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Blink.
 
 /**
- * Include this property in an application style struct.
+ * Each line of text uses the user agents' method of highlighting grammar mistakes, which is a
+ * dotted green line in most browsers.
  */
+pub type GrammarError = Atom["grammar-error"].
+
+/**
+ * Each line of text has a decorative line going through its middle.
+ */
+pub type LineThrough = Atom["line-through"].
+
+/**
+ * Produces no text decoration.
+ */
+pub type None.
+
+/**
+ * Each line of text has a decorative line above it.
+ */
+pub type Overline.
+
+/**
+ * Each line of text uses the user agents' method of highlighting spelling mistakes, which is a
+ * dotted red line in most browsers.
+ */
+pub type SpellingError = Atom["spelling-error"].
+
+/**
+ * Each line of text has a decorative line beneath it.
+ */
+pub type Underline.
+
+pub type Css =
+      None
+    | Underline
+    | Overline
+    | LineThrough
+    | Blink
+    | SpellingError
+    | GrammarError
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     text_decoration_line: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     text_decoration_line: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword blink.
+ * Selects a keyword for text-decoration-line. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub blink(): Value ->
-    Value(Token {property: "text-decoration-line", css: "blink"}).
-
-/**
- * Returns the CSS keyword grammar-error.
- */
-pub grammar_error(): Value ->
-    Value(Token {property: "text-decoration-line", css: "grammar-error"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-decoration-line", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-decoration-line", css: "initial"}).
-
-/**
- * Returns the CSS keyword line-through.
- */
-pub line_through(): Value ->
-    Value(Token {property: "text-decoration-line", css: "line-through"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "text-decoration-line", css: "none"}).
-
-/**
- * Returns the CSS keyword overline.
- */
-pub overline(): Value ->
-    Value(Token {property: "text-decoration-line", css: "overline"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-decoration-line", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-decoration-line", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword spelling-error.
- */
-pub spelling_error(): Value ->
-    Value(Token {property: "text-decoration-line", css: "spelling-error"}).
-
-/**
- * Returns the CSS keyword underline.
- */
-pub underline(): Value ->
-    Value(Token {property: "text-decoration-line", css: "underline"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-decoration-line", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("text-decoration-line", Atom.to_string(css))).

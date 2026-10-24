@@ -1,56 +1,60 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-inline-end
+//! The `margin-inline-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+//! the logical inline end margin of an element, which maps to a physical margin depending on the
+//! element's writing mode, directionality, and text orientation. In other words, it corresponds to
+//! the `margin-top`, `margin-right`, `margin-bottom` or `margin-left` property depending on the
+//! values defined for `writing-mode`, `direction`, and `text-orientation`.
+//!
+//! Initial: 0. Inherited: no.
+//! Percentages: depends on layout model.
+//!
 //! Grammar: <'margin-top'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-inline-end
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-inline-end
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MarginInlineEnd.
 
-/// Include an optional declaration in a shared style block.
+/// The browser selects a suitable value to use. See `margin`.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/margin-top
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     margin_inline_end: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     margin_inline_end: Value
 }.
 
-/// A nominal, specification-constrained margin-inline-end value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a margin-inline-end value from a typed length.
+/// Sets margin-inline-end from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+/// choose the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Constructs a margin-inline-end value from a typed percentage.
+/// Sets margin-inline-end from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for margin-inline-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

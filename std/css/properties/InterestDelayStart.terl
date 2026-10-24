@@ -1,78 +1,58 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-ui-4/#propdef-interest-delay-start
+ * The `interest-delay-start` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies the delay between the user showing interest in an [interest
+ * invoker](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using_interest_invokers)
+ * element and the `interest` event firing.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: normal | <time>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-interest-delay-start
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/interest-delay-start
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.InterestDelayStart.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{serialize, time_css}.
 
 import type std.core.Option.
-import type std.css.Values.{Time}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
 
 /**
- * A nominal, specification-constrained interest-delay-start value.
+ * Sets the delay to the browser's default delay. This is the initial value.
  */
-pub opaque type Value = Token.
+pub type Normal.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Normal | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     interest_delay_start: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     interest_delay_start: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for interest-delay-start. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "interest-delay-start", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("interest-delay-start", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "interest-delay-start", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "interest-delay-start", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "interest-delay-start", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "interest-delay-start", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "interest-delay-start", css: "unset"}).
-
-/**
- * Constructs a interest-delay-start value from a typed time.
+ * Sets interest-delay-start from a typed time.
  */
 pub time(value: Time): Value ->
-    Value(Token {property: "interest-delay-start", css: std.css.Values.time_css(value)}).
+    Value(serialize("interest-delay-start", time_css(value))).

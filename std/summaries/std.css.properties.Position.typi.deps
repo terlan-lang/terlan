@@ -1,9 +1,11 @@
 module=std.css.properties.Position
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16726595032003525081
-interface_hash=16864844119145589104
-interface_doc_hash=10853224064420823307
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=11096083987650739657
+interface_hash=2702137932408340915
+interface_doc_hash=16435980812141140026
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

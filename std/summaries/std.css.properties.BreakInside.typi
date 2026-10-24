@@ -1,64 +1,71 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-break-4/#propdef-break-inside
+//! The `break-inside` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how
+//! page, column, or region breaks should behave inside a generated box. If there is no generated
+//! box, the property is ignored.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | avoid | avoid-page | avoid-column | avoid-region
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-break-4/#propdef-break-inside
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/break-inside
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BreakInside.
 
-/// Include an optional declaration in a shared style block.
+/// Allows, but does not force, any break (page, column, or region) to be inserted within the
+/// principal box.
+
+pub type Auto =
+    Atom["auto"].
+
+/// Avoids any break (page, column, or region) from being inserted within the principal box.
+
+pub type Avoid =
+    Atom["avoid"].
+
+/// Avoids any column break within the principal box.
+
+pub type AvoidColumn =
+    Atom["avoid-column"].
+
+/// Avoids any page break within the principal box.
+
+pub type AvoidPage =
+    Atom["avoid-page"].
+
+/// Avoids any region break within the principal box.
+
+pub type AvoidRegion =
+    Atom["avoid-region"].
+
+pub type Css =
+    Auto
+  | Avoid
+  | AvoidPage
+  | AvoidColumn
+  | AvoidRegion
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     break_inside: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     break_inside: Value
 }.
 
-/// A nominal, specification-constrained break-inside value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for break-inside. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword avoid.
-
-pub avoid(): Value.
-
-/// Returns the CSS keyword avoid-column.
-
-pub avoid_column(): Value.
-
-/// Returns the CSS keyword avoid-page.
-
-pub avoid_page(): Value.
-
-/// Returns the CSS keyword avoid-region.
-
-pub avoid_region(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

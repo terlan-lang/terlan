@@ -14,13 +14,19 @@ node --test tools/web-toolchain/css-bundle.test.mjs
 TERLC="${terlc}" npm run --silent check:types --prefix tools/css
 "${terlc}" test std/css/ValuesTest.terl std/css/PropertiesTest.terl --target terlan-vm
 
-for source in WrongProperty RawString WrongUnit WrongShorthandGlobal NestedShorthand WrongShorthandProperty ComponentAsValue WrongBorderParts WrongBorderGlobal WrongBorderProperty WrongBorderColor; do
+for source in WrongProperty RawString RawSerializedValue InvalidEnum InvalidComponentEnum InvalidPartEnum InvalidColorEnum WrongUnit WrongShorthandGlobal NestedShorthand WrongShorthandProperty ComponentAsValue WrongBorderParts WrongBorderGlobal WrongBorderProperty WrongBorderColor; do
   if "${terlc}" check "${fixture}/${source}.terl" > "${output}/${source}.log" 2>&1; then
     echo "typed CSS accepted invalid input: ${source}" >&2
     exit 1
   fi
   rg -q 'type_mismatch' "${output}/${source}.log"
 done
+
+if "${terlc}" check "${fixture}/ForgedValue.terl" > "${output}/ForgedValue.log" 2>&1; then
+  echo 'typed CSS accepted an externally constructed opaque value' >&2
+  exit 1
+fi
+rg -q 'cannot construct opaque type .*Width.Value outside defining module' "${output}/ForgedValue.log"
 
 "${terlc}" build "${fixture}" --target js.browser --out-dir "${output}/build"
 node --input-type=module - "${output}/build" <<'NODE'

@@ -1,52 +1,53 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-snap-2/#propdef-scroll-initial-target
+//! The `scroll-initial-target` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! enables the definition of elements that are potential snap targets when their ancestor `scroll
+//! container` is first rendered.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | nearest
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-snap-2/#propdef-scroll-initial-target
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-initial-target
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollInitialTarget.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | Nearest
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The element is potentially an initial scroll target for its nearest scroll container ancestor.
+
+pub type Nearest =
+    Atom["nearest"].
+
+/// The element is not an initial scroll target.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     scroll_initial_target: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     scroll_initial_target: Value
 }.
 
-/// A nominal, specification-constrained scroll-initial-target value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for scroll-initial-target. CSS-wide choices Inherit, Initial, Unset, Revert,
+/// and RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword nearest.
-
-pub nearest(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

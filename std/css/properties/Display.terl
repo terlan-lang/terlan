@@ -1,249 +1,293 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `display` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether an
+ * element is treated as a [block or inline
+ * box](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Display/Flow_layout) and the layout
+ * used for its children, such as [flow
+ * layout](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Display/Flow_layout),
+ * [grid](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout) or
+ * [flex](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout).
+ *
+ * Initial: inline. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Grammar: [ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> |
+ * <display-box> | <display-legacy> | grid-lanes | inline-grid-lanes | <display-outside> || [
+ * <display-inside> | math ]
+ *
  * Specification: https://drafts.csswg.org/css-display-4/#propdef-display
- * Grammar: [ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> | <display-box> | <display-legacy> | grid-lanes | inline-grid-lanes | <display-outside> || [ <display-inside> | math ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/display
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Display.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained display value.
+ * The element generates a block-level box
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Block.
 
 /**
- * Include this property in an application style struct.
+ * The element itself does not generate any boxes, but its children and pseudo-elements still
+ * generate boxes as normal.
  */
+pub type Contents.
+
+/**
+ * The element generates a principal flex container box and establishes a flex formatting context.
+ */
+pub type Flex.
+
+/**
+ * The element lays out its contents using flow layout (block-and-inline layout).
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-inside
+ */
+pub type Flow.
+
+/**
+ * The element generates a block box that establishes a new [block formatting
+ * context](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Display/Block_formatting_context),
+ * defining where the formatting root lies. - `table` - : These elements behave like HTML `table`
+ * elements. It defines a block-level box. - `flex` - : The element behaves like a block-level
+ * element and lays out its content according to the [flexbox
+ * model](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout). - `grid` - :
+ * The element behaves like a block-level element and lays out its content according to the [grid
+ * model](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Basic_concepts). -
+ * `grid-lanes` - : The element behaves like a block-level element and lays out its content using
+ * grid lanes layout. Columns are defined by `grid-template-columns` and behave like a strict grid,
+ * while items are packed in the block direction to fill gaps between items of different sizes. See
+ * [Grid lanes
+ * layout](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Grid_lanes) for
+ * details. - `ruby` - : The element behaves like an inline-level element and lays out its content
+ * according to the ruby formatting model. It behaves like the corresponding HTML `ruby` elements.
+ */
+pub type FlowRoot = Atom["flow-root"].
+
+/**
+ * The element generates a principal grid container box, and establishes a grid formatting context.
+ */
+pub type Grid.
+
+pub type GridLanes = Atom["grid-lanes"].
+
+/**
+ * The element generates an inline-level box.
+ */
+pub type Inline.
+
+/**
+ * A block box, which itself is flowed as a single inline box, similar to a replaced element. The
+ * inside of an inline-block is formatted as a block box, and the box itself is formatted as an
+ * inline box.
+ */
+pub type InlineBlock = Atom["inline-block"].
+
+/**
+ * The element behaves like an inline-level element and lays out its content according to the
+ * flexbox model.
+ */
+pub type InlineFlex = Atom["inline-flex"].
+
+/**
+ * The element behaves like an inline-level element and lays out its content according to the grid
+ * model.
+ */
+pub type InlineGrid = Atom["inline-grid"].
+
+/**
+ * The element behaves like an inline-level element and lays out its content using grid lanes
+ * layout. Rows are defined by `grid-template-rows` and behave like a strict grid, while items are
+ * packed in the inline direction to fill gaps between items of different sizes. See [Grid lanes
+ * layout](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Grid_lanes) for
+ * details.
+ */
+pub type InlineGridLanes = Atom["inline-grid-lanes"].
+
+/**
+ * The `inline-table` value does not have a direct mapping in HTML. It behaves like an HTML `table`
+ * element, but as an inline box, rather than a block-level box. Inside the table box is a
+ * block-level context.
+ */
+pub type InlineTable = Atom["inline-table"].
+
+/**
+ * One or more block boxes and one marker box.
+ */
+pub type ListItem = Atom["list-item"].
+
+pub type Math.
+
+/**
+ * Turns off the display of an element so that it has no effect on layout (the document is rendered
+ * as though the element did not exist). All descendant elements also have their display turned off.
+ * To have an element take up the space that it would normally take, but without actually rendering
+ * anything, use the `visibility` property instead.
+ */
+pub type None.
+
+/**
+ * The element generates a principal ruby container box, and establishes a ruby formatting context.
+ */
+pub type Ruby.
+
+/**
+ * These elements behave like `rb` HTML elements.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type RubyBase = Atom["ruby-base"].
+
+/**
+ * These elements are generated as anonymous boxes.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type RubyBaseContainer = Atom["ruby-base-container"].
+
+/**
+ * These elements behave like `rt` HTML elements.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type RubyText = Atom["ruby-text"].
+
+/**
+ * These elements behave like `rtc` HTML elements.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type RubyTextContainer = Atom["ruby-text-container"].
+
+/**
+ * The element generates a run-in box. Run-in elements act like inlines or blocks, depending on the
+ * surrounding elements.
+ */
+pub type RunIn = Atom["run-in"].
+
+/**
+ * The element generates a principal table wrapper box containing an additionally-generated table
+ * box, and establishes a table formatting context.
+ */
+pub type Table.
+
+/**
+ * These elements behave like `caption` HTML elements.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type TableCaption = Atom["table-caption"].
+
+/**
+ * These elements behave like `td` HTML elements.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type TableCell = Atom["table-cell"].
+
+/**
+ * These elements behave like `col` HTML elements.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type TableColumn = Atom["table-column"].
+
+/**
+ * These elements behave like `colgroup` HTML elements.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type TableColumnGroup = Atom["table-column-group"].
+
+/**
+ * These elements behave like `tfoot` HTML elements.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type TableFooterGroup = Atom["table-footer-group"].
+
+/**
+ * These elements behave like `thead` HTML elements.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type TableHeaderGroup = Atom["table-header-group"].
+
+/**
+ * These elements behave like `tr` HTML elements.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type TableRow = Atom["table-row"].
+
+/**
+ * These elements behave like `tbody` HTML elements.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/display-internal
+ */
+pub type TableRowGroup = Atom["table-row-group"].
+
+pub type Css =
+      Block
+    | Inline
+    | RunIn
+    | Flow
+    | FlowRoot
+    | Table
+    | Flex
+    | Grid
+    | Ruby
+    | ListItem
+    | TableRowGroup
+    | TableHeaderGroup
+    | TableFooterGroup
+    | TableRow
+    | TableCell
+    | TableColumnGroup
+    | TableColumn
+    | TableCaption
+    | RubyBase
+    | RubyText
+    | RubyBaseContainer
+    | RubyTextContainer
+    | Contents
+    | None
+    | InlineBlock
+    | InlineTable
+    | InlineFlex
+    | InlineGrid
+    | GridLanes
+    | InlineGridLanes
+    | Math
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     display: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     display: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword block.
+ * Selects a keyword for display. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+ * apply to the entire declaration.
  */
-pub block(): Value ->
-    Value(Token {property: "display", css: "block"}).
-
-/**
- * Returns the CSS keyword contents.
- */
-pub contents(): Value ->
-    Value(Token {property: "display", css: "contents"}).
-
-/**
- * Returns the CSS keyword flex.
- */
-pub flex(): Value ->
-    Value(Token {property: "display", css: "flex"}).
-
-/**
- * Returns the CSS keyword flow.
- */
-pub flow(): Value ->
-    Value(Token {property: "display", css: "flow"}).
-
-/**
- * Returns the CSS keyword flow-root.
- */
-pub flow_root(): Value ->
-    Value(Token {property: "display", css: "flow-root"}).
-
-/**
- * Returns the CSS keyword grid.
- */
-pub grid(): Value ->
-    Value(Token {property: "display", css: "grid"}).
-
-/**
- * Returns the CSS keyword grid-lanes.
- */
-pub grid_lanes(): Value ->
-    Value(Token {property: "display", css: "grid-lanes"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "display", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "display", css: "initial"}).
-
-/**
- * Returns the CSS keyword inline.
- */
-pub inline(): Value ->
-    Value(Token {property: "display", css: "inline"}).
-
-/**
- * Returns the CSS keyword inline-block.
- */
-pub inline_block(): Value ->
-    Value(Token {property: "display", css: "inline-block"}).
-
-/**
- * Returns the CSS keyword inline-flex.
- */
-pub inline_flex(): Value ->
-    Value(Token {property: "display", css: "inline-flex"}).
-
-/**
- * Returns the CSS keyword inline-grid.
- */
-pub inline_grid(): Value ->
-    Value(Token {property: "display", css: "inline-grid"}).
-
-/**
- * Returns the CSS keyword inline-grid-lanes.
- */
-pub inline_grid_lanes(): Value ->
-    Value(Token {property: "display", css: "inline-grid-lanes"}).
-
-/**
- * Returns the CSS keyword inline-table.
- */
-pub inline_table(): Value ->
-    Value(Token {property: "display", css: "inline-table"}).
-
-/**
- * Returns the CSS keyword list-item.
- */
-pub list_item(): Value ->
-    Value(Token {property: "display", css: "list-item"}).
-
-/**
- * Returns the CSS keyword math.
- */
-pub math(): Value ->
-    Value(Token {property: "display", css: "math"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "display", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "display", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "display", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword ruby.
- */
-pub ruby(): Value ->
-    Value(Token {property: "display", css: "ruby"}).
-
-/**
- * Returns the CSS keyword ruby-base.
- */
-pub ruby_base(): Value ->
-    Value(Token {property: "display", css: "ruby-base"}).
-
-/**
- * Returns the CSS keyword ruby-base-container.
- */
-pub ruby_base_container(): Value ->
-    Value(Token {property: "display", css: "ruby-base-container"}).
-
-/**
- * Returns the CSS keyword ruby-text.
- */
-pub ruby_text(): Value ->
-    Value(Token {property: "display", css: "ruby-text"}).
-
-/**
- * Returns the CSS keyword ruby-text-container.
- */
-pub ruby_text_container(): Value ->
-    Value(Token {property: "display", css: "ruby-text-container"}).
-
-/**
- * Returns the CSS keyword run-in.
- */
-pub run_in(): Value ->
-    Value(Token {property: "display", css: "run-in"}).
-
-/**
- * Returns the CSS keyword table.
- */
-pub table(): Value ->
-    Value(Token {property: "display", css: "table"}).
-
-/**
- * Returns the CSS keyword table-caption.
- */
-pub table_caption(): Value ->
-    Value(Token {property: "display", css: "table-caption"}).
-
-/**
- * Returns the CSS keyword table-cell.
- */
-pub table_cell(): Value ->
-    Value(Token {property: "display", css: "table-cell"}).
-
-/**
- * Returns the CSS keyword table-column.
- */
-pub table_column(): Value ->
-    Value(Token {property: "display", css: "table-column"}).
-
-/**
- * Returns the CSS keyword table-column-group.
- */
-pub table_column_group(): Value ->
-    Value(Token {property: "display", css: "table-column-group"}).
-
-/**
- * Returns the CSS keyword table-footer-group.
- */
-pub table_footer_group(): Value ->
-    Value(Token {property: "display", css: "table-footer-group"}).
-
-/**
- * Returns the CSS keyword table-header-group.
- */
-pub table_header_group(): Value ->
-    Value(Token {property: "display", css: "table-header-group"}).
-
-/**
- * Returns the CSS keyword table-row.
- */
-pub table_row(): Value ->
-    Value(Token {property: "display", css: "table-row"}).
-
-/**
- * Returns the CSS keyword table-row-group.
- */
-pub table_row_group(): Value ->
-    Value(Token {property: "display", css: "table-row-group"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "display", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("display", Atom.to_string(css))).

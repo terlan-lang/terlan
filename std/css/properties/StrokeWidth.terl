@@ -1,96 +1,75 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-width
+ * The `stroke-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+ * width of a stroke applied to the [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) shape.
+ * If present, it overrides the element's `stroke-width` attribute.
+ *
+ * Initial: 1px. Inherited: yes.
+ * Percentages: refer to the normalized diagonal measure of the current SVG viewport's applied
+ * `viewBox`, or of the viewport itself if no viewBox is specified.
+ *
  * Grammar: [ <length-percentage> | <line-width> | <number> ]#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-width
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-width
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.StrokeWidth.
 
-import std.core.Float.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
+import std.core.{Atom, Float}.
 import std.css.Values.
-import std.css.Values.{length_amount, length_css, percentage_css}.
+import std.css.Values.{length_amount, length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained stroke-width value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     stroke_width: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     stroke_width: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for stroke-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "stroke-width", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("stroke-width", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "stroke-width", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "stroke-width", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "stroke-width", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "stroke-width", css: "unset"}).
-
-/**
- * Constructs a stroke-width value from a typed length.
+ * Sets stroke-width from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
+ * the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "stroke-width", css: length_css(value)}).
+    Value(serialize("stroke-width", length_css(value))).
 
 /**
- * Constructs a stroke-width value from a typed percentage.
+ * Sets stroke-width from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "stroke-width", css: percentage_css(value)}).
+    Value(serialize("stroke-width", percentage_css(value))).
 
 /**
- * Checks the specification range and constructs a stroke-width value.
+ * Sets stroke-width from a typed length. Returns Some for amount >= 0; otherwise returns None.
  */
 pub length_2(value: Length): Option[Value] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "stroke-width", css: length_css(value)}));
-        false -> None
+        true -> Some(Value(serialize("stroke-width", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Constructs a stroke-width value from a typed number.
+ * Sets stroke-width from a typed number.
  */
 pub number(value: Float): Value ->
-    Value(Token {property: "stroke-width", css: std.core.Float.to_string(value)}).
+    Value(serialize("stroke-width", std.core.Float.to_string(value))).

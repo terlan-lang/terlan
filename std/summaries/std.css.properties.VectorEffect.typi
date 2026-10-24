@@ -1,64 +1,72 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/svgwg/svg2-draft/coords.html#VectorEffectProperty
+//! The `vector-effect` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property suppresses
+//! specific [transformation
+//! effects](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/transform) in SVG,
+//! thus permitting effects like a road on a map staying the same width no matter how the map is
+//! zoomed, or allowing a diagram key to retain its position and size regardless of other transforms.
+//! It can only be used with SVG elements that accept the `vector-effect` attribute. When used, the
+//! CSS value overrides any values of the element's `vector-effect` attribute.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | non-scaling-stroke | non-scaling-size | non-rotation | fixed-position
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/coords.html#VectorEffectProperty
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/vector-effect
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.VectorEffect.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | NonScalingStroke
+  | NonScalingSize
+  | NonRotation
+  | FixedPosition
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type FixedPosition =
+    Atom["fixed-position"].
+
+pub type NonRotation =
+    Atom["non-rotation"].
+
+pub type NonScalingSize =
+    Atom["non-scaling-size"].
+
+/// The element's drawn stroke width will be physically equal in size to its defined stroke width,
+/// even if the element has been scaled up or down in size due to transforms of either itself or its
+/// coordinate system. This is the case whether the element is scaled with transforms or by physical
+/// resizing of the entire image.
+
+pub type NonScalingStroke =
+    Atom["non-scaling-stroke"].
+
+/// No vector effects are applied to the element, meaning it will be fully affected by transforms as
+/// normal.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     vector_effect: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     vector_effect: Value
 }.
 
-/// A nominal, specification-constrained vector-effect value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword fixed-position.
+/// Selects a keyword for vector-effect. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub fixed_position(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword non-rotation.
-
-pub non_rotation(): Value.
-
-/// Returns the CSS keyword non-scaling-size.
-
-pub non_scaling_size(): Value.
-
-/// Returns the CSS keyword non-scaling-stroke.
-
-pub non_scaling_stroke(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

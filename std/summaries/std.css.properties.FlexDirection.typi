@@ -1,60 +1,68 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-direction
+//! The `flex-direction` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how
+//! flex items are placed in the flex container defining the main axis and the direction (normal or
+//! reversed).
+//!
+//! Initial: row. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: row | row-reverse | column | column-reverse
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-direction
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-direction
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FlexDirection.
 
-/// Include an optional declaration in a shared style block.
+/// Specifies the flex container's main-axis to be the same as the block-axis.
+
+pub type Column =
+    Atom["column"].
+
+/// Behaves the same as `column` but specifies the content direction to be inverted, with the first
+/// item placed at the block-end edge.
+
+pub type ColumnReverse =
+    Atom["column-reverse"].
+
+pub type Css =
+    Row
+  | RowReverse
+  | Column
+  | ColumnReverse
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     flex_direction: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     flex_direction: Value
 }.
 
-/// A nominal, specification-constrained flex-direction value.
+/// Specifies the flex container's main-axis to be the same as the text direction. This is the
+/// default value.
+
+pub type Row =
+    Atom["row"].
+
+/// Behaves the same as `row` but specifies the content direction to be inverted, with the first item
+/// placed at the inline-end edge.
+
+pub type RowReverse =
+    Atom["row-reverse"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword column.
+/// Selects a keyword for flex-direction. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub column(): Value.
-
-/// Returns the CSS keyword column-reverse.
-
-pub column_reverse(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword row.
-
-pub row(): Value.
-
-/// Returns the CSS keyword row-reverse.
-
-pub row_reverse(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,52 +1,51 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-sizing-4/#propdef-aspect-ratio
+//! The `aspect-ratio` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows you to
+//! define the desired width-to-height ratio of an element's box.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto || <ratio>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-sizing-4/#propdef-aspect-ratio
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/aspect-ratio
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.AspectRatio.
 
-/// Include an optional declaration in a shared style block.
+/// `Replaced elements` with an intrinsic aspect ratio use _that_ aspect ratio, otherwise the box has
+/// no preferred aspect ratio. Size calculations involving intrinsic aspect ratio always work with
+/// the content box dimensions.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     aspect_ratio: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     aspect_ratio: Value
 }.
 
-/// A nominal, specification-constrained aspect-ratio value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a aspect-ratio value.
+/// Sets aspect-ratio from a typed number. Returns Some for amount >= 0; otherwise returns None.
 
 pub number(value: Float): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for aspect-ratio. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,56 +1,61 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-5/#propdef-text-fit
+//! The `text-fit` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property can be used to
+//! scale the rendered font size of text nodes (and other inline content) so that they fit exactly
+//! within the inline dimension of their containing boxes, optionally limited by a maximum or minimum
+//! scaling factor.
+//!
+//! Initial: none. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: [ none | grow | shrink ] [consistent | per-line | per-line-all]? <percentage>?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-5/#propdef-text-fit
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-fit
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextFit.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | Grow
+  | Shrink
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The text node's rendered font size is scaled up until it exactly fits inside its containing box's
+/// inline dimension.
+
+pub type Grow =
+    Atom["grow"].
+
+/// The default value. No text scaling is applied.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     text_fit: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     text_fit: Value
 }.
 
-/// A nominal, specification-constrained text-fit value.
+/// The text node's rendered font size is scaled down until it exactly fits inside its containing
+/// box's inline dimension.
+
+pub type Shrink =
+    Atom["shrink"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword grow.
+/// Selects a keyword for text-fit. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub grow(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword shrink.
-
-pub shrink(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

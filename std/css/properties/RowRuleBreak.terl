@@ -1,81 +1,58 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-break
+ * The `row-rule-break` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * behavior for breaking row rules into segments where row rules intersect column gaps.
+ *
  * Grammar: none | normal | intersection
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-row-rule-break
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/row-rule-break
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.RowRuleBreak.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained row-rule-break value.
+ * Row rules always break when they intersect column gaps, with row rule segments starting and
+ * ending at container and gap edges.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Intersection.
 
 /**
- * Include this property in an application style struct.
+ * There are no breaks in row rules when they intersect column gaps; rather, a continuous row rule
+ * is painted the whole width of the container, from edge to edge.
  */
+pub type None.
+
+/**
+ * In grid, flex containers, and multi-col layout, behaves as `none`. This is the default value.
+ */
+pub type Normal.
+
+pub type Css = None | Normal | Intersection | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     row_rule_break: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     row_rule_break: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for row-rule-break. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "row-rule-break", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "row-rule-break", css: "initial"}).
-
-/**
- * Returns the CSS keyword intersection.
- */
-pub intersection(): Value ->
-    Value(Token {property: "row-rule-break", css: "intersection"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "row-rule-break", css: "none"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "row-rule-break", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "row-rule-break", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "row-rule-break", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "row-rule-break", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("row-rule-break", Atom.to_string(css))).

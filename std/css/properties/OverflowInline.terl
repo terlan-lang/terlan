@@ -1,93 +1,87 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-overflow-3/#propdef-overflow-inline
+ * The `overflow-inline` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets what
+ * shows when content overflows the inline start and end edges of a box. This may be nothing, a
+ * scroll bar, or the overflow content.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: visible | hidden | clip | scroll | auto
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-overflow-3/#propdef-overflow-inline
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow-inline
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.OverflowInline.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained overflow-inline value.
+ * Depends on the user agent. If content fits inside the padding box, it looks the same as
+ * `visible`, but still establishes a new block-formatting context. Desktop browsers provide
+ * scrollbars if content overflows.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Auto.
 
 /**
- * Include this property in an application style struct.
+ * Overflow content is clipped at the element's overflow clip edge that is defined using the
+ * `overflow-clip-margin` property.
  */
+pub type Clip.
+
+/**
+ * Content is clipped if necessary to fit the inline dimension in the padding box. No scrollbars are
+ * provided.
+ */
+pub type Hidden.
+
+/**
+ * Content is clipped if necessary to fit in the padding box in the inline dimension. Browsers
+ * display scrollbars whether or not any content is actually clipped. (This prevents scrollbars from
+ * appearing or disappearing when the content changes.) Printers may still print overflowing
+ * content.
+ */
+pub type Scroll.
+
+/**
+ * Content is not clipped and may be rendered outside the padding box's inline start and end edges.
+ */
+pub type Visible.
+
+pub type Css =
+      Visible
+    | Hidden
+    | Clip
+    | Scroll
+    | Auto
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     overflow_inline: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     overflow_inline: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for overflow-inline. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "overflow-inline", css: "auto"}).
-
-/**
- * Returns the CSS keyword clip.
- */
-pub clip(): Value ->
-    Value(Token {property: "overflow-inline", css: "clip"}).
-
-/**
- * Returns the CSS keyword hidden.
- */
-pub hidden(): Value ->
-    Value(Token {property: "overflow-inline", css: "hidden"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "overflow-inline", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "overflow-inline", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "overflow-inline", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "overflow-inline", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword scroll.
- */
-pub scroll(): Value ->
-    Value(Token {property: "overflow-inline", css: "scroll"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "overflow-inline", css: "unset"}).
-
-/**
- * Returns the CSS keyword visible.
- */
-pub visible(): Value ->
-    Value(Token {property: "overflow-inline", css: "visible"}).
+pub value(css: Css): Value ->
+    Value(serialize("overflow-inline", Atom.to_string(css))).

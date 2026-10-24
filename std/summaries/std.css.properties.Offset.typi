@@ -1,44 +1,57 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `offset` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets all the properties required for animating an element along a defined path. The
+//! offset properties together help to define an _offset transform_, a
+//! [transform](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Transforms/Using) that aligns
+//! a point in an element
+//! ([offset-anchor](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-anchor))
+//! to an _offset position_
+//! ([offset-position](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-position))
+//! on a path
+//! ([offset-path](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-path))
+//! at various points along the path
+//! ([offset-distance](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-distance))
+//! and optionally rotates the element
+//! ([offset-rotate](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-rotate))
+//! to follow the direction of the path.
+//!
+//! Initial: offset-position: normal; offset-path: none; offset-distance: 0; offset-anchor: auto;
+//! offset-rotate: auto. Inherited: no.
+//! Percentages: offset-position: refer to the size of containing block; offset-distance: refer to
+//! the total path length; offset-anchor: relative to the width and the height of the element's
+//! reference box.
+//!
+//! Grammar: [ <'offset-position'>? [ <'offset-path'> [ <'offset-distance'> || <'offset-rotate'> ]?
+//! ]? ]! [ / <'offset-anchor'> ]?
+//!
 //! Specification: https://drafts.csswg.org/motion-1/#propdef-offset
-//! Grammar: [ <'offset-position'>? [ <'offset-path'> [ <'offset-distance'> || <'offset-rotate'> ]? ]? ]! [ / <'offset-anchor'> ]?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Offset.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     offset: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     offset: Value
 }.
 
-/// A nominal, specification-constrained offset value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for offset. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

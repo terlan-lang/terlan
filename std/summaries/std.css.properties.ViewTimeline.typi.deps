@@ -1,9 +1,11 @@
 module=std.css.properties.ViewTimeline
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=17932398745770708778
-interface_hash=14018574214919971441
-interface_doc_hash=12495627467800893831
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5161341912961442192
+interface_hash=17238231551731983826
+interface_doc_hash=15304469508466501651
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

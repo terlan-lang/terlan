@@ -1,9 +1,11 @@
 module=std.css.properties.BorderCollapse
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=5675605003760401467
-interface_hash=16094993272322873214
-interface_doc_hash=16343383269986708349
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=17879213646661889499
+interface_hash=5321032234531988575
+interface_doc_hash=13113740281796004135
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

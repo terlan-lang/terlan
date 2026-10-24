@@ -1,88 +1,131 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-align-3/#propdef-place-content
+//! The `place-content` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property allows you to align content along both the block and inline directions at once (i.e.,
+//! the `align-content` and `justify-content` properties) in a relevant layout system such as
+//! [Grid](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout) or
+//! [Flexbox](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout).
+//!
+//! Initial: align-content: normal; justify-content: normal. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <'align-content'> <'justify-content'>?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-align-3/#propdef-place-content
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/place-content
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PlaceContent.
 
-/// Include an optional declaration in a shared style block.
+/// Specifies participation in first- or last-baseline alignment: aligns the alignment baseline of
+/// the box's first or last baseline set with the corresponding baseline in the shared first or last
+/// baseline set of all the boxes in its baseline-sharing group. The fallback alignment for `first
+/// baseline` is `start`, the one for `last baseline` is `end`.
+
+pub type Baseline =
+    Atom["baseline"].
+
+/// The items are packed flush to each other toward the center of the alignment container.
+
+pub type Center =
+    Atom["center"].
+
+pub type Css =
+    Normal
+  | Baseline
+  | SpaceBetween
+  | SpaceAround
+  | SpaceEvenly
+  | Stretch
+  | Center
+  | Start
+  | End
+  | FlexStart
+  | FlexEnd
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The items are packed flush to each other toward the end edge of the alignment container in the
+/// appropriate axis.
+
+pub type End =
+    Atom["end"].
+
+/// The items are packed flush to each other toward the edge of the alignment container depending on
+/// the flex container's main-end or cross-end side. This only applies to flex layout items. For
+/// items that are not children of a flex container, this value is treated like `end`.
+
+pub type FlexEnd =
+    Atom["flex-end"].
+
+/// The items are packed flush to each other toward the edge of the alignment container depending on
+/// the flex container's main-start or cross-start side. This only applies to flex layout items. For
+/// items that are not children of a flex container, this value is treated like `start`.
+
+pub type FlexStart =
+    Atom["flex-start"].
+
+/// The items are packed in their default position as if no `align-content` value was set.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-content
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     place_content: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     place_content: Value
 }.
 
-/// A nominal, specification-constrained place-content value.
+/// The items are evenly distributed within the alignment container. The spacing between each pair of
+/// adjacent items is the same. The empty space before the first and after the last item equals half
+/// of the space between each pair of adjacent items.
+
+pub type SpaceAround =
+    Atom["space-around"].
+
+/// The items are evenly distributed within the alignment container. The spacing between each pair of
+/// adjacent items is the same. The first item is flush with the main-start edge, and the last item
+/// is flush with the main-end edge.
+
+pub type SpaceBetween =
+    Atom["space-between"].
+
+/// The items are evenly distributed within the alignment container. The spacing between each pair of
+/// adjacent items, the main-start edge and the first item, and the main-end edge and the last item,
+/// are all exactly the same.
+
+pub type SpaceEvenly =
+    Atom["space-evenly"].
+
+/// The items are packed flush to each other toward the start edge of the alignment container in the
+/// appropriate axis.
+
+pub type Start =
+    Atom["start"].
+
+/// If the combined size of the items is less than the size of the alignment container, any
+/// `auto`-sized items have their size increased equally (not proportionally), while still respecting
+/// the constraints imposed by `max-height`/`max-width` (or equivalent functionality), so that the
+/// combined size exactly fills the alignment container
+
+pub type Stretch =
+    Atom["stretch"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword baseline.
+/// Selects a keyword for place-content. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub baseline(): Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword end.
-
-pub end_value(): Value.
-
-/// Returns the CSS keyword flex-end.
-
-pub flex_end(): Value.
-
-/// Returns the CSS keyword flex-start.
-
-pub flex_start(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword space-around.
-
-pub space_around(): Value.
-
-/// Returns the CSS keyword space-between.
-
-pub space_between(): Value.
-
-/// Returns the CSS keyword space-evenly.
-
-pub space_evenly(): Value.
-
-/// Returns the CSS keyword start.
-
-pub start(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

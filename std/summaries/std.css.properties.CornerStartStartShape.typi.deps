@@ -1,9 +1,11 @@
 module=std.css.properties.CornerStartStartShape
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16462120628554830141
-interface_hash=13124079457397647971
-interface_doc_hash=9729844049122749866
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5515924388642318335
+interface_hash=16470225670278249434
+interface_doc_hash=6083938092065528562
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

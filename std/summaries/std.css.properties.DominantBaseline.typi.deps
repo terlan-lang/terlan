@@ -1,9 +1,11 @@
 module=std.css.properties.DominantBaseline
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=15222546760082369604
-interface_hash=4472322782365883033
-interface_doc_hash=16230336278719103627
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=6966888765756395363
+interface_hash=967047526176731588
+interface_doc_hash=9434174143501366107
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

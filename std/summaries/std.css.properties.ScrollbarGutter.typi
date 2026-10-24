@@ -1,52 +1,56 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-overflow-3/#propdef-scrollbar-gutter
+//! The `scrollbar-gutter` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows
+//! authors to reserve space for the scrollbar, preventing unwanted layout changes as the content
+//! grows while also avoiding unnecessary visuals when scrolling isn't needed.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | stable && both-edges?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-overflow-3/#propdef-scrollbar-gutter
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scrollbar-gutter
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollbarGutter.
 
-/// Include an optional declaration in a shared style block.
+/// The initial value. Classic scrollbars create a gutter when `overflow` is `scroll`, or when
+/// `overflow` is `auto` and the box is overflowing. Overlay scrollbars do not consume space.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | Stable
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     scrollbar_gutter: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     scrollbar_gutter: Value
 }.
 
-/// A nominal, specification-constrained scrollbar-gutter value.
+/// When using classic scrollbars, the gutter will be present if `overflow` is `auto`, `scroll`, or
+/// `hidden` even if the box is not overflowing. When using overlay scrollbars, the gutter will not
+/// be present.
+
+pub type Stable =
+    Atom["stable"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for scrollbar-gutter. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stable.
-
-pub stable(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

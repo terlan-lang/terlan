@@ -1,64 +1,61 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-block
+//! The `scroll-margin-block` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets the scroll margins of an element in the block dimension.
+//!
+//! Initial: scroll-margin-block-start: 0; scroll-margin-block-end: 0. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <length>{1,2}
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-block
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-margin-block
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollMarginBlock.
 
-/// A single non-global scroll-margin-block shorthand component.
-
 pub opaque type Component.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     scroll_margin_block: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     scroll_margin_block: Value
 }.
 
-/// A nominal, specification-constrained scroll-margin-block value.
-
 pub opaque type Value.
 
-/// Constructs a scroll-margin-block value from a typed length.
+/// Sets scroll-margin-block shorthand component from a typed length. Use std.css.Values.px, root_em,
+/// em, vw, or vh to choose the unit.
 
 pub component_length(value: std.css.Values.Length): Component.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a scroll-margin-block value from a typed length.
+/// Sets scroll-margin-block from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+/// choose the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Combines 2 typed components in specification order.
+/// Supplies 2 components in the grammar order shown above.
 
 pub pair(first: Component, second: Component): Value.
 
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Combines 1 typed components in specification order.
+/// Supplies 1 components in the grammar order shown above.
 
 pub single(first: Component): Value.
 
-/// Returns the CSS keyword unset.
+/// Selects a keyword for scroll-margin-block. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

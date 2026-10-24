@@ -1,248 +1,247 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-area
+//! The `position-area` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property enables an
+//! anchor-positioned element to be positioned relative to the edges of its associated anchor element
+//! by placing the positioned element on one or more tiles of an implicit 3x3 grid, where the
+//! anchoring element is the center cell.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | <position-area>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-area
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position-area
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PositionArea.
 
-/// Include an optional declaration in a shared style block.
+pub type BlockEnd =
+    Atom["block-end"].
+
+pub type BlockStart =
+    Atom["block-start"].
+
+pub type Bottom =
+    Atom["bottom"].
+
+pub type Center =
+    Atom["center"].
+
+pub type Css =
+    None
+  | Left
+  | Center
+  | Right
+  | SpanLeft
+  | SpanRight
+  | XStart
+  | XEnd
+  | SpanXStart
+  | SpanXEnd
+  | SelfXStart
+  | SelfXEnd
+  | SpanSelfXStart
+  | SpanSelfXEnd
+  | SpanAll
+  | Top
+  | Bottom
+  | SpanTop
+  | SpanBottom
+  | YStart
+  | YEnd
+  | SpanYStart
+  | SpanYEnd
+  | SelfYStart
+  | SelfYEnd
+  | SpanSelfYStart
+  | SpanSelfYEnd
+  | BlockStart
+  | BlockEnd
+  | SpanBlockStart
+  | SpanBlockEnd
+  | InlineStart
+  | InlineEnd
+  | SpanInlineStart
+  | SpanInlineEnd
+  | SelfBlockStart
+  | SelfBlockEnd
+  | SpanSelfBlockStart
+  | SpanSelfBlockEnd
+  | SelfInlineStart
+  | SelfInlineEnd
+  | SpanSelfInlineStart
+  | SpanSelfInlineEnd
+  | Start
+  | End
+  | SpanStart
+  | SpanEnd
+  | SelfStart
+  | SelfEnd
+  | SpanSelfStart
+  | SpanSelfEnd
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type End =
+    Atom["end"].
+
+pub type InlineEnd =
+    Atom["inline-end"].
+
+pub type InlineStart =
+    Atom["inline-start"].
+
+pub type Left =
+    Atom["left"].
+
+/// No position area is set.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     position_area: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     position_area: Value
 }.
 
-/// A nominal, specification-constrained position-area value.
+pub type Right =
+    Atom["right"].
+
+pub type SelfBlockEnd =
+    Atom["self-block-end"].
+
+pub type SelfBlockStart =
+    Atom["self-block-start"].
+
+pub type SelfEnd =
+    Atom["self-end"].
+
+pub type SelfInlineEnd =
+    Atom["self-inline-end"].
+
+pub type SelfInlineStart =
+    Atom["self-inline-start"].
+
+pub type SelfStart =
+    Atom["self-start"].
+
+pub type SelfXEnd =
+    Atom["self-x-end"].
+
+pub type SelfXStart =
+    Atom["self-x-start"].
+
+pub type SelfYEnd =
+    Atom["self-y-end"].
+
+pub type SelfYStart =
+    Atom["self-y-start"].
+
+pub type SpanAll =
+    Atom["span-all"].
+
+pub type SpanBlockEnd =
+    Atom["span-block-end"].
+
+pub type SpanBlockStart =
+    Atom["span-block-start"].
+
+pub type SpanBottom =
+    Atom["span-bottom"].
+
+pub type SpanEnd =
+    Atom["span-end"].
+
+pub type SpanInlineEnd =
+    Atom["span-inline-end"].
+
+pub type SpanInlineStart =
+    Atom["span-inline-start"].
+
+pub type SpanLeft =
+    Atom["span-left"].
+
+pub type SpanRight =
+    Atom["span-right"].
+
+pub type SpanSelfBlockEnd =
+    Atom["span-self-block-end"].
+
+pub type SpanSelfBlockStart =
+    Atom["span-self-block-start"].
+
+pub type SpanSelfEnd =
+    Atom["span-self-end"].
+
+pub type SpanSelfInlineEnd =
+    Atom["span-self-inline-end"].
+
+pub type SpanSelfInlineStart =
+    Atom["span-self-inline-start"].
+
+pub type SpanSelfStart =
+    Atom["span-self-start"].
+
+pub type SpanSelfXEnd =
+    Atom["span-self-x-end"].
+
+pub type SpanSelfXStart =
+    Atom["span-self-x-start"].
+
+pub type SpanSelfYEnd =
+    Atom["span-self-y-end"].
+
+pub type SpanSelfYStart =
+    Atom["span-self-y-start"].
+
+pub type SpanStart =
+    Atom["span-start"].
+
+pub type SpanTop =
+    Atom["span-top"].
+
+pub type SpanXEnd =
+    Atom["span-x-end"].
+
+pub type SpanXStart =
+    Atom["span-x-start"].
+
+pub type SpanYEnd =
+    Atom["span-y-end"].
+
+pub type SpanYStart =
+    Atom["span-y-start"].
+
+pub type Start =
+    Atom["start"].
+
+pub type Top =
+    Atom["top"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword block-end.
+pub type XEnd =
+    Atom["x-end"].
 
-pub block_end(): Value.
+pub type XStart =
+    Atom["x-start"].
 
-/// Returns the CSS keyword block-start.
+pub type YEnd =
+    Atom["y-end"].
 
-pub block_start(): Value.
+pub type YStart =
+    Atom["y-start"].
 
-/// Returns the CSS keyword bottom.
+/// Selects a keyword for position-area. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub bottom(): Value.
-
-/// Returns the CSS keyword center.
-
-pub center(): Value.
-
-/// Returns the CSS keyword end.
-
-pub end_value(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inline-end.
-
-pub inline_end(): Value.
-
-/// Returns the CSS keyword inline-start.
-
-pub inline_start(): Value.
-
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
-
-/// Returns the CSS keyword self-block-end.
-
-pub self_block_end(): Value.
-
-/// Returns the CSS keyword self-block-start.
-
-pub self_block_start(): Value.
-
-/// Returns the CSS keyword self-end.
-
-pub self_end(): Value.
-
-/// Returns the CSS keyword self-inline-end.
-
-pub self_inline_end(): Value.
-
-/// Returns the CSS keyword self-inline-start.
-
-pub self_inline_start(): Value.
-
-/// Returns the CSS keyword self-start.
-
-pub self_start(): Value.
-
-/// Returns the CSS keyword self-x-end.
-
-pub self_x_end(): Value.
-
-/// Returns the CSS keyword self-x-start.
-
-pub self_x_start(): Value.
-
-/// Returns the CSS keyword self-y-end.
-
-pub self_y_end(): Value.
-
-/// Returns the CSS keyword self-y-start.
-
-pub self_y_start(): Value.
-
-/// Returns the CSS keyword span-all.
-
-pub span_all(): Value.
-
-/// Returns the CSS keyword span-block-end.
-
-pub span_block_end(): Value.
-
-/// Returns the CSS keyword span-block-start.
-
-pub span_block_start(): Value.
-
-/// Returns the CSS keyword span-bottom.
-
-pub span_bottom(): Value.
-
-/// Returns the CSS keyword span-end.
-
-pub span_end(): Value.
-
-/// Returns the CSS keyword span-inline-end.
-
-pub span_inline_end(): Value.
-
-/// Returns the CSS keyword span-inline-start.
-
-pub span_inline_start(): Value.
-
-/// Returns the CSS keyword span-left.
-
-pub span_left(): Value.
-
-/// Returns the CSS keyword span-right.
-
-pub span_right(): Value.
-
-/// Returns the CSS keyword span-self-block-end.
-
-pub span_self_block_end(): Value.
-
-/// Returns the CSS keyword span-self-block-start.
-
-pub span_self_block_start(): Value.
-
-/// Returns the CSS keyword span-self-end.
-
-pub span_self_end(): Value.
-
-/// Returns the CSS keyword span-self-inline-end.
-
-pub span_self_inline_end(): Value.
-
-/// Returns the CSS keyword span-self-inline-start.
-
-pub span_self_inline_start(): Value.
-
-/// Returns the CSS keyword span-self-start.
-
-pub span_self_start(): Value.
-
-/// Returns the CSS keyword span-self-x-end.
-
-pub span_self_x_end(): Value.
-
-/// Returns the CSS keyword span-self-x-start.
-
-pub span_self_x_start(): Value.
-
-/// Returns the CSS keyword span-self-y-end.
-
-pub span_self_y_end(): Value.
-
-/// Returns the CSS keyword span-self-y-start.
-
-pub span_self_y_start(): Value.
-
-/// Returns the CSS keyword span-start.
-
-pub span_start(): Value.
-
-/// Returns the CSS keyword span-top.
-
-pub span_top(): Value.
-
-/// Returns the CSS keyword span-x-end.
-
-pub span_x_end(): Value.
-
-/// Returns the CSS keyword span-x-start.
-
-pub span_x_start(): Value.
-
-/// Returns the CSS keyword span-y-end.
-
-pub span_y_end(): Value.
-
-/// Returns the CSS keyword span-y-start.
-
-pub span_y_start(): Value.
-
-/// Returns the CSS keyword start.
-
-pub start(): Value.
-
-/// Returns the CSS keyword top.
-
-pub top(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword x-end.
-
-pub x_end(): Value.
-
-/// Returns the CSS keyword x-start.
-
-pub x_start(): Value.
-
-/// Returns the CSS keyword y-end.
-
-pub y_end(): Value.
-
-/// Returns the CSS keyword y-start.
-
-pub y_start(): Value.
-
-export type Token.
+pub value(css: Css): Value.

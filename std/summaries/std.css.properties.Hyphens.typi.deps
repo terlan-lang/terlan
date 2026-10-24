@@ -1,9 +1,11 @@
 module=std.css.properties.Hyphens
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=15571185314395195565
-interface_hash=13983638767071555328
-interface_doc_hash=9565396182751658740
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=2948586489587243871
+interface_hash=11896147962254739514
+interface_doc_hash=5124564303033952340
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

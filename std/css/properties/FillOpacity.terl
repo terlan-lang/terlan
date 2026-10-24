@@ -1,79 +1,59 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-fill-opacity
+ * The `fill-opacity` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+ * opacity of the painting operation (color, gradient, pattern, etc.) applied to SVG shapes or text
+ * content elements to fill the element. The property defines the opacity of the element's `fill`
+ * only; it does not affect the stroke. If present, it overrides the element's `fill-opacity`
+ * attribute.
+ *
+ * Initial: 1. Inherited: yes.
+ * Percentages: map to the range [0,1].
+ *
  * Grammar: <'opacity'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-fill-opacity
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/fill-opacity
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FillOpacity.
 
-import std.core.Float.
+import std.core.{Atom, Float}.
 import std.css.Values.
+import std.css.Values.{percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Percentage}.
+import type std.css.Values.{Inherit, Initial, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained fill-opacity value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     fill_opacity: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     fill_opacity: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for fill-opacity. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "fill-opacity", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("fill-opacity", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "fill-opacity", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "fill-opacity", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "fill-opacity", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "fill-opacity", css: "unset"}).
-
-/**
- * Constructs a fill-opacity value from a typed number.
+ * Sets fill-opacity from a typed number.
  */
 pub number(value: Float): Value ->
-    Value(Token {property: "fill-opacity", css: std.core.Float.to_string(value)}).
+    Value(serialize("fill-opacity", std.core.Float.to_string(value))).
 
 /**
- * Constructs a fill-opacity value from a typed percentage.
+ * Sets fill-opacity from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "fill-opacity", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("fill-opacity", percentage_css(value))).

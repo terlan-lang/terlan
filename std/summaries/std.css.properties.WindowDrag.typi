@@ -1,52 +1,49 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-window-drag
+//! Marks a region that can move an application window when dragged. A move region consumes the drag
+//! gesture instead of delivering normal pointer and mouse events.
+//!
+//! Initial: none. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | move
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-window-drag
+//!
+//! Author guide: https://drafts.csswg.org/css-ui-4/#propdef-window-drag
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WindowDrag.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | Move
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Uses this element as an area for dragging the window.
+
+pub type Move =
+    Atom["move"].
+
+/// Leaves this element available for ordinary interaction.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     window_drag: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     window_drag: Value
 }.
 
-/// A nominal, specification-constrained window-drag value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for window-drag. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword move.
-
-pub move(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

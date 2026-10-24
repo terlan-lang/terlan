@@ -1,80 +1,70 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-overflow-4/#propdef-overflow-clip-margin
+//! The `overflow-clip-margin` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! determines how far outside its bounds an element with [`overflow:
+//! clip`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow) may be
+//! painted before being clipped. The bound defined by this property is called the _overflow clip
+//! edge_ of the box.
+//!
+//! Initial: 0px. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <visual-box> || <length>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-overflow-4/#propdef-overflow-clip-margin
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow-clip-margin
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OverflowClipMargin.
 
-/// Include an optional declaration in a shared style block.
+pub type BorderBox =
+    Atom["border-box"].
+
+pub type ContentBox =
+    Atom["content-box"].
+
+pub type Css =
+    ContentBox
+  | PaddingBox
+  | BorderBox
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     overflow_clip_margin: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+pub type PaddingBox =
+    Atom["padding-box"].
 
 pub struct Property {
     overflow_clip_margin: Value
 }.
 
-/// A nominal, specification-constrained overflow-clip-margin value.
-
 pub opaque type Value.
 
-/// A non-global visual-box component of overflow-clip-margin.
+pub type VisualBoxPart =
+    ContentBox
+  | PaddingBox
+  | BorderBox.
 
-pub opaque type VisualBoxPart.
-
-/// Returns the CSS keyword border-box.
-
-pub border_box(): Value.
-
-/// Combines every named specification group in canonical order.
+/// Sets overflow-clip-margin by combining visual-box, length in grammar order. Each argument
+/// describes a distinct part of the declaration.
 
 pub compose(visual_box: VisualBoxPart, length: std.css.Values.Length): Value.
 
-/// Returns the CSS keyword content-box.
-
-pub content_box(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a overflow-clip-margin value from a typed length.
+/// Sets overflow-clip-margin from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+/// choose the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Returns the CSS keyword padding-box.
+/// Selects a keyword for overflow-clip-margin. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub padding_box(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Constructs the visual-box keyword border-box.
-
-pub visual_box_border_box(): VisualBoxPart.
-
-/// Constructs the visual-box keyword content-box.
-
-pub visual_box_content_box(): VisualBoxPart.
-
-/// Constructs the visual-box keyword padding-box.
-
-pub visual_box_padding_box(): VisualBoxPart.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,87 +1,82 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#ShapeRenderingProperty
+ * The `shape-rendering` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property provides
+ * hints to the renderer about what tradeoffs to make when rendering shapes like paths, circles, or
+ * rectangles. It only has an effect on the `circle`, `ellipse`, `line`, `path`, `polygon`,
+ * `polyline`, and `rect` elements. If explicitly declared, the value of the CSS property overrides
+ * the any values of the element's `shape-rendering` attribute.
+ *
+ * Initial: auto. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | optimizeSpeed | crispEdges | geometricPrecision
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#ShapeRenderingProperty
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/shape-rendering
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ShapeRendering.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained shape-rendering value.
+ * This value directs the user agents to make tradeoffs in order to balance speed, edge crispness,
+ * and geometric precision, with geometric precision given more importance than speed and edge
+ * crispness.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Auto.
 
 /**
- * Include this property in an application style struct.
+ * This value directs the user agent to emphasize edge contrast over geometric precision or
+ * rendering speed. The final rendering is likely to skip techniques such as anti-aliasing. It may
+ * also adjust line positions and line widths in order to align edges with device pixels.
  */
+pub type CrispEdges = Atom["crispEdges"].
+
+/**
+ * This value directs the user agent to emphasize geometric precision over speed or crisp edges. The
+ * final rendering may involve techniques such as anti-aliasing.
+ */
+pub type GeometricPrecision = Atom["geometricPrecision"].
+
+/**
+ * This value directs the user agent to emphasize rendering speed over geometric precision or edge
+ * crispness. The final rendering is likely to skip techniques such as anti-aliasing.
+ */
+pub type OptimizeSpeed = Atom["optimizeSpeed"].
+
+pub type Css =
+      Auto
+    | OptimizeSpeed
+    | CrispEdges
+    | GeometricPrecision
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     shape_rendering: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     shape_rendering: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for shape-rendering. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "shape-rendering", css: "auto"}).
-
-/**
- * Returns the CSS keyword crispEdges.
- */
-pub crispEdges(): Value ->
-    Value(Token {property: "shape-rendering", css: "crispEdges"}).
-
-/**
- * Returns the CSS keyword geometricPrecision.
- */
-pub geometricPrecision(): Value ->
-    Value(Token {property: "shape-rendering", css: "geometricPrecision"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "shape-rendering", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "shape-rendering", css: "initial"}).
-
-/**
- * Returns the CSS keyword optimizeSpeed.
- */
-pub optimizeSpeed(): Value ->
-    Value(Token {property: "shape-rendering", css: "optimizeSpeed"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "shape-rendering", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "shape-rendering", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "shape-rendering", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("shape-rendering", Atom.to_string(css))).

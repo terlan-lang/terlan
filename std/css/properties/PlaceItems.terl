@@ -1,123 +1,148 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-align-3/#propdef-place-items
+ * The `place-items` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property aligns items along both block and inline directions at the same time.
+ *
+ * Initial: align-items: normal; justify-items: legacy. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <'align-items'> <'justify-items'>?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-align-3/#propdef-place-items
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/place-items
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PlaceItems.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained place-items value.
+ * All flex items are aligned such that their [flex container
+ * baselines](https://drafts.csswg.org/css-flexbox-1/#flex-baselines) align. The item with the
+ * largest distance between its cross-start margin edge and its baseline is flushed with the
+ * cross-start edge of the line.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Baseline.
 
 /**
- * Include this property in an application style struct.
+ * The flex items' margin boxes are centered within the line on the cross-axis. If the cross-size of
+ * an item is larger than the flex container, it will overflow equally in both directions.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
  */
+pub type Center.
+
+/**
+ * The items are packed flush to each other toward the end edge of the alignment container in the
+ * appropriate axis.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ */
+pub type End.
+
+/**
+ * Used in flex layout only, aligns the flex items flush against the flex container's main-end or
+ * cross-end side. When used outside of a flex formatting context, this value behaves as `end`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ */
+pub type FlexEnd = Atom["flex-end"].
+
+/**
+ * Used in flex layout only, aligns the flex items flush against the flex container's main-start or
+ * cross-start side. When used outside of a flex formatting context, this value behaves as `start`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ */
+pub type FlexStart = Atom["flex-start"].
+
+/**
+ * The effect of this keyword is dependent of the layout mode we are in: - In absolutely-positioned
+ * layouts, the keyword behaves like `start` on _replaced_ absolutely-positioned boxes, and as
+ * `stretch` on _all other_ absolutely-positioned boxes. - In static position of
+ * absolutely-positioned layouts, the keyword behaves as `stretch`. - For flex items, the keyword
+ * behaves as `stretch`. - For grid items, this keyword leads to a behavior similar to the one of
+ * `stretch`, except for boxes with an `aspect ratio` or an intrinsic size where it behaves like
+ * `start`. - The property doesn't apply to block-level boxes, and to table cells.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ */
+pub type Normal.
+
+/**
+ * The items are packed flush to the edge of the alignment container's end side of the item, in the
+ * appropriate axis.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ */
+pub type SelfEnd = Atom["self-end"].
+
+/**
+ * The items are packed flush to the edge of the alignment container's start side of the item, in
+ * the appropriate axis.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ */
+pub type SelfStart = Atom["self-start"].
+
+/**
+ * The items are packed flush to each other toward the start edge of the alignment container in the
+ * appropriate axis.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ */
+pub type Start.
+
+/**
+ * If the item's cross-size is `auto`, the used size is set to the length necessary to be as close
+ * to filling the container as possible, respecting the item's width and height limits. If the item
+ * is not auto-sized, this value falls back to `flex-start`, and to `self-start` or `self-end` if
+ * the container's `align-content` is `first baseline` (or `baseline`) or `last baseline`.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items
+ */
+pub type Stretch.
+
+pub type Css =
+      Normal
+    | Stretch
+    | Baseline
+    | Center
+    | Start
+    | End
+    | SelfStart
+    | SelfEnd
+    | FlexStart
+    | FlexEnd
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     place_items: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     place_items: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword baseline.
+ * Selects a keyword for place-items. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub baseline(): Value ->
-    Value(Token {property: "place-items", css: "baseline"}).
-
-/**
- * Returns the CSS keyword center.
- */
-pub center(): Value ->
-    Value(Token {property: "place-items", css: "center"}).
-
-/**
- * Returns the CSS keyword end.
- */
-pub end_value(): Value ->
-    Value(Token {property: "place-items", css: "end"}).
-
-/**
- * Returns the CSS keyword flex-end.
- */
-pub flex_end(): Value ->
-    Value(Token {property: "place-items", css: "flex-end"}).
-
-/**
- * Returns the CSS keyword flex-start.
- */
-pub flex_start(): Value ->
-    Value(Token {property: "place-items", css: "flex-start"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "place-items", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "place-items", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "place-items", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "place-items", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "place-items", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword self-end.
- */
-pub self_end(): Value ->
-    Value(Token {property: "place-items", css: "self-end"}).
-
-/**
- * Returns the CSS keyword self-start.
- */
-pub self_start(): Value ->
-    Value(Token {property: "place-items", css: "self-start"}).
-
-/**
- * Returns the CSS keyword start.
- */
-pub start(): Value ->
-    Value(Token {property: "place-items", css: "start"}).
-
-/**
- * Returns the CSS keyword stretch.
- */
-pub stretch(): Value ->
-    Value(Token {property: "place-items", css: "stretch"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "place-items", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("place-items", Atom.to_string(css))).

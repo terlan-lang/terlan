@@ -1,52 +1,52 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-interest-delay-end
+//! The `interest-delay-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies the delay between the user losing interest in an [interest
+//! invoker](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using_interest_invokers)
+//! element and the `loseinterest` event firing.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | <time>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-interest-delay-end
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/interest-delay-end
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.InterestDelayEnd.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Normal
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Sets the delay to the browser's default delay. This is the initial value.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     interest_delay_end: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     interest_delay_end: Value
 }.
 
-/// A nominal, specification-constrained interest-delay-end value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Constructs a interest-delay-end value from a typed time.
+/// Sets interest-delay-end from a typed time.
 
 pub time(value: std.css.Values.Time): Value.
 
-/// Returns the CSS keyword unset.
+/// Selects a keyword for interest-delay-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

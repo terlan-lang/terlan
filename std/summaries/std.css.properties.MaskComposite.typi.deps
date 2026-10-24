@@ -1,9 +1,11 @@
 module=std.css.properties.MaskComposite
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=5278652404108662835
-interface_hash=17686994179226765534
-interface_doc_hash=8259735267767287563
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9164536973406071850
+interface_hash=14532787190354149422
+interface_doc_hash=14556270731014730219
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

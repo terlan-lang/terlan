@@ -1,64 +1,80 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-writing-mode
+//! The `writing-mode` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether
+//! lines of text are laid out horizontally or vertically, as well as the direction in which text
+//! flows.
+//!
+//! Initial: horizontal-tb. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: horizontal-tb | vertical-rl | vertical-lr | sideways-rl | sideways-lr
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-writing-mode
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/writing-mode
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WritingMode.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    HorizontalTb
+  | VerticalRl
+  | VerticalLr
+  | SidewaysRl
+  | SidewaysLr
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// For `ltr` scripts, content flows horizontally from left to right. For `rtl` scripts, content
+/// flows horizontally from right to left. The next horizontal line is positioned below the previous
+/// line.
+
+pub type HorizontalTb =
+    Atom["horizontal-tb"].
 
 pub struct OptionalProperty {
     writing_mode: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     writing_mode: Value
 }.
 
-/// A nominal, specification-constrained writing-mode value.
+/// For `ltr` scripts, content flows vertically from bottom to top. For `rtl` scripts, content flows
+/// vertically from top to bottom. All the glyphs, even those in vertical scripts, are set sideways
+/// toward the left.
+
+pub type SidewaysLr =
+    Atom["sideways-lr"].
+
+/// For `ltr` scripts, content flows vertically from top to bottom. For `rtl` scripts, content flows
+/// vertically from bottom to top. All the glyphs, even those in vertical scripts, are set sideways
+/// toward the right.
+
+pub type SidewaysRl =
+    Atom["sideways-rl"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword horizontal-tb.
+/// For `ltr` scripts, content flows vertically from top to bottom, and the next vertical line is
+/// positioned to the right of the previous line. For `rtl` scripts, content flows vertically from
+/// bottom to top, and the next vertical line is positioned to the right of the previous line.
 
-pub horizontal_tb(): Value.
+pub type VerticalLr =
+    Atom["vertical-lr"].
 
-/// Returns the CSS keyword inherit.
+/// For `ltr` scripts, content flows vertically from top to bottom, and the next vertical line is
+/// positioned to the left of the previous line. For `rtl` scripts, content flows vertically from
+/// bottom to top, and the next vertical line is positioned to the left of the previous line.
 
-pub inherit(): Value.
+pub type VerticalRl =
+    Atom["vertical-rl"].
 
-/// Returns the CSS keyword initial.
+/// Selects a keyword for writing-mode. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword sideways-lr.
-
-pub sideways_lr(): Value.
-
-/// Returns the CSS keyword sideways-rl.
-
-pub sideways_rl(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword vertical-lr.
-
-pub vertical_lr(): Value.
-
-/// Returns the CSS keyword vertical-rl.
-
-pub vertical_rl(): Value.
-
-export type Token.
+pub value(css: Css): Value.

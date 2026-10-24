@@ -1,52 +1,52 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-transforms-2/#propdef-backface-visibility
+//! The `backface-visibility` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! whether the back face of an element is visible when turned towards the user.
+//!
+//! Initial: visible. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: visible | hidden
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-transforms-2/#propdef-backface-visibility
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/backface-visibility
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BackfaceVisibility.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Visible
+  | Hidden
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The back face is hidden, effectively making the element invisible when turned away from the user.
+
+pub type Hidden =
+    Atom["hidden"].
 
 pub struct OptionalProperty {
     backface_visibility: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     backface_visibility: Value
 }.
 
-/// A nominal, specification-constrained backface-visibility value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword hidden.
+/// The back face is visible when turned towards the user.
 
-pub hidden(): Value.
+pub type Visible =
+    Atom["visible"].
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for backface-visibility. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword visible.
-
-pub visible(): Value.
-
-export type Token.
+pub value(css: Css): Value.

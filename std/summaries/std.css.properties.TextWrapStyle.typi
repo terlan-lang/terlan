@@ -1,60 +1,73 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-wrap-style
+//! The `text-wrap-style` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property controls
+//! how text inside an element is wrapped, providing alternate ways of determining where to create
+//! line breaks in order to fit the content within a block element.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | balance | stable | pretty | avoid-short-last-line
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-wrap-style
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-wrap-style
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextWrapStyle.
 
-/// Include an optional declaration in a shared style block.
+/// Text is wrapped in the most performant way for the browser and does not take into account the
+/// number of characters.
+
+pub type Auto =
+    Atom["auto"].
+
+/// Text is wrapped in a way that best balances the number of characters on each line, enhancing
+/// layout quality and legibility. Because counting characters and balancing them across multiple
+/// lines is computationally expensive, this value is only supported for blocks of text spanning a
+/// limited number of lines (six or less for Chromium and ten or less for Firefox).
+
+pub type Balance =
+    Atom["balance"].
+
+pub type Css =
+    Auto
+  | Balance
+  | Stable
+  | Pretty
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     text_wrap_style: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+/// Text is wrapped using a slower algorithm that favors better layout over speed. This is intended
+/// for body copy where good typography is favored over performance (for example, when the number of
+/// [orphans](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/orphans) should
+/// be kept to a minimum).
+
+pub type Pretty =
+    Atom["pretty"].
 
 pub struct Property {
     text_wrap_style: Value
 }.
 
-/// A nominal, specification-constrained text-wrap-style value.
+/// Text is wrapped such that when the user is editing the content, the lines that come before the
+/// lines they are editing remain static rather than the whole block of text re-wrapping.
+
+pub type Stable =
+    Atom["stable"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for text-wrap-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword balance.
-
-pub balance(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword pretty.
-
-pub pretty(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stable.
-
-pub stable(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

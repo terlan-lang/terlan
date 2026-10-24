@@ -1,104 +1,75 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-left
+ * The `scroll-padding-left` property defines offsets for the left of the _optimal viewing region_
+ * of the scrollport: the region used as the target region for placing things in view of the user.
+ * This allows the author to exclude regions of the scrollport that are obscured by other content
+ * (such as fixed-positioned toolbars or sidebars) or to put more breathing room between a targeted
+ * element and the edges of the scrollport.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: relative to the scroll container's scrollport.
+ *
  * Grammar: auto | <length-percentage [0,∞]>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-padding-left
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-padding-left
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollPaddingLeft.
 
-import std.core.Option.{None, Some}.
+import std.core.Atom.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained scroll-padding-left value.
+ * The offset is determined by the user agent. This will generally be 0px, but a user agent is able
+ * to detect and do something else if a non-zero value is more appropriate.
  */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     scroll_padding_left: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     scroll_padding_left: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for scroll-padding-left. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "scroll-padding-left", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("scroll-padding-left", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "scroll-padding-left", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scroll-padding-left", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scroll-padding-left", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scroll-padding-left", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scroll-padding-left", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a scroll-padding-left value.
+ * Sets scroll-padding-left from a typed length. Returns Some for amount >= 0; otherwise returns
+ * None.
  */
 pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(
-                    Token {property: "scroll-padding-left", css: std.css.Values.length_css(value)},
-                ),
-            );
-        false -> None
+    case length_amount(value) >= 0 {
+        true -> Some(Value(serialize("scroll-padding-left", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a scroll-padding-left value.
+ * Sets scroll-padding-left from a typed percentage. Returns Some for amount >= 0; otherwise returns
+ * None.
  */
 pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(
-                    Token {
-                        property: "scroll-padding-left",
-                        css: std.css.Values.percentage_css(value),
-                    },
-                ),
-            );
-        false -> None
+    case percentage_amount(value) >= 0 {
+        true -> Some(Value(serialize("scroll-padding-left", percentage_css(value))));
+        false -> Absent
     }.

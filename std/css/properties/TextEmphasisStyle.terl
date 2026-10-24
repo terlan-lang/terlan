@@ -1,111 +1,105 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `text-emphasis-style` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * the appearance of emphasis marks. It can also be set, and reset, using the `text-emphasis`
+ * shorthand.
+ *
+ * Initial: none. Inherited: yes.
+ * Percentages: not accepted.
+ *
+ * Grammar: none | [ [ filled | open ] || [ dot | circle | double-circle | triangle | sesame ] ] |
+ * <string>
+ *
  * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-emphasis-style
- * Grammar: none | [ [ filled | open ] || [ dot | circle | double-circle | triangle | sesame ] ] | <string>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-emphasis-style
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextEmphasisStyle.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained text-emphasis-style value.
+ * Display large circles as marks. The filled circle is `'●'` (`U+25CF`), and the open circle is
+ * `'○'` (`U+25CB`).
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Circle.
 
 /**
- * Include this property in an application style struct.
+ * Display small circles as marks. The filled dot is `'•'` (`U+2022`), and the open dot is `'◦'`
+ * (`U+25E6`).
  */
+pub type Dot.
+
+/**
+ * Display double circles as marks. The filled double-circle is `'◉'` (`U+25C9`), and the open
+ * double-circle is `'◎'` (`U+25CE`).
+ */
+pub type DoubleCircle = Atom["double-circle"].
+
+/**
+ * The shape is filled with solid color. If neither `filled` nor `open` is present, this is the
+ * default.
+ */
+pub type Filled.
+
+/**
+ * No emphasis marks.
+ */
+pub type None.
+
+/**
+ * The shape is hollow.
+ */
+pub type Open.
+
+/**
+ * Display sesames as marks. The filled sesame is `'﹅'` (`U+FE45`), and the open sesame is `'﹆'`
+ * (`U+FE46`).
+ */
+pub type Sesame.
+
+/**
+ * Display triangles as marks. The filled triangle is `'▲'` (`U+25B2`), and the open triangle is
+ * `'△'` (`U+25B3`).
+ */
+pub type Triangle.
+
+pub type Css =
+      None
+    | Filled
+    | Open
+    | Dot
+    | Circle
+    | DoubleCircle
+    | Triangle
+    | Sesame
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     text_emphasis_style: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     text_emphasis_style: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword circle.
+ * Selects a keyword for text-emphasis-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub circle(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "circle"}).
-
-/**
- * Returns the CSS keyword dot.
- */
-pub dot(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "dot"}).
-
-/**
- * Returns the CSS keyword double-circle.
- */
-pub double_circle(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "double-circle"}).
-
-/**
- * Returns the CSS keyword filled.
- */
-pub filled(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "filled"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "none"}).
-
-/**
- * Returns the CSS keyword open.
- */
-pub open(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "open"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword sesame.
- */
-pub sesame(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "sesame"}).
-
-/**
- * Returns the CSS keyword triangle.
- */
-pub triangle(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "triangle"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-emphasis-style", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("text-emphasis-style", Atom.to_string(css))).

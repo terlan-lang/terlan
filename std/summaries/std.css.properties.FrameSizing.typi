@@ -1,64 +1,74 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-sizing-4/#propdef-frame-sizing
+//! The `frame-sizing` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property can be used
+//! to set an `iframe` element's horizontal or vertical size to equal the layout size of its embedded
+//! document in the same dimension, but only if the embedded document has opted in to sharing its
+//! size information.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | content-width | content-height | content-block-size | content-inline-size
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-sizing-4/#propdef-frame-sizing
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/frame-sizing
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FrameSizing.
 
-/// Include an optional declaration in a shared style block.
+/// The initial value. The `<iframe>` element's size is not affected by the layout size of its
+/// embedded document.
+
+pub type Auto =
+    Atom["auto"].
+
+/// The `<iframe>` element's `block-size` is set to the layout size of its embedded document in the
+/// block direction.
+
+pub type ContentBlockSize =
+    Atom["content-block-size"].
+
+/// The `<iframe>` element's `height` is set to the layout height of its embedded document.
+
+pub type ContentHeight =
+    Atom["content-height"].
+
+/// The `<iframe>` element's `inline-size` is set to the layout size of its embedded document in the
+/// inline direction.
+
+pub type ContentInlineSize =
+    Atom["content-inline-size"].
+
+/// The `<iframe>` element's `width` is set to the layout width of its embedded document.
+
+pub type ContentWidth =
+    Atom["content-width"].
+
+pub type Css =
+    Auto
+  | ContentWidth
+  | ContentHeight
+  | ContentBlockSize
+  | ContentInlineSize
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     frame_sizing: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     frame_sizing: Value
 }.
 
-/// A nominal, specification-constrained frame-sizing value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for frame-sizing. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword content-block-size.
-
-pub content_block_size(): Value.
-
-/// Returns the CSS keyword content-height.
-
-pub content_height(): Value.
-
-/// Returns the CSS keyword content-inline-size.
-
-pub content_inline_size(): Value.
-
-/// Returns the CSS keyword content-width.
-
-pub content_width(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

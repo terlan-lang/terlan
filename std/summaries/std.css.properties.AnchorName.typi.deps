@@ -1,9 +1,11 @@
 module=std.css.properties.AnchorName
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=3182007102474678371
-interface_hash=7729894004918320970
-interface_doc_hash=17061846451494165780
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=2506187094576475903
+interface_hash=11316210361149952333
+interface_doc_hash=11968317404501206215
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

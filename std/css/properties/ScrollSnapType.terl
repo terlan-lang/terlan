@@ -1,105 +1,91 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-type
+ * The `scroll-snap-type` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property is set on
+ * a `scroll container`, opting it into scroll snapping by setting the direction and strictness of
+ * snap point enforcement within the [snap
+ * port](https://developer.mozilla.org/en-US/docs/Glossary/Scroll_snap#snapport).
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: none | [ x | y | block | inline | both | pair ] [ mandatory | proximity ]?
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-type
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-snap-type
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollSnapType.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained scroll-snap-type value.
+ * The scroll container snaps to snap positions in its block axis only.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Block.
 
 /**
- * Include this property in an application style struct.
+ * The scroll container snaps to snap positions in both of its axes independently (potentially
+ * snapping to different elements in each axis).
  */
+pub type Both.
+
+/**
+ * The scroll container snaps to snap positions in its inline axis only.
+ */
+pub type Inline.
+
+/**
+ * When the visual `viewport` of this scroll container is scrolled, it must ignore snap points.
+ */
+pub type None.
+
+pub type Pair.
+
+/**
+ * The scroll container snaps to snap positions in its horizontal axis only.
+ */
+pub type X.
+
+/**
+ * The scroll container snaps to snap positions in its vertical axis only.
+ */
+pub type Y.
+
+pub type Css =
+      None
+    | X
+    | Y
+    | Block
+    | Inline
+    | Both
+    | Pair
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     scroll_snap_type: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     scroll_snap_type: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword block.
+ * Selects a keyword for scroll-snap-type. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub block(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "block"}).
-
-/**
- * Returns the CSS keyword both.
- */
-pub both(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "both"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "initial"}).
-
-/**
- * Returns the CSS keyword inline.
- */
-pub inline(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "inline"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "none"}).
-
-/**
- * Returns the CSS keyword pair.
- */
-pub pair(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "pair"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "unset"}).
-
-/**
- * Returns the CSS keyword x.
- */
-pub x(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "x"}).
-
-/**
- * Returns the CSS keyword y.
- */
-pub y(): Value ->
-    Value(Token {property: "scroll-snap-type", css: "y"}).
+pub value(css: Css): Value ->
+    Value(serialize("scroll-snap-type", Atom.to_string(css))).

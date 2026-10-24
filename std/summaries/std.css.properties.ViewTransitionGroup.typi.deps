@@ -1,9 +1,11 @@
 module=std.css.properties.ViewTransitionGroup
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=5106469211444206144
-interface_hash=9469331688812823023
-interface_doc_hash=15571153146712787025
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15030873284594951154
+interface_hash=8255467641045667177
+interface_doc_hash=10372816025004289710
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

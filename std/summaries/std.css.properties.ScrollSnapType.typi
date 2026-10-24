@@ -1,72 +1,83 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-type
+//! The `scroll-snap-type` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property is set on
+//! a `scroll container`, opting it into scroll snapping by setting the direction and strictness of
+//! snap point enforcement within the [snap
+//! port](https://developer.mozilla.org/en-US/docs/Glossary/Scroll_snap#snapport).
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | [ x | y | block | inline | both | pair ] [ mandatory | proximity ]?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-type
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-snap-type
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollSnapType.
 
-/// Include an optional declaration in a shared style block.
+/// The scroll container snaps to snap positions in its block axis only.
+
+pub type Block =
+    Atom["block"].
+
+/// The scroll container snaps to snap positions in both of its axes independently (potentially
+/// snapping to different elements in each axis).
+
+pub type Both =
+    Atom["both"].
+
+pub type Css =
+    None
+  | X
+  | Y
+  | Block
+  | Inline
+  | Both
+  | Pair
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The scroll container snaps to snap positions in its inline axis only.
+
+pub type Inline =
+    Atom["inline"].
+
+/// When the visual `viewport` of this scroll container is scrolled, it must ignore snap points.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     scroll_snap_type: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+pub type Pair =
+    Atom["pair"].
 
 pub struct Property {
     scroll_snap_type: Value
 }.
 
-/// A nominal, specification-constrained scroll-snap-type value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword block.
+/// The scroll container snaps to snap positions in its horizontal axis only.
 
-pub block(): Value.
+pub type X =
+    Atom["x"].
 
-/// Returns the CSS keyword both.
+/// The scroll container snaps to snap positions in its vertical axis only.
 
-pub both(): Value.
+pub type Y =
+    Atom["y"].
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for scroll-snap-type. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inline.
-
-pub inline(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword pair.
-
-pub pair(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword x.
-
-pub x(): Value.
-
-/// Returns the CSS keyword y.
-
-pub y(): Value.
-
-export type Token.
+pub value(css: Css): Value.

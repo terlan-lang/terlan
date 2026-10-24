@@ -1,93 +1,69 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-try-order
+ * The `position-try-order` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property allows
+ * you to prioritize the `position-try-fallbacks` option applied to an anchor-positioned element
+ * when it first renders, based on which option creates the most space around the element in the
+ * given direction.
+ *
+ * Initial: normal. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: normal | <try-size>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-try-order
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position-try-order
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PositionTryOrder.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+
+pub type MostBlockSize = Atom["most-block-size"].
+
+pub type MostHeight = Atom["most-height"].
+
+pub type MostInlineSize = Atom["most-inline-size"].
+
+pub type MostWidth = Atom["most-width"].
 
 /**
- * A nominal, specification-constrained position-try-order value.
+ * The default. No position-try fallback options will be tried when the element is first rendered.
  */
-pub opaque type Value = Token.
+pub type Normal.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css =
+      Normal
+    | MostWidth
+    | MostHeight
+    | MostBlockSize
+    | MostInlineSize
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     position_try_order: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     position_try_order: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for position-try-order. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "position-try-order", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "position-try-order", css: "initial"}).
-
-/**
- * Returns the CSS keyword most-block-size.
- */
-pub most_block_size(): Value ->
-    Value(Token {property: "position-try-order", css: "most-block-size"}).
-
-/**
- * Returns the CSS keyword most-height.
- */
-pub most_height(): Value ->
-    Value(Token {property: "position-try-order", css: "most-height"}).
-
-/**
- * Returns the CSS keyword most-inline-size.
- */
-pub most_inline_size(): Value ->
-    Value(Token {property: "position-try-order", css: "most-inline-size"}).
-
-/**
- * Returns the CSS keyword most-width.
- */
-pub most_width(): Value ->
-    Value(Token {property: "position-try-order", css: "most-width"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "position-try-order", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "position-try-order", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "position-try-order", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "position-try-order", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("position-try-order", Atom.to_string(css))).

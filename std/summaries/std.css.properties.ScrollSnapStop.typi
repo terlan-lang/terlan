@@ -1,52 +1,54 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-stop
+//! The `scroll-snap-stop` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+//! whether or not the scroll container is allowed to "pass over" possible snap positions.
+//!
+//! Initial: normal. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | always
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-stop
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-snap-stop
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollSnapStop.
 
-/// Include an optional declaration in a shared style block.
+/// The scroll container must not "pass over" a possible snap position; and must snap to the first of
+/// this elements' snap positions.
+
+pub type Always =
+    Atom["always"].
+
+pub type Css =
+    Normal
+  | Always
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// When the visual `viewport` of this element's scroll container is scrolled, it may "pass over"
+/// possible snap positions.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     scroll_snap_stop: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     scroll_snap_stop: Value
 }.
 
-/// A nominal, specification-constrained scroll-snap-stop value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword always.
+/// Selects a keyword for scroll-snap-stop. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub always(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

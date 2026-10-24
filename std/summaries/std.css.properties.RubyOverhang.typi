@@ -1,52 +1,53 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-overhang
+//! The `ruby-overhang` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+//! whether or not a `ruby` annotation overhangs any surrounding text.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | spaces
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ruby-1/#propdef-ruby-overhang
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/ruby-overhang
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RubyOverhang.
 
-/// Include an optional declaration in a shared style block.
+/// When a ruby annotation container is longer than its corresponding base container, the annotation
+/// may partially overlap adjacent text. Whether, and how much to overhang are determined by the user
+/// agent.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | Spaces
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     ruby_overhang: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     ruby_overhang: Value
 }.
 
-/// A nominal, specification-constrained ruby-overhang value.
+pub type Spaces =
+    Atom["spaces"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for ruby-overhang. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword spaces.
-
-pub spaces(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

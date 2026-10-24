@@ -1,48 +1,58 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `grid` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets all of the explicit and implicit grid properties in a single declaration.
+//!
+//! Initial: grid-template-rows: none; grid-template-columns: none; grid-template-areas: none;
+//! grid-auto-rows: auto; grid-auto-columns: auto; grid-auto-flow: row; grid-column-gap: 0;
+//! grid-row-gap: 0; column-gap: normal; row-gap: normal. Inherited: no.
+//! Percentages: grid-template-rows: refer to corresponding dimension of the content area;
+//! grid-template-columns: refer to corresponding dimension of the content area; grid-auto-rows:
+//! refer to corresponding dimension of the content area; grid-auto-columns: refer to corresponding
+//! dimension of the content area.
+//!
+//! Grammar: <'grid-template'> | <'grid-template-rows'> / [ auto-flow && dense? ]
+//! <'grid-auto-columns'>? | [ auto-flow && dense? ] <'grid-auto-rows'>? / <'grid-template-columns'>
+//!
 //! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid
-//! Grammar: <'grid-template'> | <'grid-template-rows'> / [ auto-flow && dense? ] <'grid-auto-columns'>? | [ auto-flow && dense? ] <'grid-auto-rows'>? / <'grid-template-columns'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/grid
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Grid.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Sets all three longhand properties to `none`, meaning there is no explicit grid. There are no
+/// named grid areas. Rows and columns will be implicitly generated; their size will be determined by
+/// the `grid-auto-rows` and `grid-auto-columns` properties. This is the default value.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/grid-template
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     grid: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     grid: Value
 }.
 
-/// A nominal, specification-constrained grid value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for grid. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

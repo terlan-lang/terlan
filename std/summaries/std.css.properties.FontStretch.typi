@@ -1,84 +1,104 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `font-stretch` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property selects a
+//! normal, condensed, or expanded face from a font.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Grammar: normal | <percentage [0,∞]> | ultra-condensed | extra-condensed | condensed |
+//! semi-condensed | semi-expanded | expanded | extra-expanded | ultra-expanded
+//!
 //! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-stretch
-//! Grammar: normal | <percentage [0,∞]> | ultra-condensed | extra-condensed | condensed | semi-condensed | semi-expanded | expanded | extra-expanded | ultra-expanded
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-stretch
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontStretch.
 
-/// Include an optional declaration in a shared style block.
+/// Specifies a more condensed font face than normal, with `ultra-condensed` being the most
+/// condensed.
+
+pub type Condensed =
+    Atom["condensed"].
+
+pub type Css =
+    Normal
+  | UltraCondensed
+  | ExtraCondensed
+  | Condensed
+  | SemiCondensed
+  | SemiExpanded
+  | Expanded
+  | ExtraExpanded
+  | UltraExpanded
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Specifies a more expanded font face than normal, with `ultra-expanded` being the most expanded.
+
+pub type Expanded =
+    Atom["expanded"].
+
+/// Specifies a more condensed font face than normal, with `ultra-condensed` being the most
+/// condensed.
+
+pub type ExtraCondensed =
+    Atom["extra-condensed"].
+
+/// Specifies a more expanded font face than normal, with `ultra-expanded` being the most expanded.
+
+pub type ExtraExpanded =
+    Atom["extra-expanded"].
+
+/// Specifies a normally condensed font face.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     font_stretch: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     font_stretch: Value
 }.
 
-/// A nominal, specification-constrained font-stretch value.
+/// Specifies a more condensed font face than normal, with `ultra-condensed` being the most
+/// condensed.
+
+pub type SemiCondensed =
+    Atom["semi-condensed"].
+
+/// Specifies a more expanded font face than normal, with `ultra-expanded` being the most expanded.
+
+pub type SemiExpanded =
+    Atom["semi-expanded"].
+
+/// Specifies a more condensed font face than normal, with `ultra-condensed` being the most
+/// condensed.
+
+pub type UltraCondensed =
+    Atom["ultra-condensed"].
+
+/// Specifies a more expanded font face than normal, with `ultra-expanded` being the most expanded.
+
+pub type UltraExpanded =
+    Atom["ultra-expanded"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword condensed.
-
-pub condensed(): Value.
-
-/// Returns the CSS keyword expanded.
-
-pub expanded(): Value.
-
-/// Returns the CSS keyword extra-condensed.
-
-pub extra_condensed(): Value.
-
-/// Returns the CSS keyword extra-expanded.
-
-pub extra_expanded(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Checks the specification range and constructs a font-stretch value.
+/// Sets font-stretch from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
 
 pub percentage(value: std.css.Values.Percentage): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for font-stretch. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword semi-condensed.
-
-pub semi_condensed(): Value.
-
-/// Returns the CSS keyword semi-expanded.
-
-pub semi_expanded(): Value.
-
-/// Returns the CSS keyword ultra-condensed.
-
-pub ultra_condensed(): Value.
-
-/// Returns the CSS keyword ultra-expanded.
-
-pub ultra_expanded(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

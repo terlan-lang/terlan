@@ -1,10 +1,11 @@
 module=std.css.properties.BorderBottomColor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=8552610869199422916
-interface_hash=11253077651447540178
-interface_doc_hash=4398294543221664565
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=13065110576618119434
+interface_hash=16936298772150407980
+interface_doc_hash=7946748177713989319
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326
+std.css.Values=10713230055966867446

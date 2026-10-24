@@ -1,84 +1,63 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-position-3/#propdef-inset-block-start
+ * The `inset-block-start` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+ * the logical block start offset of an element, which maps to a physical inset depending on the
+ * element's writing mode, directionality, and text orientation. It corresponds to the `top`,
+ * `right`, `bottom`, or `left` property depending on the values defined for `writing-mode`,
+ * `direction`, and `text-orientation`.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: logical-height of containing block.
+ *
  * Grammar: auto | <length-percentage>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-position-3/#propdef-inset-block-start
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/inset-block-start
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.InsetBlockStart.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained inset-block-start value.
- */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     inset_block_start: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     inset_block_start: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for inset-block-start. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "inset-block-start", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("inset-block-start", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "inset-block-start", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "inset-block-start", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "inset-block-start", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "inset-block-start", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "inset-block-start", css: "unset"}).
-
-/**
- * Constructs a inset-block-start value from a typed length.
+ * Sets inset-block-start from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+ * choose the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "inset-block-start", css: std.css.Values.length_css(value)}).
+    Value(serialize("inset-block-start", length_css(value))).
 
 /**
- * Constructs a inset-block-start value from a typed percentage.
+ * Sets inset-block-start from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "inset-block-start", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("inset-block-start", percentage_css(value))).

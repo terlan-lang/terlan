@@ -1,138 +1,167 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-transitions-1/#propdef-transition
+ * The `transition` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property for , , , , and .
+ *
+ * Initial: transition-delay: 0s; transition-duration: 0s; transition-property: all;
+ * transition-timing-function: ease; transition-behavior: normal. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <single-transition>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-transitions-1/#propdef-transition
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transition
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.Transition.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{serialize, time_css}.
 
 import type std.core.Option.
-import type std.css.Values.{Time}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
 
 /**
- * A nominal, specification-constrained transition value.
+ * Every property that is able to undergo a transition will do so.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type All.
 
 /**
- * Include this property in an application style struct.
+ * Transitions will be started on the element for discrete animated properties.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transition-behavior
  */
+pub type AllowDiscrete = Atom["allow-discrete"].
+
+/**
+ * Equal to `cubic-bezier(0.25, 0.1, 0.25, 1.0)`, the default value, increases in velocity towards
+ * the middle of the transition, slowing back down at the end. - `linear` - : Equal to
+ * `cubic-bezier(0.0, 0.0, 1.0, 1.0)`, transitions at an even speed. - `ease-in` - : Equal to
+ * `cubic-bezier(0.42, 0, 1.0, 1.0)`, starts off slowly, with the transition speed increasing until
+ * complete. - `ease-out` - : Equal to `cubic-bezier(0, 0, 0.58, 1.0)`, starts transitioning
+ * quickly, slowing down as the transition continues. - `ease-in-out` - : Equal to
+ * `cubic-bezier(0.42, 0, 0.58, 1.0)`, starts transitioning slowly, speeds up, and then slows down
+ * again. - `cubic-bezier(p1, p2, p3, p4)` - : An author-defined cubic-Bezier curve, where the p1
+ * and p3 values must be in the range of 0 to 1. - `steps(n, <jump-term>)` - : Displays the
+ * transition along _n stops along the transition, displaying each stop for_ equal lengths of time.
+ * For example, if _n_ is 5, there are 5 steps. Whether the transition holds temporarily at 0%, 20%,
+ * 40%, 60% and 80%, on the 20%, 40%, 60%, 80% and 100%, or makes 5 stops between the 0% and 100%
+ * along the transition, or makes 5 stops including the 0% and 100% marks (on the 0%, 25%, 50%, 75%,
+ * and 100%) depends on which of the following jump terms is used: - `jump-start` - : Denotes a
+ * left-continuous function, so that the first jump happens when the transition begins; - `jump-end`
+ * - : Denotes a right-continuous function, so that the last jump happens when the animation ends; -
+ * `jump-none` - : There is no jump on either end. Instead, holding at both the 0% mark and the 100%
+ * mark, each for 1/n of the duration - `jump-both` - : Includes pauses at both the 0% and 100%
+ * marks, effectively adding a step during the transition time. - `start` - : Same as `jump-start`.
+ * - `end` - : Same as `jump-end`.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transition-timing-function
+ */
+pub type Ease.
+
+/**
+ * Represents the easing function `cubic-bezier(0.42, 0, 1, 1)`. It indicates that the interpolation
+ * starts slowly, then progressively speeds up until the end, at which point it stops abruptly.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+ */
+pub type EaseIn = Atom["ease-in"].
+
+/**
+ * Represents the easing function `cubic-bezier(0.42, 0, 0.58, 1)`. It indicates that the
+ * interpolation starts slowly, speeds up, and then slows down towards the end. At the beginning, it
+ * behaves like the `ease-in` keyword; at the end, it is like the `ease-out` keyword.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+ */
+pub type EaseInOut = Atom["ease-in-out"].
+
+/**
+ * Represents the easing function `cubic-bezier(0, 0, 0.58, 1)`. It indicates that the interpolation
+ * starts abruptly and then progressively slows down towards the end.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+ */
+pub type EaseOut = Atom["ease-out"].
+
+pub type Linear.
+
+/**
+ * No property will transition.
+ */
+pub type None.
+
+/**
+ * Transitions will _not_ be started on the element for discrete animated properties.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transition-behavior
+ */
+pub type Normal.
+
+/**
+ * Represents the easing function `steps(1, jump-end)` or `steps(1, end)`. It indicates that the
+ * interpolation stays in its initial state until the end, at which point it jumps directly to its
+ * final state.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function
+ */
+pub type StepEnd = Atom["step-end"].
+
+/**
+ * Equal to `steps(1, jump-start)` - `step-end` - : Equal to `steps(1, jump-end)`
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transition-timing-function
+ */
+pub type StepStart = Atom["step-start"].
+
+pub type Css =
+      None
+    | All
+    | Linear
+    | Ease
+    | EaseIn
+    | EaseOut
+    | EaseInOut
+    | StepStart
+    | StepEnd
+    | Normal
+    | AllowDiscrete
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     transition: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     transition: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword all.
+ * Selects a keyword for transition. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub all(): Value ->
-    Value(Token {property: "transition", css: "all"}).
+pub value(css: Css): Value ->
+    Value(serialize("transition", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword allow-discrete.
- */
-pub allow_discrete(): Value ->
-    Value(Token {property: "transition", css: "allow-discrete"}).
-
-/**
- * Returns the CSS keyword ease.
- */
-pub ease(): Value ->
-    Value(Token {property: "transition", css: "ease"}).
-
-/**
- * Returns the CSS keyword ease-in.
- */
-pub ease_in(): Value ->
-    Value(Token {property: "transition", css: "ease-in"}).
-
-/**
- * Returns the CSS keyword ease-in-out.
- */
-pub ease_in_out(): Value ->
-    Value(Token {property: "transition", css: "ease-in-out"}).
-
-/**
- * Returns the CSS keyword ease-out.
- */
-pub ease_out(): Value ->
-    Value(Token {property: "transition", css: "ease-out"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "transition", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "transition", css: "initial"}).
-
-/**
- * Returns the CSS keyword linear.
- */
-pub linear(): Value ->
-    Value(Token {property: "transition", css: "linear"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "transition", css: "none"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "transition", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "transition", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "transition", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword step-end.
- */
-pub step_end(): Value ->
-    Value(Token {property: "transition", css: "step-end"}).
-
-/**
- * Returns the CSS keyword step-start.
- */
-pub step_start(): Value ->
-    Value(Token {property: "transition", css: "step-start"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "transition", css: "unset"}).
-
-/**
- * Constructs a transition value from a typed time.
+ * Sets transition from a typed time.
  */
 pub time(value: Time): Value ->
-    Value(Token {property: "transition", css: std.css.Values.time_css(value)}).
+    Value(serialize("transition", time_css(value))).

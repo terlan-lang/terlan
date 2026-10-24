@@ -1,89 +1,61 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-iteration-count
+ * The `animation-iteration-count` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * sets the number of times an animation sequence should be played before stopping.
+ *
+ * Initial: 1. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <single-animation-iteration-count>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-iteration-count
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-iteration-count
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.AnimationIterationCount.
 
-import std.core.Float.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
+import std.core.{Atom, Float}.
+import std.css.Values.{serialize}.
 
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained animation-iteration-count value.
+ * The animation will repeat forever.
  */
-pub opaque type Value = Token.
+pub type Infinite.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Infinite | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     animation_iteration_count: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     animation_iteration_count: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword infinite.
+ * Selects a keyword for animation-iteration-count. CSS-wide choices Inherit, Initial, Unset,
+ * Revert, and RevertLayer apply to the entire declaration.
  */
-pub infinite(): Value ->
-    Value(Token {property: "animation-iteration-count", css: "infinite"}).
+pub value(css: Css): Value ->
+    Value(serialize("animation-iteration-count", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "animation-iteration-count", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "animation-iteration-count", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "animation-iteration-count", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "animation-iteration-count", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "animation-iteration-count", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a animation-iteration-count value.
+ * Sets animation-iteration-count from a typed number. Returns Some for amount >= 0; otherwise
+ * returns None.
  */
 pub number(value: Float): Option[Value] ->
     case value >= 0 {
         true ->
-            Some(
-                Value(
-                    Token {
-                        property: "animation-iteration-count",
-                        css: std.core.Float.to_string(value),
-                    },
-                ),
-            );
-        false -> None
+            Some(Value(serialize("animation-iteration-count", std.core.Float.to_string(value))));
+        false -> Absent
     }.

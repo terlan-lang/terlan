@@ -1,56 +1,61 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-animation-range
+//! The `animation-range` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property is used to set the start and end of an animation's attachment range along its timeline,
+//! i.e., where along the timeline an animation will start and end.
+//!
+//! Initial: animation-range-start: normal; animation-range-end: normal. Inherited: no.
+//! Percentages: Relative to the specified named timeline range if specified, otherwise relative to
+//! the entire timeline.
+//!
 //! Grammar: [ <'animation-range-start'> <'animation-range-end'>? ]#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-animation-range
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-range
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.AnimationRange.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Normal
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Represents the start of the timeline. This is the default value.
+///
+/// Author guide:
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-range-start
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     animation_range: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     animation_range: Value
 }.
 
-/// A nominal, specification-constrained animation-range value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a animation-range value from a typed length.
+/// Sets animation-range from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
+/// the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Constructs a animation-range value from a typed percentage.
+/// Sets animation-range from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for animation-range. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

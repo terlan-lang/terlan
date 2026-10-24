@@ -1,90 +1,71 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-images-3/#propdef-image-orientation
+ * The `image-orientation` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies a layout-independent correction to the orientation of an image.
+ *
+ * Initial: from-image. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: from-image | none | [ <angle> || flip ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-images-3/#propdef-image-orientation
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/image-orientation
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ImageOrientation.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{angle_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Angle}.
+import type std.css.Values.{Angle, Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained image-orientation value.
+ * After rotating by the precededing angle, the image is flipped horizontally. Defaults to 0deg if
+ * the angle is ommitted.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Flip.
 
 /**
- * Include this property in an application style struct.
+ * Default initial value. The [EXIF](https://en.wikipedia.org/wiki/EXIF) information contained in
+ * the image is used to rotate the image appropriately.
  */
+pub type FromImage = Atom["from-image"].
+
+/**
+ * Does not apply any additional image rotation; the image is oriented as encoded or as other CSS
+ * property values dictate.
+ */
+pub type None.
+
+pub type Css = FromImage | None | Flip | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     image_orientation: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     image_orientation: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword flip.
+ * Selects a keyword for image-orientation. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub flip(): Value ->
-    Value(Token {property: "image-orientation", css: "flip"}).
+pub value(css: Css): Value ->
+    Value(serialize("image-orientation", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword from-image.
- */
-pub from_image(): Value ->
-    Value(Token {property: "image-orientation", css: "from-image"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "image-orientation", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "image-orientation", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "image-orientation", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "image-orientation", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "image-orientation", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "image-orientation", css: "unset"}).
-
-/**
- * Constructs a image-orientation value from a typed angle.
+ * Sets image-orientation from a typed angle.
  */
 pub angle(value: Angle): Value ->
-    Value(Token {property: "image-orientation", css: std.css.Values.angle_css(value)}).
+    Value(serialize("image-orientation", angle_css(value))).

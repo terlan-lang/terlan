@@ -1,184 +1,200 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-outline
+//! The `outline` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets the style, color, and width of an element's outline.
+//!
+//! Initial: outline-width: medium; outline-style: none; outline-color: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <'outline-width'> || <'outline-style'> || <'outline-color'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-outline
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/outline
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Outline.
 
-/// Include an optional declaration in a shared style block.
+/// Permits the user agent to render a custom outline style, typically the default platform style.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Thin
+  | Medium
+  | Thick
+  | Auto
+  | None
+  | Dotted
+  | Dashed
+  | Solid
+  | Double
+  | Groove
+  | Ridge
+  | Inset
+  | Outset
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// The outline is a series of short line segments.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/outline-style
+
+pub type Dashed =
+    Atom["dashed"].
+
+/// The outline is a series of dots.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/outline-style
+
+pub type Dotted =
+    Atom["dotted"].
+
+/// The outline is two single lines. The `outline-width` is the sum of the two lines and the space
+/// between them.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/outline-style
+
+pub type Double =
+    Atom["double"].
+
+/// The outline looks as though it were carved into the page.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/outline-style
+
+pub type Groove =
+    Atom["groove"].
+
+/// The outline makes the box look as though it were embedded in the page.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/outline-style
+
+pub type Inset =
+    Atom["inset"].
+
+/// Same as `3px`.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+
+pub type Medium =
+    Atom["medium"].
+
+/// No outline is used.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/outline-style
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     outline: std.core.Option.Option[Value]
 }.
 
-/// A non-global outline-color component of outline.
+pub type OutlineColorCss =
+    Auto.
 
 pub opaque type OutlineColorPart.
 
-/// A non-global outline-style component of outline.
+pub type OutlineStylePart =
+    Auto
+  | None
+  | Dotted
+  | Dashed
+  | Solid
+  | Double
+  | Groove
+  | Ridge
+  | Inset
+  | Outset.
 
-pub opaque type OutlineStylePart.
-
-/// A non-global outline-width component of outline.
+pub type OutlineWidthCss =
+    Thin
+  | Medium
+  | Thick.
 
 pub opaque type OutlineWidthPart.
 
-/// Include this property in an application style struct.
+/// The opposite of `inset`: the outline makes the box look as though it were coming out of the page.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/outline-style
+
+pub type Outset =
+    Atom["outset"].
 
 pub struct Property {
     outline: Value
 }.
 
-/// A nominal, specification-constrained outline value.
+/// The opposite of `groove`: the outline looks as though it were extruded from the page.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/outline-style
+
+pub type Ridge =
+    Atom["ridge"].
+
+/// The outline is a single line.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/outline-style
+
+pub type Solid =
+    Atom["solid"].
+
+/// Same as `5px`.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+
+pub type Thick =
+    Atom["thick"].
+
+/// Same as `1px`.
+///
+/// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
+
+pub type Thin =
+    Atom["thin"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Constructs a outline value from a typed color.
+/// Sets outline from a typed color. Use std.css.Values.rgb or color to choose the paint.
 
 pub color(value: std.css.Values.Color): Value.
 
-/// Combines every named specification group in canonical order.
+/// Sets outline by combining outline-width, outline-style, outline-color in grammar order. Each
+/// argument describes a distinct part of the declaration.
 
 pub compose(outline_width: OutlineWidthPart, outline_style: OutlineStylePart, outline_color: OutlineColorPart): Value.
 
-/// Returns the CSS keyword dashed.
-
-pub dashed(): Value.
-
-/// Returns the CSS keyword dotted.
-
-pub dotted(): Value.
-
-/// Returns the CSS keyword double.
-
-pub double(): Value.
-
-/// Returns the CSS keyword groove.
-
-pub groove(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inset.
-
-pub inset(): Value.
-
-/// Checks the specification range and constructs a outline value.
+/// Sets outline from a typed length. Returns Some for amount >= 0; otherwise returns None.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Returns the CSS keyword medium.
+/// Chooses the outline-color part for compose. See the keyword types for their visual behavior.
 
-pub medium(): Value.
+pub outline_color(css: OutlineColorCss): OutlineColorPart.
 
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Constructs the outline-color keyword auto.
-
-pub outline_color_auto(): OutlineColorPart.
-
-/// Constructs a outline value from a typed color.
+/// Sets outline OutlineColorPart part from a typed color. Use std.css.Values.rgb or color to choose
+/// the paint.
 
 pub outline_color_color(value: std.css.Values.Color): OutlineColorPart.
 
-/// Constructs the outline-style keyword auto.
+/// Chooses the outline-width part for compose. See the keyword types for their visual behavior.
 
-pub outline_style_auto(): OutlineStylePart.
+pub outline_width(css: OutlineWidthCss): OutlineWidthPart.
 
-/// Constructs the outline-style keyword dashed.
-
-pub outline_style_dashed(): OutlineStylePart.
-
-/// Constructs the outline-style keyword dotted.
-
-pub outline_style_dotted(): OutlineStylePart.
-
-/// Constructs the outline-style keyword double.
-
-pub outline_style_double(): OutlineStylePart.
-
-/// Constructs the outline-style keyword groove.
-
-pub outline_style_groove(): OutlineStylePart.
-
-/// Constructs the outline-style keyword inset.
-
-pub outline_style_inset(): OutlineStylePart.
-
-/// Constructs the outline-style keyword none.
-
-pub outline_style_none(): OutlineStylePart.
-
-/// Constructs the outline-style keyword outset.
-
-pub outline_style_outset(): OutlineStylePart.
-
-/// Constructs the outline-style keyword ridge.
-
-pub outline_style_ridge(): OutlineStylePart.
-
-/// Constructs the outline-style keyword solid.
-
-pub outline_style_solid(): OutlineStylePart.
-
-/// Checks the specification range and constructs a outline value.
+/// Sets outline OutlineWidthPart part from a typed length. Returns Some for amount >= 0; otherwise
+/// returns None.
 
 pub outline_width_length(value: std.css.Values.Length): Option[OutlineWidthPart].
 
-/// Constructs the outline-width keyword medium.
+/// Selects a keyword for outline. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
+/// apply to the entire declaration.
 
-pub outline_width_medium(): OutlineWidthPart.
-
-/// Constructs the outline-width keyword thick.
-
-pub outline_width_thick(): OutlineWidthPart.
-
-/// Constructs the outline-width keyword thin.
-
-pub outline_width_thin(): OutlineWidthPart.
-
-/// Returns the CSS keyword outset.
-
-pub outset(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword ridge.
-
-pub ridge(): Value.
-
-/// Returns the CSS keyword solid.
-
-pub solid(): Value.
-
-/// Returns the CSS keyword thick.
-
-pub thick(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

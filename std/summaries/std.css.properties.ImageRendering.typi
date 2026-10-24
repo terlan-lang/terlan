@@ -1,60 +1,75 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-images-3/#propdef-image-rendering
+//! The `image-rendering` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets an
+//! image scaling algorithm. The property applies to an element itself, to any images set in its
+//! other properties, and to its descendants.
+//!
+//! Initial: auto. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | smooth | high-quality | pixelated | crisp-edges
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-images-3/#propdef-image-rendering
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/image-rendering
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ImageRendering.
 
-/// Include an optional declaration in a shared style block.
+/// The scaling algorithm is UA dependent. Since version 1.9 (Firefox 3.0), Gecko uses _bilinear_
+/// resampling (high quality).
+
+pub type Auto =
+    Atom["auto"].
+
+/// The image is scaled with an algorithm such as "nearest neighbor" that preserves contrast and
+/// edges in the image. Generally intended for images such as pixel art or line drawings, no blurring
+/// or color smoothing occurs.
+
+pub type CrispEdges =
+    Atom["crisp-edges"].
+
+pub type Css =
+    Auto
+  | Smooth
+  | Pixelated
+  | CrispEdges
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     image_rendering: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+/// The image is scaled with the "nearest neighbor" or similar algorithm to the nearest integer
+/// multiple of the original image size, then uses smooth interpolation to bring the image to the
+/// final desired size. This is intended to preserve a "pixelated" look without introducing scaling
+/// artifacts when the upscaled resolution isn't an integer multiple of the original.
+
+pub type Pixelated =
+    Atom["pixelated"].
 
 pub struct Property {
     image_rendering: Value
 }.
 
-/// A nominal, specification-constrained image-rendering value.
+/// The image should be scaled with an algorithm that maximizes the appearance of the image. In
+/// particular, scaling algorithms that "smooth" colors are acceptable, such as bilinear
+/// interpolation. This is intended for images such as photos.
+
+pub type Smooth =
+    Atom["smooth"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for image-rendering. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword crisp-edges.
-
-pub crisp_edges(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword pixelated.
-
-pub pixelated(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword smooth.
-
-pub smooth(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

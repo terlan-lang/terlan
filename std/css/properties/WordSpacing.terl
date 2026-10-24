@@ -1,78 +1,56 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-4/#propdef-word-spacing
+ * The `word-spacing` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * spacing between words and between tags.
+ *
+ * Initial: normal. Inherited: yes.
+ * Percentages: refer to the width of the affected glyph.
+ *
  * Grammar: normal | <length-percentage>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-word-spacing
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/word-spacing
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.WordSpacing.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained word-spacing value.
+ * The normal inter-word spacing, as defined by the current font and/or the browser.
  */
-pub opaque type Value = Token.
+pub type Normal.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Normal | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     word_spacing: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     word_spacing: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for word-spacing. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "word-spacing", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("word-spacing", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "word-spacing", css: "initial"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "word-spacing", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "word-spacing", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "word-spacing", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "word-spacing", css: "unset"}).
-
-/**
- * Constructs a word-spacing value from a typed length.
+ * Sets word-spacing from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
+ * the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "word-spacing", css: std.css.Values.length_css(value)}).
+    Value(serialize("word-spacing", length_css(value))).

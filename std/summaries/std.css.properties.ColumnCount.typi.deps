@@ -1,10 +1,12 @@
 module=std.css.properties.ColumnCount
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=12828501991800669213
-interface_hash=12754216361199982540
-interface_doc_hash=12809015351046824018
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9144090516921766575
+interface_hash=16610207017467680540
+interface_doc_hash=17996195501165968945
+deps=4
+std.core.Atom=12311707212014243410
 std.core.Int=6981787512204747997
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

@@ -1,9 +1,11 @@
 module=std.css.properties.FontKerning
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=5535932766652037757
-interface_hash=11428561869695600817
-interface_doc_hash=16261387205879262966
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=7560702876252270093
+interface_hash=10601911636668978540
+interface_doc_hash=3526677927378152265
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

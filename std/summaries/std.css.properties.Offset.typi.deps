@@ -1,9 +1,11 @@
 module=std.css.properties.Offset
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=18085280664767914114
-interface_hash=1695774558035595478
-interface_doc_hash=8904852475275410791
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=6558439981274007306
+interface_hash=15100977102379477196
+interface_doc_hash=6584410741628741565
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

@@ -1,87 +1,71 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box-edge
+ * The `text-box-edge` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies an
+ * amount of space to trim from a text element's block container.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: auto | <text-edge>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box-edge
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-box-edge
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextBoxEdge.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained text-box-edge value.
+ * The default value. Equivalent to the `text-edge` value `text`.
  */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Ideographic.
+
+pub type IdeographicInk = Atom["ideographic-ink"].
 
 /**
- * Include this property in an application style struct.
+ * The font's over edge is its text-over baseline (includes the font's ascenders but excludes the
+ * over edge half-leading), or its under edge is its text-under baseline (includes the font's
+ * descenders but excludes the under edge half-leading), depending on which edge the value is set
+ * for.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/text-edge
  */
+pub type TextKeyword = Atom["text"].
+
+pub type Css =
+      Auto
+    | TextKeyword
+    | Ideographic
+    | IdeographicInk
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     text_box_edge: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     text_box_edge: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for text-box-edge. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "text-box-edge", css: "auto"}).
-
-/**
- * Returns the CSS keyword ideographic.
- */
-pub ideographic(): Value ->
-    Value(Token {property: "text-box-edge", css: "ideographic"}).
-
-/**
- * Returns the CSS keyword ideographic-ink.
- */
-pub ideographic_ink(): Value ->
-    Value(Token {property: "text-box-edge", css: "ideographic-ink"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-box-edge", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-box-edge", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-box-edge", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-box-edge", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword text.
- */
-pub text(): Value ->
-    Value(Token {property: "text-box-edge", css: "text"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-box-edge", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("text-box-edge", Atom.to_string(css))).

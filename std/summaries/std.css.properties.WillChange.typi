@@ -1,56 +1,63 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-will-change-1/#propdef-will-change
+//! The `will-change` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property enables
+//! optimizing animations by providing a rendering hint to a browser about how an element is expected
+//! to change.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: auto | <animateable-feature>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-will-change-1/#propdef-will-change
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/will-change
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WillChange.
 
-/// Include an optional declaration in a shared style block.
+/// Indicates that the browser applies whatever heuristics and optimizations it normally does. This
+/// is the default value.
+
+pub type Auto =
+    Atom["auto"].
+
+/// Specifies that the element's contents, including all the elements in its subtree, are expected to
+/// change in the near future, indicating the browser can cache the element less aggressively.
+
+pub type Contents =
+    Atom["contents"].
+
+pub type Css =
+    Auto
+  | ScrollPosition
+  | Contents
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     will_change: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     will_change: Value
 }.
 
-/// A nominal, specification-constrained will-change value.
+/// Indicates that the author expects to animate or change the scroll position of the element in the
+/// near future.
+
+pub type ScrollPosition =
+    Atom["scroll-position"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for will-change. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword contents.
-
-pub contents(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword scroll-position.
-
-pub scroll_position(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

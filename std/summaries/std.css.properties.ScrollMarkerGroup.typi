@@ -1,56 +1,68 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-overflow-5/#propdef-scroll-marker-group
+//! The `scroll-marker-group` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! controls whether a `scroll container` element has a `::scroll-marker-group` pseudo-element
+//! generated. If present, the property also specifies whether the scroll marker group should be
+//! placed `before` _or_ `after` the contents of the scroll group container in the default visual and
+//! tab order.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | [ [ before | after ] || [ links | tabs ] ]
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-overflow-5/#propdef-scroll-marker-group
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-marker-group
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollMarkerGroup.
 
-/// Include an optional declaration in a shared style block.
+/// A `::scroll-marker-group` pseudo-element is generated as a sibling of the scroll container's
+/// child DOM elements, immediately preceding them, and any generated `::scroll-button()`
+/// pseudo-elements. It appears at the end of the container's tab order and layout box order (but not
+/// DOM structure).
+
+pub type After =
+    Atom["after"].
+
+/// A `::scroll-marker-group` pseudo-element is generated as a sibling of the scroll container's
+/// child DOM elements, immediately preceding them, and any generated `::scroll-button()`
+/// pseudo-elements. The scroll marker group appears at the start of the container's tab order and
+/// layout box order.
+
+pub type Before =
+    Atom["before"].
+
+pub type Css =
+    None
+  | Before
+  | After
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// No `::scroll-marker-group` pseudo-element will be generated on the element. This is the default
+/// value.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     scroll_marker_group: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     scroll_marker_group: Value
 }.
 
-/// A nominal, specification-constrained scroll-marker-group value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword after.
+/// Selects a keyword for scroll-marker-group. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub after_value(): Value.
-
-/// Returns the CSS keyword before.
-
-pub before(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

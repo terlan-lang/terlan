@@ -1,76 +1,55 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-line-count
+ * The `flex-line-count` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the
+ * minimum number of flex lines that flex items will be balanced over in cases where a flex
+ * container's `flex-wrap` or `flex-flow` property includes the `balance` keyword.
+ *
+ * Initial: 1. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <integer [1,∞]>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-line-count
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-line-count
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.FlexLineCount.
 
-import std.core.Int.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None as Absent, Some}.
+import std.core.{Atom, Int}.
+import std.css.Values.{serialize}.
 
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained flex-line-count value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     flex_line_count: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     flex_line_count: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for flex-line-count. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "flex-line-count", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("flex-line-count", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "flex-line-count", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "flex-line-count", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "flex-line-count", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "flex-line-count", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a flex-line-count value.
+ * Sets flex-line-count from a typed integer. Returns Some for amount >= 1; otherwise returns None.
  */
 pub integer(value: Int): Option[Value] ->
     case value >= 1 {
-        true ->
-            Some(Value(Token {property: "flex-line-count", css: std.core.Int.to_string(value)}));
-        false -> None
+        true -> Some(Value(serialize("flex-line-count", std.core.Int.to_string(value))));
+        false -> Absent
     }.

@@ -1,60 +1,66 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-visibility-items
+//! The `rule-visibility-items` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property defines whether rule segments are painted in both row and column gaps adjacent to empty
+//! areas.
+//!
 //! Grammar: <'column-rule-visibility-items'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-visibility-items
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/rule-visibility-items
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RuleVisibilityItems.
 
-/// Include an optional declaration in a shared style block.
+/// Rules should be painted in all gap segments, regardless of whether adjacent areas contain an
+/// item.
+
+pub type All =
+    Atom["all"].
+
+/// A rule should be painted in a gap segment if at least one of the two adjacent areas is occupied
+/// by an item.
+
+pub type Around =
+    Atom["around"].
+
+/// A rule should be painted in a gap segment only if both adjacent areas are occupied by items.
+
+pub type Between =
+    Atom["between"].
+
+pub type Css =
+    All
+  | Around
+  | Between
+  | Normal
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// With grid containers, behaves the same as `all`. In multicol layout, behaves the same as
+/// `between`. This is the default.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     rule_visibility_items: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     rule_visibility_items: Value
 }.
 
-/// A nominal, specification-constrained rule-visibility-items value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword all.
+/// Selects a keyword for rule-visibility-items. CSS-wide choices Inherit, Initial, Unset, Revert,
+/// and RevertLayer apply to the entire declaration.
 
-pub all(): Value.
-
-/// Returns the CSS keyword around.
-
-pub around(): Value.
-
-/// Returns the CSS keyword between.
-
-pub between(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

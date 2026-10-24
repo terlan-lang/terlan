@@ -1,75 +1,53 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-tables-3/#propdef-empty-cells
+ * The `empty-cells` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets whether
+ * borders and backgrounds appear around `table` cells that have no visible content.
+ *
+ * Initial: show. Inherited: yes.
+ * Percentages: not accepted.
+ *
  * Grammar: show | hide
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-tables-3/#propdef-empty-cells
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/empty-cells
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.EmptyCells.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained empty-cells value.
+ * No borders or backgrounds are drawn.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Hide.
 
 /**
- * Include this property in an application style struct.
+ * Borders and backgrounds are drawn like in normal cells.
  */
+pub type Show.
+
+pub type Css = Show | Hide | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     empty_cells: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     empty_cells: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword hide.
+ * Selects a keyword for empty-cells. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub hide(): Value ->
-    Value(Token {property: "empty-cells", css: "hide"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "empty-cells", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "empty-cells", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "empty-cells", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "empty-cells", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword show.
- */
-pub show(): Value ->
-    Value(Token {property: "empty-cells", css: "show"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "empty-cells", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("empty-cells", Atom.to_string(css))).

@@ -1,63 +1,40 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-glyph-orientation-vertical
+ * Controls glyph rotation in vertical SVG text. This legacy property is deprecated; use
+ * text-orientation for new layouts.
+ *
  * Grammar: auto | 0deg | 90deg | 0 | 90
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-glyph-orientation-vertical
+ *
+ * Author guide: https://www.w3.org/TR/SVG11/text.html#GlyphOrientationVerticalProperty
+ *
+ * Additional value descriptions: Microsoft (MIT).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.GlyphOrientationVertical.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained glyph-orientation-vertical value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     glyph_orientation_vertical: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     glyph_orientation_vertical: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for glyph-orientation-vertical. CSS-wide choices Inherit, Initial, Unset,
+ * Revert, and RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("glyph-orientation-vertical", Atom.to_string(css))).

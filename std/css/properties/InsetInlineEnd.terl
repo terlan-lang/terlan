@@ -1,84 +1,63 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-position-3/#propdef-inset-inline-end
+ * The `inset-inline-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+ * the logical inline end inset of an element, which maps to a physical offset depending on the
+ * element's writing mode, directionality, and text orientation. It corresponds to the `top`,
+ * `right`, `bottom`, or `left` property depending on the values defined for `writing-mode`,
+ * `direction`, and `text-orientation`.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: logical-width of containing block.
+ *
  * Grammar: auto | <length-percentage>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-position-3/#propdef-inset-inline-end
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/inset-inline-end
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.InsetInlineEnd.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained inset-inline-end value.
- */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     inset_inline_end: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     inset_inline_end: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for inset-inline-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "inset-inline-end", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("inset-inline-end", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "inset-inline-end", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "inset-inline-end", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "inset-inline-end", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "inset-inline-end", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "inset-inline-end", css: "unset"}).
-
-/**
- * Constructs a inset-inline-end value from a typed length.
+ * Sets inset-inline-end from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+ * choose the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "inset-inline-end", css: std.css.Values.length_css(value)}).
+    Value(serialize("inset-inline-end", length_css(value))).
 
 /**
- * Constructs a inset-inline-end value from a typed percentage.
+ * Sets inset-inline-end from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "inset-inline-end", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("inset-inline-end", percentage_css(value))).

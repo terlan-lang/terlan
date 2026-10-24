@@ -1,72 +1,85 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-template-rows
+//! The `grid-template-rows` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+//! the line names and track sizing functions of the `grid rows`.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: refer to corresponding dimension of the content area.
+//!
 //! Grammar: none | <track-list> | <auto-track-list> | subgrid <line-name-list>?
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-template-rows
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/grid-template-rows
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.GridTemplateRows.
 
-/// Include an optional declaration in a shared style block.
+/// As a maximum value, it represents the largest `max-content` size of the items in that track.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    None
+  | MinContent
+  | MaxContent
+  | Auto
+  | Subgrid
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Represents the largest max-content contribution of the grid items occupying the grid track.
+
+pub type MaxContent =
+    Atom["max-content"].
+
+/// Represents the largest min-content contribution of the grid items occupying the grid track.
+
+pub type MinContent =
+    Atom["min-content"].
+
+/// A keyword meaning that there is no explicit grid. Any rows will be implicitly generated and their
+/// size will be determined by the `grid-auto-rows` property.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     grid_template_rows: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     grid_template_rows: Value
 }.
 
-/// A nominal, specification-constrained grid-template-rows value.
+/// Indicates that the grid will adopt the spanned portion of its parent grid in that axis. Rather
+/// than being specified explicitly, the sizes of the grid rows/columns will be taken from the parent
+/// grid's definition.
+
+pub type Subgrid =
+    Atom["subgrid"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a grid-template-rows value.
+/// Sets grid-template-rows from a typed length. Returns Some for amount >= 0; otherwise returns
+/// None.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Returns the CSS keyword max-content.
-
-pub max_content(): Value.
-
-/// Returns the CSS keyword min-content.
-
-pub min_content(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Checks the specification range and constructs a grid-template-rows value.
+/// Sets grid-template-rows from a typed percentage. Returns Some for amount >= 0; otherwise returns
+/// None.
 
 pub percentage(value: std.css.Values.Percentage): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for grid-template-rows. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword subgrid.
-
-pub subgrid(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,56 +1,52 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-group
+//! Controls nesting of named view-transition groups. Use containment to preserve ancestor effects
+//! such as clipping during a transition; this has no effect when view-transition-name is none.
+//!
 //! Grammar: normal | contain | nearest | <custom-ident>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-group
+//!
+//! Author guide: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-group
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ViewTransitionGroup.
 
-/// Include an optional declaration in a shared style block.
+/// Establishes a container for descendant transition groups.
+
+pub type Contain =
+    Atom["contain"].
+
+pub type Css =
+    Normal
+  | Contain
+  | Nearest
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Nests inside the nearest ancestor transition group, even without explicit containment.
+
+pub type Nearest =
+    Atom["nearest"].
+
+/// Nests inside the nearest ancestor group that establishes containment, or the transition root.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     view_transition_group: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     view_transition_group: Value
 }.
 
-/// A nominal, specification-constrained view-transition-group value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword contain.
+/// Selects a keyword for view-transition-group. CSS-wide choices Inherit, Initial, Unset, Revert,
+/// and RevertLayer apply to the entire declaration.
 
-pub contain(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword nearest.
-
-pub nearest(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,56 +1,57 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-dashoffset
+//! The `stroke-dashoffset` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+//! an offset for the starting point of the rendering of an
+//! [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element's associated [dash
+//! array](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-dasharray).
+//! If present, it overrides the element's `stroke-dashoffset` attribute.
+//!
+//! Initial: 0. Inherited: yes.
+//! Percentages: refer to the normalized diagonal measure of the current SVG viewport's applied
+//! `viewBox`, or of the viewport itself if no viewBox is specified.
+//!
 //! Grammar: <length-percentage> | <number>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-dashoffset
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stroke-dashoffset
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.StrokeDashoffset.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     stroke_dashoffset: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     stroke_dashoffset: Value
 }.
 
-/// A nominal, specification-constrained stroke-dashoffset value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a stroke-dashoffset value from a typed length.
+/// Sets stroke-dashoffset from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+/// choose the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Constructs a stroke-dashoffset value from a typed number.
+/// Sets stroke-dashoffset from a typed number.
 
 pub number(value: Float): Value.
 
-/// Constructs a stroke-dashoffset value from a typed percentage.
+/// Sets stroke-dashoffset from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for stroke-dashoffset. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

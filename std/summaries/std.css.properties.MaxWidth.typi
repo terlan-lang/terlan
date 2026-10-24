@@ -1,72 +1,88 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-sizing-3/#propdef-max-width
+//! The `max-width` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets the maximum
+//! width of an element. It prevents the [used
+//! value](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Property_value_processing#used_value)
+//! of the `width` property from becoming larger than the value specified by `max-width`.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: refer to the width of the containing block.
+//!
 //! Grammar: none | <box-size> | <anchor-size()>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-sizing-3/#propdef-max-width
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/max-width
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MaxWidth.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    None
+  | Stretch
+  | MinContent
+  | MaxContent
+  | FitContent
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Use the fit-content inline size or fit-content block size, as appropriate to the writing mode.
+
+pub type FitContent =
+    Atom["fit-content"].
+
+/// Use the max-content inline size or max-content block size, as appropriate to the writing mode.
+
+pub type MaxContent =
+    Atom["max-content"].
+
+/// Use the min-content inline size or min-content block size, as appropriate to the writing mode.
+
+pub type MinContent =
+    Atom["min-content"].
+
+/// No limit on the size of the box.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     max_width: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     max_width: Value
 }.
 
-/// A nominal, specification-constrained max-width value.
+/// Limits the maximum width of the element's [margin
+/// box](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics/Box_model#parts_of_a_box)
+/// to the width of its [containing
+/// block](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Display/Containing_block#identifying_the_containing_block).
+/// It attempts to make the margin box fill the available space in the containing block, so in a way
+/// behaving similar to `100%` but applying the resulting size to the margin box rather than the box
+/// determined by
+/// [box-sizing](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/box-sizing).
+
+pub type Stretch =
+    Atom["stretch"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword fit-content.
-
-pub fit_content(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Checks the specification range and constructs a max-width value.
+/// Sets max-width from a typed length. Returns Some for amount >= 0; otherwise returns None.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Returns the CSS keyword max-content.
-
-pub max_content(): Value.
-
-/// Returns the CSS keyword min-content.
-
-pub min_content(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Checks the specification range and constructs a max-width value.
+/// Sets max-width from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
 
 pub percentage(value: std.css.Values.Percentage): Option[Value].
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for max-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

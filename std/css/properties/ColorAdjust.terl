@@ -1,75 +1,62 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-color-adjust-1/#propdef-color-adjust
+ * The `print-color-adjust` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * what, if anything, the `user agent` may do to optimize the appearance of the element on the
+ * output device. By default, the browser is allowed to make any adjustments to the element's
+ * appearance it determines to be necessary and prudent given the type and capabilities of the
+ * output device.
+ *
  * Grammar: <'print-color-adjust'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-color-adjust-1/#propdef-color-adjust
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/print-color-adjust
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ColorAdjust.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained color-adjust value.
+ * The user agent is allowed to make adjustments to the element as it deems appropriate and prudent
+ * in order to optimize the output for the device it's being rendered for. For example, when
+ * printing, a browser might opt to leave out all background images and to adjust text colors to be
+ * sure the contrast is optimized for reading on white paper. This is the default.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Economy.
 
 /**
- * Include this property in an application style struct.
+ * The element's content has been specifically and carefully crafted to use colors, images, and
+ * styles in a thoughtful and/or important way, such that being altered by the browser might
+ * actually make things worse rather than better. The appearance of the content should not be
+ * changed except by the user's request. For example, a page might include a list of information
+ * with rows whose background colors alternate between white and a light gray. Removing the
+ * background color would decrease the legibility of the content.
  */
+pub type Exact.
+
+pub type Css = Economy | Exact | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     color_adjust: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     color_adjust: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword economy.
+ * Selects a keyword for color-adjust. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub economy(): Value ->
-    Value(Token {property: "color-adjust", css: "economy"}).
-
-/**
- * Returns the CSS keyword exact.
- */
-pub exact(): Value ->
-    Value(Token {property: "color-adjust", css: "exact"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "color-adjust", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "color-adjust", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "color-adjust", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "color-adjust", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "color-adjust", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("color-adjust", Atom.to_string(css))).

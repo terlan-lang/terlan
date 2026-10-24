@@ -1,52 +1,54 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-trigger-scope
+//! The `trigger-scope` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property can be used
+//! to limit the scope of a [scroll-triggered
+//! animation](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animation_triggers/Using_scroll-triggered_animations)
+//! trigger name to a document subtree.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: none | all | <dashed-ident>#
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-trigger-scope
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/trigger-scope
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TriggerScope.
 
-/// Include an optional declaration in a shared style block.
+/// Sets the scope so that _any_ `timeline-trigger-name` values set in the subtree can only be
+/// associated with animated elements in the same subtree.
+
+pub type All =
+    Atom["all"].
+
+pub type Css =
+    None
+  | All
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Specifies that no trigger scoping is set. This is the default value.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     trigger_scope: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     trigger_scope: Value
 }.
 
-/// A nominal, specification-constrained trigger-scope value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword all.
+/// Selects a keyword for trigger-scope. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub all(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

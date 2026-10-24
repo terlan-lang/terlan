@@ -1,48 +1,44 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-color
+//! The `column-rule-color` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+//! the colors of the lines drawn between columns in multi-column grid, flex, and multi-col layouts.
+//!
+//! Initial: currentcolor. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <line-color-list> | <auto-line-color-list>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-color
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-color
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ColumnRuleColor.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     column_rule_color: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     column_rule_color: Value
 }.
 
-/// A nominal, specification-constrained column-rule-color value.
-
 pub opaque type Value.
 
-/// Constructs a column-rule-color value from a typed color.
+/// Sets column-rule-color from a typed color. Use std.css.Values.rgb or color to choose the paint.
 
 pub color(value: std.css.Values.Color): Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for column-rule-color. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

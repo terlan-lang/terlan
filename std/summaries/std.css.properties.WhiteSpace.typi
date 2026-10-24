@@ -1,88 +1,144 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
+//! The `white-space` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property sets how `white space` inside an element is handled.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
+//! Grammar: normal | pre | pre-wrap | pre-line | <'white-space-collapse'> || <'text-wrap-mode'> ||
+//! <'white-space-trim'>
+//!
 //! Specification: https://drafts.csswg.org/css-text-4/#propdef-white-space
-//! Grammar: normal | pre | pre-wrap | pre-line | <'white-space-collapse'> || <'text-wrap-mode'> || <'white-space-trim'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WhiteSpace.
 
-/// Include an optional declaration in a shared style block.
+/// The behavior is identical to `preserve`, except that: - Any sequence of preserved white space
+/// always takes up space, including at the end of the line. - A line-breaking opportunity exists
+/// after every preserved white space character, including between white space characters. -
+/// Preserved spaces take up space and do not hang, thus affecting the box's intrinsic sizes
+/// (`min-content` size and `max-content` size).
+///
+/// Author guide:
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space-collapse
+
+pub type BreakSpaces =
+    Atom["break-spaces"].
+
+/// White space sequences are
+/// [collapsed](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#collapsing_and_transformation).
+///
+/// Author guide:
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space-collapse
+
+pub type Collapse =
+    Atom["collapse"].
+
+pub type Css =
+    Normal
+  | Pre
+  | PreWrap
+  | PreLine
+  | Collapse
+  | Preserve
+  | PreserveBreaks
+  | PreserveSpaces
+  | BreakSpaces
+  | Wrap
+  | Nowrap
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Sequences of white space are
+/// [collapsed](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#collapsing_and_transformation).
+/// Newline characters in the source are handled the same as other white spaces. Lines are broken as
+/// necessary to fill line boxes. Equivalent to `collapse wrap`.
+
+pub type Normal =
+    Atom["normal"].
+
+/// Text does not wrap across lines. It will overflow its containing element rather than breaking
+/// onto a new line.
+///
+/// Author guide:
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-wrap-mode
+
+pub type Nowrap =
+    Atom["nowrap"].
 
 pub struct OptionalProperty {
     white_space: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+/// Sequences of white space are preserved. Lines are only broken at newline characters in the source
+/// and at `br` elements. Equivalent to `preserve nowrap`.
+
+pub type Pre =
+    Atom["pre"].
+
+/// Sequences of white space are
+/// [collapsed](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#collapsing_and_transformation).
+/// Lines are broken at newline characters, at `br`, and as necessary to fill line boxes. Equivalent
+/// to `preserve-breaks wrap`.
+
+pub type PreLine =
+    Atom["pre-line"].
+
+/// Sequences of white space are preserved. Lines are broken at newline characters, at `br`, and as
+/// necessary to fill line boxes. Equivalent to `preserve wrap`.
+
+pub type PreWrap =
+    Atom["pre-wrap"].
+
+/// White space sequences and segment break characters are preserved.
+///
+/// Author guide:
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space-collapse
+
+pub type Preserve =
+    Atom["preserve"].
+
+/// White space sequences are collapsed, while segment break characters are preserved.
+///
+/// Author guide:
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space-collapse
+
+pub type PreserveBreaks =
+    Atom["preserve-breaks"].
+
+/// White space sequences are preserved, while tabs and segment break characters are converted to
+/// spaces.
+///
+/// Author guide:
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/white-space-collapse
+
+pub type PreserveSpaces =
+    Atom["preserve-spaces"].
 
 pub struct Property {
     white_space: Value
 }.
 
-/// A nominal, specification-constrained white-space value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword break-spaces.
+/// Text is wrapped across lines at appropriate characters (for example spaces, in languages like
+/// English that use space separators) to minimize overflow. This is the default value.
+///
+/// Author guide:
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-wrap-mode
 
-pub break_spaces(): Value.
+pub type Wrap =
+    Atom["wrap"].
 
-/// Returns the CSS keyword collapse.
+/// Selects a keyword for white-space. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub collapse(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword nowrap.
-
-pub nowrap(): Value.
-
-/// Returns the CSS keyword pre.
-
-pub pre(): Value.
-
-/// Returns the CSS keyword pre-line.
-
-pub pre_line(): Value.
-
-/// Returns the CSS keyword pre-wrap.
-
-pub pre_wrap(): Value.
-
-/// Returns the CSS keyword preserve.
-
-pub preserve(): Value.
-
-/// Returns the CSS keyword preserve-breaks.
-
-pub preserve_breaks(): Value.
-
-/// Returns the CSS keyword preserve-spaces.
-
-pub preserve_spaces(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword wrap.
-
-pub wrap(): Value.
-
-export type Token.
+pub value(css: Css): Value.

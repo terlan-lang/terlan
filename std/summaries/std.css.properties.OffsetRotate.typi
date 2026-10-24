@@ -1,56 +1,57 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/motion-1/#propdef-offset-rotate
+//! The `offset-rotate` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! orientation/direction of the element as it is positioned along the `offset-path`.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: [ auto | reverse ] || <angle>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/motion-1/#propdef-offset-rotate
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-rotate
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OffsetRotate.
 
-/// Include an optional declaration in a shared style block.
+/// The element is rotated by the angle of the direction of the `offset-path`, relative to the
+/// positive x-axis. This is the default value.
+
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | Reverse
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     offset_rotate: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     offset_rotate: Value
 }.
 
-/// A nominal, specification-constrained offset-rotate value.
+/// The element is rotated similar to `auto`, except it faces the opposite direction. It is the same
+/// as specifying a value of `auto 180deg`.
+
+pub type Reverse =
+    Atom["reverse"].
 
 pub opaque type Value.
 
-/// Constructs a offset-rotate value from a typed angle.
+/// Sets offset-rotate from a typed angle.
 
 pub angle(value: std.css.Values.Angle): Value.
 
-/// Returns the CSS keyword auto.
+/// Selects a keyword for offset-rotate. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword reverse.
-
-pub reverse(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

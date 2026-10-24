@@ -1,56 +1,60 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-position
+//! The `font-variant-position` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! controls the use of alternate, smaller glyphs that are positioned as superscript or subscript.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | sub | super
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-position
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-variant-position
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantPosition.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Normal
+  | Sub
+  | Super
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Deactivates alternate superscript and subscript glyphs.
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     font_variant_position: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     font_variant_position: Value
 }.
 
-/// A nominal, specification-constrained font-variant-position value.
+/// Activates subscript alternate glyphs. If, in a given run, one such glyph is not available for a
+/// character, all the characters in the run are rendered using synthesized glyphs.
+
+pub type Sub =
+    Atom["sub"].
+
+/// Activates superscript alternate glyphs. If, in a given run, one such glyph is not available for a
+/// character, all the characters in the run are rendered using synthesized glyphs.
+
+pub type Super =
+    Atom["super"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for font-variant-position. CSS-wide choices Inherit, Initial, Unset, Revert,
+/// and RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword sub.
-
-pub sub(): Value.
-
-/// Returns the CSS keyword super.
-
-pub super(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

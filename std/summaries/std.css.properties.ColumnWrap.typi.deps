@@ -1,9 +1,11 @@
 module=std.css.properties.ColumnWrap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=13794178606725075601
-interface_hash=12518100283205847640
-interface_doc_hash=12970487658913539469
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=14248940358765830443
+interface_hash=16869008214677257902
+interface_doc_hash=14729646959121939081
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

@@ -1,56 +1,64 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-4/#propdef-overflow-wrap
+//! The `overflow-wrap` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property applies to
+//! text, setting whether the browser should insert line breaks within an otherwise unbreakable
+//! string to prevent text from overflowing its line box.
+//!
+//! Initial: normal. Inherited: yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: normal | break-word | anywhere
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-overflow-wrap
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow-wrap
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OverflowWrap.
 
-/// Include an optional declaration in a shared style block.
+/// To prevent overflow, an otherwise unbreakable string of characters — like a long word or URL —
+/// may be broken at any point if there are no otherwise-acceptable break points in the line. No
+/// hyphenation character is inserted at the break point. Soft wrap opportunities introduced by the
+/// word break are considered when calculating min-content intrinsic sizes.
+
+pub type Anywhere =
+    Atom["anywhere"].
+
+/// The same as the `anywhere` value, with normally unbreakable words allowed to be broken at
+/// arbitrary points if there are no otherwise acceptable break points in the line, but soft wrap
+/// opportunities introduced by the word break are NOT considered when calculating min-content
+/// intrinsic sizes.
+
+pub type BreakWord =
+    Atom["break-word"].
+
+pub type Css =
+    Normal
+  | BreakWord
+  | Anywhere
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Lines may only break at normal word break points (such as a space between two words).
+
+pub type Normal =
+    Atom["normal"].
 
 pub struct OptionalProperty {
     overflow_wrap: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     overflow_wrap: Value
 }.
 
-/// A nominal, specification-constrained overflow-wrap value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword anywhere.
+/// Selects a keyword for overflow-wrap. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub anywhere(): Value.
-
-/// Returns the CSS keyword break-word.
-
-pub break_word(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword normal.
-
-pub normal(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

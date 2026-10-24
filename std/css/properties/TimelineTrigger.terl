@@ -1,69 +1,58 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `timeline-trigger` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) [shorthand
+ * property](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * defines a [scroll-triggered
+ * animation](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animation_triggers/Using_scroll-triggered_animations)
+ * trigger on an element.
+ *
+ * Initial: timeline-trigger-name: none; timeline-trigger-source: auto;
+ * timeline-trigger-activation-range:
+ * timeline-trigger-activation-range-start,timeline-trigger-activation-range-end;
+ * timeline-trigger-active-range:
+ * timeline-trigger-active-range-start,timeline-trigger-active-range-end. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Grammar: none | [ <'timeline-trigger-name'> <'timeline-trigger-source'> [
+ * <'timeline-trigger-range'> ]? ]#
+ *
  * Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger
- * Grammar: none | [ <'timeline-trigger-name'> <'timeline-trigger-source'> [ <'timeline-trigger-range'> ]? ]#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/timeline-trigger
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TimelineTrigger.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained timeline-trigger value.
+ * Specifies that the element does not create a trigger, resetting all four longhand properties to
+ * their default values.
  */
-pub opaque type Value = Token.
+pub type None.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Css = None | Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * Include this property in an application style struct.
- */
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     timeline_trigger: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     timeline_trigger: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for timeline-trigger. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "timeline-trigger", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "timeline-trigger", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "timeline-trigger", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "timeline-trigger", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "timeline-trigger", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "timeline-trigger", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("timeline-trigger", Atom.to_string(css))).

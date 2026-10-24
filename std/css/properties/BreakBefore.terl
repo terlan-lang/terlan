@@ -1,147 +1,147 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
+ * The `break-before` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets how
+ * page, column, or region breaks should behave before a generated box. If there is no generated
+ * box, the property is ignored.
+ *
+ * Initial: auto. Inherited: no.
+ * Percentages: not accepted.
+ *
+ * Grammar: auto | avoid | always | all | avoid-page | page | left | right | recto | verso |
+ * avoid-column | column | avoid-region | region
+ *
  * Specification: https://drafts.csswg.org/css-break-4/#propdef-break-before
- * Grammar: auto | avoid | always | all | avoid-page | page | left | right | recto | verso | avoid-column | column | avoid-region | region
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/break-before
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BreakBefore.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained break-before value.
+ * Forces a page break right before the principal box. Breaking through all possible fragmentation
+ * contexts. So a break inside a multicol container, which was inside a page container would force a
+ * column and page break.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type All.
 
 /**
- * Include this property in an application style struct.
+ * Forces a page break right before the principal box. The type of this break is that of the
+ * immediately-containing fragmentation context. If we are inside a multicol container then it would
+ * force a column break, inside paged media (but not inside a multicol container) a page break.
  */
+pub type Always.
+
+/**
+ * Allows, but does not force, any break (page, column, or region) to be inserted right before the
+ * principal box.
+ */
+pub type Auto.
+
+/**
+ * Avoids any break (page, column, or region) from being inserted right before the principal box.
+ */
+pub type Avoid.
+
+/**
+ * Avoids any column break right before the principal box.
+ */
+pub type AvoidColumn = Atom["avoid-column"].
+
+/**
+ * Avoids any page break right before the principal box.
+ */
+pub type AvoidPage = Atom["avoid-page"].
+
+/**
+ * Avoids any region break right before the principal box.
+ */
+pub type AvoidRegion = Atom["avoid-region"].
+
+/**
+ * Forces a column break right before the principal box.
+ */
+pub type Column.
+
+/**
+ * Forces one or two page breaks right before the principal box, whichever will make the next page
+ * into a left page. It's the page placed on the left side of the spine of the book or the back side
+ * of the page in duplex printing.
+ */
+pub type Left.
+
+/**
+ * Forces a page break right before the principal box.
+ */
+pub type Page.
+
+/**
+ * Forces one or two page breaks right before the principal box, whichever will make the next page
+ * into a recto page. (A recto page is a right page in a left-to-right spread or a left page in a
+ * right-to-left spread.)
+ */
+pub type Recto.
+
+/**
+ * Forces a region break right before the principal box.
+ */
+pub type Region.
+
+/**
+ * Forces one or two page breaks right before the principal box, whichever will make the next page
+ * into a right page. It's the page placed on the right side of the spine of the book or the front
+ * side of the page in duplex printing.
+ */
+pub type Right.
+
+/**
+ * Forces one or two page breaks right before the principal box, whichever will make the next page
+ * into a verso page. (A verso page is a left page in a left-to-right spread or a right page in a
+ * right-to-left spread.)
+ */
+pub type Verso.
+
+pub type Css =
+      Auto
+    | Avoid
+    | Always
+    | All
+    | AvoidPage
+    | Page
+    | Left
+    | Right
+    | Recto
+    | Verso
+    | AvoidColumn
+    | Column
+    | AvoidRegion
+    | Region
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     break_before: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     break_before: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword all.
+ * Selects a keyword for break-before. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub all(): Value ->
-    Value(Token {property: "break-before", css: "all"}).
-
-/**
- * Returns the CSS keyword always.
- */
-pub always(): Value ->
-    Value(Token {property: "break-before", css: "always"}).
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "break-before", css: "auto"}).
-
-/**
- * Returns the CSS keyword avoid.
- */
-pub avoid(): Value ->
-    Value(Token {property: "break-before", css: "avoid"}).
-
-/**
- * Returns the CSS keyword avoid-column.
- */
-pub avoid_column(): Value ->
-    Value(Token {property: "break-before", css: "avoid-column"}).
-
-/**
- * Returns the CSS keyword avoid-page.
- */
-pub avoid_page(): Value ->
-    Value(Token {property: "break-before", css: "avoid-page"}).
-
-/**
- * Returns the CSS keyword avoid-region.
- */
-pub avoid_region(): Value ->
-    Value(Token {property: "break-before", css: "avoid-region"}).
-
-/**
- * Returns the CSS keyword column.
- */
-pub column(): Value ->
-    Value(Token {property: "break-before", css: "column"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "break-before", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "break-before", css: "initial"}).
-
-/**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "break-before", css: "left"}).
-
-/**
- * Returns the CSS keyword page.
- */
-pub page(): Value ->
-    Value(Token {property: "break-before", css: "page"}).
-
-/**
- * Returns the CSS keyword recto.
- */
-pub recto(): Value ->
-    Value(Token {property: "break-before", css: "recto"}).
-
-/**
- * Returns the CSS keyword region.
- */
-pub region(): Value ->
-    Value(Token {property: "break-before", css: "region"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "break-before", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "break-before", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "break-before", css: "right"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "break-before", css: "unset"}).
-
-/**
- * Returns the CSS keyword verso.
- */
-pub verso(): Value ->
-    Value(Token {property: "break-before", css: "verso"}).
+pub value(css: Css): Value ->
+    Value(serialize("break-before", Atom.to_string(css))).

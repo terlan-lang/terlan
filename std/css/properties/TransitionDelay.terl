@@ -1,72 +1,53 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-transitions-1/#propdef-transition-delay
+ * The `transition-delay` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property specifies
+ * the duration to wait before starting a property's [transition
+ * effect](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Transitions/Using) when its value
+ * changes.
+ *
+ * Initial: 0s. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <time>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-transitions-1/#propdef-transition-delay
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transition-delay
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TransitionDelay.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{serialize, time_css}.
 
 import type std.core.Option.
-import type std.css.Values.{Time}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
 
-/**
- * A nominal, specification-constrained transition-delay value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     transition_delay: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     transition_delay: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for transition-delay. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "transition-delay", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("transition-delay", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "transition-delay", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "transition-delay", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "transition-delay", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "transition-delay", css: "unset"}).
-
-/**
- * Constructs a transition-delay value from a typed time.
+ * Sets transition-delay from a typed time.
  */
 pub time(value: Time): Value ->
-    Value(Token {property: "transition-delay", css: std.css.Values.time_css(value)}).
+    Value(serialize("transition-delay", time_css(value))).

@@ -1,64 +1,73 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-style
+//! The `text-decoration-style` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+//! the style of the lines specified by . The style applies to all lines that are set with
+//! `text-decoration-line`.
+//!
+//! Initial: solid. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: solid | double | dotted | dashed | wavy
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-style
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-decoration-style
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextDecorationStyle.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    Solid
+  | Double
+  | Dotted
+  | Dashed
+  | Wavy
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+/// Produces a dashed line style.
+
+pub type Dashed =
+    Atom["dashed"].
+
+/// Produces a dotted line.
+
+pub type Dotted =
+    Atom["dotted"].
+
+/// Produces a double line.
+
+pub type Double =
+    Atom["double"].
 
 pub struct OptionalProperty {
     text_decoration_style: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     text_decoration_style: Value
 }.
 
-/// A nominal, specification-constrained text-decoration-style value.
+/// Produces a solid line.
+
+pub type Solid =
+    Atom["solid"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword dashed.
+/// Produces a wavy line.
 
-pub dashed(): Value.
+pub type Wavy =
+    Atom["wavy"].
 
-/// Returns the CSS keyword dotted.
+/// Selects a keyword for text-decoration-style. CSS-wide choices Inherit, Initial, Unset, Revert,
+/// and RevertLayer apply to the entire declaration.
 
-pub dotted(): Value.
-
-/// Returns the CSS keyword double.
-
-pub double(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword solid.
-
-pub solid(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword wavy.
-
-pub wavy(): Value.
-
-export type Token.
+pub value(css: Css): Value.

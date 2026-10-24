@@ -1,76 +1,76 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-clip-path
+//! The `clip-path` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property creates a
+//! clipping region that sets what part of an element should be shown. Parts that are inside the
+//! region are shown, while those outside are hidden.
+//!
+//! Initial: none. Inherited: no.
+//! Percentages: refer to reference box when specified, otherwise border-box.
+//!
 //! Grammar: <clip-source> | [ <basic-shape> || <geometry-box> ] | none
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-clip-path
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/clip-path
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ClipPath.
 
-/// Include an optional declaration in a shared style block.
+pub type BorderBox =
+    Atom["border-box"].
+
+pub type ContentBox =
+    Atom["content-box"].
+
+pub type Css =
+    ContentBox
+  | PaddingBox
+  | BorderBox
+  | MarginBox
+  | FillBox
+  | StrokeBox
+  | ViewBox
+  | None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
+
+pub type FillBox =
+    Atom["fill-box"].
+
+pub type MarginBox =
+    Atom["margin-box"].
+
+/// No clipping path is created.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     clip_path: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+pub type PaddingBox =
+    Atom["padding-box"].
 
 pub struct Property {
     clip_path: Value
 }.
 
-/// A nominal, specification-constrained clip-path value.
+pub type StrokeBox =
+    Atom["stroke-box"].
 
 pub opaque type Value.
 
-/// Returns the CSS keyword border-box.
+pub type ViewBox =
+    Atom["view-box"].
 
-pub border_box(): Value.
+/// Selects a keyword for clip-path. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-/// Returns the CSS keyword content-box.
-
-pub content_box(): Value.
-
-/// Returns the CSS keyword fill-box.
-
-pub fill_box(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword margin-box.
-
-pub margin_box(): Value.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword padding-box.
-
-pub padding_box(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword stroke-box.
-
-pub stroke_box(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-/// Returns the CSS keyword view-box.
-
-pub view_box(): Value.
-
-export type Token.
+pub value(css: Css): Value.

@@ -1,143 +1,99 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-repeat
+ * The `mask-border-repeat` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * specifies how the images for the sides and the middle part of the [mask border
+ * image](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border) are
+ * scaled and tiled.
+ *
+ * Initial: stretch. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <'border-image-repeat'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-repeat
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-repeat
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.MaskBorderRepeat.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained mask-border-repeat value.
+ * The source image's edge regions are tiled (repeated) to fill the gap between each border. Tiles
+ * may be clipped to achieve the proper fit.
  */
-pub opaque type Value = Token.
+pub type Repeat.
 
 /**
- * A single non-global mask-border-repeat shorthand component.
+ * The source image's edge regions are tiled (repeated) to fill the gap between each border. Tiles
+ * may be stretched to achieve the proper fit.
  */
-pub opaque type Component = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Round.
 
 /**
- * Include this property in an application style struct.
+ * The source image's edge regions are tiled (repeated) to fill the gap between each border. Extra
+ * space will be distributed in between tiles to achieve the proper fit.
  */
+pub type Space.
+
+/**
+ * The source image's edge regions are stretched to fill the gap between each border.
+ */
+pub type Stretch.
+
+pub type Css = Stretch | Repeat | Round | Space | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub type ComponentCss = Stretch | Repeat | Round | Space.
+
+pub opaque type Value = SerializedValue.
+
+pub opaque type Component = SerializedValue.
+
 pub struct Property {
     mask_border_repeat: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     mask_border_repeat: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for mask-border-repeat. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "mask-border-repeat", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("mask-border-repeat", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
+ * Chooses one mask-border-repeat shorthand component. CSS-wide keywords are accepted only by
+ * value(css) for the whole declaration.
  */
-pub initial(): Value ->
-    Value(Token {property: "mask-border-repeat", css: "initial"}).
+pub component(css: ComponentCss): Component ->
+    Component(serialize("mask-border-repeat", Atom.to_string(css))).
 
-/**
- * Returns the CSS keyword repeat.
- */
-pub repeat(): Value ->
-    Value(Token {property: "mask-border-repeat", css: "repeat"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "mask-border-repeat", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "mask-border-repeat", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword round.
- */
-pub round(): Value ->
-    Value(Token {property: "mask-border-repeat", css: "round"}).
-
-/**
- * Returns the CSS keyword space.
- */
-pub space(): Value ->
-    Value(Token {property: "mask-border-repeat", css: "space"}).
-
-/**
- * Returns the CSS keyword stretch.
- */
-pub stretch(): Value ->
-    Value(Token {property: "mask-border-repeat", css: "stretch"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "mask-border-repeat", css: "unset"}).
-
-/**
- * Constructs one mask-border-repeat shorthand component.
- */
-pub component_repeat(): Component ->
-    Component(Token {property: "mask-border-repeat", css: "repeat"}).
-
-/**
- * Constructs one mask-border-repeat shorthand component.
- */
-pub component_round(): Component ->
-    Component(Token {property: "mask-border-repeat", css: "round"}).
-
-/**
- * Constructs one mask-border-repeat shorthand component.
- */
-pub component_space(): Component ->
-    Component(Token {property: "mask-border-repeat", css: "space"}).
-
-/**
- * Constructs one mask-border-repeat shorthand component.
- */
-pub component_stretch(): Component ->
-    Component(Token {property: "mask-border-repeat", css: "stretch"}).
-
-/**
- * Serializes a library-owned shorthand component.
- */
 component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
+    let serialized = component_value(value);
+    serialized.css.
 
-component_token(value: Component): Token ->
+component_value(value: Component): SerializedValue ->
     value.
 
 /**
- * Combines 1 typed components in specification order.
+ * Supplies 1 components in the grammar order shown above.
  */
 pub single(first: Component): Value ->
-    Value(Token {property: "mask-border-repeat", css: component_css(first)}).
+    Value(serialize("mask-border-repeat", component_css(first))).
 
 /**
- * Combines 2 typed components in specification order.
+ * Supplies 2 components in the grammar order shown above.
  */
 pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {
-            property: "mask-border-repeat",
-            css: component_css(first) + " " + component_css(second),
-        },
-    ).
+    Value(serialize("mask-border-repeat", component_css(first) + " " + component_css(second))).

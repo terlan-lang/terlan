@@ -1,399 +1,245 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-try-fallbacks
+ * The `position-try-fallbacks` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+ * enables you to specify a list of one or more alternative position try fallback options for
+ * anchor-positioned elements to be placed relative to their associated anchor elements. When the
+ * element would otherwise overflow its inset-modified containing block, the browser will try
+ * placing the positioned element in these different fallback positions, in the order provided,
+ * until it finds a value that stops it from overflowing its container or the viewport.
+ *
+ * Initial: none. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: none | [ [<dashed-ident> || <try-tactic>] | <position-area> ]#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-try-fallbacks
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position-try-fallbacks
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PositionTryFallbacks.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+
+pub type BlockEnd = Atom["block-end"].
+
+pub type BlockStart = Atom["block-start"].
+
+pub type Bottom.
+
+pub type Center.
+
+pub type End.
 
 /**
- * A nominal, specification-constrained position-try-fallbacks value.
+ * Flips the element's position along the block axis so that it appears the same distance away from
+ * the anchor but on the opposite side of it. To put it another way, it mirrors the element's
+ * position across an inline axis drawn through the center of the anchor. As an example, if the
+ * positioned element started to overflow at the top of the anchor, this value would flip the
+ * position to the bottom.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type FlipBlock = Atom["flip-block"].
 
 /**
- * Include this property in an application style struct.
+ * Flips the element's position along the inline axis so that it appears the same distance away from
+ * the anchor but on the opposite side of it. To put it another way, it mirrors the element's
+ * position across a block axis drawn through the center of the anchor. As an example, if the
+ * positioned element started to overflow at the left of the anchor, this value would flip the
+ * position to the right.
  */
+pub type FlipInline = Atom["flip-inline"].
+
+/**
+ * Mirrors the element's position across an axis drawn diagonally through the center of the anchor,
+ * passing through the point at the intersection of the block axis start and the inline axis start,
+ * and the point at the intersection of the block axis end and the inline axis end. As an example,
+ * if the positioned element started to overflow at the left of the anchor, this value would flip
+ * the positioned element to the top.
+ */
+pub type FlipStart = Atom["flip-start"].
+
+pub type FlipX = Atom["flip-x"].
+
+pub type FlipY = Atom["flip-y"].
+
+pub type InlineEnd = Atom["inline-end"].
+
+pub type InlineStart = Atom["inline-start"].
+
+pub type Left.
+
+/**
+ * The default value. There are no position try fallback options set.
+ */
+pub type None.
+
+pub type Right.
+
+pub type SelfBlockEnd = Atom["self-block-end"].
+
+pub type SelfBlockStart = Atom["self-block-start"].
+
+pub type SelfEnd = Atom["self-end"].
+
+pub type SelfInlineEnd = Atom["self-inline-end"].
+
+pub type SelfInlineStart = Atom["self-inline-start"].
+
+pub type SelfStart = Atom["self-start"].
+
+pub type SelfXEnd = Atom["self-x-end"].
+
+pub type SelfXStart = Atom["self-x-start"].
+
+pub type SelfYEnd = Atom["self-y-end"].
+
+pub type SelfYStart = Atom["self-y-start"].
+
+pub type SpanAll = Atom["span-all"].
+
+pub type SpanBlockEnd = Atom["span-block-end"].
+
+pub type SpanBlockStart = Atom["span-block-start"].
+
+pub type SpanBottom = Atom["span-bottom"].
+
+pub type SpanEnd = Atom["span-end"].
+
+pub type SpanInlineEnd = Atom["span-inline-end"].
+
+pub type SpanInlineStart = Atom["span-inline-start"].
+
+pub type SpanLeft = Atom["span-left"].
+
+pub type SpanRight = Atom["span-right"].
+
+pub type SpanSelfBlockEnd = Atom["span-self-block-end"].
+
+pub type SpanSelfBlockStart = Atom["span-self-block-start"].
+
+pub type SpanSelfEnd = Atom["span-self-end"].
+
+pub type SpanSelfInlineEnd = Atom["span-self-inline-end"].
+
+pub type SpanSelfInlineStart = Atom["span-self-inline-start"].
+
+pub type SpanSelfStart = Atom["span-self-start"].
+
+pub type SpanSelfXEnd = Atom["span-self-x-end"].
+
+pub type SpanSelfXStart = Atom["span-self-x-start"].
+
+pub type SpanSelfYEnd = Atom["span-self-y-end"].
+
+pub type SpanSelfYStart = Atom["span-self-y-start"].
+
+pub type SpanStart = Atom["span-start"].
+
+pub type SpanTop = Atom["span-top"].
+
+pub type SpanXEnd = Atom["span-x-end"].
+
+pub type SpanXStart = Atom["span-x-start"].
+
+pub type SpanYEnd = Atom["span-y-end"].
+
+pub type SpanYStart = Atom["span-y-start"].
+
+pub type Start.
+
+pub type Top.
+
+pub type XEnd = Atom["x-end"].
+
+pub type XStart = Atom["x-start"].
+
+pub type YEnd = Atom["y-end"].
+
+pub type YStart = Atom["y-start"].
+
+pub type Css =
+      None
+    | FlipBlock
+    | FlipInline
+    | FlipStart
+    | FlipX
+    | FlipY
+    | Left
+    | Center
+    | Right
+    | SpanLeft
+    | SpanRight
+    | XStart
+    | XEnd
+    | SpanXStart
+    | SpanXEnd
+    | SelfXStart
+    | SelfXEnd
+    | SpanSelfXStart
+    | SpanSelfXEnd
+    | SpanAll
+    | Top
+    | Bottom
+    | SpanTop
+    | SpanBottom
+    | YStart
+    | YEnd
+    | SpanYStart
+    | SpanYEnd
+    | SelfYStart
+    | SelfYEnd
+    | SpanSelfYStart
+    | SpanSelfYEnd
+    | BlockStart
+    | BlockEnd
+    | SpanBlockStart
+    | SpanBlockEnd
+    | InlineStart
+    | InlineEnd
+    | SpanInlineStart
+    | SpanInlineEnd
+    | SelfBlockStart
+    | SelfBlockEnd
+    | SpanSelfBlockStart
+    | SpanSelfBlockEnd
+    | SelfInlineStart
+    | SelfInlineEnd
+    | SpanSelfInlineStart
+    | SpanSelfInlineEnd
+    | Start
+    | End
+    | SpanStart
+    | SpanEnd
+    | SelfStart
+    | SelfEnd
+    | SpanSelfStart
+    | SpanSelfEnd
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     position_try_fallbacks: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     position_try_fallbacks: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword block-end.
+ * Selects a keyword for position-try-fallbacks. CSS-wide choices Inherit, Initial, Unset, Revert,
+ * and RevertLayer apply to the entire declaration.
  */
-pub block_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "block-end"}).
-
-/**
- * Returns the CSS keyword block-start.
- */
-pub block_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "block-start"}).
-
-/**
- * Returns the CSS keyword bottom.
- */
-pub bottom(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "bottom"}).
-
-/**
- * Returns the CSS keyword center.
- */
-pub center(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "center"}).
-
-/**
- * Returns the CSS keyword end.
- */
-pub end_value(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "end"}).
-
-/**
- * Returns the CSS keyword flip-block.
- */
-pub flip_block(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "flip-block"}).
-
-/**
- * Returns the CSS keyword flip-inline.
- */
-pub flip_inline(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "flip-inline"}).
-
-/**
- * Returns the CSS keyword flip-start.
- */
-pub flip_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "flip-start"}).
-
-/**
- * Returns the CSS keyword flip-x.
- */
-pub flip_x(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "flip-x"}).
-
-/**
- * Returns the CSS keyword flip-y.
- */
-pub flip_y(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "flip-y"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "initial"}).
-
-/**
- * Returns the CSS keyword inline-end.
- */
-pub inline_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "inline-end"}).
-
-/**
- * Returns the CSS keyword inline-start.
- */
-pub inline_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "inline-start"}).
-
-/**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "left"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "right"}).
-
-/**
- * Returns the CSS keyword self-block-end.
- */
-pub self_block_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "self-block-end"}).
-
-/**
- * Returns the CSS keyword self-block-start.
- */
-pub self_block_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "self-block-start"}).
-
-/**
- * Returns the CSS keyword self-end.
- */
-pub self_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "self-end"}).
-
-/**
- * Returns the CSS keyword self-inline-end.
- */
-pub self_inline_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "self-inline-end"}).
-
-/**
- * Returns the CSS keyword self-inline-start.
- */
-pub self_inline_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "self-inline-start"}).
-
-/**
- * Returns the CSS keyword self-start.
- */
-pub self_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "self-start"}).
-
-/**
- * Returns the CSS keyword self-x-end.
- */
-pub self_x_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "self-x-end"}).
-
-/**
- * Returns the CSS keyword self-x-start.
- */
-pub self_x_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "self-x-start"}).
-
-/**
- * Returns the CSS keyword self-y-end.
- */
-pub self_y_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "self-y-end"}).
-
-/**
- * Returns the CSS keyword self-y-start.
- */
-pub self_y_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "self-y-start"}).
-
-/**
- * Returns the CSS keyword span-all.
- */
-pub span_all(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-all"}).
-
-/**
- * Returns the CSS keyword span-block-end.
- */
-pub span_block_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-block-end"}).
-
-/**
- * Returns the CSS keyword span-block-start.
- */
-pub span_block_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-block-start"}).
-
-/**
- * Returns the CSS keyword span-bottom.
- */
-pub span_bottom(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-bottom"}).
-
-/**
- * Returns the CSS keyword span-end.
- */
-pub span_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-end"}).
-
-/**
- * Returns the CSS keyword span-inline-end.
- */
-pub span_inline_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-inline-end"}).
-
-/**
- * Returns the CSS keyword span-inline-start.
- */
-pub span_inline_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-inline-start"}).
-
-/**
- * Returns the CSS keyword span-left.
- */
-pub span_left(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-left"}).
-
-/**
- * Returns the CSS keyword span-right.
- */
-pub span_right(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-right"}).
-
-/**
- * Returns the CSS keyword span-self-block-end.
- */
-pub span_self_block_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-self-block-end"}).
-
-/**
- * Returns the CSS keyword span-self-block-start.
- */
-pub span_self_block_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-self-block-start"}).
-
-/**
- * Returns the CSS keyword span-self-end.
- */
-pub span_self_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-self-end"}).
-
-/**
- * Returns the CSS keyword span-self-inline-end.
- */
-pub span_self_inline_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-self-inline-end"}).
-
-/**
- * Returns the CSS keyword span-self-inline-start.
- */
-pub span_self_inline_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-self-inline-start"}).
-
-/**
- * Returns the CSS keyword span-self-start.
- */
-pub span_self_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-self-start"}).
-
-/**
- * Returns the CSS keyword span-self-x-end.
- */
-pub span_self_x_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-self-x-end"}).
-
-/**
- * Returns the CSS keyword span-self-x-start.
- */
-pub span_self_x_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-self-x-start"}).
-
-/**
- * Returns the CSS keyword span-self-y-end.
- */
-pub span_self_y_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-self-y-end"}).
-
-/**
- * Returns the CSS keyword span-self-y-start.
- */
-pub span_self_y_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-self-y-start"}).
-
-/**
- * Returns the CSS keyword span-start.
- */
-pub span_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-start"}).
-
-/**
- * Returns the CSS keyword span-top.
- */
-pub span_top(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-top"}).
-
-/**
- * Returns the CSS keyword span-x-end.
- */
-pub span_x_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-x-end"}).
-
-/**
- * Returns the CSS keyword span-x-start.
- */
-pub span_x_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-x-start"}).
-
-/**
- * Returns the CSS keyword span-y-end.
- */
-pub span_y_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-y-end"}).
-
-/**
- * Returns the CSS keyword span-y-start.
- */
-pub span_y_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "span-y-start"}).
-
-/**
- * Returns the CSS keyword start.
- */
-pub start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "start"}).
-
-/**
- * Returns the CSS keyword top.
- */
-pub top(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "top"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "unset"}).
-
-/**
- * Returns the CSS keyword x-end.
- */
-pub x_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "x-end"}).
-
-/**
- * Returns the CSS keyword x-start.
- */
-pub x_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "x-start"}).
-
-/**
- * Returns the CSS keyword y-end.
- */
-pub y_end(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "y-end"}).
-
-/**
- * Returns the CSS keyword y-start.
- */
-pub y_start(): Value ->
-    Value(Token {property: "position-try-fallbacks", css: "y-start"}).
+pub value(css: Css): Value ->
+    Value(serialize("position-try-fallbacks", Atom.to_string(css))).

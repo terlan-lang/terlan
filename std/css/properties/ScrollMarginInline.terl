@@ -1,111 +1,81 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-inline
+ * The `scroll-margin-inline` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+ * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+ * property sets the scroll margins of an element in the inline dimension.
+ *
+ * Initial: scroll-margin-inline-start: 0; scroll-margin-inline-end: 0. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <length>{1,2}
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-inline
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-margin-inline
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.ScrollMarginInline.
 
+import std.core.Atom.
 import std.css.Values.
-import std.css.Values.{length_css}.
+import std.css.Values.{length_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained scroll-margin-inline value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-/**
- * A single non-global scroll-margin-inline shorthand component.
- */
-pub opaque type Component = Token.
+pub opaque type Value = SerializedValue.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Component = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     scroll_margin_inline: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     scroll_margin_inline: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for scroll-margin-inline. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "scroll-margin-inline", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("scroll-margin-inline", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "scroll-margin-inline", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "scroll-margin-inline", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "scroll-margin-inline", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "scroll-margin-inline", css: "unset"}).
-
-/**
- * Constructs a scroll-margin-inline value from a typed length.
+ * Sets scroll-margin-inline from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+ * choose the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "scroll-margin-inline", css: length_css(value)}).
+    Value(serialize("scroll-margin-inline", length_css(value))).
 
 /**
- * Constructs a scroll-margin-inline value from a typed length.
+ * Sets scroll-margin-inline shorthand component from a typed length. Use std.css.Values.px,
+ * root_em, em, vw, or vh to choose the unit.
  */
 pub component_length(value: Length): Component ->
-    Component(Token {property: "scroll-margin-inline", css: length_css(value)}).
+    Component(serialize("scroll-margin-inline", length_css(value))).
 
-/**
- * Serializes a library-owned shorthand component.
- */
 component_css(value: Component): String ->
-    let token = component_token(value);
-    token.css.
+    let serialized = component_value(value);
+    serialized.css.
 
-component_token(value: Component): Token ->
+component_value(value: Component): SerializedValue ->
     value.
 
 /**
- * Combines 1 typed components in specification order.
+ * Supplies 1 components in the grammar order shown above.
  */
 pub single(first: Component): Value ->
-    Value(Token {property: "scroll-margin-inline", css: component_css(first)}).
+    Value(serialize("scroll-margin-inline", component_css(first))).
 
 /**
- * Combines 2 typed components in specification order.
+ * Supplies 2 components in the grammar order shown above.
  */
 pub pair(first: Component, second: Component): Value ->
-    Value(
-        Token {
-            property: "scroll-margin-inline",
-            css: component_css(first) + " " + component_css(second),
-        },
-    ).
+    Value(serialize("scroll-margin-inline", component_css(first) + " " + component_css(second))).

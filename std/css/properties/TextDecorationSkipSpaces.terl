@@ -1,87 +1,58 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip-spaces
+ * Controls whether underline, overline, and line-through decorations cross spaces, including
+ * decorations inherited from ancestors.
+ *
  * Grammar: none | all | [ start || end ]
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip-spaces
+ *
+ * Author guide: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-skip-spaces
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.TextDecorationSkipSpaces.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained text-decoration-skip-spaces value.
+ * Omits decorations across all spaces.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type All.
 
 /**
- * Include this property in an application style struct.
+ * Omits decorations across spaces at the end of each line.
  */
+pub type End.
+
+/**
+ * Draws decorations across spaces.
+ */
+pub type None.
+
+/**
+ * Omits decorations across spaces at the start of each line.
+ */
+pub type Start.
+
+pub type Css = None | All | Start | End | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     text_decoration_skip_spaces: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     text_decoration_skip_spaces: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword all.
+ * Selects a keyword for text-decoration-skip-spaces. CSS-wide choices Inherit, Initial, Unset,
+ * Revert, and RevertLayer apply to the entire declaration.
  */
-pub all(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "all"}).
-
-/**
- * Returns the CSS keyword end.
- */
-pub end_value(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "end"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "none"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword start.
- */
-pub start(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "start"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "text-decoration-skip-spaces", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("text-decoration-skip-spaces", Atom.to_string(css))).

@@ -1,88 +1,90 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-repeat
+//! The `mask-border-repeat` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
+//! specifies how the images for the sides and the middle part of the [mask border
+//! image](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border) are
+//! scaled and tiled.
+//!
+//! Initial: stretch. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <'border-image-repeat'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-border-repeat
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-border-repeat
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MaskBorderRepeat.
 
-/// A single non-global mask-border-repeat shorthand component.
-
 pub opaque type Component.
 
-/// Include an optional declaration in a shared style block.
+pub type ComponentCss =
+    Stretch
+  | Repeat
+  | Round
+  | Space.
+
+pub type Css =
+    Stretch
+  | Repeat
+  | Round
+  | Space
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     mask_border_repeat: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     mask_border_repeat: Value
 }.
 
-/// A nominal, specification-constrained mask-border-repeat value.
+/// The source image's edge regions are tiled (repeated) to fill the gap between each border. Tiles
+/// may be clipped to achieve the proper fit.
+
+pub type Repeat =
+    Atom["repeat"].
+
+/// The source image's edge regions are tiled (repeated) to fill the gap between each border. Tiles
+/// may be stretched to achieve the proper fit.
+
+pub type Round =
+    Atom["round"].
+
+/// The source image's edge regions are tiled (repeated) to fill the gap between each border. Extra
+/// space will be distributed in between tiles to achieve the proper fit.
+
+pub type Space =
+    Atom["space"].
+
+/// The source image's edge regions are stretched to fill the gap between each border.
+
+pub type Stretch =
+    Atom["stretch"].
 
 pub opaque type Value.
 
-/// Constructs one mask-border-repeat shorthand component.
+/// Chooses one mask-border-repeat shorthand component. CSS-wide keywords are accepted only by
+/// value(css) for the whole declaration.
 
-pub component_repeat(): Component.
+pub component(css: ComponentCss): Component.
 
-/// Constructs one mask-border-repeat shorthand component.
-
-pub component_round(): Component.
-
-/// Constructs one mask-border-repeat shorthand component.
-
-pub component_space(): Component.
-
-/// Constructs one mask-border-repeat shorthand component.
-
-pub component_stretch(): Component.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Combines 2 typed components in specification order.
+/// Supplies 2 components in the grammar order shown above.
 
 pub pair(first: Component, second: Component): Value.
 
-/// Returns the CSS keyword repeat.
-
-pub repeat(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword round.
-
-pub round(): Value.
-
-/// Combines 1 typed components in specification order.
+/// Supplies 1 components in the grammar order shown above.
 
 pub single(first: Component): Value.
 
-/// Returns the CSS keyword space.
+/// Selects a keyword for mask-border-repeat. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub space(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

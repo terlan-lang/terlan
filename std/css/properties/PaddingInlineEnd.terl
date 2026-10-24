@@ -1,96 +1,67 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-logical-1/#propdef-padding-inline-end
+ * The `padding-inline-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+ * the logical inline end padding of an element, which maps to a physical padding depending on the
+ * element's writing mode, directionality, and text orientation.
+ *
+ * Initial: 0. Inherited: no.
+ * Percentages: logical-width of containing block.
+ *
  * Grammar: <'padding-top'>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-logical-1/#propdef-padding-inline-end
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/padding-inline-end
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.PaddingInlineEnd.
 
-import std.core.Option.{None, Some}.
+import std.core.Atom.
+import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-/**
- * A nominal, specification-constrained padding-inline-end value.
- */
-pub opaque type Value = Token.
+pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub opaque type Value = SerializedValue.
 
-/**
- * Include this property in an application style struct.
- */
 pub struct Property {
     padding_inline_end: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     padding_inline_end: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword inherit.
+ * Selects a keyword for padding-inline-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub inherit(): Value ->
-    Value(Token {property: "padding-inline-end", css: "inherit"}).
+pub value(css: Css): Value ->
+    Value(serialize("padding-inline-end", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "padding-inline-end", css: "initial"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "padding-inline-end", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "padding-inline-end", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "padding-inline-end", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a padding-inline-end value.
+ * Sets padding-inline-end from a typed length. Returns Some for amount >= 0; otherwise returns
+ * None.
  */
 pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(Token {property: "padding-inline-end", css: std.css.Values.length_css(value)}),
-            );
-        false -> None
+    case length_amount(value) >= 0 {
+        true -> Some(Value(serialize("padding-inline-end", length_css(value))));
+        false -> Absent
     }.
 
 /**
- * Checks the specification range and constructs a padding-inline-end value.
+ * Sets padding-inline-end from a typed percentage. Returns Some for amount >= 0; otherwise returns
+ * None.
  */
 pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true ->
-            Some(
-                Value(
-                    Token {
-                        property: "padding-inline-end",
-                        css: std.css.Values.percentage_css(value),
-                    },
-                ),
-            );
-        false -> None
+    case percentage_amount(value) >= 0 {
+        true -> Some(Value(serialize("padding-inline-end", percentage_css(value))));
+        false -> Absent
     }.

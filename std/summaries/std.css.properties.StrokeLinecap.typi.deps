@@ -1,9 +1,11 @@
 module=std.css.properties.StrokeLinecap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=10515058929234859179
-interface_hash=9844103649550147710
-interface_doc_hash=2586266622366742705
-deps=1
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=10324842794278369619
+interface_hash=562767549404811951
+interface_doc_hash=13759486284015064492
+deps=3
+std.core.Atom=12311707212014243410
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

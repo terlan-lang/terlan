@@ -1,52 +1,48 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://w3c.github.io/svgwg/svg2-draft/pservers.html#StopOpacityProperty
+//! The `stop-opacity` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines the
+//! opacity of a given color gradient stop in the SVG `stop` element within an SVG gradient. If
+//! present, it overrides the element's `stop-opacity` attribute.
+//!
+//! Initial: black. Inherited: no.
+//! Percentages: not accepted.
+//!
 //! Grammar: <'opacity'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/pservers.html#StopOpacityProperty
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/stop-opacity
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.StopOpacity.
 
-/// Include an optional declaration in a shared style block.
+pub type Css =
+    std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     stop_opacity: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     stop_opacity: Value
 }.
 
-/// A nominal, specification-constrained stop-opacity value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a stop-opacity value from a typed number.
+/// Sets stop-opacity from a typed number.
 
 pub number(value: Float): Value.
 
-/// Constructs a stop-opacity value from a typed percentage.
+/// Sets stop-opacity from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for stop-opacity. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

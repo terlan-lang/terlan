@@ -1,88 +1,78 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-lists-3/#propdef-list-style
+//! The `list-style` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+//! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
+//! property allows you to set all the list style properties at once.
+//!
+//! Initial: list-style-type: disc; list-style-position: outside; list-style-image: none. Inherited:
+//! yes.
+//! Percentages: not accepted.
+//!
 //! Grammar: <'list-style-position'> || <'list-style-image'> || <'list-style-type'>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-lists-3/#propdef-list-style
+//!
+//! Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/list-style
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Additional value descriptions: Microsoft (MIT).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ListStyle.
 
-/// A non-global list-style-image component of list-style.
+pub type Css =
+    Inside
+  | Outside
+  | None
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
-pub opaque type ListStyleImagePart.
+/// The marker box is outside the principal block box, as described in the section on the ::marker
+/// pseudo-element below.
 
-/// A non-global list-style-position component of list-style.
+pub type Inside =
+    Atom["inside"].
 
-pub opaque type ListStylePositionPart.
+pub type ListStyleImagePart =
+    None.
 
-/// A non-global list-style-type component of list-style.
+pub type ListStylePositionPart =
+    Inside
+  | Outside.
 
-pub opaque type ListStyleTypePart.
+pub type ListStyleTypePart =
+    None.
 
-/// Include an optional declaration in a shared style block.
+/// No list style is used.
+
+pub type None =
+    Atom["none"].
 
 pub struct OptionalProperty {
     list_style: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
+/// The ::marker pseudo-element is an inline element placed immediately before all ::before
+/// pseudo-elements in the principal block box, after which the element's content flows.
+
+pub type Outside =
+    Atom["outside"].
 
 pub struct Property {
     list_style: Value
 }.
 
-/// A nominal, specification-constrained list-style value.
-
 pub opaque type Value.
 
-/// Combines every named specification group in canonical order.
+/// Sets list-style by combining list-style-position, list-style-image, list-style-type in grammar
+/// order. Each argument describes a distinct part of the declaration.
 
 pub compose(list_style_position: ListStylePositionPart, list_style_image: ListStyleImagePart, list_style_type: ListStyleTypePart): Value.
 
-/// Returns the CSS keyword inherit.
+/// Selects a keyword for list-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Returns the CSS keyword inside.
-
-pub inside(): Value.
-
-/// Constructs the list-style-image keyword none.
-
-pub list_style_image_none(): ListStyleImagePart.
-
-/// Constructs the list-style-position keyword inside.
-
-pub list_style_position_inside(): ListStylePositionPart.
-
-/// Constructs the list-style-position keyword outside.
-
-pub list_style_position_outside(): ListStylePositionPart.
-
-/// Constructs the list-style-type keyword none.
-
-pub list_style_type_none(): ListStyleTypePart.
-
-/// Returns the CSS keyword none.
-
-pub none(): Value.
-
-/// Returns the CSS keyword outside.
-
-pub outside(): Value.
-
-/// Returns the CSS keyword revert.
-
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

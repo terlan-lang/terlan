@@ -1,10 +1,12 @@
 module=std.css.properties.MathDepth
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6093881121986560472
-interface_hash=227089120980506769
-interface_doc_hash=9961803492276737755
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3276397569891064603
+interface_hash=12991173171862277556
+interface_doc_hash=3704682641551103692
+deps=4
+std.core.Atom=12311707212014243410
 std.core.Int=6981787512204747997
 std.core.Option=11539230284316612175
+std.css.Values=10713230055966867446

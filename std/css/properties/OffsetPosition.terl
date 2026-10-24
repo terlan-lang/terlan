@@ -1,144 +1,106 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/motion-1/#propdef-offset-position
+ * The `offset-position` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+ * the initial position of an element along a path. This property is typically used in combination
+ * with the `offset-path` property to create a motion effect. The value of `offset-position`
+ * determines where the element gets placed initially for moving along an offset path if an
+ * `offset-path` function such as `path()` does not specify its own starting position.
+ *
+ * Initial: normal. Inherited: no.
+ * Percentages: refer to the size of containing block.
+ *
  * Grammar: normal | auto | <position>
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/motion-1/#propdef-offset-position
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/offset-position
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.OffsetPosition.
 
+import std.core.Atom.
 import std.css.Values.
+import std.css.Values.{length_css, percentage_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained offset-position value.
+ * Indicates that the offset starting position is the top-left corner of the element's box.
  */
-pub opaque type Value = Token.
+pub type Auto.
 
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Bottom.
+
+pub type Center.
+
+pub type Left.
 
 /**
- * Include this property in an application style struct.
+ * Indicates that the element does not have an offset starting position and places the element at
+ * `50% 50%` of the containing block. This is the default value.
  */
+pub type Normal.
+
+pub type Right.
+
+pub type Top.
+
+pub type XEnd = Atom["x-end"].
+
+pub type XStart = Atom["x-start"].
+
+pub type YEnd = Atom["y-end"].
+
+pub type YStart = Atom["y-start"].
+
+pub type Css =
+      Normal
+    | Auto
+    | Left
+    | Center
+    | Right
+    | Top
+    | Bottom
+    | XStart
+    | XEnd
+    | YStart
+    | YEnd
+    | Inherit
+    | Initial
+    | Unset
+    | Revert
+    | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     offset_position: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     offset_position: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword auto.
+ * Selects a keyword for offset-position. CSS-wide choices Inherit, Initial, Unset, Revert, and
+ * RevertLayer apply to the entire declaration.
  */
-pub auto(): Value ->
-    Value(Token {property: "offset-position", css: "auto"}).
+pub value(css: Css): Value ->
+    Value(serialize("offset-position", Atom.to_string(css))).
 
 /**
- * Returns the CSS keyword bottom.
- */
-pub bottom(): Value ->
-    Value(Token {property: "offset-position", css: "bottom"}).
-
-/**
- * Returns the CSS keyword center.
- */
-pub center(): Value ->
-    Value(Token {property: "offset-position", css: "center"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "offset-position", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "offset-position", css: "initial"}).
-
-/**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "offset-position", css: "left"}).
-
-/**
- * Returns the CSS keyword normal.
- */
-pub normal(): Value ->
-    Value(Token {property: "offset-position", css: "normal"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "offset-position", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "offset-position", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "offset-position", css: "right"}).
-
-/**
- * Returns the CSS keyword top.
- */
-pub top(): Value ->
-    Value(Token {property: "offset-position", css: "top"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "offset-position", css: "unset"}).
-
-/**
- * Returns the CSS keyword x-end.
- */
-pub x_end(): Value ->
-    Value(Token {property: "offset-position", css: "x-end"}).
-
-/**
- * Returns the CSS keyword x-start.
- */
-pub x_start(): Value ->
-    Value(Token {property: "offset-position", css: "x-start"}).
-
-/**
- * Returns the CSS keyword y-end.
- */
-pub y_end(): Value ->
-    Value(Token {property: "offset-position", css: "y-end"}).
-
-/**
- * Returns the CSS keyword y-start.
- */
-pub y_start(): Value ->
-    Value(Token {property: "offset-position", css: "y-start"}).
-
-/**
- * Constructs a offset-position value from a typed length.
+ * Sets offset-position from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
+ * the unit.
  */
 pub length(value: Length): Value ->
-    Value(Token {property: "offset-position", css: std.css.Values.length_css(value)}).
+    Value(serialize("offset-position", length_css(value))).
 
 /**
- * Constructs a offset-position value from a typed percentage.
+ * Sets offset-position from a typed percentage.
  */
 pub percentage(value: Percentage): Value ->
-    Value(Token {property: "offset-position", css: std.css.Values.percentage_css(value)}).
+    Value(serialize("offset-position", percentage_css(value))).

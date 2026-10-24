@@ -1,56 +1,56 @@
-//! Generated from @webref/css 8.7.8. Do not edit.
-//! Specification: https://drafts.csswg.org/css-position-3/#propdef-inset-inline-end
+//! The `inset-inline-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property defines
+//! the logical inline end inset of an element, which maps to a physical offset depending on the
+//! element's writing mode, directionality, and text orientation. It corresponds to the `top`,
+//! `right`, `bottom`, or `left` property depending on the values defined for `writing-mode`,
+//! `direction`, and `text-orientation`.
+//!
+//! Initial: auto. Inherited: no.
+//! Percentages: logical-width of containing block.
+//!
 //! Grammar: auto | <length-percentage>
-//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+//!
+//! Specification: https://drafts.csswg.org/css-position-3/#propdef-inset-inline-end
+//!
+//! Author guide:
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/inset-inline-end
+//!
+//! Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+//!
+//! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.InsetInlineEnd.
 
-/// Include an optional declaration in a shared style block.
+pub type Auto =
+    Atom["auto"].
+
+pub type Css =
+    Auto
+  | std.css.Values.Inherit
+  | std.css.Values.Initial
+  | std.css.Values.Unset
+  | std.css.Values.Revert
+  | std.css.Values.RevertLayer.
 
 pub struct OptionalProperty {
     inset_inline_end: std.core.Option.Option[Value]
 }.
 
-/// Include this property in an application style struct.
-
 pub struct Property {
     inset_inline_end: Value
 }.
 
-/// A nominal, specification-constrained inset-inline-end value.
-
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
-/// Returns the CSS keyword inherit.
-
-pub inherit(): Value.
-
-/// Returns the CSS keyword initial.
-
-pub initial(): Value.
-
-/// Constructs a inset-inline-end value from a typed length.
+/// Sets inset-inline-end from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
+/// choose the unit.
 
 pub length(value: std.css.Values.Length): Value.
 
-/// Constructs a inset-inline-end value from a typed percentage.
+/// Sets inset-inline-end from a typed percentage.
 
 pub percentage(value: std.css.Values.Percentage): Value.
 
-/// Returns the CSS keyword revert.
+/// Selects a keyword for inset-inline-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
+/// RevertLayer apply to the entire declaration.
 
-pub revert(): Value.
-
-/// Returns the CSS keyword revert-layer.
-
-pub revert_layer(): Value.
-
-/// Returns the CSS keyword unset.
-
-pub unset(): Value.
-
-export type Token.
+pub value(css: Css): Value.

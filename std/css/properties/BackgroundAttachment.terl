@@ -1,81 +1,66 @@
 /**
- * Generated from @webref/css 8.7.8. Do not edit.
- * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-attachment
+ * The `background-attachment` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property sets
+ * whether a background image's position is fixed within the `viewport`, or scrolls with its
+ * containing block.
+ *
+ * Initial: scroll. Inherited: no.
+ * Percentages: not accepted.
+ *
  * Grammar: <attachment>#
- * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ *
+ * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-attachment
+ *
+ * Author guide:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/background-attachment
+ *
+ * Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).
+ *
+ * Generated from @webref/css 8.7.8. Do not edit.
  */
 module std.css.properties.BackgroundAttachment.
 
+import std.core.Atom.
+import std.css.Values.{serialize}.
+
 import type std.core.Option.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
- * A nominal, specification-constrained background-attachment value.
+ * The background is fixed relative to the viewport. Even if an element has a scrolling mechanism,
+ * the background doesn't move with the element. If set, the `background-origin` property is
+ * ignored.
  */
-pub opaque type Value = Token.
-
-struct Token {
-    property: String,
-    css: String,
-}.
+pub type Fixed.
 
 /**
- * Include this property in an application style struct.
+ * The background is fixed relative to the element's contents. If the element has a scrolling
+ * mechanism, the background scrolls with the element's contents, and the background painting area
+ * and background positioning area are relative to the scrollable area of the element rather than to
+ * the border framing them.
  */
+pub type Local.
+
+/**
+ * The background is fixed relative to the element itself and does not scroll with its contents. (It
+ * is effectively attached to the element's border.)
+ */
+pub type Scroll.
+
+pub type Css = Scroll | Fixed | Local | Inherit | Initial | Unset | Revert | RevertLayer.
+
+pub opaque type Value = SerializedValue.
+
 pub struct Property {
     background_attachment: Value,
 }.
 
-/**
- * Include an optional declaration in a shared style block.
- */
 pub struct OptionalProperty {
     background_attachment: std.core.Option.Option[Value],
 }.
 
 /**
- * Returns the CSS keyword fixed.
+ * Selects a keyword for background-attachment. CSS-wide choices Inherit, Initial, Unset, Revert,
+ * and RevertLayer apply to the entire declaration.
  */
-pub fixed(): Value ->
-    Value(Token {property: "background-attachment", css: "fixed"}).
-
-/**
- * Returns the CSS keyword inherit.
- */
-pub inherit(): Value ->
-    Value(Token {property: "background-attachment", css: "inherit"}).
-
-/**
- * Returns the CSS keyword initial.
- */
-pub initial(): Value ->
-    Value(Token {property: "background-attachment", css: "initial"}).
-
-/**
- * Returns the CSS keyword local.
- */
-pub local(): Value ->
-    Value(Token {property: "background-attachment", css: "local"}).
-
-/**
- * Returns the CSS keyword revert.
- */
-pub revert(): Value ->
-    Value(Token {property: "background-attachment", css: "revert"}).
-
-/**
- * Returns the CSS keyword revert-layer.
- */
-pub revert_layer(): Value ->
-    Value(Token {property: "background-attachment", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword scroll.
- */
-pub scroll(): Value ->
-    Value(Token {property: "background-attachment", css: "scroll"}).
-
-/**
- * Returns the CSS keyword unset.
- */
-pub unset(): Value ->
-    Value(Token {property: "background-attachment", css: "unset"}).
+pub value(css: Css): Value ->
+    Value(serialize("background-attachment", Atom.to_string(css))).
