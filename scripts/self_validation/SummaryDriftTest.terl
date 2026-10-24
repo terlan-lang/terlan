@@ -242,13 +242,13 @@ pub validate(root: String, compiler: String, generator: String): Bool ->
 
 run_generation(root: String, compiler: String, generator: String, workspace: String): Bool ->
     case Process.run(generation_command(root, compiler, generator, workspace)) {
-        Err(reason) -> generation_failed(workspace, Process.error_message(reason));
+        Err(reason) -> generation_failed(workspace, reason.message);
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> discover_generated(root, workspace);
+                output.status == 0 -> discover_generated(root, workspace);
                 true -> generation_failed(
                     workspace,
-                    String.trim_end(String.append(Process.stdout(output), Process.stderr(output))),
+                    String.trim_end(String.append(output.stdout, output.stderr)),
                 )
             }
     }.

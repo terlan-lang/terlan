@@ -1,6 +1,6 @@
 module std.http.ErrorTest.
 
-import std.http.Error.{code, message, new, status}.
+import std.http.Error.{new}.
 import std.test.Test.{assert_equal}.
 
 import type std.http.Error.HttpError.
@@ -12,22 +12,22 @@ pub sample_error(): HttpError ->
 
 @test
 pub new_populates_http_error_code(): Bool ->
-    assert_equal(InvalidBody, code(sample_error())).
+    assert_equal(InvalidBody, sample_error().code).
 
 @test
 pub new_populates_http_error_message(): Bool ->
-    assert_equal("invalid request body", message(sample_error())).
+    assert_equal("invalid request body", sample_error().message).
 
 @test
 pub new_populates_http_error_status(): Bool ->
-    assert_equal(400, status(sample_error())).
+    assert_equal(400, sample_error().status).
 
 @test
 pub source_accessors_preserve_independent_error_values(): Bool ->
     let empty = new(InvalidBody, "", 0);
     let text = new(InvalidBody, "\u0000invalid body", 599);
-    assert_equal("", empty.message())
-        and assert_equal(0, empty.status())
-        and assert_equal("\u0000invalid body", text.message())
-        and assert_equal(599, text.status())
-        and assert_equal(InvalidBody, text.code()).
+    assert_equal("", empty.message)
+        and assert_equal(0, empty.status)
+        and assert_equal("\u0000invalid body", text.message)
+        and assert_equal(599, text.status)
+        and assert_equal(InvalidBody, text.code).

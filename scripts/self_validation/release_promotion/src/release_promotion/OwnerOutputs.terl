@@ -27,7 +27,7 @@ row(root: String, path: String, optional: Bool): Result[Json, String] ->
             Ok(value);
         Err(reason) ->
             if {
-                optional and File.code(reason) == NotFound -> Ok(absent(path));
+                optional and reason.code == NotFound -> Ok(absent(path));
                 true -> OwnerDirectory.row(root, path, path)
             }
     }.

@@ -507,7 +507,7 @@ if {
 });
         Err(reason) ->
             if {
-                File.code(reason) == NotFound -> execute(root, owner, inputs, fingerprint);
+                reason.code == NotFound -> execute(root, owner, inputs, fingerprint);
                 true -> reject("owner ledger cannot be read")
             }
     }.
@@ -531,7 +531,7 @@ recover_completed(root: String, owner: Owner, ledger: Json): Option[Decision] ->
     case File.size(staged_activity(root, owner)) {
         Err(reason) ->
             if {
-                File.code(reason) == NotFound -> None;
+                reason.code == NotFound -> None;
                 true -> Some(reject("cannot inspect completed owner scratch"))
             };
         Ok(_size) ->
@@ -577,7 +577,7 @@ recover_unsealed(root: String, owner: Owner): Option[Decision] ->
     case File.size(staged_activity(root, owner)) {
         Err(reason) ->
             if {
-                File.code(reason) == NotFound -> None;
+                reason.code == NotFound -> None;
                 true -> Some(reject("cannot inspect interrupted owner native log"))
             };
         Ok(_size) ->
@@ -737,20 +737,19 @@ finish(
                     root,
                     ledger_path(owner),
                     state(owner, inputs, fingerprint, "failed")
-                        .put("error", Json.string(Process.error_message(reason))),
+                        .put("error", Json.string(reason.message)),
                 );
-            reject(Process.error_message(reason));
+            reject(reason.message);
         Ok(output) ->
-            let _stdout = Console.println(Process.stdout(output));
-            let _stderr = Console.eprintln(Process.stderr(output));
+            let _stdout = Console.println(output.stdout);
+            let _stderr = Console.eprintln(output.stderr);
             if {
-                Process.status(output) != 0
-                    or not String.contains(Process.stdout(output), owner.required_stdout) -> let _recorded =
+                output.status != 0 or not String.contains(output.stdout, owner.required_stdout) -> let _recorded =
                     OwnerStorage.atomic_json(
                         root,
                         ledger_path(owner),
                         state(owner, inputs, fingerprint, "failed")
-                            .put("exit_status", Json.int(Process.status(output))),
+                            .put("exit_status", Json.int(output.status)),
                     );
                 reject("owner subprocess failed or did not execute its declared test");
                 true -> let {

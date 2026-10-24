@@ -9,7 +9,7 @@ import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.io.Console.{println}.
 import std.io.Directory.{create_temporary, files_recursive, remove_all}.
-import std.io.File.{path, read_text_many}.
+import std.io.File.{read_text_many}.
 import std.system.{Environment, Process}.
 
 import type std.collections.List.
@@ -170,22 +170,17 @@ run_generator(root: String, compiler: String, output: String): Bool ->
     let command = generator_command(root, compiler, output);
     case Process.run(command) {
         Err(reason) ->
-            finish(
-                output,
-                false,
-                0,
-                String.append("generation failed: ", Process.error_message(reason)),
-            );
+            finish(output, false, 0, String.append("generation failed: ", reason.message));
         Ok(result) ->
             if {
-                Process.status(result) == 0 -> discover_generated(root, output);
+                result.status == 0 -> discover_generated(root, output);
                 true -> finish(
                     output,
                     false,
                     0,
                     String.append(
                         "generation failed: ",
-                        String.append(Process.stdout(result), Process.stderr(result)),
+                        String.append(result.stdout, result.stderr),
                     ),
                 )
             }
@@ -221,7 +216,7 @@ read_comparison_page(
                 output,
                 false,
                 compared,
-                String.append(path(reason), ": missing committed generated artifact"),
+                String.append(reason.path, ": missing committed generated artifact"),
             );
         Ok(files) -> compare_page_result(root, output, page, files, compared)
     }.

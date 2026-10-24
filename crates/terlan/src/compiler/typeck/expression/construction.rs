@@ -282,7 +282,10 @@ pub(super) fn infer_syntax_field_access(
         },
         Type::Named { module, name, args } => {
             let (lookup_field, requested_private) = split_private_field_spelling(field);
-            if let Some(module) = module.as_deref() {
+            if let Some(module) = module
+                .as_deref()
+                .filter(|module| *module != ctx.current_module)
+            {
                 if let Some(field_type) = infer_qualified_interface_struct_field(
                     module,
                     &name,

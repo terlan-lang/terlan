@@ -379,7 +379,39 @@ pub(crate) fn run_check_dir(
 
     let mut interfaces: HashMap<String, ModuleInterface> = HashMap::new();
     load_interfaces_from_dir(&cache_dir, &mut interfaces);
+    let dependencies = match super::dependencies::source_interfaces(dir) {
+        Ok(dependencies) => dependencies,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
+    if !dependencies.is_empty() {
+        let graph = crate::formal_pipeline::interface_graph::SourceInterfaceGraph::collect(
+            parsed_modules
+                .iter()
+                .map(|(path, _, syntax)| (path.as_path(), syntax))
+                .chain(
+                    dependencies
+                        .iter()
+                        .map(|(path, syntax)| (path.as_path(), syntax)),
+                ),
+            Some(&cache_dir),
+        );
+        interfaces.extend(graph.interfaces);
+    }
     crate::formal_pipeline::load_embedded_std_interfaces(&mut interfaces);
+
+    if state.incremental && !dependencies.is_empty() {
+        for (file, _, syntax) in &parsed_modules {
+            let current = collect_syntax_dependency_hashes(syntax, &interfaces, Some(file), None);
+            let previous =
+                read_manifest(&cache_dir.join(format!("{}.typi.deps", syntax.module_name)));
+            if previous.is_none_or(|manifest| manifest.dependencies != current) {
+                modules_to_check.insert(syntax.module_name.clone());
+            }
+        }
+    }
 
     let mut has_errors = false;
     for (file, source, syntax_output) in &parsed_modules {
@@ -658,6 +690,10 @@ pub(crate) fn run_check_dir(
             }
         }
 
+        // Failed checks must remain eligible for the next incremental pass.
+        if has_blocking_errors || !target_profile_diagnostics.is_empty() {
+            continue;
+        }
         let dependency_hashes =
             collect_syntax_dependency_hashes(&syntax_output, &interfaces, Some(file), None);
         let manifest = DependencyManifest {

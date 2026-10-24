@@ -210,9 +210,9 @@ pub run(
             CommandResult(
                 label = label,
                 command = String.concat([program, " ", join_arguments(arguments, "")]),
-                status = Process.status(output),
-                stdout = Process.stdout(output),
-                stderr = Process.stderr(output),
+                status = output.status,
+                stdout = output.stdout,
+                stderr = output.stderr,
                 wall_time_ns = Clock.monotonic_time_ns() - started,
             );
         Err(reason) ->
@@ -221,7 +221,7 @@ pub run(
                 command = String.concat([program, " ", join_arguments(arguments, "")]),
                 status = -1,
                 stdout = "",
-                stderr = Process.error_message(reason),
+                stderr = reason.message,
                 wall_time_ns = Clock.monotonic_time_ns() - started,
             )
     }.

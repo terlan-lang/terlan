@@ -137,23 +137,15 @@ run_success(root: String, program: String, arguments: List[String]): Option[Outp
                 "process",
                 String.append(
                     "cannot run `",
-                    String.append(program, String.append("`: ", Process.error_message(error))),
+                    String.append(program, String.append("`: ", error.message)),
                 ),
             );
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(output);
+                output.status == 0 -> Some(output);
                 true -> output_failure(
                     "command",
-                    String.concat(
-                        [
-                            "command failed: ",
-                            program,
-                            "\n",
-                            Process.stdout(output),
-                            Process.stderr(output),
-                        ],
-                    ),
+                    String.concat(["command failed: ", program, "\n", output.stdout, output.stderr]),
                 )
             }
     }.
@@ -165,12 +157,12 @@ run_failure(root: String, program: String, arguments: List[String]): Option[Outp
                 "process",
                 String.append(
                     "cannot run `",
-                    String.append(program, String.append("`: ", Process.error_message(error))),
+                    String.append(program, String.append("`: ", error.message)),
                 ),
             );
         Ok(output) ->
             if {
-                Process.status(output) != 0 -> Some(output);
+                output.status != 0 -> Some(output);
                 true -> output_failure(
                     "command",
                     String.append("command unexpectedly succeeded: ", program),
@@ -212,7 +204,7 @@ json_bool(value: Json, field: String): Option[Bool] ->
     Some(flag).
 
 parse_output(output: Output, context: String): Option[Json] ->
-    case Json.parse(String.trim(Process.stdout(output))) {
+    case Json.parse(String.trim(output.stdout)) {
         Ok(value) -> Some(value);
         Err(_reason) ->
             let _failed = failure("json", String.append("cannot parse ", context));
@@ -397,14 +389,14 @@ check_support_bundle(root: String, vm: String, fixture: ImageFixture, temporary:
         _ -> false
     };
     (let renamed = child(temporary, "renamed-support-bundle.tvm");
-let deterministic = Process.stdout(first) == Process.stdout(second);
+let deterministic = first.stdout == second.stdout;
 let bundle_valid = support_value_ok(bundle, fixture.metadata);
 let rejection =
     case write_text(renamed, "{}\n") {
         Err(_reason) -> failure("support_bundle", "cannot stage renamed JSON rejection");
         Ok(_written) ->
             case run_failure(root, vm, ["support-bundle", renamed]) {
-                Some(output) -> Process.stderr(output).contains("tvm.image.native_format");
+                Some(output) -> output.stderr.contains("tvm.image.native_format");
                 None -> false
             }
     };
@@ -446,7 +438,7 @@ check_sidecars(root: String, vm: String, image: String, sidecars: List[String]):
                             vm,
                             ["run", image, "--entry", entry_name(), "--test-eval"],
                         ) {
-                            Some(output) -> Process.stderr(output).contains("tvm.image.sidecar");
+                            Some(output) -> output.stderr.contains("tvm.image.sidecar");
                             None -> false
                         };
                     let removed = remove_file(sidecar);
@@ -486,7 +478,7 @@ check_direct_admission_rejections(
             _ -> failure("native_format", "cannot stage unrelated executable rejection")
         };
         if {
-            Process.stderr(output).contains("tvm.image.descriptor_section") -> true;
+            output.stderr.contains("tvm.image.descriptor_section") -> true;
             true -> failure("native_format", "direct image consumer admitted an unrelated executable")
         }
     }.
@@ -537,17 +529,11 @@ expect_rejection(root: String, vm: String, package: String, diagnostic: String):
         None -> false;
         Some(output) ->
             if {
-                Process.stderr(output).contains(diagnostic) -> true;
+                output.stderr.contains(diagnostic) -> true;
                 true -> failure(
                     "rejection",
                     String.concat(
-                        [
-                            "expected `",
-                            diagnostic,
-                            "`, received:\n",
-                            Process.stdout(output),
-                            Process.stderr(output),
-                        ],
+                        ["expected `", diagnostic, "`, received:\n", output.stdout, output.stderr],
                     ),
                 )
             }

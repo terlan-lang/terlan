@@ -75,7 +75,7 @@ pub fixture(root: String, origin: String, vm: String, image: String): Bool ->
         true <- PreparationMulticoreTest.fixture(root, origin, vm, image);
         Ok(identity) <- Git.source_tree_identity(root);
         Ok(_platform) <- Directory.create_all(OwnerStorage.child(root, "target/quality/tvm-aot-platform"));
-        true <- OwnerStorage.atomic_json(root, platform(), host_report(Git.revision(identity)));
+        true <- OwnerStorage.atomic_json(root, platform(), host_report(identity.revision));
         true <-
             OwnerStorage.atomic_json(
                 root,

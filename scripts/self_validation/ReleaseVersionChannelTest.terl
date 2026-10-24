@@ -350,14 +350,13 @@ compiler_field(root: String, compiler: String, version: String): CheckedField ->
         case Process.run(request) {
             Ok(output) ->
                 if {
-                    Process.status(output) == 0 -> String.trim(Process.stdout(output));
+                    output.status == 0 -> String.trim(output.stdout);
                     true -> String.append(
                         "<error: status ",
-                        String.append(Int.to_string(Process.status(output)), ">"),
+                        String.append(Int.to_string(output.status), ">"),
                     )
                 };
-            Err(reason) ->
-                String.append("<error: ", String.append(Process.error_message(reason), ">"))
+            Err(reason) -> String.append("<error: ", String.append(reason.message, ">"))
         };
     checked(
         compiler_display(root, compiler),

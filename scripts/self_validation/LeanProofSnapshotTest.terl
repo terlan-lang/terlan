@@ -298,8 +298,8 @@ projected_records(rows: List[StringFieldRow], reversed: List[Record]): Option[Li
         [] -> canonical_records(reverse_records(reversed, []));
         [row | rest] ->
             if {
-                not Json.string_field_row_is_object(row) -> None;
-                true -> case Json.string_field_row_values(row) {
+                not row.object -> None;
+                true -> case row.values {
                     [Some(slice_id), Some(feature_class), Some(owner), Some(status), Some(blocker)] ->
                         projected_records(
                             rest,

@@ -8,7 +8,7 @@ import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.io.Console.{println}.
-import std.io.File.{NotFound, code, exists, message, read_text, read_text_tree_matching}.
+import std.io.File.{NotFound, exists, read_text, read_text_tree_matching}.
 import std.regex.Regex.
 
 import type std.core.Result.
@@ -197,13 +197,16 @@ is_repository_test(path: String): Bool ->
 
 @pure
 is_command_implementation(path: String): Bool ->
-    String.starts_with(path, "crates/terlan/src/commands/test/")
-        or String.starts_with(path, "crates/terlan/src/commands/run/")
-        or String.starts_with(path, "crates/terlan/src/commands/repl/")
-    and path == "crates/terlan/src/commands/test/README.md"
-        or path == "crates/terlan/src/commands/run/README.md"
-        or path == "crates/terlan/src/commands/repl/README.md"
-        or String.ends_with(path, ".rs") and not String.ends_with(path, "_test.rs").
+    let owned =
+        String.starts_with(path, "crates/terlan/src/commands/test/")
+            or String.starts_with(path, "crates/terlan/src/commands/run/")
+            or String.starts_with(path, "crates/terlan/src/commands/repl/");
+    let implementation =
+        path == "crates/terlan/src/commands/test/README.md"
+            or path == "crates/terlan/src/commands/run/README.md"
+            or path == "crates/terlan/src/commands/repl/README.md"
+            or String.ends_with(path, ".rs") and not String.ends_with(path, "_test.rs");
+    owned and implementation.
 
 @pure
 is_active_runner(path: String): Bool ->
@@ -548,7 +551,7 @@ scan_tree_pages(
     ) {
         Err(reason) ->
             if {
-                code(reason) == NotFound -> Ok(state);
+                reason.code == NotFound -> Ok(state);
                 true -> Err(reason)
             };
         Ok([]) -> Ok(state);
@@ -855,7 +858,7 @@ scan_manifest_tree(root: String, state: ScanState): Bool ->
     }.
 
 report_file_error(reason: FileError): Bool ->
-    let _message = println(message(reason));
+    let _message = println(reason.message);
     false.
 
 report_scan(inventory: Inventory, findings: List[Finding]): Bool ->

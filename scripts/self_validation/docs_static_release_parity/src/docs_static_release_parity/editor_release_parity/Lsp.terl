@@ -19,6 +19,9 @@ import type std.data.Json.
 import type std.system.Process.{EnvironmentEntry, FramedExchange}.
 
 pub struct LspSummary {
+    /**
+     * Hover result categories covered by the language server smoke check.
+     */
     hover_categories: List[String],
     response_count: Int,
 }.
@@ -34,9 +37,6 @@ struct Position {
     line: Int,
     character: Int,
 }.
-
-pub hover_categories(summary: LspSummary): List[String] ->
-    summary.hover_categories.
 
 lsp_failure(message: String): Option[LspSummary] ->
     let _printed = eprintln(String.append("editor release LSP failure: ", message));
@@ -361,12 +361,11 @@ pub run_smoke(
     };
     (let command = Support.process_command(lsp, ["--stdio"], workspace, environment, 30000, 8388608);
 case Process.run_length_framed(Process.length_framed(command, exchanges, "Content-Length")) {
-    Err(reason) ->
-        lsp_failure(String.append("framed process failed: ", Process.error_message(reason)));
+    Err(reason) -> lsp_failure(String.append("framed process failed: ", reason.message));
     Ok(output) ->
         if {
-            Process.framed_status(output) != 0 -> lsp_failure(String.append("nonzero process status: ", Process.framed_stderr(output)));
-            true -> case parse_frame_bodies(Process.frames(output), []) {
+            output.status != 0 -> lsp_failure(String.append("nonzero process status: ", output.stderr));
+            true -> case parse_frame_bodies(output.frames, []) {
                 None -> lsp_failure("invalid JSON response frame body");
                 Some(messages) ->
                     case hover_responses_hold(messages, hover_cases(), 2, []) {

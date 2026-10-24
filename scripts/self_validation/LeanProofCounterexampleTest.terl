@@ -288,15 +288,15 @@ run_oracle(root: String, source: String): Bool ->
             .with_output_limit_bytes(1048576);
     case Process.run(command) {
         Ok(output) -> inspect_oracle(root, source, output);
-        Err(reason) -> fail(Process.error_message(reason))
+        Err(reason) -> fail(reason.message)
     }.
 
 inspect_oracle(root: String, source: String, output: Output): Bool ->
-    let stderr = Process.stderr(output);
+    let stderr = output.stderr;
     if {
-        Process.status(output) == 0 -> fail("controlled negative fixture unexpectedly succeeded");
+        output.status == 0 -> fail("controlled negative fixture unexpectedly succeeded");
         not contains_all(stderr, ["error[type_mismatch]", "expected: Binary", "found:    Int"]) -> fail("controlled negative fixture oracle drifted");
-        true -> write_report(root, source, Process.status(output))
+        true -> write_report(root, source, output.status)
     }.
 
 string_array(values: List[String]): Json ->

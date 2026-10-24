@@ -134,58 +134,13 @@ pub batch(commands: List[Command], max_concurrency: Int): BatchRequest.
 
 pub command(program: String): Command.
 
-/// Returns the typed process error for a batch entry when present.
-
-@pure
-pub completion_error(completion: BatchCompletion): Option[ProcessError].
-
-/// Returns the successful output for a batch entry when present.
-
-@pure
-pub completion_output(completion: BatchCompletion): Option[Output].
-
-/// Returns ordered completions from a bounded batch.
-
-@pure
-pub completions(output: BatchOutput): List[BatchCompletion].
-
 /// Constructs one typed child environment overlay entry.
 
 pub environment_entry(key: String, value: String): EnvironmentEntry.
 
-/// Returns the stable process error category.
-
-@pure
-pub error_code(error: ProcessError): ProcessErrorCode.
-
-/// Returns the process error diagnostic.
-
-@pure
-pub error_message(error: ProcessError): String.
-
-/// Returns the attempted program.
-
-@pure
-pub error_program(error: ProcessError): String.
-
 /// Constructs one phased write followed by an exact response-frame count.
 
 pub exchange(input: String, expected_frames: Int): FramedExchange.
-
-/// Returns the child status code from a framed session.
-
-@pure
-pub framed_status(output: FramedOutput): Int.
-
-/// Returns captured standard error from a framed session.
-
-@pure
-pub framed_stderr(output: FramedOutput): String.
-
-/// Returns ordered response frame bodies from a framed session.
-
-@pure
-pub frames(output: FramedOutput): List[String].
 
 /// Constructs a bounded length-framed protocol request.
 ///
@@ -204,41 +159,6 @@ pub length_framed(command: Command, exchanges: List[FramedExchange], length_head
 
 pub limits(): Limits.
 
-/// Returns the maximum number of commands accepted by one batch.
-
-@pure
-pub maximum_batch_commands(limits: Limits): Int.
-
-/// Returns the maximum worker concurrency accepted by one batch.
-
-@pure
-pub maximum_batch_concurrency(limits: Limits): Int.
-
-/// Returns the maximum number of write/read phases in one framed session.
-
-@pure
-pub maximum_framed_exchanges(limits: Limits): Int.
-
-/// Returns the maximum total response frames in one framed session.
-
-@pure
-pub maximum_framed_responses(limits: Limits): Int.
-
-/// Returns the maximum accepted combined stdout/stderr capture bound.
-
-@pure
-pub maximum_output_bytes(limits: Limits): Int.
-
-/// Returns the maximum accepted UTF-8 standard-input size.
-
-@pure
-pub maximum_stdin_bytes(limits: Limits): Int.
-
-/// Returns the maximum accepted wall-clock timeout in milliseconds.
-
-@pure
-pub maximum_timeout_ms(limits: Limits): Int.
-
 /// Executes one bounded command through the VM-owned process capability.
 /// On Linux/macOS, background children in the command's process group are
 /// terminated when the command exits or the request fails. This is not a
@@ -256,21 +176,6 @@ pub run_length_framed(request: FramedRequest): Result[FramedOutput, ProcessError
 /// Executes one nominal bounded batch request through the VM capability.
 
 pub run_many(request: BatchRequest): Result[BatchOutput, ProcessError].
-
-/// Returns the child status code, or `-1` for signal termination.
-
-@pure
-pub status(output: Output): Int.
-
-/// Returns captured standard error.
-
-@pure
-pub stderr(output: Output): String.
-
-/// Returns captured standard output.
-
-@pure
-pub stdout(output: Output): String.
 
 /// Replaces the ordered child argument vector.
 

@@ -145,7 +145,7 @@ prepare(root: String): Bool ->
     } else {
         _ -> false
     };
-    Process.status(chmod) == 0 and Process.status(tar) == 0.
+    chmod.status == 0 and tar.status == 0.
 
 run(root: String, mode: String, expected_status: Int, expected_calls: String): Bool ->
     let script = child(root, "scripts/download_validated_release_artifacts.sh");
@@ -180,7 +180,7 @@ run(root: String, mode: String, expected_status: Int, expected_calls: String): B
         _ -> false
     };
     if {
-        Process.status(output) == expected_status and calls == expected_calls -> true;
+        output.status == expected_status and calls == expected_calls -> true;
         true -> let _reported =
             Console.eprintln(
                 String.concat(
@@ -188,8 +188,8 @@ run(root: String, mode: String, expected_status: Int, expected_calls: String): B
                         "download scenario ",
                         mode,
                         " failed: ",
-                        Process.stdout(output),
-                        Process.stderr(output),
+                        output.stdout,
+                        output.stderr,
                         "calls: ",
                         calls,
                     ],

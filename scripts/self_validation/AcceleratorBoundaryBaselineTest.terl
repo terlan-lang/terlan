@@ -8,7 +8,7 @@ import std.core.Result.{Ok}.
 import std.core.{String, Unit}.
 import std.data.Json.
 import std.io.Directory.create_all.
-import std.io.File.{read_text, read_text_tree_matching, text_file_contents, text_file_path, write_text}.
+import std.io.File.{read_text, read_text_tree_matching, write_text}.
 import std.regex.Regex.
 import std.system.Environment.
 
@@ -90,7 +90,7 @@ scan_text_files(files: List[TextFile], pattern: Regex, references: List[Referenc
     case files {
         [] -> ScanResult(valid = true, references = references);
         [file | rest] ->
-            let scanned = scan_text(text_file_path(file), text_file_contents(file), pattern, references);
+            let scanned = scan_text(file.path, file.contents, pattern, references);
             if {
                 scanned.valid -> scan_text_files(rest, pattern, scanned.references);
                 true -> scanned

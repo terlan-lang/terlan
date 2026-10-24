@@ -12,7 +12,7 @@ import std.io.Console.{eprintln, println}.
 import std.io.Directory.{create_all}.
 import std.io.File.{delete, read_text}.
 import std.system.{Environment, Platform, Process}.
-import std.vcs.Git.{clean, revision, sha256, source_tree_identity}.
+import std.vcs.Git.{source_tree_identity}.
 import tvm_aot_platform_matrix.Core.{child, current_provenance_input, is_sha256, json_bool, json_int, json_string, json_value, load_json, official_repository, provenance, write_json}.
 
 import type std.core.Option.
@@ -79,24 +79,19 @@ run_command(
 ): Option[Output] ->
     case Process.run(configured(root, program, arguments, environment)) {
         Err(reason) ->
-            let _failed = failure(Process.error_message(reason));
+            let _failed = failure(reason.message);
             None;
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(output);
-                true -> let _failed =
-                    failure(
-                        String.concat(
-                            [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
-                        ),
-                    );
+                output.status == 0 -> Some(output);
+                true -> let _failed = failure(String.concat([program, " failed:\n", output.stdout, output.stderr]));
                 None
             }
     }.
 
 command_output(root: String, program: String, arguments: List[String]): Option[String] ->
     case run_command(root, program, arguments, []) {
-        Some(output) -> Some(String.trim(Process.stdout(output)));
+        Some(output) -> Some(String.trim(output.stdout));
         None -> None
     }.
 
@@ -349,13 +344,13 @@ finish_run(root: String, stress_path: String, rustc: String): Bool ->
         Some(stress) <- load_json(stress_path);
         Ok(stress_digest) <- sha256_file(stress_path);
         Ok(identity) <- source_tree_identity(root);
-        Some(execution) <- provenance(revision(identity), current_provenance_input())
+        Some(execution) <- provenance(identity.revision, current_provenance_input())
     } else {
         _ -> false
     };
     (let report =
     put_optional_provenance(
-        report_body(rustc, stress_digest, revision(identity), clean(identity), sha256(identity)),
+        report_body(rustc, stress_digest, identity.revision, identity.clean, identity.sha256),
         execution,
     );
 let require_ci =

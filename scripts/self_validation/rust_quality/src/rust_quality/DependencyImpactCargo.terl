@@ -22,15 +22,36 @@ struct PackageVersions {
 }.
 
 pub struct DependencyFeature {
+    /**
+     * Dependency crate name.
+     */
     name: String,
+    /**
+     * Whether this dependency enables its default features.
+     */
     default_features: Bool,
+    /**
+     * Explicit features enabled on the dependency.
+     */
     features: List[String],
+    /**
+     * Cargo dependency kind, such as normal, build, or dev.
+     */
     kind: String,
+    /**
+     * Whether Cargo declares the dependency optional.
+     */
     optional: Bool,
 }.
 
 pub struct PackageFanout {
+    /**
+     * Package whose enabled dependencies are reported.
+     */
     name: String,
+    /**
+     * Dependencies and feature selections contributing to this package.
+     */
     dependencies: List[DependencyFeature],
 }.
 
@@ -43,70 +64,35 @@ struct State {
 }.
 
 pub struct CargoAnalysis {
+    /**
+     * Whether Cargo dependency analysis completed successfully.
+     */
     valid: Bool,
+    /**
+     * Resolved packages and their dependency relationships.
+     */
     nodes: List[GraphNode],
+    /**
+     * Integration test targets discovered in Cargo metadata.
+     */
     integration_targets: List[String],
+    /**
+     * Number of direct dependencies in the analyzed package.
+     */
     direct_dependency_count: Int,
+    /**
+     * Crates resolved at multiple versions.
+     */
     duplicates: List[Duplicate],
+    /**
+     * Dependency feature selections grouped by package.
+     */
     feature_fanout: List[PackageFanout],
+    /**
+     * Diagnostic explaining a Cargo dependency analysis failure.
+     */
     message: String,
 }.
-
-@pure
-pub analysis_valid(value: CargoAnalysis): Bool ->
-    value.valid.
-
-@pure
-pub analysis_message(value: CargoAnalysis): String ->
-    value.message.
-
-@pure
-pub analysis_nodes(value: CargoAnalysis): List[GraphNode] ->
-    value.nodes.
-
-@pure
-pub analysis_integration_targets(value: CargoAnalysis): List[String] ->
-    value.integration_targets.
-
-@pure
-pub analysis_direct_dependency_count(value: CargoAnalysis): Int ->
-    value.direct_dependency_count.
-
-@pure
-pub analysis_duplicates(value: CargoAnalysis): List[Duplicate] ->
-    value.duplicates.
-
-@pure
-pub analysis_feature_fanout(value: CargoAnalysis): List[PackageFanout] ->
-    value.feature_fanout.
-
-@pure
-pub feature_name(value: DependencyFeature): String ->
-    value.name.
-
-@pure
-pub feature_default_features(value: DependencyFeature): Bool ->
-    value.default_features.
-
-@pure
-pub feature_features(value: DependencyFeature): List[String] ->
-    value.features.
-
-@pure
-pub feature_kind(value: DependencyFeature): String ->
-    value.kind.
-
-@pure
-pub feature_optional(value: DependencyFeature): Bool ->
-    value.optional.
-
-@pure
-pub fanout_name(value: PackageFanout): String ->
-    value.name.
-
-@pure
-pub fanout_dependencies(value: PackageFanout): List[DependencyFeature] ->
-    value.dependencies.
 
 @pure
 empty_state(): State ->
@@ -407,7 +393,7 @@ packages_at(
         } else {
             _ -> None
         };
-        case Json.required_field_strings(fields) {
+        case fields.strings {
             [id, name, version] ->
                 let workspace = CargoMetadata.contains(members, id);
                 case package_state(package, name, version, workspace, state) {

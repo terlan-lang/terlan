@@ -22,6 +22,9 @@ pub type Unknown.
 pub type DirectoryErrorCode = NotFound | PermissionDenied | InvalidPath | Unknown.
 
 pub struct DirectoryError includes Error {
+    /**
+     * Filesystem path of the object.
+     */
     path: String,
 }.
 
@@ -44,18 +47,6 @@ pub struct TreeUsage {
 @pure
 pub new(code: Atom, message: String, path: String): DirectoryError ->
     DirectoryError(code = code, message = message, path = path).
-
-@pure
-pub code(error: DirectoryError): Atom ->
-    error.code.
-
-@pure
-pub message(error: DirectoryError): String ->
-    error.message.
-
-@pure
-pub path(error: DirectoryError): String ->
-    error.path.
 
 /**
  * Returns the sorted immediate children of `path`.

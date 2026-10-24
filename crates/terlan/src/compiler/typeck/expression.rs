@@ -75,6 +75,7 @@ pub(super) fn check_type_alias_implication_bounds(
 /// - Groups all immutable typechecking lookup tables plus a scoped trait cache
 ///   so expression inference functions do not need long parameter lists.
 pub(super) struct ExprInferContext<'a> {
+    pub(super) current_module: &'a str,
     pub(super) database_schema: Option<&'a crate::database_schema::DatabaseSchemaSnapshot>,
     pub(super) local_fns: &'a HashMap<(String, usize), FunctionSymbol>,
     pub(super) signatures: &'a HashMap<(String, usize), Vec<FunctionScheme>>,
@@ -126,6 +127,7 @@ where
     'a: 'b,
 {
     ExprInferContext {
+        current_module: ctx.current_module,
         database_schema: ctx.database_schema,
         local_fns: ctx.local_fns,
         signatures: ctx.signatures,
@@ -175,6 +177,7 @@ where
     'a: 'b,
 {
     ExprInferContext {
+        current_module: ctx.current_module,
         database_schema: ctx.database_schema,
         local_fns: ctx.local_fns,
         signatures: ctx.signatures,

@@ -16,6 +16,9 @@ module std.time.Duration.
  * JavaScript number-based millisecond duration.
  */
 pub struct Duration {
+    /**
+     * Elapsed time in milliseconds, including fractional milliseconds.
+     */
     milliseconds: Float,
 }.
 
@@ -61,16 +64,6 @@ pub from_milliseconds(milliseconds: Float): Duration ->
  */
 pub from_seconds(seconds: Float): Duration ->
     Duration(seconds * 1000.0).
-
-/**
- * Returns the millisecond payload.
- *
- * Input: one `Duration`.
- * Output: finite millisecond count.
- * Transformation: reads the portable numeric representation unchanged.
- */
-pub (duration: Duration) to_milliseconds(): Float ->
-    duration.milliseconds.
 
 /**
  * Returns the second value.

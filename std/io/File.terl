@@ -49,6 +49,9 @@ pub type FileErrorCode = NotFound | PermissionDenied | InvalidPath | Unknown.
  * instead of exposing backend-specific error atoms directly.
  */
 pub struct FileError includes Error {
+    /**
+     * Path associated with a file error.
+     */
     path: String,
 }.
 
@@ -61,7 +64,13 @@ pub struct FileError includes Error {
  * validators can scan discovered file sets without positional bookkeeping.
  */
 pub struct TextFile {
+    /**
+     * Requested path stored in a batch-read value.
+     */
     path: String,
+    /**
+     * Decoded UTF-8 contents stored in a batch-read value.
+     */
     contents: String,
 }.
 
@@ -93,20 +102,6 @@ pub struct FileTimestamps {
 }.
 
 /**
- * Returns the requested path stored in a batch-read value.
- */
-@pure
-pub text_file_path(file: TextFile): String ->
-    file.path.
-
-/**
- * Returns the decoded UTF-8 contents stored in a batch-read value.
- */
-@pure
-pub text_file_contents(file: TextFile): String ->
-    file.contents.
-
-/**
  * Builds a portable file error.
  *
  * Input: a symbolic file error code, human-readable message, and source path.
@@ -117,40 +112,6 @@ pub text_file_contents(file: TextFile): String ->
 @pure
 pub new(code: Atom, message: String, path: String): FileError ->
     FileError(code = code, message = message, path = path).
-
-/**
- * Returns the portable file error code.
- *
- * Input: one `FileError`.
- * Output: `Atom` identifying the portable file failure category.
- * Transformation: reads the included `code` field without exposing backend
- * filesystem reason values.
- */
-@pure
-pub code(error: FileError): Atom ->
-    error.code.
-
-/**
- * Returns the portable file error message.
- *
- * Input: one `FileError`.
- * Output: human-readable UTF-8 message.
- * Transformation: reads the included `message` field.
- */
-@pure
-pub message(error: FileError): String ->
-    error.message.
-
-/**
- * Returns the path associated with a file error.
- *
- * Input: one `FileError`.
- * Output: the UTF-8 path supplied to the file operation.
- * Transformation: reads the file-specific `path` field.
- */
-@pure
-pub path(error: FileError): String ->
-    error.path.
 
 /**
  * Returns whether a file exists at `path`.

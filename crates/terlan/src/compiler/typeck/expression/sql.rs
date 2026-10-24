@@ -464,7 +464,10 @@ pub(super) fn infer_sql_form_result_type(
     if !sql_row_descriptor_is_supported(&resolved, ctx) {
         return None;
     }
-    Some(sql_result_type_for_cardinality(plan.cardinality, parsed))
+    Some(sql_result_type_for_cardinality(
+        plan.cardinality,
+        qualify_type_names(&parsed, ctx.imported_type_names),
+    ))
 }
 
 fn parse_sql_row_descriptor(row_type: &str, ctx: &ExprInferContext) -> Option<(Type, Type)> {

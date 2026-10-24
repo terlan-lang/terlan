@@ -44,9 +44,6 @@ pub struct TreeUsage {
 pub type Unknown =
     Atom["unknown"].
 
-@pure
-pub code(error: DirectoryError): Atom.
-
 /// Copies one directory tree into a destination that does not yet exist.
 /// Exact entry basenames in `excluded_entry_names` are pruned, symbolic links
 /// are omitted, regular-file permissions are preserved, and a failed copy
@@ -91,13 +88,7 @@ pub files_recursive_excluding(path: String, excluded_directory_names: List[Strin
 pub find_named_recursive_excluding(path: String, name: String, excluded_directory_names: List[String]): Result[List[String], DirectoryError].
 
 @pure
-pub message(error: DirectoryError): String.
-
-@pure
 pub new(code: Atom, message: String, path: String): DirectoryError.
-
-@pure
-pub path(error: DirectoryError): String.
 
 /// Removes one directory tree without traversing symlink targets.
 

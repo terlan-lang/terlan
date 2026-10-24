@@ -531,7 +531,7 @@ build_and_validate(package_dir: String, compiler: String, temporary: String): Op
     case Process.run(command) {
         Ok(completed) ->
             if {
-                Process.status(completed) != 0 -> invalid_result();
+                completed.status != 0 -> invalid_result();
                 true -> let {
                     Ok(text) <- read_text(child(temporary, "terlan-package-build.json"));
                     Ok(metadata) <- Json.parse(text)
@@ -546,9 +546,9 @@ build_and_validate(package_dir: String, compiler: String, temporary: String): Op
 write_report(encoded: String, output: String): Bool ->
     let contents = String.append(encoded, "\n");
     let created = create_all("target/quality");
-    let written = write_text(output, contents);
+    let write_result = write_text(output, contents);
     let {
-        {Ok(Unit), Ok(Unit)} <- {created, written};
+        {Ok(Unit), Ok(Unit)} <- {created, write_result};
         Ok(written) <- read_text(output)
     } else {
         _ -> false

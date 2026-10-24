@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::compiler::native_ir::constructors::NativeConstructorLayout;
 use crate::runtime::native_image::managed::{
-    encode_aggregate_layout, ManagedAggregateDescriptor, ManagedFieldType, SemanticTypeId,
+    encode_aggregate_layout, ManagedAggregateDescriptor, ManagedFieldType,
 };
 use crate::terlan_syntax::span::Span;
 use crate::terlan_typeck::{CoreEffectSet, CoreExpr, CoreIntrinsicCall, CoreIntrinsicId, CoreType};
@@ -13,9 +13,10 @@ use super::{NativeConstructorLayouts, NativeExpr, NativeType};
 
 /// Builds the canonical native `Memory.Layout` constructor inventory.
 fn constructors() -> NativeConstructorLayouts {
+    let core_type = CoreType::Named("std.core.Memory.Layout".to_string());
     let descriptor = Arc::new(
         ManagedAggregateDescriptor::record(
-            "std.core.Memory.Layout",
+            &core_type.contract_text(),
             vec![
                 ("size".to_string(), ManagedFieldType::Int),
                 ("alignment".to_string(), ManagedFieldType::Int),
@@ -27,21 +28,30 @@ fn constructors() -> NativeConstructorLayouts {
     let encoded_layout = Arc::<[u8]>::from(
         encode_aggregate_layout(&descriptor).expect("encode Memory.Layout descriptor"),
     );
-    let result = NativeType::ManagedRef(
-        SemanticTypeId::from_canonical("std.core.Memory.Layout")
-            .expect("Memory.Layout semantic identity"),
-    );
+    let result = super::native_type(Some(&core_type), &core_type.contract_text())
+        .expect("Memory.Layout semantic identity");
     HashMap::from([(
         ("std.core.Memory.Layout".to_string(), 3),
         NativeConstructorLayout {
             parameter_core_types: vec![None; 3],
             parameters: vec![NativeType::Int, NativeType::Int, NativeType::Atom],
             result,
-            result_core_type: Some(CoreType::Named("std.core.Memory.Layout".to_string())),
+            result_core_type: Some(core_type),
             descriptor,
             encoded_layout,
         },
     )])
+}
+
+#[test]
+fn memory_layout_descriptor_matches_the_ordinary_record_identity() {
+    let (descriptor, _) = super::super::aggregate_types::memory_layout_descriptor()
+        .expect("memory layout descriptor");
+    let core_type = CoreType::Named("std.core.Memory.Layout".to_string());
+    assert_eq!(
+        NativeType::ManagedRef(descriptor.managed().semantic_id()),
+        super::native_type(Some(&core_type), &core_type.contract_text()).unwrap()
+    );
 }
 
 /// Builds one pure memory intrinsic call.

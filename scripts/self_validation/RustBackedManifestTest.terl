@@ -8,7 +8,7 @@ import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.data.Json.
 import std.io.Console.{println}.
-import std.io.File.{message, read_text, read_text_many}.
+import std.io.File.{read_text, read_text_many}.
 import std.system.Environment.
 
 import type std.data.Json.{Json, StringFieldRow}.
@@ -301,7 +301,7 @@ diagnostics_empty(diagnostics: List[String]): Bool ->
 read_metadata(root: String, rows: List[ManifestRow]): Bool ->
     let paths = metadata_paths(root, rows);
     case read_text_many(paths) {
-        Err(reason) -> report([message(reason)]);
+        Err(reason) -> report([reason.message]);
         Ok(files) -> load_metadata_documents(files, [], rows, [])
     }.
 
@@ -331,7 +331,7 @@ parse_metadata_file(
                 rest,
                 documents,
                 manifest_rows,
-                [String.append(file.path, String.append(": invalid JSON: ", Json.error_message(reason))) | diagnostics],
+                [String.append(file.path, String.append(": invalid JSON: ", reason.message)) | diagnostics],
             );
         Ok(metadata) ->
             read_metadata_module(file.path, metadata, rest, documents, manifest_rows, diagnostics)
@@ -551,13 +551,13 @@ append_native_operation(
     diagnostics: List[String],
 ): Bool ->
     if {
-        not Json.string_field_row_is_object(task.row) -> load_arities(
+        not task.row.object -> load_arities(
             rest,
             manifest_rows,
             operations,
             [String.append(task.module_name, ": function row must be an object") | diagnostics],
         );
-        true -> case Json.string_field_row_values(task.row) {
+        true -> case task.row.values {
             [Some(operation) | [Some(function_name) | []]] ->
                 load_arities(
                     rest,

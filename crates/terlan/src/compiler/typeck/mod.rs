@@ -15,11 +15,9 @@ use crate::terlan_syntax::{
 
 #[cfg(test)]
 #[path = "binding_identity_test.rs"]
-#[cfg(test)]
 mod binding_identity_test;
 #[cfg(test)]
 #[path = "const_eval_test.rs"]
-#[cfg(test)]
 mod const_eval_test;
 mod phase_timings;
 mod types;
@@ -367,6 +365,7 @@ fn type_check_syntax_module_with_inputs<'a>(
     );
     let trait_lookup_cache = RefCell::new(TraitLookupCache::default());
     let expr_ctx = ExprInferContext {
+        current_module: &resolved.name,
         database_schema: inputs.database_schema,
         local_fns: &resolved.function_symbols,
         signatures: &function_signatures,
@@ -755,6 +754,7 @@ pub fn infer_syntax_expression_type(
         collect_visible_negative_trait_impl_type_args(module, resolved, &alias_names);
     let trait_lookup_cache = RefCell::new(TraitLookupCache::default());
     let expr_ctx = ExprInferContext {
+        current_module: &resolved.name,
         database_schema: None,
         local_fns: &resolved.function_symbols,
         signatures: &function_signatures,

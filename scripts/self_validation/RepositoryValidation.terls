@@ -144,7 +144,7 @@ run_output(
     case Process.run(bounded(repository, program, arguments, timeout_ms)) {
         Ok(output) -> Some(output);
         Err(reason) ->
-            let _reported = failure("process", Process.error_message(reason));
+            let _reported = failure("process", reason.message);
             None
     }.
 
@@ -152,11 +152,8 @@ run_ok(repository: String, program: String, arguments: List[String], timeout_ms:
     case run_output(repository, program, arguments, timeout_ms) {
         Some(output) ->
             if {
-                Process.status(output) == 0 -> true;
-                true -> failure(
-                    "process.status",
-                    String.concat([program, " failed: ", Process.stderr(output)]),
-                )
+                output.status == 0 -> true;
+                true -> failure("process.status", String.concat([program, " failed: ", output.stderr]))
             };
         None -> false
     }.
@@ -165,7 +162,7 @@ read(repository: String, relative: String): Option[String] ->
     case File.read_text(child(repository, relative)) {
         Ok(source) -> Some(source);
         Err(reason) ->
-            let _reported = failure("read", File.message(reason));
+            let _reported = failure("read", reason.message);
             None
     }.
 
@@ -206,7 +203,7 @@ workspace_members(repository: String, entries: List[String]): Bool ->
             if {
                 not File.exists(manifest_path) -> workspace_members(repository, rest);
                 true -> case File.read_text(manifest_path) {
-                    Err(reason) -> failure("workspace.member", File.message(reason));
+                    Err(reason) -> failure("workspace.member", reason.message);
                     Ok(source) ->
                         if {
                             not String.contains(source, "version.workspace = true") -> failure(
@@ -246,8 +243,8 @@ stale_reference(files: List[TextFile], pattern: Regex): String ->
         [] -> "";
         [file | rest] ->
             if {
-                String.ends_with(File.text_file_path(file), "RepositoryValidation.terls") -> stale_reference(rest, pattern);
-                Regex.is_match(pattern, File.text_file_contents(file)) -> File.text_file_path(file);
+                String.ends_with(file.path, "RepositoryValidation.terls") -> stale_reference(rest, pattern);
+                Regex.is_match(pattern, file.contents) -> file.path;
                 true -> stale_reference(rest, pattern)
             }
     }.
@@ -340,11 +337,11 @@ release_boundary(repository: String): Bool ->
     } else {
         _ -> false
     };
-    (let tracked = first_existing_scratch(repository, String.split(Process.stdout(tracked_output), "\n"));
-let untracked = first_existing_scratch(repository, String.split(Process.stdout(untracked_output), "\n"));
+    (let tracked = first_existing_scratch(repository, String.split(tracked_output.stdout, "\n"));
+let untracked = first_existing_scratch(repository, String.split(untracked_output.stdout, "\n"));
 let surface = String.append(makefile, cli);
 if {
-    Process.status(tracked_output) != 0 or Process.status(untracked_output) != 0 -> failure("boundary.git", "cannot inventory repository paths");
+    tracked_output.status != 0 or untracked_output.status != 0 -> failure("boundary.git", "cannot inventory repository paths");
     tracked != "" -> failure("boundary.tracked", String.append("tracked scratch output: ", tracked));
     untracked != "" -> failure("boundary.untracked", String.append("local scratch output: ", untracked));
     String.contains(surface, "release-0-0-0")
@@ -359,10 +356,10 @@ accelerator_files_hold(files: List[TextFile], pattern: Regex): Bool ->
         [] -> true;
         [file | rest] ->
             if {
-                String.contains(File.text_file_path(file), "test") -> accelerator_files_hold(rest, pattern);
-                Regex.is_match(pattern, File.text_file_contents(file)) -> failure(
+                String.contains(file.path, "test") -> accelerator_files_hold(rest, pattern);
+                Regex.is_match(pattern, file.contents) -> failure(
                     "accelerator.compiler",
-                    String.append("package-specific term in ", File.text_file_path(file)),
+                    String.append("package-specific term in ", file.path),
                 );
                 true -> accelerator_files_hold(rest, pattern)
             }
@@ -375,7 +372,7 @@ accelerator_roots_hold(repository: String, roots: List[String], pattern: Regex):
             let path = child(repository, relative);
             if {
                 String.ends_with(relative, ".rs") -> case File.read_text(path) {
-                    Err(reason) -> failure("accelerator.read", File.message(reason));
+                    Err(reason) -> failure("accelerator.read", reason.message);
                     Ok(source) ->
                         if {
                             Regex.is_match(pattern, source) -> failure(
@@ -393,7 +390,7 @@ accelerator_roots_hold(repository: String, roots: List[String], pattern: Regex):
                     0,
                     10000,
                 ) {
-                    Err(reason) -> failure("accelerator.read", File.message(reason));
+                    Err(reason) -> failure("accelerator.read", reason.message);
                     Ok(files) ->
                         accelerator_files_hold(files, pattern)
                             and accelerator_roots_hold(repository, rest, pattern)
@@ -406,10 +403,10 @@ cargo_accelerator_dependencies_absent(files: List[TextFile], pattern: Regex): Bo
         [] -> true;
         [file | rest] ->
             if {
-                not String.ends_with(File.text_file_path(file), "Cargo.toml") -> cargo_accelerator_dependencies_absent(rest, pattern);
-                Regex.is_match(pattern, File.text_file_contents(file)) -> failure(
+                not String.ends_with(file.path, "Cargo.toml") -> cargo_accelerator_dependencies_absent(rest, pattern);
+                Regex.is_match(pattern, file.contents) -> failure(
                     "accelerator.dependency",
-                    String.append("CUDA implementation dependency in ", File.text_file_path(file)),
+                    String.append("CUDA implementation dependency in ", file.path),
                 );
                 true -> cargo_accelerator_dependencies_absent(rest, pattern)
             }
@@ -473,7 +470,7 @@ fenced_lines(lines: List[String], opener: String, active: Bool, output: String):
 cleanup_temporary(path: String, result: Bool): Bool ->
     case Directory.remove_all(path) {
         Ok(Unit) -> result;
-        Err(reason) -> failure("temporary.cleanup", Directory.message(reason))
+        Err(reason) -> failure("temporary.cleanup", reason.message)
     }.
 
 readme_hello_world(repository: String): Bool ->
@@ -506,11 +503,11 @@ let result =
         source == "" or expected == "" -> failure("readme.block", "README example or output block is missing");
         not prepared -> failure("readme.fixture", "cannot construct README example fixture");
         true -> case Process.run(Process.with_timeout_ms(command, 120000)) {
-            Err(reason) -> failure("readme.process", Process.error_message(reason));
+            Err(reason) -> failure("readme.process", reason.message);
             Ok(output) ->
                 if {
-                    Process.status(output) != 0 -> failure("readme.run", Process.stderr(output));
-                    String.trim(Process.stdout(output)) != String.trim(expected) -> failure("readme.output", "README hello-world output mismatch");
+                    output.status != 0 -> failure("readme.run", output.stderr);
+                    String.trim(output.stdout) != String.trim(expected) -> failure("readme.output", "README hello-world output mismatch");
                     true -> true
                 }
         }
@@ -624,7 +621,7 @@ checksums_hold(root_path: String, archives: List[String]): Bool ->
 
 release_artifact_set(root_path: String, local_payload: Bool): Bool ->
     case Directory.entries(root_path) {
-        Err(reason) -> failure("artifacts.directory", Directory.message(reason));
+        Err(reason) -> failure("artifacts.directory", reason.message);
         Ok(paths) ->
             let actual = entry_names(paths, List.new[String]());
             let expected = release_expected(local_payload);
@@ -659,7 +656,7 @@ write_release_fixture(path: String, archives: List[String]): Bool ->
 
 release_artifact_self_test(): Bool ->
     case Directory.create_temporary("terlan-release-artifact-set.") {
-        Err(reason) -> failure("artifacts.self_test", Directory.message(reason));
+        Err(reason) -> failure("artifacts.self_test", reason.message);
         Ok(temporary) ->
             let base = write_release_fixture(temporary, release_archives());
             if {
@@ -778,11 +775,7 @@ workflow_contract(files: List[TextFile]): Bool ->
         [] -> true;
         [file | rest] ->
             if {
-                String.ends_with(File.text_file_path(file), ".yml")
-                    and not jobs_have_timeouts(File.text_file_contents(file)) -> failure(
-                    "workflow.timeout",
-                    String.append("job missing timeout in ", File.text_file_path(file)),
-                );
+                String.ends_with(file.path, ".yml") and not jobs_have_timeouts(file.contents) -> failure("workflow.timeout", String.append("job missing timeout in ", file.path));
                 true -> workflow_contract(rest)
             }
     }.
@@ -829,10 +822,10 @@ first_unowned_script_cargo(files: List[TextFile]): String ->
     case files {
         [] -> "";
         [file | rest] ->
-            let path = File.text_file_path(file);
+            let path = file.path;
             if {
                 approved_direct_cargo_script(path) -> first_unowned_script_cargo(rest);
-                script_has_direct_cargo(File.text_file_contents(file)) -> path;
+                script_has_direct_cargo(file.contents) -> path;
                 true -> first_unowned_script_cargo(rest)
             }
     }.
@@ -1077,8 +1070,8 @@ build_release_process_contract(repository: String): Bool ->
     } else {
         _ -> false
     };
-    (let plan_text = Process.stdout(plan);
-let tracked_paths = String.split(Process.stdout(tracked), "\n");
+    (let plan_text = plan.stdout;
+let tracked_paths = String.split(tracked.stdout, "\n");
 let oversized = first_oversized(repository, tracked_paths);
 let duplicate_validator = duplicate_validator_output(plan_text);
 let rust_orchestrators = rust_orchestrator_count(plan_text);
@@ -1091,9 +1084,9 @@ let incremental_terlc_build_invocations = count_occurrences(plan_text, "target/d
 let lifecycle_partial_checks = count_occurrences(plan_text, "bash scripts/clean_build_outputs.sh --check-partials");
 let validator_build_parallelism = validator_parallelism(plan_text);
 if {
-    Process.status(plan) != 0 or Process.status(publication) != 0 or Process.status(tracked) != 0 -> failure("build_release.plan", "cannot inspect release plan or tracked files");
+    plan.status != 0 or publication.status != 0 or tracked.status != 0 -> failure("build_release.plan", "cannot inspect release plan or tracked files");
     contains_any(
-        Process.stdout(publication),
+        publication.stdout,
         [
             "cargo ",
             "terlc test ",
@@ -1170,7 +1163,7 @@ if {
         30000,
     ) {
         Some(output) ->
-            Process.status(output) == 0
+            output.status == 0
                 and write_build_plan_report(repository, plan_text, duplicate_validator, rust_orchestrators)
                 and release_artifact_self_test();
         None -> false

@@ -7,7 +7,7 @@
  */
 module std.core.ErrorPropertyTest.
 
-import std.core.Error.{code, message, new, to_string}.
+import std.core.Error.{new, to_string}.
 import std.test.Gen.{atoms, for_all, pair_of, strings}.
 import std.test.Test.{each}.
 
@@ -27,7 +27,7 @@ pub constructor_preserves_generated_fields(): Bool ->
             case pair {
                 {error_code, error_message} ->
                     let value = new(error_code, error_message);
-                    code(value) == error_code and message(value) == error_message
+                    value.code == error_code and value.message == error_message
             },
     ).
 

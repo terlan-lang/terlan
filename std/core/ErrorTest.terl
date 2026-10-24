@@ -1,6 +1,6 @@
 module std.core.ErrorTest.
 
-import std.core.Error.{code, message, new, to_string}.
+import std.core.Error.{new, to_string}.
 import std.test.Test.{assert_equal}.
 
 import type std.core.Error.
@@ -12,11 +12,11 @@ pub sample_error(): Error ->
 
 @test
 pub new_populates_error_code(): Bool ->
-    assert_equal(Invalid, code(sample_error())).
+    assert_equal(Invalid, sample_error().code).
 
 @test
 pub new_populates_error_message(): Bool ->
-    assert_equal("invalid input", message(sample_error())).
+    assert_equal("invalid input", sample_error().message).
 
 @test
 pub to_string_returns_error_message(): Bool ->

@@ -120,12 +120,12 @@ scenario(
     );
 case Process.run(command) {
     Err(reason) ->
-        let _shown = eprintln(Process.error_message(reason));
+        let _shown = eprintln(reason.message);
         false;
     Ok(output) ->
         let actual = read(path(root, "operations"));
         let passed =
-            Process.status(output) == 0 == success
+            output.status == 0 == success
                 and if {
     mode == "timeout" -> not String.contains(actual, "publish");
     true -> actual == operations
@@ -141,9 +141,9 @@ case Process.run(command) {
                             "\n",
                             actual,
                             "\n",
-                            Process.stderr(output),
+                            output.stderr,
                             "\n",
-                            Process.stdout(output),
+                            output.stdout,
                         ],
                     ),
                 )

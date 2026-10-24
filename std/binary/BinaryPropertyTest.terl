@@ -7,7 +7,7 @@
  */
 module std.binary.BinaryPropertyTest.
 
-import std.binary.Binary.{BigEndian, BitsSegment, BytesSegment, DecodedField, DecodedProtocol, DecodedValue, DuplicateField, DuplicateShape, IntSegment, InvalidAlignment, InvalidWidth, LittleEndian, RestNotTerminal, UIntSegment, UnknownShape, UnsupportedRuntime, compact_frame_shape, construct, decode_exact, decode_fixed_header, decode_prefix, decode_prefixed_body, decoded_int_field, decoded_protocol_int_value, decoded_protocol_remaining_bytes, descriptor_is_terminal, descriptor_kind, descriptor_width, encode_exact, encode_prefix, make_bit_span, make_byte_span, make_int_bits, make_rest, make_uint, protocol_field, protocol_shape, protocol_shape_alias, protocol_shape_endian, protocol_shape_fields, protocol_shape_has_terminal_rest, protocol_shape_name, protocol_shape_set, protocol_shape_set_decode, protocol_shape_set_encode_exact, protocol_shape_set_resolve, split_protocol_header, validate_descriptor, validate_protocol_shape}.
+import std.binary.Binary.{BigEndian, BitsSegment, BytesSegment, DecodedField, DecodedProtocol, DecodedValue, DuplicateField, DuplicateShape, IntSegment, InvalidAlignment, InvalidWidth, LittleEndian, RestNotTerminal, UIntSegment, UnknownShape, UnsupportedRuntime, compact_frame_shape, construct, decode_exact, decode_fixed_header, decode_prefix, decode_prefixed_body, decoded_int_field, decoded_protocol_int_value, decoded_protocol_remaining_bytes, encode_exact, encode_prefix, make_bit_span, make_byte_span, make_int_bits, make_rest, make_uint, protocol_field, protocol_shape, protocol_shape_alias, protocol_shape_set, protocol_shape_set_decode, protocol_shape_set_encode_exact, protocol_shape_set_resolve, split_protocol_header, validate_descriptor, validate_protocol_shape}.
 import std.collections.List.
 import std.core.Option.{Some}.
 import std.core.Result.{Err, Ok}.
@@ -39,18 +39,18 @@ pub generated_positive_widths_build_fixed_descriptors(): Bool ->
             let int_descriptor = make_int_bits(width);
             let byte_descriptor = make_byte_span(width);
             let bit_descriptor = make_bit_span(width);
-            assert_equal(UIntSegment, descriptor_kind(uint_descriptor))
-                and assert_equal(width, descriptor_width(uint_descriptor))
-                and assert_equal(false, descriptor_is_terminal(uint_descriptor))
-                and assert_equal(IntSegment, descriptor_kind(int_descriptor))
-                and assert_equal(width, descriptor_width(int_descriptor))
-                and assert_equal(false, descriptor_is_terminal(int_descriptor))
-                and assert_equal(BytesSegment, descriptor_kind(byte_descriptor))
-                and assert_equal(width, descriptor_width(byte_descriptor))
-                and assert_equal(false, descriptor_is_terminal(byte_descriptor))
-                and assert_equal(BitsSegment, descriptor_kind(bit_descriptor))
-                and assert_equal(width, descriptor_width(bit_descriptor))
-                and assert_equal(false, descriptor_is_terminal(bit_descriptor)),
+            assert_equal(UIntSegment, uint_descriptor.kind)
+                and assert_equal(width, uint_descriptor.width)
+                and assert_equal(false, uint_descriptor.terminal)
+                and assert_equal(IntSegment, int_descriptor.kind)
+                and assert_equal(width, int_descriptor.width)
+                and assert_equal(false, int_descriptor.terminal)
+                and assert_equal(BytesSegment, byte_descriptor.kind)
+                and assert_equal(width, byte_descriptor.width)
+                and assert_equal(false, byte_descriptor.terminal)
+                and assert_equal(BitsSegment, bit_descriptor.kind)
+                and assert_equal(width, bit_descriptor.width)
+                and assert_equal(false, bit_descriptor.terminal),
     ).
 
 /**
@@ -112,10 +112,10 @@ pub generated_protocol_name_preserves_shape_metadata(name: String): Bool ->
         );
     case validate_protocol_shape(shape) {
         Ok(validated) ->
-            assert_equal(name, protocol_shape_name(validated))
-                and assert_equal(LittleEndian, protocol_shape_endian(validated))
-                and assert_equal(true, protocol_shape_has_terminal_rest(validated))
-                and assert_equal(2, protocol_shape_fields(validated).length());
+            assert_equal(name, validated.name)
+                and assert_equal(LittleEndian, validated.endian)
+                and assert_equal(true, validated.terminal_rest)
+                and assert_equal(2, validated.fields.length());
         Err(_reason) -> false
     }.
 
@@ -157,8 +157,8 @@ pub generated_protocol_alias_resolves_exact_target(alias_name: String): Bool ->
     } else {
         _ -> false
     };
-    assert_equal("frame_v2", protocol_shape_name(alias))
-        and assert_equal("frame", protocol_shape_name(direct))
+    assert_equal("frame_v2", alias.name)
+        and assert_equal("frame", direct.name)
         and assert_equal(UnknownShape, unknown).
 
 /**

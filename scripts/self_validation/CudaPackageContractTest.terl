@@ -8,8 +8,8 @@ import std.core.Result.{Err, Ok}.
 import std.core.{String, Unit}.
 import std.data.Json.
 import std.io.Console.{println}.
-import std.io.Directory.{copy_tree_excluding, create_all, create_temporary, entries, message, path, remove_all}.
-import std.io.File.{exists, message, path, read_text, write_text}.
+import std.io.Directory.{copy_tree_excluding, create_all, create_temporary, entries, remove_all}.
+import std.io.File.{exists, read_text, write_text}.
 import std.io.Path.
 import std.system.{Environment, Process}.
 
@@ -101,10 +101,7 @@ log_directory_error(context: String, reason: DirectoryError): Unit ->
             context,
             String.append(
                 ": ",
-                String.append(
-                    message(reason),
-                    String.append(" (", String.append(path(reason), ")")),
-                ),
+                String.append(reason.message, String.append(" (", String.append(reason.path, ")"))),
             ),
         ),
     ).
@@ -115,10 +112,7 @@ log_file_error(context: String, reason: FileError): Unit ->
             context,
             String.append(
                 ": ",
-                String.append(
-                    message(reason),
-                    String.append(" (", String.append(path(reason), ")")),
-                ),
+                String.append(reason.message, String.append(" (", String.append(reason.path, ")"))),
             ),
         ),
     ).
@@ -259,13 +253,13 @@ run_package_check(staged: String, compiler: String): Bool ->
     case Process.run(command) {
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> true;
-                true -> let _stdout = println(Process.stdout(output));
-                let _stderr = println(Process.stderr(output));
+                output.status == 0 -> true;
+                true -> let _stdout = println(output.stdout);
+                let _stderr = println(output.stderr);
                 false
             };
         Err(reason) ->
-            let _error = println(Process.error_message(reason));
+            let _error = println(reason.message);
             false
     }.
 

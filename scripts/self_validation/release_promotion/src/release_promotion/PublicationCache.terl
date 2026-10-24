@@ -101,7 +101,7 @@ inventory_entry(
 cache_entries(root: String): Result[List[String], String] ->
     case Directory.entries(cache_root(root)) {
         Ok(paths) -> Ok(paths);
-        Err(reason) -> Err(Directory.message(reason))
+        Err(reason) -> Err(reason.message)
     }.
 
 retired_path(root: String, key: String): String ->

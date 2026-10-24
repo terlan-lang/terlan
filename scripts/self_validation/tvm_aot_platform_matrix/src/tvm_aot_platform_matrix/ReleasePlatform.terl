@@ -18,42 +18,35 @@ import type std.data.Json.
  * Normalized release platform and every public executable/artifact name.
  */
 pub struct ReleasePlatform {
+    /**
+     * Operating system targeted by this release artifact.
+     */
     operating_system: String,
+    /**
+     * Processor architecture targeted by this release artifact.
+     */
     architecture: String,
+    /**
+     * Published release archive filename.
+     */
     artifact: String,
+    /**
+     * Compiler executable filename.
+     */
     compiler: String,
+    /**
+     * Virtual machine executable filename.
+     */
     vm: String,
+    /**
+     * Native worker executable filename.
+     */
     native_worker: String,
+    /**
+     * Language server executable filename.
+     */
     lsp: String,
 }.
-
-@pure
-pub operating_system(platform: ReleasePlatform): String ->
-    platform.operating_system.
-
-@pure
-pub architecture(platform: ReleasePlatform): String ->
-    platform.architecture.
-
-@pure
-pub artifact(platform: ReleasePlatform): String ->
-    platform.artifact.
-
-@pure
-pub compiler(platform: ReleasePlatform): String ->
-    platform.compiler.
-
-@pure
-pub vm(platform: ReleasePlatform): String ->
-    platform.vm.
-
-@pure
-pub native_worker(platform: ReleasePlatform): String ->
-    platform.native_worker.
-
-@pure
-pub lsp(platform: ReleasePlatform): String ->
-    platform.lsp.
 
 @pure
 pub normalize_os(raw: String): Option[String] ->
@@ -192,7 +185,7 @@ pub source_revision(root: String): String ->
         Some(value) -> value;
         None ->
             case Git.source_tree_identity(root) {
-                Ok(identity) -> short_revision(Git.revision(identity));
+                Ok(identity) -> short_revision(identity.revision);
                 Err(_reason) -> "unknown"
             }
     }.
@@ -295,12 +288,12 @@ pub self_test(): Bool ->
         resolve("plan9", "x86_64"),
     } {
         {Some(linux), Some(macos), Some(windows), None} ->
-            artifact(linux) == "terlc-linux-x86_64.tar.gz"
-                and artifact(macos) == "terlc-macos-aarch64.tar.gz"
-                and artifact(windows) == "terlc-windows-aarch64.zip"
-                and compiler(windows) == "terlc.exe"
-                and vm(windows) == "terlan-vm.exe"
-                and native_worker(windows) == "terlan-native-worker.exe"
-                and lsp(windows) == "terlan-lsp.exe";
+            linux.artifact == "terlc-linux-x86_64.tar.gz"
+                and macos.artifact == "terlc-macos-aarch64.tar.gz"
+                and windows.artifact == "terlc-windows-aarch64.zip"
+                and windows.compiler == "terlc.exe"
+                and windows.vm == "terlan-vm.exe"
+                and windows.native_worker == "terlan-native-worker.exe"
+                and windows.lsp == "terlan-lsp.exe";
         _ -> false
     }.

@@ -10,7 +10,7 @@ import std.crypto.Hash.
 import std.data.Json.
 import std.io.Console.{println}.
 import std.io.Directory.{create_all}.
-import std.io.File.{NotFound, PermissionDenied, code, new, read_text, read_text_many, read_text_tree_matching, write_text}.
+import std.io.File.{NotFound, PermissionDenied, new, read_text, read_text_many, read_text_tree_matching, write_text}.
 import std.regex.Regex.
 import std.system.Environment.
 
@@ -1353,7 +1353,7 @@ prior_lane_input(result: Result[String, FileError]): Option[String] ->
             };
         Err(reason) ->
             if {
-                code(reason) == NotFound -> Some("");
+                reason.code == NotFound -> Some("");
                 true -> None
             }
     }.

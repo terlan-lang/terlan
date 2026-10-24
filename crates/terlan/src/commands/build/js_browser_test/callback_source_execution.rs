@@ -30,7 +30,7 @@ pub decorate(_request: Incoming, response: Outgoing): Outgoing ->
     response.with_header("X-Policy", "imported").
 pub recovery(prefix: String): (Failure) -> Outgoing ->
     (error: Failure) -> if {
-        error.status() == 500 and error.code() == Atom["router_execution_failed"] -> Response.text(prefix + ":recovered", 502);
+        error.status == 500 and error.code == Atom["router_execution_failed"] -> Response.text(prefix + ":recovered", 502);
         true -> Response.text("invalid error projection", 599)
     }.
 "#).unwrap();

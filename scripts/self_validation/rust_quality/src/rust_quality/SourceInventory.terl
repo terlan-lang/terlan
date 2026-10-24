@@ -110,7 +110,7 @@ run_text(root: String, program: String, arguments: List[String]): Option[String]
     case Process.run(bounded_command(root, program, arguments)) {
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(Process.stdout(output));
+                output.status == 0 -> Some(output.stdout);
                 true -> None
             };
         Err(_reason) -> None
@@ -370,9 +370,9 @@ pub fixture_source(
 
 @pure
 relative_text_file(root: String, file: TextFile): RustSource ->
-    case strip_root_prefix(root, File.text_file_path(file)) {
-        Some(relative) -> source(relative, File.text_file_contents(file));
-        None -> source(File.text_file_path(file), File.text_file_contents(file))
+    case strip_root_prefix(root, file.path) {
+        Some(relative) -> source(relative, file.contents);
+        None -> source(file.path, file.contents)
     }.
 
 @pure
@@ -422,7 +422,7 @@ load_prepared_batch(
 ): SourceLoad ->
     case File.read_text_many(paths) {
         Err(reason) ->
-            let failed = File.path(reason);
+            let failed = reason.path;
             if {
                 File.exists(failed) -> failure(String.append("could not read workspace Rust source: ", failed));
                 true -> load_prepared_batch(root, remaining, remove_path(paths, failed), output)
@@ -435,7 +435,7 @@ load_prepared_batch(
 load_prepared_next(root: String, remaining: List[String], paths: List[String]): SourceBatch ->
     case File.read_text_many(paths) {
         Err(reason) ->
-            let failed = File.path(reason);
+            let failed = reason.path;
             if {
                 File.exists(failed) -> batch_failure(
                     String.append("could not read workspace Rust source: ", failed),

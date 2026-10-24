@@ -120,7 +120,7 @@ pub deadline_reports_indeterminate_without_retrying(): Bool ->
     with_pool(
         (pool) ->
             case execute(pool, "SELECT pg_sleep(8)", []) {
-                Err(reason) -> reason.code() == Indeterminate;
+                Err(reason) -> reason.code == Indeterminate;
                 Ok(_) -> false
             },
     ).

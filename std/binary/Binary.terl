@@ -59,8 +59,17 @@ pub type DescriptorKind = UIntSegment | IntSegment | BytesSegment | BitsSegment 
  * runtime construction and matching remain explicitly unsupported.
  */
 pub struct BinaryDescriptor {
+    /**
+     * Descriptor kind.
+     */
     kind: DescriptorKind,
+    /**
+     * Descriptor width.
+     */
     width: Int,
+    /**
+     * Whether the descriptor is terminal.
+     */
     terminal: Bool,
 }.
 
@@ -121,7 +130,13 @@ pub type EndianPolicy = BigEndian | LittleEndian.
  * construction or decoding.
  */
 pub struct ProtocolField {
+    /**
+     * Protocol field name.
+     */
     name: String,
+    /**
+     * Protocol field binary descriptor.
+     */
     descriptor: BinaryDescriptor,
 }.
 
@@ -142,9 +157,21 @@ pub constructor ProtocolField {
  * data until VM binary execution lands.
  */
 pub struct ProtocolShape {
+    /**
+     * Protocol shape name.
+     */
     name: String,
+    /**
+     * Protocol shape endian policy.
+     */
     endian: EndianPolicy,
+    /**
+     * Protocol shape fields in source order.
+     */
     fields: List[ProtocolField],
+    /**
+     * Whether the protocol shape ends with a terminal rest field.
+     */
     terminal_rest: Bool,
 }.
 
@@ -163,7 +190,13 @@ pub constructor ProtocolShape {
  * Alias chains are intentionally rejected so resolution remains deterministic.
  */
 pub struct ProtocolShapeAlias {
+    /**
+     * Protocol shape alias name.
+     */
     name: String,
+    /**
+     * Direct protocol shape targeted by an alias.
+     */
     target: String,
 }.
 
@@ -182,8 +215,17 @@ pub constructor ProtocolShapeAlias {
  * entire set before exposing it to protocol decoders or encoders.
  */
 pub struct ProtocolShapeSet {
+    /**
+     * Protocol shape set name.
+     */
     name: String,
+    /**
+     * Direct protocol shapes in declaration order.
+     */
     shapes: List[ProtocolShape],
+    /**
+     * Protocol aliases in declaration order.
+     */
     aliases: List[ProtocolShapeAlias],
 }.
 
@@ -511,24 +553,6 @@ pub make_rest(): BinaryDescriptor ->
     BinaryDescriptor(RestSegment, 0, true).
 
 /**
- * Returns the descriptor kind.
- */
-pub descriptor_kind(descriptor: BinaryDescriptor): DescriptorKind ->
-    descriptor.kind.
-
-/**
- * Returns the descriptor width.
- */
-pub descriptor_width(descriptor: BinaryDescriptor): Int ->
-    descriptor.width.
-
-/**
- * Returns whether the descriptor is terminal.
- */
-pub descriptor_is_terminal(descriptor: BinaryDescriptor): Bool ->
-    descriptor.terminal.
-
-/**
  * Creates a named protocol field descriptor.
  */
 pub protocol_field(name: String, descriptor: BinaryDescriptor): ProtocolField ->
@@ -546,58 +570,10 @@ pub protocol_shape(
     ProtocolShape(name, endian, fields, terminal_rest).
 
 /**
- * Returns the protocol field name.
- */
-pub protocol_field_name(field: ProtocolField): String ->
-    field.name.
-
-/**
- * Returns the protocol field binary descriptor.
- */
-pub protocol_field_descriptor(field: ProtocolField): BinaryDescriptor ->
-    field.descriptor.
-
-/**
- * Returns the protocol shape name.
- */
-pub protocol_shape_name(shape: ProtocolShape): String ->
-    shape.name.
-
-/**
- * Returns the protocol shape endian policy.
- */
-pub protocol_shape_endian(shape: ProtocolShape): EndianPolicy ->
-    shape.endian.
-
-/**
- * Returns the protocol shape fields in source order.
- */
-pub protocol_shape_fields(shape: ProtocolShape): List[ProtocolField] ->
-    shape.fields.
-
-/**
- * Returns whether the protocol shape ends with a terminal rest field.
- */
-pub protocol_shape_has_terminal_rest(shape: ProtocolShape): Bool ->
-    shape.terminal_rest.
-
-/**
  * Creates one exact protocol shape alias.
  */
 pub protocol_shape_alias(name: String, target: String): ProtocolShapeAlias ->
     ProtocolShapeAlias(name, target).
-
-/**
- * Returns the protocol shape alias name.
- */
-pub protocol_shape_alias_name(alias: ProtocolShapeAlias): String ->
-    alias.name.
-
-/**
- * Returns the direct protocol shape targeted by an alias.
- */
-pub protocol_shape_alias_target(alias: ProtocolShapeAlias): String ->
-    alias.target.
 
 /**
  * Creates and validates a reusable protocol shape set.
@@ -610,39 +586,17 @@ pub protocol_shape_set(
     validate_protocol_shape_set(ProtocolShapeSet(name, shapes, aliases)).
 
 /**
- * Returns the protocol shape set name.
- */
-pub protocol_shape_set_name(set: ProtocolShapeSet): String ->
-    set.name.
-
-/**
- * Returns direct protocol shapes in declaration order.
- */
-pub protocol_shape_set_shapes(set: ProtocolShapeSet): List[ProtocolShape] ->
-    set.shapes.
-
-/**
- * Returns protocol aliases in declaration order.
- */
-pub protocol_shape_set_aliases(set: ProtocolShapeSet): List[ProtocolShapeAlias] ->
-    set.aliases.
-
-/**
  * Validates a protocol shape set and all exact aliases.
  */
 pub validate_protocol_shape_set(set: ProtocolShapeSet): Result[ProtocolShapeSet, BinaryDecodeError] ->
-    let shapes = protocol_shape_set_shapes(set);
+    let shapes = set.shapes;
     if {
-        protocol_shape_set_name(set).is_empty() -> Err(InvalidShapeSet);
+        set.name.is_empty() -> Err(InvalidShapeSet);
         shapes.is_empty() -> Err(InvalidShapeSet);
         true -> case validate_protocol_shapes(shapes, Map.new[String, Bool]()) {
             Err(reason) -> Err(reason);
             Ok(shape_names) ->
-                case validate_protocol_shape_aliases(
-                    protocol_shape_set_aliases(set),
-                    shape_names,
-                    Map.new[String, Bool](),
-                ) {
+                case validate_protocol_shape_aliases(set.aliases, shape_names, Map.new[String, Bool]()) {
                     Err(reason) -> Err(reason);
                     Ok(_alias_names) -> Ok(set)
                 }
@@ -659,7 +613,7 @@ pub validate_protocol_shapes(
     case shapes {
         [] -> Ok(names);
         [shape | next] ->
-            let name = protocol_shape_name(shape);
+            let name = shape.name;
             if {
                 names.contains_key(name) -> Err(DuplicateShape);
                 true -> case validate_protocol_shape(shape) {
@@ -682,8 +636,8 @@ pub validate_protocol_shape_aliases(
     case aliases {
         [] -> Ok(alias_names);
         [alias | next] ->
-            let name = protocol_shape_alias_name(alias);
-            let target = protocol_shape_alias_target(alias);
+            let name = alias.name;
+            let target = alias.target;
             if {
                 name.is_empty() or target.is_empty() -> Err(InvalidShapeAlias);
                 shape_names.contains_key(name) or alias_names.contains_key(name) -> Err(DuplicateShape);
@@ -703,13 +657,8 @@ pub protocol_shape_set_resolve(
     case validate_protocol_shape_set(set) {
         Err(reason) -> Err(reason);
         Ok(validated) ->
-            let shapes = protocol_shape_set_shapes(validated);
-            resolve_direct_protocol_shape(
-                shapes,
-                shapes,
-                protocol_shape_set_aliases(validated),
-                name,
-            )
+            let shapes = validated.shapes;
+            resolve_direct_protocol_shape(shapes, shapes, validated.aliases, name)
     }.
 
 /**
@@ -725,7 +674,7 @@ pub resolve_direct_protocol_shape(
         [] -> resolve_protocol_shape_alias(aliases, all_shapes, name);
         [shape | next] ->
             if {
-                protocol_shape_name(shape) == name -> Ok(shape);
+                shape.name == name -> Ok(shape);
                 true -> resolve_direct_protocol_shape(next, all_shapes, aliases, name)
             }
     }.
@@ -742,7 +691,7 @@ pub resolve_protocol_shape_alias(
         [] -> Err(UnknownShape);
         [alias | next] ->
             if {
-                protocol_shape_alias_name(alias) == name -> resolve_named_protocol_shape(shapes, protocol_shape_alias_target(alias));
+                alias.name == name -> resolve_named_protocol_shape(shapes, alias.target);
                 true -> resolve_protocol_shape_alias(next, shapes, name)
             }
     }.
@@ -758,7 +707,7 @@ pub resolve_named_protocol_shape(
         [] -> Err(UnknownShape);
         [shape | next] ->
             if {
-                protocol_shape_name(shape) == name -> Ok(shape);
+                shape.name == name -> Ok(shape);
                 true -> resolve_named_protocol_shape(next, name)
             }
     }.
@@ -816,17 +765,17 @@ pub protocol_shape_set_encode_prefix(
  * binary construction and matching are implemented.
  */
 pub validate_descriptor(descriptor: BinaryDescriptor): Result[BinaryDescriptor, BinaryDecodeError] ->
-    case descriptor_kind(descriptor) {
+    case descriptor.kind {
         RestSegment ->
             if {
-                descriptor_width(descriptor) != 0 -> Err(InvalidWidth);
-                descriptor_is_terminal(descriptor) == false -> Err(RestNotTerminal);
+                descriptor.width != 0 -> Err(InvalidWidth);
+                descriptor.terminal == false -> Err(RestNotTerminal);
                 true -> Ok(descriptor)
             };
         _ ->
             if {
-                descriptor_width(descriptor) <= 0 -> Err(InvalidWidth);
-                descriptor_is_terminal(descriptor) -> Err(RestNotTerminal);
+                descriptor.width <= 0 -> Err(InvalidWidth);
+                descriptor.terminal -> Err(RestNotTerminal);
                 true -> Ok(descriptor)
             }
     }.
@@ -841,15 +790,15 @@ pub validate_descriptor(descriptor: BinaryDescriptor): Result[BinaryDescriptor, 
  * state so the metadata contract stays backend-neutral.
  */
 pub validate_protocol_shape(shape: ProtocolShape): Result[ProtocolShape, BinaryDecodeError] ->
-    let fields = protocol_shape_fields(shape);
+    let fields = shape.fields;
     if {
-        protocol_shape_name(shape).is_empty() -> Err(UnknownDescriptor);
+        shape.name.is_empty() -> Err(UnknownDescriptor);
         fields.is_empty() -> Err(UnknownDescriptor);
         true -> case validate_protocol_fields(fields, Map.new[String, Bool](), false) {
             Ok(has_rest) ->
                 if {
-                    protocol_shape_has_terminal_rest(shape) == has_rest -> Ok(shape);
-                    protocol_shape_has_terminal_rest(shape) -> Err(UnknownDescriptor);
+                    shape.terminal_rest == has_rest -> Ok(shape);
+                    shape.terminal_rest -> Err(UnknownDescriptor);
                     true -> Err(RestNotTerminal)
                 };
             Err(reason) -> Err(reason)
@@ -867,17 +816,17 @@ pub validate_protocol_fields(
     case fields {
         [] -> Ok(has_rest);
         [field | next] ->
-            let name = protocol_field_name(field);
-            let descriptor = protocol_field_descriptor(field);
+            let name = field.name;
+            let descriptor = field.descriptor;
             if {
                 seen.contains_key(name) -> Err(DuplicateField);
-                descriptor_is_terminal(descriptor) and has_rest -> Err(MultipleRest);
+                descriptor.terminal and has_rest -> Err(MultipleRest);
                 has_rest -> Err(RestNotTerminal);
                 true -> case validate_descriptor(descriptor) {
                     Err(reason) -> Err(reason);
                     Ok(_descriptor) ->
                         let _put = seen.put(name, true);
-                        validate_protocol_fields(next, seen, descriptor_is_terminal(descriptor))
+                        validate_protocol_fields(next, seen, descriptor.terminal)
                 }
             }
     }.
@@ -891,11 +840,11 @@ pub validate_protocol_field(
     seen: Map[String, Bool],
     has_rest: Bool,
 ): Result[Bool, BinaryDecodeError] ->
-    let name = protocol_field_name(field);
-    let descriptor = protocol_field_descriptor(field);
+    let name = field.name;
+    let descriptor = field.descriptor;
     if {
         seen.contains_key(name) -> Err(DuplicateField);
-        descriptor_is_terminal(descriptor) and has_rest -> Err(MultipleRest);
+        descriptor.terminal and has_rest -> Err(MultipleRest);
         has_rest -> Err(RestNotTerminal);
         true -> validate_protocol_field_descriptor(next, name, descriptor, seen)
     }.
@@ -924,7 +873,7 @@ pub validate_remaining_protocol_fields(
     seen: Map[String, Bool],
 ): Result[Bool, BinaryDecodeError] ->
     let _put = seen.put(name, true);
-    validate_protocol_fields(next, seen, descriptor_is_terminal(descriptor)).
+    validate_protocol_fields(next, seen, descriptor.terminal).
 
 /**
  * Returns a golden TCP-like fixed header shape.
@@ -1055,7 +1004,7 @@ pub split_protocol_header(
 ): Result[{std.vm.Bytes.Bytes, std.vm.Bytes.Bytes}, BinaryDecodeError] ->
     case validate_protocol_shape(shape) {
         Err(reason) -> Err(reason);
-        Ok(validated) -> split_protocol_header_fields(protocol_shape_fields(validated), 0, payload)
+        Ok(validated) -> split_protocol_header_fields(validated.fields, 0, payload)
     }.
 
 /**
@@ -1073,25 +1022,16 @@ pub split_protocol_header_fields(
                 true -> split_header_body(payload, total / 8)
             };
         [field | next] ->
-            let descriptor = protocol_field_descriptor(field);
-            case descriptor_kind(descriptor) {
+            let descriptor = field.descriptor;
+            case descriptor.kind {
                 RestSegment ->
                     if {
                         total / 8 * 8 != total -> Err(InvalidAlignment);
                         true -> split_header_body(payload, total / 8)
                     };
                 BytesSegment ->
-                    split_protocol_header_fields(
-                        next,
-                        total + descriptor_width(descriptor) * 8,
-                        payload,
-                    );
-                _ ->
-                    split_protocol_header_fields(
-                        next,
-                        total + descriptor_width(descriptor),
-                        payload,
-                    )
+                    split_protocol_header_fields(next, total + descriptor.width * 8, payload);
+                _ -> split_protocol_header_fields(next, total + descriptor.width, payload)
             }
     }.
 
@@ -1102,12 +1042,11 @@ pub protocol_shape_fixed_bits(fields: List[ProtocolField], total: Int): Int ->
     case fields {
         [] -> total;
         [field | next] ->
-            let descriptor = protocol_field_descriptor(field);
-            case descriptor_kind(descriptor) {
+            let descriptor = field.descriptor;
+            case descriptor.kind {
                 RestSegment -> total;
-                BytesSegment ->
-                    protocol_shape_fixed_bits(next, total + descriptor_width(descriptor) * 8);
-                _ -> protocol_shape_fixed_bits(next, total + descriptor_width(descriptor))
+                BytesSegment -> protocol_shape_fixed_bits(next, total + descriptor.width * 8);
+                _ -> protocol_shape_fixed_bits(next, total + descriptor.width)
             }
     }.
 
@@ -1122,8 +1061,8 @@ pub compose_valid_header_body(
         Err(reason) -> Err(binary_construct_error(reason));
         Ok(_body) ->
             if {
-                protocol_shape_has_terminal_rest(header) -> Err(RestNotTerminal);
-                protocol_shape_endian(header) != protocol_shape_endian(body) -> Err(UnknownDescriptor);
+                header.terminal_rest -> Err(RestNotTerminal);
+                header.endian != body.endian -> Err(UnknownDescriptor);
                 true -> Ok(composed_protocol_shape(header, body))
             }
     }.
@@ -1134,12 +1073,12 @@ pub compose_valid_header_body(
 pub composed_protocol_shape(header: ProtocolShape, body: ProtocolShape): ProtocolShape ->
     let fields = List.new[ProtocolField]();
     compose_protocol_header_fields(
-        protocol_shape_fields(header),
-        protocol_shape_fields(body),
+        header.fields,
+        body.fields,
         fields,
-        protocol_shape_name(header) + "_" + protocol_shape_name(body),
-        protocol_shape_endian(header),
-        protocol_shape_has_terminal_rest(body),
+        header.name + "_" + body.name,
+        header.endian,
+        body.terminal_rest,
     ).
 
 /**
@@ -1244,8 +1183,8 @@ pub decode_prefixed_body(
         Err(reason) -> Err(reason);
         Ok(validated) ->
             decode_protocol_fields(
-                protocol_shape_fields(validated),
-                protocol_shape_endian(validated),
+                validated.fields,
+                validated.endian,
                 payload,
                 0,
                 List.new[DecodedField](),
@@ -1265,11 +1204,11 @@ pub decode_protocol_fields(
     case fields {
         [] -> decode_protocol_tail(payload, bit_offset, decoded);
         [field | next] ->
-            let descriptor = protocol_field_descriptor(field);
-            let name = protocol_field_name(field);
-            let width = descriptor_width(descriptor);
+            let descriptor = field.descriptor;
+            let name = field.name;
+            let width = descriptor.width;
             let payload_bits = payload.length() * 8;
-            case descriptor_kind(descriptor) {
+            case descriptor.kind {
                 UIntSegment ->
                     if {
                         width < 1 or width > 63 -> Err(InvalidWidth);
@@ -1449,13 +1388,7 @@ pub encode_protocol(
         Err(reason) -> Err(binary_construct_error(reason));
         Ok(validated) ->
             let empty = BitString.from_bytes(Bytes.from_list([]), 0);
-            encode_protocol_fields(
-                protocol_shape_fields(validated),
-                protocol_shape_endian(validated),
-                value,
-                empty,
-                include_rest,
-            )
+            encode_protocol_fields(validated.fields, validated.endian, value, empty, include_rest)
     }.
 
 /**
@@ -1471,17 +1404,11 @@ pub encode_protocol_fields(
     case fields {
         [] -> finish_protocol_encoding(encoded);
         [field | next] ->
-            let descriptor = protocol_field_descriptor(field);
-            let name = protocol_field_name(field);
-            case descriptor_kind(descriptor) {
+            let descriptor = field.descriptor;
+            let name = field.name;
+            case descriptor.kind {
                 UIntSegment ->
-                    case encode_protocol_uint_value(
-                        endian,
-                        decoded,
-                        encoded,
-                        name,
-                        descriptor_width(descriptor),
-                    ) {
+                    case encode_protocol_uint_value(endian, decoded, encoded, name, descriptor.width) {
                         Err(reason) -> Err(reason);
                         Ok(next_encoded) ->
                             encode_protocol_fields(
@@ -1493,13 +1420,7 @@ pub encode_protocol_fields(
                             )
                     };
                 IntSegment ->
-                    case encode_protocol_int_value(
-                        endian,
-                        decoded,
-                        encoded,
-                        name,
-                        descriptor_width(descriptor),
-                    ) {
+                    case encode_protocol_int_value(endian, decoded, encoded, name, descriptor.width) {
                         Err(reason) -> Err(reason);
                         Ok(next_encoded) ->
                             encode_protocol_fields(
@@ -1511,12 +1432,7 @@ pub encode_protocol_fields(
                             )
                     };
                 BytesSegment ->
-                    case encode_protocol_bytes_value(
-                        decoded,
-                        encoded,
-                        name,
-                        descriptor_width(descriptor),
-                    ) {
+                    case encode_protocol_bytes_value(decoded, encoded, name, descriptor.width) {
                         Err(reason) -> Err(reason);
                         Ok(next_encoded) ->
                             encode_protocol_fields(
@@ -1528,7 +1444,7 @@ pub encode_protocol_fields(
                             )
                     };
                 BitsSegment ->
-                    case encode_protocol_bits_value(decoded, encoded, name, descriptor_width(descriptor)) {
+                    case encode_protocol_bits_value(decoded, encoded, name, descriptor.width) {
                         Err(reason) -> Err(reason);
                         Ok(next_encoded) ->
                             encode_protocol_fields(

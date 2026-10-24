@@ -1,6 +1,6 @@
 module std.binary.BinaryTest.
 
-import std.binary.Binary.{BigEndian, BinaryConstructError, BinaryDecodeError, BinaryDescriptor, Bits, BitsSegment, BytesSegment, DecodedField, DecodedProtocol, DecodedValue, DuplicateField, DuplicateShape, EndianPolicy, IntBits, IntSegment, InvalidAlignment, InvalidShapeAlias, InvalidShapeSet, InvalidUtf8, InvalidWidth, LittleEndian, MultipleRest, ProtocolField, ProtocolShape, ProtocolShapeAlias, ProtocolShapeSet, Rest, RestNotTerminal, RestSegment, TruncatedPayload, UInt, UIntSegment, UnknownDescriptor, UnknownShape, UnsupportedRuntime, UnsupportedTarget, compact_frame_shape, compose_header_body, construct, decode_exact, decode_fixed_header, decode_prefix, decode_prefixed_body, decoded_bits_field, decoded_bytes_field, decoded_int_field, decoded_protocol_bits_value, decoded_protocol_bytes_value, decoded_protocol_int_value, decoded_protocol_remaining_bytes, descriptor_is_terminal, descriptor_kind, descriptor_width, encode_exact, encode_prefix, make_bit_span, make_byte_span, make_int_bits, make_rest, make_uint, protocol_field, protocol_field_descriptor, protocol_field_name, protocol_shape, protocol_shape_alias, protocol_shape_alias_name, protocol_shape_alias_target, protocol_shape_endian, protocol_shape_fields, protocol_shape_has_terminal_rest, protocol_shape_name, protocol_shape_set, protocol_shape_set_decode, protocol_shape_set_encode_exact, protocol_shape_set_encode_prefix, protocol_shape_set_name, protocol_shape_set_resolve, protocol_shape_set_shapes, split_header_body, split_protocol_header, tcp_header_shape, validate_descriptor, validate_protocol_shape}.
+import std.binary.Binary.{BigEndian, BinaryConstructError, BinaryDecodeError, BinaryDescriptor, Bits, BitsSegment, BytesSegment, DecodedField, DecodedProtocol, DecodedValue, DuplicateField, DuplicateShape, EndianPolicy, IntBits, IntSegment, InvalidAlignment, InvalidShapeAlias, InvalidShapeSet, InvalidUtf8, InvalidWidth, LittleEndian, MultipleRest, ProtocolField, ProtocolShape, ProtocolShapeAlias, ProtocolShapeSet, Rest, RestNotTerminal, RestSegment, TruncatedPayload, UInt, UIntSegment, UnknownDescriptor, UnknownShape, UnsupportedRuntime, UnsupportedTarget, compact_frame_shape, compose_header_body, construct, decode_exact, decode_fixed_header, decode_prefix, decode_prefixed_body, decoded_bits_field, decoded_bytes_field, decoded_int_field, decoded_protocol_bits_value, decoded_protocol_bytes_value, decoded_protocol_int_value, decoded_protocol_remaining_bytes, encode_exact, encode_prefix, make_bit_span, make_byte_span, make_int_bits, make_rest, make_uint, protocol_field, protocol_shape, protocol_shape_alias, protocol_shape_set, protocol_shape_set_decode, protocol_shape_set_encode_exact, protocol_shape_set_encode_prefix, protocol_shape_set_resolve, split_header_body, split_protocol_header, tcp_header_shape, validate_descriptor, validate_protocol_shape}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.Result.{Err, Ok}.
@@ -64,45 +64,40 @@ pub protocol_name_uses_structural_evidence_across_metadata_types(): Bool ->
     case protocol_shape_set("wire", List(shape), List(alias)) {
         Err(_reason) -> false;
         Ok(set) ->
-            assert_equal("payload", protocol_field_name(field))
-                and assert_equal("frame", protocol_shape_name(shape))
-                and assert_equal("current", protocol_shape_alias_name(alias))
-                and assert_equal("wire", protocol_shape_set_name(set))
+            assert_equal("payload", field.name)
+                and assert_equal("frame", shape.name)
+                and assert_equal("current", alias.name)
+                and assert_equal("wire", set.name)
     }.
 
 @test
 pub uint_descriptor_records_width(): Bool ->
     let descriptor = make_uint(16);
-    assert_equal(UIntSegment, descriptor_kind(descriptor))
-        and assert_equal(16, descriptor_width(descriptor)).
+    assert_equal(UIntSegment, descriptor.kind) and assert_equal(16, descriptor.width).
 
 @test
 pub int_bits_descriptor_records_width(): Bool ->
     let descriptor = make_int_bits(32);
-    assert_equal(IntSegment, descriptor_kind(descriptor))
-        and assert_equal(32, descriptor_width(descriptor)).
+    assert_equal(IntSegment, descriptor.kind) and assert_equal(32, descriptor.width).
 
 @test
 pub bytes_descriptor_records_width(): Bool ->
     let descriptor = make_byte_span(4);
-    assert_equal(BytesSegment, descriptor_kind(descriptor))
-        and assert_equal(4, descriptor_width(descriptor)).
+    assert_equal(BytesSegment, descriptor.kind) and assert_equal(4, descriptor.width).
 
 @test
 pub bits_descriptor_records_width(): Bool ->
     let descriptor = make_bit_span(3);
-    assert_equal(BitsSegment, descriptor_kind(descriptor))
-        and assert_equal(3, descriptor_width(descriptor)).
+    assert_equal(BitsSegment, descriptor.kind) and assert_equal(3, descriptor.width).
 
 @test
 pub rest_descriptor_is_terminal(): Bool ->
     let descriptor = make_rest();
-    assert_equal(RestSegment, descriptor_kind(descriptor))
-        and assert_equal(true, descriptor_is_terminal(descriptor)).
+    assert_equal(RestSegment, descriptor.kind) and assert_equal(true, descriptor.terminal).
 
 @test
 pub rest_descriptor_width_is_zero(): Bool ->
-    assert_equal(0, descriptor_width(make_rest())).
+    assert_equal(0, make_rest().width).
 
 @test
 pub valid_descriptors_pass_validation(): Bool ->
@@ -112,8 +107,8 @@ pub valid_descriptors_pass_validation(): Bool ->
     } else {
         _ -> false
     };
-    assert_equal(UIntSegment, descriptor_kind(uint_descriptor))
-        and assert_equal(RestSegment, descriptor_kind(rest_descriptor)).
+    assert_equal(UIntSegment, uint_descriptor.kind)
+        and assert_equal(RestSegment, rest_descriptor.kind).
 
 @test
 pub zero_width_descriptor_is_rejected(): Bool ->
@@ -211,30 +206,30 @@ pub construct_returns_typed_unsupported_runtime(): Bool ->
 @test
 pub tcp_header_shape_records_expected_metadata(): Bool ->
     let shape = tcp_header_shape();
-    let fields = protocol_shape_fields(shape);
-    assert_equal("tcp_header", protocol_shape_name(shape))
-        and assert_equal(BigEndian, accepts_endian_policy(protocol_shape_endian(shape)))
-        and assert_equal(false, protocol_shape_has_terminal_rest(shape))
+    let fields = shape.fields;
+    assert_equal("tcp_header", shape.name)
+        and assert_equal(BigEndian, accepts_endian_policy(shape.endian))
+        and assert_equal(false, shape.terminal_rest)
         and assert_equal(10, fields.length()).
 
 @test
 pub tcp_header_first_field_is_source_port_uint16(): Bool ->
-    let fields = protocol_shape_fields(tcp_header_shape());
+    let fields = tcp_header_shape().fields;
     case fields.first() {
         Some(field) ->
-            assert_equal("source_port", protocol_field_name(accepts_protocol_field(field)))
-                and assert_equal(UIntSegment, descriptor_kind(protocol_field_descriptor(field)))
-                and assert_equal(16, descriptor_width(protocol_field_descriptor(field)));
+            assert_equal("source_port", accepts_protocol_field(field).name)
+                and assert_equal(UIntSegment, field.descriptor.kind)
+                and assert_equal(16, field.descriptor.width);
         None -> false
     }.
 
 @test
 pub compact_frame_shape_records_terminal_payload(): Bool ->
     let shape = accepts_protocol_shape(compact_frame_shape());
-    let fields = protocol_shape_fields(shape);
-    assert_equal("compact_frame", protocol_shape_name(shape))
-        and assert_equal(BigEndian, protocol_shape_endian(shape))
-        and assert_equal(true, protocol_shape_has_terminal_rest(shape))
+    let fields = shape.fields;
+    assert_equal("compact_frame", shape.name)
+        and assert_equal(BigEndian, shape.endian)
+        and assert_equal(true, shape.terminal_rest)
         and assert_equal(4, fields.length()).
 
 @test
@@ -246,10 +241,10 @@ pub custom_protocol_shape_preserves_declared_fields(): Bool ->
             List(protocol_field("id", make_uint(8)), protocol_field("payload", make_rest())),
             true,
         );
-    let fields = protocol_shape_fields(shape);
-    assert_equal("custom", protocol_shape_name(shape))
-        and assert_equal(LittleEndian, protocol_shape_endian(shape))
-        and assert_equal(true, protocol_shape_has_terminal_rest(shape))
+    let fields = shape.fields;
+    assert_equal("custom", shape.name)
+        and assert_equal(LittleEndian, shape.endian)
+        and assert_equal(true, shape.terminal_rest)
         and assert_equal(2, fields.length()).
 
 @test
@@ -259,10 +254,10 @@ pub protocol_shape_set_preserves_declaration_order(): Bool ->
         Err(_reason) -> false;
         Ok(set) ->
             let validated = accepts_protocol_shape_set(set);
-            assert_equal("wire", protocol_shape_set_name(validated))
-                and assert_equal(2, protocol_shape_set_shapes(validated).length())
-                and assert_equal("current", protocol_shape_alias_name(alias))
-                and assert_equal("compact_frame", protocol_shape_alias_target(alias))
+            assert_equal("wire", validated.name)
+                and assert_equal(2, validated.shapes.length())
+                and assert_equal("current", alias.name)
+                and assert_equal("compact_frame", alias.target)
     }.
 
 @test
@@ -282,8 +277,7 @@ pub protocol_shape_set_resolves_direct_and_alias_names(): Bool ->
     } else {
         _ -> false
     };
-    assert_equal("tcp_header", protocol_shape_name(header))
-        and assert_equal("compact_frame", protocol_shape_name(frame)).
+    assert_equal("tcp_header", header.name) and assert_equal("compact_frame", frame.name).
 
 @test
 pub protocol_shape_set_resolves_prefix_collisions_exactly(): Bool ->
@@ -305,9 +299,9 @@ pub protocol_shape_set_resolves_prefix_collisions_exactly(): Bool ->
     } else {
         _ -> false
     };
-    assert_equal("frame", protocol_shape_name(first))
-        and assert_equal("frame_v2", protocol_shape_name(second))
-        and assert_equal("frame_v2", protocol_shape_name(alias)).
+    assert_equal("frame", first.name)
+        and assert_equal("frame_v2", second.name)
+        and assert_equal("frame_v2", alias.name).
 
 @test
 pub protocol_shape_set_rejects_missing_metadata(): Bool ->
@@ -496,14 +490,14 @@ pub protocol_shape_set_codecs_reject_unknown_names(): Bool ->
 @test
 pub tcp_header_shape_passes_validation(): Bool ->
     case validate_protocol_shape(tcp_header_shape()) {
-        Ok(shape) -> assert_equal("tcp_header", protocol_shape_name(shape));
+        Ok(shape) -> assert_equal("tcp_header", shape.name);
         Err(_reason) -> false
     }.
 
 @test
 pub compact_frame_shape_passes_validation(): Bool ->
     case validate_protocol_shape(compact_frame_shape()) {
-        Ok(shape) -> assert_equal(true, protocol_shape_has_terminal_rest(shape));
+        Ok(shape) -> assert_equal(true, shape.terminal_rest);
         Err(_reason) -> false
     }.
 
@@ -889,10 +883,10 @@ pub compose_header_body_preserves_shape_metadata(): Bool ->
     case compose_header_body(tcp_header_shape(), compact_frame_shape()) {
         Err(_reason) -> false;
         Ok(shape) ->
-            assert_equal("tcp_header_compact_frame", protocol_shape_name(shape))
-                and assert_equal(BigEndian, protocol_shape_endian(shape))
-                and assert_equal(14, protocol_shape_fields(shape).length())
-                and protocol_shape_has_terminal_rest(shape)
+            assert_equal("tcp_header_compact_frame", shape.name)
+                and assert_equal(BigEndian, shape.endian)
+                and assert_equal(14, shape.fields.length())
+                and shape.terminal_rest
     }.
 
 @test

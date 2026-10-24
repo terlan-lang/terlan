@@ -7,7 +7,7 @@ import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.data.Json.
 import std.io.Console.{eprintln, println}.
-import std.io.Directory.{create_temporary, message, remove_all}.
+import std.io.Directory.{create_temporary, remove_all}.
 import std.io.File.{write_text}.
 import std.system.{Arguments, Environment, Process}.
 
@@ -252,30 +252,27 @@ validation_output(
     case Process.run(command(repository, compiler_path, path, strict)) {
         Ok(output) -> Some(output);
         Err(reason) ->
-            let _printed =
-                eprintln(
-                    String.append("EBNF validator failed to start: ", Process.error_message(reason)),
-                );
+            let _printed = eprintln(String.append("EBNF validator failed to start: ", reason.message));
             None
     }.
 
 validate(repository: String, compiler_path: String, path: String, strict: Bool): Bool ->
     case validation_output(repository, compiler_path, path, strict) {
         Some(output) ->
-            case report_summary(Process.stdout(output)) {
+            case report_summary(output.stdout) {
                 Some(summary) ->
-                    let rendered = render_report(path, strict, Process.stdout(output), summary);
+                    let rendered = render_report(path, strict, output.stdout, summary);
                     if {
                         not rendered -> failure("compiler emitted a malformed EBNF report");
-                        Process.status(output) == 0 and summary.valid -> true;
-                        Process.status(output) == 1 and not summary.valid -> false;
+                        output.status == 0 and summary.valid -> true;
+                        output.status == 1 and not summary.valid -> false;
                         true -> failure("compiler status disagrees with its EBNF report")
                     };
                 None ->
                     failure(
                         String.append(
                             "compiler did not emit a valid EBNF report: ",
-                            String.append(Process.stderr(output), Process.stdout(output)),
+                            String.append(output.stderr, output.stdout),
                         ),
                     )
             };
@@ -303,9 +300,9 @@ output_matches(
     expected_valid: Bool,
     expected_strict: Int,
 ): Bool ->
-    case report_summary(Process.stdout(output)) {
+    case report_summary(output.stdout) {
         Some(summary) ->
-            Process.status(output) == expected_status
+            output.status == expected_status
                 and summary.valid == expected_valid
                 and summary.strict_count == expected_strict;
         None -> false
@@ -369,7 +366,7 @@ self_test(repository: String, compiler_path: String): Bool ->
                 true -> failure("self-test cases did not produce the expected reports")
             };
         Err(reason) ->
-            failure(String.append("could not create self-test directory: ", message(reason)))
+            failure(String.append("could not create self-test directory: ", reason.message))
     }.
 
 failure(message: String): Bool ->

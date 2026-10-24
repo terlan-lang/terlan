@@ -3,8 +3,6 @@
  */
 module self_host.ProjectedSemanticEventAdapter.
 
-
-
 import std.core.Option.{None, Option, Some}.
 import std.collections.List.
 import std.core.String.
@@ -424,13 +422,9 @@ call_module(callee: ProjectedExpressionNode): Option[String] ->
     if { callee.kind == "field" -> field_module(callee.children); true -> none_string() }.
 
 @pure
-call_name(callee: ProjectedExpressionNode): String ->
-    callee.text.
-
-@pure
 call_use_children(node: ProjectedExpressionNode, output: List[CallableUse]): List[CallableUse] ->
     case node.children {
-        [callee | arguments] -> [CallableUse(module_name = call_module(callee), name = call_name(callee), arity = argument_count(arguments), byte_offset = node.start_byte) | output];
+        [callee | arguments] -> [CallableUse(module_name = call_module(callee), name = callee.text, arity = argument_count(arguments), byte_offset = node.start_byte) | output];
         [] -> output
     }.
 

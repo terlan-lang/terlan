@@ -590,7 +590,7 @@ write_registry(path: String, rendered: String, count: Int): Bool ->
                 );
             true;
         Err(reason) ->
-            let _printed = eprintln(File.message(reason));
+            let _printed = eprintln(reason.message);
             false
     }.
 

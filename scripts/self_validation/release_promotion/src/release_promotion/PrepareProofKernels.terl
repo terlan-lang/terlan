@@ -37,7 +37,7 @@ semantic_owner(root: String, vm: String, image: String, context: Context, replay
 image_size(root: String, image: String): Result[Int, String] ->
     case File.size(OwnerStorage.child(root, image)) {
         Ok(size) -> Ok(size);
-        Err(reason) -> Err(File.message(reason))
+        Err(reason) -> Err(reason.message)
     }.
 
 run_graph(

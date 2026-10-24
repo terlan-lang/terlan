@@ -258,7 +258,7 @@ command_stdout(root: String, program: String, arguments: List[String]): Option[S
     case Process.run(command) {
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(String.trim(Process.stdout(output)));
+                output.status == 0 -> Some(String.trim(output.stdout));
                 true -> None
             };
         Err(_reason) -> None

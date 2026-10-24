@@ -44,12 +44,12 @@ run_output(program: String, arguments: List[String], root: String): Option[Strin
     case Process.run(command) {
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(String.trim(Process.stdout(output)));
+                output.status == 0 -> Some(String.trim(output.stdout));
                 true -> let _reported =
                     eprintln(
                         String.append(
                             "[vm-cli-bridge] child failed: ",
-                            String.append(program, String.append("\n", Process.stderr(output))),
+                            String.append(program, String.append("\n", output.stderr)),
                         ),
                     );
                 None
@@ -59,7 +59,7 @@ run_output(program: String, arguments: List[String], root: String): Option[Strin
                 eprintln(
                     String.append(
                         "[vm-cli-bridge] child launch failed: ",
-                        String.append(program, String.append(": ", Process.error_message(reason))),
+                        String.append(program, String.append(": ", reason.message)),
                     ),
                 );
             None

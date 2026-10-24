@@ -19,6 +19,9 @@ import type std.time.Duration.
  * JavaScript number timestamp.
  */
 pub struct Instant {
+    /**
+     * Milliseconds from the producer's monotonic or epoch origin.
+     */
     milliseconds: Float,
 }.
 
@@ -46,16 +49,6 @@ pub from_milliseconds(milliseconds: Float): Instant ->
     Instant(milliseconds).
 
 /**
- * Returns the millisecond timestamp payload.
- *
- * Input: one `Instant`.
- * Output: finite millisecond timestamp.
- * Transformation: reads the portable numeric representation unchanged.
- */
-pub (instant: Instant) to_milliseconds(): Float ->
-    instant.milliseconds.
-
-/**
  * Adds a duration to an instant.
  *
  * Input: one `Instant` and one `Duration`.
@@ -63,7 +56,7 @@ pub (instant: Instant) to_milliseconds(): Float ->
  * Transformation: adds both millisecond payloads.
  */
 pub add_duration(instant: Instant, duration: Duration): Instant ->
-    Instant(instant.milliseconds + duration.to_milliseconds()).
+    Instant(instant.milliseconds + duration.milliseconds).
 
 /**
  * Subtracts a duration from an instant.
@@ -73,7 +66,7 @@ pub add_duration(instant: Instant, duration: Duration): Instant ->
  * Transformation: subtracts the duration millisecond payload.
  */
 pub subtract_duration(instant: Instant, duration: Duration): Instant ->
-    Instant(instant.milliseconds - duration.to_milliseconds()).
+    Instant(instant.milliseconds - duration.milliseconds).
 
 /**
  * Returns the duration from an earlier instant to a later instant.

@@ -98,11 +98,11 @@ domains_at(values: List[DomainMetric], output: String): String ->
                 String.concat(
                     [
                         "{\"name\":",
-                        Json.quote_string(DependencyImpactSource.domain_name(value)),
+                        Json.quote_string(value.name),
                         ",\"physical_lines\":",
-                        Int.to_string(DependencyImpactSource.domain_physical_lines(value)),
+                        Int.to_string(value.physical_lines),
                         ",\"rust_files\":",
-                        Int.to_string(DependencyImpactSource.domain_rust_files(value)),
+                        Int.to_string(value.rust_files),
                         "}",
                     ],
                 );
@@ -122,11 +122,11 @@ edges_at(values: List[Edge], output: String): String ->
                 String.concat(
                     [
                         "{\"from\":",
-                        Json.quote_string(DependencyImpactSource.edge_source(value)),
+                        Json.quote_string(value.source),
                         ",\"reference_sites\":",
-                        Int.to_string(DependencyImpactSource.edge_reference_sites(value)),
+                        Int.to_string(value.reference_sites),
                         ",\"to\":",
-                        Json.quote_string(DependencyImpactSource.edge_target(value)),
+                        Json.quote_string(value.target),
                         "}",
                     ],
                 );
@@ -166,11 +166,7 @@ workspace_packages_json(values: List[GraphNode]): String ->
 cycles_at(values: List[Cycle], output: String): String ->
     case values {
         [] -> String.concat(["[", output, "]"]);
-        [value | rest] ->
-            cycles_at(
-                rest,
-                append_item(output, strings_json(DependencyImpactGraph.cycle_path(value))),
-            )
+        [value | rest] -> cycles_at(rest, append_item(output, strings_json(value.path)))
     }.
 
 @pure
@@ -186,11 +182,11 @@ blast_at(values: List[BlastRadius], output: String): String ->
                 String.concat(
                     [
                         "{\"dependent_count\":",
-                        Int.to_string(List.length(DependencyImpactGraph.blast_dependents(value))),
+                        Int.to_string(List.length(value.dependents)),
                         ",\"dependent_domains\":",
-                        strings_json(DependencyImpactGraph.blast_dependents(value)),
+                        strings_json(value.dependents),
                         ",\"domain\":",
-                        Json.quote_string(DependencyImpactGraph.blast_domain(value)),
+                        Json.quote_string(value.domain),
                         "}",
                     ],
                 );
@@ -210,10 +206,7 @@ fan_in_sources(domain: String, edges: List[Edge], output: List[String]): List[St
                 domain,
                 rest,
                 if {
-                    DependencyImpactSource.edge_target(edge) == domain -> CargoMetadata.insert_sorted_unique(
-                        DependencyImpactSource.edge_source(edge),
-                        output,
-                    );
+                    edge.target == domain -> CargoMetadata.insert_sorted_unique(edge.source, output);
                     true -> output
                 },
             )
@@ -228,7 +221,7 @@ fan_in_sites(domain: String, edges: List[Edge], count: Int): Int ->
                 domain,
                 rest,
                 if {
-                    DependencyImpactSource.edge_target(edge) == domain -> count + DependencyImpactSource.edge_reference_sites(edge);
+                    edge.target == domain -> count + edge.reference_sites;
                     true -> count
                 },
             )
@@ -243,19 +236,11 @@ fan_in_at(domains: List[DomainMetric], edges: List[Edge], output: String): Strin
                 String.concat(
                     [
                         "{\"domain\":",
-                        Json.quote_string(DependencyImpactSource.domain_name(domain)),
+                        Json.quote_string(domain.name),
                         ",\"reference_sites\":",
-                        Int.to_string(
-                            fan_in_sites(DependencyImpactSource.domain_name(domain), edges, 0),
-                        ),
+                        Int.to_string(fan_in_sites(domain.name, edges, 0)),
                         ",\"source_domains\":",
-                        strings_json(
-                            fan_in_sources(
-                                DependencyImpactSource.domain_name(domain),
-                                edges,
-                                List.new[String](),
-                            ),
-                        ),
+                        strings_json(fan_in_sources(domain.name, edges, List.new[String]())),
                         "}",
                     ],
                 );
@@ -275,9 +260,9 @@ versions_at(values: List[Duplicate], output: String): String ->
                 String.concat(
                     [
                         "{\"name\":",
-                        Json.quote_string(DependencyClassifications.duplicate_name(value)),
+                        Json.quote_string(value.name),
                         ",\"versions\":",
-                        strings_json(DependencyClassifications.duplicate_versions(value)),
+                        strings_json(value.versions),
                         "}",
                     ],
                 );
@@ -297,17 +282,17 @@ classifications_at(values: List[Classification], output: String): String ->
                 String.concat(
                     [
                         "{\"classification\":",
-                        Json.quote_string(DependencyClassifications.classification_kind(value)),
+                        Json.quote_string(value.classification),
                         ",\"milestone\":",
-                        Json.quote_string(DependencyClassifications.classification_milestone(value)),
+                        Json.quote_string(value.milestone),
                         ",\"name\":",
-                        Json.quote_string(DependencyClassifications.classification_name(value)),
+                        Json.quote_string(value.name),
                         ",\"owner\":",
-                        Json.quote_string(DependencyClassifications.classification_owner(value)),
+                        Json.quote_string(value.owner),
                         ",\"rationale\":",
-                        Json.quote_string(DependencyClassifications.classification_rationale(value)),
+                        Json.quote_string(value.rationale),
                         ",\"versions\":",
-                        Json.quote_string(DependencyClassifications.classification_versions(value)),
+                        Json.quote_string(value.versions),
                         "}",
                     ],
                 );
@@ -327,15 +312,15 @@ features_at(values: List[DependencyFeature], output: String): String ->
                 String.concat(
                     [
                         "{\"default_features\":",
-                        json_bool(DependencyImpactCargo.feature_default_features(value)),
+                        json_bool(value.default_features),
                         ",\"features\":",
-                        strings_json(DependencyImpactCargo.feature_features(value)),
+                        strings_json(value.features),
                         ",\"kind\":",
-                        Json.quote_string(DependencyImpactCargo.feature_kind(value)),
+                        Json.quote_string(value.kind),
                         ",\"name\":",
-                        Json.quote_string(DependencyImpactCargo.feature_name(value)),
+                        Json.quote_string(value.name),
                         ",\"optional\":",
-                        json_bool(DependencyImpactCargo.feature_optional(value)),
+                        json_bool(value.optional),
                         "}",
                     ],
                 );
@@ -355,9 +340,9 @@ fanout_at(values: List[PackageFanout], output: String): String ->
                 String.concat(
                     [
                         "{\"dependencies\":",
-                        features_json(DependencyImpactCargo.fanout_dependencies(value)),
+                        features_json(value.dependencies),
                         ",\"package\":",
-                        Json.quote_string(DependencyImpactCargo.fanout_name(value)),
+                        Json.quote_string(value.name),
                         "}",
                     ],
                 );
@@ -437,11 +422,10 @@ timing_rows(
 
 load_timings(root: String): TimingResult ->
     case File.read_text(SourceInventory.child(root, "docs/quality/RUST_STRUCTURE_TIMINGS_CLOSEOUT.json")) {
-        Err(reason) -> TimingResult(valid = false, rows = [], message = File.message(reason));
+        Err(reason) -> TimingResult(valid = false, rows = [], message = reason.message);
         Ok(source) ->
             case Json.parse(source) {
-                Err(reason) ->
-                    TimingResult(valid = false, rows = [], message = Json.error_message(reason));
+                Err(reason) -> TimingResult(valid = false, rows = [], message = reason.message);
                 Ok(document) ->
                     let {
                         Ok(values) <- Json.get(document, "scenarios");
@@ -460,10 +444,10 @@ load_timings(root: String): TimingResult ->
 
 load_ast(root: String): DocumentResult ->
     case File.read_text(SourceInventory.child(root, "target/quality/rust-structural-input.json")) {
-        Err(reason) -> document_failure(File.message(reason));
+        Err(reason) -> document_failure(reason.message);
         Ok(source) ->
             case Json.parse(source) {
-                Err(reason) -> document_failure(Json.error_message(reason));
+                Err(reason) -> document_failure(reason.message);
                 Ok(document) -> DocumentResult(valid = true, document = document, message = "")
             }
     }.
@@ -538,8 +522,7 @@ budget_diagnostics(
         };
     let evidence =
         if {
-            List.length(DependencyImpactSource.analysis_production_domains(source)) > 0
-                and timing_count > 0 -> integrations;
+            List.length(source.production_domains) > 0 and timing_count > 0 -> integrations;
             true -> ["dependency-impact report lacks domain or timing evidence" | integrations]
         };
     let cycles =
@@ -554,7 +537,7 @@ budget_diagnostics(
         };
     let semantic =
         if {
-            List.length(DependencyImpactSource.analysis_production_domains(source)) > 0 -> blast_diagnostics;
+            List.length(source.production_domains) > 0 -> blast_diagnostics;
             true -> ["dependency-impact report lacks semantic fanout evidence" | blast_diagnostics]
         };
     let milestone_dependencies =
@@ -587,11 +570,7 @@ build_report(
 ): String ->
     let integration_policy =
         String.concat(
-            [
-                "{\"maximum_targets\":13,\"targets\":",
-                strings_json(DependencyImpactCargo.analysis_integration_targets(cargo)),
-                "}",
-            ],
+            ["{\"maximum_targets\":13,\"targets\":", strings_json(cargo.integration_targets), "}"],
         );
     let fanout_policy =
         String.concat(
@@ -601,7 +580,7 @@ build_report(
                 ",\"maximum_resolved_duplicate_families\":34,",
                 "\"milestone\":\"0.0.9\",",
                 "\"non_optional_normal_dependencies\":",
-                Int.to_string(DependencyImpactCargo.analysis_direct_dependency_count(cargo)),
+                Int.to_string(cargo.direct_dependency_count),
                 ",\"package\":\"terlan\",",
                 "\"target_non_optional_normal_dependencies\":50,",
                 "\"target_resolved_duplicate_families\":24}",
@@ -618,37 +597,34 @@ build_report(
             ",\"dependency_fanout_policy\":",
             fanout_policy,
             ",\"domain_api_fan_in\":",
-            fan_in_json(
-                DependencyImpactSource.analysis_production_domains(source),
-                DependencyImpactSource.analysis_production_edges(source),
-            ),
+            fan_in_json(source.production_domains, source.production_edges),
             ",\"domain_change_blast_radius\":",
             blast_json(blast),
             ",\"domain_cycle_policy\":",
             cycle_policy,
             ",\"duplicate_dependency_classifications\":",
-            classifications_json(DependencyClassifications.result_rows(classifications)),
+            classifications_json(classifications.rows),
             ",\"incremental_scenarios\":",
             timings_json(timings.rows),
             ",\"integration_test_policy\":",
             integration_policy,
             ",\"production_cross_domain_edges\":",
-            edges_json(DependencyImpactSource.analysis_production_edges(source)),
+            edges_json(source.production_edges),
             ",\"production_domains\":",
-            domains_json(DependencyImpactSource.analysis_production_domains(source)),
+            domains_json(source.production_domains),
             ",\"resolved_dependency_duplicates\":",
-            versions_json(DependencyImpactCargo.analysis_duplicates(cargo)),
+            versions_json(cargo.duplicates),
             ",\"schema_version\":4,",
             "\"test_cross_domain_edges\":",
-            edges_json(DependencyImpactSource.analysis_test_edges(source)),
+            edges_json(source.test_edges),
             ",\"test_domains\":",
-            domains_json(DependencyImpactSource.analysis_test_domains(source)),
+            domains_json(source.test_domains),
             ",\"workspace_cycles\":",
             cycles_json(workspace_cycles),
             ",\"workspace_feature_fanout\":",
-            fanout_json(DependencyImpactCargo.analysis_feature_fanout(cargo)),
+            fanout_json(cargo.feature_fanout),
             ",\"workspace_packages\":",
-            workspace_packages_json(DependencyImpactCargo.analysis_nodes(cargo)),
+            workspace_packages_json(cargo.nodes),
             "}",
         ],
     ).
@@ -659,46 +635,35 @@ build(root: String, enforce_milestone: Bool): Model ->
         not metadata.valid -> model_failure(metadata.message);
         true -> let cargo = DependencyImpactCargo.analyze(metadata.document);
         if {
-            not DependencyImpactCargo.analysis_valid(cargo) -> model_failure(DependencyImpactCargo.analysis_message(cargo));
+            not cargo.valid -> model_failure(cargo.message);
             true -> let ast = load_ast(root);
             if {
                 not ast.valid -> model_failure(ast.message);
                 true -> let source = DependencyImpactSource.analyze(ast.document);
                 if {
-                    not DependencyImpactSource.analysis_valid(source) -> model_failure(DependencyImpactSource.analysis_message(source));
-                    true -> let classifications =
-                        DependencyClassifications.check(
-                            root,
-                            DependencyImpactCargo.analysis_duplicates(cargo),
-                        );
+                    not source.valid -> model_failure(source.message);
+                    true -> let classifications = DependencyClassifications.check(root, cargo.duplicates);
                     if {
-                        not DependencyClassifications.result_valid(classifications) -> model_failure(DependencyClassifications.result_message(classifications));
+                        not classifications.valid -> model_failure(classifications.message);
                         true -> let compilation = CompilationInputs.digest(root);
                         if {
-                            not CompilationInputs.result_valid(compilation) -> model_failure(CompilationInputs.result_message(compilation));
+                            not compilation.valid -> model_failure(compilation.message);
                             true -> let timings = load_timings(root);
                             if {
                                 not timings.valid -> model_failure(timings.message);
-                                true -> let workspace_cycles =
-                                    DependencyImpactGraph.cycles(
-                                        DependencyImpactCargo.analysis_nodes(cargo),
-                                    );
+                                true -> let workspace_cycles = DependencyImpactGraph.cycles(cargo.nodes);
                                 let domain_graph =
                                     DependencyImpactGraph.domain_graph(
-                                        DependencyImpactSource.analysis_production_domains(source),
-                                        DependencyImpactSource.analysis_production_edges(source),
+                                        source.production_domains,
+                                        source.production_edges,
                                     );
                                 let domain_cycles = DependencyImpactGraph.cycles(domain_graph);
                                 let blast = DependencyImpactGraph.blast_radius(domain_graph);
                                 let policy =
                                     budget_diagnostics(
-                                        DependencyImpactCargo.analysis_direct_dependency_count(
-                                            cargo,
-                                        ),
-                                        List.length(
-                                            DependencyImpactCargo.analysis_duplicates(cargo),
-                                        ),
-                                        DependencyImpactCargo.analysis_integration_targets(cargo),
+                                        cargo.direct_dependency_count,
+                                        List.length(cargo.duplicates),
+                                        cargo.integration_targets,
                                         List.length(workspace_cycles),
                                         List.length(domain_cycles),
                                         DependencyImpactGraph.maximum_blast(blast, 0),
@@ -707,18 +672,12 @@ build(root: String, enforce_milestone: Bool): Model ->
                                         enforce_milestone,
                                     );
                                 let parsed = ast_parse_diagnostics(ast.document);
-                                let reviewed =
-                                    List.concat(
-                                        DependencyClassifications.result_diagnostics(
-                                            classifications,
-                                        ),
-                                        parsed,
-                                    );
+                                let reviewed = List.concat(classifications.diagnostics, parsed);
                                 let diagnostics = List.concat(policy, reviewed);
                                 Model(
                                     valid = true,
                                     document = build_report(
-                                        CompilationInputs.result_digest(compilation),
+                                        compilation.digest,
                                         cargo,
                                         classifications,
                                         source,
@@ -728,16 +687,10 @@ build(root: String, enforce_milestone: Bool): Model ->
                                         blast,
                                     ),
                                     diagnostics = diagnostics,
-                                    production_domains = List.length(
-                                        DependencyImpactSource.analysis_production_domains(source),
-                                    ),
-                                    production_edges = List.length(
-                                        DependencyImpactSource.analysis_production_edges(source),
-                                    ),
-                                    test_edges = List.length(DependencyImpactSource.analysis_test_edges(source)),
-                                    integration_targets = List.length(
-                                        DependencyImpactCargo.analysis_integration_targets(cargo),
-                                    ),
+                                    production_domains = List.length(source.production_domains),
+                                    production_edges = List.length(source.production_edges),
+                                    test_edges = List.length(source.test_edges),
+                                    integration_targets = List.length(cargo.integration_targets),
                                     message = "",
                                 )
                             }
@@ -787,12 +740,12 @@ checked_diagnostics(root: String, current: String): List[String] ->
 write_report(root: String, source: String): Bool ->
     case Json.parse(source) {
         Err(reason) ->
-            let _printed = eprintln(Json.error_message(reason));
+            let _printed = eprintln(reason.message);
             false;
         Ok(document) ->
             case Json.stringify_pretty(document) {
                 Err(reason) ->
-                    let _printed = eprintln(Json.error_message(reason));
+                    let _printed = eprintln(reason.message);
                     false;
                 Ok(rendered) ->
                     case File.write_text(
@@ -800,7 +753,7 @@ write_report(root: String, source: String): Bool ->
                         String.append(rendered, "\n"),
                     ) {
                         Err(reason) ->
-                            let _printed = eprintln(File.message(reason));
+                            let _printed = eprintln(reason.message);
                             false;
                         Ok(_written) -> true
                     }

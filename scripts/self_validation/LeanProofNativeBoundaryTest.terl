@@ -895,14 +895,14 @@ covered_oracle_commands(root: String, selectors: List[String]): List[Command] ->
 empty_commands(): List[Command] -> [].
 
 output_passed(output: Output): Bool ->
-    Process.status(output) == 0.
+    output.status == 0.
 
 completion_passed(completion: BatchCompletion): Bool ->
-    case {Process.completion_output(completion), Process.completion_error(completion)} {
+    case {completion.output, completion.error} {
         {Some(output), None} ->
             if {
-                rust_coverage_requested() -> rust_oracle_output_holds(Process.status(output), Process.stdout(output), true);
-                true -> standalone_oracles_passed(Process.status(output), Process.stdout(output))
+                rust_coverage_requested() -> rust_oracle_output_holds(output.status, output.stdout, true);
+                true -> standalone_oracles_passed(output.status, output.stdout)
             };
         _ -> false
     }.
@@ -1159,7 +1159,7 @@ run_proof_and_oracles(
                 not output_passed(output) -> fail("Lean NativeBoundary proof command failed");
                 true -> run_runtime_oracles(root, inputs, promotion, proof_digest, build)
             };
-        Err(reason) -> fail(Process.error_message(reason))
+        Err(reason) -> fail(reason.message)
     }.
 
 run_runtime_oracles(
@@ -1172,10 +1172,10 @@ run_runtime_oracles(
     case Process.run_many(Process.batch(oracle_commands(root, runtime_oracles()), 2)) {
         Ok(batch) ->
             if {
-                not completions_passed(Process.completions(batch)) -> fail("one or more NativeBoundary runtime oracles failed");
+                not completions_passed(batch.completions) -> fail("one or more NativeBoundary runtime oracles failed");
                 true -> prepare_output(root, inputs, promotion, proof_digest, build)
             };
-        Err(reason) -> fail(Process.error_message(reason))
+        Err(reason) -> fail(reason.message)
     }.
 
 persist_runtime_report(

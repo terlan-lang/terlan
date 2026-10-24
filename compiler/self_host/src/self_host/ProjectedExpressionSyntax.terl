@@ -11,6 +11,7 @@ import std.core.{Int, String}.
 
 pub struct ProjectedExpressionNode {
     kind: String,
+    /** Semantic text payload, including binding and callable names. */
     text: String,
     start_byte: Int,
     end_byte: Int,

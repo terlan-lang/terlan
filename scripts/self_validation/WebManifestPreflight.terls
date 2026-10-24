@@ -28,7 +28,7 @@ all_assets_exist(root: String, rows: List[RequiredFieldRow]): Bool ->
     case rows {
         [] -> true;
         [row | rest] ->
-            case Json.required_field_row_strings(row) {
+            case row.strings {
                 [_kind, path] ->
                     if {
                         File.exists(join(root, path)) -> all_assets_exist(root, rest);
@@ -41,7 +41,7 @@ all_assets_exist(root: String, rows: List[RequiredFieldRow]): Bool ->
 has_kind(rows: List[RequiredFieldRow], expected: String): Bool ->
     let {
         [row | rest] <- rows;
-        [kind, _path] <- Json.required_field_row_strings(row)
+        [kind, _path] <- row.strings
     } else {
         _ -> false
     };
@@ -64,7 +64,7 @@ validate_browser_document(root: String, document: Json): Bool ->
                     [],
                     [],
                 );
-        [schema, profile, source_manifest, index] <- Json.required_field_strings(header);
+        [schema, profile, source_manifest, index] <- header.strings;
         Ok(assets) <- document.get("assets");
         Ok(rows) <- assets.required_field_rows(["kind", "web_relative_path"], [], [])
     } else {
@@ -83,7 +83,7 @@ validate_browser_document(root: String, document: Json): Bool ->
 has_route(rows: List[RequiredFieldRow], method: String, route: String): Bool ->
     let {
         [row | rest] <- rows;
-        [actual_method, actual_route] <- Json.required_field_row_strings(row)
+        [actual_method, actual_route] <- row.strings
     } else {
         _ -> false
     };

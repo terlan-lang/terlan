@@ -21,6 +21,9 @@ import type std.core.Error.
  * source-visible data shape without exposing server implementation details.
  */
 pub struct HttpError includes Error {
+    /**
+     * HTTP status associated with the error.
+     */
     status: Int,
 }.
 
@@ -35,34 +38,3 @@ pub struct HttpError includes Error {
  */
 pub new(code: Atom, message: String, status: Int): HttpError ->
     HttpError(code = code, message = message, status = status).
-
-/**
- * Returns the portable HTTP error code.
- *
- * Input: one `HttpError`.
- * Output: `Atom` identifying the portable HTTP failure category.
- * Transformation: reads the included `code` field without exposing backend
- * server error values.
- */
-pub (error: HttpError) code(): Atom ->
-    error.code.
-
-/**
- * Returns the portable HTTP error message.
- *
- * Input: one `HttpError`.
- * Output: human-readable UTF-8 message.
- * Transformation: reads the included `message` field.
- */
-pub (error: HttpError) message(): String ->
-    error.message.
-
-/**
- * Returns the HTTP status associated with the error.
- *
- * Input: one `HttpError`.
- * Output: numeric HTTP status code.
- * Transformation: reads the HTTP-specific `status` field.
- */
-pub (error: HttpError) status(): Int ->
-    error.status.

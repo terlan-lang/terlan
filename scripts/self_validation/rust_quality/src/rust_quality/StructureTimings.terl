@@ -147,7 +147,7 @@ policy_from(document: Json): Option[Policy] ->
     } else {
         _ -> None
     };
-    case {Json.required_field_strings(fields), Json.required_field_ints(fields)} {
+    case {fields.strings, fields.ints} {
         {[target, cargo, rustc, host, procedure], [logical_cpus]} ->
             Some(
                 Policy(
@@ -167,7 +167,7 @@ rows_from(values: List[RequiredFieldRow], output: List[TimingRow]): Option[List[
     case values {
         [] -> Some(SourceInventory.reverse(output));
         [value | rest] ->
-            case {Json.required_field_row_strings(value), Json.required_field_row_ints(value)} {
+            case {value.strings, value.ints} {
                 {[name, command, artifact, digest], [wall_time_ms]} ->
                     rows_from(
                         rest,
@@ -276,7 +276,7 @@ artifact_diagnostics(
                             artifact_diagnostics(
                                 root,
                                 rest,
-                                [String.concat([row.name, ": ", File.message(reason)]) | diagnostics],
+                                [String.concat([row.name, ": ", reason.message]) | diagnostics],
                             );
                         Ok(actual) ->
                             artifact_diagnostics(
@@ -307,7 +307,7 @@ provenance_diagnostics(document: Json, schema: Int, diagnostics: List[String]): 
         } else {
             _ -> ["timing provenance is missing required host or source fields" | diagnostics]
         };
-        case {Json.required_field_strings(fields), Json.required_field_ints(fields)} {
+        case {fields.strings, fields.ints} {
             {[digest, kernel, operating_system, cpu_model], [memory_bytes]} ->
                 if {
                     valid_sha256(digest)
@@ -350,7 +350,7 @@ Report(
 
 read_report(root: String, relative: String): Report ->
     case File.read_text(SourceInventory.child(root, relative)) {
-        Err(reason) -> failure(File.message(reason));
+        Err(reason) -> failure(reason.message);
         Ok(source) -> parse(source)
     }.
 
@@ -419,7 +419,7 @@ comparison_rows(
         } else {
             _ -> ["closeout timing comparison has an unsupported shape" | diagnostics]
         };
-        case {Json.required_field_strings(fields), Json.required_field_ints(fields)} {
+        case {fields.strings, fields.ints} {
             {[name], [baseline_ms, closeout_ms, delta_ms]} ->
                 let {
                     Some(baseline_row) <- find_row(baseline, name);
@@ -641,18 +641,17 @@ complete_process(
     completed: Result[std.system.Process.Output, std.system.Process.ProcessError],
 ): Measurement ->
     case completed {
-        Err(reason) ->
-            measurement_failure(String.concat([scenario.name, ": ", Process.error_message(reason)]));
+        Err(reason) -> measurement_failure(String.concat([scenario.name, ": ", reason.message]));
         Ok(output) ->
             if {
-                Process.status(output) != 0 -> measurement_failure(
+                output.status != 0 -> measurement_failure(
                     String.concat(
                         [
                             scenario.name,
                             ": cargo exited with status ",
-                            Int.to_string(Process.status(output)),
+                            Int.to_string(output.status),
                             ": ",
-                            Process.stderr(output),
+                            output.stderr,
                         ],
                     ),
                 );
@@ -673,14 +672,14 @@ run_untouched(root: String, artifact_directory: String, scenario: Scenario): Mea
 run_touched(root: String, artifact_directory: String, scenario: Scenario): Measurement ->
     let path = SourceInventory.child(root, scenario.edited_file);
     case File.timestamps(path) {
-        Err(reason) -> measurement_failure(File.message(reason));
+        Err(reason) -> measurement_failure(reason.message);
         Ok(original) ->
             case File.set_timestamps(
                 path,
                 original.accessed_unix_ns,
                 original.modified_unix_ns + 1000000000,
             ) {
-                Err(reason) -> measurement_failure(File.message(reason));
+                Err(reason) -> measurement_failure(reason.message);
                 Ok(_touched) ->
                     let started = Clock.monotonic_time_ns();
                     let completed = Process.run(process_command(root, scenario));
@@ -691,7 +690,7 @@ run_touched(root: String, artifact_directory: String, scenario: Scenario): Measu
                                     [
                                         scenario.name,
                                         ": cannot restore source timestamps: ",
-                                        File.message(reason),
+                                        reason.message,
                                     ],
                                 ),
                             );
@@ -729,11 +728,11 @@ run_rows(
 
 run_prewarm(root: String, scenario: Scenario): String ->
     case Process.run(process_command(root, scenario)) {
-        Err(reason) -> Process.error_message(reason);
+        Err(reason) -> reason.message;
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> "";
-                true -> String.concat(["editor-feature prewarm failed: ", Process.stderr(output)])
+                output.status == 0 -> "";
+                true -> String.concat(["editor-feature prewarm failed: ", output.stderr])
             }
     }.
 
@@ -788,7 +787,7 @@ remove_timing_target(root: String): Bool ->
         not File.exists(target) -> true;
         true -> case Directory.remove_all(target) {
             Err(reason) ->
-                let _printed = eprintln(Directory.message(reason));
+                let _printed = eprintln(reason.message);
                 false;
             Ok(_removed) -> true
         }
@@ -834,7 +833,7 @@ process_text(root: String, program: String, arguments: List[String]): String ->
         Err(_reason) -> "";
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> String.trim(Process.stdout(output));
+                output.status == 0 -> String.trim(output.stdout);
                 true -> ""
             }
     }.
@@ -912,12 +911,12 @@ comparison_json_rows(closeout: List[TimingRow], baseline: List[TimingRow], outpu
 write_record(root: String, relative: String, document: Json): Bool ->
     case Json.stringify_pretty(document) {
         Err(reason) ->
-            let _printed = eprintln(Json.error_message(reason));
+            let _printed = eprintln(reason.message);
             false;
         Ok(rendered) ->
             case File.write_text(SourceInventory.child(root, relative), String.append(rendered, "\n")) {
                 Err(reason) ->
-                    let _printed = eprintln(File.message(reason));
+                    let _printed = eprintln(reason.message);
                     false;
                 Ok(_written) ->
                     let _printed = println(String.append("wrote ", relative));

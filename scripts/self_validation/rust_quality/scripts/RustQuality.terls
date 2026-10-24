@@ -57,17 +57,8 @@ entry(): Bool ->
         Some("compilation-inputs-self-test") -> CompilationInputs.self_test();
         Some("compilation-inputs-report") ->
             let result = CompilationInputs.digest(repository_root());
-            let _printed =
-                println(
-                    String.concat(
-                        [
-                            Int.to_string(CompilationInputs.result_file_count(result)),
-                            " ",
-                            CompilationInputs.result_digest(result),
-                        ],
-                    ),
-                );
-            CompilationInputs.result_valid(result);
+            let _printed = println(String.concat([Int.to_string(result.file_count), " ", result.digest]));
+            result.valid;
         Some("dependency-classifications-self-test") -> DependencyClassifications.self_test();
         Some("dependency-impact-cargo-self-test") -> DependencyImpactCargo.self_test();
         Some("dependency-impact-graph-self-test") -> DependencyImpactGraph.self_test();

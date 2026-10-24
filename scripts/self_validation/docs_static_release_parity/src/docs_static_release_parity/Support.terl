@@ -29,12 +29,33 @@ pub struct Coverage {
 }.
 
 pub struct SiteSummary {
+    /**
+     * Version of the installed documentation site.
+     */
     version: String,
+    /**
+     * Number of generated module reference pages.
+     */
     module_pages: Int,
+    /**
+     * Total number of generated site files.
+     */
     generated_files: Int,
+    /**
+     * Number of entries in the generated search index.
+     */
     search_entries: Int,
+    /**
+     * Counts of documented API declarations by category.
+     */
     api_coverage: Coverage,
+    /**
+     * Number of CLI commands covered by generated help.
+     */
     command_help_coverage: Int,
+    /**
+     * Runtime metadata embedded in the documentation site.
+     */
     runtime: Json,
 }.
 
@@ -42,8 +63,17 @@ pub struct SiteSummary {
  * Bounded API-model projection retained between documentation stages.
  */
 pub struct SiteProjection {
+    /**
+     * Counts of API declarations retained for site generation.
+     */
     api_coverage: Coverage,
+    /**
+     * Projected module and declaration rows used to build the search index.
+     */
     search_rows: Json,
+    /**
+     * Number of projected search-index entries.
+     */
     search_entries: Int,
 }.
 
@@ -86,36 +116,6 @@ pub site_summary(
         command_help_coverage = command_help_coverage,
         runtime = runtime,
     ).
-
-pub version(summary: SiteSummary): String ->
-    summary.version.
-
-pub module_pages(summary: SiteSummary): Int ->
-    summary.module_pages.
-
-pub generated_files(summary: SiteSummary): Int ->
-    summary.generated_files.
-
-pub search_entries(summary: SiteSummary): Int ->
-    summary.search_entries.
-
-pub api_coverage(summary: SiteSummary): Coverage ->
-    summary.api_coverage.
-
-pub command_help_coverage(summary: SiteSummary): Int ->
-    summary.command_help_coverage.
-
-pub runtime(summary: SiteSummary): Json ->
-    summary.runtime.
-
-pub projection_coverage(projection: SiteProjection): Coverage ->
-    projection.api_coverage.
-
-pub projection_search_rows(projection: SiteProjection): Json ->
-    projection.search_rows.
-
-pub projection_search_entries(projection: SiteProjection): Int ->
-    projection.search_entries.
 
 pub child(parent: String, name: String): String ->
     if {
@@ -220,7 +220,7 @@ declaration_counts(declarations: List[StringFieldRow], totals: Coverage): Covera
         [declaration | rest] ->
             let kind =
                 if {
-                    Json.string_field_row_is_object(declaration) -> first_string(Json.string_field_row_values(declaration), "");
+                    declaration.object -> first_string(declaration.values, "");
                     true -> ""
                 };
             declaration_counts(
@@ -253,7 +253,7 @@ declaration_counts(declarations: List[StringFieldRow], totals: Coverage): Covera
 module_total(module_value: NestedStringFieldRow, totals: Coverage): Coverage ->
     let name =
         if {
-            Json.nested_string_field_row_is_object(module_value) -> first_string(Json.nested_string_field_row_values(module_value), "");
+            module_value.object -> first_string(module_value.values, "");
             true -> ""
         };
     let with_module =
@@ -270,7 +270,7 @@ module_total(module_value: NestedStringFieldRow, totals: Coverage): Coverage ->
             native_boundary_capabilities = totals.native_boundary_capabilities,
             packages = totals.packages,
         );
-    declaration_counts(Json.nested_string_field_row_children(module_value), with_module).
+    declaration_counts(module_value.children, with_module).
 
 module_counts(modules: List[NestedStringFieldRow], totals: Coverage): Coverage ->
     case modules {
@@ -392,8 +392,8 @@ search_declaration_rows(
         [] -> {reversed, total};
         [declaration | rest] ->
             if {
-                not Json.string_field_row_is_object(declaration) -> search_declaration_rows(rest, module_name, page, reversed, total);
-                true -> let values = Json.string_field_row_values(declaration);
+                not declaration.object -> search_declaration_rows(rest, module_name, page, reversed, total);
+                true -> let values = declaration.values;
                 let kind = first_string(values, "unknown");
                 let name = second_string(values, "");
                 search_declaration_rows(
@@ -416,13 +416,13 @@ search_module_rows(
         [] -> {reversed, total};
         [module_value | rest] ->
             if {
-                not Json.nested_string_field_row_is_object(module_value) -> search_module_rows(rest, version, reversed, total);
-                true -> let name = first_string(Json.nested_string_field_row_values(module_value), "");
+                not module_value.object -> search_module_rows(rest, version, reversed, total);
+                true -> let name = first_string(module_value.values, "");
                 let page = String.append(version, String.append("/api/", String.append(name, ".html")));
                 let with_module = [["module", name, name, page] | reversed];
                 let {with_declarations, after_declarations} =
                     search_declaration_rows(
-                        Json.nested_string_field_row_children(module_value),
+                        module_value.children,
                         name,
                         page,
                         with_module,
@@ -540,7 +540,7 @@ pub command_output(
     case Process.run(request) {
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(Process.stdout(output));
+                output.status == 0 -> Some(output.stdout);
                 true -> None
             };
         Err(_reason) -> None

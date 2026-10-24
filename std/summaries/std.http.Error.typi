@@ -22,25 +22,6 @@ pub struct HttpError {
     status: Int
 }.
 
-/// Returns the portable HTTP error code.
-///
-/// Input: one `HttpError`.
-/// Output: `Atom` identifying the portable HTTP failure category.
-/// Transformation: reads the included `code` field without exposing backend
-/// server error values.
-
-@pure
-pub (error: HttpError) code(): Atom.
-
-/// Returns the portable HTTP error message.
-///
-/// Input: one `HttpError`.
-/// Output: human-readable UTF-8 message.
-/// Transformation: reads the included `message` field.
-
-@pure
-pub (error: HttpError) message(): String.
-
 /// Creates a portable HTTP error.
 ///
 /// Input: one symbolic error code, one human-readable message, and one HTTP
@@ -50,12 +31,3 @@ pub (error: HttpError) message(): String.
 /// `std.core.Error.Error` plus HTTP-specific status context.
 
 pub new(code: Atom, message: String, status: Int): HttpError.
-
-/// Returns the HTTP status associated with the error.
-///
-/// Input: one `HttpError`.
-/// Output: numeric HTTP status code.
-/// Transformation: reads the HTTP-specific `status` field.
-
-@pure
-pub (error: HttpError) status(): Int.

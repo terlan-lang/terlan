@@ -89,16 +89,6 @@ pub type Unknown =
 
 pub append_text(path: String, content: String): Result[Unit, FileError].
 
-/// Returns the portable file error code.
-///
-/// Input: one `FileError`.
-/// Output: `Atom` identifying the portable file failure category.
-/// Transformation: reads the included `code` field without exposing backend
-/// filesystem reason values.
-
-@pure
-pub code(error: FileError): Atom.
-
 /// Copies one regular file to a new path while preserving host permissions.
 ///
 /// The destination parent must already exist and the destination itself must
@@ -146,15 +136,6 @@ pub exists(path: String): Bool.
 
 pub is_executable(path: String): Result[Bool, FileError].
 
-/// Returns the portable file error message.
-///
-/// Input: one `FileError`.
-/// Output: human-readable UTF-8 message.
-/// Transformation: reads the included `message` field.
-
-@pure
-pub message(error: FileError): String.
-
 /// Builds a portable file error.
 ///
 /// Input: a symbolic file error code, human-readable message, and source path.
@@ -164,15 +145,6 @@ pub message(error: FileError): String.
 
 @pure
 pub new(code: Atom, message: String, path: String): FileError.
-
-/// Returns the path associated with a file error.
-///
-/// Input: one `FileError`.
-/// Output: the UTF-8 path supplied to the file operation.
-/// Transformation: reads the file-specific `path` field.
-
-@pure
-pub path(error: FileError): String.
 
 /// Reads one file without UTF-8 decoding into VM-owned immutable bytes.
 
@@ -252,16 +224,6 @@ pub set_timestamps(path: String, accessed_unix_ns: Int, modified_unix_ns: Int): 
 /// the actor heap.
 
 pub size(path: String): Result[Int, FileError].
-
-/// Returns the decoded UTF-8 contents stored in a batch-read value.
-
-@pure
-pub text_file_contents(file: TextFile): String.
-
-/// Returns the requested path stored in a batch-read value.
-
-@pure
-pub text_file_path(file: TextFile): String.
 
 /// Returns access and modification timestamps for one regular file.
 

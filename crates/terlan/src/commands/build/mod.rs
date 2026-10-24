@@ -115,3 +115,16 @@ pub(crate) use build_orchestration::{resolve_project_test_dependencies, run, run
 pub(crate) fn target_inference_sources(path: &Path) -> Result<Vec<PathBuf>, String> {
     build_target_inference_sources(path)
 }
+
+/// Resolves source dependencies for checks without building native helpers.
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) fn project_check_source_roots(
+    project_dir: &Path,
+    manifest: &project_manifest::ProjectManifest,
+) -> Result<Vec<PathBuf>, String> {
+    Ok(resolve_project_build_roots(project_dir, manifest)?
+        .source_roots
+        .into_iter()
+        .map(|root| root.path)
+        .collect())
+}

@@ -6,13 +6,13 @@ import std.core.Memory.{Inline, Managed, Opaque}.
 import type std.core.Memory.{Storage}.
 
 pub int_layout_size(): Int ->
-    Memory.size(Memory.layout_of[Int]()).
+    Memory.layout_of[Int]().size.
 
 pub bool_layout_alignment(): Int ->
-    Memory.alignment(Memory.layout_of[Bool]()).
+    Memory.layout_of[Bool]().alignment.
 
 pub string_layout_size(): Int ->
-    Memory.size(Memory.layout_of[String]()).
+    Memory.layout_of[String]().size.
 
 pub int_shallow_size(): Int ->
     Memory.shallow_size[Int](42).
@@ -27,27 +27,27 @@ pub string_retained_size(): Int ->
     Memory.retained_size[String]("hello").
 
 pub int_storage(): Storage ->
-    Memory.storage(Memory.layout_of[Int]()).
+    Memory.layout_of[Int]().storage.
 
 pub string_storage(): Storage ->
-    Memory.storage(Memory.layout_of[String]()).
+    Memory.layout_of[String]().storage.
 
 pub dynamic_storage(): Storage ->
-    Memory.storage(Memory.layout_of[Dynamic]()).
+    Memory.layout_of[Dynamic]().storage.
 
 pub dynamic_layout_size(): Int ->
-    Memory.size(Memory.layout_of[Dynamic]()).
+    Memory.layout_of[Dynamic]().size.
 
 pub memory_contract(): Bool ->
     int_storage() == Inline
         and string_storage() == Managed
         and dynamic_storage() == Opaque
-        and Memory.size(Memory.layout_of[Int]()) == 8
-        and Memory.alignment(Memory.layout_of[Int]()) == 8
-        and Memory.alignment(Memory.layout_of[Bool]()) == 1
-        and Memory.size(Memory.layout_of[String]()) == 8
-        and Memory.size(Memory.layout_of[Dynamic]()) == 0
-        and Memory.alignment(Memory.layout_of[Dynamic]()) == 1
+        and Memory.layout_of[Int]().size == 8
+        and Memory.layout_of[Int]().alignment == 8
+        and Memory.layout_of[Bool]().alignment == 1
+        and Memory.layout_of[String]().size == 8
+        and Memory.layout_of[Dynamic]().size == 0
+        and Memory.layout_of[Dynamic]().alignment == 1
         and Memory.shallow_size[Int](42) == 8
         and Memory.retained_size[Int](42) == 8
         and Memory.shallow_size[String]("hello") == 13

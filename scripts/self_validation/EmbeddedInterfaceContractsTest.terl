@@ -39,7 +39,7 @@ fixture_holds(generated: String, source: String, artifact: String): Bool ->
         );
     case Process.run(request) {
         Ok(output) ->
-            Process.status(output) == 0
+            output.status == 0
                 and artifact_matches(generated, artifact)
                 and artifact_matches(generated, append(artifact, ".deps"));
         _ -> false

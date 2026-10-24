@@ -504,8 +504,8 @@ completions_hold(completions: List[BatchCompletion]): Bool ->
     case completions {
         [] -> true;
         [completion | rest] ->
-            case {Process.completion_output(completion), Process.completion_error(completion)} {
-                {Some(output), None} -> Process.status(output) == 0 and completions_hold(rest);
+            case {completion.output, completion.error} {
+                {Some(output), None} -> output.status == 0 and completions_hold(rest);
                 _ -> false
             }
     }.
@@ -523,7 +523,7 @@ generate_docs(
         );
     let commands = doc_commands(compiler, root, docs, source_paths);
     case Process.run_many(Process.batch(commands, 4)) {
-        Ok(batch) -> completions_hold(Process.completions(batch));
+        Ok(batch) -> completions_hold(batch.completions);
         Err(_reason) -> false
     }.
 

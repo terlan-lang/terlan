@@ -165,7 +165,7 @@ exact_targets(rows: List[RequiredFieldRow], remaining: List[String]): Bool ->
     case rows {
         [] -> remaining == [];
         [row | rest] ->
-            let [triple] <- Json.required_field_row_strings(row) else {
+            let [triple] <- row.strings else {
                 _ -> false
             };
             (let next = List.subtract(remaining, [triple]); List.length(next) + 1 == List.length(remaining) and exact_targets(rest, next))

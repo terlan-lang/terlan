@@ -52,11 +52,11 @@ pub read_json(path: String): Result[Json, String] ->
         _ -> Err("owner JSON is unavailable or exceeds the 16 MiB budget")
     };
     case File.read_text(path) {
-        Err(reason) -> Err(File.message(reason));
+        Err(reason) -> Err(reason.message);
         Ok(source) ->
             case Json.parse(source) {
                 Ok(document) -> Ok(document);
-                Err(reason) -> Err(Json.error_message(reason))
+                Err(reason) -> Err(reason.message)
             }
     }.
 
@@ -77,7 +77,7 @@ file_row(root: String, path: String, optional: Bool): Result[Json, String] ->
     case Hash.sha256_file(child(root, path)) {
         Err(reason) ->
             if {
-                optional and File.code(reason) == FileNotFound -> Ok(row.put("absent", Json.bool(true)));
+                optional and reason.code == FileNotFound -> Ok(row.put("absent", Json.bool(true)));
                 true -> Err(String.append("cannot hash owner input: ", path))
             };
         Ok(digest) ->
@@ -109,7 +109,7 @@ files_at(
 pub digest(value: Json): Result[String, String] ->
     case Json.stringify(value) {
         Ok(source) -> Ok(Hash.sha256(source));
-        Err(reason) -> Err(Json.error_message(reason))
+        Err(reason) -> Err(reason.message)
     }.
 
 pub command(root: String, program: String, args: List[String]): Bool ->
@@ -121,7 +121,7 @@ pub command(root: String, program: String, args: List[String]): Bool ->
             .with_timeout_ms(30000)
             .with_output_limit_bytes(1048576),
     ) {
-        Ok(output) -> Process.status(output) == 0;
+        Ok(output) -> output.status == 0;
         Err(_reason) -> false
     }.
 
@@ -153,11 +153,11 @@ if {
 pub discard_pending(root: String, path: String): Bool ->
     case File.delete(child(root, String.append(path, ".pending"))) {
         Ok(_removed) -> true;
-        Err(reason) -> File.code(reason) == FileNotFound
+        Err(reason) -> reason.code == FileNotFound
     }.
 
 pub clean_workspace(root: String, relative: String): Bool ->
     case Directory.remove_all(child(root, relative)) {
         Ok(_removed) -> true;
-        Err(reason) -> Directory.code(reason) == NotFound
+        Err(reason) -> reason.code == NotFound
     }.

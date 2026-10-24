@@ -22,7 +22,13 @@ import type std.io.File.CopyPlan.
  * One repository source file and its canonical path inside a release archive.
  */
 pub struct Payload {
+    /**
+     * Filesystem path of the release payload to package.
+     */
     source: String,
+    /**
+     * Destination path of this payload within the release archive.
+     */
     archive: String,
 }.
 
@@ -35,29 +41,19 @@ struct PayloadRoot {
  * Paths of generated checksum and install metadata files.
  */
 pub struct GeneratedMetadata {
+    /**
+     * Filesystem path of the generated checksum manifest.
+     */
     checksums: String,
+    /**
+     * Filesystem path of the generated installation manifest.
+     */
     install_manifest: String,
 }.
 
 @pure
 pub payload(source: String, archive: String): Payload ->
     Payload(source = source, archive = archive).
-
-@pure
-pub source(value: Payload): String ->
-    value.source.
-
-@pure
-pub archive(value: Payload): String ->
-    value.archive.
-
-@pure
-pub checksums(value: GeneratedMetadata): String ->
-    value.checksums.
-
-@pure
-pub install_manifest(value: GeneratedMetadata): String ->
-    value.install_manifest.
 
 @pure
 pub child(parent: String, name: String): String ->

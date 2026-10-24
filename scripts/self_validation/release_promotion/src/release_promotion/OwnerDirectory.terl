@@ -98,7 +98,7 @@ matches(root: String, path: String, destination: String, expected: Json): Bool -
  */
 missing(root: String, path: String): Bool ->
     case Directory.tree_usage(OwnerStorage.child(root, path)) {
-        Err(reason) -> Directory.code(reason) == NotFound;
+        Err(reason) -> reason.code == NotFound;
         Ok(_usage) -> false
     }.
 

@@ -57,8 +57,8 @@ file_diagnostics(files: List[TextFile], diagnostics: List[String]): List[String]
     case files {
         [] -> diagnostics;
         [file | rest] ->
-            let path = File.text_file_path(file);
-            let contents = File.text_file_contents(file);
+            let path = file.path;
+            let contents = file.contents;
             let tabs =
                 if {
                     String.contains(contents, "\t") -> [String.append(path, ": contains tab characters") | diagnostics];
@@ -81,7 +81,7 @@ print_diagnostics(values: List[String]): Bool ->
 pub check(root: String): Bool ->
     case Directory.files_recursive_excluding(SourceInventory.child(root, "docs"), []) {
         Err(reason) ->
-            let _printed = eprintln(Directory.message(reason));
+            let _printed = eprintln(reason.message);
             false;
         Ok(files) ->
             let paths =
@@ -96,7 +96,7 @@ pub check(root: String): Bool ->
                 );
             case File.read_text_many(paths) {
                 Err(reason) ->
-                    let _printed = eprintln(File.message(reason));
+                    let _printed = eprintln(reason.message);
                     false;
                 Ok(sources) ->
                     let diagnostics = file_diagnostics(sources, List.new[String]());

@@ -9,8 +9,17 @@ import type std.core.{Error, Result}.
  * One full revision and the exact tracked/untracked source-tree digest.
  */
 pub struct SourceTreeIdentity {
+    /**
+     * Full lowercase checked-out revision.
+     */
     revision: String,
+    /**
+     * Whether tracked and nonignored untracked state is empty.
+     */
     clean: Bool,
+    /**
+     * Domain-separated byte-exact source-tree digest.
+     */
     sha256: String,
 }.
 
@@ -31,33 +40,3 @@ pub type SourceTreeIdentityFailed.
 @compiler.intrinsic
 pub source_tree_identity(root: String): Result[SourceTreeIdentity, GitError] ->
     native.
-
-/**
- * Returns the full lowercase checked-out revision.
- */
-pub revision(identity: SourceTreeIdentity): String ->
-    identity.revision.
-
-/**
- * Returns whether tracked and nonignored untracked state is empty.
- */
-pub clean(identity: SourceTreeIdentity): Bool ->
-    identity.clean.
-
-/**
- * Returns the domain-separated byte-exact source-tree digest.
- */
-pub sha256(identity: SourceTreeIdentity): String ->
-    identity.sha256.
-
-/**
- * Returns the stable Git error code.
- */
-pub error_code(error: GitError): Atom ->
-    error.code.
-
-/**
- * Returns the Git failure diagnostic.
- */
-pub error_message(error: GitError): String ->
-    error.message.

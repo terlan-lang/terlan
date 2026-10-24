@@ -32,6 +32,66 @@ fn ledger(root: &Path) {
 }
 
 #[test]
+fn directory_check_loads_current_path_dependency_interfaces() {
+    for with_contract in [false, true] {
+        let dir = TestDirectory::new("check", "path_dependency_interfaces");
+        write(
+            dir.path(),
+            "dep/terlan.toml",
+            "[package]\nname = \"dep\"\nversion = \"0.0.1\"\nnamespace = \"dep\"\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n",
+        );
+        write(
+            dir.path(),
+            "app/terlan.toml",
+            "[package]\nname = \"client\"\nversion = \"0.0.1\"\nnamespace = \"client\"\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n[dependencies]\ndep = { path = \"../dep\" }\n",
+        );
+        let provider = "module dep.Models. pub struct Row { id: Int }.";
+        write(dir.path(), "dep/src/dep/Models.terl", provider);
+        let client =
+            "module client.Main. import type dep.Models.Row. pub id(row: Row): Int -> row.id.";
+        write(dir.path(), "app/src/client/Main.terl", client);
+        if with_contract {
+            write(
+                dir.path(),
+                "app/src/client/Main.terli",
+                "module client.Main. import type dep.Models.Row. pub id(row: Row): Int.",
+            );
+        }
+        let root = dir.path().join("app/src");
+        let check_current = || {
+            super::run(
+                CliCommand {
+                    verb: Some("check".into()),
+                    args: vec![root.to_string_lossy().into_owned()],
+                },
+                CliState {
+                    incremental: true,
+                    ..CliState::default()
+                },
+            )
+        };
+        assert_eq!(check_current(), ExitCode::SUCCESS);
+
+        write(
+            dir.path(),
+            "dep/src/dep/Models.terl",
+            "module dep.Models. pub struct Row { id: String }.",
+        );
+        assert_ne!(check_current(), ExitCode::SUCCESS);
+        assert_ne!(check_current(), ExitCode::SUCCESS);
+
+        // A dependency's handwritten API is sufficient even before its body exists.
+        write(dir.path(), "dep/src/dep/Models.terli", provider);
+        write(
+            dir.path(),
+            "dep/src/dep/Models.terl",
+            "unfinished implementation",
+        );
+        assert_eq!(check_current(), ExitCode::SUCCESS);
+    }
+}
+
+#[test]
 fn interface_first_checks_local_include_chains_and_rejects_cycles() {
     let dir = TestDirectory::new("interfaces", "local_include_chains");
     write(dir.path(), "api.terli", "module api. pub struct Leaf includes Middle { leaf: String }. pub struct Middle includes Base { middle: Bool }. pub struct Base { code: Int }.");

@@ -6,26 +6,26 @@ import std.time.Instant.{Instant, add_duration, duration_since, from_millisecond
 
 @test
 pub constructor_stores_milliseconds(): Bool ->
-    assert_equal(1000.5, Instant(1000.5).to_milliseconds()).
+    assert_equal(1000.5, Instant(1000.5).milliseconds).
 
 @test
 pub from_milliseconds_preserves_payload(): Bool ->
-    assert_equal(42.25, from_milliseconds(42.25).to_milliseconds()).
+    assert_equal(42.25, from_milliseconds(42.25).milliseconds).
 
 @test
 pub add_duration_advances_instant(): Bool ->
     let instant = from_milliseconds(100.0);
     let duration = std.time.Duration.from_milliseconds(25.5);
-    assert_equal(125.5, add_duration(instant, duration).to_milliseconds()).
+    assert_equal(125.5, add_duration(instant, duration).milliseconds).
 
 @test
 pub subtract_duration_moves_instant_backward(): Bool ->
     let instant = from_milliseconds(100.0);
     let duration = std.time.Duration.from_milliseconds(25.5);
-    assert_equal(74.5, subtract_duration(instant, duration).to_milliseconds()).
+    assert_equal(74.5, subtract_duration(instant, duration).milliseconds).
 
 @test
 pub duration_since_returns_millisecond_difference(): Bool ->
     let later = from_milliseconds(110.25);
     let earlier = from_milliseconds(100.0);
-    assert_equal(10.25, duration_since(later, earlier).to_milliseconds()).
+    assert_equal(10.25, duration_since(later, earlier).milliseconds).

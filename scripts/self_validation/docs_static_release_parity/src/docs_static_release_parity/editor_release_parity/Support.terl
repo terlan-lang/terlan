@@ -177,7 +177,7 @@ pub successful_output(
     case run_process(program, arguments, cwd, environment, "", 60000, 8388608) {
         Some(output) ->
             if {
-                Process.status(output) == 0 -> Some(Process.stdout(output));
+                output.status == 0 -> Some(output.stdout);
                 true -> None
             };
         None -> None

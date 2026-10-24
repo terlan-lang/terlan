@@ -151,7 +151,7 @@ matches(root: String, path: String, destination: String, expected: Json): Bool -
 pub publish_file(root: String, staged: String, destination: String, expected: Json): Bool ->
     case File.size(OwnerStorage.child(root, staged)) {
         Err(reason) ->
-            File.code(reason) == NotFound and matches(root, destination, destination, expected);
+            reason.code == NotFound and matches(root, destination, destination, expected);
         Ok(_size) ->
             matches(root, staged, destination, expected)
                 and OwnerStorage.command(
@@ -164,7 +164,7 @@ pub publish_file(root: String, staged: String, destination: String, expected: Js
 ready(root: String, staged: String, destination: String, expected: Json): Bool ->
     case File.size(OwnerStorage.child(root, staged)) {
         Err(reason) ->
-            File.code(reason) == NotFound and matches(root, destination, destination, expected);
+            reason.code == NotFound and matches(root, destination, destination, expected);
         Ok(_size) -> matches(root, staged, destination, expected)
     }.
 

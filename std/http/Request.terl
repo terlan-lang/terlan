@@ -184,5 +184,5 @@ pub (request: Request) body_file_path(): String ->
 pub (request: Request) body_json(): Result[Json, Error] ->
     case Json.parse(request.body_text()) {
         Ok(value) -> Ok(value);
-        Err(reason) -> Err(Error.new(InvalidBody, Json.error_message(reason)))
+        Err(reason) -> Err(Error.new(InvalidBody, reason.message))
     }.

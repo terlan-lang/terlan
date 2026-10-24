@@ -93,7 +93,7 @@ parse_row_lines(lines: List[String], rows: List[ApiRow], valid: Bool): ParsedRow
 load_rows(repository: String, relative: String): Option[List[ApiRow]] ->
     case File.read_text(child(repository, relative)) {
         Err(reason) ->
-            let _reported = failure("manifest", File.message(reason));
+            let _reported = failure("manifest", reason.message);
             None;
         Ok(source) ->
             let parsed = parse_rows(source);
@@ -124,7 +124,7 @@ bounded_test(repository: String, arguments: List[String]): Command ->
     ).
 
 combined(output: Output): String ->
-    String.concat([Process.stdout(output), "\n", Process.stderr(output)]).
+    String.concat([output.stdout, "\n", output.stderr]).
 
 negative_fixture_path(path: String, io_only: Bool): Bool ->
     String.starts_with(
@@ -155,11 +155,11 @@ validate_negative_rows(
                 );
                 true -> let _printed = println(String.append("[stdlib-negative-api-test] ", row.path));
                 case Process.run(bounded_test(repository, ["test", row.path])) {
-                    Err(reason) -> failure("negative.process", Process.error_message(reason));
+                    Err(reason) -> failure("negative.process", reason.message);
                     Ok(output) ->
                         let text = combined(output);
                         if {
-                            Process.status(output) == 0 -> failure(
+                            output.status == 0 -> failure(
                                 "negative.accepted",
                                 String.append("invalid fixture passed: ", row.path),
                             );
@@ -244,15 +244,15 @@ run_release_files(repository: String, paths: List[String]): Bool ->
                         ),
                     ),
                 ) {
-                    Err(reason) -> failure("release.process", Process.error_message(reason));
+                    Err(reason) -> failure("release.process", reason.message);
                     Ok(output) ->
                         if {
-                            Process.status(output) == 0
+                            output.status == 0
                                 and not File.exists(release_result_path(repository, path)) -> failure(
                                 "release.evidence",
                                 String.append("missing test result manifest: ", path),
                             );
-                            Process.status(output) == 0 -> run_release_files(repository, rest);
+                            output.status == 0 -> run_release_files(repository, rest);
                             true -> failure("release.failed", String.concat([path, "\n", combined(output)]))
                         }
                 }
@@ -269,7 +269,7 @@ remove_previous_release_result(repository: String, path: String): Bool ->
         not File.exists(result_path) -> true;
         true -> case File.delete(result_path) {
             Ok(_) -> true;
-            Err(reason) -> failure("release.stale_result", File.message(reason))
+            Err(reason) -> failure("release.stale_result", reason.message)
         }
     }.
 
@@ -299,13 +299,10 @@ backend_calls_absent(files: List[TextFile], pattern: Regex): Bool ->
         [] -> true;
         [file | rest] ->
             if {
-                String.ends_with(File.text_file_path(file), "Test.terl") -> backend_calls_absent(rest, pattern);
-                Regex.is_match(
-                    pattern,
-                    non_comment_source(String.split(File.text_file_contents(file), "\n"), ""),
-                ) -> failure(
+                String.ends_with(file.path, "Test.terl") -> backend_calls_absent(rest, pattern);
+                Regex.is_match(pattern, non_comment_source(String.split(file.contents, "\n"), "")) -> failure(
                     "core.backend",
-                    String.append("backend primitive call remains in ", File.text_file_path(file)),
+                    String.append("backend primitive call remains in ", file.path),
                 );
                 true -> backend_calls_absent(rest, pattern)
             }

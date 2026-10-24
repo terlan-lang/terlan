@@ -62,7 +62,7 @@ archive_name(name: String): Bool ->
 pub release_archives(root: String): Result[List[String], String] ->
     let directory = child(root, "dist");
     case Directory.files_recursive_excluding(directory, []) {
-        Err(reason) -> Err(Directory.message(reason));
+        Err(reason) -> Err(reason.message);
         Ok(entries) -> Ok(release_archives_at(root, entries, List.new[String]()))
     }.
 
@@ -180,7 +180,7 @@ pub directory_files(root: String, relative_directory: String): Result[List[Strin
         child(root, relative_directory),
         [".git", ".lake", "__pycache__", "node_modules", "target"],
     ) {
-        Err(reason) -> Err(Directory.message(reason));
+        Err(reason) -> Err(reason.message);
         Ok(files) -> Ok(sort_unique(relative_paths(root, files, List.new[String]())))
     }.
 
@@ -205,7 +205,7 @@ relative_paths(root: String, files: List[String], output: List[String]): List[St
  */
 pub matching_files(root: String, base: String, suffixes: List[String]): Result[List[String], String] ->
     case Directory.files_recursive_excluding(child(root, base), ["target", ".git"]) {
-        Err(reason) -> Err(Directory.message(reason));
+        Err(reason) -> Err(reason.message);
         Ok(files) -> Ok(matching_files_at(root, files, suffixes, List.new[String]()))
     }.
 

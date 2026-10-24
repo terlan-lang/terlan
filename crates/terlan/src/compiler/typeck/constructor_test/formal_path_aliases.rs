@@ -1,6 +1,25 @@
 use super::*;
 
 #[test]
+fn nested_opaque_representations_match_inside_their_owner() {
+    let diagnostics = check_syntax_output(
+        r#"
+module geometry.Owner.
+pub struct Extent { width: Int }.
+pub opaque type Scale = Float.
+pub opaque type Viewport = {Float, Extent, Scale}.
+fields(value: Viewport): {Float, Extent, Scale} -> value.
+pub make(extent: Extent, scale: Scale): Viewport ->
+    Viewport({1.0, extent, scale}).
+pub width(value: Viewport): Float ->
+    let {width, _extent, _scale} = fields(value);
+    width.
+"#,
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
+#[test]
 fn constructor_arguments_expand_returned_callback_aliases() {
     let diagnostics = check_syntax_output(
         r#"

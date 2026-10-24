@@ -45,16 +45,16 @@ report_failure(message: String): Bool ->
 
 proof_output_holds(output: Output): Bool ->
     if {
-        Process.status(output) == 0 -> true;
+        output.status == 0 -> true;
         true -> report_failure(
             String.concat(
                 [
                     "Lean proof failed with status ",
-                    Int.to_string(Process.status(output)),
+                    Int.to_string(output.status),
                     "\nstdout:\n",
-                    Process.stdout(output),
+                    output.stdout,
                     "\nstderr:\n",
-                    Process.stderr(output),
+                    output.stderr,
                 ],
             ),
         )
@@ -70,9 +70,9 @@ proof_holds(root: String, proof_path: String): Bool ->
                     String.concat(
                         [
                             "Lean proof process failed: ",
-                            Process.error_message(reason),
+                            reason.message,
                             " (program: ",
-                            Process.error_program(reason),
+                            reason.program,
                             ")",
                         ],
                     ),

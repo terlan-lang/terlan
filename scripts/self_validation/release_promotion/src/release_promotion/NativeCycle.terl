@@ -96,7 +96,7 @@ pub open(root: String, candidate: String, graph: String): Result[Json, String] -
             Ok(_size) -> load(root, journal, candidate, graph);
             Err(reason) ->
                 if {
-                    File.code(reason) == NotFound -> Ok(fresh(candidate, graph));
+                    reason.code == NotFound -> Ok(fresh(candidate, graph));
                     true -> Err("cannot inspect native cycle checkpoint")
                 }
         };
@@ -130,7 +130,7 @@ signature(root: String, owner: Owner): Result[String, String] ->
         Ok(digest) -> Ok(digest);
         Err(reason) ->
             if {
-                File.code(reason) == NotFound -> Ok("absent");
+                reason.code == NotFound -> Ok("absent");
                 true -> Err("cannot fingerprint native owner log")
             }
     }.

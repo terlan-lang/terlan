@@ -50,15 +50,6 @@ pub from_seconds(seconds: Float): Duration.
 
 pub subtract(left: Duration, right: Duration): Duration.
 
-/// Returns the millisecond payload.
-///
-/// Input: one `Duration`.
-/// Output: finite millisecond count.
-/// Transformation: reads the portable numeric representation unchanged.
-
-@pure
-pub (duration: Duration) to_milliseconds(): Float.
-
 /// Returns the second value.
 ///
 /// Input: one `Duration`.

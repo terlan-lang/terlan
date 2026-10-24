@@ -163,21 +163,20 @@ execute_and_restore(root: String, scenario: Scenario, accessed: Int, modified: I
     let elapsed = (Clock.monotonic_time_ns() - started) / 1000000;
     let edited = child(root, scenario.edited);
     case File.set_timestamps(edited, accessed, modified) {
-        Err(reason) -> restore_failure(scenario.edited, File.message(reason));
+        Err(reason) -> restore_failure(scenario.edited, reason.message);
         Ok(_restored) ->
             case completed {
-                Err(reason) ->
-                    failure(String.concat([scenario.name, ": ", Process.error_message(reason)]));
+                Err(reason) -> failure(String.concat([scenario.name, ": ", reason.message]));
                 Ok(output) ->
                     if {
-                        Process.status(output) != 0 -> failure(
+                        output.status != 0 -> failure(
                             String.concat(
                                 [
                                     scenario.name,
                                     ": cargo exited with status ",
-                                    Int.to_string(Process.status(output)),
+                                    Int.to_string(output.status),
                                     ": ",
-                                    Process.stderr(output),
+                                    output.stderr,
                                 ],
                             ),
                         );
@@ -200,7 +199,7 @@ execute_and_restore(root: String, scenario: Scenario, accessed: Int, modified: I
 run_scenario(root: String, scenario: Scenario): Measurement ->
     let edited = child(root, scenario.edited);
     case File.timestamps(edited) {
-        Err(reason) -> failure(String.concat([scenario.name, ": ", File.message(reason)]));
+        Err(reason) -> failure(String.concat([scenario.name, ": ", reason.message]));
         Ok(original) ->
             if {
                 not scenario.touch -> execute_and_restore(
@@ -214,8 +213,7 @@ run_scenario(root: String, scenario: Scenario): Measurement ->
                     original.accessed_unix_ns,
                     original.modified_unix_ns + 1000000000,
                 ) {
-                    Err(reason) ->
-                        failure(String.concat([scenario.name, ": ", File.message(reason)]));
+                    Err(reason) -> failure(String.concat([scenario.name, ": ", reason.message]));
                     Ok(_touched) ->
                         execute_and_restore(
                             root,
@@ -250,12 +248,12 @@ remove_owned_target(root: String): Bool ->
     let target = child(root, "target/cq3-timings");
     case Directory.create_all(target_parent) {
         Err(reason) ->
-            let _printed = eprintln(Directory.message(reason));
+            let _printed = eprintln(reason.message);
             false;
         Ok(_created) ->
             case Directory.entries(target_parent) {
                 Err(reason) ->
-                    let _printed = eprintln(Directory.message(reason));
+                    let _printed = eprintln(reason.message);
                     false;
                 Ok(entries) ->
                     if {
@@ -263,7 +261,7 @@ remove_owned_target(root: String): Bool ->
                         true -> case Directory.remove_all(target) {
                             Ok(_removed) -> true;
                             Err(reason) ->
-                                let _printed = eprintln(Directory.message(reason));
+                                let _printed = eprintln(reason.message);
                                 false
                         }
                     }
@@ -287,14 +285,14 @@ rows_json(rows: List[Measurement], output: Json): Json ->
 render_report(root: String, rows: List[Measurement]): Measurement ->
     let report_path = child(root, "docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json");
     case File.read_text(report_path) {
-        Err(reason) -> failure(File.message(reason));
+        Err(reason) -> failure(reason.message);
         Ok(source) ->
             case Json.parse(source) {
-                Err(reason) -> failure(Json.error_message(reason));
+                Err(reason) -> failure(reason.message);
                 Ok(report) ->
                     let updated = report.put("measurements", rows_json(rows, Json.array()));
                     case Json.stringify_pretty(updated) {
-                        Err(reason) -> failure(Json.error_message(reason));
+                        Err(reason) -> failure(reason.message);
                         Ok(rendered) ->
                             Measurement(
                                 valid = true,
@@ -333,7 +331,7 @@ pub record(root: String): Bool ->
                 true -> case File.write_text(rendered.scenario, rendered.message) {
                     Err(reason) ->
                         let _cleaned = remove_owned_target(root);
-                        let _printed = eprintln(File.message(reason));
+                        let _printed = eprintln(reason.message);
                         false;
                     Ok(_written) ->
                         let cleaned = remove_owned_target(root);

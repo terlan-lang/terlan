@@ -55,7 +55,7 @@ crates/terlan/src/commands/build/js_browser/routes.rs	6	internal-helper	command-
 crates/terlan/src/commands/build/js_browser/routes/source_values.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/js_browser/routes/validation.rs	4	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/js_source_classification.rs	2	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/build/mod.rs	1	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/build/mod.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/package_artifact.rs	17	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/package_git.rs	14	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/package_layout.rs	1	internal-helper	command-errors	0.0.9
@@ -87,6 +87,7 @@ crates/terlan/src/commands/build/vm_launcher.rs	1	internal-helper	command-errors
 crates/terlan/src/commands/build/wasm_artifact.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/web_toolchain.rs	4	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/check/command.rs	3	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/check/dependencies.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/clean/mod.rs	3	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/cloud.rs	21	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/cloud/release_archive.rs	1	internal-helper	command-errors	0.0.9

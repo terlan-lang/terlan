@@ -78,7 +78,7 @@ save(document: Json): Result[Unit, String] ->
         Err(reason) -> Err(reason);
         Ok(source) ->
             case Directory.create_all("target/quality") {
-                Err(reason) -> Err(Directory.message(reason));
+                Err(reason) -> Err(reason.message);
                 Ok(_unit) ->
                     case File.write_text(pending, String.append(source, "\n")) {
                         Ok(_unit) ->
@@ -90,7 +90,7 @@ save(document: Json): Result[Unit, String] ->
                                 Ok(_output) -> Ok(Unit);
                                 Err(reason) -> Err(reason)
                             };
-                        Err(reason) -> Err(File.message(reason))
+                        Err(reason) -> Err(reason.message)
                     }
             }
     }.

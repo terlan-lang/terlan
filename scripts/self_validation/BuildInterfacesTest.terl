@@ -232,14 +232,14 @@ print_output_failure(label: String, output: std.system.Process.Output): Bool ->
     let message =
         String.append(
             String.append("[build-stdlib-interfaces] ", label),
-            String.append("\n", String.append(Process.stdout(output), Process.stderr(output))),
+            String.append("\n", String.append(output.stdout, output.stderr)),
         );
     let _printed = println(message);
     false.
 
 print_process_error(label: String, reason: std.system.Process.ProcessError): Bool ->
     let _label = println(String.append("[build-stdlib-interfaces] ", label));
-    let _reason = println(Process.error_message(reason));
+    let _reason = println(reason.message);
     false.
 
 @pure
@@ -304,10 +304,10 @@ completions_hold(completions: List[BatchCompletion]): Bool ->
     case completions {
         [] -> true;
         [completion | rest] ->
-            case {Process.completion_output(completion), Process.completion_error(completion)} {
+            case {completion.output, completion.error} {
                 {Some(output), None} ->
                     if {
-                        Process.status(output) == 0 -> completions_hold(rest);
+                        output.status == 0 -> completions_hold(rest);
                         true -> print_output_failure("NativeBoundary metadata command failed", output)
                     };
                 {None, Some(reason)} ->
@@ -420,7 +420,7 @@ emit_interfaces(
     case Process.run(command) {
         Ok(result) ->
             if {
-                Process.status(result) == 0 -> emit_native_interfaces(root, output, compiler, jobs, inventory);
+                result.status == 0 -> emit_native_interfaces(root, output, compiler, jobs, inventory);
                 true -> print_output_failure("interface generation failed", result)
             };
         Err(reason) -> print_process_error("interface generation failed", reason)
@@ -450,7 +450,7 @@ finish_native_batch(
     source_count: Int,
     batch: std.system.Process.BatchOutput,
 ): Bool ->
-    let valid = completions_hold(Process.completions(batch));
+    let valid = completions_hold(batch.completions);
     if {
         valid -> finish_interfaces(output, source_count);
         true -> false

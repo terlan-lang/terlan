@@ -174,8 +174,11 @@ pub(super) fn check_syntax_callable_clauses(
                 clause_patterns.push((clause.patterns.clone(), span));
                 continue;
             }
-            let revealed_inferred = reveal_opaque_aliases(&inferred_expanded, aliases);
-            if unify_return_type(&expected_return, &revealed_inferred, &mut subst).is_ok() {
+            let revealed_expected =
+                reveal_opaque_aliases(&expected_return, aliases, expr_ctx.current_module);
+            let revealed_inferred =
+                reveal_opaque_aliases(&inferred_expanded, aliases, expr_ctx.current_module);
+            if unify_return_type(&revealed_expected, &revealed_inferred, &mut subst).is_ok() {
                 clause_patterns.push((clause.patterns.clone(), span));
                 continue;
             }

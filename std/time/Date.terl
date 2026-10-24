@@ -13,8 +13,17 @@ import type std.core.Option.
  * One proleptic-Gregorian calendar date.
  */
 pub struct Date {
+    /**
+     * Calendar year.
+     */
     year: Int,
+    /**
+     * One-based calendar month.
+     */
     month: Int,
+    /**
+     * One-based day of month.
+     */
     day: Int,
 }.
 
@@ -27,27 +36,6 @@ pub new(year: Int, month: Int, day: Int): Option[Date] ->
         valid_components(year, month, day) -> Some(Date(year = year, month = month, day = day));
         true -> None
     }.
-
-/**
- * Returns the calendar year.
- */
-@pure
-pub year(date: Date): Int ->
-    date.year.
-
-/**
- * Returns the one-based calendar month.
- */
-@pure
-pub month(date: Date): Int ->
-    date.month.
-
-/**
- * Returns the one-based day of month.
- */
-@pure
-pub day(date: Date): Int ->
-    date.day.
 
 /**
  * Parses an exact `YYYY-MM-DD` date.

@@ -149,18 +149,14 @@ run_command(root_path: String, working: String, values: List[String]): KernelRes
                     .with_output_limit_bytes(8388608);
             case Process.run(bounded) {
                 Ok(output) -> command_result(program, output);
-                Err(reason) -> reject(Process.error_message(reason))
+                Err(reason) -> reject(reason.message)
             }
     }.
 
 command_result(program: String, output: Output): KernelResult ->
     if {
-        Process.status(output) != 0 -> reject(
-            String.concat(
-                ["command failed: ", program, "\n", Process.stdout(output), Process.stderr(output)],
-            ),
-        );
-        program == "cargo" and not exact_rust_test_output_holds(Process.stdout(output)) -> reject("Rust oracle did not execute exactly one passing, non-ignored test");
+        output.status != 0 -> reject(String.concat(["command failed: ", program, "\n", output.stdout, output.stderr]));
+        program == "cargo" and not exact_rust_test_output_holds(output.stdout) -> reject("Rust oracle did not execute exactly one passing, non-ignored test");
         true -> pass(Json.null())
     }.
 
@@ -200,7 +196,7 @@ let request =
         .with_output_limit_bytes(131072);
 case Process.run(request) {
     Ok(output) -> command_result(program, output);
-    Err(reason) -> reject(Process.error_message(reason))
+    Err(reason) -> reject(reason.message)
 }).
 
 hosted_source_coverage(): Bool ->

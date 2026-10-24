@@ -17,7 +17,13 @@ import type std.data.Json.{Json, StringFieldRow}.
  * Exact installed editor evidence retained in the release report.
  */
 pub struct EditorSummary {
+    /**
+     * Version reported by the editor extension.
+     */
     version: String,
+    /**
+     * Command identifiers contributed by the editor extension.
+     */
     command_ids: List[String],
     icon_hash: String,
     grammar_hash: String,
@@ -28,6 +34,9 @@ pub struct EditorSummary {
  * Exact installed Tree-sitter evidence retained in the release report.
  */
 pub struct TreeSummary {
+    /**
+     * Version declared by the editor source tree.
+     */
     version: String,
     grammar_hash: String,
     generated_parser_hash: String,
@@ -83,8 +92,8 @@ command_ids_from_rows(rows: List[StringFieldRow], commands: List[String]): Optio
         [] -> Some(Support.sort_strings(commands));
         [row | rest] ->
             if {
-                not Json.string_field_row_is_object(row) -> None;
-                true -> case Json.string_field_row_values(row) {
+                not row.object -> None;
+                true -> case row.values {
                     [Some(command) | _] -> command_ids_from_rows(rest, [command | commands]);
                     _ -> None
                 }
@@ -181,15 +190,6 @@ pub validate_tree(installed: String): Option[TreeSummary] ->
             ),
         )
     }.
-
-pub editor_version(summary: EditorSummary): String ->
-    summary.version.
-
-pub editor_commands(summary: EditorSummary): List[String] ->
-    summary.command_ids.
-
-pub tree_version(summary: TreeSummary): String ->
-    summary.version.
 
 pub editor_json(summary: EditorSummary): Json ->
     Json.object()

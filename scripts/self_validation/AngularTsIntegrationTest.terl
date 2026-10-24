@@ -9,9 +9,10 @@ import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.io.Console.{eprintln, println}.
 import std.io.Directory.{copy_tree_excluding, create_all, create_symbolic_link, create_temporary, entries, files_recursive, remove_all}.
-import std.io.File.{exists, read_text, read_text_many, text_file_contents, text_file_path, write_text}.
+import std.io.File.{exists, read_text, read_text_many, write_text}.
 import std.system.{Arguments, Environment, Process}.
 
+import type std.core.Option.
 import type std.io.File.TextFile.
 
 struct Patch {
@@ -63,7 +64,7 @@ supported_mode(mode: String): Bool ->
 
 print_process_failure(output: std.system.Process.Output): Bool ->
     if {
-        Process.status(output) == 0 -> false;
+        output.status == 0 -> false;
         true -> false
     }.
 
@@ -90,12 +91,12 @@ run_make(integration: String, target: String, compiler: String, browser: Bool): 
                 ),
                 600000,
             ),
-            Process.maximum_output_bytes(limits),
+            limits.maximum_output_bytes,
         );
     case Process.run(command) {
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> true;
+                output.status == 0 -> true;
                 true -> print_process_failure(output)
             };
         Err(_reason) -> false
@@ -473,11 +474,11 @@ render_application_files(files: List[TextFile], fixture_root: String, patch: Str
     case files {
         [] -> valid_patch(patch);
         [file | rest] ->
-            let relative = relative_fixture_path(fixture_root, text_file_path(file));
+            let relative = relative_fixture_path(fixture_root, file.path);
             if {
                 relative == "" -> invalid_patch();
                 true -> let destination = String.append("b/integrations/", relative);
-                let file_patch = unified_text_diff("", text_file_contents(file), "/dev/null", destination);
+                let file_patch = unified_text_diff("", file.contents, "/dev/null", destination);
                 render_application_files(
                     rest,
                     fixture_root,

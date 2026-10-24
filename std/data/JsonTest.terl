@@ -75,7 +75,7 @@ pub accepts_json_error(value: JsonError): JsonError ->
 @test
 pub parse_error_accessors_expose_stable_typed_fields(): Bool ->
     case Json.parse("{") {
-        Err(reason) -> Json.error_message(reason) != "" and Json.error_offset(reason) == 0;
+        Err(reason) -> reason.message != "" and reason.offset == 0;
         Ok(_value) -> false
     }.
 
@@ -119,12 +119,12 @@ none_then_none(values: List[Option[String]]): Bool ->
 projected_rows_hold(rows: List[StringFieldRow]): Bool ->
     case rows {
         [first | [second | [third | []]]] ->
-            Json.string_field_row_is_object(first)
-                and string_then_none(Json.string_field_row_values(first), "Ada")
-                and not Json.string_field_row_is_object(second)
-                and none_then_none(Json.string_field_row_values(second))
-                and Json.string_field_row_is_object(third)
-                and string_then_none(Json.string_field_row_values(third), "Grace");
+            first.object
+                and string_then_none(first.values, "Ada")
+                and not second.object
+                and none_then_none(second.values)
+                and third.object
+                and string_then_none(third.values, "Grace");
         _ -> false
     }.
 
@@ -150,16 +150,16 @@ nested_projection_holds(rows: List[NestedStringFieldRow]): Bool ->
     case rows {
         [first | [second | []]] ->
             let parent_values_hold =
-                case Json.nested_string_field_row_values(first) {
+                case first.values {
                     [module_name | []] -> std.core.Option.with_default(module_name, "") == "alpha";
                     _ -> false
                 };
-            Json.nested_string_field_row_is_object(first)
-                and Json.nested_string_field_row_has_child_array(first)
+            first.object
+                and first.child_array
                 and parent_values_hold
-                and projected_child_holds(Json.nested_string_field_row_children(first))
-                and Json.nested_string_field_row_is_object(second)
-                and not Json.nested_string_field_row_has_child_array(second);
+                and projected_child_holds(first.children)
+                and second.object
+                and not second.child_array;
         _ -> false
     }.
 
@@ -168,13 +168,13 @@ projected_child_holds(rows: List[StringFieldRow]): Bool ->
     case rows {
         [first | []] ->
             let values_hold =
-                case Json.string_field_row_values(first) {
+                case first.values {
                     [kind | [name | []]] ->
                         std.core.Option.with_default(kind, "") == "function"
                             and std.core.Option.with_default(name, "") == "run";
                     _ -> false
                 };
-            Json.string_field_row_is_object(first) and values_hold;
+            first.object and values_hold;
         _ -> false
     }.
 
@@ -200,7 +200,7 @@ pub nested_string_field_rows_page_preserves_bounds_and_order(): Bool ->
             );
         Ok(rows) <- value.nested_string_field_rows_page(1, 1, ["module"], "declarations", ["kind", "name"]);
         [row | []] <- rows;
-        [name | []] <- Json.nested_string_field_row_values(row)
+        [name | []] <- row.values
     } else {
         _ -> false
     };
@@ -268,12 +268,7 @@ pub required_fields_project_owned_values_in_one_call(): Bool ->
     let {
         Ok(value) <- Json.parse("{\"name\":\"Ada\",\"count\":3,\"items\":[1,2]}");
         Ok(projection) <- value.required_fields(["name"], ["count"], ["items"]);
-        {["Ada"], [3], [2]} <-
-            {
-                Json.required_field_strings(projection),
-                Json.required_field_ints(projection),
-                Json.required_field_array_lengths(projection),
-            }
+        {["Ada"], [3], [2]} <- {projection.strings, projection.ints, projection.array_lengths}
     } else {
         _ -> false
     };
@@ -295,15 +290,7 @@ pub required_field_rows_project_owned_scalars_in_source_order(): Bool ->
             );
         Ok(rows) <- value.required_field_rows(["name"], ["count"], ["enabled"]);
         [first, second] <- rows;
-        {["Ada"], [3], [true], ["Lin"], [4], [false]} <-
-            {
-                Json.required_field_row_strings(first),
-                Json.required_field_row_ints(first),
-                Json.required_field_row_bools(first),
-                Json.required_field_row_strings(second),
-                Json.required_field_row_ints(second),
-                Json.required_field_row_bools(second),
-            }
+        {["Ada"], [3], [true], ["Lin"], [4], [false]} <- {first.strings, first.ints, first.bools, second.strings, second.ints, second.bools}
     } else {
         _ -> false
     };
@@ -324,7 +311,7 @@ pub required_field_rows_page_is_bounded_and_ordered(): Bool ->
             case value.required_field_rows_page(1, 1, ["name"], [], []) {
                 Err(_reason) -> false;
                 Ok([row]) ->
-                    Json.required_field_row_strings(row) == ["Lin"]
+                    row.strings == ["Lin"]
                         and is_err(value.required_field_rows_page(0, 257, [], [], []));
                 Ok(_rows) -> false
             }

@@ -14,74 +14,62 @@ import type std.data.Json.
 import type std.data.Json.RequiredFieldRow.
 
 pub struct DomainMetric {
+    /**
+     * Source domain represented by these metrics.
+     */
     name: String,
+    /**
+     * Number of Rust source files in this domain.
+     */
     rust_files: Int,
+    /**
+     * Number of physical source lines in this domain.
+     */
     physical_lines: Int,
 }.
 
 pub struct Edge {
+    /**
+     * Domain containing the dependency references.
+     */
     source: String,
+    /**
+     * Domain referenced by the source domain.
+     */
     target: String,
+    /**
+     * Number of source references contributing to this dependency edge.
+     */
     reference_sites: Int,
 }.
 
 pub struct SourceAnalysis {
+    /**
+     * Whether source dependency analysis completed successfully.
+     */
     valid: Bool,
+    /**
+     * Source metrics for production domains.
+     */
     production_domains: List[DomainMetric],
+    /**
+     * Dependency edges between production domains.
+     */
     production_edges: List[Edge],
+    /**
+     * Source metrics for test domains.
+     */
     test_domains: List[DomainMetric],
+    /**
+     * Dependency edges between test domains.
+     */
     test_edges: List[Edge],
     directory_domains: List[String],
+    /**
+     * Diagnostic explaining a source dependency analysis failure.
+     */
     message: String,
 }.
-
-@pure
-pub analysis_valid(value: SourceAnalysis): Bool ->
-    value.valid.
-
-@pure
-pub analysis_message(value: SourceAnalysis): String ->
-    value.message.
-
-@pure
-pub analysis_production_domains(value: SourceAnalysis): List[DomainMetric] ->
-    value.production_domains.
-
-@pure
-pub analysis_production_edges(value: SourceAnalysis): List[Edge] ->
-    value.production_edges.
-
-@pure
-pub analysis_test_domains(value: SourceAnalysis): List[DomainMetric] ->
-    value.test_domains.
-
-@pure
-pub analysis_test_edges(value: SourceAnalysis): List[Edge] ->
-    value.test_edges.
-
-@pure
-pub domain_name(value: DomainMetric): String ->
-    value.name.
-
-@pure
-pub domain_rust_files(value: DomainMetric): Int ->
-    value.rust_files.
-
-@pure
-pub domain_physical_lines(value: DomainMetric): Int ->
-    value.physical_lines.
-
-@pure
-pub edge_source(value: Edge): String ->
-    value.source.
-
-@pure
-pub edge_target(value: Edge): String ->
-    value.target.
-
-@pure
-pub edge_reference_sites(value: Edge): Int ->
-    value.reference_sites.
 
 @pure
 empty(): SourceAnalysis ->
@@ -215,7 +203,7 @@ source_rows(rows: List[RequiredFieldRow], analysis: SourceAnalysis): SourceAnaly
     case rows {
         [] -> analysis;
         [row | rest] ->
-            case {Json.required_field_row_strings(row), Json.required_field_row_ints(row)} {
+            case {row.strings, row.ints} {
                 {[path], [lines]} -> source_rows(rest, add_source(analysis, path, lines));
                 _ -> failure("AST source-file inventory has an unsupported row shape")
             }
@@ -223,7 +211,7 @@ source_rows(rows: List[RequiredFieldRow], analysis: SourceAnalysis): SourceAnaly
 
 source_pages(files: Json, offset: Int, analysis: SourceAnalysis): SourceAnalysis ->
     case Json.required_field_rows_page(files, offset, 256, ["path"], ["physical_lines"], []) {
-        Err(reason) -> failure(Json.error_message(reason));
+        Err(reason) -> failure(reason.message);
         Ok(rows) ->
             if {
                 List.length(rows) == 0 -> analysis;
@@ -287,7 +275,7 @@ reference_rows(rows: List[RequiredFieldRow], analysis: SourceAnalysis): SourceAn
     case rows {
         [] -> analysis;
         [row | rest] ->
-            case Json.required_field_row_strings(row) {
+            case row.strings {
                 [path, target] -> reference_rows(rest, add_reference(analysis, path, target));
                 _ -> failure("AST crate-reference inventory has an unsupported row shape")
             }
@@ -295,7 +283,7 @@ reference_rows(rows: List[RequiredFieldRow], analysis: SourceAnalysis): SourceAn
 
 reference_pages(references: Json, offset: Int, analysis: SourceAnalysis): SourceAnalysis ->
     case Json.required_field_rows_page(references, offset, 256, ["path", "target"], [], []) {
-        Err(reason) -> failure(Json.error_message(reason));
+        Err(reason) -> failure(reason.message);
         Ok(rows) ->
             if {
                 List.length(rows) == 0 -> analysis;

@@ -173,13 +173,13 @@ parse_manifests(root: String, files: List[TextFile], output: List[Manifest]): Ma
     case files {
         [] -> ManifestLoad(valid = true, manifests = SourceInventory.reverse(output), message = "");
         [file | rest] ->
-            let path = relative(root, File.text_file_path(file));
-            case Toml.parse(File.text_file_contents(file)) {
+            let path = relative(root, file.path);
+            case Toml.parse(file.contents) {
                 Err(reason) ->
                     ManifestLoad(
                         valid = false,
                         manifests = List.new[Manifest](),
-                        message = String.concat([path, ": ", Toml.error_message(reason)]),
+                        message = String.concat([path, ": ", reason.message]),
                     );
                 Ok(document) ->
                     let member = parent(path);
@@ -192,11 +192,7 @@ parse_manifests(root: String, files: List[TextFile], output: List[Manifest]): Ma
 load_manifests(root: String, members: List[String]): ManifestLoad ->
     case File.read_text_many(manifest_paths(root, members)) {
         Err(reason) ->
-            ManifestLoad(
-                valid = false,
-                manifests = List.new[Manifest](),
-                message = File.message(reason),
-            );
+            ManifestLoad(valid = false, manifests = List.new[Manifest](), message = reason.message);
         Ok(files) -> parse_manifests(root, files, List.new[Manifest]())
     }.
 
@@ -737,10 +733,7 @@ pub check(root: String): Bool ->
                     let _printed =
                         eprintln(
                             String.concat(
-                                [
-                                    "[rust-workspace-policy] failure: Cargo.toml: ",
-                                    Toml.error_message(reason),
-                                ],
+                                ["[rust-workspace-policy] failure: Cargo.toml: ", reason.message],
                             ),
                         );
                     false;

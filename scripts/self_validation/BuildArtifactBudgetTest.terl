@@ -10,7 +10,7 @@ import std.crypto.Hash.{sha256, sha256_framed}.
 import std.data.Json.
 import std.io.Console.{eprintln, println}.
 import std.io.Directory.{copy_tree_excluding, create_all, create_temporary, entries, find_named_recursive_excluding, remove_all, tree_usage}.
-import std.io.File.{exists, read_text, read_text_tree_matching, set_timestamps, size, text_file_contents, text_file_path, timestamps, write_text}.
+import std.io.File.{exists, read_text, read_text_tree_matching, set_timestamps, size, timestamps, write_text}.
 import std.system.{Arguments, Environment, Process}.
 import std.time.Clock.{monotonic_time_ns, unix_time_ns}.
 import std.vm.Process.{exit_reason}.
@@ -230,8 +230,8 @@ compilation_hash_fields(files: List[TextFile], reversed: List[String]): List[Str
     case files {
         [] -> reverse_strings(reversed);
         [file | rest] ->
-            let path = text_file_path(file);
-            let contents = text_file_contents(file);
+            let path = file.path;
+            let contents = file.contents;
             compilation_hash_fields(rest, [contents | [path | reversed]])
     }.
 
@@ -275,8 +275,8 @@ run_command(
     let base = Process.with_arguments(Process.command("cargo"), arguments);
     let working = Process.with_working_directory(base, repository);
     let limits = Process.limits();
-    let timeout = Process.maximum_timeout_ms(limits);
-    let output_limit = Process.maximum_output_bytes(limits);
+    let timeout = limits.maximum_timeout_ms;
+    let output_limit = limits.maximum_output_bytes;
     let bounded = Process.with_timeout_ms(working, timeout);
     let captured = Process.with_output_limit_bytes(bounded, output_limit);
     let configured = Process.with_environment(captured, environment);
@@ -324,7 +324,7 @@ run_lane(
     let finished_unix = unix_time_ns();
     case output {
         Some(value) ->
-            let status = Process.status(value);
+            let status = value.status;
             let valid = status == 0;
             let _reported =
                 if {
@@ -349,7 +349,7 @@ run_lane(
                 started_unix_ns = started_unix,
                 finished_unix_ns = finished_unix,
                 wall_time_ms = elapsed_milliseconds(started, finished),
-                invalidated_artifact_count = invalidated_count(Process.stdout(value)),
+                invalidated_artifact_count = invalidated_count(value.stdout),
                 valid = valid,
             );
         None ->
@@ -563,7 +563,7 @@ command_stdout(repository: String, program: String, arguments: List[String]): St
     case Process.run(working) {
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> String.trim(Process.stdout(output));
+                output.status == 0 -> String.trim(output.stdout);
                 true -> "unavailable"
             };
         Err(_reason) -> "unavailable"
@@ -669,7 +669,7 @@ measure_preserved(
     let clean_finished = unix_time_ns();
     let clean_ok =
         case cleaned {
-            Some(output) -> Process.status(output) == 0;
+            Some(output) -> output.status == 0;
             None -> false
         };
     if {
@@ -692,7 +692,7 @@ cleanup_failed_measurement(repository: String, temporary: String): Bool ->
     let cleaned = run_command(repository, ["clean"], []);
     let cargo_cleaned =
         case cleaned {
-            Some(output) -> Process.status(output) == 0;
+            Some(output) -> output.status == 0;
             None -> false
         };
     let restored = restore_quality(repository, temporary);

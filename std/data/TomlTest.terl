@@ -37,6 +37,6 @@ pub parse_rejects_malformed_documents_with_typed_error(): Bool ->
     case Toml.parse("[package\nname = \"terlan\"") {
         Err(reason) ->
             let typed = accepts_error(reason);
-            Toml.error_message(typed) != "" and Toml.error_offset(typed) >= 0;
+            typed.message != "" and typed.offset >= 0;
         Ok(_value) -> false
     }.

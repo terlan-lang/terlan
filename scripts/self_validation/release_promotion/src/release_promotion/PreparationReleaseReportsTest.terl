@@ -24,7 +24,7 @@ record(root: String, outcome: String, completed: Int, reused: Int, calls: String
             OwnerStorage.read_json(
                 OwnerStorage.child(
                     root,
-                    PreparationGraph.ledger_path(Git.revision(identity), "release-reports"),
+                    PreparationGraph.ledger_path(identity.revision, "release-reports"),
                 ),
             );
         Some(actual_outcome) <- OwnerStorage.text(document, "outcome");
@@ -67,7 +67,7 @@ bound_parent(root: String): Bool ->
                     String.concat(
                         [
                             "target/quality/preparation/",
-                            Git.revision(identity),
+                            identity.revision,
                             "/aot-release-record.json",
                         ],
                     ),
@@ -83,20 +83,14 @@ bound_parent(root: String): Bool ->
         and path_count(dependencies, "target/quality/tvm-managed-list-profile.json", 0, count) == 1
         and path_count(
     dependencies,
-    String.concat(
-        ["target/quality/preparation/", Git.revision(identity), "/managed-list-profile.json"],
-    ),
+    String.concat(["target/quality/preparation/", identity.revision, "/managed-list-profile.json"]),
     0,
     count,
 ) == 1
         and path_count(
     dependencies,
     String.concat(
-        [
-            "target/quality/preparation/",
-            Git.revision(identity),
-            "/managed-list-profile.native.jsonl",
-        ],
+        ["target/quality/preparation/", identity.revision, "/managed-list-profile.native.jsonl"],
     ),
     0,
     count,

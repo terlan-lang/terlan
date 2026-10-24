@@ -55,11 +55,11 @@ pub run(
             .with_timeout_ms(30000)
             .with_output_limit_bytes(8388608),
     ) {
-        Err(reason) -> Err(Process.error_message(reason));
+        Err(reason) -> Err(reason.message);
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Ok(String.trim(Process.stdout(output)));
-                true -> Err(Process.stderr(output))
+                output.status == 0 -> Ok(String.trim(output.stdout));
+                true -> Err(output.stderr)
             }
     }.
 
@@ -86,7 +86,7 @@ config(path: String, rows: Json): Result[Json, String] ->
             );
         Err(reason) ->
             if {
-                File.code(reason) == NotFound -> Ok(
+                reason.code == NotFound -> Ok(
                     rows
                         .push(
                             Json.object()
@@ -94,7 +94,7 @@ config(path: String, rows: Json): Result[Json, String] ->
                                 .put("absent", Json.bool(true)),
                         ),
                 );
-                true -> Err(File.message(reason))
+                true -> Err(reason.message)
             }
     }.
 
@@ -155,7 +155,7 @@ tool(root: String, name: String, env: List[EnvironmentEntry], rows: Json): Resul
 file_digest(path: String): Result[String, String] ->
     case Hash.sha256_file(path) {
         Ok(digest) -> Ok(digest);
-        Err(reason) -> Err(String.concat(["cannot hash ", path, ": ", File.message(reason)]))
+        Err(reason) -> Err(String.concat(["cannot hash ", path, ": ", reason.message]))
     }.
 
 relative_paths(
@@ -178,14 +178,14 @@ relative_paths(
 
 toolchain_digest(sysroot: String): Result[String, String] ->
     case Directory.files_recursive_excluding(sysroot, ["share", "etc"]) {
-        Err(reason) -> Err(Directory.message(reason));
+        Err(reason) -> Err(reason.message);
         Ok(paths) ->
             let Ok(relative) <- relative_paths(String.append(sysroot, "/"), paths, List.new[String]()) else {
                 Err(reason) -> Err(reason)
             };
             case Hash.sha256_selected_files(sysroot, relative) {
                 Ok(digest) -> Ok(digest);
-                Err(reason) -> Err(String.append("Rust sysroot digest: ", File.message(reason)))
+                Err(reason) -> Err(String.append("Rust sysroot digest: ", reason.message))
             }
     }.
 

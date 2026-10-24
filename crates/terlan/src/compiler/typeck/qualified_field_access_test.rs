@@ -68,3 +68,27 @@ pub depth(): Float ->\n\
         diagnostics
     );
 }
+#[test]
+fn defining_module_field_access_preserves_distinct_private_element_types() {
+    let diagnostics = super::test_support::check_syntax_output_with_interface(
+        r#"
+module private_fields.Owner.
+struct Callbacks { id: Int }.
+struct Producer { active: Bool }.
+pub struct Endpoint {
+    #callbacks: List[Callbacks],
+    #producers: List[Producer],
+}.
+pub fields(endpoint: Endpoint): {List[Callbacks], List[Producer]} ->
+    {endpoint.#callbacks, endpoint.#producers}.
+"#,
+        r#"
+module private_fields.Owner.
+pub struct Endpoint {
+    #callbacks: List[Callbacks],
+    #producers: List[Producer],
+}.
+"#,
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}

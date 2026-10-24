@@ -97,7 +97,7 @@ extract_evidence(
     ).
 
 host_evidence(root: String, platform: ReleasePlatform): Option[HostEvidence] ->
-    let relative = ReleasePayload.child("dist", ReleasePlatform.artifact(platform));
+    let relative = ReleasePayload.child("dist", platform.artifact);
     let artifact = ReleasePayload.child(root, relative);
     let sidecar = String.append(artifact, ".sha256");
     let {
@@ -113,8 +113,7 @@ host_evidence(root: String, platform: ReleasePlatform): Option[HostEvidence] ->
     extract_evidence(temporary, artifact, relative, actual).
 
 same_platform(left: ReleasePlatform, right: ReleasePlatform): Bool ->
-    ReleasePlatform.operating_system(left) == ReleasePlatform.operating_system(right)
-        and ReleasePlatform.architecture(left) == ReleasePlatform.architecture(right).
+    left.operating_system == right.operating_system and left.architecture == right.architecture.
 
 host_validation_json(
     platform: ReleasePlatform,
@@ -144,14 +143,14 @@ target_row(
     evidence: HostEvidence,
 ): Json ->
     Json.object()
-        .put("os", Json.string(ReleasePlatform.operating_system(platform)))
-        .put("arch", Json.string(ReleasePlatform.architecture(platform)))
+        .put("os", Json.string(platform.operating_system))
+        .put("arch", Json.string(platform.architecture))
         .put("target_triple", Json.string(ReleasePlatform.target_triple(platform)))
-        .put("artifact", Json.string(ReleasePlatform.artifact(platform)))
-        .put("compiler", Json.string(ReleasePlatform.compiler(platform)))
-        .put("vm", Json.string(ReleasePlatform.vm(platform)))
-        .put("native_worker", Json.string(ReleasePlatform.native_worker(platform)))
-        .put("lsp", Json.string(ReleasePlatform.lsp(platform)))
+        .put("artifact", Json.string(platform.artifact))
+        .put("compiler", Json.string(platform.compiler))
+        .put("vm", Json.string(platform.vm))
+        .put("native_worker", Json.string(platform.native_worker))
+        .put("lsp", Json.string(platform.lsp))
         .put("payload_hashes", hashes_json(hashes))
         .put("host_validation", host_validation_json(platform, host, evidence)).
 
@@ -278,8 +277,8 @@ report_value(
 ): Json ->
     let host_json =
         Json.object()
-            .put("os", Json.string(ReleasePlatform.operating_system(host)))
-            .put("arch", Json.string(ReleasePlatform.architecture(host)));
+            .put("os", Json.string(host.operating_system))
+            .put("arch", Json.string(host.architecture));
     let upgrades =
         Json.object()
             .put(

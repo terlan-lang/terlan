@@ -396,16 +396,14 @@ run_command(
 ): Option[Output] ->
     let _started = println(String.append("[aot-platform] starting ", stage));
     case Process.run(configured(root, stage, program, arguments)) {
-        Err(error) -> output_failure("process", Process.error_message(error));
+        Err(error) -> output_failure("process", error.message);
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> let _finished = println(String.append("[aot-platform] completed ", stage));
+                output.status == 0 -> let _finished = println(String.append("[aot-platform] completed ", stage));
                 Some(output);
                 true -> output_failure(
                     "process",
-                    String.concat(
-                        [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
-                    ),
+                    String.concat([program, " failed:\n", output.stdout, output.stderr]),
                 )
             }
     }.
@@ -438,7 +436,7 @@ run_native_tests(root: String): Bool ->
         ],
     ) {
         Some(output) ->
-            let _printed = println(Process.stdout(output));
+            let _printed = println(output.stdout);
             true;
         None -> false
     }.

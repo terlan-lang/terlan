@@ -370,6 +370,7 @@ fn syntax_output_std_option_compare_summary_preserves_comparison_return_type() {
     let empty_alias_names = HashSet::new();
     let trial_trait_cache = RefCell::new(TraitLookupCache::default());
     let trial_ctx = ExprInferContext {
+        current_module: "",
         database_schema: None,
         local_fns: &empty_fns,
         signatures: &empty_signatures,

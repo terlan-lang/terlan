@@ -118,17 +118,15 @@ first_python_command(files: List[TextFile]): Option[String] ->
         [] -> None;
         [file | rest] ->
             if {
-                documentation_surface(File.text_file_path(file))
-                    and python_documentation_command(File.text_file_contents(file)) -> Some(File.text_file_path(file));
-                command_surface(File.text_file_path(file))
-                    and python_command(File.text_file_contents(file)) -> Some(File.text_file_path(file));
+                documentation_surface(file.path) and python_documentation_command(file.contents) -> Some(file.path);
+                command_surface(file.path) and python_command(file.contents) -> Some(file.path);
                 true -> first_python_command(rest)
             }
     }.
 
 scan(checkout: String): Bool ->
     case Directory.files_recursive_excluding(checkout, []) {
-        Err(reason) -> failure(Directory.message(reason));
+        Err(reason) -> failure(reason.message);
         Ok(paths) ->
             case first_host_self_validation_artifact(paths) {
                 Some(path) ->
@@ -146,7 +144,7 @@ scan(checkout: String): Bool ->
                             );
                         None ->
                             case File.read_text_many(collect_command_surfaces(paths, List.new[String]())) {
-                                Err(reason) -> failure(File.message(reason));
+                                Err(reason) -> failure(reason.message);
                                 Ok(files) ->
                                     case first_python_command(files) {
                                         Some(path) ->
@@ -176,7 +174,7 @@ scan(checkout: String): Bool ->
 
 run(root: String): Bool ->
     case Directory.create_temporary("terlan-self-validation-checkout.") {
-        Err(reason) -> failure(Directory.message(reason));
+        Err(reason) -> failure(reason.message);
         Ok(temporary) ->
             let checkout = child(temporary, "source");
             let copied =
@@ -197,11 +195,11 @@ run(root: String): Bool ->
                 );
             let valid =
                 case copied {
-                    Err(reason) -> failure(Directory.message(reason));
+                    Err(reason) -> failure(reason.message);
                     Ok(Unit) -> scan(checkout)
                 };
             case Directory.remove_all(temporary) {
-                Err(reason) -> failure(Directory.message(reason));
+                Err(reason) -> failure(reason.message);
                 Ok(Unit) -> valid
             }
     }.

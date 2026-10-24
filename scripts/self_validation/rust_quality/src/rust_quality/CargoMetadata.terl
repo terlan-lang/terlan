@@ -216,7 +216,7 @@ package_rows(
     case rows {
         [] -> package_page(packages, members, offset, output);
         [row | rest] ->
-            case Json.required_field_row_strings(row) {
+            case row.strings {
                 [id, name] ->
                     let next =
                         if {

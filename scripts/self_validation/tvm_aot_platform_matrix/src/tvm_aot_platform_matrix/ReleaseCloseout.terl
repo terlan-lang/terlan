@@ -12,7 +12,7 @@ import std.io.Console.{eprintln, println}.
 import std.io.Directory.{create_all}.
 import std.io.File.{exists, read_text}.
 import std.system.{Environment, Platform, Process}.
-import std.vcs.Git.{clean, revision as source_revision, sha256 as source_sha256, source_tree_identity}.
+import std.vcs.Git.{source_tree_identity}.
 import tvm_aot_platform_matrix.AotThreadSanitizer.{target as sanitizer_target, validate_report as validate_sanitizer_report}.
 import tvm_aot_platform_matrix.Core.{child, host_target, json_bool, json_equals, json_string, load_json, report_valid, string_array, targets, write_json}.
 
@@ -89,14 +89,12 @@ configured(root: String, program: String, arguments: List[String]): std.system.P
 
 command_output(root: String, program: String, arguments: List[String]): Option[String] ->
     case Process.run(configured(root, program, arguments)) {
-        Err(error) -> none_string_with_failure(Process.error_message(error));
+        Err(error) -> none_string_with_failure(error.message);
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(String.trim(Process.stdout(output)));
+                output.status == 0 -> Some(String.trim(output.stdout));
                 true -> none_string_with_failure(
-                    String.concat(
-                        [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
-                    ),
+                    String.concat([program, " failed:\n", output.stdout, output.stderr]),
                 )
             }
     }.
@@ -495,41 +493,41 @@ pub record_local(): Bool ->
         Ok(identity) <- source_tree_identity(root);
         Some(rustc) <- command_output(root, "rustc", ["--version", "--verbose"]);
         Some(cargo) <- command_output(root, "cargo", ["--version"]);
-        Some(platform_contract) <- host_contract(root, source_revision(identity));
-        Some(sanitizer) <- sanitizer_evidence(root, source_revision(identity));
+        Some(platform_contract) <- host_contract(root, identity.revision);
+        Some(sanitizer) <- sanitizer_evidence(root, identity.revision);
         Some(evidence) <- retained_evidence(root)
     } else {
         _ -> false
     };
     (let report =
     closeout_report(
-        source_revision(identity),
-        source_sha256(identity),
-        clean(identity),
+        identity.revision,
+        identity.sha256,
+        identity.clean,
         rustc,
         cargo,
         platform_contract,
         sanitizer,
         evidence,
     );
-write_closeout(root, report, source_revision(identity))).
+write_closeout(root, report, identity.revision)).
 
 local_report(root: String): Option[Json] ->
     let {
         Ok(identity) <- source_tree_identity(root);
-        true <- clean(identity);
+        true <- identity.clean;
         Some(rustc) <- command_output(root, "rustc", ["--version", "--verbose"]);
         Some(cargo) <- command_output(root, "cargo", ["--version"]);
-        Some(platform_contract) <- host_contract(root, source_revision(identity));
-        Some(sanitizer) <- sanitizer_evidence(root, source_revision(identity));
+        Some(platform_contract) <- host_contract(root, identity.revision);
+        Some(sanitizer) <- sanitizer_evidence(root, identity.revision);
         Some(evidence) <- retained_evidence(root)
     } else {
         _ -> None
     };
     Some(
         closeout_report(
-            source_revision(identity),
-            source_sha256(identity),
+            identity.revision,
+            identity.sha256,
             true,
             rustc,
             cargo,

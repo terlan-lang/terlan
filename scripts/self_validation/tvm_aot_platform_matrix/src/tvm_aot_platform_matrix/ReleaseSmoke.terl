@@ -62,8 +62,8 @@ row_paths(rows: List[StringFieldRow], reversed: List[String]): Option[List[Strin
         [] -> Some(reverse_strings(reversed, []));
         [row | rest] ->
             if {
-                not Json.string_field_row_is_object(row) -> None;
-                true -> case Json.string_field_row_values(row) {
+                not row.object -> None;
+                true -> case row.values {
                     [Some(path) | []] -> row_paths(rest, [path | reversed]);
                     _ -> None
                 }
@@ -71,13 +71,7 @@ row_paths(rows: List[StringFieldRow], reversed: List[String]): Option[List[Strin
     }.
 
 metadata_projection(source: String, platform: ReleasePlatform): Option[MetadataProjection] ->
-    let names =
-        [
-            ReleasePlatform.compiler(platform),
-            ReleasePlatform.vm(platform),
-            ReleasePlatform.native_worker(platform),
-            ReleasePlatform.lsp(platform),
-        ];
+    let names = [platform.compiler, platform.vm, platform.native_worker, platform.lsp];
     let {
         Ok(metadata) <- Json.parse(source);
         Ok(schema_values) <- metadata.string_fields(["schema"]);
@@ -133,10 +127,10 @@ verify_binary_hashes(paths: List[String], hashes: List[String]): Bool ->
     }.
 
 verify_binary_inventory(platform: ReleasePlatform, binaries: List[String]): Bool ->
-    contains_string(binaries, ReleasePlatform.compiler(platform))
-        and contains_string(binaries, ReleasePlatform.vm(platform))
-        and contains_string(binaries, ReleasePlatform.native_worker(platform))
-        and contains_string(binaries, ReleasePlatform.lsp(platform)).
+    contains_string(binaries, platform.compiler)
+        and contains_string(binaries, platform.vm)
+        and contains_string(binaries, platform.native_worker)
+        and contains_string(binaries, platform.lsp).
 
 directory_exists(path: String): Bool ->
     case Directory.entries(path) {
@@ -174,18 +168,16 @@ pub run_output(working_directory: String, program: String, arguments: List[Strin
     case Process.run(command) {
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(output);
+                output.status == 0 -> Some(output);
                 true -> let _failed =
                     failure(
                         "command",
-                        String.concat(
-                            [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
-                        ),
+                        String.concat([program, " failed:\n", output.stdout, output.stderr]),
                     );
                 None
             };
         Err(error) ->
-            let _failed = failure("process", Process.error_message(error));
+            let _failed = failure("process", error.message);
             None
     }.
 
@@ -197,13 +189,13 @@ run_ok(working_directory: String, program: String, arguments: List[String]): Boo
 
 pub version_matches(root: String, binary: String, name: String, version: String): Bool ->
     case run_output(root, binary, ["--version"]) {
-        Some(output) -> String.trim(Process.stdout(output)) == String.concat([name, " ", version]);
+        Some(output) -> String.trim(output.stdout) == String.concat([name, " ", version]);
         None -> false
     }.
 
 pub lsp_help_matches(root: String, binary: String): Bool ->
     case run_output(root, binary, ["--help"]) {
-        Some(output) -> String.contains(Process.stdout(output), "terlan-lsp --stdio");
+        Some(output) -> String.contains(output.stdout, "terlan-lsp --stdio");
         None -> false
     }.
 
@@ -307,7 +299,7 @@ run_compiler_smokes(repository: String, extracted: String, compiler: String, vm:
                             not run_ok(extracted, vm, ["run", image, "--entry", "vm_release.Main.main", "--test-eval"]) -> false;
                             not run_ok(extracted, compiler, ["test", test_source, "--name", "release_artifact_test"]) -> false;
                             true -> case run_output(repository, compiler, ["inspect", extracted, "--snapshot"]) {
-                                Some(output) -> inspect_valid(Process.stdout(output));
+                                Some(output) -> inspect_valid(output.stdout);
                                 None -> false
                             }
                         };
@@ -317,10 +309,10 @@ run_compiler_smokes(repository: String, extracted: String, compiler: String, vm:
     }.
 
 smoke_extracted(repository: String, extracted: String, platform: ReleasePlatform): Bool ->
-    let compiler = child(extracted, ReleasePlatform.compiler(platform));
-    let vm = child(extracted, ReleasePlatform.vm(platform));
-    let worker = child(extracted, ReleasePlatform.native_worker(platform));
-    let lsp = child(extracted, ReleasePlatform.lsp(platform));
+    let compiler = child(extracted, platform.compiler);
+    let vm = child(extracted, platform.vm);
+    let worker = child(extracted, platform.native_worker);
+    let lsp = child(extracted, platform.lsp);
     let binaries = [compiler, vm, worker, lsp];
     let Some(version) <- ReleasePlatform.cargo_version(repository) else {
         _ -> failure("version", "Cargo.toml version is unavailable")
@@ -357,7 +349,7 @@ pub smoke(repository: String): Bool ->
     let Some(platform) <- ReleasePlatform.detect() else {
         _ -> failure("platform", "unsupported release platform")
     };
-    (let artifact = child(child(repository, "dist"), ReleasePlatform.artifact(platform));
+    (let artifact = child(child(repository, "dist"), platform.artifact);
 if {
     not File.exists(artifact) -> failure("artifact", "release archive is missing");
     true -> case Directory.create_temporary("terlan-release-artifact-smoke.") {

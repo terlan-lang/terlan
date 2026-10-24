@@ -132,7 +132,7 @@ prepare(root: String, mode: String): Bool ->
     } else {
         _ -> false
     };
-    Process.status(output) == 0.
+    output.status == 0.
 
 exercise(root: String, mode: String, status: Int, calls: String): Bool ->
     prepare(root, mode) and invoke(root, mode, status, calls).
@@ -159,7 +159,7 @@ invoke(root: String, mode: String, status: Int, calls: String): Bool ->
     } else {
         _ -> false
     };
-    Process.status(output) == status and actual == calls and curated_notes(root, mode, status).
+    output.status == status and actual == calls and curated_notes(root, mode, status).
 
 curated_notes(root: String, mode: String, status: Int): Bool ->
     if {
@@ -344,11 +344,11 @@ exercise_cache(root: String, corrupt: Bool): Bool ->
         _ -> false
     };
     if {
-        corrupt -> Process.status(output) != 0
+        corrupt -> output.status != 0
             and restored == "a"
             and File.exists(child(root, "dist/release-candidate.json"))
             and not has_retired_candidate(files);
-        true -> Process.status(output) == 0
+        true -> output.status == 0
             and restored == "cached"
             and not File.exists(child(root, "dist/release-candidate.json"))
             and has_retired_candidate(files)

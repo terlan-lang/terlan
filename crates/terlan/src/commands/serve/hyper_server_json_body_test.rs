@@ -309,7 +309,7 @@ pub router(): Router ->
             })
         .error((reason: HttpError) ->
             if {
-                Error.code(reason) == Atom["router_execution_failed"] and Error.status(reason) == 500 -> Response.text("recovered").with_status(503);
+                reason.code == Atom["router_execution_failed"] and reason.status == 500 -> Response.text("recovered").with_status(503);
                 true -> Response.text("invalid recovery").with_status(500)
             }).
 "#,

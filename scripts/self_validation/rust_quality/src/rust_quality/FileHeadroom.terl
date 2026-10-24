@@ -481,7 +481,7 @@ pub record(root: String): Bool ->
                     );
                 true;
             Err(reason) ->
-                let _printed = eprintln(String.concat(["Rust file headroom failed: ", File.message(reason)]));
+                let _printed = eprintln(String.concat(["Rust file headroom failed: ", reason.message]));
                 false
         }
     }.
@@ -493,7 +493,7 @@ pub check(root: String, enforce_milestone: Bool): Bool ->
         false;
         true -> case File.read_text(SourceInventory.child(root, "docs/quality/RUST_FILE_HEADROOM.tsv")) {
             Err(reason) ->
-                let _printed = eprintln(String.concat(["Rust file headroom failed: ", File.message(reason)]));
+                let _printed = eprintln(String.concat(["Rust file headroom failed: ", reason.message]));
                 false;
             Ok(source) ->
                 let parsed = parse_inventory(source);

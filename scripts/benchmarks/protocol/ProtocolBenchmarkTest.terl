@@ -10,7 +10,7 @@ import std.core.{Float, Int, String, Unit}.
 import std.data.Json.
 import std.io.Console.{println}.
 import std.io.Directory.{create_all}.
-import std.io.File.{message, read_text, write_text}.
+import std.io.File.{read_text, write_text}.
 import std.system.{Environment, Process}.
 
 import type std.core.Option.
@@ -136,7 +136,7 @@ array_member(value: Json, key: String): Option[Json] ->
 read_json(path: String): Option[Json] ->
     case read_text(path) {
         Err(reason) ->
-            let reason_text = message(reason);
+            let reason_text = reason.message;
             let diagnostic =
                 String.append(
                     "[protocol-benchmark] error: cannot read benchmark JSON `",
@@ -147,7 +147,7 @@ read_json(path: String): Option[Json] ->
         Ok(text) ->
             case Json.parse(text) {
                 Err(reason) ->
-                    let reason_text = Json.error_message(reason);
+                    let reason_text = reason.message;
                     let diagnostic =
                         String.append(
                             "[protocol-benchmark] error: cannot read benchmark JSON `",
@@ -680,14 +680,14 @@ run_raw_benchmark(manifest: Json): Bool ->
         );
     case Process.run(command) {
         Err(reason) ->
-            let reason_text = Process.error_message(reason);
+            let reason_text = reason.message;
             let diagnostic = String.append("[protocol-benchmark] error: benchmark command failed: ", reason_text);
             let _printed = println(diagnostic);
             false;
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> read_and_execute_raw(manifest);
-                true -> let status = Int.to_string(Process.status(output));
+                output.status == 0 -> read_and_execute_raw(manifest);
+                true -> let status = Int.to_string(output.status);
                 let diagnostic =
                     String.append(
                         "[protocol-benchmark] error: benchmark command failed (",
@@ -717,7 +717,7 @@ git_commit(): String ->
             65536,
         );
     case Process.run(command) {
-        Ok(output) where Process.status(output) == 0 -> String.trim(Process.stdout(output));
+        Ok(output) where output.status == 0 -> String.trim(output.stdout);
         _ -> "unknown"
     }.
 

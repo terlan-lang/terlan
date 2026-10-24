@@ -1,4 +1,5 @@
 mod command;
+mod dependencies;
 mod directory;
 #[cfg(test)]
 mod interface_first_test;

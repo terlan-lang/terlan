@@ -634,7 +634,7 @@ contents_for(files: List[TextFile], expected: String): Option[String] ->
         [] -> None;
         [file | rest] ->
             if {
-                File.text_file_path(file) == expected -> Some(File.text_file_contents(file));
+                file.path == expected -> Some(file.contents);
                 true -> contents_for(rest, expected)
             }
     }.

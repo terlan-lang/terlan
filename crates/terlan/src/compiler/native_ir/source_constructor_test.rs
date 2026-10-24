@@ -692,6 +692,7 @@ pub(super) fn check_sources(sources: &[&str]) -> Vec<NativeModule> {
         let interface = syntax_module_output_to_interface(syntax);
         interfaces.insert(interface.module.clone(), interface);
     }
+    crate::formal_pipeline::interface_contract::expand_interface_graph(&syntaxes, &mut interfaces);
     let mut cores = syntaxes
         .iter()
         .map(|syntax| {

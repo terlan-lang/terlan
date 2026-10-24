@@ -9,42 +9,35 @@ import std.core.String.
 import type std.core.Option.
 
 pub struct Platform {
+    /**
+     * Operating system targeted by this release artifact.
+     */
     operating_system: String,
+    /**
+     * Processor architecture targeted by this release artifact.
+     */
     architecture: String,
+    /**
+     * Published release archive filename.
+     */
     artifact: String,
+    /**
+     * Compiler executable filename.
+     */
     compiler: String,
+    /**
+     * Virtual machine executable filename.
+     */
     vm: String,
+    /**
+     * Native worker executable filename.
+     */
     native_worker: String,
+    /**
+     * Language server executable filename.
+     */
     lsp: String,
 }.
-
-@pure
-pub operating_system(platform: Platform): String ->
-    platform.operating_system.
-
-@pure
-pub architecture(platform: Platform): String ->
-    platform.architecture.
-
-@pure
-pub artifact(platform: Platform): String ->
-    platform.artifact.
-
-@pure
-pub compiler(platform: Platform): String ->
-    platform.compiler.
-
-@pure
-pub vm(platform: Platform): String ->
-    platform.vm.
-
-@pure
-pub native_worker(platform: Platform): String ->
-    platform.native_worker.
-
-@pure
-pub lsp(platform: Platform): String ->
-    platform.lsp.
 
 @pure
 pub normalize_os(raw: String): Option[String] ->
@@ -110,12 +103,12 @@ pub aliases_and_artifacts_are_canonical(): Bool ->
         resolve("plan9", "x86_64"),
     } {
         {Some(linux), Some(macos), Some(windows), None} ->
-            artifact(linux) == "terlc-linux-x86_64.tar.gz"
-                and artifact(macos) == "terlc-macos-aarch64.tar.gz"
-                and artifact(windows) == "terlc-windows-aarch64.zip"
-                and compiler(windows) == "terlc.exe"
-                and vm(windows) == "terlan-vm.exe"
-                and native_worker(windows) == "terlan-native-worker.exe"
-                and lsp(windows) == "terlan-lsp.exe";
+            linux.artifact == "terlc-linux-x86_64.tar.gz"
+                and macos.artifact == "terlc-macos-aarch64.tar.gz"
+                and windows.artifact == "terlc-windows-aarch64.zip"
+                and windows.compiler == "terlc.exe"
+                and windows.vm == "terlan-vm.exe"
+                and windows.native_worker == "terlan-native-worker.exe"
+                and windows.lsp == "terlan-lsp.exe";
         _ -> false
     }.

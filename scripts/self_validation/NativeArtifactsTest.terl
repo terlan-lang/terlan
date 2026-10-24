@@ -7,7 +7,7 @@ import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.io.Console.{println}.
-import std.io.Directory.{create_all, create_temporary, entries, message, remove_all}.
+import std.io.Directory.{create_all, create_temporary, entries, remove_all}.
 import std.io.File.{exists, read_text, read_text_many}.
 import std.system.{Environment, Process}.
 
@@ -224,7 +224,7 @@ source_count_at(sources: List[SourceModule], count: Int): Int ->
 
 @pure
 process_failure_text(output: std.system.Process.Output): String ->
-    String.trim_end(String.append(Process.stdout(output), Process.stderr(output))).
+    String.trim_end(String.append(output.stdout, output.stderr)).
 
 emit_command(compiler: String, root: String, source: String, output: String): Command ->
     Process.with_output_limit_bytes(
@@ -306,7 +306,7 @@ create_workspace(
     sources: List[SourceModule],
 ): Bool ->
     case create_temporary("terlan-std-native-artifacts-") {
-        Err(reason) -> report([message(reason)]);
+        Err(reason) -> report([reason.message]);
         Ok(workspace) -> check_sources(root, compiler, rustc, workspace, sources, sources, 0, [])
     }.
 
@@ -334,7 +334,7 @@ check_sources(
                         all_sources,
                         rest,
                         index + 1,
-                        add_diagnostic(diagnostics, message(reason)),
+                        add_diagnostic(diagnostics, reason.message),
                     );
                 Ok(Unit) ->
                     emit_source(
@@ -378,13 +378,13 @@ emit_source(
                     diagnostics,
                     String.append(
                         String.append(source.source, ": emit-native-metadata failed\n"),
-                        Process.error_message(reason),
+                        reason.message,
                     ),
                 ),
             );
         Ok(result) ->
             if {
-                Process.status(result) == 0 -> discover_artifacts(
+                result.status == 0 -> discover_artifacts(
                     root,
                     compiler,
                     rustc,
@@ -437,7 +437,7 @@ discover_artifacts(
                 all_sources,
                 remaining,
                 index,
-                add_diagnostic(diagnostics, message(reason)),
+                add_diagnostic(diagnostics, reason.message),
             );
         Ok(paths) ->
             check_artifacts(
@@ -682,16 +682,13 @@ compile_artifact(
                     comparable_count,
                     add_diagnostic(
                         diagnostics,
-                        String.append(
-                            String.append(name, ": rustc failed\n"),
-                            Process.error_message(reason),
-                        ),
+                        String.append(String.append(name, ": rustc failed\n"), reason.message),
                     ),
                 );
             Ok(result) ->
                 let next =
                     if {
-                        Process.status(result) == 0 -> diagnostics;
+                        result.status == 0 -> diagnostics;
                         true -> add_diagnostic(
                             diagnostics,
                             String.append(
@@ -766,7 +763,7 @@ finish(workspace: String, count: Int, diagnostics: List[String]): Bool ->
                 count,
                 add_diagnostic(
                     diagnostics,
-                    String.append("temporary workspace cleanup failed: ", message(reason)),
+                    String.append("temporary workspace cleanup failed: ", reason.message),
                 ),
             )
     }.

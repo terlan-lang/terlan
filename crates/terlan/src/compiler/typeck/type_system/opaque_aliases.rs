@@ -1,7 +1,7 @@
 //! Internal compatibility view of opaque alias bodies.
 
 use super::{substitute_type_vars, MapFieldType, Type, TypeAlias};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Reveals opaque alias bodies for internal compatibility checks.
 ///
@@ -18,30 +18,53 @@ use std::collections::HashMap;
 pub(in super::super) fn reveal_opaque_aliases(
     ty: &Type,
     aliases: &HashMap<String, TypeAlias>,
+    current_module: &str,
+) -> Type {
+    reveal_opaque_aliases_inner(ty, aliases, current_module, &mut HashSet::new())
+}
+
+fn reveal_opaque_aliases_inner(
+    ty: &Type,
+    aliases: &HashMap<String, TypeAlias>,
+    current_module: &str,
+    active: &mut HashSet<String>,
 ) -> Type {
     match ty {
-        Type::Named {
-            module: None,
-            name,
-            args,
-        } => {
+        Type::Named { module, name, args }
+            if module
+                .as_deref()
+                .is_none_or(|owner| owner == current_module) =>
+        {
             if let Some(alias) = aliases.get(name) {
-                if alias.is_opaque && alias.params.len() == args.len() {
+                if alias.is_opaque && alias.params.len() == args.len() && !active.contains(name) {
+                    // Arguments are finite caller input, rather than recursive
+                    // references introduced by this alias's representation.
+                    let args = args
+                        .iter()
+                        .map(|arg| {
+                            reveal_opaque_aliases_inner(arg, aliases, current_module, active)
+                        })
+                        .collect::<Vec<_>>();
+                    active.insert(name.clone());
                     let mapping = alias
                         .params
                         .iter()
                         .cloned()
-                        .zip(args.iter().cloned())
+                        .zip(args)
                         .collect::<HashMap<_, _>>();
-                    return substitute_type_vars(&alias.body, &mapping);
+                    let body = substitute_type_vars(&alias.body, &mapping);
+                    let revealed =
+                        reveal_opaque_aliases_inner(&body, aliases, current_module, active);
+                    active.remove(name);
+                    return revealed;
                 }
             }
             Type::Named {
-                module: None,
+                module: module.clone(),
                 name: name.clone(),
                 args: args
                     .iter()
-                    .map(|arg| reveal_opaque_aliases(arg, aliases))
+                    .map(|arg| reveal_opaque_aliases_inner(arg, aliases, current_module, active))
                     .collect(),
             }
         }
@@ -50,31 +73,41 @@ pub(in super::super) fn reveal_opaque_aliases(
             name: name.clone(),
             args: args
                 .iter()
-                .map(|arg| reveal_opaque_aliases(arg, aliases))
+                .map(|arg| reveal_opaque_aliases_inner(arg, aliases, current_module, active))
                 .collect(),
         },
         Type::Apply { constructor, args } => Type::Apply {
             constructor: *constructor,
             args: args
                 .iter()
-                .map(|arg| reveal_opaque_aliases(arg, aliases))
+                .map(|arg| reveal_opaque_aliases_inner(arg, aliases, current_module, active))
                 .collect(),
         },
         Type::Existential { params, body } => Type::Existential {
             params: params.clone(),
-            body: Box::new(reveal_opaque_aliases(body, aliases)),
+            body: Box::new(reveal_opaque_aliases_inner(
+                body,
+                aliases,
+                current_module,
+                active,
+            )),
         },
-        Type::List(inner) => Type::List(Box::new(reveal_opaque_aliases(inner, aliases))),
+        Type::List(inner) => Type::List(Box::new(reveal_opaque_aliases_inner(
+            inner,
+            aliases,
+            current_module,
+            active,
+        ))),
         Type::Tuple(items) => Type::Tuple(
             items
                 .iter()
-                .map(|item| reveal_opaque_aliases(item, aliases))
+                .map(|item| reveal_opaque_aliases_inner(item, aliases, current_module, active))
                 .collect(),
         ),
         Type::Union(items) => Type::Union(
             items
                 .iter()
-                .map(|item| reveal_opaque_aliases(item, aliases))
+                .map(|item| reveal_opaque_aliases_inner(item, aliases, current_module, active))
                 .collect(),
         ),
         Type::Map(fields) => Type::Map(
@@ -82,7 +115,12 @@ pub(in super::super) fn reveal_opaque_aliases(
                 .iter()
                 .map(|field| MapFieldType {
                     key: field.key.clone(),
-                    value: reveal_opaque_aliases(&field.value, aliases),
+                    value: reveal_opaque_aliases_inner(
+                        &field.value,
+                        aliases,
+                        current_module,
+                        active,
+                    ),
                     required: field.required,
                 })
                 .collect(),
@@ -90,13 +128,23 @@ pub(in super::super) fn reveal_opaque_aliases(
         Type::Function { params, ret } => Type::Function {
             params: params
                 .iter()
-                .map(|param| reveal_opaque_aliases(param, aliases))
+                .map(|param| reveal_opaque_aliases_inner(param, aliases, current_module, active))
                 .collect(),
-            ret: Box::new(reveal_opaque_aliases(ret, aliases)),
+            ret: Box::new(reveal_opaque_aliases_inner(
+                ret,
+                aliases,
+                current_module,
+                active,
+            )),
         },
         Type::FixedArray { size, elem } => Type::FixedArray {
             size: *size,
-            elem: Box::new(reveal_opaque_aliases(elem, aliases)),
+            elem: Box::new(reveal_opaque_aliases_inner(
+                elem,
+                aliases,
+                current_module,
+                active,
+            )),
         },
         other => other.clone(),
     }

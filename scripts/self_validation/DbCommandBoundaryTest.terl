@@ -7,7 +7,7 @@ import std.collections.List.
 import std.core.Result.{Ok}.
 import std.core.String.
 import std.io.Console.{println}.
-import std.io.File.{read_text_directory, text_file_contents, text_file_path}.
+import std.io.File.{read_text_directory}.
 
 pub repository_boundary_holds(root: String): Bool ->
     let db_root = String.append(root, "/crates/terlan/src/commands/db");
@@ -20,8 +20,8 @@ repository_files_hold(files: List[std.io.File.TextFile], readme_found: Bool): Bo
     case files {
         [] -> readme_found;
         [file | rest] ->
-            let path = text_file_path(file);
-            let contents = text_file_contents(file);
+            let path = file.path;
+            let contents = file.contents;
             if {
                 String.ends_with(path, "/README.md") -> String.contains(contents, "VM-owned nonblocking libpq worker")
                     and repository_files_hold(rest, true);

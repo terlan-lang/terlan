@@ -4,7 +4,7 @@ import std.collections.List.
 import std.core.Result.{Err, Ok}.
 import std.core.Unit.
 import std.io.Directory.{create_all, remove_all}.
-import std.io.File.{NotFound, append_text, code, copy, copy_many, copy_plan, delete, exists, is_executable, message, path, read_bytes, read_text, read_text_directory, read_text_many, read_text_tree_excluding, read_text_tree_matching, set_executable, set_timestamps, size, text_file_contents, text_file_path, timestamps, write_text}.
+import std.io.File.{NotFound, append_text, copy, copy_many, copy_plan, delete, exists, is_executable, read_bytes, read_text, read_text_directory, read_text_many, read_text_tree_excluding, read_text_tree_matching, set_executable, set_timestamps, size, timestamps, write_text}.
 import std.test.Test.{assert_equal}.
 import std.vm.Bytes.{from_list}.
 
@@ -65,21 +65,21 @@ pub suspending_or_binding_preserves_managed_tuple_completion(): Bool ->
 @test
 pub read_text_reports_missing_file(): Bool ->
     case read_text("missing-terlan-test-file.txt") {
-        Err(reason) -> assert_equal(NotFound, code(reason));
+        Err(reason) -> assert_equal(NotFound, reason.code);
         _ -> false
     }.
 
 @test
 pub read_text_reports_missing_file_message(): Bool ->
     case read_text("missing-terlan-test-file.txt") {
-        Err(reason) -> assert_equal("file not found", message(reason));
+        Err(reason) -> assert_equal("file not found", reason.message);
         _ -> false
     }.
 
 @test
 pub read_text_reports_missing_file_path(): Bool ->
     case read_text("missing-terlan-test-file.txt") {
-        Err(reason) -> assert_equal("missing-terlan-test-file.txt", path(reason));
+        Err(reason) -> assert_equal("missing-terlan-test-file.txt", reason.path);
         _ -> false
     }.
 
@@ -244,10 +244,10 @@ pub read_text_many_preserves_requested_order(): Bool ->
     let second_removed = delete(second_path);
     case {first_write, second_write, read, first_removed, second_removed} {
         {Ok(Unit), Ok(Unit), Ok([first | [second | []]]), Ok(Unit), Ok(Unit)} ->
-            text_file_path(first) == "target/terlan-file-many-second.txt"
-                and text_file_contents(first) == "second"
-                and text_file_path(second) == "target/terlan-file-many-first.txt"
-                and text_file_contents(second) == "first";
+            first.path == "target/terlan-file-many-second.txt"
+                and first.contents == "second"
+                and second.path == "target/terlan-file-many-first.txt"
+                and second.contents == "first";
         _ -> false
     }.
 
@@ -276,7 +276,7 @@ pub read_text_many_equal_large_contents_compare_by_value(): Bool ->
 @test
 pub read_text_many_reports_exact_failing_path(): Bool ->
     case read_text_many(["std/io/File.terl", "missing-terlan-batch-file.txt", "std/io/Directory.terl"]) {
-        Err(reason) -> code(reason) == NotFound and path(reason) == "missing-terlan-batch-file.txt";
+        Err(reason) -> reason.code == NotFound and reason.path == "missing-terlan-batch-file.txt";
         _ -> false
     }.
 
@@ -300,10 +300,10 @@ pub read_text_directory_returns_sorted_immediate_files(): Bool ->
     let removed = remove_all(root);
     case {directory, nested, second, first, ignored, read, removed} {
         {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok([a | [b | []]]), Ok(Unit)} ->
-            text_file_path(a) == "target/terlan-file-directory-test/a.txt"
-                and text_file_contents(a) == "first"
-                and text_file_path(b) == "target/terlan-file-directory-test/b.txt"
-                and text_file_contents(b) == "second";
+            a.path == "target/terlan-file-directory-test/a.txt"
+                and a.contents == "first"
+                and b.path == "target/terlan-file-directory-test/b.txt"
+                and b.contents == "second";
         _ -> false
     }.
 
@@ -319,8 +319,7 @@ pub read_text_tree_prunes_exact_directory_names(): Bool ->
     let removed = remove_all(directory);
     case {root, ignored_dir, kept, ignored, read, removed} {
         {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok([file | []]), Ok(Unit)} ->
-            text_file_path(file) == "target/terlan-file-tree-test/kept/a.txt"
-                and text_file_contents(file) == "kept";
+            file.path == "target/terlan-file-tree-test/kept/a.txt" and file.contents == "kept";
         _ -> false
     }.
 
@@ -344,8 +343,7 @@ pub read_text_tree_matching_filters_before_utf8_reads(): Bool ->
     let removed = remove_all(directory);
     case {root, text, ignored, excluded, read, removed} {
         {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok([file | []]), Ok(Unit)} ->
-            text_file_path(file) == "target/terlan-file-matching-test/a.terl"
-                and text_file_contents(file) == "module a.";
+            file.path == "target/terlan-file-matching-test/a.terl" and file.contents == "module a.";
         _ -> false
     }.
 
@@ -361,8 +359,8 @@ pub read_text_tree_matching_returns_a_sorted_bounded_page(): Bool ->
     let removed = remove_all(directory);
     case {root, first, second, third, read, removed} {
         {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok([file | []]), Ok(Unit)} ->
-            text_file_path(file) == "target/terlan-file-matching-page-test/b.terl"
-                and text_file_contents(file) == "module b.";
+            file.path == "target/terlan-file-matching-page-test/b.terl"
+                and file.contents == "module b.";
         _ -> false
     }.
 
@@ -426,6 +424,6 @@ pub delete_removes_existing_file(): Bool ->
 @test
 pub delete_reports_missing_file(): Bool ->
     case delete("missing-terlan-delete-test-file.txt") {
-        Err(reason) -> assert_equal(NotFound, code(reason));
+        Err(reason) -> assert_equal(NotFound, reason.code);
         _ -> false
     }.

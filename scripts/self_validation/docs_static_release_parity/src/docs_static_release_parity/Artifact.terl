@@ -16,27 +16,27 @@ import type std.core.Option.
  * Current-host release artifact and installed binary naming contract.
  */
 pub struct ReleasePlatform {
+    /**
+     * Operating system targeted by this release artifact.
+     */
     operating_system: String,
+    /**
+     * Processor architecture targeted by this release artifact.
+     */
     architecture: String,
+    /**
+     * Published release archive filename.
+     */
     artifact_name: String,
+    /**
+     * Compiler executable filename within the release archive.
+     */
     compiler_binary_name: String,
+    /**
+     * Language server executable filename within the release archive.
+     */
     lsp_binary_name: String,
 }.
-
-pub operating_system(platform: ReleasePlatform): String ->
-    platform.operating_system.
-
-pub architecture(platform: ReleasePlatform): String ->
-    platform.architecture.
-
-pub artifact_name(platform: ReleasePlatform): String ->
-    platform.artifact_name.
-
-pub compiler_binary_name(platform: ReleasePlatform): String ->
-    platform.compiler_binary_name.
-
-pub lsp_binary_name(platform: ReleasePlatform): String ->
-    platform.lsp_binary_name.
 
 environment_or_host(name: String, fallback: String): String ->
     case Environment.get(name) {

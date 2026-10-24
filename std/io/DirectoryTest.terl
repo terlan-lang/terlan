@@ -2,7 +2,7 @@ module std.io.DirectoryTest.
 
 import std.core.Result.{Err, Ok}.
 import std.core.Unit.
-import std.io.Directory.{InvalidPath, NotFound, code, copy_tree_excluding, create_all, create_symbolic_link, create_temporary, entries, files_recursive, files_recursive_excluding, find_named_recursive_excluding, remove_all, tree_usage}.
+import std.io.Directory.{InvalidPath, NotFound, copy_tree_excluding, create_all, create_symbolic_link, create_temporary, entries, files_recursive, files_recursive_excluding, find_named_recursive_excluding, remove_all, tree_usage}.
 import std.io.File.{read_text, write_text}.
 import std.test.Test.{assert_equal}.
 
@@ -30,7 +30,7 @@ pub entries_returns_sorted_children(): Bool ->
 @test
 pub missing_directory_is_typed_error(): Bool ->
     case entries("target/terlan-missing-directory") {
-        Err(reason) -> assert_equal(NotFound, code(reason));
+        Err(reason) -> assert_equal(NotFound, reason.code);
         _ -> false
     }.
 
@@ -152,7 +152,7 @@ pub tree_copy_rejects_an_existing_destination(): Bool ->
             let source_removed = remove_all(source);
             let destination_removed = remove_all(destination);
             case {copied, source_removed, destination_removed} {
-                {Err(reason), Ok(Unit), Ok(Unit)} -> assert_equal(InvalidPath, code(reason));
+                {Err(reason), Ok(Unit), Ok(Unit)} -> assert_equal(InvalidPath, reason.code);
                 _ -> false
             };
         _ -> false
@@ -210,6 +210,6 @@ remove_succeeds(path: String): Bool ->
 @test
 pub temporary_directory_rejects_path_components(): Bool ->
     case create_temporary("invalid/prefix") {
-        Err(reason) -> assert_equal(InvalidPath, code(reason));
+        Err(reason) -> assert_equal(InvalidPath, reason.code);
         _ -> false
     }.

@@ -13,7 +13,7 @@ import std.io.Directory.{create_all}.
 import std.io.File.{read_text}.
 import std.regex.Regex.
 import std.system.Environment.
-import std.vcs.Git.{clean, revision, sha256 as source_sha256, source_tree_identity}.
+import std.vcs.Git.{source_tree_identity}.
 import tvm_aot_platform_matrix.Core.{child, fragments_present, is_sha256, json_bool, json_equals, json_string, json_value, load_json, occurrences, string_array, write_json}.
 import tvm_aot_platform_matrix.ReleaseCloseout.{list_equal, make_list_variable}.
 
@@ -379,9 +379,9 @@ pub record(): Bool ->
                 inventory,
                 inventory_source,
                 contract_source,
-                revision(identity),
-                source_sha256(identity),
-                clean(identity),
+                identity.revision,
+                identity.sha256,
+                identity.clean,
                 memory_model_digest,
                 thread_sanitizer_digest,
             );
@@ -391,7 +391,7 @@ pub record(): Bool ->
     };
     if {
         not write_json(output, report) -> false;
-        true -> let _printed = println(String.append("VM multicore release closeout passed: ", revision(identity)));
+        true -> let _printed = println(String.append("VM multicore release closeout passed: ", identity.revision));
         true
     }.
 
@@ -424,9 +424,9 @@ pub verify(): Bool ->
                 inventory,
                 inventory_source,
                 contract_source,
-                revision(identity),
-                source_sha256(identity),
-                clean(identity),
+                identity.revision,
+                identity.sha256,
+                identity.clean,
                 memory_model_digest,
                 thread_sanitizer_digest,
             )
@@ -434,12 +434,12 @@ pub verify(): Bool ->
         _ -> failure("sealed publication evidence is missing or malformed")
     };
     if {
-        not clean(identity) -> failure("publication evidence requires a clean source tree");
+        not identity.clean -> failure("publication evidence requires a clean source tree");
         not validate_closeout(actual) -> failure("sealed publication evidence is invalid");
         not json_equals(actual, expected) -> failure("sealed publication evidence is stale");
         true -> let _printed =
             println(
-                String.append("VM multicore publication evidence verified: ", revision(identity)),
+                String.append("VM multicore publication evidence verified: ", identity.revision),
             );
         true
     }.

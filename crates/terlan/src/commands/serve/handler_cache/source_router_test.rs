@@ -42,7 +42,7 @@ pub router(): Router ->
                 .get("/" + part, (_request: Request) -> Response.text(part, 202))
                 .error((error: HttpError) ->
                     if {
-                        Error.code(error) == Atom["router_execution_failed"] and Error.status(error) == 500 -> Response.text(part + ":" + Error.message(error), 503);
+                        error.code == Atom["router_execution_failed"] and error.status == 500 -> Response.text(part + ":" + error.message, 503);
                         true -> Response.text("invalid recovery", 500)
                     }))
         .sse("/events", Sse.endpoint_with_keep_alive(4, 1024, 50)

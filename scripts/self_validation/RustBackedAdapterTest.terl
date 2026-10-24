@@ -7,7 +7,7 @@ import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.io.Console.{println}.
-import std.io.File.{message, read_text, read_text_many}.
+import std.io.File.{read_text, read_text_many}.
 import std.system.Environment.
 
 import type std.io.File.TextFile.
@@ -410,7 +410,7 @@ validate_rows(root: String, rows: List[AdapterRow]): Bool ->
     let paths = all_paths(root, rows);
     case read_text_many(paths) {
         Err(reason) ->
-            let _reported = println(message(reason));
+            let _reported = println(reason.message);
             false;
         Ok(files) -> validate_loaded_rows(root, rows, files)
     }.

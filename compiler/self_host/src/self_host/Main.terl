@@ -1,8 +1,6 @@
 /** Command entrypoint for the first self-hosted compiler frontend slice. */
 module self_host.Main.
 
-
-
 import std.core.Result.{Err, Ok, Result}.
 import std.core.Option.{None, Option, Some}.
 import self_host.Evidence.
@@ -101,7 +99,7 @@ write_exact_or_print_path(path: String, rendered: String): Bool ->
 write_text_or_report(path: String, rendered: String): Bool ->
     case File.write_text(path, rendered) {
         Ok(_unit) -> true;
-        Err(reason) -> report_false(File.message(reason))
+        Err(reason) -> report_false(reason.message)
     }.
 
 report_false(message: String): Bool ->
@@ -114,19 +112,19 @@ report_unit(message: String): Unit ->
 
 pub analyze_file(input: String, output: Option[String]): Bool ->
     case File.read_text(input) {
-        Err(reason) -> report_false(File.message(reason));
+        Err(reason) -> report_false(reason.message);
         Ok(source) -> analyze_source(input, output, source)
     }.
 
 analyze_source(input: String, output: Option[String], source: String): Bool ->
     case Evidence.render(input, source) {
-        Err(reason) -> report_false(std.data.Json.error_message(reason));
+        Err(reason) -> report_false(reason.message);
         Ok(rendered) -> write_or_print(output, rendered)
     }.
 
 pub frontend_file(mode: String, input: String, output: Option[String]): Bool ->
     case File.read_text(input) {
-        Err(reason) -> report_false(File.message(reason));
+        Err(reason) -> report_false(reason.message);
         Ok(source) -> frontend_source(mode, output, source)
     }.
 

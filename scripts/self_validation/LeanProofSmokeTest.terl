@@ -459,26 +459,22 @@ commands(root: String, rows: List[SmokeRow]): List[Command] ->
 empty_commands(): List[Command] -> [].
 
 completion_output(completion: BatchCompletion): Option[Output] ->
-    case {Process.completion_output(completion), Process.completion_error(completion)} {
+    case {completion.output, completion.error} {
         {Some(output), None} -> Some(output);
         _ -> None
     }.
 
 proof_passed(output: Output): Bool ->
-    Process.status(output) == 0.
+    output.status == 0.
 
 runtime_passed(row: SmokeRow, output: Output): Bool ->
-    let combined = String.append(Process.stdout(output), Process.stderr(output));
+    let combined = String.append(output.stdout, output.stderr);
     if {
-        row.runtime_kind == "terlan-check-reject" -> Process.status(output) != 0
+        row.runtime_kind == "terlan-check-reject" -> output.status != 0
             and String.contains(combined, "target inference error")
             and String.contains(combined, "typed target evidence for `vm`");
-        row.runtime_kind == "rust-test" -> rust_oracle_output_holds(
-            Process.status(output),
-            Process.stdout(output),
-            rust_coverage_requested(),
-        );
-        true -> Process.status(output) == 0 and String.contains(Process.stdout(output), "test result: ok.")
+        row.runtime_kind == "rust-test" -> rust_oracle_output_holds(output.status, output.stdout, rust_coverage_requested());
+        true -> output.status == 0 and String.contains(output.stdout, "test result: ok.")
     }.
 
 rust_coverage_requested(): Bool ->
@@ -805,22 +801,22 @@ run_check(root: String, inputs: Inputs): Bool ->
 
 run_commands(root: String, inputs: Inputs, rows: List[SmokeRow], baseline: Json): Bool ->
     let Ok(proofs) <- Process.run(proof_command(root, rows)) else {
-        Err(reason) -> fail(Process.error_message(reason))
+        Err(reason) -> fail(reason.message)
     };
     if {
-        not proof_passed(proofs) -> fail(String.append("proof owner failed: ", Process.stderr(proofs)));
+        not proof_passed(proofs) -> fail(String.append("proof owner failed: ", proofs.stderr));
         true -> run_runtime_commands(root, inputs, rows, baseline)
     }.
 
 run_runtime_commands(root: String, inputs: Inputs, rows: List[SmokeRow], baseline: Json): Bool ->
     case Process.run_many(Process.batch(commands(root, rows), 2)) {
         Ok(batch) ->
-            let evaluation = evaluate(rows, Process.completions(batch), baseline, inputs.files);
+            let evaluation = evaluate(rows, batch.completions, baseline, inputs.files);
             if {
                 evaluation.valid -> persist(root, inputs.manifest, evaluation);
                 true -> fail("semantic smoke runtime or compatibility evidence failed")
             };
-        Err(reason) -> fail(Process.error_message(reason))
+        Err(reason) -> fail(reason.message)
     }.
 
 repository_smoke_holds(): Bool ->

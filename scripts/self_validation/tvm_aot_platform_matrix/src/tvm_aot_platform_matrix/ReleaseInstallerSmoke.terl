@@ -39,31 +39,29 @@ run_installer(
     case Process.run(command) {
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(output);
+                output.status == 0 -> Some(output);
                 true -> let _failed =
                     failure(
                         "command",
-                        String.concat(
-                            [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
-                        ),
+                        String.concat([program, " failed:\n", output.stdout, output.stderr]),
                     );
                 None
             };
         Err(error) ->
-            let _failed = failure("process", Process.error_message(error));
+            let _failed = failure("process", error.message);
             None
     }.
 
 file_url(path: String, platform: ReleasePlatform): String ->
     let normalized = String.replace(path, "\\", "/");
     if {
-        ReleasePlatform.operating_system(platform) == "windows" -> String.append("file:///", normalized);
+        platform.operating_system == "windows" -> String.append("file:///", normalized);
         true -> String.append("file://", normalized)
     }.
 
 install_command(root: String, platform: ReleasePlatform): {String, List[String]} ->
     if {
-        ReleasePlatform.operating_system(platform) == "windows" -> {
+        platform.operating_system == "windows" -> {
             "powershell",
             [
                 "-NoProfile",
@@ -82,10 +80,10 @@ installed_valid(
     platform: ReleasePlatform,
     version: String,
 ): Bool ->
-    let compiler = ReleasePayload.child(install_bin, ReleasePlatform.compiler(platform));
-    let vm = ReleasePayload.child(install_bin, ReleasePlatform.vm(platform));
-    let worker = ReleasePayload.child(install_bin, ReleasePlatform.native_worker(platform));
-    let lsp = ReleasePayload.child(install_bin, ReleasePlatform.lsp(platform));
+    let compiler = ReleasePayload.child(install_bin, platform.compiler);
+    let vm = ReleasePayload.child(install_bin, platform.vm);
+    let worker = ReleasePayload.child(install_bin, platform.native_worker);
+    let lsp = ReleasePayload.child(install_bin, platform.lsp);
     let share = ReleasePayload.child(install_bin, "../share/terlan");
     if {
         not ReleaseSmoke.all_files([compiler, vm, worker, lsp]) -> failure("binaries", "installer omitted a release executable");
@@ -110,7 +108,7 @@ smoke_in(
     let release_version = String.append("v", version);
     let release_root = ReleasePayload.child(temporary, "releases");
     let release_dir = ReleasePayload.child(release_root, release_version);
-    let artifact_copy = ReleasePayload.child(release_dir, ReleasePlatform.artifact(platform));
+    let artifact_copy = ReleasePayload.child(release_dir, platform.artifact);
     let checksum_copy = String.append(artifact_copy, ".sha256");
     let install_bin = ReleasePayload.child(temporary, "install/bin");
     let environment = [Process.environment_entry("TERLAN_VERSION", release_version) | [Process.environment_entry("TERLAN_INSTALL_DIR", install_bin) | [Process.environment_entry("TERLAN_RELEASE_BASE_URL", file_url(release_root, platform)) | std.collections.List.new[EnvironmentEntry]()]]];
@@ -142,7 +140,7 @@ pub smoke(root: String): Bool ->
     } else {
         _ -> failure("inputs", "release platform or version is unavailable")
     };
-    (let artifact = ReleasePayload.child(ReleasePayload.child(root, "dist"), ReleasePlatform.artifact(platform));
+    (let artifact = ReleasePayload.child(ReleasePayload.child(root, "dist"), platform.artifact);
 let checksum = String.append(artifact, ".sha256");
 if {
     not File.exists(artifact) -> failure("artifact", "release archive is missing");
@@ -188,13 +186,13 @@ raw_installer(
     let command =
         Process.command(
             if {
-                ReleasePlatform.operating_system(platform) == "windows" -> "powershell";
+                platform.operating_system == "windows" -> "powershell";
                 true -> "sh"
             },
         )
             .with_arguments(
                 if {
-                    ReleasePlatform.operating_system(platform) == "windows" -> ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", installer];
+                    platform.operating_system == "windows" -> ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", installer];
                     true -> [installer]
                 },
             )
@@ -209,7 +207,7 @@ raw_installer(
     case Process.run(command) {
         Ok(output) -> Some(output);
         Err(error) ->
-            let _failed = failure("process", Process.error_message(error));
+            let _failed = failure("process", error.message);
             None
     }.
 
@@ -246,14 +244,14 @@ installation_unchanged(temporary: String, binary: String, share: String): Bool -
     binary != "" and share != "" and current_binary == binary and current_share == share.
 
 bad_upgrade_archive(temporary: String, platform: ReleasePlatform, version: String): Bool ->
-    let name = ReleasePlatform.artifact(platform);
+    let name = platform.artifact;
     let archive = ReleasePayload.child(temporary, String.concat(["releases/v", version, "/", name]));
     let stage = ReleasePayload.child(temporary, "bad-upgrade-stage");
     case Archive.extract(archive, stage) {
         Err(_reason) ->
             failure("rollback_extract", "cannot extract the sealed candidate for mutation");
         Ok(Unit) ->
-            case File.delete(ReleasePayload.child(stage, ReleasePlatform.vm(platform))) {
+            case File.delete(ReleasePayload.child(stage, platform.vm)) {
                 Err(_reason) ->
                     failure("rollback_mutation", "cannot remove the VM from the failing upgrade");
                 Ok(Unit) ->
@@ -288,7 +286,7 @@ stage_local_mirror(
     version: String,
 ): Bool ->
     let release_dir = ReleasePayload.child(temporary, String.concat(["releases/v", version]));
-    let artifact_copy = ReleasePayload.child(release_dir, ReleasePlatform.artifact(platform));
+    let artifact_copy = ReleasePayload.child(release_dir, platform.artifact);
     let checksum_copy = String.append(artifact_copy, ".sha256");
     let copies = [File.copy_plan(artifact, artifact_copy), File.copy_plan(checksum, checksum_copy)];
     case Directory.create_all(release_dir) {
@@ -303,7 +301,7 @@ stage_local_mirror(
 copy_installer(root: String, temporary: String, platform: ReleasePlatform): Option[String] ->
     let name =
         if {
-            ReleasePlatform.operating_system(platform) == "windows" -> "install.ps1";
+            platform.operating_system == "windows" -> "install.ps1";
             true -> "install.sh"
         };
     let destination = ReleasePayload.child(temporary, name);
@@ -388,7 +386,7 @@ staged_in(
     platform: ReleasePlatform,
     version: String,
 ): Bool ->
-    let artifact = ReleasePayload.child(ReleasePayload.child(root, "dist"), ReleasePlatform.artifact(platform));
+    let artifact = ReleasePayload.child(ReleasePayload.child(root, "dist"), platform.artifact);
     let seal = readiness_seal(root);
     if {
         seal == "" -> cleanup(temporary, failure("attestation", "readiness candidate seal is missing"));
@@ -459,7 +457,7 @@ run_initial_staged_install(
     case raw_installer(root, installer, temporary, platform, version) {
         Some(output) ->
             if {
-                Process.status(output) == 0
+                output.status == 0
                     and installed_valid(temporary, ReleasePayload.child(temporary, "install/bin"), platform, version) -> snapshot_staged_binary(
                     root,
                     temporary,
@@ -567,7 +565,7 @@ run_staged_rollback(
     case raw_installer(root, installer, temporary, platform, version) {
         Some(output) ->
             if {
-                Process.status(output) != 0 and installation_unchanged(temporary, binary, share) -> remove_staged_checksum(
+                output.status != 0 and installation_unchanged(temporary, binary, share) -> remove_staged_checksum(
                     root,
                     temporary,
                     installer,
@@ -589,7 +587,7 @@ run_staged_rollback(
 mirror_checksum(temporary: String, platform: ReleasePlatform, version: String): String ->
     ReleasePayload.child(
         temporary,
-        String.concat(["releases/v", version, "/", ReleasePlatform.artifact(platform), ".sha256"]),
+        String.concat(["releases/v", version, "/", platform.artifact, ".sha256"]),
     ).
 
 remove_staged_checksum(
@@ -634,7 +632,7 @@ run_partial_mirror(
     case raw_installer(root, installer, temporary, platform, version) {
         Some(output) ->
             if {
-                Process.status(output) != 0 and installation_unchanged(temporary, binary, share) -> write_bad_staged_checksum(
+                output.status != 0 and installation_unchanged(temporary, binary, share) -> write_bad_staged_checksum(
                     root,
                     temporary,
                     installer,
@@ -672,7 +670,7 @@ write_bad_staged_checksum(
         String.concat(
             [
                 "0000000000000000000000000000000000000000000000000000000000000000  ",
-                ReleasePlatform.artifact(platform),
+                platform.artifact,
                 "\n",
             ],
         ),
@@ -706,7 +704,7 @@ run_checksum_mismatch(
     case raw_installer(root, installer, temporary, platform, version) {
         Some(output) ->
             if {
-                Process.status(output) != 0 and installation_unchanged(temporary, binary, share) -> run_version_mismatch(
+                output.status != 0 and installation_unchanged(temporary, binary, share) -> run_version_mismatch(
                     root,
                     temporary,
                     installer,
@@ -740,7 +738,7 @@ run_version_mismatch(
     case raw_installer(root, installer, temporary, platform, "9.9.9") {
         Some(output) ->
             if {
-                Process.status(output) != 0 and installation_unchanged(temporary, binary, share) -> finish_staged_verification(root, temporary, seal, artifact_hash);
+                output.status != 0 and installation_unchanged(temporary, binary, share) -> finish_staged_verification(root, temporary, seal, artifact_hash);
                 true -> cleanup(
                     temporary,
                     failure("version", "version mismatch was accepted or changed the installation"),

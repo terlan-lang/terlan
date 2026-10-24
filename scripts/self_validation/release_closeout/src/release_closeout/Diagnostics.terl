@@ -252,7 +252,7 @@ rows_valid(root: String, changes: Json, index: Int, count: Int, surfaces: List[S
                         [],
                         [],
                     );
-            [surface, classification, previous, current, guidance, evidence] <- Json.required_field_strings(fields)
+            [surface, classification, previous, current, guidance, evidence] <- fields.strings
         } else {
             _ -> false
         };
@@ -270,8 +270,8 @@ compatibility_document(root: String): {Bool, Int, String} ->
     };
     (let {
     Ok(header) <- document.required_fields(["schema", "baseline", "candidate"], [], ["changes"]);
-    [schema, baseline, candidate] <- Json.required_field_strings(header);
-    [count] <- Json.required_field_array_lengths(header);
+    [schema, baseline, candidate] <- header.strings;
+    [count] <- header.array_lengths;
     Ok(changes) <- document.get("changes")
 } else {
     _ -> {false, 0, source}

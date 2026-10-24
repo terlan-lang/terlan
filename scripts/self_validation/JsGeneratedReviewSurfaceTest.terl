@@ -187,13 +187,7 @@ selected_root(): String ->
 parse_binding(root: String, relative: String, source: String): Bool ->
     case Json.parse(source) {
         Err(reason) ->
-            report(
-                add_diagnostic(
-                    [],
-                    relative,
-                    String.append("invalid JSON: ", Json.error_message(reason)),
-                ),
-            );
+            report(add_diagnostic([], relative, String.append("invalid JSON: ", reason.message)));
         Ok(binding) -> read_binding_metadata(root, binding)
     }.
 
@@ -332,7 +326,7 @@ parse_skipped(
                 add_diagnostic(
                     diagnostics,
                     relative,
-                    String.append("invalid JSON: ", Json.error_message(reason)),
+                    String.append("invalid JSON: ", reason.message),
                 ),
             );
         Ok(skipped) -> read_skipped_schema(root, binding, relative, skipped, diagnostics)
@@ -507,8 +501,8 @@ validate_skipped_rows(
 @pure
 validate_skipped_row(path: String, row: StringFieldRow, diagnostics: List[String]): List[String] ->
     if {
-        not Json.string_field_row_is_object(row) -> add_diagnostic(diagnostics, path, "skip row must be an object");
-        true -> case Json.string_field_row_values(row) {
+        not row.object -> add_diagnostic(diagnostics, path, "skip row must be an object");
+        true -> case row.values {
             [source | [reason | [detail | []]]] ->
                 let d1 =
                     require_nonempty(
@@ -633,7 +627,7 @@ module_is_present(module_name: String, rows: List[StringFieldRow]): Bool ->
 
 @pure
 row_module_is(row: StringFieldRow, expected: String): Bool ->
-    case Json.string_field_row_values(row) {
+    case row.values {
         [Some(module_name) | _rest] -> module_name == expected;
         _ -> false
     }.
@@ -701,11 +695,11 @@ output_artifacts(
     diagnostics: List[String],
 ): ArtifactPlan ->
     if {
-        not Json.string_field_row_is_object(row) -> ArtifactPlan(
+        not row.object -> ArtifactPlan(
             checks = checks,
             diagnostics = add_diagnostic(diagnostics, binding_manifest_path(), "output entry must be an object"),
         );
-        true -> case Json.string_field_row_values(row) {
+        true -> case row.values {
             [_module | [source | [interface | [test | [summary | []]]]]] ->
                 let p1 =
                     add_artifact(

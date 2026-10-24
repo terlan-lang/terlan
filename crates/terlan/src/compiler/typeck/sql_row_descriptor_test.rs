@@ -1,6 +1,30 @@
 use super::test_support::check_syntax_output;
 
 #[test]
+fn sql_row_results_preserve_local_nominal_identity() {
+    let diagnostics = check_syntax_output(
+        r#"
+module sql_rows.Identity.
+pub struct Row { id: Int }.
+row_id(row: Row): Int -> row.id.
+first_id(rows: List[Row]): Int ->
+    case rows { [row | _] -> row_id(row); [] -> 0 }.
+pub optional_id(): Int ->
+    case sql[Row] { SELECT id FROM users LIMIT 1 } {
+        {Atom["ok"], {Atom["some"], row}} -> row_id(row);
+        _ -> 0
+    }.
+pub many_ids(): Int ->
+    case sql[Row] { SELECT id FROM users } {
+        {Atom["ok"], rows} -> first_id(rows);
+        _ -> 0
+    }.
+"#,
+    );
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
+}
+
+#[test]
 fn sql_row_descriptor_accepts_scalar_tuple_and_infers_result_type() {
     let diagnostics = check_syntax_output(
         "\

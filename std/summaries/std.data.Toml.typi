@@ -15,21 +15,6 @@ pub struct TomlError {
     offset: Int
 }.
 
-/// Returns a TOML error's stable machine-readable code.
-
-@pure
-pub error_code(error: TomlError): Atom.
-
-/// Returns a TOML error's human-readable message.
-
-@pure
-pub error_message(error: TomlError): String.
-
-/// Returns a TOML error's byte offset, or zero when unavailable.
-
-@pure
-pub error_offset(error: TomlError): Int.
-
 /// Parses one TOML document into the portable structured-data representation.
 ///
 /// Input: UTF-8 TOML source text.

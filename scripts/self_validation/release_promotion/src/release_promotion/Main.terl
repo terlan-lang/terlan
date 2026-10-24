@@ -59,13 +59,13 @@ tag_digest(value: String): String ->
 
 canonical(document: Json): StringResult ->
     case Json.stringify_pretty(document) {
-        Err(reason) -> string_failure(Json.error_message(reason));
+        Err(reason) -> string_failure(reason.message);
         Ok(value) -> StringResult(valid = true, value = String.append(value, "\n"), message = "")
     }.
 
 file_digest(path: String): StringResult ->
     case Hash.sha256_file(path) {
-        Err(reason) -> string_failure(File.message(reason));
+        Err(reason) -> string_failure(reason.message);
         Ok(value) ->
             StringResult(valid = true, value = String.append("sha256:", value), message = "")
     }.
@@ -92,7 +92,7 @@ file_row(root: String, path: String, include_size: Bool): DocumentResult ->
     if {
         not digest.valid -> document_failure(digest.message);
         true -> case File.size(child(root, path)) {
-            Err(reason) -> document_failure(File.message(reason));
+            Err(reason) -> document_failure(reason.message);
             Ok(size) ->
                 let row =
                     Json.object()
@@ -222,7 +222,7 @@ write_json(path: String, document: Json): Bool ->
         false;
         true -> case File.write_text(path, rendered.value) {
             Err(reason) ->
-                let _printed = eprintln(File.message(reason));
+                let _printed = eprintln(reason.message);
                 false;
             Ok(_written) -> true
         }
@@ -256,10 +256,7 @@ read_candidate(root: String): DocumentResult ->
             case Json.parse(source) {
                 Err(reason) ->
                     document_failure(
-                        String.append(
-                            "candidate manifest is invalid JSON: ",
-                            Json.error_message(reason),
-                        ),
+                        String.append("candidate manifest is invalid JSON: ", reason.message),
                     );
                 Ok(document) -> DocumentResult(valid = true, document = document, message = "")
             }
@@ -317,7 +314,7 @@ artifact_paths_at(values: List[RequiredFieldRow], output: List[String]): List[St
     case values {
         [] -> reverse(output);
         [value | rest] ->
-            case Json.required_field_row_strings(value) {
+            case value.strings {
                 [path] -> artifact_paths_at(rest, [path | output]);
                 _ -> List.new[String]()
             }
@@ -369,7 +366,7 @@ write_report(root: String, candidate: Json, synthetic: Bool): Bool ->
                     .put("rebuild_commands_executed", Json.array());
             let directory = child(root, "target/quality");
             case Directory.create_all(directory) {
-                Err(reason) -> fail(Directory.message(reason));
+                Err(reason) -> fail(reason.message);
                 Ok(_created) ->
                     write_json(
                         child(root, "target/quality/release-promotion-pipeline-report.json"),
@@ -413,7 +410,7 @@ contract_text(makefile: String, publisher: String): Bool ->
 
 self_test(root: String, report: Bool): Bool ->
     case Directory.create_temporary("terlan-release-promotion-") {
-        Err(reason) -> fail(Directory.message(reason));
+        Err(reason) -> fail(reason.message);
         Ok(fixture) ->
             let created = CandidateFixture.create(fixture);
             let sealed = created and seal(fixture, "0.0.7");

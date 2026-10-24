@@ -15,27 +15,23 @@ import type std.core.Option.
 import type std.crypto.Hash.LabeledFile.
 
 pub struct DigestResult {
+    /**
+     * Whether the compilation input inventory was read successfully.
+     */
     valid: Bool,
+    /**
+     * Deterministic digest of the compilation input contents.
+     */
     digest: String,
+    /**
+     * Number of files contributing to the input digest.
+     */
     file_count: Int,
+    /**
+     * Diagnostic explaining an input inventory failure.
+     */
     message: String,
 }.
-
-@pure
-pub result_valid(value: DigestResult): Bool ->
-    value.valid.
-
-@pure
-pub result_digest(value: DigestResult): String ->
-    value.digest.
-
-@pure
-pub result_message(value: DigestResult): String ->
-    value.message.
-
-@pure
-pub result_file_count(value: DigestResult): Int ->
-    value.file_count.
 
 @pure
 relative_path(root: String, path: String): Option[String] ->
@@ -76,12 +72,7 @@ select(root: String, files: List[String], output: List[LabeledFile]): List[Label
 pub digest(root: String): DigestResult ->
     case Directory.files_recursive_excluding(root, ["target", ".git"]) {
         Err(reason) ->
-            DigestResult(
-                valid = false,
-                digest = "",
-                file_count = 0,
-                message = Directory.message(reason),
-            );
+            DigestResult(valid = false, digest = "", file_count = 0, message = reason.message);
         Ok(files) ->
             let selected = select(root, files, List.new[LabeledFile]());
             if {
@@ -97,7 +88,7 @@ pub digest(root: String): DigestResult ->
                             valid = false,
                             digest = "",
                             file_count = 0,
-                            message = File.message(reason),
+                            message = reason.message,
                         );
                     Ok(value) ->
                         DigestResult(

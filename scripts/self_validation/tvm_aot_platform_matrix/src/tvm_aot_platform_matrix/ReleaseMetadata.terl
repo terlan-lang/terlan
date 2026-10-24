@@ -35,23 +35,19 @@ binary_descriptor(name: String, path: String): Json ->
 
 binary_descriptors(platform: ReleasePlatform): Json ->
     let result = Json.array();
-    let _compiler = result.push(binary_descriptor("terlc", ReleasePlatform.compiler(platform)));
-    let _vm = result.push(binary_descriptor("terlan-vm", ReleasePlatform.vm(platform)));
-    let _worker =
-        result
-            .push(
-                binary_descriptor("terlan-native-worker", ReleasePlatform.native_worker(platform)),
-            );
-    result.push(binary_descriptor("terlan-lsp", ReleasePlatform.lsp(platform))).
+    let _compiler = result.push(binary_descriptor("terlc", platform.compiler));
+    let _vm = result.push(binary_descriptor("terlan-vm", platform.vm));
+    let _worker = result.push(binary_descriptor("terlan-native-worker", platform.native_worker));
+    result.push(binary_descriptor("terlan-lsp", platform.lsp)).
 
 binary_hashes(values: List[Payload], result: Json): Option[Json] ->
     case values {
         [] -> Some(result);
         [value | rest] ->
-            case Hash.sha256_file(ReleasePayload.source(value)) {
+            case Hash.sha256_file(value.source) {
                 Err(_reason) -> None;
                 Ok(digest) ->
-                    let _inserted = result.put(ReleasePayload.archive(value), Json.string(digest));
+                    let _inserted = result.put(value.archive, Json.string(digest));
                     binary_hashes(rest, result)
             }
     }.
@@ -83,8 +79,8 @@ put_identity(metadata: Json, platform: ReleasePlatform, version: String, revisio
         .put("package", Json.string("terlan"))
         .put("version", Json.string(version))
         .put("target_triple", Json.string(triple))
-        .put("os", Json.string(ReleasePlatform.operating_system(platform)))
-        .put("arch", Json.string(ReleasePlatform.architecture(platform)))
+        .put("os", Json.string(platform.operating_system))
+        .put("arch", Json.string(platform.architecture))
         .put("source_revision", Json.string(revision))
         .put("release_candidate_id", Json.string(candidate_id(version, revision, triple))).
 

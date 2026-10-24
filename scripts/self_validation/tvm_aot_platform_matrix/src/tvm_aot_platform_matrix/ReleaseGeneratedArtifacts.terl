@@ -228,7 +228,7 @@ make_targets_from_files(files: List[TextFile], result: List[String]): List[Strin
         [file | rest] ->
             make_targets_from_files(
                 rest,
-                make_targets_at(String.split(File.text_file_contents(file), "\n"), result),
+                make_targets_at(String.split(file.contents, "\n"), result),
             )
     }.
 
@@ -341,8 +341,8 @@ read_snapshot(root: String): Option[Snapshot] ->
         Ok(source) <- File.read_text(child(root, snapshot_relative()));
         Ok(value) <- Json.parse(source);
         Ok(fields) <- value.required_fields(["schema", "digest", "inventory_sha256"], ["file_count"], []);
-        [actual_schema, digest, inventory_sha256] <- Json.required_field_strings(fields);
-        [file_count] <- Json.required_field_ints(fields)
+        [actual_schema, digest, inventory_sha256] <- fields.strings;
+        [file_count] <- fields.ints
     } else {
         _ -> None
     };

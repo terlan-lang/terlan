@@ -42,7 +42,7 @@ pub(super) fn memory_layout_descriptor(
 ) -> Result<(Arc<ManagedAggregateDescriptor>, Arc<[u8]>), String> {
     let descriptor = Arc::new(
         ManagedAggregateDescriptor::record(
-            "std.core.Memory.Layout",
+            &managed_semantic_contract(&CoreType::Named("std.core.Memory.Layout".to_string())),
             vec![
                 ("size".to_string(), ManagedFieldType::Int),
                 ("alignment".to_string(), ManagedFieldType::Int),

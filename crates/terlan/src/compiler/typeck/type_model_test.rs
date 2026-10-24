@@ -1132,3 +1132,73 @@ pub tag_count(tags: Boxed[Binary]): Int ->
     );
     assert_eq!(show_method.return_type, "Binary");
 }
+
+#[test]
+fn reveal_qualified_opaque_aliases_respects_module_ownership() {
+    let syntax =
+        parse_module_as_syntax_output("module alias_scope.Owner. pub opaque type Html = String.")
+            .unwrap();
+    let aliases = collect_syntax_type_aliases(&syntax);
+    let html = Type::Named {
+        module: Some("alias_scope.Owner".into()),
+        name: "Html".into(),
+        args: vec![],
+    };
+    assert_eq!(
+        reveal_opaque_aliases(&html, &aliases, "alias_scope.Owner"),
+        Type::Binary
+    );
+    assert_eq!(
+        reveal_opaque_aliases(&html, &aliases, "alias_scope.Consumer"),
+        html
+    );
+    let nested = Type::List(Box::new(html));
+    assert_eq!(
+        reveal_opaque_aliases(&nested, &aliases, "alias_scope.Owner"),
+        Type::List(Box::new(Type::Binary))
+    );
+    assert_eq!(
+        reveal_opaque_aliases(&nested, &aliases, "alias_scope.Consumer"),
+        nested
+    );
+}
+
+#[test]
+fn reveal_recursive_opaque_aliases_keeps_a_nominal_cycle_boundary() {
+    let syntax = parse_module_as_syntax_output(
+        "module opaque_cycle.Owner. pub opaque type Chain = List[Chain].",
+    )
+    .unwrap();
+    let aliases = collect_syntax_type_aliases(&syntax);
+    let chain = Type::Named {
+        module: None,
+        name: "Chain".into(),
+        args: vec![],
+    };
+    assert_eq!(
+        reveal_opaque_aliases(&chain, &aliases, "opaque_cycle.Owner"),
+        Type::List(Box::new(chain))
+    );
+}
+
+#[test]
+fn reveal_opaque_aliases_expands_nested_generic_arguments() {
+    let syntax = parse_module_as_syntax_output(
+        "module opaque_nested.Owner. pub opaque type Wrapper[T] = T.",
+    )
+    .unwrap();
+    let aliases = collect_syntax_type_aliases(&syntax);
+    let wrapped = |value| Type::Named {
+        module: None,
+        name: "Wrapper".into(),
+        args: vec![value],
+    };
+    assert_eq!(
+        reveal_opaque_aliases(
+            &wrapped(wrapped(Type::Float)),
+            &aliases,
+            "opaque_nested.Owner"
+        ),
+        Type::Float
+    );
+}

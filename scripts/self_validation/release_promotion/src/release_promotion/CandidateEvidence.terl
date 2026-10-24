@@ -89,7 +89,6 @@ pub relative_root_self_test(): Bool ->
 pub paths(root: String): Result[List[String], String] ->
     let directory = directory(root.replace("\\", "/"));
     let Ok(files) <- Directory.files_recursive_excluding(directory, []) else {
-        Err(reason) ->
-            Err(String.append("cannot inventory candidate evidence: ", Directory.message(reason)))
+        Err(reason) -> Err(String.append("cannot inventory candidate evidence: ", reason.message))
     };
     select(files, String.append(directory, "/")).

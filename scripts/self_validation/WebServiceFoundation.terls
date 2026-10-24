@@ -122,12 +122,12 @@ command(arguments: List[String]): Command ->
 run(arguments: List[String]): Option[Output] ->
     case Process.run(command(arguments)) {
         Err(reason) ->
-            let _reported = failure(Process.error_message(reason));
+            let _reported = failure(reason.message);
             None;
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(output);
-                true -> let _reported = failure(String.concat([Process.stderr(output), Process.stdout(output)]));
+                output.status == 0 -> Some(output);
+                true -> let _reported = failure(String.concat([output.stderr, output.stdout]));
                 None
             }
     }.
@@ -136,7 +136,7 @@ dependency_tree(package: String): Option[DependencyTree] ->
     case run(["tree", "-p", package, "--edges", "normal", "--prefix", "none"]) {
         None -> None;
         Some(output) ->
-            let lines = sort_unique(nonempty(String.split(Process.stdout(output), "\n"), []), []);
+            let lines = sort_unique(nonempty(String.split(output.stdout, "\n"), []), []);
             Some(
                 DependencyTree(names = sort_unique(dependency_names(lines, []), []), lines = lines),
             )
@@ -157,7 +157,7 @@ read(relative: String): Option[String] ->
     case File.read_text(child(root(), relative)) {
         Ok(source) -> Some(source);
         Err(reason) ->
-            let _reported = failure(File.message(reason));
+            let _reported = failure(reason.message);
             None
     }.
 
@@ -333,7 +333,7 @@ artifact_hashes(files: List[String], output: Json): Option[Json] ->
         [relative | rest] ->
             case Hash.sha256_file(child(root(), relative)) {
                 Err(reason) ->
-                    let _reported = failure(File.message(reason));
+                    let _reported = failure(reason.message);
                     None;
                 Ok(digest) ->
                     let _inserted = output.put(relative, Json.string(digest));

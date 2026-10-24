@@ -73,15 +73,13 @@ run_command(root: String, program: String, arguments: List[String]): Option[Outp
             .with_timeout_ms(300000)
             .with_output_limit_bytes(8388608);
     case Process.run(command) {
-        Err(error) -> output_failure("process", Process.error_message(error));
+        Err(error) -> output_failure("process", error.message);
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(output);
+                output.status == 0 -> Some(output);
                 true -> output_failure(
                     "command",
-                    String.concat(
-                        [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
-                    ),
+                    String.concat([program, " failed:\n", output.stdout, output.stderr]),
                 )
             }
     }.
@@ -110,10 +108,10 @@ copy_binary(source: String, destination: String): Bool ->
 copy_release_binaries(root: String, platform: ReleasePlatform): Option[ReleaseBinaries] ->
     let source_root = release_target(root);
     let destination_root = dist(root);
-    let compiler_name = ReleasePlatform.compiler(platform);
-    let vm_name = ReleasePlatform.vm(platform);
-    let worker_name = ReleasePlatform.native_worker(platform);
-    let lsp_name = ReleasePlatform.lsp(platform);
+    let compiler_name = platform.compiler;
+    let vm_name = platform.vm;
+    let worker_name = platform.native_worker;
+    let lsp_name = platform.lsp;
     let compiler_source = ReleasePayload.child(source_root, compiler_name);
     let vm_source = ReleasePayload.child(source_root, vm_name);
     let worker_source = ReleasePayload.child(source_root, worker_name);
@@ -178,11 +176,7 @@ native_metadata_valid(metadata: Json, expected_target: String): Bool ->
     case metadata.required_fields(["target_triple"], ["native_debug_record_count"], ["continuation_ids"]) {
         Err(_reason) -> failure("self_test", "native self-test metadata is incomplete");
         Ok(projection) ->
-            case {
-                Json.required_field_strings(projection),
-                Json.required_field_ints(projection),
-                Json.required_field_array_lengths(projection),
-            } {
+            case {projection.strings, projection.ints, projection.array_lengths} {
                 {[target], [debug_count], [continuation_count]} ->
                     if {
                         target != expected_target -> failure("self_test", "native self-test target drifted");
@@ -214,7 +208,7 @@ inspect_self_test(
     ) {
         None -> None;
         Some(output) ->
-            let metadata_text = String.trim(Process.stdout(output));
+            let metadata_text = String.trim(output.stdout);
             case Json.parse(metadata_text) {
                 Err(_reason) ->
                     self_test_failure("self_test", "cannot parse package-image-metadata output");
@@ -275,11 +269,8 @@ metadata_entry(path: String): Payload ->
 
 generated_entries(metadata: GeneratedMetadata): List[Payload] ->
     [
-        ReleasePayload.payload(ReleasePayload.checksums(metadata), "SHA256SUMS"),
-        ReleasePayload.payload(
-            ReleasePayload.install_manifest(metadata),
-            "terlan-install-manifest.json",
-        ),
+        ReleasePayload.payload(metadata.checksums, "SHA256SUMS"),
+        ReleasePayload.payload(metadata.install_manifest, "terlan-install-manifest.json"),
     ].
 
 remove_file(path: String): Bool ->
@@ -339,18 +330,12 @@ create_staged_archive(
     }.
 
 archive_staging(root: String, platform: ReleasePlatform, entries: List[Payload]): Option[String] ->
-    let artifact = ReleasePayload.child(dist(root), ReleasePlatform.artifact(platform));
+    let artifact = ReleasePayload.child(dist(root), platform.artifact);
     let checksum = String.append(artifact, ".sha256");
     case Directory.create_temporary("terlan-release-artifact.") {
         Err(_reason) -> archive_failure("archive", "cannot create release staging directory");
         Ok(staging) ->
-            create_staged_archive(
-                staging,
-                artifact,
-                checksum,
-                ReleasePlatform.artifact(platform),
-                entries,
-            )
+            create_staged_archive(staging, artifact, checksum, platform.artifact, entries)
     }.
 
 finish_package(
@@ -385,7 +370,7 @@ case ReleasePayload.write_install_metadata(dist(root), platform, version, checks
         let archive_entries = concat(checksum_entries, generated_entries(generated));
         case archive_staging(root, platform, archive_entries) {
             Some(artifact) ->
-                let relative = ReleasePayload.child("dist", ReleasePlatform.artifact(platform));
+                let relative = ReleasePayload.child("dist", platform.artifact);
                 let _printed = println(relative);
                 File.exists(artifact);
             None -> false

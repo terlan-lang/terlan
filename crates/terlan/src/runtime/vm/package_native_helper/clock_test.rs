@@ -14,7 +14,7 @@ pub monotonic(): Bool ->
     first >= 0 and second >= first.
 pub date(): Bool ->
     let today = Date.today_utc();
-    Date.year(today) >= 2026 and Date.month(today) >= 1 and Date.day(today) >= 1.
+    today.year >= 2026 and today.month >= 1 and today.day >= 1.
 "#,
         &["wall", "monotonic", "date"],
     );

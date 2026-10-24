@@ -20,24 +20,6 @@ pub struct Error {
     message: String
 }.
 
-/// Returns an error's symbolic code.
-///
-/// Input: one `Error` receiver.
-/// Output: the receiver's machine-readable `Atom` code.
-/// Transformation: reads the `code` field without changing the error value.
-
-@pure
-pub (error: Error) code(): Atom.
-
-/// Returns an error's human-readable message.
-///
-/// Input: one `Error` receiver.
-/// Output: the receiver's `String` message.
-/// Transformation: reads the `message` field without changing the error value.
-
-@pure
-pub (error: Error) message(): String.
-
 /// Creates an `Error`.
 ///
 /// Input: one symbolic error code and one human-readable message.
@@ -62,7 +44,7 @@ pub new(code: Atom, message: String): Error.
 ///
 /// Input: one `Error` receiver.
 /// Output: the receiver's human-readable message.
-/// Transformation: delegates to `message()` so generic display paths can use the
-/// same public representation.
+/// Transformation: reads the message field for generic display paths.
 
+@pure
 pub (error: Error) to_string(): String.

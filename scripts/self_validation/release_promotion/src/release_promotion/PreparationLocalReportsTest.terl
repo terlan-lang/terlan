@@ -28,7 +28,7 @@ graph(root: String, outcome: String, completed: Int, reused: Int): Bool ->
             OwnerStorage.read_json(
                 OwnerStorage.child(
                     root,
-                    PreparationGraph.ledger_path(Git.revision(identity), "local-reports"),
+                    PreparationGraph.ledger_path(identity.revision, "local-reports"),
                 ),
             );
         Some(actual_outcome) <- OwnerStorage.text(document, "outcome");

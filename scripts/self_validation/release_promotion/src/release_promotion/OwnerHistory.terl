@@ -18,7 +18,7 @@ prior(root: String, path: String): Result[String, String] ->
     case File.size(OwnerStorage.child(root, path)) {
         Err(reason) ->
             if {
-                File.code(reason) == NotFound -> Ok("");
+                reason.code == NotFound -> Ok("");
                 true -> Err("cannot inspect prior output")
             };
         Ok(size) ->
@@ -101,7 +101,7 @@ let path = String.concat([directory, "/", owner, ".json"]);
     case File.size(OwnerStorage.child(root, path)) {
         Ok(_size) -> valid(root, path, candidate, owner, source_path);
         Err(reason) ->
-            File.code(reason) == NotFound and create(root, path, candidate, owner, source_path)
+            reason.code == NotFound and create(root, path, candidate, owner, source_path)
     };
 if {
     ready and OwnerStorage.discard_pending(root, path) -> Ok(path);

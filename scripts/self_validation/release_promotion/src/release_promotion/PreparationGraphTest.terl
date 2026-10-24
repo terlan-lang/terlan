@@ -325,7 +325,7 @@ native_launches(root: String, expected: Int): Bool ->
 native_scratch_absent(root: String): Bool ->
     case File.size(OwnerStorage.child(root, "target/quality/preparation/candidate/a.work/native.jsonl")) {
         Ok(_size) -> false;
-        Err(reason) -> File.code(reason) == FileNotFound
+        Err(reason) -> reason.code == FileNotFound
     }.
 
 native_warm(root: String): Bool ->

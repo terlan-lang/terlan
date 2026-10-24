@@ -271,9 +271,9 @@ site_from_model(
     } else {
         _ -> None
     };
-    (let coverage = Support.projection_coverage(projection);
-let search_rows = Support.projection_search_rows(projection);
-let search_count = Support.projection_search_entries(projection);
+    (let coverage = projection.api_coverage;
+let search_rows = projection.search_rows;
+let search_count = projection.search_entries;
 case Json.parse(inspect_source) {
     Err(_reason) -> None;
     Ok(inspect_value) ->
@@ -321,7 +321,7 @@ generate_site(installed: String, destination: String): Option[SiteSummary] ->
     } else {
         _ -> None
     };
-    (let compiler = Support.child(installed, Artifact.compiler_binary_name(platform));
+    (let compiler = Support.child(installed, platform.compiler_binary_name);
 let version_root = Support.child(destination, version);
 let api_html = Support.child(version_root, "api");
 let api_json = Support.child(version_root, "api-model");
@@ -482,18 +482,18 @@ build_report(
     let _artifact_hash = report.put("artifact_sha256", Json.string(artifact_hash));
     let _compiler = report.put("installed_compiler", Json.string(compiler));
     let _layout = report.put("source_layout", Json.string("installed-artifact"));
-    let _root = report.put("versioned_root", Json.string(String.append(Support.version(summary), "/")));
+    let _root = report.put("versioned_root", Json.string(String.append(summary.version, "/")));
     let _site = report.put("site_sha256", Json.string(site_hash));
     let _runs = report.put("deterministic_runs", Json.int(2));
     let _links = report.put("link_checks", Json.int(links));
     let _hover = report.put("hover_doc_coverage", hover_categories);
-    let _version = report.put("version", Json.string(Support.version(summary)));
-    let _modules = report.put("module_pages", Json.int(Support.module_pages(summary)));
-    let _files = report.put("generated_files", Json.int(Support.generated_files(summary)));
-    let _search = report.put("search_entries", Json.int(Support.search_entries(summary)));
-    let _coverage = report.put("api_coverage", Support.coverage_json(Support.api_coverage(summary)));
-    let _help = report.put("command_help_coverage", Json.int(Support.command_help_coverage(summary)));
-    let _runtime = report.put("runtime", Support.runtime(summary));
+    let _version = report.put("version", Json.string(summary.version));
+    let _modules = report.put("module_pages", Json.int(summary.module_pages));
+    let _files = report.put("generated_files", Json.int(summary.generated_files));
+    let _search = report.put("search_entries", Json.int(summary.search_entries));
+    let _coverage = report.put("api_coverage", Support.coverage_json(summary.api_coverage));
+    let _help = report.put("command_help_coverage", Json.int(summary.command_help_coverage));
+    let _runtime = report.put("runtime", summary.runtime);
     let _adversarial = report.put("adversarial_checks", adversarial);
     report.
 
@@ -594,7 +594,7 @@ prepare(): Bool ->
     } else {
         _ -> false
     };
-    (let artifact = Support.child(repository, Support.child("dist", Artifact.artifact_name(platform)));
+    (let artifact = Support.child(repository, Support.child("dist", platform.artifact_name));
 if {
     not Artifact.extract_and_verify(artifact, installed_root(repository)) -> false;
     true -> case generate_site(installed_root(repository), first_root(repository)) {
@@ -620,7 +620,7 @@ adversarial(): Bool ->
     let repository = repository_root();
     let {
         Some(summary) <- read_summary(first_summary_path(repository));
-        Some(evidence) <- adversarial_checks(repository, first_root(repository), Support.version(summary))
+        Some(evidence) <- adversarial_checks(repository, first_root(repository), summary.version)
     } else {
         _ -> false
     };
@@ -639,13 +639,13 @@ closeout(): Bool ->
     } else {
         _ -> false
     };
-    (let artifact_relative = Support.child("dist", Artifact.artifact_name(platform));
+    (let artifact_relative = Support.child("dist", platform.artifact_name);
 let artifact = Support.child(repository, artifact_relative);
 case closeout_sites(
     repository,
     artifact_relative,
     artifact,
-    Artifact.compiler_binary_name(platform),
+    platform.compiler_binary_name,
     first_root(repository),
     second_root(repository),
     first_summary,

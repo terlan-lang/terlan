@@ -375,7 +375,7 @@ pub broken(_request: Request): Response ->
     Response.file("../secret").
 
 pub recover(error: HttpError): Response ->
-    Response.text(error.message(), status = error.status()).
+    Response.text(error.message, status = error.status).
 
 pub not_found(request: Request): Response ->
     Response.text("fallback:" + request.path(), status = 404).

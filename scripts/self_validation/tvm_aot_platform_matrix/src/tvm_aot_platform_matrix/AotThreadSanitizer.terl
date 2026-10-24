@@ -63,24 +63,19 @@ run_command(
 ): Option[Output] ->
     case Process.run(configured(root, program, arguments, environment)) {
         Err(error) ->
-            let _failed = failure(Process.error_message(error));
+            let _failed = failure(error.message);
             None;
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(output);
-                true -> let _failed =
-                    failure(
-                        String.concat(
-                            [program, " failed:\n", Process.stdout(output), Process.stderr(output)],
-                        ),
-                    );
+                output.status == 0 -> Some(output);
+                true -> let _failed = failure(String.concat([program, " failed:\n", output.stdout, output.stderr]));
                 None
             }
     }.
 
 command_output(root: String, program: String, arguments: List[String]): Option[String] ->
     case run_command(root, program, arguments, []) {
-        Some(output) -> Some(String.trim(Process.stdout(output)));
+        Some(output) -> Some(String.trim(output.stdout));
         None -> None
     }.
 
@@ -332,7 +327,7 @@ rustflags(): String ->
 after_test_command(root: String, output: Option[Output]): Bool ->
     case output {
         Some(completed) ->
-            let _printed = println(Process.stdout(completed));
+            let _printed = println(completed.stdout);
             after_tests(root);
         None -> false
     }.

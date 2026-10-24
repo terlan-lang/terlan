@@ -127,7 +127,7 @@ stale_grammar_rejected(
                     None -> true;
                     Some(output) ->
                         if {
-                            Process.status(output) != 0 -> true;
+                            output.status != 0 -> true;
                             true -> case Support.selected_surface_hash(tree, Editor.generated_tree_files()) {
                                 Some(after_hash) -> before != after_hash;
                                 None -> true
@@ -158,8 +158,7 @@ malformed_source_rejected(
     } else {
         _ -> false
     };
-    Process.status(output) != 0
-        and String.contains(String.lowercase(Process.stderr(output)), "error").
+    output.status != 0 and String.contains(String.lowercase(output.stderr), "error").
 
 /**
  * Executes the eight authoritative negative mutations in stable report order.

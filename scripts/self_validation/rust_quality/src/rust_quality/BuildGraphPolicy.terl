@@ -186,7 +186,7 @@ package_rows(
                     message = "package responsibility inventory has an unsupported shape",
                 )
         };
-        case Json.required_field_strings(fields) {
+        case fields.strings {
             [name, responsibility] ->
                 let responsibility_diagnostics =
                     if {
@@ -242,7 +242,7 @@ strings_from_rows(rows: List[RequiredFieldRow], output: List[String]): Option[Li
     case rows {
         [] -> Some(output);
         [row | rest] ->
-            case Json.required_field_row_strings(row) {
+            case row.strings {
                 [value] -> strings_from_rows(rest, [value | output]);
                 _ -> None
             }
@@ -301,7 +301,7 @@ measurement_rows(
                 message = "",
             );
         [row | rest] ->
-            case {Json.required_field_row_strings(row), Json.required_field_row_ints(row)} {
+            case {row.strings, row.ints} {
                 {[scenario, command, edited_file], [wall_time_ms]} ->
                     let timing_diagnostics =
                         if {
@@ -418,7 +418,7 @@ pub check(root: String, nodes: List[GraphNode]): PolicyResult ->
         Err(_reason) -> policy_failure("docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json is missing");
         Ok(source) ->
             case Json.parse(source) {
-                Err(reason) -> policy_failure(Json.error_message(reason));
+                Err(reason) -> policy_failure(reason.message);
                 Ok(document) -> validate(document, nodes)
             }
     }.

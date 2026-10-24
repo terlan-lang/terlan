@@ -47,7 +47,7 @@ locked_check_fixture(root: String): Bool ->
         ) {
             Ok(generated) ->
                 if {
-                    Process.status(generated) != 0 -> false;
+                    generated.status != 0 -> false;
                     true -> locked_dependency_fixture(crate, target)
                 };
             _ -> false
@@ -126,8 +126,8 @@ write_binary_crate(root: String, body: String): Bool ->
 command_rejects(request: std.system.Process.Command, expected: String): Bool ->
     case Process.run(request) {
         Ok(output) ->
-            let combined = String.lowercase(String.append(Process.stdout(output), Process.stderr(output)));
-            Process.status(output) != 0 and String.contains(combined, expected);
+            let combined = String.lowercase(String.append(output.stdout, output.stderr));
+            output.status != 0 and String.contains(combined, expected);
         _ -> false
     }.
 

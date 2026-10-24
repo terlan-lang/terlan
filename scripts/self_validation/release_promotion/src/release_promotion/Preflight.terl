@@ -29,7 +29,7 @@ loaded_text(files: List[TextFile], relative: String): String ->
         [] -> "";
         [file | rest] ->
             if {
-                String.ends_with(File.text_file_path(file), relative) -> File.text_file_contents(file);
+                String.ends_with(file.path, relative) -> file.contents;
                 true -> loaded_text(rest, relative)
             }
     }.

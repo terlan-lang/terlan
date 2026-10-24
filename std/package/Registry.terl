@@ -14,22 +14,73 @@ import type std.core.{Error, Result}.
  * Registry-owned fields needed to begin one durable publication attempt.
  */
 pub struct PublishRequestProjection {
+    /**
+     * Identifier of the publisher key authorizing the publication.
+     */
     publisher_key_id: String,
+    /**
+     * Client-supplied identifier used to make publication retries idempotent.
+     */
     request_id: String,
+    /**
+     * Fully qualified package name.
+     */
     package_name: String,
+    /**
+     * Package version.
+     */
     version: String,
+    /**
+     * URL of the package source repository.
+     */
     repository_url: String,
+    /**
+     * Human-readable package description.
+     */
     description: String,
+    /**
+     * SPDX license expression for the package.
+     */
     license_expression: String,
+    /**
+     * SHA-256 digest of the package archive.
+     */
     archive_sha256: String,
+    /**
+     * Size of the package archive in bytes.
+     */
     archive_bytes: Int,
+    /**
+     * SHA-256 digest of the documentation object.
+     */
     documentation_sha256: String,
+    /**
+     * Size of the documentation object in bytes.
+     */
     documentation_bytes: Int,
+    /**
+     * Terlan compiler version used to build the package.
+     */
     built_with: String,
+    /**
+     * Terlan compiler version requirement declared by the package.
+     */
     requires_terlan: String,
+    /**
+     * Kind of immutable source identity recorded for the package.
+     */
     source_identity_kind: String,
+    /**
+     * Immutable source revision or content identity.
+     */
     source_identity: String,
+    /**
+     * Verification status of the recorded source identity.
+     */
     source_identity_verification: String,
+    /**
+     * SHA-256 digest of the package provenance object.
+     */
     provenance_sha256: String,
 }.
 
@@ -37,26 +88,11 @@ pub struct PublishRequestProjection {
  * Stable failure returned for malformed or inadmissible signed metadata.
  */
 pub struct RegistryProtocolError includes Error {
+    /**
+     * JSON column for syntax failures, or zero for policy failures.
+     */
     offset: Int,
 }.
-
-/**
- * Returns the stable protocol error code.
- */
-pub error_code(error: RegistryProtocolError): Atom ->
-    error.code.
-
-/**
- * Returns the safe protocol diagnostic.
- */
-pub error_message(error: RegistryProtocolError): String ->
-    error.message.
-
-/**
- * Returns the JSON column for syntax failures, or zero for policy failures.
- */
-pub error_offset(error: RegistryProtocolError): Int ->
-    error.offset.
 
 /**
  * Strictly decodes and admits an exact version-one publication request.
@@ -68,54 +104,3 @@ pub error_offset(error: RegistryProtocolError): Int ->
  */
 @compiler.native
 pub parse_publish_request(text: String): Result[PublishRequestProjection, RegistryProtocolError].
-
-pub (value: PublishRequestProjection) publisher_key_id(): String ->
-    value.publisher_key_id.
-
-pub (value: PublishRequestProjection) request_id(): String ->
-    value.request_id.
-
-pub (value: PublishRequestProjection) package_name(): String ->
-    value.package_name.
-
-pub (value: PublishRequestProjection) version(): String ->
-    value.version.
-
-pub (value: PublishRequestProjection) repository_url(): String ->
-    value.repository_url.
-
-pub (value: PublishRequestProjection) description(): String ->
-    value.description.
-
-pub (value: PublishRequestProjection) license_expression(): String ->
-    value.license_expression.
-
-pub (value: PublishRequestProjection) archive_sha256(): String ->
-    value.archive_sha256.
-
-pub (value: PublishRequestProjection) archive_bytes(): Int ->
-    value.archive_bytes.
-
-pub (value: PublishRequestProjection) documentation_sha256(): String ->
-    value.documentation_sha256.
-
-pub (value: PublishRequestProjection) documentation_bytes(): Int ->
-    value.documentation_bytes.
-
-pub (value: PublishRequestProjection) built_with(): String ->
-    value.built_with.
-
-pub (value: PublishRequestProjection) requires_terlan(): String ->
-    value.requires_terlan.
-
-pub (value: PublishRequestProjection) source_identity_kind(): String ->
-    value.source_identity_kind.
-
-pub (value: PublishRequestProjection) source_identity(): String ->
-    value.source_identity.
-
-pub (value: PublishRequestProjection) source_identity_verification(): String ->
-    value.source_identity_verification.
-
-pub (value: PublishRequestProjection) provenance_sha256(): String ->
-    value.provenance_sha256.

@@ -44,15 +44,6 @@ pub type Storage =
   | Managed
   | Opaque.
 
-/// Returns the alignment component of a layout.
-///
-/// Input: one layout descriptor.
-/// Output: its required alignment in bytes.
-/// Transformation: reads the immutable `alignment` field.
-
-@pure
-pub (layout: Layout) alignment(): Int.
-
 /// Returns the current target's physical representation for `T`.
 ///
 /// Input: one explicit type argument and no runtime value.
@@ -83,21 +74,3 @@ pub retained_size[T](value: T): Int.
 
 @pure
 pub shallow_size[T](value: T): Int.
-
-/// Returns the size component of a layout.
-///
-/// Input: one layout descriptor.
-/// Output: its physical size in bytes.
-/// Transformation: reads the immutable `size` field.
-
-@pure
-pub (layout: Layout) size(): Int.
-
-/// Returns the storage component of a layout.
-///
-/// Input: one layout descriptor.
-/// Output: its closed storage class.
-/// Transformation: reads the immutable `storage` field.
-
-@pure
-pub (layout: Layout) storage(): Storage.

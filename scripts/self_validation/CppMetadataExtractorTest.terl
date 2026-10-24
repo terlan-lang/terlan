@@ -254,7 +254,7 @@ command_succeeds_with_environment(
             4194304,
         ),
     ) {
-        Ok(output) -> Process.status(output) == 0;
+        Ok(output) -> output.status == 0;
         Err(_reason) -> false
     }.
 
@@ -314,14 +314,9 @@ cpp_include_environment(repository: String): IncludeEnvironment ->
                 );
             case Process.run(request) {
                 Ok(output) ->
-                    let paths =
-                        include_paths(
-                            String.split(Process.stderr(output), "\n"),
-                            false,
-                            List.new[String](),
-                        );
+                    let paths = include_paths(String.split(output.stderr, "\n"), false, List.new[String]());
                     IncludeEnvironment(
-                        valid = Process.status(output) == 0 and paths != List.new[String](),
+                        valid = output.status == 0 and paths != List.new[String](),
                         entries = [Process.environment_entry("CPLUS_INCLUDE_PATH", join_paths(paths))],
                     );
                 Err(_reason) ->

@@ -49,8 +49,8 @@ evidence(root: String): Bool ->
     Json.object()
         .put("schema", Json.string("terlan.vm-multicore-thread-sanitizer.v1"))
         .put("decision", Json.string("pass"))
-        .put("source_revision", Json.string(Git.revision(identity)))
-        .put("source_tree_sha256", Json.string(Git.sha256(identity))),
+        .put("source_revision", Json.string(identity.revision))
+        .put("source_tree_sha256", Json.string(identity.sha256)),
 ).
 
 pub fixture(root: String, origin: String, vm: String, image: String): Bool ->

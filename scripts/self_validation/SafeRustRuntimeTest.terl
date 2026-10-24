@@ -8,7 +8,7 @@ import std.core.Option.{None, Some}.
 import std.core.Result.{Ok}.
 import std.core.String.
 import std.io.Console.{println}.
-import std.io.File.{read_text, read_text_directory, read_text_tree_excluding, text_file_contents, text_file_path}.
+import std.io.File.{read_text, read_text_directory, read_text_tree_excluding}.
 
 import type std.io.File.{TextFile}.
 
@@ -68,7 +68,7 @@ required_root_safe(path: String, files: List[TextFile]): Bool ->
         [] -> false;
         [file | rest] ->
             if {
-                text_file_path(file) == path -> root_policy_holds(path, text_file_contents(file));
+                file.path == path -> root_policy_holds(path, file.contents);
                 true -> required_root_safe(path, rest)
             }
     }.
@@ -78,8 +78,7 @@ generated_boundaries_safe(files: List[TextFile]): Bool ->
         [] -> true;
         [file | rest] ->
             if {
-                String.ends_with(text_file_path(file), ".native_boundary.rs") -> root_policy_holds(text_file_path(file), text_file_contents(file))
-                    and generated_boundaries_safe(rest);
+                String.ends_with(file.path, ".native_boundary.rs") -> root_policy_holds(file.path, file.contents) and generated_boundaries_safe(rest);
                 true -> generated_boundaries_safe(rest)
             }
     }.

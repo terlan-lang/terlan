@@ -113,10 +113,22 @@ pub(super) fn run(
         }
         inputs.push((file, source, syntax));
     }
+    let dependencies = match super::dependencies::source_interfaces(root) {
+        Ok(dependencies) => dependencies,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
     let source_graph = crate::formal_pipeline::interface_graph::SourceInterfaceGraph::collect(
         inputs
             .iter()
-            .map(|(path, _, syntax)| (path.as_path(), syntax)),
+            .map(|(path, _, syntax)| (path.as_path(), syntax))
+            .chain(
+                dependencies
+                    .iter()
+                    .map(|(path, syntax)| (path.as_path(), syntax)),
+            ),
         Some(&cache_dir),
     );
     let target = match effective_check_target_profile_from_input(

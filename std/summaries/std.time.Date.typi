@@ -10,11 +10,6 @@ pub struct Date {
     day: Int
 }.
 
-/// Returns the one-based day of month.
-
-@pure
-pub day(date: Date): Int.
-
 /// Returns signed whole days from `start` to `end`.
 
 @pure
@@ -29,11 +24,6 @@ pub equal(left: Date, right: Date): Bool.
 
 @pure
 pub is_before(left: Date, right: Date): Bool.
-
-/// Returns the one-based calendar month.
-
-@pure
-pub month(date: Date): Int.
 
 /// Constructs a validated date between years 1 and 9999.
 
@@ -52,8 +42,3 @@ pub to_iso(date: Date): String.
 /// Returns today's date in UTC through the package-owned wall clock.
 
 pub today_utc(): Date.
-
-/// Returns the calendar year.
-
-@pure
-pub year(date: Date): Int.

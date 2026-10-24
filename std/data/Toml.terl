@@ -15,26 +15,11 @@ import type std.data.Json.
  * Stable portable TOML parser error.
  */
 pub struct TomlError includes Error {
+    /**
+     * TOML error's byte offset, or zero when unavailable.
+     */
     offset: Int,
 }.
-
-/**
- * Returns a TOML error's stable machine-readable code.
- */
-pub error_code(error: TomlError): Atom ->
-    error.code.
-
-/**
- * Returns a TOML error's human-readable message.
- */
-pub error_message(error: TomlError): String ->
-    error.message.
-
-/**
- * Returns a TOML error's byte offset, or zero when unavailable.
- */
-pub error_offset(error: TomlError): Int ->
-    error.offset.
 
 /**
  * Parses one TOML document into the portable structured-data representation.

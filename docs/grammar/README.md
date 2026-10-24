@@ -148,6 +148,23 @@ Documentation blocks describe public APIs for humans and documentation tooling.
 They are separate from `@annotation` metadata, which is consumed by compiler
 phases.
 
+Document struct properties with a block immediately above each field. Describe
+the field's purpose, units, valid values, or absence conventions where relevant.
+The field declaration already provides its name and type:
+
+```terlan
+/** Failure returned while decoding a Registry publication request. */
+pub struct RegistryProtocolError includes Error {
+    /** JSON syntax error column, or zero for a policy failure. */
+    offset: Int,
+}.
+```
+
+Field documentation appears in generated API references. Read public fields
+directly, such as `error.offset` and the included `error.code`; avoid accessor
+functions or receiver methods that only return a public field. Use functions
+for operations that compute, convert, or validate values.
+
 Line comments beginning with `//` are implementation comments and are not public
 documentation. The old `//!` and `///` public documentation forms are migration
 debt and are not canonical Terlan source style.

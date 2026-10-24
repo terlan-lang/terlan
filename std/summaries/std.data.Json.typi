@@ -145,21 +145,6 @@ pub (json: Json) at(index: Int): Result[Json, JsonError].
 
 pub bool(value: Bool): Json.
 
-/// Returns a JSON error's stable machine-readable code.
-
-@pure
-pub error_code(error: JsonError): Atom.
-
-/// Returns a JSON error's human-readable message.
-
-@pure
-pub error_message(error: JsonError): String.
-
-/// Returns a JSON error's byte offset, or zero when unavailable.
-
-@pure
-pub error_offset(error: JsonError): Int.
-
 /// Appends another array and returns the same array for fluent construction.
 
 pub (mut json: Json) extend(values: Json): Json.
@@ -220,26 +205,6 @@ pub (json: Json) keys(): Result[List[String], JsonError].
 /// count without exposing the backend array representation.
 
 pub (json: Json) length(): Result[Int, JsonError].
-
-/// Returns the child object-array projection in source order.
-
-@pure
-pub nested_string_field_row_children(row: NestedStringFieldRow): List[StringFieldRow].
-
-/// Returns whether the requested child member was a JSON array.
-
-@pure
-pub nested_string_field_row_has_child_array(row: NestedStringFieldRow): Bool.
-
-/// Returns whether the projected parent row was an object.
-
-@pure
-pub nested_string_field_row_is_object(row: NestedStringFieldRow): Bool.
-
-/// Returns projected parent string fields in requested order.
-
-@pure
-pub nested_string_field_row_values(row: NestedStringFieldRow): List[Option[String]].
 
 /// Projects one object array and one nested object-array member in a single
 /// native traversal.
@@ -323,31 +288,6 @@ pub quote_string(value: String): String.
 
 pub (mut json: Json) remove(key: String): Json.
 
-/// Returns required array lengths in requested order.
-
-@pure
-pub required_field_array_lengths(projection: RequiredFieldProjection): List[Int].
-
-/// Returns required integer values in requested order.
-
-@pure
-pub required_field_ints(projection: RequiredFieldProjection): List[Int].
-
-/// Returns required boolean values projected from one object-array row.
-
-@pure
-pub required_field_row_bools(row: RequiredFieldRow): List[Bool].
-
-/// Returns required integer values projected from one object-array row.
-
-@pure
-pub required_field_row_ints(row: RequiredFieldRow): List[Int].
-
-/// Returns required string values projected from one object-array row.
-
-@pure
-pub required_field_row_strings(row: RequiredFieldRow): List[String].
-
 /// Projects required scalar fields from every element of a JSON object array.
 ///
 /// Input: a JSON array plus ordered required string, integer, and boolean field
@@ -365,11 +305,6 @@ pub (json: Json) required_field_rows(string_fields: List[String], int_fields: Li
 /// public-value budget while preserving stable source order.
 
 pub (json: Json) required_field_rows_page(start: Int, maximum: Int, string_fields: List[String], int_fields: List[String], bool_fields: List[String]): Result[List[RequiredFieldRow], JsonError].
-
-/// Returns required string values in requested order.
-
-@pure
-pub required_field_strings(projection: RequiredFieldProjection): List[String].
 
 /// Projects required string, integer, and array-length fields in one native
 /// operation. Missing fields and type mismatches are typed `JsonError` values;
@@ -395,16 +330,6 @@ pub (mut json: Json) set(index: Int, value: Json): Json.
 /// JSON string representation.
 
 pub string(value: String): Json.
-
-/// Returns whether a projected JSON array element was an object.
-
-@pure
-pub string_field_row_is_object(row: StringFieldRow): Bool.
-
-/// Returns projected optional strings in requested field order.
-
-@pure
-pub string_field_row_values(row: StringFieldRow): List[Option[String]].
 
 /// Projects optional string fields from every element of a JSON object array.
 ///

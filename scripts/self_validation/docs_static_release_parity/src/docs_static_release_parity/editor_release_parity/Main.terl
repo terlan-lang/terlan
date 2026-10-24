@@ -26,6 +26,9 @@ import type std.system.Process.{BatchCompletion, Command, EnvironmentEntry}.
 struct Smoke {
     root: String,
     script: String,
+    /**
+     * Name identifying the editor smoke-check scenario.
+     */
     label: String,
 }.
 
@@ -123,22 +126,18 @@ smoke_commands(installed: String, pending: List[Smoke]): List[Command] ->
         [smoke | rest] -> [smoke_command(installed, smoke) | smoke_commands(installed, rest)]
     }.
 
-smoke_label(smoke: Smoke): String ->
-    smoke.label.
-
 smoke_labels(pending: List[Smoke]): List[String] ->
     case pending {
         [] -> List.new[String]();
-        [smoke | rest] -> [smoke_label(smoke) | smoke_labels(rest)]
+        [smoke | rest] -> [smoke.label | smoke_labels(rest)]
     }.
 
 smoke_completions_hold(completions: List[BatchCompletion]): Bool ->
     case completions {
         [] -> true;
         [completion | rest] ->
-            case {Process.completion_output(completion), Process.completion_error(completion)} {
-                {Some(output), None} ->
-                    Process.status(output) == 0 and smoke_completions_hold(rest);
+            case {completion.output, completion.error} {
+                {Some(output), None} -> output.status == 0 and smoke_completions_hold(rest);
                 _ -> false
             }
     }.
@@ -148,7 +147,7 @@ run_smokes(installed: String, pending: List[Smoke]): Option[List[String]] ->
         Err(_reason) -> None;
         Ok(batch) ->
             if {
-                smoke_completions_hold(Process.completions(batch)) -> Some(smoke_labels(pending));
+                smoke_completions_hold(batch.completions) -> Some(smoke_labels(pending));
                 true -> None
             }
     }.
@@ -179,8 +178,8 @@ build_surface_report(
         .put("decision", Json.string("pass"))
         .put("artifact", Json.string(artifact_relative))
         .put("artifact_sha256", Json.string(artifact_hash))
-        .put("installed_compiler", Json.string(Artifact.compiler_binary_name(platform)))
-        .put("installed_lsp", Json.string(Artifact.lsp_binary_name(platform)))
+        .put("installed_compiler", Json.string(platform.compiler_binary_name))
+        .put("installed_lsp", Json.string(platform.lsp_binary_name))
         .put("compiler_resolution", Json.string("installed-artifact"))
         .put("editor", Editor.editor_json(editor))
         .put("tree_sitter", Editor.tree_base_json(tree)).
@@ -238,7 +237,7 @@ extract(): Bool ->
     } else {
         _ -> false
     };
-    (let artifact_relative = Support.child("dist", Artifact.artifact_name(platform)); let artifact = Support.child(repository, artifact_relative); Artifact.extract_and_verify(artifact, installed)).
+    (let artifact_relative = Support.child("dist", platform.artifact_name); let artifact = Support.child(repository, artifact_relative); Artifact.extract_and_verify(artifact, installed)).
 
 surface(): Bool ->
     let repository = repository_root();
@@ -250,15 +249,15 @@ surface(): Bool ->
     } else {
         _ -> false
     };
-    (let artifact_relative = Support.child("dist", Artifact.artifact_name(platform));
+    (let artifact_relative = Support.child("dist", platform.artifact_name);
 let artifact = Support.child(repository, artifact_relative);
-let compiler = installed_binary(installed, Artifact.compiler_binary_name(platform));
-let lsp = installed_binary(installed, Artifact.lsp_binary_name(platform));
+let compiler = installed_binary(installed, platform.compiler_binary_name);
+let lsp = installed_binary(installed, platform.lsp_binary_name);
 let environment = process_environment(installed);
-let version = Editor.editor_version(editor);
+let version = editor.version;
 if {
     not Support.nonempty_file(compiler) or not Support.nonempty_file(lsp) -> false;
-    Editor.tree_version(tree) != version -> false;
+    tree.version != version -> false;
     not version_holds(compiler, version, repository, environment) -> false;
     not lsp_help_holds(lsp, repository, environment) -> false;
     true -> case Support.file_hash(artifact) {
@@ -314,7 +313,7 @@ lsp_smoke(): Bool ->
         Some(platform) <- Artifact.detect();
         Some(summary) <-
             Lsp.run_smoke(
-                installed_binary(installed, Artifact.lsp_binary_name(platform)),
+                installed_binary(installed, platform.lsp_binary_name),
                 installed,
                 Support.child(work_root(repository), "workspace"),
                 [],
@@ -333,7 +332,7 @@ adversarial(): Bool ->
             Adversarial.run(
                 installed,
                 Support.child(work_root(repository), "adversarial-work"),
-                installed_binary(installed, Artifact.compiler_binary_name(platform)),
+                installed_binary(installed, platform.compiler_binary_name),
                 Support.child(repository, "tree-sitter-terlan/node_modules/.bin/tree-sitter"),
                 [],
             )

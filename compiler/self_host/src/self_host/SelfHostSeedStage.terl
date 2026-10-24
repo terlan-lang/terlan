@@ -1,7 +1,6 @@
 /** Seed-stage coordinator; Cargo is invoked only for trusted ABI validation and hashing. */
 module self_host.SelfHostSeedStage.
 
-
 import std.core.Result.{Err, Ok, Result}.
 import self_host.ProjectedPackageWriter.
 import self_host.ProjectedStageEvidence.
@@ -13,8 +12,8 @@ import std.system.Process.
 
 completion_ok(completion: std.system.Process.Output): Bool ->
     if {
-        Process.status(completion) == 0 -> true;
-        true -> let _reported = eprintln(Process.stderr(completion));
+        completion.status == 0 -> true;
+        true -> let _reported = eprintln(completion.stderr);
         false
     }.
 
@@ -29,7 +28,7 @@ run_validator(output: String): Bool ->
         String.append(output, "/bootstrap-artifact.json"),
     ]);
     case Process.run(command) {
-        Err(reason) -> let _reported = eprintln(Process.error_message(reason));
+        Err(reason) -> let _reported = eprintln(reason.message);
         false;
         Ok(completion) -> completion_ok(completion)
     }.

@@ -274,7 +274,7 @@ fn router_recovery_error_shape_is_source_owned() {
     let body = r#"
 recover(error: HttpError): Response ->
     if {
-        Error.code(error) == Atom["router_execution_failed"] and Error.status(error) == 500 -> Response.text(Error.message(error), 503);
+        error.code == Atom["router_execution_failed"] and error.status == 500 -> Response.text(error.message, 503);
         true -> Response.text("wrong error", 400)
     }.
 pub check(): Bool ->

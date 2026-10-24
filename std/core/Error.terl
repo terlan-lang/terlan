@@ -18,7 +18,13 @@ module std.core.Error.
  * failures can map into at module boundaries.
  */
 pub struct Error {
+    /**
+     * Stable machine-readable error code.
+     */
     code: Atom,
+    /**
+     * Human-readable explanation of the failure.
+     */
     message: String,
 }.
 
@@ -45,32 +51,11 @@ pub new(code: Atom, message: String): Error ->
     Error(code = code, message = message).
 
 /**
- * Returns an error's symbolic code.
- *
- * Input: one `Error` receiver.
- * Output: the receiver's machine-readable `Atom` code.
- * Transformation: reads the `code` field without changing the error value.
- */
-pub (error: Error) code(): Atom ->
-    error.code.
-
-/**
- * Returns an error's human-readable message.
- *
- * Input: one `Error` receiver.
- * Output: the receiver's `String` message.
- * Transformation: reads the `message` field without changing the error value.
- */
-pub (error: Error) message(): String ->
-    error.message.
-
-/**
  * Converts an error to display text.
  *
  * Input: one `Error` receiver.
  * Output: the receiver's human-readable message.
- * Transformation: delegates to `message()` so generic display paths can use the
- * same public representation.
+ * Transformation: reads the message field for generic display paths.
  */
 pub (error: Error) to_string(): String ->
-    error.message().
+    error.message.

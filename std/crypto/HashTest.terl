@@ -5,7 +5,7 @@ import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.{audit_labeled_file_patterns, audit_labeled_files, labeled_file, labeled_file_pattern, sha256, sha256_bytes, sha256_domain_framed, sha256_file, sha256_framed, sha256_labeled_file_contents, sha256_labeled_file_digests, sha256_nul_separated, sha256_selected_files, sha256_tree, verify_sha256_manifest}.
 import std.io.Directory.{create_all, create_temporary, remove_all}.
-import std.io.File.{NotFound, code, write_text}.
+import std.io.File.{NotFound, write_text}.
 import std.test.Test.{assert_equal}.
 import std.vm.Bytes.{from_list}.
 
@@ -247,10 +247,7 @@ pub labeled_pattern_audit_expands_paths_and_rejects_empty_matches(): Bool ->
 } else {
     _ -> false
 };
-audit.file_count == 1
-    and audit.digest == digest
-    and not audit.portable
-    and code(missing) == NotFound);
+audit.file_count == 1 and audit.digest == digest and not audit.portable and missing.code == NotFound);
             let _removed = remove_all(root);
             result
     }.

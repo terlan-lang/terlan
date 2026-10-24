@@ -73,14 +73,12 @@ load_identity(root: String, expected: String): Result[Identity, String] ->
     } else {
         _ -> Err("release metadata is missing, malformed or has an unsupported schema")
     };
-    fields
-    |> Json.required_field_strings()
-    |> identity_fields(expected).
+    identity_fields(fields.strings, expected).
 
 collect_components(root: String): Result[Components, String] ->
     let manifest = PublishableDocs.load(root);
-    let true <- PublishableDocs.valid(manifest) else {
-        _ -> Err(PublishableDocs.message(manifest))
+    let true <- manifest.accepted else {
+        _ -> Err(manifest.failure)
     };
     (let {
     Ok(stdlib) <- CandidateFiles.directory_files(root, "std");
@@ -92,7 +90,7 @@ collect_components(root: String): Result[Components, String] ->
 Ok(
     Components(
         stdlib = stdlib,
-        docs = PublishableDocs.paths(manifest),
+        docs = manifest.files,
         editor = CandidateFiles.merge_unique(editors, tree_sitter),
     ),
 )).

@@ -76,7 +76,7 @@ checkpoint(root: String, outcome: String): Bool ->
                     String.concat(
                         [
                             "target/quality/preparation/",
-                            Git.revision(identity),
+                            identity.revision,
                             "/managed-list-profile.json",
                         ],
                     ),
@@ -93,7 +93,7 @@ checkpoint(root: String, outcome: String): Bool ->
     String.concat(
         [
             "target/quality/preparation/",
-            Git.revision(identity),
+            identity.revision,
             "/managed-list-profile",
             if {
                 outcome == "pass" -> ".native.jsonl";
@@ -160,11 +160,7 @@ tampered_evidence_is_rejected(root: String): Bool ->
     OwnerStorage.child(
         root,
         String.concat(
-            [
-                "target/quality/preparation/",
-                Git.revision(identity),
-                "/managed-list-profile.native.jsonl",
-            ],
+            ["target/quality/preparation/", identity.revision, "/managed-list-profile.native.jsonl"],
         ),
     );
 (let {

@@ -339,7 +339,7 @@ load(root: String): CanonicalResult ->
                             CanonicalResult(
                                 valid = false,
                                 diagnostics = [],
-                                message = Json.error_message(reason),
+                                message = reason.message,
                             );
                         Ok(report) ->
                             let {

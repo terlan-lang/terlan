@@ -36,7 +36,7 @@ sealed_report(rows: List[RequiredFieldRow], path: String, digest: String, found:
     case rows {
         [] -> found;
         [row | rest] ->
-            case Json.required_field_row_strings(row) {
+            case row.strings {
                 [entry, actual] ->
                     if {
                         entry == path -> not found and actual == digest and sealed_report(rest, path, digest, true);
@@ -81,7 +81,7 @@ archive_row(rows: List[RequiredFieldRow], expected: String): {String, String} ->
     case rows {
         [] -> {"", ""};
         [row | rest] ->
-            case Json.required_field_row_strings(row) {
+            case row.strings {
                 [path, digest] ->
                     if {
                         path == expected -> {path, digest};

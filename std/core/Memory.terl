@@ -39,8 +39,17 @@ pub type Storage = Inline | Managed | Opaque.
  * not the transitive memory retained by a managed value.
  */
 pub struct Layout {
+    /**
+     * Physical value-slot size in bytes, excluding transitively retained memory.
+     */
     size: Int,
+    /**
+     * Required value-slot alignment in bytes.
+     */
     alignment: Int,
+    /**
+     * Inline, managed, or opaque storage selected for this target.
+     */
     storage: Storage,
 }.
 
@@ -76,33 +85,3 @@ pub shallow_size[T](value: T): Int -> 0.
  * cycle-safe, deduplicated traversal for managed values.
  */
 pub retained_size[T](value: T): Int -> 0.
-
-/**
- * Returns the size component of a layout.
- *
- * Input: one layout descriptor.
- * Output: its physical size in bytes.
- * Transformation: reads the immutable `size` field.
- */
-pub (layout: Layout) size(): Int ->
-    layout.size.
-
-/**
- * Returns the alignment component of a layout.
- *
- * Input: one layout descriptor.
- * Output: its required alignment in bytes.
- * Transformation: reads the immutable `alignment` field.
- */
-pub (layout: Layout) alignment(): Int ->
-    layout.alignment.
-
-/**
- * Returns the storage component of a layout.
- *
- * Input: one layout descriptor.
- * Output: its closed storage class.
- * Transformation: reads the immutable `storage` field.
- */
-pub (layout: Layout) storage(): Storage ->
-    layout.storage.

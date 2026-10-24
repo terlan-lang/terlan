@@ -13,8 +13,17 @@ import std.io.File.
 import type std.core.Option.
 
 pub struct Manifest {
+    /**
+     * Whether the publishable documentation manifest passed validation.
+     */
     accepted: Bool,
+    /**
+     * Documentation paths admitted for publication.
+     */
     files: List[String],
+    /**
+     * Diagnostic explaining why the documentation manifest was rejected.
+     */
     failure: String,
 }.
 
@@ -66,7 +75,7 @@ load_rows(
 
 pub load(root: String): Manifest ->
     case File.read_text(child(root, "docs/release/PUBLISHABLE_DOCUMENTATION.tsv")) {
-        Err(reason) -> failure(File.message(reason));
+        Err(reason) -> failure(reason.message);
         Ok(source) ->
             let manifest = load_rows(root, String.split(source, "\n"), None, []);
             if {
@@ -75,15 +84,3 @@ pub load(root: String): Manifest ->
                 true -> manifest
             }
     }.
-
-@pure
-pub valid(manifest: Manifest): Bool ->
-    manifest.accepted.
-
-@pure
-pub paths(manifest: Manifest): List[String] ->
-    manifest.files.
-
-@pure
-pub message(manifest: Manifest): String ->
-    manifest.failure.
