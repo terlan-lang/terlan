@@ -37,10 +37,6 @@ pub length(value: std.css.Values.Length): Value.
 
 pub normal(): Value.
 
-/// Constructs a letter-spacing value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
 /// Returns the CSS keyword revert.
 
 pub revert(): Value.

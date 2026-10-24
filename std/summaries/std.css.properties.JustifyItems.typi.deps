@@ -1,9 +1,9 @@
 module=std.css.properties.JustifyItems
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=3041408485284653174
-interface_hash=7386218570427662542
-interface_doc_hash=6351221792243427482
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=4190297506446295405
+interface_hash=16979728766769122026
+interface_doc_hash=9793139845694244681
 deps=1
 std.core.Option=11539230284316612175

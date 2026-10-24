@@ -1,9 +1,9 @@
 module=std.css.properties.ScrollMarkerGroup
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=12415906135528542518
-interface_hash=802297013763965703
-interface_doc_hash=4381750743869938286
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=13306776764221950757
+interface_hash=1639800343441512040
+interface_doc_hash=12497704412297164364
 deps=1
 std.core.Option=11539230284316612175

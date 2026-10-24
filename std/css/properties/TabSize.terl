@@ -6,7 +6,6 @@
  */
 module std.css.properties.TabSize.
 
-import std.core.Float.
 import std.core.Option.{None, Some}.
 import std.css.Values.
 
@@ -66,15 +65,6 @@ pub revert_layer(): Value ->
  */
 pub unset(): Value ->
     Value(Token {property: "tab-size", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a tab-size value.
- */
-pub number(value: Float): Option[Value] ->
-    case value >= 0 {
-        true -> Some(Value(Token {property: "tab-size", css: std.core.Float.to_string(value)}));
-        false -> None
-    }.
 
 /**
  * Checks the specification range and constructs a tab-size value.

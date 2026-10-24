@@ -6,10 +6,7 @@
  */
 module std.css.properties.ColumnRuleInsetJunctionEnd.
 
-import std.css.Values.
-
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
 
 /**
  * A nominal, specification-constrained column-rule-inset-junction-end value.
@@ -70,20 +67,3 @@ pub revert_layer(): Value ->
  */
 pub unset(): Value ->
     Value(Token {property: "column-rule-inset-junction-end", css: "unset"}).
-
-/**
- * Constructs a column-rule-inset-junction-end value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "column-rule-inset-junction-end", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a column-rule-inset-junction-end value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(
-        Token {
-            property: "column-rule-inset-junction-end",
-            css: std.css.Values.percentage_css(value),
-        },
-    ).

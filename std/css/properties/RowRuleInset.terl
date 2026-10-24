@@ -6,10 +6,7 @@
  */
 module std.css.properties.RowRuleInset.
 
-import std.css.Values.
-
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
 
 /**
  * A nominal, specification-constrained row-rule-inset value.
@@ -70,15 +67,3 @@ pub revert_layer(): Value ->
  */
 pub unset(): Value ->
     Value(Token {property: "row-rule-inset", css: "unset"}).
-
-/**
- * Constructs a row-rule-inset value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "row-rule-inset", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a row-rule-inset value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "row-rule-inset", css: std.css.Values.percentage_css(value)}).

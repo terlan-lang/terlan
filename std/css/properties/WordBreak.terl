@@ -69,12 +69,6 @@ pub keep_all(): Value ->
     Value(Token {property: "word-break", css: "keep-all"}).
 
 /**
- * Returns the CSS keyword manual.
- */
-pub manual(): Value ->
-    Value(Token {property: "word-break", css: "manual"}).
-
-/**
  * Returns the CSS keyword normal.
  */
 pub normal(): Value ->

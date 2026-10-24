@@ -6,9 +6,6 @@
  */
 module std.css.properties.ColumnSpan.
 
-import std.core.Int.
-import std.core.Option.{None, Some}.
-
 import type std.core.Option.
 
 /**
@@ -40,12 +37,6 @@ pub struct OptionalProperty {
  */
 pub all(): Value ->
     Value(Token {property: "column-span", css: "all"}).
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "column-span", css: "auto"}).
 
 /**
  * Returns the CSS keyword inherit.
@@ -82,12 +73,3 @@ pub revert_layer(): Value ->
  */
 pub unset(): Value ->
     Value(Token {property: "column-span", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a column-span value.
- */
-pub integer(value: Int): Option[Value] ->
-    case value >= 1 {
-        true -> Some(Value(Token {property: "column-span", css: std.core.Int.to_string(value)}));
-        false -> None
-    }.

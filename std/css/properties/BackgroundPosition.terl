@@ -36,18 +36,6 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword block-end.
- */
-pub block_end(): Value ->
-    Value(Token {property: "background-position", css: "block-end"}).
-
-/**
- * Returns the CSS keyword block-start.
- */
-pub block_start(): Value ->
-    Value(Token {property: "background-position", css: "block-start"}).
-
-/**
  * Returns the CSS keyword bottom.
  */
 pub bottom(): Value ->
@@ -70,18 +58,6 @@ pub inherit(): Value ->
  */
 pub initial(): Value ->
     Value(Token {property: "background-position", css: "initial"}).
-
-/**
- * Returns the CSS keyword inline-end.
- */
-pub inline_end(): Value ->
-    Value(Token {property: "background-position", css: "inline-end"}).
-
-/**
- * Returns the CSS keyword inline-start.
- */
-pub inline_start(): Value ->
-    Value(Token {property: "background-position", css: "inline-start"}).
 
 /**
  * Returns the CSS keyword left.

@@ -51,12 +51,6 @@ pub fill_box(): Value ->
     Value(Token {property: "clip-path", css: "fill-box"}).
 
 /**
- * Returns the CSS keyword half-border-box.
- */
-pub half_border_box(): Value ->
-    Value(Token {property: "clip-path", css: "half-border-box"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

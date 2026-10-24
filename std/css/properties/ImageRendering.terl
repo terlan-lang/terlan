@@ -45,12 +45,6 @@ pub crisp_edges(): Value ->
     Value(Token {property: "image-rendering", css: "crisp-edges"}).
 
 /**
- * Returns the CSS keyword high-quality.
- */
-pub high_quality(): Value ->
-    Value(Token {property: "image-rendering", css: "high-quality"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

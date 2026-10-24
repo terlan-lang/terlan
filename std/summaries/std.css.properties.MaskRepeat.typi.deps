@@ -1,9 +1,9 @@
 module=std.css.properties.MaskRepeat
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=7484234310478257236
-interface_hash=6601241863376661698
-interface_doc_hash=16586772929822787532
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=15350216066730425541
+interface_hash=7637858063578763005
+interface_doc_hash=3550050325212931960
 deps=1
 std.core.Option=11539230284316612175

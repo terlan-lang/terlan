@@ -1,9 +1,9 @@
 module=std.css.properties.WhiteSpace
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16035447295492867688
-interface_hash=6474074388638240346
-interface_doc_hash=1282526698514166526
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1718712785562961905
+interface_hash=12082411871228390784
+interface_doc_hash=12351006171549431997
 deps=1
 std.core.Option=11539230284316612175

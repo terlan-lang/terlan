@@ -1,10 +1,10 @@
 module=std.css.properties.OffsetAnchor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=18281837876840466682
-interface_hash=7221627569762866598
-interface_doc_hash=13084701270324459897
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=584061293605394542
+interface_hash=16381374702760693826
+interface_doc_hash=5559307108432472320
 deps=2
 std.core.Option=11539230284316612175
 std.css.Values=18073768816303954326

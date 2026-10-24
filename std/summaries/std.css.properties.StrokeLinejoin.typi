@@ -29,14 +29,6 @@ pub arcs(): Value.
 
 pub bevel(): Value.
 
-/// Returns the CSS keyword crop.
-
-pub crop(): Value.
-
-/// Returns the CSS keyword fallback.
-
-pub fallback(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.

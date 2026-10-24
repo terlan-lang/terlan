@@ -21,10 +21,6 @@ pub struct Property {
 
 pub opaque type Value.
 
-/// Constructs a rule value from a typed color.
-
-pub color(value: std.css.Values.Color): Value.
-
 /// Returns the CSS keyword dashed.
 
 pub dashed(): Value.
@@ -41,10 +37,6 @@ pub double(): Value.
 
 pub groove(): Value.
 
-/// Returns the CSS keyword hairline.
-
-pub hairline(): Value.
-
 /// Returns the CSS keyword hidden.
 
 pub hidden(): Value.
@@ -60,10 +52,6 @@ pub initial(): Value.
 /// Returns the CSS keyword inset.
 
 pub inset(): Value.
-
-/// Checks the specification range and constructs a rule value.
-
-pub length(value: std.css.Values.Length): Option[Value].
 
 /// Returns the CSS keyword medium.
 

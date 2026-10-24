@@ -49,12 +49,6 @@ pub auto(): Value ->
     Value(Token {property: "text-wrap", css: "auto"}).
 
 /**
- * Returns the CSS keyword avoid-short-last-line.
- */
-pub avoid_short_last_line(): Value ->
-    Value(Token {property: "text-wrap", css: "avoid-short-last-line"}).
-
-/**
  * Returns the CSS keyword balance.
  */
 pub balance(): Value ->
@@ -134,12 +128,6 @@ text_wrap_mode_css(value: TextWrapModePart): String ->
  */
 pub text_wrap_style_auto(): TextWrapStylePart ->
     TextWrapStylePart("auto").
-
-/**
- * Constructs the text-wrap-style keyword avoid-short-last-line.
- */
-pub text_wrap_style_avoid_short_last_line(): TextWrapStylePart ->
-    TextWrapStylePart("avoid-short-last-line").
 
 /**
  * Constructs the text-wrap-style keyword balance.

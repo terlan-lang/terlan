@@ -29,10 +29,6 @@ pub break_spaces(): Value.
 
 pub collapse(): Value.
 
-/// Returns the CSS keyword discard.
-
-pub discard(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.

@@ -25,10 +25,6 @@ pub struct Property {
 
 pub opaque type Value.
 
-/// Constructs one border-inline-width shorthand component.
-
-pub component_hairline(): Component.
-
 /// Checks the specification range and constructs a border-inline-width value.
 
 pub component_length(value: std.css.Values.Length): Option[Component].
@@ -44,10 +40,6 @@ pub component_thick(): Component.
 /// Constructs one border-inline-width shorthand component.
 
 pub component_thin(): Component.
-
-/// Returns the CSS keyword hairline.
-
-pub hairline(): Value.
 
 /// Returns the CSS keyword inherit.
 

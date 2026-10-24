@@ -43,12 +43,6 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "border-block-width", css: "hairline"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->
@@ -104,12 +98,6 @@ pub length(value: Length): Option[Value] ->
         true -> Some(Value(Token {property: "border-block-width", css: length_css(value)}));
         false -> None
     }.
-
-/**
- * Constructs one border-block-width shorthand component.
- */
-pub component_hairline(): Component ->
-    Component(Token {property: "border-block-width", css: "hairline"}).
 
 /**
  * Constructs one border-block-width shorthand component.

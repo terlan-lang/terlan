@@ -57,12 +57,6 @@ pub initial(): Value ->
     Value(Token {property: "scroll-marker-group", css: "initial"}).
 
 /**
- * Returns the CSS keyword links.
- */
-pub links(): Value ->
-    Value(Token {property: "scroll-marker-group", css: "links"}).
-
-/**
  * Returns the CSS keyword none.
  */
 pub none(): Value ->
@@ -79,12 +73,6 @@ pub revert(): Value ->
  */
 pub revert_layer(): Value ->
     Value(Token {property: "scroll-marker-group", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword tabs.
- */
-pub tabs(): Value ->
-    Value(Token {property: "scroll-marker-group", css: "tabs"}).
 
 /**
  * Returns the CSS keyword unset.

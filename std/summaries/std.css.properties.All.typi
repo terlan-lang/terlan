@@ -37,10 +37,6 @@ pub revert(): Value.
 
 pub revert_layer(): Value.
 
-/// Returns the CSS keyword revert-rule.
-
-pub revert_rule(): Value.
-
 /// Returns the CSS keyword unset.
 
 pub unset(): Value.

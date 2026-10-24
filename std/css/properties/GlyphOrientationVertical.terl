@@ -33,36 +33,6 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword 0.
- */
-pub keyword_0(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "0"}).
-
-/**
- * Returns the CSS keyword 0deg.
- */
-pub keyword_0deg(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "0deg"}).
-
-/**
- * Returns the CSS keyword 90.
- */
-pub keyword_90(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "90"}).
-
-/**
- * Returns the CSS keyword 90deg.
- */
-pub keyword_90deg(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "90deg"}).
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "glyph-orientation-vertical", css: "auto"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

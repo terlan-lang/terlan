@@ -21,14 +21,6 @@ pub struct Property {
 
 pub opaque type Value.
 
-/// Returns the CSS keyword block-end.
-
-pub block_end(): Value.
-
-/// Returns the CSS keyword block-start.
-
-pub block_start(): Value.
-
 /// Returns the CSS keyword bottom.
 
 pub bottom(): Value.
@@ -44,14 +36,6 @@ pub inherit(): Value.
 /// Returns the CSS keyword initial.
 
 pub initial(): Value.
-
-/// Returns the CSS keyword inline-end.
-
-pub inline_end(): Value.
-
-/// Returns the CSS keyword inline-start.
-
-pub inline_start(): Value.
 
 /// Returns the CSS keyword left.
 

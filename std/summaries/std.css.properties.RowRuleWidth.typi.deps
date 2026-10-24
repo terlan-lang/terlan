@@ -1,10 +1,9 @@
 module=std.css.properties.RowRuleWidth
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14046299320536982837
-interface_hash=13486458122336049211
-interface_doc_hash=11945343586078784238
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9777153798626155890
+interface_hash=18421240680924839228
+interface_doc_hash=10485175860441829058
+deps=1
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326

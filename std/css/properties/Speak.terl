@@ -33,18 +33,6 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword always.
- */
-pub always(): Value ->
-    Value(Token {property: "speak", css: "always"}).
-
-/**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "speak", css: "auto"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->
@@ -55,12 +43,6 @@ pub inherit(): Value ->
  */
 pub initial(): Value ->
     Value(Token {property: "speak", css: "initial"}).
-
-/**
- * Returns the CSS keyword never.
- */
-pub never(): Value ->
-    Value(Token {property: "speak", css: "never"}).
 
 /**
  * Returns the CSS keyword revert.

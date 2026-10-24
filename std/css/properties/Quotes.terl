@@ -39,12 +39,6 @@ pub auto(): Value ->
     Value(Token {property: "quotes", css: "auto"}).
 
 /**
- * Returns the CSS keyword bikeshed-this.
- */
-pub bikeshed_this(): Value ->
-    Value(Token {property: "quotes", css: "bikeshed-this"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

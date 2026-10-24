@@ -9,7 +9,7 @@ module std.css.properties.WordSpacing.
 import std.css.Values.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Length}.
 
 /**
  * A nominal, specification-constrained word-spacing value.
@@ -76,9 +76,3 @@ pub unset(): Value ->
  */
 pub length(value: Length): Value ->
     Value(Token {property: "word-spacing", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a word-spacing value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "word-spacing", css: std.css.Values.percentage_css(value)}).

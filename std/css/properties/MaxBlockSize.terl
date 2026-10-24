@@ -37,12 +37,6 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword contain.
- */
-pub contain(): Value ->
-    Value(Token {property: "max-block-size", css: "contain"}).
-
-/**
  * Returns the CSS keyword fit-content.
  */
 pub fit_content(): Value ->

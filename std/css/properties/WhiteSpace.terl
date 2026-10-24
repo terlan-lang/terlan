@@ -45,30 +45,6 @@ pub collapse(): Value ->
     Value(Token {property: "white-space", css: "collapse"}).
 
 /**
- * Returns the CSS keyword discard.
- */
-pub discard(): Value ->
-    Value(Token {property: "white-space", css: "discard"}).
-
-/**
- * Returns the CSS keyword discard-after.
- */
-pub discard_after(): Value ->
-    Value(Token {property: "white-space", css: "discard-after"}).
-
-/**
- * Returns the CSS keyword discard-before.
- */
-pub discard_before(): Value ->
-    Value(Token {property: "white-space", css: "discard-before"}).
-
-/**
- * Returns the CSS keyword discard-inner.
- */
-pub discard_inner(): Value ->
-    Value(Token {property: "white-space", css: "discard-inner"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->
@@ -79,12 +55,6 @@ pub inherit(): Value ->
  */
 pub initial(): Value ->
     Value(Token {property: "white-space", css: "initial"}).
-
-/**
- * Returns the CSS keyword none.
- */
-pub none(): Value ->
-    Value(Token {property: "white-space", css: "none"}).
 
 /**
  * Returns the CSS keyword normal.

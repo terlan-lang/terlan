@@ -1,10 +1,10 @@
 module=std.css.properties.BackgroundPosition
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=18437241294203541539
-interface_hash=14950008475361550452
-interface_doc_hash=2254594003904315887
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=17045615976003025283
+interface_hash=16303817400420654545
+interface_doc_hash=12257935059233366524
 deps=2
 std.core.Option=11539230284316612175
 std.css.Values=18073768816303954326

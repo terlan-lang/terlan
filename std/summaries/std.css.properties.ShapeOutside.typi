@@ -29,10 +29,6 @@ pub border_box(): Value.
 
 pub content_box(): Value.
 
-/// Returns the CSS keyword half-border-box.
-
-pub half_border_box(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.

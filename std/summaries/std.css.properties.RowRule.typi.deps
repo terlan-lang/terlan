@@ -1,10 +1,9 @@
 module=std.css.properties.RowRule
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=13657238169858730094
-interface_hash=15781958955215270323
-interface_doc_hash=2112481111642463661
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=8125442797578157943
+interface_hash=14222858856796791134
+interface_doc_hash=11330763390848101061
+deps=1
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326

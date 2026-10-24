@@ -45,18 +45,6 @@ pub bevel(): Value ->
     Value(Token {property: "stroke-linejoin", css: "bevel"}).
 
 /**
- * Returns the CSS keyword crop.
- */
-pub crop(): Value ->
-    Value(Token {property: "stroke-linejoin", css: "crop"}).
-
-/**
- * Returns the CSS keyword fallback.
- */
-pub fallback(): Value ->
-    Value(Token {property: "stroke-linejoin", css: "fallback"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

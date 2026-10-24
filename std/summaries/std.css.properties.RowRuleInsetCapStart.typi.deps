@@ -1,10 +1,9 @@
 module=std.css.properties.RowRuleInsetCapStart
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=16483195076884689159
-interface_hash=17179554247643197611
-interface_doc_hash=16404049896310209414
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1863940845940920924
+interface_hash=12826436800908201196
+interface_doc_hash=5414477152097897953
+deps=1
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326

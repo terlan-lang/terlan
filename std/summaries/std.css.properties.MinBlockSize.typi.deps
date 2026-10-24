@@ -1,10 +1,10 @@
 module=std.css.properties.MinBlockSize
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=6566289364997902646
-interface_hash=7262979520281597907
-interface_doc_hash=6656672478637610408
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=5001624801051975762
+interface_hash=997998035411529389
+interface_doc_hash=6198067901403727245
 deps=2
 std.core.Option=11539230284316612175
 std.css.Values=18073768816303954326

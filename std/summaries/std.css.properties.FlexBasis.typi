@@ -25,10 +25,6 @@ pub opaque type Value.
 
 pub auto(): Value.
 
-/// Returns the CSS keyword contain.
-
-pub contain(): Value.
-
 /// Returns the CSS keyword content.
 
 pub content(): Value.

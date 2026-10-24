@@ -51,12 +51,6 @@ pub italic(): Value ->
     Value(Token {property: "font-style", css: "italic"}).
 
 /**
- * Returns the CSS keyword left.
- */
-pub left(): Value ->
-    Value(Token {property: "font-style", css: "left"}).
-
-/**
  * Returns the CSS keyword normal.
  */
 pub normal(): Value ->
@@ -79,12 +73,6 @@ pub revert(): Value ->
  */
 pub revert_layer(): Value ->
     Value(Token {property: "font-style", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword right.
- */
-pub right(): Value ->
-    Value(Token {property: "font-style", css: "right"}).
 
 /**
  * Returns the CSS keyword unset.

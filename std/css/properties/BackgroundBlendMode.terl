@@ -123,12 +123,6 @@ pub overlay(): Value ->
     Value(Token {property: "background-blend-mode", css: "overlay"}).
 
 /**
- * Returns the CSS keyword plus-lighter.
- */
-pub plus_lighter(): Value ->
-    Value(Token {property: "background-blend-mode", css: "plus-lighter"}).
-
-/**
  * Returns the CSS keyword revert.
  */
 pub revert(): Value ->

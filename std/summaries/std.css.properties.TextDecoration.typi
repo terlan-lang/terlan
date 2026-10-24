@@ -69,10 +69,6 @@ pub from_font(): Value.
 
 pub grammar_error(): Value.
 
-/// Returns the CSS keyword hairline.
-
-pub hairline(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.
@@ -92,10 +88,6 @@ pub length_2(value: std.css.Values.Length): Option[Value].
 /// Returns the CSS keyword line-through.
 
 pub line_through(): Value.
-
-/// Returns the CSS keyword medium.
-
-pub medium(): Value.
 
 /// Returns the CSS keyword none.
 
@@ -181,10 +173,6 @@ pub text_decoration_thickness_auto(): TextDecorationThicknessPart.
 
 pub text_decoration_thickness_from_font(): TextDecorationThicknessPart.
 
-/// Constructs the text-decoration-thickness keyword hairline.
-
-pub text_decoration_thickness_hairline(): TextDecorationThicknessPart.
-
 /// Constructs a text-decoration value from a typed length.
 
 pub text_decoration_thickness_length(value: std.css.Values.Length): TextDecorationThicknessPart.
@@ -193,29 +181,9 @@ pub text_decoration_thickness_length(value: std.css.Values.Length): TextDecorati
 
 pub text_decoration_thickness_length_2(value: std.css.Values.Length): Option[TextDecorationThicknessPart].
 
-/// Constructs the text-decoration-thickness keyword medium.
-
-pub text_decoration_thickness_medium(): TextDecorationThicknessPart.
-
 /// Constructs a text-decoration value from a typed percentage.
 
 pub text_decoration_thickness_percentage(value: std.css.Values.Percentage): TextDecorationThicknessPart.
-
-/// Constructs the text-decoration-thickness keyword thick.
-
-pub text_decoration_thickness_thick(): TextDecorationThicknessPart.
-
-/// Constructs the text-decoration-thickness keyword thin.
-
-pub text_decoration_thickness_thin(): TextDecorationThicknessPart.
-
-/// Returns the CSS keyword thick.
-
-pub thick(): Value.
-
-/// Returns the CSS keyword thin.
-
-pub thin(): Value.
 
 /// Returns the CSS keyword underline.
 

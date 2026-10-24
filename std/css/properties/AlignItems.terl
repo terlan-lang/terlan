@@ -63,18 +63,6 @@ pub flex_start(): Value ->
     Value(Token {property: "align-items", css: "flex-start"}).
 
 /**
- * Returns the CSS keyword flow-end.
- */
-pub flow_end(): Value ->
-    Value(Token {property: "align-items", css: "flow-end"}).
-
-/**
- * Returns the CSS keyword flow-start.
- */
-pub flow_start(): Value ->
-    Value(Token {property: "align-items", css: "flow-start"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

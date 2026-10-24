@@ -45,12 +45,6 @@ pub balance(): Value ->
     Value(Token {property: "column-fill", css: "balance"}).
 
 /**
- * Returns the CSS keyword balance-all.
- */
-pub balance_all(): Value ->
-    Value(Token {property: "column-fill", css: "balance-all"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

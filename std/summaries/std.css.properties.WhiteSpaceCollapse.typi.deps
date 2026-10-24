@@ -1,9 +1,9 @@
 module=std.css.properties.WhiteSpaceCollapse
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=5802271735378811361
-interface_hash=8131840777214171466
-interface_doc_hash=12691459294318235008
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9745501111757797286
+interface_hash=10587041084467068625
+interface_doc_hash=12023739421260537406
 deps=1
 std.core.Option=11539230284316612175

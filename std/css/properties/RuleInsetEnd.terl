@@ -6,10 +6,7 @@
  */
 module std.css.properties.RuleInsetEnd.
 
-import std.css.Values.
-
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
 
 /**
  * A nominal, specification-constrained rule-inset-end value.
@@ -70,15 +67,3 @@ pub revert_layer(): Value ->
  */
 pub unset(): Value ->
     Value(Token {property: "rule-inset-end", css: "unset"}).
-
-/**
- * Constructs a rule-inset-end value from a typed length.
- */
-pub length(value: Length): Value ->
-    Value(Token {property: "rule-inset-end", css: std.css.Values.length_css(value)}).
-
-/**
- * Constructs a rule-inset-end value from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(Token {property: "rule-inset-end", css: std.css.Values.percentage_css(value)}).

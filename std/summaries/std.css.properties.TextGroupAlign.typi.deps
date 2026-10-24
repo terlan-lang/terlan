@@ -1,9 +1,0 @@
-module=std.css.properties.TextGroupAlign
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=2362178042098939658
-interface_hash=18091720384706416453
-interface_doc_hash=12144741607058263815
-deps=1
-std.core.Option=11539230284316612175

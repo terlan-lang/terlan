@@ -57,18 +57,6 @@ pub repeat(): Value ->
     Value(Token {property: "background-repeat", css: "repeat"}).
 
 /**
- * Returns the CSS keyword repeat-block.
- */
-pub repeat_block(): Value ->
-    Value(Token {property: "background-repeat", css: "repeat-block"}).
-
-/**
- * Returns the CSS keyword repeat-inline.
- */
-pub repeat_inline(): Value ->
-    Value(Token {property: "background-repeat", css: "repeat-inline"}).
-
-/**
  * Returns the CSS keyword repeat-x.
  */
 pub repeat_x(): Value ->

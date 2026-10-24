@@ -63,12 +63,6 @@ pub justify(): Value ->
     Value(Token {property: "text-align", css: "justify"}).
 
 /**
- * Returns the CSS keyword justify-all.
- */
-pub justify_all(): Value ->
-    Value(Token {property: "text-align", css: "justify-all"}).
-
-/**
  * Returns the CSS keyword left.
  */
 pub left(): Value ->

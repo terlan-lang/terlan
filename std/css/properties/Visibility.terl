@@ -39,12 +39,6 @@ pub collapse(): Value ->
     Value(Token {property: "visibility", css: "collapse"}).
 
 /**
- * Returns the CSS keyword force-hidden.
- */
-pub force_hidden(): Value ->
-    Value(Token {property: "visibility", css: "force-hidden"}).
-
-/**
  * Returns the CSS keyword hidden.
  */
 pub hidden(): Value ->

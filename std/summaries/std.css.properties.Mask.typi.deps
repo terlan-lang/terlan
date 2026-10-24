@@ -1,10 +1,10 @@
 module=std.css.properties.Mask
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=5171290201834295822
-interface_hash=6216142007602218281
-interface_doc_hash=11345328503044121124
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=9076154766645188483
+interface_hash=3083693214916736524
+interface_doc_hash=1183334784093751534
 deps=2
 std.core.Option=11539230284316612175
 std.css.Values=18073768816303954326

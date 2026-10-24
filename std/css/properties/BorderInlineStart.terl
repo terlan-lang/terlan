@@ -72,12 +72,6 @@ pub groove(): Value ->
     Value(Token {property: "border-inline-start", css: "groove"}).
 
 /**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "border-inline-start", css: "hairline"}).
-
-/**
  * Returns the CSS keyword hidden.
  */
 pub hidden(): Value ->
@@ -175,12 +169,6 @@ pub length(value: Length): Option[Value] ->
  */
 pub color(value: Color): Value ->
     Value(Token {property: "border-inline-start", css: color_css(value)}).
-
-/**
- * Constructs the line-width keyword hairline.
- */
-pub line_width_hairline(): LineWidthPart ->
-    LineWidthPart("hairline").
 
 /**
  * Constructs the line-width keyword medium.

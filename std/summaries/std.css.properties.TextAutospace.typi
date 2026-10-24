@@ -53,14 +53,6 @@ pub no_autospace(): Value.
 
 pub normal(): Value.
 
-/// Returns the CSS keyword punctuation.
-
-pub punctuation(): Value.
-
-/// Returns the CSS keyword replace.
-
-pub replace(): Value.
-
 /// Returns the CSS keyword revert.
 
 pub revert(): Value.

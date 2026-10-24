@@ -41,10 +41,6 @@ pub initial(): Value.
 
 pub justify(): Value.
 
-/// Returns the CSS keyword justify-all.
-
-pub justify_all(): Value.
-
 /// Returns the CSS keyword left.
 
 pub left(): Value.

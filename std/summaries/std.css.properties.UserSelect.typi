@@ -29,10 +29,6 @@ pub all(): Value.
 
 pub auto(): Value.
 
-/// Returns the CSS keyword contain.
-
-pub contain(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.

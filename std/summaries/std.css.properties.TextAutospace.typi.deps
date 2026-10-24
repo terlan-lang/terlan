@@ -1,9 +1,9 @@
 module=std.css.properties.TextAutospace
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=10093332552711934006
-interface_hash=4800650418712413853
-interface_doc_hash=7568337328697027927
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=7068939362207133563
+interface_hash=14285938234519791647
+interface_doc_hash=932410972224642075
 deps=1
 std.core.Option=11539230284316612175

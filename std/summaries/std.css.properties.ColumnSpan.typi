@@ -25,10 +25,6 @@ pub opaque type Value.
 
 pub all(): Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.
@@ -36,10 +32,6 @@ pub inherit(): Value.
 /// Returns the CSS keyword initial.
 
 pub initial(): Value.
-
-/// Checks the specification range and constructs a column-span value.
-
-pub integer(value: Int): Option[Value].
 
 /// Returns the CSS keyword none.
 

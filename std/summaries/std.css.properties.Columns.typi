@@ -25,14 +25,6 @@ pub opaque type Value.
 
 pub auto(): Value.
 
-/// Returns the CSS keyword contain.
-
-pub contain(): Value.
-
-/// Returns the CSS keyword fit-content.
-
-pub fit_content(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.
@@ -49,18 +41,6 @@ pub integer(value: Int): Option[Value].
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Returns the CSS keyword max-content.
-
-pub max_content(): Value.
-
-/// Returns the CSS keyword min-content.
-
-pub min_content(): Value.
-
-/// Checks the specification range and constructs a columns value.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
 /// Returns the CSS keyword revert.
 
 pub revert(): Value.
@@ -68,10 +48,6 @@ pub revert(): Value.
 /// Returns the CSS keyword revert-layer.
 
 pub revert_layer(): Value.
-
-/// Returns the CSS keyword stretch.
-
-pub stretch(): Value.
 
 /// Returns the CSS keyword unset.
 

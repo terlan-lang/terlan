@@ -33,12 +33,6 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword auto.
- */
-pub auto(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "auto"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->
@@ -79,18 +73,6 @@ pub space_all(): Value ->
  */
 pub space_first(): Value ->
     Value(Token {property: "text-spacing-trim", css: "space-first"}).
-
-/**
- * Returns the CSS keyword trim-all.
- */
-pub trim_all(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "trim-all"}).
-
-/**
- * Returns the CSS keyword trim-both.
- */
-pub trim_both(): Value ->
-    Value(Token {property: "text-spacing-trim", css: "trim-both"}).
 
 /**
  * Returns the CSS keyword trim-start.

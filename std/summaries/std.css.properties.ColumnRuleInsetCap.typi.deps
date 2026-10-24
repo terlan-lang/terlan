@@ -1,10 +1,9 @@
 module=std.css.properties.ColumnRuleInsetCap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=53093185142677218
-interface_hash=17504811422662844742
-interface_doc_hash=2129979866543604720
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=18342202794027708132
+interface_hash=7934401688130040054
+interface_doc_hash=2343144340064199439
+deps=1
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326

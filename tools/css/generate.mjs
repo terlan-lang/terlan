@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { definitionSyntax } from 'css-tree';
 import webref from '@webref/css';
+import mdn from 'mdn-data';
+import { atomAdopted, propertyAdoption } from './adoption.mjs';
 
 export const identifier = name => name.replaceAll('-', '_');
 export const typeName = name => name.split('-').filter(Boolean).map(s => s[0].toUpperCase() + s.slice(1)).join('');
@@ -115,13 +117,22 @@ const callable = name => {
   return reserved.has(value) ? `${value}_value` : value;
 };
 
-export function generateProperty(property, definitions) {
+export function generateProperty(property, definitions, adoptedAtoms = null) {
   const name = typeName(property.name);
   const grammar = definitionSyntax.parse(property.syntax);
-  const atoms = [...new Map(atomicValues(grammar, definitions, new Set(), property.name)
+  const supported = atoms => adoptedAtoms === null ? atoms : atoms.filter(atom => atomAdopted(property.name, atom, adoptedAtoms));
+  const atoms = [...new Map(supported(atomicValues(grammar, definitions, new Set(), property.name))
     .map(value => [JSON.stringify(value), value])).values()];
-  const repeated = repeatedValues(grammar, definitions, new Set(), property.name);
-  const grouped = groupedValues(grammar, definitions, new Set(), property.name);
+  let repeated = repeatedValues(grammar, definitions, new Set(), property.name);
+  if (repeated) {
+    repeated = { ...repeated, atoms: supported(repeated.atoms) };
+    if (!repeated.atoms.length) repeated = null;
+  }
+  let grouped = groupedValues(grammar, definitions, new Set(), property.name);
+  if (grouped) {
+    grouped = { ...grouped, groups: grouped.groups.map(group => ({ ...group, atoms: supported(group.atoms) })) };
+    if (grouped.groups.some(group => !group.atoms.length)) grouped = null;
+  }
   const keywords = [...new Set([...globals, ...atoms.filter(a => a.kind === 'keyword').map(a => a.name)])].sort();
   const constructors = [];
   const imports = new Set();
@@ -238,13 +249,37 @@ async function main() {
   }
   const files = new Map();
   const coverage = [];
+  const excluded = [];
+  const adoptedDefinitions = new Map([
+    ...Object.entries(mdn.css.syntaxes).map(([name, value]) => [`Type:${name}`, definitionSyntax.parse(value.syntax)]),
+    ...Object.entries(mdn.css.properties).map(([name, value]) => [`Property:${name}`, definitionSyntax.parse(value.syntax)]),
+  ]);
   for (const property of data.properties.filter(p => /^[a-z][a-z0-9-]*$/.test(p.name) && p.syntax).sort((a, b) => a.name.localeCompare(b.name, 'en'))) {
-    const { source, atoms, repeated, grouped } = generateProperty(property, definitions);
+    const adoption = propertyAdoption(property.name);
+    if (!adoption.included) {
+      excluded.push({ name: property.name, reason: adoption.reason });
+      continue;
+    }
+    const adoptedGrammar = adoptedDefinitions.get(`Property:${property.name}`);
+    const candidates = adoptedGrammar ? [
+      ...atomicValues(adoptedGrammar, adoptedDefinitions, new Set(), property.name),
+      ...(repeatedValues(adoptedGrammar, adoptedDefinitions, new Set(), property.name)?.atoms ?? []),
+      ...(groupedValues(adoptedGrammar, adoptedDefinitions, new Set(), property.name)?.groups.flatMap(group => group.atoms) ?? []),
+    ] : [];
+    const { source, atoms, repeated, grouped } = generateProperty(property, definitions, candidates);
     files.set(`properties/${typeName(property.name)}.terl`, source);
-    coverage.push({ name: property.name, field: identifier(property.name), module: `std.css.properties.${typeName(property.name)}`, syntax: property.syntax, href: property.href, constructors: atoms, ...(repeated ? {repetition: repeated} : {}), ...(grouped ? {composition: grouped} : {}) });
+    coverage.push({ name: property.name, field: identifier(property.name), module: `std.css.properties.${typeName(property.name)}`, syntax: property.syntax, href: property.href, browsers: adoption.browsers, constructors: atoms, ...(repeated ? {repetition: repeated} : {}), ...(grouped ? {composition: grouped} : {}) });
   }
   const snapshot = await readFile(new URL('node_modules/@webref/css/css.json', import.meta.url));
-  files.set('bindings.json', JSON.stringify({ schema: 'terlan.css.bindings.v1', source: '@webref/css', version: '8.7.8', sha256: createHash('sha256').update(snapshot).digest('hex'), scope: 'CSS-wide keywords, complete atomic alternatives, bounded space-separated repetitions of up to four components, and all-term composition of named &&/|| groups; other compound values and CSS functions are not yet generated', properties: coverage }, null, 2) + '\n');
+  const compatibilitySnapshot = await readFile(new URL('node_modules/@mdn/browser-compat-data/data.json', import.meta.url));
+  const syntaxSnapshot = await readFile(new URL('node_modules/mdn-data/css/properties.json', import.meta.url));
+  const typesSnapshot = await readFile(new URL('node_modules/mdn-data/css/syntaxes.json', import.meta.url));
+  files.set('bindings.json', JSON.stringify({ schema: 'terlan.css.bindings.v1', source: '@webref/css', version: '8.7.8', sha256: createHash('sha256').update(snapshot).digest('hex'), adoption: {
+    policy: 'Standards-track CSS with an unprefixed, unflagged implementation in at least one current released browser. Values require a released implementation or evidence in the MDN property grammar.',
+    compatibility: { source: '@mdn/browser-compat-data', version: '8.1.7', sha256: createHash('sha256').update(compatibilitySnapshot).digest('hex') },
+    syntax: { source: 'mdn-data', version: '2.37.2', sha256: createHash('sha256').update(syntaxSnapshot).update(typesSnapshot).digest('hex') },
+    excluded,
+  }, scope: 'CSS-wide keywords, complete atomic alternatives, bounded space-separated repetitions of up to four components, and all-term composition of named &&/|| groups; other compound values and CSS functions are not yet generated', properties: coverage }, null, 2) + '\n');
   // Generated sources obey the same canonical formatting gate as handwritten
   // library modules. Format in a temporary directory so --check stays read-only.
   const temporary = await mkdtemp(path.join(tmpdir(), 'terlan-css-format-'));
@@ -276,10 +311,24 @@ async function main() {
       if (await readFile(target, 'utf8').catch(() => null) !== content) throw new Error(`stale generated CSS binding: ${target}`);
     } else await writeFile(target, content);
   }
-  for (const name of await readdir(`${directory}/properties`)) {
-    if (!files.has(`properties/${name}`)) throw new Error(`untracked generated CSS binding: ${name}`);
-  }
+  await pruneGeneratedModules(`${directory}/properties`, new Set([...files.keys()].filter(name => name.startsWith('properties/')).map(name => path.basename(name))), `${root}std/summaries`, check);
   process.stdout.write(`${check ? 'Verified' : 'Generated'} ${coverage.length} CSS property modules from @webref/css 8.7.8\n`);
+}
+
+export async function pruneGeneratedModules(directory, retained, summaries, check = false) {
+  for (const name of await readdir(directory)) {
+    if (retained.has(name)) continue;
+    if (check) throw new Error(`obsolete generated CSS binding: ${name}`);
+    const filename = path.join(directory, name);
+    const module = `std.css.properties.${name.slice(0, -5)}`;
+    const source = name.endsWith('.terl') ? await readFile(filename, 'utf8') : '';
+    if (!source.includes('Generated from @webref/css ') || !source.includes(`module ${module}.`)) {
+      throw new Error(`refusing to remove a file not owned by the CSS generator: ${filename}`);
+    }
+    await rm(filename);
+    await rm(path.join(summaries, `${module}.typi`), { force: true });
+    await rm(path.join(summaries, `${module}.typi.deps`), { force: true });
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) await main();

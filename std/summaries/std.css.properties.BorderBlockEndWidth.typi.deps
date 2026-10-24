@@ -1,10 +1,10 @@
 module=std.css.properties.BorderBlockEndWidth
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=594037996638269043
-interface_hash=3506962787573031132
-interface_doc_hash=17339433447124530578
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=852663600845846550
+interface_hash=2570090070198820510
+interface_doc_hash=15810002919588784245
 deps=2
 std.core.Option=11539230284316612175
 std.css.Values=18073768816303954326

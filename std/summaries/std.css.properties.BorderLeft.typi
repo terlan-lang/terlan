@@ -53,10 +53,6 @@ pub double(): Value.
 
 pub groove(): Value.
 
-/// Returns the CSS keyword hairline.
-
-pub hairline(): Value.
-
 /// Returns the CSS keyword hidden.
 
 pub hidden(): Value.
@@ -116,10 +112,6 @@ pub line_style_ridge(): LineStylePart.
 /// Constructs the line-style keyword solid.
 
 pub line_style_solid(): LineStylePart.
-
-/// Constructs the line-width keyword hairline.
-
-pub line_width_hairline(): LineWidthPart.
 
 /// Checks the specification range and constructs a border-left value.
 

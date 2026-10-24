@@ -29,10 +29,6 @@ pub auto(): Value.
 
 pub crisp_edges(): Value.
 
-/// Returns the CSS keyword high-quality.
-
-pub high_quality(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.

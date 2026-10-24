@@ -1,10 +1,10 @@
 module=std.css.properties.Width
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=18266900699046599052
-interface_hash=365636141208935301
-interface_doc_hash=16178150447955118470
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=6125272023634986453
+interface_hash=17159723200080768535
+interface_doc_hash=10812443165996011384
 deps=2
 std.core.Option=11539230284316612175
 std.css.Values=18073768816303954326

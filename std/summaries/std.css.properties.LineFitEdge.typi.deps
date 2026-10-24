@@ -1,9 +1,0 @@
-module=std.css.properties.LineFitEdge
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=1540835457904703900
-interface_hash=17118176260440747941
-interface_doc_hash=16599183309234922409
-deps=1
-std.core.Option=11539230284316612175

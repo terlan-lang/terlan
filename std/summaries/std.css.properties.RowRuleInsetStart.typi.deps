@@ -1,10 +1,9 @@
 module=std.css.properties.RowRuleInsetStart
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=196425363213062379
-interface_hash=10547596239270002214
-interface_doc_hash=15392220810146508734
-deps=2
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=14484932534731156518
+interface_hash=5862102850804822671
+interface_doc_hash=17651700279576416643
+deps=1
 std.core.Option=11539230284316612175
-std.css.Values=18073768816303954326

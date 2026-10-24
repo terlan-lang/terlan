@@ -39,12 +39,6 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "stroke-width", css: "hairline"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->
@@ -57,12 +51,6 @@ pub initial(): Value ->
     Value(Token {property: "stroke-width", css: "initial"}).
 
 /**
- * Returns the CSS keyword medium.
- */
-pub medium(): Value ->
-    Value(Token {property: "stroke-width", css: "medium"}).
-
-/**
  * Returns the CSS keyword revert.
  */
 pub revert(): Value ->
@@ -73,18 +61,6 @@ pub revert(): Value ->
  */
 pub revert_layer(): Value ->
     Value(Token {property: "stroke-width", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword thick.
- */
-pub thick(): Value ->
-    Value(Token {property: "stroke-width", css: "thick"}).
-
-/**
- * Returns the CSS keyword thin.
- */
-pub thin(): Value ->
-    Value(Token {property: "stroke-width", css: "thin"}).
 
 /**
  * Returns the CSS keyword unset.

@@ -21,29 +21,9 @@ pub struct Property {
 
 pub opaque type Value.
 
-/// Returns the CSS keyword circle.
-
-pub circle(): Value.
-
 /// Returns the CSS keyword close-quote.
 
 pub close_quote(): Value.
-
-/// Returns the CSS keyword contents.
-
-pub contents(): Value.
-
-/// Returns the CSS keyword disc.
-
-pub disc(): Value.
-
-/// Returns the CSS keyword disclosure-closed.
-
-pub disclosure_closed(): Value.
-
-/// Returns the CSS keyword disclosure-open.
-
-pub disclosure_open(): Value.
 
 /// Returns the CSS keyword inherit.
 
@@ -80,10 +60,6 @@ pub revert(): Value.
 /// Returns the CSS keyword revert-layer.
 
 pub revert_layer(): Value.
-
-/// Returns the CSS keyword square.
-
-pub square(): Value.
 
 /// Returns the CSS keyword unset.
 

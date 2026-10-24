@@ -33,40 +33,10 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword block-end.
- */
-pub block_end(): Value ->
-    Value(Token {property: "clear", css: "block-end"}).
-
-/**
- * Returns the CSS keyword block-start.
- */
-pub block_start(): Value ->
-    Value(Token {property: "clear", css: "block-start"}).
-
-/**
  * Returns the CSS keyword both.
  */
 pub both(): Value ->
     Value(Token {property: "clear", css: "both"}).
-
-/**
- * Returns the CSS keyword both-block.
- */
-pub both_block(): Value ->
-    Value(Token {property: "clear", css: "both-block"}).
-
-/**
- * Returns the CSS keyword both-inline.
- */
-pub both_inline(): Value ->
-    Value(Token {property: "clear", css: "both-inline"}).
-
-/**
- * Returns the CSS keyword bottom.
- */
-pub bottom(): Value ->
-    Value(Token {property: "clear", css: "bottom"}).
 
 /**
  * Returns the CSS keyword inherit.
@@ -121,12 +91,6 @@ pub revert_layer(): Value ->
  */
 pub right(): Value ->
     Value(Token {property: "clear", css: "right"}).
-
-/**
- * Returns the CSS keyword top.
- */
-pub top(): Value ->
-    Value(Token {property: "clear", css: "top"}).
 
 /**
  * Returns the CSS keyword unset.

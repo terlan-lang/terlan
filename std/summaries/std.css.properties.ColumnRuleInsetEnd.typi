@@ -29,17 +29,9 @@ pub inherit(): Value.
 
 pub initial(): Value.
 
-/// Constructs a column-rule-inset-end value from a typed length.
-
-pub length(value: std.css.Values.Length): Value.
-
 /// Returns the CSS keyword overlap-join.
 
 pub overlap_join(): Value.
-
-/// Constructs a column-rule-inset-end value from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
 
 /// Returns the CSS keyword revert.
 

@@ -1,9 +1,0 @@
-module=std.css.properties.ShapeInside
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=429456954532851980
-interface_hash=3009440239969220568
-interface_doc_hash=4058643946825821658
-deps=1
-std.core.Option=11539230284316612175

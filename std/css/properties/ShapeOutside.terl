@@ -45,12 +45,6 @@ pub content_box(): Value ->
     Value(Token {property: "shape-outside", css: "content-box"}).
 
 /**
- * Returns the CSS keyword half-border-box.
- */
-pub half_border_box(): Value ->
-    Value(Token {property: "shape-outside", css: "half-border-box"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

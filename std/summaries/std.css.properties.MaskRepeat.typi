@@ -37,14 +37,6 @@ pub no_repeat(): Value.
 
 pub repeat(): Value.
 
-/// Returns the CSS keyword repeat-block.
-
-pub repeat_block(): Value.
-
-/// Returns the CSS keyword repeat-inline.
-
-pub repeat_inline(): Value.
-
 /// Returns the CSS keyword repeat-x.
 
 pub repeat_x(): Value.

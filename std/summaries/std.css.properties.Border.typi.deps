@@ -1,10 +1,10 @@
 module=std.css.properties.Border
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=14950623548619984193
-interface_hash=2074364042175639088
-interface_doc_hash=4252330023395765080
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1306233073652592638
+interface_hash=4668136812517927586
+interface_doc_hash=3291175579893440331
 deps=2
 std.core.Option=11539230284316612175
 std.css.Values=18073768816303954326

@@ -83,12 +83,6 @@ pub groove(): Value ->
     Value(Token {property: "outline", css: "groove"}).
 
 /**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "outline", css: "hairline"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->
@@ -180,12 +174,6 @@ pub length(value: Length): Option[Value] ->
  */
 pub color(value: Color): Value ->
     Value(Token {property: "outline", css: color_css(value)}).
-
-/**
- * Constructs the outline-width keyword hairline.
- */
-pub outline_width_hairline(): OutlineWidthPart ->
-    OutlineWidthPart("hairline").
 
 /**
  * Constructs the outline-width keyword medium.

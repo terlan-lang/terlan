@@ -1,9 +1,9 @@
 module=std.css.properties.TextAlign
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=3066244029809561230
-interface_hash=3391656115287835601
-interface_doc_hash=12631492356477855165
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=1669109430057403753
+interface_hash=7718115437399644014
+interface_doc_hash=12179813198067534324
 deps=1
 std.core.Option=11539230284316612175

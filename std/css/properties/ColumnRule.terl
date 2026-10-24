@@ -61,12 +61,6 @@ pub groove(): Value ->
     Value(Token {property: "column-rule", css: "groove"}).
 
 /**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "column-rule", css: "hairline"}).
-
-/**
  * Returns the CSS keyword hidden.
  */
 pub hidden(): Value ->

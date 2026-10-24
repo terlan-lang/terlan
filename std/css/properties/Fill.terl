@@ -33,12 +33,6 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword child.
- */
-pub child(): Value ->
-    Value(Token {property: "fill", css: "child"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

@@ -39,12 +39,6 @@ pub auto(): Value ->
     Value(Token {property: "appearance", css: "auto"}).
 
 /**
- * Returns the CSS keyword base.
- */
-pub base(): Value ->
-    Value(Token {property: "appearance", css: "base"}).
-
-/**
  * Returns the CSS keyword base-select.
  */
 pub base_select(): Value ->

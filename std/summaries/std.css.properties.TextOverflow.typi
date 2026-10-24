@@ -37,17 +37,9 @@ pub component_clip(): Component.
 
 pub component_ellipsis(): Component.
 
-/// Constructs one text-overflow shorthand component.
-
-pub component_fade(): Component.
-
 /// Returns the CSS keyword ellipsis.
 
 pub ellipsis(): Value.
-
-/// Returns the CSS keyword fade.
-
-pub fade(): Value.
 
 /// Returns the CSS keyword inherit.
 

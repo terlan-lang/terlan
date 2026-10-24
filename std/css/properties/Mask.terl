@@ -48,18 +48,6 @@ pub alpha(): Value ->
     Value(Token {property: "mask", css: "alpha"}).
 
 /**
- * Returns the CSS keyword block-end.
- */
-pub block_end(): Value ->
-    Value(Token {property: "mask", css: "block-end"}).
-
-/**
- * Returns the CSS keyword block-start.
- */
-pub block_start(): Value ->
-    Value(Token {property: "mask", css: "block-start"}).
-
-/**
  * Returns the CSS keyword border-box.
  */
 pub border_box(): Value ->
@@ -96,12 +84,6 @@ pub fill_box(): Value ->
     Value(Token {property: "mask", css: "fill-box"}).
 
 /**
- * Returns the CSS keyword half-border-box.
- */
-pub half_border_box(): Value ->
-    Value(Token {property: "mask", css: "half-border-box"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->
@@ -112,18 +94,6 @@ pub inherit(): Value ->
  */
 pub initial(): Value ->
     Value(Token {property: "mask", css: "initial"}).
-
-/**
- * Returns the CSS keyword inline-end.
- */
-pub inline_end(): Value ->
-    Value(Token {property: "mask", css: "inline-end"}).
-
-/**
- * Returns the CSS keyword inline-start.
- */
-pub inline_start(): Value ->
-    Value(Token {property: "mask", css: "inline-start"}).
 
 /**
  * Returns the CSS keyword intersect.
@@ -184,18 +154,6 @@ pub padding_box(): Value ->
  */
 pub repeat(): Value ->
     Value(Token {property: "mask", css: "repeat"}).
-
-/**
- * Returns the CSS keyword repeat-block.
- */
-pub repeat_block(): Value ->
-    Value(Token {property: "mask", css: "repeat-block"}).
-
-/**
- * Returns the CSS keyword repeat-inline.
- */
-pub repeat_inline(): Value ->
-    Value(Token {property: "mask", css: "repeat-inline"}).
 
 /**
  * Returns the CSS keyword repeat-x.

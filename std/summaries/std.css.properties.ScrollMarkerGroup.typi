@@ -37,10 +37,6 @@ pub inherit(): Value.
 
 pub initial(): Value.
 
-/// Returns the CSS keyword links.
-
-pub links(): Value.
-
 /// Returns the CSS keyword none.
 
 pub none(): Value.
@@ -52,10 +48,6 @@ pub revert(): Value.
 /// Returns the CSS keyword revert-layer.
 
 pub revert_layer(): Value.
-
-/// Returns the CSS keyword tabs.
-
-pub tabs(): Value.
 
 /// Returns the CSS keyword unset.
 

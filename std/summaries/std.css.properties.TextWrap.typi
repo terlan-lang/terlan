@@ -33,10 +33,6 @@ pub opaque type Value.
 
 pub auto(): Value.
 
-/// Returns the CSS keyword avoid-short-last-line.
-
-pub avoid_short_last_line(): Value.
-
 /// Returns the CSS keyword balance.
 
 pub balance(): Value.
@@ -84,10 +80,6 @@ pub text_wrap_mode_wrap(): TextWrapModePart.
 /// Constructs the text-wrap-style keyword auto.
 
 pub text_wrap_style_auto(): TextWrapStylePart.
-
-/// Constructs the text-wrap-style keyword avoid-short-last-line.
-
-pub text_wrap_style_avoid_short_last_line(): TextWrapStylePart.
 
 /// Constructs the text-wrap-style keyword balance.
 

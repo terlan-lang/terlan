@@ -21,10 +21,6 @@ pub struct Property {
 
 pub opaque type Value.
 
-/// Constructs a rule-color value from a typed color.
-
-pub color(value: std.css.Values.Color): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.

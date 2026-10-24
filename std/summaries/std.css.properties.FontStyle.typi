@@ -33,10 +33,6 @@ pub initial(): Value.
 
 pub italic(): Value.
 
-/// Returns the CSS keyword left.
-
-pub left(): Value.
-
 /// Returns the CSS keyword normal.
 
 pub normal(): Value.
@@ -52,10 +48,6 @@ pub revert(): Value.
 /// Returns the CSS keyword revert-layer.
 
 pub revert_layer(): Value.
-
-/// Returns the CSS keyword right.
-
-pub right(): Value.
 
 /// Returns the CSS keyword unset.
 

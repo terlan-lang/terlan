@@ -95,12 +95,6 @@ pub grammar_error(): Value ->
     Value(Token {property: "text-decoration", css: "grammar-error"}).
 
 /**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "text-decoration", css: "hairline"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->
@@ -117,12 +111,6 @@ pub initial(): Value ->
  */
 pub line_through(): Value ->
     Value(Token {property: "text-decoration", css: "line-through"}).
-
-/**
- * Returns the CSS keyword medium.
- */
-pub medium(): Value ->
-    Value(Token {property: "text-decoration", css: "medium"}).
 
 /**
  * Returns the CSS keyword none.
@@ -159,18 +147,6 @@ pub solid(): Value ->
  */
 pub spelling_error(): Value ->
     Value(Token {property: "text-decoration", css: "spelling-error"}).
-
-/**
- * Returns the CSS keyword thick.
- */
-pub thick(): Value ->
-    Value(Token {property: "text-decoration", css: "thick"}).
-
-/**
- * Returns the CSS keyword thin.
- */
-pub thin(): Value ->
-    Value(Token {property: "text-decoration", css: "thin"}).
 
 /**
  * Returns the CSS keyword underline.
@@ -273,30 +249,6 @@ pub text_decoration_thickness_auto(): TextDecorationThicknessPart ->
  */
 pub text_decoration_thickness_from_font(): TextDecorationThicknessPart ->
     TextDecorationThicknessPart("from-font").
-
-/**
- * Constructs the text-decoration-thickness keyword hairline.
- */
-pub text_decoration_thickness_hairline(): TextDecorationThicknessPart ->
-    TextDecorationThicknessPart("hairline").
-
-/**
- * Constructs the text-decoration-thickness keyword medium.
- */
-pub text_decoration_thickness_medium(): TextDecorationThicknessPart ->
-    TextDecorationThicknessPart("medium").
-
-/**
- * Constructs the text-decoration-thickness keyword thick.
- */
-pub text_decoration_thickness_thick(): TextDecorationThicknessPart ->
-    TextDecorationThicknessPart("thick").
-
-/**
- * Constructs the text-decoration-thickness keyword thin.
- */
-pub text_decoration_thickness_thin(): TextDecorationThicknessPart ->
-    TextDecorationThicknessPart("thin").
 
 /**
  * Constructs a text-decoration value from a typed length.

@@ -11,7 +11,7 @@ import std.core.Option.{None, Some}.
 import std.css.Values.
 
 import type std.core.Option.
-import type std.css.Values.{Length, Percentage}.
+import type std.css.Values.{Length}.
 
 /**
  * A nominal, specification-constrained columns value.
@@ -44,18 +44,6 @@ pub auto(): Value ->
     Value(Token {property: "columns", css: "auto"}).
 
 /**
- * Returns the CSS keyword contain.
- */
-pub contain(): Value ->
-    Value(Token {property: "columns", css: "contain"}).
-
-/**
- * Returns the CSS keyword fit-content.
- */
-pub fit_content(): Value ->
-    Value(Token {property: "columns", css: "fit-content"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->
@@ -66,18 +54,6 @@ pub inherit(): Value ->
  */
 pub initial(): Value ->
     Value(Token {property: "columns", css: "initial"}).
-
-/**
- * Returns the CSS keyword max-content.
- */
-pub max_content(): Value ->
-    Value(Token {property: "columns", css: "max-content"}).
-
-/**
- * Returns the CSS keyword min-content.
- */
-pub min_content(): Value ->
-    Value(Token {property: "columns", css: "min-content"}).
 
 /**
  * Returns the CSS keyword revert.
@@ -92,12 +68,6 @@ pub revert_layer(): Value ->
     Value(Token {property: "columns", css: "revert-layer"}).
 
 /**
- * Returns the CSS keyword stretch.
- */
-pub stretch(): Value ->
-    Value(Token {property: "columns", css: "stretch"}).
-
-/**
  * Returns the CSS keyword unset.
  */
 pub unset(): Value ->
@@ -109,15 +79,6 @@ pub unset(): Value ->
 pub length(value: Length): Option[Value] ->
     case std.css.Values.length_amount(value) >= 0 {
         true -> Some(Value(Token {property: "columns", css: std.css.Values.length_css(value)}));
-        false -> None
-    }.
-
-/**
- * Checks the specification range and constructs a columns value.
- */
-pub percentage(value: Percentage): Option[Value] ->
-    case std.css.Values.percentage_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "columns", css: std.css.Values.percentage_css(value)}));
         false -> None
     }.
 

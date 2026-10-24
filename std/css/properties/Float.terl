@@ -33,30 +33,6 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword block-end.
- */
-pub block_end(): Value ->
-    Value(Token {property: "float", css: "block-end"}).
-
-/**
- * Returns the CSS keyword block-start.
- */
-pub block_start(): Value ->
-    Value(Token {property: "float", css: "block-start"}).
-
-/**
- * Returns the CSS keyword bottom.
- */
-pub bottom(): Value ->
-    Value(Token {property: "float", css: "bottom"}).
-
-/**
- * Returns the CSS keyword footnote.
- */
-pub footnote(): Value ->
-    Value(Token {property: "float", css: "footnote"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->
@@ -109,24 +85,6 @@ pub revert_layer(): Value ->
  */
 pub right(): Value ->
     Value(Token {property: "float", css: "right"}).
-
-/**
- * Returns the CSS keyword snap-block.
- */
-pub snap_block(): Value ->
-    Value(Token {property: "float", css: "snap-block"}).
-
-/**
- * Returns the CSS keyword snap-inline.
- */
-pub snap_inline(): Value ->
-    Value(Token {property: "float", css: "snap-inline"}).
-
-/**
- * Returns the CSS keyword top.
- */
-pub top(): Value ->
-    Value(Token {property: "float", css: "top"}).
 
 /**
  * Returns the CSS keyword unset.

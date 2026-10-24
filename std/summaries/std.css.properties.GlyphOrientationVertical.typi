@@ -21,10 +21,6 @@ pub struct Property {
 
 pub opaque type Value.
 
-/// Returns the CSS keyword auto.
-
-pub auto(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.
@@ -32,22 +28,6 @@ pub inherit(): Value.
 /// Returns the CSS keyword initial.
 
 pub initial(): Value.
-
-/// Returns the CSS keyword 0.
-
-pub keyword_0(): Value.
-
-/// Returns the CSS keyword 0deg.
-
-pub keyword_0deg(): Value.
-
-/// Returns the CSS keyword 90.
-
-pub keyword_90(): Value.
-
-/// Returns the CSS keyword 90deg.
-
-pub keyword_90deg(): Value.
 
 /// Returns the CSS keyword revert.
 

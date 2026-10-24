@@ -1,9 +1,9 @@
 module=std.css.properties.ColumnFill
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=13679817533223573124
-interface_hash=14216080515275938919
-interface_doc_hash=3016587998002354212
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=8655742594496198799
+interface_hash=4998765842447820725
+interface_doc_hash=18354754238692214092
 deps=1
 std.core.Option=11539230284316612175

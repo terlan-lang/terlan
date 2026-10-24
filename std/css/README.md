@@ -1,6 +1,12 @@
 # Typed CSS
 
 CSS properties are generated from the pinned `@webref/css` specification dataset.
+Generation keeps standards-track properties with an unprefixed, unflagged
+implementation in at least one current released browser, using pinned MDN
+browser-compatibility data. MDN's property grammars and value-level compatibility
+records also exclude proposed additions to otherwise implemented properties.
+An editor-draft specification URL alone does not make an implemented feature
+ineligible. The generator removes obsolete generated modules and interfaces.
 Each `std.css.properties.Name` module exposes a nominal `Value`, a `Property`
 struct for inclusion, and constructors for supported values. Width values cannot
 be assigned to height properties; raw strings cannot become property values.
@@ -51,7 +57,7 @@ example, `Padding.component_length` returns `Option[Padding.Component]` and
 rejects negative lengths. Components from another property, complete shorthand
 values, and CSS-wide keywords cannot be passed to a composition function.
 `MarginInline` permits two components, while `Margin` permits up to four.
-The generator currently finds supported repetitions in 56 property definitions.
+The generator currently finds supported repetitions in 48 property definitions.
 
 Named `&&` and `||` groups expose `compose`, which supplies every group in
 specification order. Each group with keywords, alternatives, or range checks
@@ -74,7 +80,7 @@ pub unit_border(): Option[Border.Value] ->
 
 Width and style parts cannot be interchanged, and parts from another property
 or CSS-wide keywords cannot fill those slots. Numeric constraints are checked
-before parts are constructed. This API currently covers 47 properties,
+before parts are constructed. This API currently covers 18 properties,
 including borders, outlines, flex-flow, and text decoration. `compose` supplies
 all groups; APIs for partial combinations of `||` groups are future work.
 
@@ -119,15 +125,18 @@ terlc interface std/css/Values.terl std/css/Stylesheet.terl std/css/properties/*
 make typed-css-check
 ```
 
-The generator covers 752 property definitions. Its first version exposes
+The generator covers 570 implemented property definitions. Its first version exposes
 CSS-wide keywords and complete atomic alternatives resolved from the grammar,
 including referenced types and numeric ranges, plus bounded space-separated
 repetitions of up to four components and complete compositions of named
 `&&`/`||` groups with up to four terms. Other compound forms, CSS functions,
 typed custom properties, and typed at-rules are future work; use handwritten CSS
 for those forms. `bindings.json` records the exact dataset version and checksum,
-source grammars, supported constructor forms, and specification links. Draft
-definitions can be newer than browser implementations.
+source grammars, supported constructor forms, and specification links. It also
+records the pinned adoption datasets, implemented browsers, and reasons for
+excluding 182 property definitions. Presence in the package means at least one
+released browser implements the property; support across every browser is not
+required.
 
 The compiler fixture at `tests/fixtures/typed-css` exercises a CSS-only build.
 The sibling Battleship application demonstrates the mixed path: its typed

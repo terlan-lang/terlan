@@ -1,10 +1,10 @@
 module=std.css.properties.MaskPosition
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=10199122019275168626
-interface_hash=16474779834047087369
-interface_doc_hash=6770145608620784148
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=14441584837882135866
+interface_hash=3963401151384394448
+interface_doc_hash=13322531543517610421
 deps=2
 std.core.Option=11539230284316612175
 std.css.Values=18073768816303954326

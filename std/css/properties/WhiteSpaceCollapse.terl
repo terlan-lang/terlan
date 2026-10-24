@@ -45,12 +45,6 @@ pub collapse(): Value ->
     Value(Token {property: "white-space-collapse", css: "collapse"}).
 
 /**
- * Returns the CSS keyword discard.
- */
-pub discard(): Value ->
-    Value(Token {property: "white-space-collapse", css: "discard"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

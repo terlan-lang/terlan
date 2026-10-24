@@ -63,12 +63,6 @@ pub inter_word(): Value ->
     Value(Token {property: "text-justify", css: "inter-word"}).
 
 /**
- * Returns the CSS keyword no-compress.
- */
-pub no_compress(): Value ->
-    Value(Token {property: "text-justify", css: "no-compress"}).
-
-/**
  * Returns the CSS keyword none.
  */
 pub none(): Value ->
@@ -85,12 +79,6 @@ pub revert(): Value ->
  */
 pub revert_layer(): Value ->
     Value(Token {property: "text-justify", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword ruby.
- */
-pub ruby(): Value ->
-    Value(Token {property: "text-justify", css: "ruby"}).
 
 /**
  * Returns the CSS keyword unset.

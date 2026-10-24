@@ -50,12 +50,6 @@ pub ellipsis(): Value ->
     Value(Token {property: "text-overflow", css: "ellipsis"}).
 
 /**
- * Returns the CSS keyword fade.
- */
-pub fade(): Value ->
-    Value(Token {property: "text-overflow", css: "fade"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->
@@ -96,12 +90,6 @@ pub component_clip(): Component ->
  */
 pub component_ellipsis(): Component ->
     Component(Token {property: "text-overflow", css: "ellipsis"}).
-
-/**
- * Constructs one text-overflow shorthand component.
- */
-pub component_fade(): Component ->
-    Component(Token {property: "text-overflow", css: "fade"}).
 
 /**
  * Serializes a library-owned shorthand component.

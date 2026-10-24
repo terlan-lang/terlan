@@ -1,10 +1,9 @@
 module=std.css.properties.ColumnSpan
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=4787744087078930810
-interface_hash=7195568577989629051
-interface_doc_hash=10190047695023497593
-deps=2
-std.core.Int=6981787512204747997
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=3596506986765034933
+interface_hash=10793853908548679314
+interface_doc_hash=1508377713044931932
+deps=1
 std.core.Option=11539230284316612175

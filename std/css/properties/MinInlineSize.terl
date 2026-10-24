@@ -43,12 +43,6 @@ pub auto(): Value ->
     Value(Token {property: "min-inline-size", css: "auto"}).
 
 /**
- * Returns the CSS keyword contain.
- */
-pub contain(): Value ->
-    Value(Token {property: "min-inline-size", css: "contain"}).
-
-/**
  * Returns the CSS keyword fit-content.
  */
 pub fit_content(): Value ->

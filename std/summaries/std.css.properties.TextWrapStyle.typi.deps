@@ -1,9 +1,9 @@
 module=std.css.properties.TextWrapStyle
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
-source_hash=788531587275380077
-interface_hash=12937993602906996581
-interface_doc_hash=17496039094605811049
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+source_hash=13129642955605860267
+interface_hash=13664657830885817325
+interface_doc_hash=4788208727866984302
 deps=1
 std.core.Option=11539230284316612175

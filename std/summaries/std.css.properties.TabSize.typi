@@ -33,10 +33,6 @@ pub initial(): Value.
 
 pub length(value: std.css.Values.Length): Option[Value].
 
-/// Checks the specification range and constructs a tab-size value.
-
-pub number(value: Float): Option[Value].
-
 /// Returns the CSS keyword revert.
 
 pub revert(): Value.

@@ -49,14 +49,6 @@ pub flex_end(): Value.
 
 pub flex_start(): Value.
 
-/// Returns the CSS keyword flow-end.
-
-pub flow_end(): Value.
-
-/// Returns the CSS keyword flow-start.
-
-pub flow_start(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.

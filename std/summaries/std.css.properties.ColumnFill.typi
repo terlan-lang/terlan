@@ -29,10 +29,6 @@ pub auto(): Value.
 
 pub balance(): Value.
 
-/// Returns the CSS keyword balance-all.
-
-pub balance_all(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.

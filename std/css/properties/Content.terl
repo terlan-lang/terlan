@@ -33,40 +33,10 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword circle.
- */
-pub circle(): Value ->
-    Value(Token {property: "content", css: "circle"}).
-
-/**
  * Returns the CSS keyword close-quote.
  */
 pub close_quote(): Value ->
     Value(Token {property: "content", css: "close-quote"}).
-
-/**
- * Returns the CSS keyword contents.
- */
-pub contents(): Value ->
-    Value(Token {property: "content", css: "contents"}).
-
-/**
- * Returns the CSS keyword disc.
- */
-pub disc(): Value ->
-    Value(Token {property: "content", css: "disc"}).
-
-/**
- * Returns the CSS keyword disclosure-closed.
- */
-pub disclosure_closed(): Value ->
-    Value(Token {property: "content", css: "disclosure-closed"}).
-
-/**
- * Returns the CSS keyword disclosure-open.
- */
-pub disclosure_open(): Value ->
-    Value(Token {property: "content", css: "disclosure-open"}).
 
 /**
  * Returns the CSS keyword inherit.
@@ -121,12 +91,6 @@ pub revert(): Value ->
  */
 pub revert_layer(): Value ->
     Value(Token {property: "content", css: "revert-layer"}).
-
-/**
- * Returns the CSS keyword square.
- */
-pub square(): Value ->
-    Value(Token {property: "content", css: "square"}).
 
 /**
  * Returns the CSS keyword unset.

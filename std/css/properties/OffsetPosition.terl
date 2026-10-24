@@ -42,18 +42,6 @@ pub auto(): Value ->
     Value(Token {property: "offset-position", css: "auto"}).
 
 /**
- * Returns the CSS keyword block-end.
- */
-pub block_end(): Value ->
-    Value(Token {property: "offset-position", css: "block-end"}).
-
-/**
- * Returns the CSS keyword block-start.
- */
-pub block_start(): Value ->
-    Value(Token {property: "offset-position", css: "block-start"}).
-
-/**
  * Returns the CSS keyword bottom.
  */
 pub bottom(): Value ->
@@ -76,18 +64,6 @@ pub inherit(): Value ->
  */
 pub initial(): Value ->
     Value(Token {property: "offset-position", css: "initial"}).
-
-/**
- * Returns the CSS keyword inline-end.
- */
-pub inline_end(): Value ->
-    Value(Token {property: "offset-position", css: "inline-end"}).
-
-/**
- * Returns the CSS keyword inline-start.
- */
-pub inline_start(): Value ->
-    Value(Token {property: "offset-position", css: "inline-start"}).
 
 /**
  * Returns the CSS keyword left.

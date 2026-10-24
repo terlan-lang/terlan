@@ -37,12 +37,6 @@ pub struct OptionalProperty {
 }.
 
 /**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "border-block-start-width", css: "hairline"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

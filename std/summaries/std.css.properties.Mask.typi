@@ -29,14 +29,6 @@ pub add(): Value.
 
 pub alpha(): Value.
 
-/// Returns the CSS keyword block-end.
-
-pub block_end(): Value.
-
-/// Returns the CSS keyword block-start.
-
-pub block_start(): Value.
-
 /// Returns the CSS keyword border-box.
 
 pub border_box(): Value.
@@ -61,10 +53,6 @@ pub exclude(): Value.
 
 pub fill_box(): Value.
 
-/// Returns the CSS keyword half-border-box.
-
-pub half_border_box(): Value.
-
 /// Returns the CSS keyword inherit.
 
 pub inherit(): Value.
@@ -72,14 +60,6 @@ pub inherit(): Value.
 /// Returns the CSS keyword initial.
 
 pub initial(): Value.
-
-/// Returns the CSS keyword inline-end.
-
-pub inline_end(): Value.
-
-/// Returns the CSS keyword inline-start.
-
-pub inline_start(): Value.
 
 /// Returns the CSS keyword intersect.
 
@@ -128,14 +108,6 @@ pub percentage(value: std.css.Values.Percentage): Value.
 /// Returns the CSS keyword repeat.
 
 pub repeat(): Value.
-
-/// Returns the CSS keyword repeat-block.
-
-pub repeat_block(): Value.
-
-/// Returns the CSS keyword repeat-inline.
-
-pub repeat_inline(): Value.
 
 /// Returns the CSS keyword repeat-x.
 

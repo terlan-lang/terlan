@@ -45,12 +45,6 @@ pub auto(): Value ->
     Value(Token {property: "user-select", css: "auto"}).
 
 /**
- * Returns the CSS keyword contain.
- */
-pub contain(): Value ->
-    Value(Token {property: "user-select", css: "contain"}).
-
-/**
  * Returns the CSS keyword inherit.
  */
 pub inherit(): Value ->

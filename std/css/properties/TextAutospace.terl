@@ -81,18 +81,6 @@ pub normal(): Value ->
     Value(Token {property: "text-autospace", css: "normal"}).
 
 /**
- * Returns the CSS keyword punctuation.
- */
-pub punctuation(): Value ->
-    Value(Token {property: "text-autospace", css: "punctuation"}).
-
-/**
- * Returns the CSS keyword replace.
- */
-pub replace(): Value ->
-    Value(Token {property: "text-autospace", css: "replace"}).
-
-/**
  * Returns the CSS keyword revert.
  */
 pub revert(): Value ->

@@ -6,11 +6,7 @@
  */
 module std.css.properties.RowRule.
 
-import std.core.Option.{None, Some}.
-import std.css.Values.
-
 import type std.core.Option.
-import type std.css.Values.{Color, Length}.
 
 /**
  * A nominal, specification-constrained row-rule value.
@@ -59,12 +55,6 @@ pub double(): Value ->
  */
 pub groove(): Value ->
     Value(Token {property: "row-rule", css: "groove"}).
-
-/**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "row-rule", css: "hairline"}).
 
 /**
  * Returns the CSS keyword hidden.
@@ -149,18 +139,3 @@ pub thin(): Value ->
  */
 pub unset(): Value ->
     Value(Token {property: "row-rule", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a row-rule value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true -> Some(Value(Token {property: "row-rule", css: std.css.Values.length_css(value)}));
-        false -> None
-    }.
-
-/**
- * Constructs a row-rule value from a typed color.
- */
-pub color(value: Color): Value ->
-    Value(Token {property: "row-rule", css: std.css.Values.color_css(value)}).

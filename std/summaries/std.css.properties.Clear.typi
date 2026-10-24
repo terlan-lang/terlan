@@ -21,29 +21,9 @@ pub struct Property {
 
 pub opaque type Value.
 
-/// Returns the CSS keyword block-end.
-
-pub block_end(): Value.
-
-/// Returns the CSS keyword block-start.
-
-pub block_start(): Value.
-
 /// Returns the CSS keyword both.
 
 pub both(): Value.
-
-/// Returns the CSS keyword both-block.
-
-pub both_block(): Value.
-
-/// Returns the CSS keyword both-inline.
-
-pub both_inline(): Value.
-
-/// Returns the CSS keyword bottom.
-
-pub bottom(): Value.
 
 /// Returns the CSS keyword inherit.
 
@@ -80,10 +60,6 @@ pub revert_layer(): Value.
 /// Returns the CSS keyword right.
 
 pub right(): Value.
-
-/// Returns the CSS keyword top.
-
-pub top(): Value.
 
 /// Returns the CSS keyword unset.
 

@@ -41,10 +41,6 @@ pub inter_character(): Value.
 
 pub inter_word(): Value.
 
-/// Returns the CSS keyword no-compress.
-
-pub no_compress(): Value.
-
 /// Returns the CSS keyword none.
 
 pub none(): Value.
@@ -56,10 +52,6 @@ pub revert(): Value.
 /// Returns the CSS keyword revert-layer.
 
 pub revert_layer(): Value.
-
-/// Returns the CSS keyword ruby.
-
-pub ruby(): Value.
 
 /// Returns the CSS keyword unset.
 

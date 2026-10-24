@@ -6,10 +6,7 @@
  */
 module std.css.properties.RuleColor.
 
-import std.css.Values.
-
 import type std.core.Option.
-import type std.css.Values.{Color}.
 
 /**
  * A nominal, specification-constrained rule-color value.
@@ -64,9 +61,3 @@ pub revert_layer(): Value ->
  */
 pub unset(): Value ->
     Value(Token {property: "rule-color", css: "unset"}).
-
-/**
- * Constructs a rule-color value from a typed color.
- */
-pub color(value: Color): Value ->
-    Value(Token {property: "rule-color", css: std.css.Values.color_css(value)}).

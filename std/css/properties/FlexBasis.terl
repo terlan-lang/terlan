@@ -43,12 +43,6 @@ pub auto(): Value ->
     Value(Token {property: "flex-basis", css: "auto"}).
 
 /**
- * Returns the CSS keyword contain.
- */
-pub contain(): Value ->
-    Value(Token {property: "flex-basis", css: "contain"}).
-
-/**
  * Returns the CSS keyword content.
  */
 pub content(): Value ->

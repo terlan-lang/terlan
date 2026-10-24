@@ -45,10 +45,6 @@ pub initial(): Value.
 
 pub keep_all(): Value.
 
-/// Returns the CSS keyword manual.
-
-pub manual(): Value.
-
 /// Returns the CSS keyword normal.
 
 pub normal(): Value.

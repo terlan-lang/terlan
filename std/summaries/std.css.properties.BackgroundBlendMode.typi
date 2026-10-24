@@ -81,10 +81,6 @@ pub normal(): Value.
 
 pub overlay(): Value.
 
-/// Returns the CSS keyword plus-lighter.
-
-pub plus_lighter(): Value.
-
 /// Returns the CSS keyword revert.
 
 pub revert(): Value.

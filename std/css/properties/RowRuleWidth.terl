@@ -6,11 +6,7 @@
  */
 module std.css.properties.RowRuleWidth.
 
-import std.core.Option.{None, Some}.
-import std.css.Values.
-
 import type std.core.Option.
-import type std.css.Values.{Length}.
 
 /**
  * A nominal, specification-constrained row-rule-width value.
@@ -35,12 +31,6 @@ pub struct Property {
 pub struct OptionalProperty {
     row_rule_width: std.core.Option.Option[Value],
 }.
-
-/**
- * Returns the CSS keyword hairline.
- */
-pub hairline(): Value ->
-    Value(Token {property: "row-rule-width", css: "hairline"}).
 
 /**
  * Returns the CSS keyword inherit.
@@ -89,13 +79,3 @@ pub thin(): Value ->
  */
 pub unset(): Value ->
     Value(Token {property: "row-rule-width", css: "unset"}).
-
-/**
- * Checks the specification range and constructs a row-rule-width value.
- */
-pub length(value: Length): Option[Value] ->
-    case std.css.Values.length_amount(value) >= 0 {
-        true ->
-            Some(Value(Token {property: "row-rule-width", css: std.css.Values.length_css(value)}));
-        false -> None
-    }.
