@@ -180,10 +180,6 @@ pub struct Property {
     border: Value,
 }.
 
-pub struct OptionalProperty {
-    border: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for border. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
  * apply to the entire declaration.

@@ -53,10 +53,6 @@ pub type First =
 pub type Last =
     Atom["last"].
 
-pub struct OptionalProperty {
-    baseline_source: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     baseline_source: Value
 }.

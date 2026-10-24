@@ -34,10 +34,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    ruby_overhang: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     ruby_overhang: Value
 }.

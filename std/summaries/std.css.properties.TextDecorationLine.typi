@@ -55,10 +55,6 @@ pub type LineThrough =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    text_decoration_line: std.core.Option.Option[Value]
-}.
-
 /// Each line of text has a decorative line above it.
 
 pub type Overline =

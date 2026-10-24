@@ -38,10 +38,6 @@ pub type Css =
 pub type Inert =
     Atom["inert"].
 
-pub struct OptionalProperty {
-    interactivity: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     interactivity: Value
 }.

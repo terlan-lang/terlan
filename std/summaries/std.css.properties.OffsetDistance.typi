@@ -24,10 +24,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    offset_distance: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     offset_distance: Value
 }.

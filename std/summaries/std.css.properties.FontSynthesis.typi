@@ -36,10 +36,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    font_synthesis: std.core.Option.Option[Value]
-}.
-
 /// Indicates that the subscript and superscript typeface may be synthesized by the browser, if
 /// needed, when using `font-variant-position`.
 

@@ -46,10 +46,6 @@ pub struct Property {
     text_size_adjust: Value,
 }.
 
-pub struct OptionalProperty {
-    text_size_adjust: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for text-size-adjust. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

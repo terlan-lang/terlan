@@ -41,10 +41,6 @@ pub struct Property {
     contain_intrinsic_height: Value,
 }.
 
-pub struct OptionalProperty {
-    contain_intrinsic_height: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for contain-intrinsic-height. CSS-wide choices Inherit, Initial, Unset, Revert,
  * and RevertLayer apply to the entire declaration.

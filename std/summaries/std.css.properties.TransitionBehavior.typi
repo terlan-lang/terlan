@@ -37,10 +37,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    transition_behavior: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     transition_behavior: Value
 }.

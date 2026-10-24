@@ -58,10 +58,6 @@ pub type None =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    text_box: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_box: Value
 }.

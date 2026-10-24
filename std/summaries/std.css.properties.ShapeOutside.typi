@@ -48,10 +48,6 @@ pub type MarginBox =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    shape_outside: std.core.Option.Option[Value]
-}.
-
 pub type PaddingBox =
     Atom["padding-box"].
 

@@ -50,10 +50,6 @@ pub type Css =
 pub type Miter =
     Atom["miter"].
 
-pub struct OptionalProperty {
-    stroke_linejoin: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     stroke_linejoin: Value
 }.

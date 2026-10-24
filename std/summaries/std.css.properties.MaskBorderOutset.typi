@@ -28,10 +28,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    mask_border_outset: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     mask_border_outset: Value
 }.

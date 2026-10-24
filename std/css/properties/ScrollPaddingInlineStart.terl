@@ -43,10 +43,6 @@ pub struct Property {
     scroll_padding_inline_start: Value,
 }.
 
-pub struct OptionalProperty {
-    scroll_padding_inline_start: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for scroll-padding-inline-start. CSS-wide choices Inherit, Initial, Unset,
  * Revert, and RevertLayer apply to the entire declaration.

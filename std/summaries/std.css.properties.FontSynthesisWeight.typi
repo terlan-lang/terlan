@@ -37,10 +37,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    font_synthesis_weight: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_synthesis_weight: Value
 }.

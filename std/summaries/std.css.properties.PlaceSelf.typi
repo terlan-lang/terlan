@@ -95,10 +95,6 @@ pub type FlexStart =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    place_self: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     place_self: Value
 }.

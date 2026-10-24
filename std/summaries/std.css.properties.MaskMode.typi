@@ -49,10 +49,6 @@ pub type Luminance =
 pub type MatchSource =
     Atom["match-source"].
 
-pub struct OptionalProperty {
-    mask_mode: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     mask_mode: Value
 }.

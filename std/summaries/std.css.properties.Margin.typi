@@ -37,10 +37,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    margin: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     margin: Value
 }.

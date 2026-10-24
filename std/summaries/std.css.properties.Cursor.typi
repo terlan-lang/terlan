@@ -191,10 +191,6 @@ pub type NwResize =
 pub type NwseResize =
     Atom["nwse-resize"].
 
-pub struct OptionalProperty {
-    cursor: std.core.Option.Option[Value]
-}.
-
 /// The cursor is a pointer that indicates a link.
 
 pub type Pointer =

@@ -39,10 +39,6 @@ pub struct Property {
     initial_letter: Value,
 }.
 
-pub struct OptionalProperty {
-    initial_letter: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for initial-letter. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

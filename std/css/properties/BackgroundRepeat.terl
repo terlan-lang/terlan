@@ -23,7 +23,6 @@ module std.css.properties.BackgroundRepeat.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -88,10 +87,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     background_repeat: Value,
-}.
-
-pub struct OptionalProperty {
-    background_repeat: std.core.Option.Option[Value],
 }.
 
 /**

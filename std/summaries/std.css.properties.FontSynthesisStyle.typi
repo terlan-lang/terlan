@@ -43,10 +43,6 @@ pub type None =
 pub type ObliqueOnly =
     Atom["oblique-only"].
 
-pub struct OptionalProperty {
-    font_synthesis_style: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_synthesis_style: Value
 }.

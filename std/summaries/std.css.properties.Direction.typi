@@ -32,10 +32,6 @@ pub type Css =
 pub type Ltr =
     Atom["ltr"].
 
-pub struct OptionalProperty {
-    direction: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     direction: Value
 }.

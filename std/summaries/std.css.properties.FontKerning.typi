@@ -42,10 +42,6 @@ pub type None =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    font_kerning: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_kerning: Value
 }.

@@ -38,10 +38,6 @@ pub type Ideographic =
 pub type IdeographicInk =
     Atom["ideographic-ink"].
 
-pub struct OptionalProperty {
-    text_box_edge: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_box_edge: Value
 }.

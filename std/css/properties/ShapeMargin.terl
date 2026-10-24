@@ -33,10 +33,6 @@ pub struct Property {
     shape_margin: Value,
 }.
 
-pub struct OptionalProperty {
-    shape_margin: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for shape-margin. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

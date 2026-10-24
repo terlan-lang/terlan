@@ -55,10 +55,6 @@ pub struct Property {
     border_right_width: Value,
 }.
 
-pub struct OptionalProperty {
-    border_right_width: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for border-right-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

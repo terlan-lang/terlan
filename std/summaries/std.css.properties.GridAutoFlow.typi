@@ -40,10 +40,6 @@ pub type Css =
 pub type Dense =
     Atom["dense"].
 
-pub struct OptionalProperty {
-    grid_auto_flow: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     grid_auto_flow: Value
 }.

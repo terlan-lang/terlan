@@ -49,10 +49,6 @@ pub type Css =
 pub type FillBox =
     Atom["fill-box"].
 
-pub struct OptionalProperty {
-    transform_box: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     transform_box: Value
 }.

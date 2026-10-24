@@ -80,10 +80,6 @@ pub type Mathematical =
 pub type Middle =
     Atom["middle"].
 
-pub struct OptionalProperty {
-    alignment_baseline: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     alignment_baseline: Value
 }.

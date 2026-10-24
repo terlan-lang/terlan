@@ -91,10 +91,6 @@ pub type Legacy =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    justify_items: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     justify_items: Value
 }.

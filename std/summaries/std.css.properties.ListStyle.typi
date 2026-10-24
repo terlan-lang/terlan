@@ -51,10 +51,6 @@ pub type ListStyleTypePart =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    list_style: std.core.Option.Option[Value]
-}.
-
 /// The ::marker pseudo-element is an inline element placed immediately before all ::before
 /// pseudo-elements in the principal block box, after which the element's content flows.
 

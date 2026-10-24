@@ -56,10 +56,6 @@ pub type Forwards =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    animation_fill_mode: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     animation_fill_mode: Value
 }.

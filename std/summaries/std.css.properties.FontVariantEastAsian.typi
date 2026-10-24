@@ -66,10 +66,6 @@ pub type Jis90 =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    font_variant_east_asian: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_variant_east_asian: Value
 }.

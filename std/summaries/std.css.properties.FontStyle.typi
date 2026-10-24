@@ -49,10 +49,6 @@ pub type Normal =
 pub type Oblique =
     Atom["oblique"].
 
-pub struct OptionalProperty {
-    font_style: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_style: Value
 }.

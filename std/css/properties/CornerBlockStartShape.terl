@@ -22,7 +22,6 @@ module std.css.properties.CornerBlockStartShape.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 pub type Bevel.
@@ -58,10 +57,6 @@ pub opaque type Component = SerializedValue.
 
 pub struct Property {
     corner_block_start_shape: Value,
-}.
-
-pub struct OptionalProperty {
-    corner_block_start_shape: std.core.Option.Option[Value],
 }.
 
 /**

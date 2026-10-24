@@ -36,10 +36,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    line_height: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     line_height: Value
 }.

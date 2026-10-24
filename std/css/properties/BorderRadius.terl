@@ -38,10 +38,6 @@ pub struct Property {
     border_radius: Value,
 }.
 
-pub struct OptionalProperty {
-    border_radius: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for border-radius. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

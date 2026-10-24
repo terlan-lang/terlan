@@ -23,7 +23,6 @@ module std.css.properties.MaskBorderRepeat.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -59,10 +58,6 @@ pub opaque type Component = SerializedValue.
 
 pub struct Property {
     mask_border_repeat: Value,
-}.
-
-pub struct OptionalProperty {
-    mask_border_repeat: std.core.Option.Option[Value],
 }.
 
 /**

@@ -44,10 +44,6 @@ pub type End =
 pub type Middle =
     Atom["middle"].
 
-pub struct OptionalProperty {
-    text_anchor: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_anchor: Value
 }.

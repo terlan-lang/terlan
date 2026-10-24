@@ -21,7 +21,6 @@ module std.css.properties.CornerBottomRightShape.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 pub type Bevel.
@@ -53,10 +52,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     corner_bottom_right_shape: Value,
-}.
-
-pub struct OptionalProperty {
-    corner_bottom_right_shape: std.core.Option.Option[Value],
 }.
 
 /**

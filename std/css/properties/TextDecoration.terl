@@ -166,10 +166,6 @@ pub struct Property {
     text_decoration: Value,
 }.
 
-pub struct OptionalProperty {
-    text_decoration: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for text-decoration. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

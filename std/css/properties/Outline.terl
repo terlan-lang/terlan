@@ -164,10 +164,6 @@ pub struct Property {
     outline: Value,
 }.
 
-pub struct OptionalProperty {
-    outline: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for outline. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
  * apply to the entire declaration.

@@ -50,10 +50,6 @@ pub type FromFont =
 pub type Left =
     Atom["left"].
 
-pub struct OptionalProperty {
-    text_underline_position: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_underline_position: Value
 }.

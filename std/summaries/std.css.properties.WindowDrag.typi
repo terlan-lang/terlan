@@ -33,10 +33,6 @@ pub type Move =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    window_drag: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     window_drag: Value
 }.

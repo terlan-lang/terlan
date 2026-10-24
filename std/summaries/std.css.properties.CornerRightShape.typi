@@ -47,10 +47,6 @@ pub type Css =
 pub type Notch =
     Atom["notch"].
 
-pub struct OptionalProperty {
-    corner_right_shape: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     corner_right_shape: Value
 }.

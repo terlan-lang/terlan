@@ -34,10 +34,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    animation_name: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     animation_name: Value
 }.

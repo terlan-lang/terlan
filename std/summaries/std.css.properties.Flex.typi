@@ -72,10 +72,6 @@ pub type MinContent =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    flex: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     flex: Value
 }.

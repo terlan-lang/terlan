@@ -94,10 +94,6 @@ pub type Medium =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    outline: std.core.Option.Option[Value]
-}.
-
 pub type OutlineColorCss =
     Auto.
 

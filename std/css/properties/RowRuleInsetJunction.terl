@@ -22,7 +22,6 @@ module std.css.properties.RowRuleInsetJunction.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -37,10 +36,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     row_rule_inset_junction: Value,
-}.
-
-pub struct OptionalProperty {
-    row_rule_inset_junction: std.core.Option.Option[Value],
 }.
 
 /**

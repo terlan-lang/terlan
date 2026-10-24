@@ -41,10 +41,6 @@ pub type None =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    row_rule_break: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     row_rule_break: Value
 }.

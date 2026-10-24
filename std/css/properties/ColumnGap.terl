@@ -39,10 +39,6 @@ pub struct Property {
     column_gap: Value,
 }.
 
-pub struct OptionalProperty {
-    column_gap: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for column-gap. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

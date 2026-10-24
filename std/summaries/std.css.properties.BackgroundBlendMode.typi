@@ -106,10 +106,6 @@ pub type Multiply =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    background_blend_mode: std.core.Option.Option[Value]
-}.
-
 /// Multiplies or screens the colors, depending on the backdrop color value.
 
 pub type Overlay =

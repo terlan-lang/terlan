@@ -32,10 +32,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    backdrop_filter: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     backdrop_filter: Value
 }.

@@ -32,10 +32,6 @@ pub type Css =
 pub type Flat =
     Atom["flat"].
 
-pub struct OptionalProperty {
-    transform_style: std.core.Option.Option[Value]
-}.
-
 /// Indicates that the children of the element should be positioned in the 3D-space.
 
 pub type Preserve3d =

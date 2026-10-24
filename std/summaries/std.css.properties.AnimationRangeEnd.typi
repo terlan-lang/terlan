@@ -31,10 +31,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    animation_range_end: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     animation_range_end: Value
 }.

@@ -54,10 +54,6 @@ pub type NoPunctuation =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    speak_as: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     speak_as: Value
 }.

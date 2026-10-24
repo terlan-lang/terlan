@@ -17,7 +17,6 @@ module std.css.properties.ColumnRuleInsetJunctionStart.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -31,10 +30,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     column_rule_inset_junction_start: Value,
-}.
-
-pub struct OptionalProperty {
-    column_rule_inset_junction_start: std.core.Option.Option[Value],
 }.
 
 /**

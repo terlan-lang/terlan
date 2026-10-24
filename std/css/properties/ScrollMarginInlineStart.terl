@@ -25,7 +25,6 @@ import std.core.Atom.
 import std.css.Values.
 import std.css.Values.{length_css, serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
 pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
@@ -34,10 +33,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     scroll_margin_inline_start: Value,
-}.
-
-pub struct OptionalProperty {
-    scroll_margin_inline_start: std.core.Option.Option[Value],
 }.
 
 /**

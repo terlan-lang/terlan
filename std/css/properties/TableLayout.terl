@@ -20,7 +20,6 @@ module std.css.properties.TableLayout.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -46,10 +45,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     table_layout: Value,
-}.
-
-pub struct OptionalProperty {
-    table_layout: std.core.Option.Option[Value],
 }.
 
 /**

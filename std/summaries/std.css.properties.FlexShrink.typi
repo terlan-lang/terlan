@@ -28,10 +28,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    flex_shrink: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     flex_shrink: Value
 }.

@@ -73,10 +73,6 @@ pub type Fill =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    pointer_events: std.core.Option.Option[Value]
-}.
-
 /// SVG only (experimental for HTML). The element can only be the target of a pointer event when
 /// e.g., the mouse cursor is over the interior (i.e., 'fill') of the element and the `fill` property
 /// is set to a value other than `none`, or when the mouse cursor is over the perimeter (i.e.,

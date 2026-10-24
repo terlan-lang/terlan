@@ -47,10 +47,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    timeline_trigger_activation_range: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     timeline_trigger_activation_range: Value
 }.

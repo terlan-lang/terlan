@@ -56,10 +56,6 @@ pub type Menu =
 pub type MessageBox =
     Atom["message-box"].
 
-pub struct OptionalProperty {
-    font: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font: Value
 }.

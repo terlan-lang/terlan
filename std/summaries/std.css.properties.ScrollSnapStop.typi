@@ -38,10 +38,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    scroll_snap_stop: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     scroll_snap_stop: Value
 }.

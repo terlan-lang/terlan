@@ -59,10 +59,6 @@ pub struct Property {
     border_inline_end_width: Value,
 }.
 
-pub struct OptionalProperty {
-    border_inline_end_width: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for border-inline-end-width. CSS-wide choices Inherit, Initial, Unset, Revert,
  * and RevertLayer apply to the entire declaration.

@@ -96,10 +96,6 @@ pub struct Property {
     mask_border: Value,
 }.
 
-pub struct OptionalProperty {
-    mask_border: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for mask-border. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

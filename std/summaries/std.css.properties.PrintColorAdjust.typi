@@ -47,10 +47,6 @@ pub type Economy =
 pub type Exact =
     Atom["exact"].
 
-pub struct OptionalProperty {
-    print_color_adjust: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     print_color_adjust: Value
 }.

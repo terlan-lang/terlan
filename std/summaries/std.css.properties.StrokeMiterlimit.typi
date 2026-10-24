@@ -27,10 +27,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    stroke_miterlimit: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     stroke_miterlimit: Value
 }.

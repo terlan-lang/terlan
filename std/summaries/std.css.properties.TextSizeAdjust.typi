@@ -38,10 +38,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    text_size_adjust: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_size_adjust: Value
 }.

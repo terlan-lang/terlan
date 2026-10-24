@@ -34,10 +34,6 @@ pub struct Property {
     zoom: Value,
 }.
 
-pub struct OptionalProperty {
-    zoom: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for zoom. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
  * apply to the entire declaration.

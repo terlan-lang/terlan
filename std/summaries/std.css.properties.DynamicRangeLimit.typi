@@ -40,10 +40,6 @@ pub type Css =
 pub type NoLimit =
     Atom["no-limit"].
 
-pub struct OptionalProperty {
-    dynamic_range_limit: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     dynamic_range_limit: Value
 }.

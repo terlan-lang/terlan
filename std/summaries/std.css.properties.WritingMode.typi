@@ -36,10 +36,6 @@ pub type Css =
 pub type HorizontalTb =
     Atom["horizontal-tb"].
 
-pub struct OptionalProperty {
-    writing_mode: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     writing_mode: Value
 }.

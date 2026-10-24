@@ -35,10 +35,6 @@ pub type Css =
 pub type Mixed =
     Atom["mixed"].
 
-pub struct OptionalProperty {
-    text_orientation: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_orientation: Value
 }.

@@ -54,10 +54,6 @@ pub type Css =
 pub type Hidden =
     Atom["hidden"].
 
-pub struct OptionalProperty {
-    overflow_y: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     overflow_y: Value
 }.

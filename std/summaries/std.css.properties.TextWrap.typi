@@ -53,10 +53,6 @@ pub type Css =
 pub type Nowrap =
     Atom["nowrap"].
 
-pub struct OptionalProperty {
-    text_wrap: std.core.Option.Option[Value]
-}.
-
 /// Results in the same behavior as `wrap`, except that the user agent will use a slower algorithm
 /// that favors better layout over speed. This is intended for body copy where good typography is
 /// favored over performance (for example, when the number of

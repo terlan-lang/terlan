@@ -63,10 +63,6 @@ pub type Math =
 pub type Medium =
     Atom["medium"].
 
-pub struct OptionalProperty {
-    font_size: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_size: Value
 }.

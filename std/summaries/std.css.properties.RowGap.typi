@@ -29,10 +29,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    row_gap: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     row_gap: Value
 }.

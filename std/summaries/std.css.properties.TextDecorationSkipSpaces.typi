@@ -37,10 +37,6 @@ pub type End =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    text_decoration_skip_spaces: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_decoration_skip_spaces: Value
 }.

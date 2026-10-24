@@ -23,10 +23,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    tab_size: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     tab_size: Value
 }.

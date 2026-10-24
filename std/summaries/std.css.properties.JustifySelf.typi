@@ -99,10 +99,6 @@ pub type Left =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    justify_self: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     justify_self: Value
 }.

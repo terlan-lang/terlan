@@ -23,7 +23,6 @@ module std.css.properties.PositionTryOrder.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 pub type MostBlockSize = Atom["most-block-size"].
@@ -55,10 +54,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     position_try_order: Value,
-}.
-
-pub struct OptionalProperty {
-    position_try_order: std.core.Option.Option[Value],
 }.
 
 /**

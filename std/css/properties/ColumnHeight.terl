@@ -42,10 +42,6 @@ pub struct Property {
     column_height: Value,
 }.
 
-pub struct OptionalProperty {
-    column_height: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for column-height. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

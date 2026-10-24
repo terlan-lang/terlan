@@ -49,10 +49,6 @@ pub type Css =
 pub type Left =
     Atom["left"].
 
-pub struct OptionalProperty {
-    offset_anchor: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     offset_anchor: Value
 }.

@@ -31,10 +31,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    font_language_override: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_language_override: Value
 }.

@@ -21,7 +21,6 @@ module std.css.properties.AnimationFillMode.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -67,10 +66,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     animation_fill_mode: Value,
-}.
-
-pub struct OptionalProperty {
-    animation_fill_mode: std.core.Option.Option[Value],
 }.
 
 /**

@@ -29,10 +29,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    word_spacing: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     word_spacing: Value
 }.

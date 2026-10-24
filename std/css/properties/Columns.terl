@@ -42,10 +42,6 @@ pub struct Property {
     columns: Value,
 }.
 
-pub struct OptionalProperty {
-    columns: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for columns. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
  * apply to the entire declaration.

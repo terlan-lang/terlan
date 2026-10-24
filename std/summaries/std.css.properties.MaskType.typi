@@ -38,10 +38,6 @@ pub type Css =
 pub type Luminance =
     Atom["luminance"].
 
-pub struct OptionalProperty {
-    mask_type: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     mask_type: Value
 }.

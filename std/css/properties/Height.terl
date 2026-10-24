@@ -83,10 +83,6 @@ pub struct Property {
     height: Value,
 }.
 
-pub struct OptionalProperty {
-    height: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for height. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
  * apply to the entire declaration.

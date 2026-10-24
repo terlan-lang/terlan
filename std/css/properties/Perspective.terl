@@ -39,10 +39,6 @@ pub struct Property {
     perspective: Value,
 }.
 
-pub struct OptionalProperty {
-    perspective: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for perspective. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

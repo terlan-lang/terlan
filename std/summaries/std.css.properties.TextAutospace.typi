@@ -55,10 +55,6 @@ pub type NoAutospace =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    text_autospace: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_autospace: Value
 }.

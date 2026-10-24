@@ -99,10 +99,6 @@ pub struct Property {
     font_stretch: Value,
 }.
 
-pub struct OptionalProperty {
-    font_stretch: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for font-stretch. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

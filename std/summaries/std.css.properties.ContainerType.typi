@@ -50,10 +50,6 @@ pub type InlineSize =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    container_type: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     container_type: Value
 }.

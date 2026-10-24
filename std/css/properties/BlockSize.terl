@@ -62,10 +62,6 @@ pub struct Property {
     block_size: Value,
 }.
 
-pub struct OptionalProperty {
-    block_size: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for block-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

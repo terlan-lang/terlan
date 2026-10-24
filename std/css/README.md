@@ -10,11 +10,26 @@ ineligible. The generator removes obsolete generated modules and interfaces.
 Each `std.css.properties.Name` module exposes a nominal `Value`, a `Property`
 struct for inclusion, and constructors for supported values. Width values cannot
 be assigned to height properties; raw strings cannot become property values.
+The per-property opaque `Value` declarations give each property a distinct type
+over the shared serialized representation. They also keep construction inside
+the module that checks its enum choices and numeric ranges.
 
-Use `OptionalProperty` to compose partial style blocks. Its field has type
-`Option[Value]`: initialize absent declarations with `None` and present ones
-with `Some(value)`. A shared empty style value can be specialized with ordinary
-record updates.
+Each style struct chooses its declarations by including the properties it needs.
+For a conditional declaration in a shared style shape, declare the optional
+field in that application struct:
+
+```terlan
+import type std.core.Option.
+import type std.css.properties.AnimationRange.{Value as AnimationRangeValue}.
+
+pub struct AnimatedStyle {
+    animation_range: Option[AnimationRangeValue],
+}.
+```
+
+Use `None` to omit that declaration and `Some(value)` to emit it. Property
+modules generate one `Property` struct each; optionality belongs to the
+application style. Shared value structs live once in `std.css.Values`.
 
 Compose application styles with ordinary struct inclusion:
 

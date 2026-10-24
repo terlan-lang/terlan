@@ -54,10 +54,6 @@ pub type OptimizeLegibility =
 pub type OptimizeSpeed =
     Atom["optimizeSpeed"].
 
-pub struct OptionalProperty {
-    text_rendering: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_rendering: Value
 }.

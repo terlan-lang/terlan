@@ -56,10 +56,6 @@ pub struct Property {
     min_inline_size: Value,
 }.
 
-pub struct OptionalProperty {
-    min_inline_size: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for min-inline-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

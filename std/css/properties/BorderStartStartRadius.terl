@@ -38,10 +38,6 @@ pub struct Property {
     border_start_start_radius: Value,
 }.
 
-pub struct OptionalProperty {
-    border_start_start_radius: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for border-start-start-radius. CSS-wide choices Inherit, Initial, Unset,
  * Revert, and RevertLayer apply to the entire declaration.

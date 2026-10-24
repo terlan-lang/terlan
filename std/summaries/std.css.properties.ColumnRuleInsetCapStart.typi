@@ -24,10 +24,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    column_rule_inset_cap_start: std.core.Option.Option[Value]
-}.
-
 /// Resolves to `0`.
 
 pub type OverlapJoin =

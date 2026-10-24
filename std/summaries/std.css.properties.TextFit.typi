@@ -39,10 +39,6 @@ pub type Grow =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    text_fit: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_fit: Value
 }.

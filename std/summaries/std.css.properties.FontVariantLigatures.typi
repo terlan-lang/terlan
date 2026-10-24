@@ -90,10 +90,6 @@ pub type None =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    font_variant_ligatures: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_variant_ligatures: Value
 }.

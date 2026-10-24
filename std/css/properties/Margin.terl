@@ -23,7 +23,6 @@ import std.core.Atom.
 import std.css.Values.
 import std.css.Values.{length_css, percentage_css, serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -42,10 +41,6 @@ pub opaque type Component = SerializedValue.
 
 pub struct Property {
     margin: Value,
-}.
-
-pub struct OptionalProperty {
-    margin: std.core.Option.Option[Value],
 }.
 
 /**

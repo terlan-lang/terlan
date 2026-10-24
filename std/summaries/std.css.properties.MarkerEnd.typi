@@ -34,10 +34,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    marker_end: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     marker_end: Value
 }.

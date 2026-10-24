@@ -162,10 +162,6 @@ pub struct Property {
     column_rule: Value,
 }.
 
-pub struct OptionalProperty {
-    column_rule: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for column-rule. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

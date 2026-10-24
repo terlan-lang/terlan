@@ -119,10 +119,6 @@ pub type None =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    transition: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     transition: Value
 }.

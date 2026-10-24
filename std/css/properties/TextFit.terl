@@ -22,7 +22,6 @@ module std.css.properties.TextFit.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -48,10 +47,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     text_fit: Value,
-}.
-
-pub struct OptionalProperty {
-    text_fit: std.core.Option.Option[Value],
 }.
 
 /**

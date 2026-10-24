@@ -39,10 +39,6 @@ pub type Emoji =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    font_variant_emoji: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_variant_emoji: Value
 }.

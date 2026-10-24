@@ -28,10 +28,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    text_emphasis_position: std.core.Option.Option[Value]
-}.
-
 /// Draws marks over the text in horizontal writing mode.
 
 pub type Over =

@@ -74,10 +74,6 @@ pub struct Property {
     grid_template_rows: Value,
 }.
 
-pub struct OptionalProperty {
-    grid_template_rows: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for grid-template-rows. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

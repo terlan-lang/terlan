@@ -52,10 +52,6 @@ pub type Css =
 pub type FillBox =
     Atom["fill-box"].
 
-pub struct OptionalProperty {
-    mask_origin: std.core.Option.Option[Value]
-}.
-
 /// The position is relative to the [padding
 /// box](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Shapes/From_box_values#padding-box).
 

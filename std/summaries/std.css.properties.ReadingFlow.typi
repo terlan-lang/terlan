@@ -71,10 +71,6 @@ pub type GridRows =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    reading_flow: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     reading_flow: Value
 }.

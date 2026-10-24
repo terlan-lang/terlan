@@ -35,10 +35,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    view_timeline_inset: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     view_timeline_inset: Value
 }.

@@ -178,10 +178,6 @@ pub struct Property {
     border_top: Value,
 }.
 
-pub struct OptionalProperty {
-    border_top: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for border-top. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

@@ -37,10 +37,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    background_origin: std.core.Option.Option[Value]
-}.
-
 /// The background is positioned relative to the padding box. Default value.
 
 pub type PaddingBox =

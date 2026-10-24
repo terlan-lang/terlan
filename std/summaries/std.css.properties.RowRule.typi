@@ -106,10 +106,6 @@ pub type Medium =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    row_rule: std.core.Option.Option[Value]
-}.
-
 /// Displays a border that makes the element appear embossed. This value is the opposite of `inset`.
 /// When applied to a table cell with `border-collapse` set to `collapsed`, this value behaves like
 /// `ridge`.

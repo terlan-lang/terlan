@@ -57,10 +57,6 @@ pub type KeepAll =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    word_break: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     word_break: Value
 }.

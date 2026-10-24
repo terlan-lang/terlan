@@ -58,10 +58,6 @@ pub type Left =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    offset_position: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     offset_position: Value
 }.

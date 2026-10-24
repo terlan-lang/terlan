@@ -23,7 +23,6 @@ import std.core.Atom.
 import std.css.Values.
 import std.css.Values.{color_css, serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Color, Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 pub type Auto.
@@ -34,10 +33,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     outline_color: Value,
-}.
-
-pub struct OptionalProperty {
-    outline_color: std.core.Option.Option[Value],
 }.
 
 /**

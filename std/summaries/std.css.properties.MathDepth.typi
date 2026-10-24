@@ -34,10 +34,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    math_depth: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     math_depth: Value
 }.

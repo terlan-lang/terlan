@@ -25,7 +25,6 @@ module std.css.properties.BorderBlockEndStyle.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -136,10 +135,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     border_block_end_style: Value,
-}.
-
-pub struct OptionalProperty {
-    border_block_end_style: std.core.Option.Option[Value],
 }.
 
 /**

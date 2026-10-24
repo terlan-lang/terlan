@@ -25,7 +25,6 @@ module std.css.properties.AnimationTrigger.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -39,10 +38,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     animation_trigger: Value,
-}.
-
-pub struct OptionalProperty {
-    animation_trigger: std.core.Option.Option[Value],
 }.
 
 /**

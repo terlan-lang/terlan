@@ -59,10 +59,6 @@ pub type Last =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    hanging_punctuation: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     hanging_punctuation: Value
 }.

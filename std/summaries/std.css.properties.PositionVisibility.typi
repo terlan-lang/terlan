@@ -46,10 +46,6 @@ pub type Css =
 pub type NoOverflow =
     Atom["no-overflow"].
 
-pub struct OptionalProperty {
-    position_visibility: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     position_visibility: Value
 }.

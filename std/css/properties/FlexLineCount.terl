@@ -34,10 +34,6 @@ pub struct Property {
     flex_line_count: Value,
 }.
 
-pub struct OptionalProperty {
-    flex_line_count: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for flex-line-count. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

@@ -20,7 +20,6 @@ module std.css.properties.ObjectFit.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -73,10 +72,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     object_fit: Value,
-}.
-
-pub struct OptionalProperty {
-    object_fit: std.core.Option.Option[Value],
 }.
 
 /**

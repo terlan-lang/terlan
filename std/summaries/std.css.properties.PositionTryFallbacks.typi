@@ -146,10 +146,6 @@ pub type Left =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    position_try_fallbacks: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     position_try_fallbacks: Value
 }.

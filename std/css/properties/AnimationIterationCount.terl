@@ -38,10 +38,6 @@ pub struct Property {
     animation_iteration_count: Value,
 }.
 
-pub struct OptionalProperty {
-    animation_iteration_count: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for animation-iteration-count. CSS-wide choices Inherit, Initial, Unset,
  * Revert, and RevertLayer apply to the entire declaration.

@@ -39,10 +39,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    math_shift: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     math_shift: Value
 }.

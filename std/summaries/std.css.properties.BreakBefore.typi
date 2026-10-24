@@ -91,10 +91,6 @@ pub type Css =
 pub type Left =
     Atom["left"].
 
-pub struct OptionalProperty {
-    break_before: std.core.Option.Option[Value]
-}.
-
 /// Forces a page break right before the principal box.
 
 pub type Page =

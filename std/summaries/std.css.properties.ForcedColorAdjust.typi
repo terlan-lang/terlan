@@ -39,10 +39,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    forced_color_adjust: std.core.Option.Option[Value]
-}.
-
 /// In forced colors mode, if the `color` property inherits from its parent (i.e., there is no
 /// [cascaded value](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Introduction) or
 /// the cascaded value is `currentColor`, `inherit`, or another keyword that inherits from the

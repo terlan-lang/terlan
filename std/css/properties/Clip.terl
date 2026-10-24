@@ -23,7 +23,6 @@ module std.css.properties.Clip.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -38,10 +37,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     clip: Value,
-}.
-
-pub struct OptionalProperty {
-    clip: std.core.Option.Option[Value],
 }.
 
 /**

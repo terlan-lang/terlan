@@ -26,10 +26,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    row_rule_inset_junction: std.core.Option.Option[Value]
-}.
-
 /// Specifies that the junction segment should extend across the column-rule, resolving to half the
 /// `column-gap` value plus half the used `column-rule-width` value.
 

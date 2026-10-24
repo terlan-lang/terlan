@@ -37,10 +37,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    scroll_padding_inline: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     scroll_padding_inline: Value
 }.

@@ -31,10 +31,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    offset_rotate: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     offset_rotate: Value
 }.

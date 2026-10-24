@@ -40,10 +40,6 @@ pub type Css =
 pub type Left =
     Atom["left"].
 
-pub struct OptionalProperty {
-    transform_origin: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     transform_origin: Value
 }.

@@ -22,7 +22,6 @@ module std.css.properties.TransitionTimingFunction.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -108,10 +107,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     transition_timing_function: Value,
-}.
-
-pub struct OptionalProperty {
-    transition_timing_function: std.core.Option.Option[Value],
 }.
 
 /**

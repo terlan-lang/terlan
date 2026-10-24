@@ -30,10 +30,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    background_image: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     background_image: Value
 }.

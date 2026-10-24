@@ -36,10 +36,6 @@ pub struct Property {
     mask_border_slice: Value,
 }.
 
-pub struct OptionalProperty {
-    mask_border_slice: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for mask-border-slice. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

@@ -35,10 +35,6 @@ pub struct Property {
     padding_inline_start: Value,
 }.
 
-pub struct OptionalProperty {
-    padding_inline_start: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for padding-inline-start. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

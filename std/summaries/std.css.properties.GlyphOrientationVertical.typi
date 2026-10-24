@@ -20,10 +20,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    glyph_orientation_vertical: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     glyph_orientation_vertical: Value
 }.

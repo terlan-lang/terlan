@@ -48,10 +48,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    margin_trim: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     margin_trim: Value
 }.

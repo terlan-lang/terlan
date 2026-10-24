@@ -75,10 +75,6 @@ pub type Meter =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    appearance: std.core.Option.Option[Value]
-}.
-
 pub type ProgressBar =
     Atom["progress-bar"].
 

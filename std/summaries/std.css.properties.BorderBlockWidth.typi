@@ -45,10 +45,6 @@ pub type Css =
 pub type Medium =
     Atom["medium"].
 
-pub struct OptionalProperty {
-    border_block_width: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     border_block_width: Value
 }.

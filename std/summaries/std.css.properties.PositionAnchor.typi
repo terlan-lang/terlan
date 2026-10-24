@@ -57,10 +57,6 @@ pub type None =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    position_anchor: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     position_anchor: Value
 }.

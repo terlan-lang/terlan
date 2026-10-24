@@ -36,10 +36,6 @@ pub struct Property {
     border_image_slice: Value,
 }.
 
-pub struct OptionalProperty {
-    border_image_slice: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for border-image-slice. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

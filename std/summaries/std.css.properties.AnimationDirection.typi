@@ -47,10 +47,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    animation_direction: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     animation_direction: Value
 }.

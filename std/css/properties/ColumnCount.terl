@@ -37,10 +37,6 @@ pub struct Property {
     column_count: Value,
 }.
 
-pub struct OptionalProperty {
-    column_count: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for column-count. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

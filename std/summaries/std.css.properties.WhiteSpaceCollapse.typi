@@ -44,10 +44,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    white_space_collapse: std.core.Option.Option[Value]
-}.
-
 /// White space sequences and segment break characters are preserved.
 
 pub type Preserve =

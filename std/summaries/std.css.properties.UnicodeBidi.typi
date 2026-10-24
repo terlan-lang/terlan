@@ -67,10 +67,6 @@ pub type IsolateOverride =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    unicode_bidi: std.core.Option.Option[Value]
-}.
-
 /// This keyword makes the elements directionality calculated without considering its parent
 /// bidirectional state or the value of the `direction` property. The directionality is calculated
 /// using the P2 and P3 rules of the Unicode Bidirectional Algorithm. This value allows the display

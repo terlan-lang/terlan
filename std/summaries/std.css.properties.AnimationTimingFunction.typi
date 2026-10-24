@@ -71,10 +71,6 @@ pub type EaseOut =
 pub type Linear =
     Atom["linear"].
 
-pub struct OptionalProperty {
-    animation_timing_function: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     animation_timing_function: Value
 }.

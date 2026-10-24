@@ -31,10 +31,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    initial_letter: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     initial_letter: Value
 }.

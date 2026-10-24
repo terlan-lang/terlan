@@ -21,7 +21,6 @@ module std.css.properties.HyphenateCharacter.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -37,10 +36,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     hyphenate_character: Value,
-}.
-
-pub struct OptionalProperty {
-    hyphenate_character: std.core.Option.Option[Value],
 }.
 
 /**

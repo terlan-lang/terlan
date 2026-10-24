@@ -154,10 +154,6 @@ pub type Normal =
 pub type OldstyleNums =
     Atom["oldstyle-nums"].
 
-pub struct OptionalProperty {
-    font_variant: std.core.Option.Option[Value]
-}.
-
 /// Specifies the keywords related to the `font-variant-numeric` longhand property. The possible
 /// values are `lining-nums`, `oldstyle-nums`, `proportional-nums`, `tabular-nums`,
 /// `diagonal-fractions`, `stacked-fractions`, `ordinal`, and `slashed-zero`.

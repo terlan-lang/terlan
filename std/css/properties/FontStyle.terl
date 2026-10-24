@@ -20,7 +20,6 @@ module std.css.properties.FontStyle.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -52,10 +51,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     font_style: Value,
-}.
-
-pub struct OptionalProperty {
-    font_style: std.core.Option.Option[Value],
 }.
 
 /**

@@ -53,10 +53,6 @@ pub type Loose =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    line_break: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     line_break: Value
 }.

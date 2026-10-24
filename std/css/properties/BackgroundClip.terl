@@ -21,7 +21,6 @@ module std.css.properties.BackgroundClip.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -69,10 +68,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     background_clip: Value,
-}.
-
-pub struct OptionalProperty {
-    background_clip: std.core.Option.Option[Value],
 }.
 
 /**

@@ -48,10 +48,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    column_rule_visibility_items: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     column_rule_visibility_items: Value
 }.

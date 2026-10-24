@@ -48,10 +48,6 @@ pub type MaxContent =
 pub type MinContent =
     Atom["min-content"].
 
-pub struct OptionalProperty {
-    block_size: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     block_size: Value
 }.

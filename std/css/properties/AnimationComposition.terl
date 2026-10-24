@@ -22,7 +22,6 @@ module std.css.properties.AnimationComposition.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -50,10 +49,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     animation_composition: Value,
-}.
-
-pub struct OptionalProperty {
-    animation_composition: std.core.Option.Option[Value],
 }.
 
 /**

@@ -47,10 +47,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    background_clip: std.core.Option.Option[Value]
-}.
-
 /// The background extends to the outside edge of the padding. No background is drawn beneath the
 /// border.
 

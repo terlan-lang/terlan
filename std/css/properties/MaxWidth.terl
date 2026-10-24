@@ -79,10 +79,6 @@ pub struct Property {
     max_width: Value,
 }.
 
-pub struct OptionalProperty {
-    max_width: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for max-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

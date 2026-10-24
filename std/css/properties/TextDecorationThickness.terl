@@ -47,10 +47,6 @@ pub struct Property {
     text_decoration_thickness: Value,
 }.
 
-pub struct OptionalProperty {
-    text_decoration_thickness: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for text-decoration-thickness. CSS-wide choices Inherit, Initial, Unset,
  * Revert, and RevertLayer apply to the entire declaration.

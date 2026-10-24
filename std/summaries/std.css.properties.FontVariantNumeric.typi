@@ -56,10 +56,6 @@ pub type Normal =
 pub type OldstyleNums =
     Atom["oldstyle-nums"].
 
-pub struct OptionalProperty {
-    font_variant_numeric: std.core.Option.Option[Value]
-}.
-
 /// This keyword forces the use of special glyphs for the ordinal markers, like 1st, 2nd, 3rd, 4th in
 /// English or a 1a in Italian. It corresponds to the OpenType values `ordn`.
 

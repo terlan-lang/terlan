@@ -39,10 +39,6 @@ pub struct Property {
     aspect_ratio: Value,
 }.
 
-pub struct OptionalProperty {
-    aspect_ratio: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for aspect-ratio. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

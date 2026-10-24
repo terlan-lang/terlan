@@ -203,10 +203,6 @@ pub struct Property {
     animation: Value,
 }.
 
-pub struct OptionalProperty {
-    animation: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for animation. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

@@ -38,10 +38,6 @@ pub struct Property {
     column_width: Value,
 }.
 
-pub struct OptionalProperty {
-    column_width: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for column-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

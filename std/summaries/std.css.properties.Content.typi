@@ -62,10 +62,6 @@ pub type Normal =
 pub type OpenQuote =
     Atom["open-quote"].
 
-pub struct OptionalProperty {
-    content: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     content: Value
 }.

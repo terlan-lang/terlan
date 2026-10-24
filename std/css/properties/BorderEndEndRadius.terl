@@ -38,10 +38,6 @@ pub struct Property {
     border_end_end_radius: Value,
 }.
 
-pub struct OptionalProperty {
-    border_end_end_radius: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for border-end-end-radius. CSS-wide choices Inherit, Initial, Unset, Revert,
  * and RevertLayer apply to the entire declaration.

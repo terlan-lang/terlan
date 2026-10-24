@@ -32,10 +32,6 @@ pub type Css =
 pub type Nowrap =
     Atom["nowrap"].
 
-pub struct OptionalProperty {
-    text_wrap_mode: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_wrap_mode: Value
 }.

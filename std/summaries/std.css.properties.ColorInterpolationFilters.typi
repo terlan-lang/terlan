@@ -43,10 +43,6 @@ pub type Css =
 pub type LinearRGB =
     Atom["linearRGB"].
 
-pub struct OptionalProperty {
-    color_interpolation_filters: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     color_interpolation_filters: Value
 }.

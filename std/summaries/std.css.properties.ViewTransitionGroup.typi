@@ -36,10 +36,6 @@ pub type Nearest =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    view_transition_group: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     view_transition_group: Value
 }.

@@ -31,10 +31,6 @@ pub type Css =
 pub type Hidden =
     Atom["hidden"].
 
-pub struct OptionalProperty {
-    backface_visibility: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     backface_visibility: Value
 }.

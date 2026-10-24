@@ -41,10 +41,6 @@ pub struct Property {
     hyphenate_limit_chars: Value,
 }.
 
-pub struct OptionalProperty {
-    hyphenate_limit_chars: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for hyphenate-limit-chars. CSS-wide choices Inherit, Initial, Unset, Revert,
  * and RevertLayer apply to the entire declaration.

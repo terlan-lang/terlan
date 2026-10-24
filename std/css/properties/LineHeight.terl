@@ -45,10 +45,6 @@ pub struct Property {
     line_height: Value,
 }.
 
-pub struct OptionalProperty {
-    line_height: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for line-height. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

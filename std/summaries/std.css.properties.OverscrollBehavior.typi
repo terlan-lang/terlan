@@ -61,10 +61,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    overscroll_behavior: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     overscroll_behavior: Value
 }.

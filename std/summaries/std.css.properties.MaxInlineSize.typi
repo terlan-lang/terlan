@@ -47,10 +47,6 @@ pub type MinContent =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    max_inline_size: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     max_inline_size: Value
 }.

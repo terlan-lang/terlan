@@ -23,7 +23,6 @@ module std.css.properties.BoxDecorationBreak.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -49,10 +48,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     box_decoration_break: Value,
-}.
-
-pub struct OptionalProperty {
-    box_decoration_break: std.core.Option.Option[Value],
 }.
 
 /**

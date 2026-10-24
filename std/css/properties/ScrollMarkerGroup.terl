@@ -24,7 +24,6 @@ module std.css.properties.ScrollMarkerGroup.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -55,10 +54,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     scroll_marker_group: Value,
-}.
-
-pub struct OptionalProperty {
-    scroll_marker_group: std.core.Option.Option[Value],
 }.
 
 /**

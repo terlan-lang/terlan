@@ -54,10 +54,6 @@ pub type Lighter =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    font_weight: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_weight: Value
 }.

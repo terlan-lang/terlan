@@ -31,10 +31,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    background_position_x: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     background_position_x: Value
 }.

@@ -42,10 +42,6 @@ pub type Evenodd =
 pub type Nonzero =
     Atom["nonzero"].
 
-pub struct OptionalProperty {
-    fill_rule: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     fill_rule: Value
 }.

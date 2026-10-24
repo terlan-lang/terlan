@@ -21,7 +21,6 @@ module std.css.properties.ColumnWrap.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -46,10 +45,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     column_wrap: Value,
-}.
-
-pub struct OptionalProperty {
-    column_wrap: std.core.Option.Option[Value],
 }.
 
 /**

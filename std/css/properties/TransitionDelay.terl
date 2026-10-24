@@ -24,7 +24,6 @@ import std.core.Atom.
 import std.css.Values.
 import std.css.Values.{serialize, time_css}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
 
 pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
@@ -33,10 +32,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     transition_delay: Value,
-}.
-
-pub struct OptionalProperty {
-    transition_delay: std.core.Option.Option[Value],
 }.
 
 /**

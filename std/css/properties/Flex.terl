@@ -101,10 +101,6 @@ pub struct Property {
     flex: Value,
 }.
 
-pub struct OptionalProperty {
-    flex: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for flex. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
  * apply to the entire declaration.

@@ -48,10 +48,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    overflow_wrap: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     overflow_wrap: Value
 }.

@@ -33,10 +33,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    font_variation_settings: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_variation_settings: Value
 }.

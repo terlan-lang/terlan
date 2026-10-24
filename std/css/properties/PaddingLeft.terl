@@ -35,10 +35,6 @@ pub struct Property {
     padding_left: Value,
 }.
 
-pub struct OptionalProperty {
-    padding_left: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for padding-left. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

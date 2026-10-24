@@ -37,10 +37,6 @@ pub type Css =
 pub type Fixed =
     Atom["fixed"].
 
-pub struct OptionalProperty {
-    field_sizing: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     field_sizing: Value
 }.

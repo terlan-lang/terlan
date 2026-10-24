@@ -71,10 +71,6 @@ pub type FlexWrapPart =
 pub type Nowrap =
     Atom["nowrap"].
 
-pub struct OptionalProperty {
-    flex_flow: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     flex_flow: Value
 }.

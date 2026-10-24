@@ -21,10 +21,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    column_rule_inset_end: std.core.Option.Option[Value]
-}.
-
 /// Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps.
 
 pub type OverlapJoin =

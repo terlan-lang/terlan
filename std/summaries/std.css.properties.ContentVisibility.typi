@@ -50,10 +50,6 @@ pub type Css =
 pub type Hidden =
     Atom["hidden"].
 
-pub struct OptionalProperty {
-    content_visibility: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     content_visibility: Value
 }.

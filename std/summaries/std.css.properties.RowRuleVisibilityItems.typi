@@ -47,10 +47,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    row_rule_visibility_items: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     row_rule_visibility_items: Value
 }.

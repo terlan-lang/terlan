@@ -48,10 +48,6 @@ pub type Light =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    font_palette: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_palette: Value
 }.

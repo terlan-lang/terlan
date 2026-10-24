@@ -27,7 +27,6 @@ module std.css.properties.JustifyContent.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -140,10 +139,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     justify_content: Value,
-}.
-
-pub struct OptionalProperty {
-    justify_content: std.core.Option.Option[Value],
 }.
 
 /**

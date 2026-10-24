@@ -51,10 +51,6 @@ pub struct Property {
     grid_auto_columns: Value,
 }.
 
-pub struct OptionalProperty {
-    grid_auto_columns: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for grid-auto-columns. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

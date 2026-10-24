@@ -37,10 +37,6 @@ pub struct Property {
     flex_shrink: Value,
 }.
 
-pub struct OptionalProperty {
-    flex_shrink: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for flex-shrink. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

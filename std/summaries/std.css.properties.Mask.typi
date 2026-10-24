@@ -172,10 +172,6 @@ pub type NoRepeat =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    mask: std.core.Option.Option[Value]
-}.
-
 /// The painted content is clipped to the padding box.
 ///
 /// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-clip

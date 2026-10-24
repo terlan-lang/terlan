@@ -39,10 +39,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    border_image_repeat: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     border_image_repeat: Value
 }.

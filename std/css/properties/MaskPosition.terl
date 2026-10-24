@@ -23,7 +23,6 @@ import std.core.Atom.
 import std.css.Values.
 import std.css.Values.{length_css, percentage_css, serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
 pub type Bottom.
@@ -64,10 +63,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     mask_position: Value,
-}.
-
-pub struct OptionalProperty {
-    mask_position: std.core.Option.Option[Value],
 }.
 
 /**

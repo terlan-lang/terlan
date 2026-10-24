@@ -81,10 +81,6 @@ pub struct Property {
     min_width: Value,
 }.
 
-pub struct OptionalProperty {
-    min_width: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for min-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

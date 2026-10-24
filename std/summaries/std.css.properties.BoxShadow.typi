@@ -32,10 +32,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    box_shadow: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     box_shadow: Value
 }.

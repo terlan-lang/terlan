@@ -47,10 +47,6 @@ pub type Dotted =
 pub type Double =
     Atom["double"].
 
-pub struct OptionalProperty {
-    text_decoration_style: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_decoration_style: Value
 }.

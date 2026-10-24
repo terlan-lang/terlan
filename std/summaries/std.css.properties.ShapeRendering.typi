@@ -57,10 +57,6 @@ pub type GeometricPrecision =
 pub type OptimizeSpeed =
     Atom["optimizeSpeed"].
 
-pub struct OptionalProperty {
-    shape_rendering: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     shape_rendering: Value
 }.

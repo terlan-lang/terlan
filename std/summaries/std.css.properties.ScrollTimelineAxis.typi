@@ -37,10 +37,6 @@ pub type Css =
 pub type Inline =
     Atom["inline"].
 
-pub struct OptionalProperty {
-    scroll_timeline_axis: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     scroll_timeline_axis: Value
 }.

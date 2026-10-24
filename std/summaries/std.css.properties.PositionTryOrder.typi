@@ -48,10 +48,6 @@ pub type MostWidth =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    position_try_order: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     position_try_order: Value
 }.

@@ -36,10 +36,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    box_decoration_break: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     box_decoration_break: Value
 }.

@@ -70,10 +70,6 @@ pub type Inset =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    outline_style: std.core.Option.Option[Value]
-}.
-
 /// The opposite of `inset`: the outline makes the box look as though it were coming out of the page.
 
 pub type Outset =

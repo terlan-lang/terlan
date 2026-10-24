@@ -32,10 +32,6 @@ pub type Css =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    interest_delay_end: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     interest_delay_end: Value
 }.

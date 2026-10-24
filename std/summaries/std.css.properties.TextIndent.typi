@@ -23,10 +23,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    text_indent: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_indent: Value
 }.

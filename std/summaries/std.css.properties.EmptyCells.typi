@@ -30,10 +30,6 @@ pub type Css =
 pub type Hide =
     Atom["hide"].
 
-pub struct OptionalProperty {
-    empty_cells: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     empty_cells: Value
 }.

@@ -31,10 +31,6 @@ pub type Css =
 pub type Inside =
     Atom["inside"].
 
-pub struct OptionalProperty {
-    list_style_position: std.core.Option.Option[Value]
-}.
-
 /// The `::marker` is outside the principal block box. This is the default value for `list-style`.
 
 pub type Outside =

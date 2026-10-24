@@ -43,10 +43,6 @@ pub type HistoricalForms =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    font_variant_alternates: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_variant_alternates: Value
 }.

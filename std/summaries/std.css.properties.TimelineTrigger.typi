@@ -39,10 +39,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    timeline_trigger: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     timeline_trigger: Value
 }.

@@ -21,7 +21,6 @@ module std.css.properties.BackgroundImage.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -35,10 +34,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     background_image: Value,
-}.
-
-pub struct OptionalProperty {
-    background_image: std.core.Option.Option[Value],
 }.
 
 /**

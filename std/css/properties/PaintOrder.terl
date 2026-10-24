@@ -21,7 +21,6 @@ module std.css.properties.PaintOrder.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 pub type Fill.
@@ -41,10 +40,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     paint_order: Value,
-}.
-
-pub struct OptionalProperty {
-    paint_order: std.core.Option.Option[Value],
 }.
 
 /**

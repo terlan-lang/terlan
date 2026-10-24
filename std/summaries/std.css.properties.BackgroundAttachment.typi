@@ -43,10 +43,6 @@ pub type Fixed =
 pub type Local =
     Atom["local"].
 
-pub struct OptionalProperty {
-    background_attachment: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     background_attachment: Value
 }.

@@ -62,10 +62,6 @@ pub type Left =
 pub type MatchParent =
     Atom["match-parent"].
 
-pub struct OptionalProperty {
-    text_align_last: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_align_last: Value
 }.

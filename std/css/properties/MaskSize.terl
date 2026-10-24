@@ -56,10 +56,6 @@ pub struct Property {
     mask_size: Value,
 }.
 
-pub struct OptionalProperty {
-    mask_size: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for mask-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

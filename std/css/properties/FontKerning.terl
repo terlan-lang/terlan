@@ -20,7 +20,6 @@ module std.css.properties.FontKerning.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -45,10 +44,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     font_kerning: Value,
-}.
-
-pub struct OptionalProperty {
-    font_kerning: std.core.Option.Option[Value],
 }.
 
 /**

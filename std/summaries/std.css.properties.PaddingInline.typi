@@ -28,10 +28,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    padding_inline: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     padding_inline: Value
 }.

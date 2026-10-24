@@ -145,7 +145,7 @@ export function generateProperty(property, definitions, adoptedAtoms = null) {
   }
   const keywordAtoms = [...atoms, ...(repeated?.atoms ?? []), ...(grouped?.groups.flatMap(group => group.atoms) ?? [])]
     .filter(atom => atom.kind === 'keyword' && !globals.includes(atom.name));
-  const reservedTypes = new Set(['Value', 'Css', 'CssWide', 'Property', 'OptionalProperty', 'Component', 'ComponentCss', 'SerializedValue', 'Absent', 'Some', 'Option', 'Length', 'Percentage', 'Color', 'Angle', 'Time',
+  const reservedTypes = new Set(['Value', 'Css', 'CssWide', 'Property', 'Component', 'ComponentCss', 'SerializedValue', 'Absent', 'Some', 'Option', 'Length', 'Percentage', 'Color', 'Angle', 'Time',
     'Int', 'Float', 'Number', 'Binary', 'String', 'Text', 'Atom', 'Bool', 'Term', 'Dynamic', 'Never', 'Unit', 'List', 'Map', 'Set', 'Iterator', 'Task',
     ...(grouped?.groups.flatMap(group => [`${typeName(group.name)}Part`, `${typeName(group.name)}Css`]) ?? [])]);
   const keywordNames = new Map([...new Set(keywordAtoms.map(atom => atom.name))].sort().map(keyword => {
@@ -255,11 +255,13 @@ export function generateProperty(property, definitions, adoptedAtoms = null) {
     }
     constructors.push(`${comment(`Sets ${property.name} by combining ${grouped.groups.map(group => group.name).join(', ')} in grammar order. Each argument describes a distinct part of the declaration.`)}\npub compose(${parameters.join(', ')}): Value ->\n    ${token('Value', expressions.join(' + " " + '))}.`);
   }
-  if (needsOption) imports.add('import std.core.Option.{None as Absent, Some}.');
-  imports.add('import type std.core.Option.');
+  if (needsOption) {
+    imports.add('import std.core.Option.{None as Absent, Some}.');
+    imports.add('import type std.core.Option.');
+  }
   const component = repeated ? 'pub opaque type Component = SerializedValue.\n\n' : '';
   const overview = [docs?.description, propertyFacts(property.name), `Grammar: ${property.syntax}`, `Specification: ${property.href}`, ...(docs ? [`Author guide: ${docs.source}`, ...(docs.license ? ['Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).'] : []), ...(docs.microsoftValues ? ['Additional value descriptions: Microsoft (MIT).'] : [])] : []), 'Generated from @webref/css 8.7.8. Do not edit.'].filter(Boolean).join('\n\n');
-  const source = `${comment(overview)}\nmodule std.css.properties.${name}.\n\n${[...imports].sort().join('\n')}\n\n${declarations.join('\n\n')}\n\npub opaque type Value = SerializedValue.\n\n${component}pub struct Property {\n    ${identifier(property.name)}: Value,\n}.\n\npub struct OptionalProperty {\n    ${identifier(property.name)}: std.core.Option.Option[Value],\n}.\n\n${constructors.join('\n\n')}\n`;
+  const source = `${comment(overview)}\nmodule std.css.properties.${name}.\n\n${[...imports].sort().join('\n')}\n\n${declarations.join('\n\n')}\n\npub opaque type Value = SerializedValue.\n\n${component}pub struct Property {\n    ${identifier(property.name)}: Value,\n}.\n\n${constructors.join('\n\n')}\n`;
   return { source, atoms, repeated, grouped };
 }
 

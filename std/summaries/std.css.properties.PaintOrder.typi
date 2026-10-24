@@ -39,10 +39,6 @@ pub type Markers =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    paint_order: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     paint_order: Value
 }.

@@ -37,10 +37,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    overflow_anchor: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     overflow_anchor: Value
 }.

@@ -93,10 +93,6 @@ pub type Mathematical =
 pub type Middle =
     Atom["middle"].
 
-pub struct OptionalProperty {
-    dominant_baseline: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     dominant_baseline: Value
 }.

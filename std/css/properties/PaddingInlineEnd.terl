@@ -35,10 +35,6 @@ pub struct Property {
     padding_inline_end: Value,
 }.
 
-pub struct OptionalProperty {
-    padding_inline_end: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for padding-inline-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

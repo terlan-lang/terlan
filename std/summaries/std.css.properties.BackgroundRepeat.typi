@@ -39,10 +39,6 @@ pub type Css =
 pub type NoRepeat =
     Atom["no-repeat"].
 
-pub struct OptionalProperty {
-    background_repeat: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     background_repeat: Value
 }.

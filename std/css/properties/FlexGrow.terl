@@ -35,10 +35,6 @@ pub struct Property {
     flex_grow: Value,
 }.
 
-pub struct OptionalProperty {
-    flex_grow: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for flex-grow. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

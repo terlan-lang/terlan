@@ -43,10 +43,6 @@ pub struct Property {
     scroll_padding_top: Value,
 }.
 
-pub struct OptionalProperty {
-    scroll_padding_top: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for scroll-padding-top. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

@@ -31,10 +31,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    mask_border_source: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     mask_border_source: Value
 }.

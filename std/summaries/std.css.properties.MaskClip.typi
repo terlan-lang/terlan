@@ -51,10 +51,6 @@ pub type FillBox =
 pub type NoClip =
     Atom["no-clip"].
 
-pub struct OptionalProperty {
-    mask_clip: std.core.Option.Option[Value]
-}.
-
 /// The painted content is clipped to the padding box.
 
 pub type PaddingBox =

@@ -78,10 +78,6 @@ pub type FlexStart =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    align_items: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     align_items: Value
 }.

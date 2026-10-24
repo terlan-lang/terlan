@@ -41,10 +41,6 @@ pub struct Property {
     contain_intrinsic_width: Value,
 }.
 
-pub struct OptionalProperty {
-    contain_intrinsic_width: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for contain-intrinsic-width. CSS-wide choices Inherit, Initial, Unset, Revert,
  * and RevertLayer apply to the entire declaration.

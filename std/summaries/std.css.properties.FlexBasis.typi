@@ -63,10 +63,6 @@ pub type MaxContent =
 pub type MinContent =
     Atom["min-content"].
 
-pub struct OptionalProperty {
-    flex_basis: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     flex_basis: Value
 }.

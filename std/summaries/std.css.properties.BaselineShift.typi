@@ -37,10 +37,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    baseline_shift: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     baseline_shift: Value
 }.

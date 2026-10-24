@@ -32,10 +32,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    hyphenate_character: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     hyphenate_character: Value
 }.

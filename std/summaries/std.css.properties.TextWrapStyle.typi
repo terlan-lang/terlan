@@ -43,10 +43,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    text_wrap_style: std.core.Option.Option[Value]
-}.
-
 /// Text is wrapped using a slower algorithm that favors better layout over speed. This is intended
 /// for body copy where good typography is favored over performance (for example, when the number of
 /// [orphans](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/orphans) should

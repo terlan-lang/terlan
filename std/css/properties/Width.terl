@@ -80,10 +80,6 @@ pub struct Property {
     width: Value,
 }.
 
-pub struct OptionalProperty {
-    width: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for width. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
  * apply to the entire declaration.

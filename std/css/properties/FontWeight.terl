@@ -59,10 +59,6 @@ pub struct Property {
     font_weight: Value,
 }.
 
-pub struct OptionalProperty {
-    font_weight: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for font-weight. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

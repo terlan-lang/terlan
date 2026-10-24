@@ -35,10 +35,6 @@ pub struct Property {
     border_bottom_left_radius: Value,
 }.
 
-pub struct OptionalProperty {
-    border_bottom_left_radius: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for border-bottom-left-radius. CSS-wide choices Inherit, Initial, Unset,
  * Revert, and RevertLayer apply to the entire declaration.

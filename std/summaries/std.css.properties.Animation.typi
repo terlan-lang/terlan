@@ -150,10 +150,6 @@ pub type None =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    animation: std.core.Option.Option[Value]
-}.
-
 /// The animation is currently paused.
 ///
 /// Author guide:

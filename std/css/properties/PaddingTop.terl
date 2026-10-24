@@ -35,10 +35,6 @@ pub struct Property {
     padding_top: Value,
 }.
 
-pub struct OptionalProperty {
-    padding_top: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for padding-top. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

@@ -39,10 +39,6 @@ pub type FromFont =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    font_size_adjust: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_size_adjust: Value
 }.

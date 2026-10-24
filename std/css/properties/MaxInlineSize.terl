@@ -61,10 +61,6 @@ pub struct Property {
     max_inline_size: Value,
 }.
 
-pub struct OptionalProperty {
-    max_inline_size: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for max-inline-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

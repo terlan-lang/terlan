@@ -51,10 +51,6 @@ pub type Css =
 pub type Left =
     Atom["left"].
 
-pub struct OptionalProperty {
-    page_break_after: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     page_break_after: Value
 }.

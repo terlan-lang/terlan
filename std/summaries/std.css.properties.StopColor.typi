@@ -24,10 +24,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    stop_color: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     stop_color: Value
 }.

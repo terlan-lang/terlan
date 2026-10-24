@@ -27,10 +27,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    border_spacing: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     border_spacing: Value
 }.

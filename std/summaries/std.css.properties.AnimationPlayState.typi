@@ -26,10 +26,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    animation_play_state: std.core.Option.Option[Value]
-}.
-
 /// The animation is currently paused.
 
 pub type Paused =

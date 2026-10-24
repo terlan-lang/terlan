@@ -17,7 +17,6 @@ module std.css.properties.GlyphOrientationVertical.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
@@ -26,10 +25,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     glyph_orientation_vertical: Value,
-}.
-
-pub struct OptionalProperty {
-    glyph_orientation_vertical: std.core.Option.Option[Value],
 }.
 
 /**

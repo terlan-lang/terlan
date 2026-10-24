@@ -22,7 +22,6 @@ module std.css.properties.AnchorName.
 import std.core.Atom.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 /**
@@ -38,10 +37,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     anchor_name: Value,
-}.
-
-pub struct OptionalProperty {
-    anchor_name: std.core.Option.Option[Value],
 }.
 
 /**

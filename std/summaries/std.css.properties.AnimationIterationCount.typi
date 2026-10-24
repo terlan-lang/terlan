@@ -30,10 +30,6 @@ pub type Css =
 pub type Infinite =
     Atom["infinite"].
 
-pub struct OptionalProperty {
-    animation_iteration_count: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     animation_iteration_count: Value
 }.

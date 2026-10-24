@@ -55,10 +55,6 @@ pub type Math =
 pub type Monospace =
     Atom["monospace"].
 
-pub struct OptionalProperty {
-    font_family: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_family: Value
 }.

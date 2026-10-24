@@ -36,10 +36,6 @@ pub type Css =
 pub type Isolate =
     Atom["isolate"].
 
-pub struct OptionalProperty {
-    isolation: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     isolation: Value
 }.

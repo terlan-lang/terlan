@@ -45,10 +45,6 @@ pub type Light =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    color_scheme: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     color_scheme: Value
 }.

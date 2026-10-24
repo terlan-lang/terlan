@@ -22,7 +22,6 @@ module std.css.properties.Order.
 import std.core.{Atom, Int}.
 import std.css.Values.{serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
@@ -31,10 +30,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     order: Value,
-}.
-
-pub struct OptionalProperty {
-    order: std.core.Option.Option[Value],
 }.
 
 /**

@@ -39,10 +39,6 @@ pub type Css =
 pub type NumericOnly =
     Atom["numeric-only"].
 
-pub struct OptionalProperty {
-    interpolate_size: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     interpolate_size: Value
 }.

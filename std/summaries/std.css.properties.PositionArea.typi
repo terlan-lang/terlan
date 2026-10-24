@@ -105,10 +105,6 @@ pub type Left =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    position_area: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     position_area: Value
 }.

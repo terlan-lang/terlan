@@ -55,10 +55,6 @@ pub type InterWord =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    text_justify: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_justify: Value
 }.

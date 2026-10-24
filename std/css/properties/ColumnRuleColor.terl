@@ -22,7 +22,6 @@ import std.core.Atom.
 import std.css.Values.
 import std.css.Values.{color_css, serialize}.
 
-import type std.core.Option.
 import type std.css.Values.{Color, Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
 pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
@@ -31,10 +30,6 @@ pub opaque type Value = SerializedValue.
 
 pub struct Property {
     column_rule_color: Value,
-}.
-
-pub struct OptionalProperty {
-    column_rule_color: std.core.Option.Option[Value],
 }.
 
 /**

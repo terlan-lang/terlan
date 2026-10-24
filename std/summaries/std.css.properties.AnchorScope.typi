@@ -37,10 +37,6 @@ pub type Css =
 pub type None =
     Atom["none"].
 
-pub struct OptionalProperty {
-    anchor_scope: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     anchor_scope: Value
 }.

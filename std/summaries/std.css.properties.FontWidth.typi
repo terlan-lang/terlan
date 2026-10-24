@@ -60,10 +60,6 @@ pub type ExtraExpanded =
 pub type Normal =
     Atom["normal"].
 
-pub struct OptionalProperty {
-    font_width: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     font_width: Value
 }.

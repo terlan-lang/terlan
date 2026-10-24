@@ -33,10 +33,6 @@ pub struct Property {
     tab_size: Value,
 }.
 
-pub struct OptionalProperty {
-    tab_size: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for tab-size. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
  * apply to the entire declaration.

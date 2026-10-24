@@ -43,10 +43,6 @@ pub type Css =
 pub type Left =
     Atom["left"].
 
-pub struct OptionalProperty {
-    perspective_origin: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     perspective_origin: Value
 }.

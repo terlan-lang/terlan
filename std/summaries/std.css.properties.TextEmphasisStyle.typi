@@ -68,10 +68,6 @@ pub type None =
 pub type Open =
     Atom["open"].
 
-pub struct OptionalProperty {
-    text_emphasis_style: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     text_emphasis_style: Value
 }.

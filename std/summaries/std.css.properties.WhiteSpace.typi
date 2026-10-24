@@ -74,10 +74,6 @@ pub type Normal =
 pub type Nowrap =
     Atom["nowrap"].
 
-pub struct OptionalProperty {
-    white_space: std.core.Option.Option[Value]
-}.
-
 /// Sequences of white space are preserved. Lines are only broken at newline characters in the source
 /// and at `br` elements. Equivalent to `preserve nowrap`.
 

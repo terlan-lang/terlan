@@ -56,10 +56,6 @@ pub struct Property {
     min_block_size: Value,
 }.
 
-pub struct OptionalProperty {
-    min_block_size: std.core.Option.Option[Value],
-}.
-
 /**
  * Selects a keyword for min-block-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
  * RevertLayer apply to the entire declaration.

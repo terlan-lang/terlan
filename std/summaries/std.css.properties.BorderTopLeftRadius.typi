@@ -25,10 +25,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    border_top_left_radius: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     border_top_left_radius: Value
 }.

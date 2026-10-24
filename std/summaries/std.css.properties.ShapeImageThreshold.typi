@@ -25,10 +25,6 @@ pub type Css =
   | std.css.Values.Revert
   | std.css.Values.RevertLayer.
 
-pub struct OptionalProperty {
-    shape_image_threshold: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     shape_image_threshold: Value
 }.

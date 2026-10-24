@@ -46,10 +46,6 @@ pub type Exclude =
 pub type Intersect =
     Atom["intersect"].
 
-pub struct OptionalProperty {
-    mask_composite: std.core.Option.Option[Value]
-}.
-
 pub struct Property {
     mask_composite: Value
 }.
