@@ -21,7 +21,7 @@ fn direct_aot_rejects_an_unsupported_application_without_runtime_fallback() {
         &source,
         r#"module direct_aot_rejection.
 
-pub entry(): FixedArray[1, Int] -> #[1].
+pub entry(): Array[1, Int] -> #[1].
 "#,
     )
     .expect("write unsupported direct-AOT source");

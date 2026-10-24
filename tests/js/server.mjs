@@ -23,4 +23,4 @@ const server = http.createServer(async (request, response) => {
     response.writeHead(404).end();
   }
 });
-server.listen(4197, '127.0.0.1');
+server.listen(Number(process.env.TERLAN_JS_TEST_PORT ?? 4197), '127.0.0.1');

@@ -386,15 +386,7 @@ pub(super) fn check_interface_annotations(
     names.extend(primitive_type_names());
     names.extend(
         [
-            "Binary",
-            "Number",
-            "Atom",
-            "Term",
-            "Dynamic",
-            "Never",
-            "Text",
-            "List",
-            "FixedArray",
+            "Binary", "Number", "Atom", "Term", "Dynamic", "Never", "Text", "List", "Array",
         ]
         .map(str::to_string),
     );
@@ -403,7 +395,7 @@ pub(super) fn check_interface_annotations(
         .map(|name| (name.clone(), 0))
         .collect::<HashMap<_, _>>();
     arities.insert("List".to_string(), 1);
-    arities.insert("FixedArray".to_string(), 2);
+    arities.insert("Array".to_string(), 2);
     let own = syntax_module_output_to_interface(module);
     for interface in resolved.interface_map.values().chain(std::iter::once(&own)) {
         for name in &interface.public_types {

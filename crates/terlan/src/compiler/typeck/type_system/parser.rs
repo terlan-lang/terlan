@@ -123,7 +123,9 @@ pub(crate) fn parse_type_expr(
             )?)));
         }
 
-        if base == "FixedArray" {
+        // Explicitly declared or imported Array types keep their own identity
+        // and arity (for example, the JavaScript-native Array[T] wrapper).
+        if base == "Array" && !aliases.contains(base) && !vars.contains_key(base) {
             let mut args = split_top_level_csv(&args).into_iter();
             let first = args.next()?;
             let second = args.next()?;

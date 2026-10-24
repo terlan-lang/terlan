@@ -5,6 +5,174 @@ use super::*;
 use crate::terlan_hir::{resolve_syntax_module_output, syntax_module_output_to_interface};
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
+/// The built-in array name preserves its size, including nested empty arrays.
+#[test]
+fn type_parser_recognizes_builtin_array() {
+    let ty = parse_type_expr(
+        "Array[3, Array[0, Int]]",
+        &HashSet::new(),
+        &mut HashMap::new(),
+        &mut 0,
+    )
+    .expect("parse built-in array");
+    assert!(matches!(
+        &ty,
+        Type::FixedArray {
+            size: types::FixedArraySize::Known(3),
+            ..
+        }
+    ));
+    assert_eq!(pretty_type(&ty), "Array[3, Array[0, Int]]");
+
+    for invalid in ["Array[Int]", "Array[-1, Int]", "Array[2, Int, Bool]"] {
+        assert!(
+            parse_type_expr(invalid, &HashSet::new(), &mut HashMap::new(), &mut 0).is_none(),
+            "accepted invalid built-in array {invalid}"
+        );
+    }
+}
+
+/// Explicit Array declarations and constructor variables shadow the built-in.
+#[test]
+fn type_parser_preserves_explicit_array_names() {
+    let ty = parse_type_expr(
+        "Array[Int]",
+        &HashSet::from(["Array".into()]),
+        &mut HashMap::new(),
+        &mut 0,
+    )
+    .expect("parse declared Array type");
+    assert!(matches!(&ty, Type::Named { name, .. } if name == "Array"));
+
+    let ty = parse_type_expr(
+        "Array[Int]",
+        &HashSet::new(),
+        &mut HashMap::from([("Array".into(), 0)]),
+        &mut 1,
+    )
+    .expect("parse Array constructor variable");
+    assert!(matches!(ty, Type::Apply { constructor: 0, .. }));
+
+    let ty = parse_type_expr(
+        "std.js.Array.Array[Int]",
+        &HashSet::new(),
+        &mut HashMap::new(),
+        &mut 0,
+    )
+    .expect("parse qualified JavaScript array");
+    assert_eq!(pretty_type(&ty), "std.js.Array.Array[Int]");
+}
+
+/// Renaming the type keeps constant bounds checks and size identity intact.
+#[test]
+fn builtin_array_checks_bounds_and_replaces_fixed_array_name() {
+    let valid =
+        check_syntax_output("module arrays. pub last(): Int -> let values = #[10, 20]; values[1].");
+    assert!(valid.is_empty(), "{valid:?}");
+
+    let invalid = check_syntax_output(
+        "module arrays. pub invalid(): Int -> let values = #[10, 20]; values[2].",
+    );
+    assert!(
+        invalid.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("out of bounds for Array[2, Int]")),
+        "{invalid:?}"
+    );
+
+    let legacy =
+        check_syntax_output("module arrays. pub legacy(): FixedArray[2, Int] -> #[10, 20].");
+    assert!(
+        !legacy.is_empty(),
+        "the old type name is no longer built-in"
+    );
+}
+
+/// The shipped JavaScript wrapper can use its short name alongside qualified
+/// references without being parsed as the built-in fixed-size array.
+#[test]
+fn imported_javascript_array_keeps_its_own_arity() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        r#"
+module js_arrays.
+import std.js.Array.{Array, from_list, to_list}.
+pub make(): Array[Int] -> from_list([1, 2]).
+pub portable(values: Array[Int]): List[Int] -> to_list(values).
+pub qualified(values: std.js.Array.Array[Int]): Array[Int] -> values.
+"#,
+        "std/js/Array.terl",
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
+/// Import aliases allow both array families to be used in one module.
+#[test]
+fn builtin_array_coexists_with_aliased_javascript_array() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        r#"
+module mixed_arrays.
+import type std.js.Array.{Array as JsArray}.
+pub fixed(): Array[2, Int] -> #[1, 2].
+pub javascript(values: JsArray[Int]): std.js.Array.Array[Int] -> values.
+"#,
+        "std/js/Array.terl",
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
+/// Qualified array applications keep their provider's arity inside other types.
+#[test]
+fn qualified_javascript_array_checks_arity() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        r#"
+module invalid_qualified_array.
+import type std.js.Array.{Array as JsArray}.
+pub invalid(values: List[std.js.Array.Array[Int, Int]]): Int -> 0.
+"#,
+        "std/js/Array.terl",
+    );
+    assert!(
+        diagnostics.iter().any(
+            |diagnostic| diagnostic.message.contains("std.js.Array.Array")
+                && diagnostic.message.contains("expects 1")
+        ),
+        "{diagnostics:?}"
+    );
+}
+
+/// Native signature validation recognizes the built-in's two parameters.
+#[test]
+fn builtin_array_native_signatures_check_arity() {
+    let diagnostics = check_syntax_output(
+        "module arrays. @compiler.native {fixture.arrays} pub pass(values: Array[2, Int]): Array[2, Int].",
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+
+    let diagnostics = check_syntax_output(
+        "module arrays. @compiler.native {fixture.arrays} pub pass(values: Array[Int]): Int.",
+    );
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("Array")
+                && diagnostic.message.contains("expects 2")),
+        "{diagnostics:?}"
+    );
+}
+
+/// A nominal Array constructor must preserve its declared representation.
+#[test]
+fn declared_opaque_array_is_not_a_builtin_array_constructor() {
+    let diagnostics = check_syntax_output(
+        r#"
+module nominal_arrays.
+pub opaque type Array[T] = {T, T}.
+pub pair(): Array[Int] -> Array({1, 2}).
+"#,
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
 /// Verifies multi-segment module type references keep their full module path.
 ///
 /// Inputs:

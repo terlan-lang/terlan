@@ -436,7 +436,7 @@ pub(super) fn syntax_output_includes_sequence_primary_expr_trees() {
         binary(): Binary ->
             "hello".
 
-        fixed(): FixedArray[3, Int] ->
+        fixed(): Array[3, Int] ->
             #[1, 2, 3].
 
         indexed(items: List[Int]): Int ->

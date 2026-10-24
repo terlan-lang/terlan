@@ -2,14 +2,13 @@ use std::collections::HashMap;
 
 use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
 
-use crate::terlan_typeck::types::FixedArraySize;
 use crate::terlan_typeck::{
     apply_subst, call_has_named_args, complete_defaulted_call_arg_types, expand_type_aliases,
     infer_syntax_expr, instantiate_constructor_scheme, instantiate_type, interface_type_aliases,
-    is_constructor_name, next_constructor_type_var, normalize_union,
-    parse_interface_constructor_schemes, reorder_named_call_arg_types, substitute_type_vars,
-    supplied_named_parameter_slots, syntax_callee_name, unify, validate_named_call_args,
-    ConstructorScheme, ExprInferContext, Type, TypeAlias, TypeVarId,
+    is_constructor_name, next_constructor_type_var, parse_interface_constructor_schemes,
+    reorder_named_call_arg_types, substitute_type_vars, supplied_named_parameter_slots,
+    syntax_callee_name, unify, validate_named_call_args, ConstructorScheme, ExprInferContext, Type,
+    TypeAlias, TypeVarId,
 };
 
 /// Infers a constructor call from explicit constructors or alias constructors.
@@ -362,20 +361,6 @@ pub(super) fn infer_opaque_constructor(
             arg_types.len()
         ));
         return Some(Type::Dynamic);
-    }
-
-    if name == "FixedArray" {
-        if let Type::Tuple(items) = &arg_types[0] {
-            let elem = if items.is_empty() {
-                Type::Never
-            } else {
-                normalize_union(items.clone())
-            };
-            return Some(Type::FixedArray {
-                size: FixedArraySize::Known(items.len()),
-                elem: Box::new(elem),
-            });
-        }
     }
 
     let expected = expand_type_aliases(&alias.body, aliases);

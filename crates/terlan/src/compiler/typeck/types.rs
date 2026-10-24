@@ -222,7 +222,7 @@ pub fn pretty_type(ty: &Type) -> String {
                 FixedArraySize::Known(value) => value.to_string(),
                 FixedArraySize::Param(id) => format!("T{id}"),
             };
-            format!("FixedArray[{}, {}]", size, pretty_type(elem))
+            format!("Array[{}, {}]", size, pretty_type(elem))
         }
         Type::Tuple(items) => format!(
             "({})",

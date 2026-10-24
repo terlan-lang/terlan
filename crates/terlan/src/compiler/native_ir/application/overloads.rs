@@ -286,7 +286,7 @@ fn rewrite_expr(
             let item_types =
                 rewrite_items(items, current_module, environment, groups, returns, aliases)?;
             Some(CoreType::Apply {
-                constructor: "FixedArray".to_string(),
+                constructor: "Array".to_string(),
                 args: vec![common_type(&item_types)],
             })
         }
@@ -299,10 +299,8 @@ fn rewrite_expr(
                 match argument_types.first().and_then(Option::as_ref) {
                     Some(CoreType::List(element)) => return Ok(Some(*element.clone())),
                     Some(CoreType::Apply { constructor, args })
-                        if matches!(
-                            constructor.rsplit('.').next(),
-                            Some("List" | "FixedArray")
-                        ) =>
+                        if constructor == "Array"
+                            || constructor.rsplit('.').next() == Some("List") =>
                     {
                         return Ok(args.last().cloned());
                     }

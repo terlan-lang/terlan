@@ -511,7 +511,7 @@ fn type_constructor_arities(
     let mut arities = HashMap::from([
         ("List".to_string(), 1usize),
         ("Map".to_string(), 2usize),
-        ("FixedArray".to_string(), 2usize),
+        ("Array".to_string(), 2usize),
     ]);
 
     for (name, alias) in aliases {
@@ -558,7 +558,7 @@ fn type_constructor_variances(
             "Map".to_string(),
             vec![Variance::Covariant, Variance::Covariant],
         ),
-        ("FixedArray".to_string(), vec![Variance::Covariant]),
+        ("Array".to_string(), vec![Variance::Covariant]),
     ]);
 
     for (name, alias) in aliases {
@@ -782,18 +782,9 @@ fn kind_arity_display(arity: usize) -> String {
         .join(" -> ")
 }
 
-/// Extracts type applications from source type text.
-///
-/// Inputs:
-/// - `text`: source type-expression text.
-///
-/// Output:
-/// - Parsed trait-instance-like applications found in the text.
-///
-/// Transformation:
-/// - Uses the canonical lexer, then scans for name tokens followed by balanced
-///   brackets. Each balanced slice is parsed by the existing trait-instance
-///   parser so nested argument commas remain source-compatible.
+/// Extracts type applications with their qualified constructor names.
+/// Uses canonical tokens and balanced brackets so nested arguments retain
+/// their source spelling and comma grouping.
 fn type_applications_in_text(text: &str) -> Vec<ParsedTraitInstance> {
     let Ok(tokens) = crate::terlan_syntax::lexer::lex(text) else {
         return Vec::new();
@@ -822,8 +813,17 @@ fn type_applications_in_text(text: &str) -> Vec<ParsedTraitInstance> {
             end += 1;
         }
         if depth == 0 {
+            // Keep a qualified head intact so std.js.Array.Array[T] is
+            // checked against its imported arity, rather than built-in Array.
+            let mut start = index;
+            while start >= 2
+                && tokens[start - 1].kind == TokenKind::Dot
+                && matches!(tokens[start - 2].kind, TokenKind::Atom | TokenKind::Var)
+            {
+                start -= 2;
+            }
             if let Some(instance) = parse_trait_instance_from_text(
-                &tokens[index..end]
+                &tokens[start..end]
                     .iter()
                     .map(|token| token.text.as_str())
                     .collect::<Vec<_>>()

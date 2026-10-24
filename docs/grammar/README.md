@@ -703,6 +703,29 @@ Pipes prefer receiver-method resolution. `value |> method(extra)` resolves as
 method exists, the pipe falls back to ordinary call insertion. If both are valid,
 semantic analysis reports an ambiguity unless the call is explicitly qualified.
 
+## Arrays and Lists
+
+`Array[N, T]` contains exactly `N` elements of type `T`. Array literals use
+`#[...]`, and bracket reads use zero-based indices:
+
+```terlan
+pub rgb(): Array[3, Int] -> #[255, 128, 0].
+
+pub red(): Int ->
+    let color = rgb();
+    color[0].
+
+pub first[const N: Int](values: Array[N, Int]): Int -> values[0].
+```
+
+The size is part of the type. A literal with a different element count cannot
+satisfy an array annotation, and constant indices outside the known bounds are
+rejected during typechecking. `Array` replaces the former `FixedArray` type name.
+
+Use `List[T]` and `[1, 2, 3]` for portable growable collections. Explicitly
+imported array types, such as JavaScript's `std.js.Array.Array[T]`, retain their
+own identity and take precedence over the built-in name in that module.
+
 ## Runtime Boundaries
 
 Terlan source grammar does not include legacy runtime interop forms. Historical

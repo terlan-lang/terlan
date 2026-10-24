@@ -476,7 +476,7 @@ fn unify_type_constructor_application(
 ///
 /// Const-generic parameters deliberately retain their integer singleton value;
 /// ordinary type-variable binding widens integer literals to `Int`, which would
-/// erase the array identity needed by `FixedArray[N, T]`.
+/// erase the array identity needed by `Array[N, T]`.
 fn unify_fixed_array_sizes(
     left: FixedArraySize,
     right: FixedArraySize,

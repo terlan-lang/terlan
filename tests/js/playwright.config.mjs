@@ -2,6 +2,11 @@ import { defineConfig } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 
 const output = fileURLToPath(new URL('../../target/js-browser/', import.meta.url));
+const port = Number(process.env.TERLAN_JS_TEST_PORT ?? 4197);
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+  throw new Error('TERLAN_JS_TEST_PORT must be an integer from 1 to 65535');
+}
+const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: './specs',
@@ -14,13 +19,13 @@ export default defineConfig({
   outputDir: `${output}/test-results`,
   reporter: [['list'], ['json', { outputFile: `${output}/results.json` }]],
   use: {
-    baseURL: 'http://127.0.0.1:4197',
+    baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   webServer: {
     command: 'node server.mjs',
-    url: 'http://127.0.0.1:4197',
+    url: baseURL,
     reuseExistingServer: false,
     timeout: 15_000,
   },

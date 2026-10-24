@@ -673,7 +673,7 @@ module profile_test_index_expr_core_v0.\n\npub f(values: List[Int]): Dynamic ->\
 pub(super) fn target_profile_allows_fixed_array_expr_for_vm_profile() {
     let module = lower(
         "\
-module profile_test_fixed_array_expr.\n\npub f(): FixedArray[3, Int] ->\n    #[1, 2, 3].\n",
+module profile_test_fixed_array_expr.\n\npub f(): Array[3, Int] ->\n    #[1, 2, 3].\n",
         "src/profile_test_fixed_array_expr.terl",
     );
 
@@ -701,7 +701,7 @@ module profile_test_fixed_array_expr.\n\npub f(): FixedArray[3, Int] ->\n    #[1
 pub(super) fn target_profile_rejects_fixed_array_expr_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_test_fixed_array_expr_core_v0.\n\npub f(): FixedArray[3, Int] ->\n    #[1, 2, 3].\n",
+module profile_test_fixed_array_expr_core_v0.\n\npub f(): Array[3, Int] ->\n    #[1, 2, 3].\n",
         "src/profile_test_fixed_array_expr_core_v0.terl",
     );
 

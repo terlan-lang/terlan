@@ -124,7 +124,7 @@ fn formatter_wraps_long_fixed_arrays_with_trailing_commas() {
         r#"
 module rust_style_fixed_array.
 
-pub values(): FixedArray[String] -> #["the-first-deliberately-long-value", "the-second-deliberately-long-value", "the-third-deliberately-long-value"].
+pub values(): Array[3, String] -> #["the-first-deliberately-long-value", "the-second-deliberately-long-value", "the-third-deliberately-long-value"].
 "#,
     )
     .expect("format long fixed array");
@@ -183,7 +183,7 @@ pub build(
     second: second,
 }.
 
-pub collections(): {names: List[String], slots: FixedArray[Int],} -> {
+pub collections(): {names: List[String], slots: Array[2, Int],} -> {
     names: ["one", "two",],
     slots: #[1, 2,],
 }.

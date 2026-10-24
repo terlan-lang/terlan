@@ -219,7 +219,7 @@ fn explicit_constructor_variance(
     match name {
         "List" => vec![Variance::Covariant],
         "Map" => vec![Variance::Covariant, Variance::Covariant],
-        "FixedArray" => vec![Variance::Covariant],
+        "Array" => vec![Variance::Covariant],
         _ => vec![Variance::Invariant; fallback_len],
     }
 }

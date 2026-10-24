@@ -48,7 +48,7 @@ impl ConstValue {
             Self::Binary(_) => "String",
             Self::Tuple(_) => "Tuple",
             Self::List(_) => "List",
-            Self::FixedArray(_) => "FixedArray",
+            Self::FixedArray(_) => "Array",
             Self::Map(_) => "Map",
             Self::Record { name, .. } => name,
             Self::Union { name, .. } => name,

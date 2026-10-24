@@ -252,7 +252,7 @@ const SIZE: Int = 1.
 const ENABLED: Bool = true.
 const TAG: Atom = Atom["packet"].
 const double(value: Int): Int -> value * 2.
-type Buffer[const N: Int, T] = FixedArray[N, T].
+type Buffer[const N: Int, T] = Array[N, T].
 type Switch[const ON: Bool] = Bool.
 type Tagged[const NAME: Atom] = Atom.
 pub int_buffer(): Buffer[double(SIZE), Int] -> #[1, 2].
@@ -318,7 +318,7 @@ fn const_generic_callable_arguments_and_fixed_array_identity_typecheck() {
     let source = r#"
 module lifecycle.const_callable.
 const COUNT: Int = 2.
-pub first[const SIZE: Int](values: FixedArray[SIZE, Int]): Int -> values[0].
+pub first[const SIZE: Int](values: Array[SIZE, Int]): Int -> values[0].
 pub run(): Int -> first[COUNT](#[10, 20]).
 pub run_inferred(): Int -> first(#[10, 20]).
 "#;
@@ -346,7 +346,7 @@ pub run_inferred(): Int -> first(#[10, 20]).
     let mismatch = parse_module_as_syntax_output(
         r#"
 module lifecycle.const_identity.
-type Buffer[const SIZE: Int] = FixedArray[SIZE, Int].
+type Buffer[const SIZE: Int] = Array[SIZE, Int].
 pub bad(): Buffer[2] -> #[1].
 "#,
     )
@@ -356,7 +356,7 @@ pub bad(): Buffer[2] -> #[1].
     assert!(
         diagnostics
             .iter()
-            .any(|diagnostic| diagnostic.message.contains("FixedArray[2, Int]")),
+            .any(|diagnostic| diagnostic.message.contains("Array[2, Int]")),
         "{diagnostics:#?}"
     );
 }

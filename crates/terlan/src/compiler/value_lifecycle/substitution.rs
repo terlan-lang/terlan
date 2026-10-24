@@ -667,7 +667,7 @@ pub(super) fn ensure_type(
     let expected = expected.trim();
     let matches = expected == value.type_name()
         || (expected.starts_with("List[") && matches!(value, ConstValue::List(_)))
-        || (expected.starts_with("FixedArray[") && matches!(value, ConstValue::FixedArray(_)))
+        || (expected.starts_with("Array[") && matches!(value, ConstValue::FixedArray(_)))
         || (expected.starts_with('{') && matches!(value, ConstValue::Tuple(_)))
         || (expected.starts_with("Map[") && matches!(value, ConstValue::Map(_)))
         || matches!(value, ConstValue::Record { name, .. } if name == expected);

@@ -439,7 +439,7 @@ fn syntax_output_lowering_to_core_fixed_array_expr() {
         "\
 module core_fixed_array_expr_boundary.\n\
 \n\
-pub rgb(): FixedArray[3, Int] ->\n\
+pub rgb(): Array[3, Int] ->\n\
     #[1, 2, 3].\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
